@@ -498,7 +498,7 @@ class Api:
         graph = request.match_info["graph_id"]
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_benchmark(graph, benchmark, accounts)
+        result = await self.inspector.perform_benchmark(graph, benchmark, accounts=accounts)
         result_graph = result.to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             await self.stream_response_from_gen(request, streamer, len(result_graph))

@@ -71,6 +71,10 @@ class CLIContext:
     console_renderer: Optional[ConsoleRenderer] = None
     source: Optional[str] = None  # who is calling
 
+    @property
+    def graph_name(self) -> str:
+        return self.env["graph"]
+
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section
         section = self.env.get("section") if self.query else PathRoot
@@ -250,6 +254,15 @@ class CLISource(CLIAction):
         res = self._fn()
         count, gen = await res if iscoroutine(res) else res
         return count, self.make_stream(await gen if iscoroutine(gen) else gen)
+
+    @staticmethod
+    def no_count(
+        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
+    ) -> CLISource:
+        return CLISource.with_count(fn, None, produces, requires, envelope)
 
     @staticmethod
     def with_count(

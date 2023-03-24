@@ -77,7 +77,8 @@ disable=
     unsupported-binary-operation,
     too-many-branches,
     use-dict-literal,
-    too-many-return-statements
+    too-many-return-statements,
+    not-an-iterable
 
 
 [REPORTS]

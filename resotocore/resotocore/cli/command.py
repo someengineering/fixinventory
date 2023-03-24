@@ -11,6 +11,7 @@ import shutil
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
+from argparse import Namespace
 from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
@@ -116,7 +117,7 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.report import BenchmarkConfigPrefix
+from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
@@ -1369,7 +1370,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         # db name is coming from the env
-        graph_name = ctx.env["graph"]
+        graph_name = ctx.graph_name
         if not arg:
             raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
@@ -1893,7 +1894,7 @@ class SetDesiredStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -2029,7 +2030,7 @@ class SetMetadataStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -4650,7 +4651,7 @@ class ReportCommand(CLICommand):
         return "Generate reports."
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
+        args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
 
         async def list_benchmarks() -> AsyncIterator[str]:
             for benchmark in await self.dependencies.inspector.list_benchmarks():
@@ -4669,31 +4670,52 @@ class ReportCommand(CLICommand):
             for check in await self.dependencies.inspector.list_checks():
                 yield check.id
 
-        async def run_benchmark(bid: str) -> AsyncIterator[Json]:
-            result = await self.dependencies.inspector.perform_benchmark(ctx.env["graph"], bid)
-            for node in result.to_graph():
-                yield node
+        async def run_benchmark(bid: str, parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_benchmark(
+                ctx.graph_name,
+                bid,
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.fail_only,
+            )
+            if not result.is_empty():
+                for node in result.to_graph():
+                    yield node
 
-        async def run_check(check_id: str) -> AsyncIterator[Json]:
-            result = await self.dependencies.inspector.perform_checks(ctx.env["graph"], check_ids=[check_id])
-            for node in result.to_graph():
-                yield node
+        async def run_check(check_id: str, parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_checks(
+                ctx.graph_name,
+                check_ids=[check_id],
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.fail_only,
+            )
+            if not parsed_args.fail_only or result.has_failed():
+                for node in result.to_graph():
+                    yield node
 
         async def show_help() -> AsyncIterator[str]:
             yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
 
+        run_parser = NoExitArgumentParser()
+        run_parser.add_argument("--accounts", nargs="+")
+        run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
+        run_parser.add_argument("--fail-only", action="store_true", default=False)
+
         if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
-            return CLISource.with_count(list_benchmarks, 1)
+            return CLISource.no_count(list_benchmarks)
         elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
-            return CLISource.with_count(partial(show_benchmark, args[2].strip()), 1)
-        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
-            return CLISource.with_count(partial(run_benchmark, args[2].strip()), 1)
+            return CLISource.no_count(partial(show_benchmark, args[2].strip()))
+        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+            parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
+            return CLISource.no_count(partial(run_benchmark, args[2].strip(), parsed))
         elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
-            return CLISource.with_count(list_checks, 1)
+            return CLISource.no_count(list_checks)
         elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
-            return CLISource.with_count(partial(show_check, args[2].strip()), 1)
-        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "run":
-            return CLISource.with_count(partial(run_check, args[2].strip()), 1)
+            return CLISource.no_count(partial(show_check, args[2].strip()))
+        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
+            parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
+            return CLISource.no_count(partial(run_check, args[2].strip(), parsed))
         else:
             return CLISource.single(show_help)
 

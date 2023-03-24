@@ -6,7 +6,7 @@ from enum import Enum
 from functools import reduce
 from typing import List, Optional, Dict, ClassVar, AsyncIterator
 
-from attr import define, field
+from attr import define, field, evolve
 
 from resotocore.ids import ConfigId
 from resotocore.model.typed_model import to_js
@@ -34,6 +34,9 @@ class ReportSeverity(Enum):
     medium = "medium"
     high = "high"
     critical = "critical"
+
+
+ReportSeverityPriority: Dict[ReportSeverity, int] = {severity: num for num, severity in enumerate(ReportSeverity)}
 
 
 @define
@@ -121,6 +124,9 @@ class CheckResult:
     def number_of_resources_failing(self) -> int:
         return reduce(lambda a, b: a + b, self.number_of_resources_failing_by_account.values(), 0)
 
+    def has_failed(self) -> bool:
+        return self.number_of_resources_failing > 0
+
     def to_node(self) -> Json:
         reported = to_js(self.check)
         reported["kind"] = "report_check_result"
@@ -152,6 +158,23 @@ class CheckCollectionResult:
                 description=self.description,
                 documentation=self.documentation,
             ),
+        )
+
+    def is_empty(self) -> bool:
+        return not self.checks and not self.children
+
+    def has_failed(self) -> bool:
+        return any(c.has_failed() for c in self.checks) or any(c.has_failed() for c in self.children)
+
+    def filter_result(self, filter_failed: bool) -> CheckCollectionResult:
+        return evolve(
+            self,
+            checks=[c for c in self.checks if (c.has_failed() or not filter_failed)],
+            children=[
+                c.filter_result(filter_failed)
+                for c in self.children
+                if (c.has_failed() or not filter_failed) and (c.checks or c.children)
+            ],
         )
 
 
@@ -222,7 +245,13 @@ class Inspector(ABC):
 
     @abstractmethod
     async def perform_benchmark(
-        self, graph: str, benchmark_name: str, accounts: Optional[List[str]] = None
+        self,
+        graph: str,
+        benchmark_name: str,
+        *,
+        accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
         """
         Perform a benchmark by given name on the content of a graph with given name.
@@ -230,6 +259,8 @@ class Inspector(ABC):
         :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
+        :param severity: only include checks with given severity or higher
+        :param only_failing: only include failing checks in the result
         :return: the result of the benchmark
         """
 
@@ -244,6 +275,8 @@ class Inspector(ABC):
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
         accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
         """
         Perform a benchmark by selecting all checks matching the given criteria.
@@ -255,6 +288,8 @@ class Inspector(ABC):
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
         :param check_ids: the ids of the checks to perform.
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
+        :param severity: only include checks with given severity or higher
+        :param only_failing: only include failing checks in the result
         :return: the result of this benchmark
         """
 

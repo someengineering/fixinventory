@@ -29,6 +29,8 @@ from resotocore.report import (
     BenchmarkConfigRoot,
     ResotoReportBenchmark,
     ResotoReportCheck,
+    ReportSeverity,
+    ReportSeverityPriority,
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
@@ -50,7 +52,15 @@ def check_id(name: str) -> ConfigId:
 @define
 class CheckContext:
     accounts: Optional[List[str]] = None
+    severity: Optional[ReportSeverity] = None
+    only_failed: bool = False
     parallel_checks: int = 10
+
+    def includes_severity(self, severity: ReportSeverity) -> bool:
+        if self.severity is None:
+            return True
+        else:
+            return ReportSeverityPriority[self.severity] <= ReportSeverityPriority[severity]
 
 
 class InspectorService(Inspector, Service):
@@ -114,10 +124,16 @@ class InspectorService(Inspector, Service):
         return await self.filter_checks(inspection_matches)
 
     async def perform_benchmark(
-        self, graph: str, benchmark_name: str, accounts: Optional[List[str]] = None
+        self,
+        graph: str,
+        benchmark_name: str,
+        *,
+        accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
         benchmark = await self.__benchmark(benchmark_id(benchmark_name))
-        context = CheckContext(accounts=accounts)
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         return await self.__perform_benchmark(benchmark, graph, context)
 
     async def perform_checks(
@@ -130,6 +146,8 @@ class InspectorService(Inspector, Service):
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
         accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
         checks = await self.list_checks(
             provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
@@ -150,7 +168,7 @@ class InspectorService(Inspector, Service):
             checks=[c.id for c in checks],
             children=[],
         )
-        context = CheckContext(accounts=accounts)
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         return await self.__perform_benchmark(benchmark, graph, context)
 
     async def __benchmark(self, cfg_id: ConfigId) -> Benchmark:
@@ -221,18 +239,20 @@ class InspectorService(Inspector, Service):
 
     async def __perform_benchmark(self, benchmark: Benchmark, graph: str, context: CheckContext) -> BenchmarkResult:
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
-        check_by_id = {c.id: c for c in perform_checks}
+        check_by_id = {c.id: c for c in perform_checks if context.includes_severity(c.severity)}
         result = await self.__perform_checks(graph, perform_checks, context)
         await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
-            check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]
+            check_results = [
+                CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or [] if cid in check_by_id
+            ]
             children = [to_result(c) for c in cc.children or []]
             return CheckCollectionResult(
                 cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
             )
 
-        top = to_result(benchmark)
+        top = to_result(benchmark).filter_result(context.only_failed)
         return BenchmarkResult(
             benchmark.title,
             benchmark.description,

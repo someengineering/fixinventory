@@ -6,10 +6,10 @@ from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from typing import AsyncGenerator, Iterator, Dict, Any, Generator
 from typing import List, Optional
 from typing import Tuple, AsyncIterator, cast
-from types import SimpleNamespace
 
 from aiohttp import ClientSession
 from aiohttp.hdrs import METH_ANY
@@ -46,7 +46,7 @@ from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config, parse_args
-from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId
+from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -60,7 +60,9 @@ from resotocore.model.model import Model, Kind, ComplexKind, Property, Synthetic
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.template_expander import TemplateExpander
+from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
+from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -498,7 +500,63 @@ def cli(cli_deps: CLIDependencies) -> CLI:
 @fixture
 async def inspector_service(cli: CLI) -> InspectorService:
     async with InspectorService(cli) as service:
+        cli.dependencies.lookup["inspector"] = service
         return service
+
+
+@fixture
+async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
+    test_check = ConfigEntity(
+        ConfigId(CheckConfigPrefix + "test"),
+        {
+            "report_check": {
+                "provider": "test",
+                "service": "test",
+                "checks": [
+                    {
+                        "id": "test_test_some_check",
+                        "name": "some_check",
+                        "title": "Test",
+                        "result_kind": "foo",
+                        "categories": [],
+                        "risk": "Some risk",
+                        "severity": "medium",
+                        "detect": {"resoto": "is(foo) and does_not_exist!=null"},
+                        "remediation": {"text": "Some remediation text", "url": "https://example.com"},
+                    }
+                ],
+            }
+        },
+    )
+    test_benchmark = ConfigEntity(
+        ConfigId(BenchmarkConfigPrefix + "test"),
+        {
+            "report_benchmark": {
+                "id": "test",
+                "title": "test",
+                "framework": "test",
+                "clouds": ["test"],
+                "version": "1.5",
+                "description": "test",
+                "children": [
+                    {
+                        "title": "Section 1",
+                        "description": "Test section.",
+                        "checks": ["test_test_some_check"],
+                    },
+                    {
+                        "title": "Section 2",
+                        "description": "Test section.",
+                        "checks": ["test_test_some_check"],
+                    },
+                ],
+                "checks": [],
+            }
+        },
+    )
+    await config_handler.put_config(test_check)
+    await config_handler.put_config(test_benchmark)
+    return BenchmarkConfig.from_config(test_benchmark)
 
 
 @fixture

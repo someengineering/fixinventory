@@ -4,7 +4,7 @@ import os
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast
 
 import pytest
 import yaml
@@ -28,6 +28,8 @@ from resotocore.error import CLIParseError
 from resotocore.model.model import Model
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
+from resotocore.report import Inspector
+from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
@@ -1011,8 +1013,8 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
 
     async def aggregate(agg_str: str) -> List[Json]:
         res = AggregateCommand(cli_deps).parse(agg_str)
-        flow = await res.flow(in_stream)
-        return [s async for s in flow]
+        async with (await res.flow(in_stream)).stream() as flow:
+            return [s async for s in flow]
 
     assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
         {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},
@@ -1030,3 +1032,27 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
         {"group": {"name": "1_1_null"}, "count": 2},
         {"group": {"name": "2_1_null"}, "count": 2},
     ]
+
+
+@pytest.mark.asyncio
+async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: BenchmarkConfig) -> None:
+    T = TypeVar("T")
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    # all benchmarks are listed
+    assert "test" in await execute("report benchmark list", str)
+    assert "test" in await execute("report benchmarks list", str)
+    # all checks are listed
+    assert "test_test_some_check" in await execute("report check list", str)
+    assert "test_test_some_check" in await execute("report checks list", str)
+    # the whole benchmark is printed to the user
+    assert "Test section" in (await execute("report benchmark show test", Json))[0]
+    # a single check is executed and produces a benchmark result: benchmark_node, check_node, edge == 3
+    assert len((await execute("report check run test_test_some_check", Json))) == 3
+    # execute the test benchmark
+    assert len((await execute("report benchmark run test", Json))) == 9
+    assert len((await execute("report benchmark run test --fail-only", Json))) == 0
+    assert len((await execute("report benchmark run test --severity critical", Json))) == 0
