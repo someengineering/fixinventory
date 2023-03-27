@@ -10,6 +10,13 @@ def add_config(config: Config) -> None:
 
 
 @define
+class HomeDirectoryFile:
+    kind: ClassVar[str] = "resotoworker_home_directory_file"
+    path: str = field(metadata={"description": "Path to the file"})
+    content: str = field(metadata={"description": "Content of the file"})
+
+
+@define
 class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
     collector: List[str] = field(
@@ -63,6 +70,17 @@ class ResotoWorkerConfig:
         default="/",
         metadata={
             "description": "Web root in browser (change if running behind an ingress proxy)",
+            "restart_required": True,
+        },
+    )
+    write_files_to_home_dir: List[HomeDirectoryFile] = field(
+        factory=list,
+        metadata={
+            "description": (
+                "All entries that are defined in this section are created as files on demand. "
+                "Use this option to define .aws/credentials, .kube/config file or other "
+                "credential files that should be passed to the worker as file."
+            ),
             "restart_required": True,
         },
     )
