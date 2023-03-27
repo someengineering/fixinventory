@@ -14,7 +14,7 @@ _default_collectors: List[str] = []
 @frozen
 class PluginAutoEnabledResult:
     cloud: str
-    auto_enabled: bool
+    auto_enableable: bool
 
 
 def add_config(config: Config, collector_plugins: List[Type[BaseCollectorPlugin]]) -> None:
@@ -26,12 +26,12 @@ def set_default_collectors(collector_plugins: List[Type[BaseCollectorPlugin]]) -
     global _default_collectors
 
     def plugin_auto_enabled(plugin: Type[BaseCollectorPlugin]) -> PluginAutoEnabledResult:
-        return PluginAutoEnabledResult(plugin.cloud, plugin.auto_enabled())
+        return PluginAutoEnabledResult(plugin.cloud, plugin.auto_enableable())
 
     try:
         with ThreadPoolExecutor(max_workers=20, thread_name_prefix="AutoDiscovery") as executor:
             for plugin_result in executor.map(plugin_auto_enabled, collector_plugins, timeout=10):
-                if plugin_result.auto_enabled and plugin_result.cloud not in _default_collectors:
+                if plugin_result.auto_enableable and plugin_result.cloud not in _default_collectors:
                     _default_collectors.append(plugin_result.cloud)
     except TimeoutError:
         log.error("Timeout while getting auto-enabled collectors")

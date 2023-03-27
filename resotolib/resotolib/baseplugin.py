@@ -215,7 +215,7 @@ class BaseCollectorPlugin(BasePlugin):
         pass
 
     @staticmethod
-    def auto_enabled() -> bool:
+    def auto_enableable() -> bool:
         """Should this collector be enabled by default?"""
         return False
 

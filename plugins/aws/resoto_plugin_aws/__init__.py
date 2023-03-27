@@ -59,7 +59,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         cfg.add_config(AwsConfig)
 
     @staticmethod
-    def auto_enabled() -> bool:
+    def auto_enableable() -> bool:
         try:
             account_id = boto3.session.Session().client("sts").get_caller_identity().get("Account")
             log.debug(f"plugin: AWS auto discovery succeeded, running in account {account_id}.")
