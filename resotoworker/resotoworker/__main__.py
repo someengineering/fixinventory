@@ -94,7 +94,7 @@ def main() -> None:
         tls_data=tls_data,
     )
 
-    add_config(config)
+    add_config(config, plugin_loader.all_collector_plugins())
     plugin_loader.add_plugin_config(config)
     config.load_config()
 

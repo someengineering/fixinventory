@@ -1,12 +1,42 @@
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from resotolib.graph import GraphMergeKind
 from resotolib.config import Config
 from resotolib.proc import num_default_threads
-from attrs import define, field
-from typing import ClassVar, Optional, List
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.logger import log
+from attrs import define, field, frozen
+from typing import ClassVar, Optional, List, Type
 
 
-def add_config(config: Config) -> None:
+_default_collectors: List[str] = []
+
+
+@frozen
+class PluginAutoEnabledResult:
+    cloud: str
+    auto_enableable: bool
+
+
+def add_config(config: Config, collector_plugins: List[Type[BaseCollectorPlugin]]) -> None:
+    set_default_collectors(collector_plugins)
     config.add_config(ResotoWorkerConfig)
+
+
+def set_default_collectors(collector_plugins: List[Type[BaseCollectorPlugin]]) -> None:
+    global _default_collectors
+
+    def plugin_auto_enabled(plugin: Type[BaseCollectorPlugin]) -> PluginAutoEnabledResult:
+        return PluginAutoEnabledResult(plugin.cloud, plugin.auto_enableable())
+
+    try:
+        with ThreadPoolExecutor(max_workers=20, thread_name_prefix="AutoDiscovery") as executor:
+            for plugin_result in executor.map(plugin_auto_enabled, collector_plugins, timeout=10):
+                if plugin_result.auto_enableable and plugin_result.cloud not in _default_collectors:
+                    _default_collectors.append(plugin_result.cloud)
+    except TimeoutError:
+        log.error("Timeout while getting auto-enabled collectors")
+    except Exception as e:
+        log.error(f"Unhandled exception while getting auto-enabled collectors: {e}")
 
 
 @define
@@ -20,7 +50,7 @@ class HomeDirectoryFile:
 class ResotoWorkerConfig:
     kind: ClassVar[str] = "resotoworker"
     collector: List[str] = field(
-        factory=lambda: ["example"],
+        factory=lambda: _default_collectors,
         metadata={"description": "List of collectors to run", "restart_required": True},
     )
     graph: str = field(

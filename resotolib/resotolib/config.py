@@ -17,10 +17,9 @@ from resotolib.core.config import (
 )
 from resotolib.core.events import CoreEvents
 from resotolib.utils import replace_env_vars, merge_json_elements, drop_deleted_attributes
+from resotolib.types import Json
 from typing import Dict, Any, List, Optional, Type, cast
 from attrs import fields
-
-from resotolib.types import Json
 
 
 class RunningConfig:
