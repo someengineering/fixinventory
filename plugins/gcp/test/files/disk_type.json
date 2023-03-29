@@ -1,0 +1,43 @@
+{
+  "kind": "compute#diskTypeAggregatedList",
+  "id": "projects/test/aggregated/diskTypes",
+  "items": {
+    "diskTypes": [
+    {
+        "kind": "compute#diskType",
+        "id": "30007",
+        "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+        "name": "pd-balanced",
+        "description": "Balanced Persistent Disk",
+        "validDiskSize": "10GB-65536GB",
+        "selfLink": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1/diskTypes/pd-balanced",
+        "defaultDiskSizeGb": "100",
+        "region": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1"
+    },
+    {
+        "kind": "compute#diskType",
+        "id": "30002",
+        "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+        "name": "pd-ssd",
+        "description": "SSD Persistent Disk",
+        "validDiskSize": "10GB-65536GB",
+        "selfLink": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1/diskTypes/pd-ssd",
+        "defaultDiskSizeGb": "100",
+        "region": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1"
+    },
+    {
+        "kind": "compute#diskType",
+        "id": "30001",
+        "creationTimestamp": "1969-12-31T16:00:00.000-08:00",
+        "name": "pd-standard",
+        "description": "Standard Persistent Disk",
+        "validDiskSize": "200GB-65536GB",
+        "selfLink": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1/diskTypes/pd-standard",
+        "defaultDiskSizeGb": "500",
+        "region": "https://www.googleapis.com/compute/v1/projects/test/regions/us-east1"
+    }
+    ]
+  },
+  "nextPageToken": "CgsIAxFOCQAAAAAAABIMCgpwZC1leHRyZW1l",
+  "selfLink": "https://www.googleapis.com/compute/v1/projects/test/aggregated/diskTypes"
+}

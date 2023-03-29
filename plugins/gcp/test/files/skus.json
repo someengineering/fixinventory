@@ -625,6 +625,128 @@
                 "europe-west3"
               ]
             }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/3C62-891B-C73C",
+            "skuId": "3C62-891B-C73C",
+            "description": "Regional Storage PD Capacity",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Storage",
+              "resourceGroup": "PDStandard",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-central2",
+              "us-east1",
+              "us-west1",
+              "asia-east1",
+              "europe-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.mo",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 80000000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte month",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 2.8720446308352e+15
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-29T05:47:44.233Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "asia-east1",
+                "europe-west1",
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
+          },
+          {
+            "name": "services/6F81-5844-456A/skus/D973-5D65-BAB2",
+            "skuId": "D973-5D65-BAB2",
+            "description": "Storage PD Capacity",
+            "category": {
+              "serviceDisplayName": "Compute Engine",
+              "resourceFamily": "Storage",
+              "resourceGroup": "PDStandard",
+              "usageType": "OnDemand"
+            },
+            "serviceRegions": [
+              "us-central1",
+              "us-east1",
+              "us-west1",
+              "asia-east1",
+              "europe-west1"
+            ],
+            "pricingInfo": [
+              {
+                "summary": "",
+                "pricingExpression": {
+                  "usageUnit": "GiBy.mo",
+                  "displayQuantity": 1,
+                  "tieredRates": [
+                    {
+                      "startUsageAmount": 0,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 0
+                      }
+                    },
+                    {
+                      "startUsageAmount": 30,
+                      "unitPrice": {
+                        "currencyCode": "USD",
+                        "units": "0",
+                        "nanos": 40000000
+                      }
+                    }
+                  ],
+                  "usageUnitDescription": "gibibyte month",
+                  "baseUnit": "By.s",
+                  "baseUnitDescription": "byte second",
+                  "baseUnitConversionFactor": 2.8720446308352e+15
+                },
+                "aggregationInfo": {
+                  "aggregationLevel": "ACCOUNT",
+                  "aggregationInterval": "MONTHLY",
+                  "aggregationCount": 1
+                },
+                "currencyConversionRate": 1,
+                "effectiveTime": "2023-03-29T05:47:44.233Z"
+              }
+            ],
+            "serviceProviderName": "Google",
+            "geoTaxonomy": {
+              "type": "MULTI_REGIONAL",
+              "regions": [
+                "asia-east1",
+                "europe-west1",
+                "us-central1",
+                "us-east1",
+                "us-west1"
+              ]
+            }
           }
     ],
     "nextPageToken": "string"
