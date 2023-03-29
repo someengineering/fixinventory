@@ -63,6 +63,24 @@ class GcpProjectCollector:
             self.core_feedback.progress_done(self.project.dname, 1, 1, context=[self.cloud.id])
 
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+            self.remove_unconnected_nodes()
+
+    def remove_unconnected_nodes(self):
+        remove_nodes = set()
+
+        def rmnodes(cls) -> None:
+            for node in self.graph.nodes:
+                if isinstance(node, cls) and not any(True for _ in self.graph.successors(node)):
+                    remove_nodes.add(node)
+            for node in remove_nodes:
+                self.graph.remove_node(node)
+            log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            remove_nodes.clear()
+
+        # nodes need to be removed in the correct order
+        rmnodes((compute.GcpMachineType, compute.GcpDiskType))
+        rmnodes(billing.GcpSku)
+        rmnodes(billing.GcpService)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources
