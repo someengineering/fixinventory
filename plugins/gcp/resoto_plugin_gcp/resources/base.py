@@ -186,11 +186,11 @@ class GraphBuilder:
                 return None
         elif self.region is not None:
             node._region = self.region
-            self.add_edge(node, node=self.region)
+            self.add_edge(node, node=self.region, reverse=True)
         else:
             # TODO: check this list!
             # log.error(f"Neither zone nor region is set for node {source}, add to project.")
-            self.add_edge(node, node=self.project)
+            self.add_edge(node, node=self.project, reverse=True)
         with self.graph_nodes_access:
             self.graph.add_node(node, source=source or {})
         return node
