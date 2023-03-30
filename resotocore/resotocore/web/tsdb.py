@@ -39,7 +39,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
             drop_request_specific_headers(in_headers)
             url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
 
-            async def do_request(attempts_left: int = 3) -> StreamResponse:
+            async def do_request(attempts_left: int) -> StreamResponse:
                 async with api_handler.session.request(
                     request.method,
                     url,
@@ -86,7 +86,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     log.warning(f"Proxy tsdb request to: {url} resulted in error={e}")
                     raise HTTPBadGateway(text="tsdb server is not reachable") from e
 
-            return await do_request()
+            return await do_request(attempts_left=3)  # retry the request up to 3 times
         else:
             raise HTTPNotFound(text="No tsdb defined. Adjust resoto.core configuration.")
 
