@@ -3,7 +3,7 @@ from functools import lru_cache
 from socket import gethostname
 from typing import Callable, Awaitable
 
-from aiohttp import ClientConnectionError, ClientResponse
+from aiohttp import ClientConnectionError
 from aiohttp.web import HTTPNotFound, Request, StreamResponse
 from aiohttp.web_exceptions import HTTPBadGateway
 from multidict import CIMultiDict
@@ -66,31 +66,28 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                             cr.close()  # close the connection explicitly, might be pooled otherwise
                             return await do_request(attempts_left - 1)
                         else:
-                            return await handle_response(cr)
+                            log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
+                            headers = cr.headers.copy()
+                            drop_request_specific_headers(headers)
+                            via = f"{request.version.major}.{request.version.minor} {hostname()}"
+                            headers["Via"] = via
+                            headers["ViaResoto"] = via  # the via header might be set by other instances ase well
+                            response = StreamResponse(status=cr.status, reason=cr.reason, headers=headers)
+                            enable_compression(request, response)
+                            await response.prepare(request)
+                            async for data in cr.content.iter_chunked(1024 * 1024):
+                                await response.write(data)
+                            await response.write_eof()
+                            return response
                     except Exception:
                         cr.close()  # close connection on any error
                         raise
 
-            async def handle_response(cr: ClientResponse) -> StreamResponse:
-                try:
-                    log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
-                    headers = cr.headers.copy()
-                    drop_request_specific_headers(headers)
-                    via = f"{request.version.major}.{request.version.minor} {hostname()}"
-                    headers["Via"] = via
-                    headers["ViaResoto"] = via  # the via header might be set by other instances ase well
-                    response = StreamResponse(status=cr.status, reason=cr.reason, headers=headers)
-                    enable_compression(request, response)
-                    await response.prepare(request)
-                    async for data in cr.content.iter_chunked(1024 * 1024):
-                        await response.write(data)
-                    await response.write_eof()
-                    return response
-                except ClientConnectionError as e:
-                    log.warning(f"Proxy tsdb request to: {url} resulted in error={e}")
-                    raise HTTPBadGateway(text="tsdb server is not reachable") from e
-
-            return await do_request(attempts_left=3)  # retry the request up to 3 times
+            try:
+                return await do_request(attempts_left=3)  # retry the request up to 3 times
+            except ClientConnectionError as e:
+                log.warning(f"Proxy tsdb request to: {url} is not reachable {e}")
+                raise HTTPBadGateway(text="tsdb server is not reachable") from e
         else:
             raise HTTPNotFound(text="No tsdb defined. Adjust resoto.core configuration.")
 
