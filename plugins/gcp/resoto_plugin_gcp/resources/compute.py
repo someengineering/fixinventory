@@ -767,21 +767,22 @@ class GcpDiskType(GcpResource, BaseVolumeType):
     default_disk_size_gb: Optional[str] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
+    RESOURCE_GROUP_MAP = {
+        "local-ssd": "LocalSSD",
+        "pd-balanced": "SSD",
+        "pd-ssd": "SSD",
+        "pd-standard": "PDStandard",
+    }
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from disk_types type to SKUs and determines ondemand pricing"""
         if not self.name:
             return
 
         log.debug((f"Looking up pricing for {self.rtdname} in {self.region().rtdname}"))
-        resource_group_map = {
-            "local-ssd": "LocalSSD",
-            "pd-balanced": "SSD",
-            "pd-ssd": "SSD",
-            "pd-standard": "PDStandard",
-        }
-        resource_group = resource_group_map.get(self.name)
+        resource_group = self.RESOURCE_GROUP_MAP.get(self.name)
 
-        def filter(sku: GcpSku) -> bool:
+        def sku_filter(sku: GcpSku) -> bool:
             if not self.name:
                 return False
             if not sku.description or not sku.category or not sku.geo_taxonomy:
@@ -811,7 +812,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
                 return False
             return True
 
-        skus = builder.nodes(GcpSku, filter=filter)
+        skus = builder.nodes(GcpSku, filter=sku_filter)
         if len(skus) == 1 and skus[0].usage_unit_nanos:
             builder.add_edge(self, reverse=True, node=skus[0])
             self.ondemand_cost = skus[0].usage_unit_nanos / 1000000000
