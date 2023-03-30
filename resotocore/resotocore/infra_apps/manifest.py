@@ -1,9 +1,9 @@
 from typing import Literal, List, Union, Optional, Any
 from attrs import frozen
 from resotocore.types import Json
+from resotocore.model.typed_model import from_js
 from yaml import safe_load
 from jsons import loads as jsons_loads
-from resotocore.model.typed_model import from_js
 
 
 @frozen
