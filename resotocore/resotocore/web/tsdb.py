@@ -49,23 +49,27 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     data=request.content,
                     ssl=api_handler.cert_handler.client_context,
                 ) as cr:
-                    # we see valid requests failing in prometheus with 400, so we also retry client errors
-                    # ideally we would only retry on 5xx errors
-                    if cr.status >= 400 and attempts_left > 0:
-                        req_header = ", ".join(f"{k}={v}" for k, v in in_headers.items())
-                        req_params = ", ".join(f"{k}={v}" for k, v in request.query.items())
-                        req_body = await request.content.read()
-                        resp_header = ", ".join(f"{k}={v}" for k, v in cr.headers.items())
-                        resp_body = await cr.text()
-                        log.warning(
-                            f"tsdb server returned an error: url:{url}. "
-                            f"Request(headers:{req_header}, params:{req_params}, body:{str(req_body)}) "
-                            f"Response(headers:{resp_header}, status:{cr.status}, body:{resp_body})"
-                        )
-                        cr.close()  # close the connection explicitly, might be pooled otherwise
-                        return await do_request(attempts_left - 1)
-                    else:
-                        return await handle_response(cr)
+                    try:
+                        # we see valid requests failing in prometheus with 400, so we also retry client errors
+                        # ideally we would only retry on 5xx errors
+                        if cr.status >= 400 and attempts_left > 0:
+                            req_header = ", ".join(f"{k}={v}" for k, v in in_headers.items())
+                            req_params = ", ".join(f"{k}={v}" for k, v in request.query.items())
+                            req_body = await request.content.read()
+                            resp_header = ", ".join(f"{k}={v}" for k, v in cr.headers.items())
+                            resp_body = await cr.text()
+                            log.warning(
+                                f"tsdb server returned an error: url:{url}. "
+                                f"Request(headers:{req_header}, params:{req_params}, body:{str(req_body)}) "
+                                f"Response(headers:{resp_header}, status:{cr.status}, body:{resp_body})"
+                            )
+                            cr.close()  # close the connection explicitly, might be pooled otherwise
+                            return await do_request(attempts_left - 1)
+                        else:
+                            return await handle_response(cr)
+                    except Exception:
+                        cr.close()  # close connection on any error
+                        raise
 
             async def handle_response(cr: ClientResponse) -> StreamResponse:
                 try:
