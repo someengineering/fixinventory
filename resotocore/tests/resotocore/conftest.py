@@ -21,7 +21,7 @@ from pytest import fixture
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, NoEventSender
-from resotocore.cli.cli import CLI
+from resotocore.cli.cli import CLIService
 from resotocore.cli.command import (
     alias_names,
     all_commands,
@@ -492,13 +492,13 @@ async def cli_deps(
 
 
 @fixture
-def cli(cli_deps: CLIDependencies) -> CLI:
+def cli(cli_deps: CLIDependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
-    return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
+    return CLIService(cli_deps, all_commands(cli_deps), env, alias_names())
 
 
 @fixture
-async def inspector_service(cli: CLI) -> InspectorService:
+async def inspector_service(cli: CLIService) -> InspectorService:
     async with InspectorService(cli) as service:
         return service
 
@@ -591,7 +591,7 @@ async def task_handler(
     message_bus: MessageBus,
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
-    cli: CLI,
+    cli: CLIService,
     test_workflow: Workflow,
     additional_workflows: List[Workflow],
 ) -> AsyncGenerator[TaskHandlerService, None]:

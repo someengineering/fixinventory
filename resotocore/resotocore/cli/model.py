@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import calendar
 import inspect
 import json
 from abc import ABC, abstractmethod
 from asyncio import Queue, Task, iscoroutine
+from datetime import timedelta
 from enum import Enum
+from functools import reduce
 from operator import attrgetter
 from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
@@ -29,10 +32,11 @@ from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
-from resotocore.util import AccessJson, uuid_str
+from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 from resotolib.parse_util import l_curly_dp, r_curly_dp
+from resotolib.utils import get_local_tzinfo
 
 
 class MediaType(Enum):
@@ -486,6 +490,34 @@ class AliasTemplate:
         )
 
 
+@define
+class WorkerCustomCommand:
+    """
+    A worker might provide custom commands. This definition is provided by the worker.
+    """
+
+    name: str
+    info: Optional[str] = None
+    args_description: Dict[str, str] = field(factory=dict)
+    description: Optional[str] = None
+    filter: Dict[str, List[str]] = field(factory=dict)
+    allowed_on_kind: Optional[str] = None
+    expect_node_result: bool = False
+
+    def to_template(self) -> AliasTemplate:
+        allowed_kind = f" --allowed-on {self.allowed_on_kind}" if self.allowed_on_kind else ""
+        result_flag = "" if self.expect_node_result else " --no-node-result"
+        command = f"--command '{self.name}'"
+        args = "--arg '{{args}}'"
+        return AliasTemplate(
+            name=self.name,
+            info=self.info or "",
+            args_description=self.args_description,
+            template=f"execute-task{result_flag}{allowed_kind} {command} {args}",
+            description=self.description,
+        )
+
+
 class InternalPart(ABC):
     """
     Internal parts can be executed but are not shown via help.
@@ -583,3 +615,66 @@ class ParsedCommandLine:
             return count, flow
         else:
             return 0, stream.empty()
+
+
+class CLI(ABC):
+    @abstractmethod
+    async def evaluate_cli_command(
+        self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
+    ) -> List[ParsedCommandLine]:
+        pass
+
+    @abstractmethod
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
+        pass
+
+    @abstractmethod
+    def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
+        """
+        Called when a worker connects that introduces a custom command.
+        The registered templated will always override any existing template.
+        """
+
+    @staticmethod
+    def replacements(**env: str) -> Dict[str, str]:
+        now_string = env.get("now")
+        ut = from_utc(now_string) if now_string else utc()
+        t = ut.date()
+        try:
+            n = ut.astimezone(get_local_tzinfo())
+        except Exception:
+            n = ut
+        return dict(
+            UTC=utc_str(ut),
+            NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            TODAY=t.strftime("%Y-%m-%d"),
+            TOMORROW=(t + timedelta(days=1)).isoformat(),
+            YESTERDAY=(t + timedelta(days=-1)).isoformat(),
+            YEAR=t.strftime("%Y"),
+            MONTH=t.strftime("%m"),
+            DAY=t.strftime("%d"),
+            TIME=n.strftime("%H:%M:%S"),
+            HOUR=n.strftime("%H"),
+            MINUTE=n.strftime("%M"),
+            SECOND=n.strftime("%S"),
+            TZ_OFFSET=n.strftime("%z"),
+            TZ=n.strftime("%Z"),
+            MONDAY=(t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat(),
+            TUESDAY=(t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat(),
+            WEDNESDAY=(t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat(),
+            THURSDAY=(t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat(),
+            FRIDAY=(t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat(),
+            SATURDAY=(t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat(),
+            SUNDAY=(t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat(),
+        )
+
+    @staticmethod
+    def replace_placeholder(cli_input: str, **env: str) -> str:
+        # We do not use the template renderer here on purpose:
+        # - the string is processed before it is evaluated - there is no way to escape the @ symbol
+        # - the string might contain @ symbols
+        result = reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
+        result = reduce(
+            lambda res, kv: res.replace(f"@{kv[0].lower()}@", kv[1]), CLI.replacements(**env).items(), result
+        )
+        return result

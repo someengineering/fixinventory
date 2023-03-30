@@ -6,6 +6,12 @@ from typing import Any, ByteString, Union, Iterable, Tuple, List, Optional, cast
 from parsy import string, Parser, regex, any_char
 from ustache import default_getter, default_virtuals, render, PropertyGetter, TagsTuple, default_tags
 
+from resotocore.error import NoSuchTemplateError
+from resotocore.query import query_parser, QueryParser
+from resotocore.query.model import Query, Expandable, Template
+from resotocore.types import Json
+from resotocore.util import identity, duration, utc, utc_str
+
 from resotolib.parse_util import (
     double_quote_dp,
     single_quote_dp,
@@ -21,13 +27,6 @@ from resotolib.parse_util import (
     equals_p,
     json_value_p,
 )
-
-from resotocore.db.templatedb import TemplateEntityDb
-from resotocore.error import NoSuchTemplateError
-from resotocore.query import query_parser, QueryParser
-from resotocore.query.model import Query, Expandable, Template
-from resotocore.types import Json
-from resotocore.util import identity, duration, utc, utc_str
 
 
 class TemplateExpander(QueryParser):
@@ -102,6 +101,10 @@ class TemplateExpanderBase(TemplateExpander):
     async def parse_query(
         self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False, **env: str
     ) -> Query:
+        # if the query starts with the term "search " then we parse it as command line
+        if to_parse.strip().startswith("search "):
+            to_parse = await self.parse_query_from_command_line(to_parse, on_section, **env)
+            omit_section_expansion = True  # already done
         rendered = self.render(to_parse, env) if env else to_parse
         expanded, _ = await self.expand(rendered)
         result = query_parser.parse_query(expanded, **env)
@@ -134,29 +137,9 @@ class TemplateExpanderBase(TemplateExpander):
     def default_props(self) -> Optional[Json]:
         pass
 
-
-class DBTemplateExpander(TemplateExpanderBase):
-    """
-    Template expander, which maintains the templates in the database.
-    """
-
-    def __init__(self, db: TemplateEntityDb) -> None:
-        self.db = db
-
-    def default_props(self) -> Optional[Json]:
-        return None
-
-    async def put_template(self, template: Template) -> None:
-        await self.db.update(template)
-
-    async def delete_template(self, name: str) -> None:
-        await self.db.delete(name)
-
-    async def get_template(self, name: str) -> Optional[Template]:
-        return await self.db.get(name)
-
-    async def list_templates(self) -> List[Template]:
-        return [t async for t in self.db.all()]
+    @abstractmethod
+    async def parse_query_from_command_line(self, to_parse: str, on_section: Optional[str], **env: str) -> str:
+        pass
 
 
 class VirtualFunctions:

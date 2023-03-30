@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import calendar
 import logging
 from asyncio import Task
 from contextlib import suppress
-from functools import reduce
-
-from attrs import evolve
-from datetime import timedelta
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
@@ -17,11 +12,10 @@ from typing import Optional, Any
 
 from aiostream import stream
 from aiostream.core import Stream
+from attrs import evolve
 from parsy import Parser
 from rich.padding import Padding
 
-from resotolib.parse_util import make_parser, pipe_p, semicolon_p
-from resotolib.utils import get_local_tzinfo
 from resotocore import version
 from resotocore.analytics import CoreEvent
 from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink, args_values_parser
@@ -41,7 +35,6 @@ from resotocore.cli.command import (
     WelcomeCommand,
     SortPart,
     LimitPart,
-    WorkerCustomCommand,
     HistoryPart,
 )
 from resotocore.cli.model import (
@@ -53,6 +46,7 @@ from resotocore.cli.model import (
     CLIDependencies,
     InternalPart,
     CLIContext,
+    CLI,
     EmptyContext,
     CLISource,
     NoTerminalOutput,
@@ -60,6 +54,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
     AliasTemplateParameter,
+    WorkerCustomCommand,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -78,7 +73,8 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
 from resotocore.types import JsonElement
-from resotocore.util import utc_str, utc, from_utc, group_by
+from resotocore.util import group_by
+from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 
 log = logging.getLogger(__name__)
 
@@ -210,7 +206,7 @@ DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.i
 HistorySort = [Sort("/changed_at"), Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
-class CLI:
+class CLIService(CLI):
     """
     The CLI has a defined set of dependencies and knows a list if commands.
     A string can be parsed into a command line that can be executed based on the list of available commands.
@@ -524,47 +520,3 @@ class CLI:
 
     async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, ctx, True)]
-
-    @staticmethod
-    def replacements(**env: str) -> Dict[str, str]:
-        now_string = env.get("now")
-        ut = from_utc(now_string) if now_string else utc()
-        t = ut.date()
-        try:
-            n = ut.astimezone(get_local_tzinfo())
-        except Exception:
-            n = ut
-        return dict(
-            UTC=utc_str(ut),
-            NOW=n.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            TODAY=t.strftime("%Y-%m-%d"),
-            TOMORROW=(t + timedelta(days=1)).isoformat(),
-            YESTERDAY=(t + timedelta(days=-1)).isoformat(),
-            YEAR=t.strftime("%Y"),
-            MONTH=t.strftime("%m"),
-            DAY=t.strftime("%d"),
-            TIME=n.strftime("%H:%M:%S"),
-            HOUR=n.strftime("%H"),
-            MINUTE=n.strftime("%M"),
-            SECOND=n.strftime("%S"),
-            TZ_OFFSET=n.strftime("%z"),
-            TZ=n.strftime("%Z"),
-            MONDAY=(t + timedelta((calendar.MONDAY - t.weekday()) % 7)).isoformat(),
-            TUESDAY=(t + timedelta((calendar.TUESDAY - t.weekday()) % 7)).isoformat(),
-            WEDNESDAY=(t + timedelta((calendar.WEDNESDAY - t.weekday()) % 7)).isoformat(),
-            THURSDAY=(t + timedelta((calendar.THURSDAY - t.weekday()) % 7)).isoformat(),
-            FRIDAY=(t + timedelta((calendar.FRIDAY - t.weekday()) % 7)).isoformat(),
-            SATURDAY=(t + timedelta((calendar.SATURDAY - t.weekday()) % 7)).isoformat(),
-            SUNDAY=(t + timedelta((calendar.SUNDAY - t.weekday()) % 7)).isoformat(),
-        )
-
-    @staticmethod
-    def replace_placeholder(cli_input: str, **env: str) -> str:
-        # We do not use the template renderer here on purpose:
-        # - the string is processed before it is evaluated - there is no way to escape the @ symbol
-        # - the string might contain @ symbols
-        result = reduce(lambda res, kv: res.replace(f"@{kv[0]}@", kv[1]), CLI.replacements(**env).items(), cli_input)
-        result = reduce(
-            lambda res, kv: res.replace(f"@{kv[0].lower()}@", kv[1]), CLI.replacements(**env).items(), result
-        )
-        return result

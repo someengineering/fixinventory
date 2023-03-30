@@ -46,8 +46,8 @@ from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
-from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
+from resotocore.cli.cli import CLIService
+from resotocore.cli.command import ListCommand, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -56,6 +56,7 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
     AliasTemplate,
+    WorkerCustomCommand,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -130,7 +131,7 @@ class Api:
         cert_handler: CertificateHandler,
         config_handler: ConfigHandler,
         inspector: Inspector,
-        cli: CLI,
+        cli: CLIService,
         query_parser: QueryParser,
         config: CoreConfig,
         get_override: Callable[[ConfigId], Optional[Json]],

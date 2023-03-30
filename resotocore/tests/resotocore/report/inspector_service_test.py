@@ -1,6 +1,6 @@
 from pytest import fixture
 
-from resotocore.cli.cli import CLI
+from resotocore.cli.cli import CLIService
 from resotocore.config import ConfigEntity
 from resotocore.ids import ConfigId
 from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
@@ -16,7 +16,7 @@ from resotocore.util import partition_by
 
 @fixture
 async def inspector_service_with_test_benchmark(
-    cli: CLI, inspection_check_collection: Json, benchmark: Json
+    cli: CLIService, inspection_check_collection: Json, benchmark: Json
 ) -> InspectorService:
     service = InspectorService(cli)
     await service.config_handler.put_config(ConfigEntity(check_id("test"), inspection_check_collection))
