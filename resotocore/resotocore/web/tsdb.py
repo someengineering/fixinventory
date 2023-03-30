@@ -52,7 +52,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     try:
                         # we see valid requests failing in prometheus with 400, so we also retry client errors
                         # ideally we would only retry on 5xx errors
-                        if cr.status >= 400 and attempts_left > 0:
+                        if (cr.status == 400 or cr.status >= 500) and attempts_left > 0:
                             req_header = ", ".join(f"{k}={v}" for k, v in in_headers.items())
                             req_params = ", ".join(f"{k}={v}" for k, v in request.query.items())
                             req_body = await request.content.read()
