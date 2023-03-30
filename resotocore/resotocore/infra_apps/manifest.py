@@ -3,6 +3,7 @@ from attrs import frozen
 from resotocore.types import Json
 from yaml import safe_load
 from jsons import loads as jsons_loads
+from resotocore.model.typed_model import from_js
 
 
 @frozen
@@ -71,7 +72,7 @@ class AppManifest:
 
     @staticmethod
     def from_json(json: Json) -> "AppManifest":
-        return AppManifest(**json)
+        return from_js(json, AppManifest)
 
     @staticmethod
     def from_json_str(json_str: str) -> "AppManifest":
