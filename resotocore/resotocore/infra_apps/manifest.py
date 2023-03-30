@@ -67,7 +67,7 @@ class AppManifest:
     args_schema: List[AppArgs]
     source: str
 
-    ### Object creation methods. Use these instead of the __init__ method. ###
+    # Object creation methods. Use these instead of the __init__ method.
 
     @staticmethod
     def from_json(json: Json) -> "AppManifest":
