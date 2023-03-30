@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
-from resoto_plugin_gcp.gcp_client import GcpApiSpec
+from resoto_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.billing import GcpSku
 from resotolib.baseresources import (
@@ -3291,6 +3291,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             zone=zone,
             machineType=name,
         )
+        result[InternalZoneProp] = zone
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 
