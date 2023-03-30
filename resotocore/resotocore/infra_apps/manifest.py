@@ -12,10 +12,14 @@ class AppArgs:
 
     @param name: The name of the argument. Must be a valid Python variable name.
     @param help: A short human-readable description of the argument.
-    @param action: The action to be taken when the argument is encountered at the command line. See https://docs.python.org/3/library/argparse.html#action for more information.
-    @param type: The type of the argument. See https://docs.python.org/3/library/argparse.html#type for more information.
-    @param nargs: The number of command-line arguments that should be consumed. See https://docs.python.org/3/library/argparse.html#nargs for more information.
-    @param default: The default value of the argument. See https://docs.python.org/3/library/argparse.html#default for more information.
+    @param action: The action to be taken when the argument is encountered at the command line.
+    See https://docs.python.org/3/library/argparse.html#action for more information.
+    @param type: The type of the argument. See https://docs.python.org/3/library/argparse.html#type
+    for more information.
+    @param nargs: The number of command-line arguments that should be consumed.
+    See https://docs.python.org/3/library/argparse.html#nargs for more information.
+    @param default: The default value of the argument.
+    See https://docs.python.org/3/library/argparse.html#default for more information.
     """
 
     name: str
@@ -41,9 +45,11 @@ class AppManifest:
     @param url: The URL to the app's source code location.
     @param icon: base64 encoded icon of the app.
     @param categories: A list of categories the app belongs to.
-    @param config_schema: A JSON schema that describes the configuration of the app. see https://json-schema.org/ for more information.
+    @param config_schema: A JSON schema that describes the configuration of the app.
+    See https://json-schema.org/ for more information.
     @param default_config: The default configuration of the app.
-    @param args_schema: A list of command line arguments that can be passed to the app. Must be compatible with the Python argparse library.
+    @param args_schema: A list of command line arguments that can be passed to the app.
+    Must be compatible with the Python argparse library.
     @param source: The source code of the app.
 
     """
