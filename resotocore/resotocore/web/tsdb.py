@@ -3,7 +3,7 @@ from functools import lru_cache
 from socket import gethostname
 from typing import Callable, Awaitable
 
-from aiohttp import ClientConnectionError
+from aiohttp import ClientConnectionError, ClientResponse
 from aiohttp.web import HTTPNotFound, Request, StreamResponse
 from aiohttp.web_exceptions import HTTPBadGateway
 from multidict import CIMultiDict
@@ -38,7 +38,8 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
             in_headers = request.headers.copy()
             drop_request_specific_headers(in_headers)
             url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
-            try:
+
+            async def do_request(attempts_left: int = 3) -> StreamResponse:
                 async with api_handler.session.request(
                     request.method,
                     url,
@@ -48,6 +49,26 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     data=request.content,
                     ssl=api_handler.cert_handler.client_context,
                 ) as cr:
+                    # we see valid requests failing in prometheus with 400, so we also retry client errors
+                    # ideally we would only retry on 5xx errors
+                    if cr.status >= 400 and attempts_left > 0:
+                        req_header = ", ".join(f"{k}={v}" for k, v in in_headers.items())
+                        req_params = ", ".join(f"{k}={v}" for k, v in request.query.items())
+                        req_body = await request.content.read()
+                        resp_header = ", ".join(f"{k}={v}" for k, v in cr.headers.items())
+                        resp_body = await cr.text()
+                        log.warning(
+                            f"tsdb server returned an error: url:{url}. "
+                            f"Request(headers:{req_header}, params:{req_params}, body:{str(req_body)}) "
+                            f"Response(headers:{resp_header}, status:{cr.status}, body:{resp_body})"
+                        )
+                        cr.close()  # close the connection explicitly, might be pooled otherwise
+                        return await do_request(attempts_left - 1)
+                    else:
+                        return await handle_response(cr)
+
+            async def handle_response(cr: ClientResponse) -> StreamResponse:
+                try:
                     log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
                     headers = cr.headers.copy()
                     drop_request_specific_headers(headers)
@@ -61,9 +82,11 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                         await response.write(data)
                     await response.write_eof()
                     return response
-            except ClientConnectionError as e:
-                log.warning(f"Proxy tsdb request to: {url} resulted in error={e}")
-                raise HTTPBadGateway(text="tsdb server is not reachable") from e
+                except ClientConnectionError as e:
+                    log.warning(f"Proxy tsdb request to: {url} resulted in error={e}")
+                    raise HTTPBadGateway(text="tsdb server is not reachable") from e
+
+            return await do_request()
         else:
             raise HTTPNotFound(text="No tsdb defined. Adjust resoto.core configuration.")
 
