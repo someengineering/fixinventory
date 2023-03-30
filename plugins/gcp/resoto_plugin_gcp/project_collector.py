@@ -3,7 +3,8 @@ import logging
 from queue import Queue
 from typing import Type, List
 
-from resoto_plugin_gcp import GcpConfig, Credentials
+from resoto_plugin_gcp.config import GcpConfig
+from resoto_plugin_gcp.utils import Credentials
 from resoto_plugin_gcp.resources import compute, container, billing, sqladmin
 from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resotolib.baseresources import Cloud
@@ -47,6 +48,8 @@ class GcpProjectCollector:
 
             # fetch all project level resources
             for resource_class in all_resources:
+                if not self.config.should_collect(resource_class.kind):
+                    continue
                 if resource_class.api_spec and resource_class.api_spec.is_project_level:
                     global_builder.submit_work(resource_class.collect_resources, global_builder)
 
@@ -85,6 +88,8 @@ class GcpProjectCollector:
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources
         for resource_class in all_resources:
+            if not self.config.should_collect(resource_class.kind):
+                continue
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
                 log.info(
                     f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"

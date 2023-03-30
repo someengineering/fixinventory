@@ -210,11 +210,11 @@ class GcpScalingScheduleStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_start_time": S("lastStartTime"),
         "next_start_time": S("nextStartTime"),
-        "state": S("state"),
+        "scaling_schedule_status_state": S("state"),
     }
     last_start_time: Optional[datetime] = field(default=None)
     next_start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
+    scaling_schedule_status_state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -349,14 +349,14 @@ class GcpBackendBucket(GcpResource):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "bucket_name": S("bucketName"),
-        "cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendBucketCdnPolicy.mapping),
+        "backend_bucket_cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendBucketCdnPolicy.mapping),
         "compression_mode": S("compressionMode"),
         "custom_response_headers": S("customResponseHeaders", default=[]),
         "edge_security_policy": S("edgeSecurityPolicy"),
         "enable_cdn": S("enableCdn"),
     }
     bucket_name: Optional[str] = field(default=None)
-    cdn_policy: Optional[GcpBackendBucketCdnPolicy] = field(default=None)
+    backend_bucket_cdn_policy: Optional[GcpBackendBucketCdnPolicy] = field(default=None)
     compression_mode: Optional[str] = field(default=None)
     custom_response_headers: Optional[List[str]] = field(default=None)
     edge_security_policy: Optional[str] = field(default=None)
@@ -662,8 +662,8 @@ class GcpBackendService(GcpResource):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "affinity_cookie_ttl_sec": S("affinityCookieTtlSec"),
-        "backends": S("backends", default=[]) >> ForallBend(GcpBackend.mapping),
-        "cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendServiceCdnPolicy.mapping),
+        "backend_service_backends": S("backends", default=[]) >> ForallBend(GcpBackend.mapping),
+        "backend_service_cdn_policy": S("cdnPolicy", default={}) >> Bend(GcpBackendServiceCdnPolicy.mapping),
         "circuit_breakers": S("circuitBreakers", default={}) >> Bend(GcpCircuitBreakers.mapping),
         "compression_mode": S("compressionMode"),
         "connection_draining": S("connectionDraining", "drainingTimeoutSec"),
@@ -682,7 +682,7 @@ class GcpBackendService(GcpResource):
         "locality_lb_policies": S("localityLbPolicies", default=[])
         >> ForallBend(GcpBackendServiceLocalityLoadBalancingPolicyConfig.mapping),
         "locality_lb_policy": S("localityLbPolicy"),
-        "log_config": S("logConfig", default={}) >> Bend(GcpBackendServiceLogConfig.mapping),
+        "backend_service_log_config": S("logConfig", default={}) >> Bend(GcpBackendServiceLogConfig.mapping),
         "max_stream_duration": S("maxStreamDuration", default={}) >> Bend(GcpDuration.mapping),
         "network": S("network"),
         "outlier_detection": S("outlierDetection", default={}) >> Bend(GcpOutlierDetection.mapping),
@@ -697,8 +697,8 @@ class GcpBackendService(GcpResource):
         "timeout_sec": S("timeoutSec"),
     }
     affinity_cookie_ttl_sec: Optional[int] = field(default=None)
-    backends: Optional[List[GcpBackend]] = field(default=None)
-    cdn_policy: Optional[GcpBackendServiceCdnPolicy] = field(default=None)
+    backend_service_backends: Optional[List[GcpBackend]] = field(default=None)
+    backend_service_cdn_policy: Optional[GcpBackendServiceCdnPolicy] = field(default=None)
     circuit_breakers: Optional[GcpCircuitBreakers] = field(default=None)
     compression_mode: Optional[str] = field(default=None)
     connection_draining: Optional[int] = field(default=None)
@@ -715,7 +715,7 @@ class GcpBackendService(GcpResource):
     load_balancing_scheme: Optional[str] = field(default=None)
     locality_lb_policies: Optional[List[GcpBackendServiceLocalityLoadBalancingPolicyConfig]] = field(default=None)
     locality_lb_policy: Optional[str] = field(default=None)
-    log_config: Optional[GcpBackendServiceLogConfig] = field(default=None)
+    backend_service_log_config: Optional[GcpBackendServiceLogConfig] = field(default=None)
     max_stream_duration: Optional[GcpDuration] = field(default=None)
     network: Optional[str] = field(default=None)
     outlier_detection: Optional[GcpOutlierDetection] = field(default=None)
@@ -827,7 +827,7 @@ class GcpDisk(GcpResource, BaseVolume):
         "licenses": S("licenses", default=[]),
         "location_hint": S("locationHint"),
         "options": S("options"),
-        "params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
+        "disk_params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
         "physical_block_size_bytes": S("physicalBlockSizeBytes"),
         "provisioned_iops": S("provisionedIops"),
         "replica_zones": S("replicaZones", default=[]),
@@ -875,7 +875,7 @@ class GcpDisk(GcpResource, BaseVolume):
     licenses: Optional[List[str]] = field(default=None)
     location_hint: Optional[str] = field(default=None)
     options: Optional[str] = field(default=None)
-    params: Optional[GcpDiskParams] = field(default=None)
+    disk_params: Optional[GcpDiskParams] = field(default=None)
     physical_block_size_bytes: Optional[str] = field(default=None)
     provisioned_iops: Optional[str] = field(default=None)
     replica_zones: Optional[List[str]] = field(default=None)
@@ -931,10 +931,10 @@ class GcpExternalVpnGateway(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
+        "external_vpn_gateway_interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
         "redundancy_type": S("redundancyType"),
     }
-    interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
+    external_vpn_gateway_interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
     redundancy_type: Optional[str] = field(default=None)
 
 
@@ -966,9 +966,9 @@ class GcpFirewallPolicyRuleMatcherLayer4Config:
 @define(eq=False, slots=False)
 class GcpFirewallPolicyRuleSecureTag:
     kind: ClassVar[str] = "gcp_firewall_policy_rule_secure_tag"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "state": S("state")}
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "firewall_policy_rule_secure_tag_state": S("state")}
     name: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
+    firewall_policy_rule_secure_tag_state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -1047,7 +1047,7 @@ class GcpFirewallPolicy(GcpResource):
         "fingerprint": S("fingerprint"),
         "parent": S("parent"),
         "rule_tuple_count": S("ruleTupleCount"),
-        "rules": S("rules", default=[]) >> ForallBend(GcpFirewallPolicyRule.mapping),
+        "firewall_policy_rules": S("rules", default=[]) >> ForallBend(GcpFirewallPolicyRule.mapping),
         "self_link_with_id": S("selfLinkWithId"),
         "short_name": S("shortName"),
     }
@@ -1056,7 +1056,7 @@ class GcpFirewallPolicy(GcpResource):
     fingerprint: Optional[str] = field(default=None)
     parent: Optional[str] = field(default=None)
     rule_tuple_count: Optional[int] = field(default=None)
-    rules: Optional[List[GcpFirewallPolicyRule]] = field(default=None)
+    firewall_policy_rules: Optional[List[GcpFirewallPolicyRule]] = field(default=None)
     self_link_with_id: Optional[str] = field(default=None)
     short_name: Optional[str] = field(default=None)
 
@@ -1118,7 +1118,7 @@ class GcpFirewall(GcpResource):
         "destination_ranges": S("destinationRanges", default=[]),
         "direction": S("direction"),
         "disabled": S("disabled"),
-        "log_config": S("logConfig", default={}) >> Bend(GcpFirewallLogConfig.mapping),
+        "firewall_log_config": S("logConfig", default={}) >> Bend(GcpFirewallLogConfig.mapping),
         "network": S("network"),
         "priority": S("priority"),
         "source_ranges": S("sourceRanges", default=[]),
@@ -1132,7 +1132,7 @@ class GcpFirewall(GcpResource):
     destination_ranges: Optional[List[str]] = field(default=None)
     direction: Optional[str] = field(default=None)
     disabled: Optional[bool] = field(default=None)
-    log_config: Optional[GcpFirewallLogConfig] = field(default=None)
+    firewall_log_config: Optional[GcpFirewallLogConfig] = field(default=None)
     network: Optional[str] = field(default=None)
     priority: Optional[int] = field(default=None)
     source_ranges: Optional[List[str]] = field(default=None)
@@ -1733,7 +1733,7 @@ class GcpHealthCheck(GcpResource):
         "http2_health_check": S("http2HealthCheck", default={}) >> Bend(GcpHTTP2HealthCheck.mapping),
         "http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheck.mapping),
         "https_health_check": S("httpsHealthCheck", default={}) >> Bend(GcpHTTPSHealthCheck.mapping),
-        "log_config": S("logConfig", "enable"),
+        "health_check_log_config": S("logConfig", "enable"),
         "ssl_health_check": S("sslHealthCheck", default={}) >> Bend(GcpSSLHealthCheck.mapping),
         "tcp_health_check": S("tcpHealthCheck", default={}) >> Bend(GcpTCPHealthCheck.mapping),
         "timeout_sec": S("timeoutSec"),
@@ -1746,7 +1746,7 @@ class GcpHealthCheck(GcpResource):
     http2_health_check: Optional[GcpHTTP2HealthCheck] = field(default=None)
     http_health_check: Optional[GcpHTTPHealthCheck] = field(default=None)
     https_health_check: Optional[GcpHTTPSHealthCheck] = field(default=None)
-    log_config: Optional[bool] = field(default=None)
+    health_check_log_config: Optional[bool] = field(default=None)
     ssl_health_check: Optional[GcpSSLHealthCheck] = field(default=None)
     tcp_health_check: Optional[GcpTCPHealthCheck] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
@@ -2020,9 +2020,9 @@ class GcpStatefulPolicyPreservedStateDiskDevice:
 class GcpStatefulPolicyPreservedState:
     kind: ClassVar[str] = "gcp_stateful_policy_preserved_state"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "disks": S("disks", default={}) >> MapDict(value_bender=Bend(GcpStatefulPolicyPreservedStateDiskDevice.mapping))
+        "stateful_policy_preserved_state_disks": S("disks", default={}) >> MapDict(value_bender=Bend(GcpStatefulPolicyPreservedStateDiskDevice.mapping))
     }
-    disks: Optional[Dict[str, GcpStatefulPolicyPreservedStateDiskDevice]] = field(default=None)
+    stateful_policy_preserved_state_disks: Optional[Dict[str, GcpStatefulPolicyPreservedStateDiskDevice]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2134,7 +2134,7 @@ class GcpInstanceGroupManager(GcpResource):
         "list_managed_instances_results": S("listManagedInstancesResults"),
         "named_ports": S("namedPorts", default=[]) >> ForallBend(GcpNamedPort.mapping),
         "stateful_policy": S("statefulPolicy", default={}) >> Bend(GcpStatefulPolicy.mapping),
-        "status": S("status", default={}) >> Bend(GcpInstanceGroupManagerStatus.mapping),
+        "instance_group_manager_status": S("status", default={}) >> Bend(GcpInstanceGroupManagerStatus.mapping),
         "target_pools": S("targetPools", default=[]),
         "target_size": S("targetSize"),
         "update_policy": S("updatePolicy", default={}) >> Bend(GcpInstanceGroupManagerUpdatePolicy.mapping),
@@ -2150,7 +2150,7 @@ class GcpInstanceGroupManager(GcpResource):
     list_managed_instances_results: Optional[str] = field(default=None)
     named_ports: Optional[List[GcpNamedPort]] = field(default=None)
     stateful_policy: Optional[GcpStatefulPolicy] = field(default=None)
-    status: Optional[GcpInstanceGroupManagerStatus] = field(default=None)
+    instance_group_manager_status: Optional[GcpInstanceGroupManagerStatus] = field(default=None)
     target_pools: Optional[List[str]] = field(default=None)
     target_size: Optional[int] = field(default=None)
     update_policy: Optional[GcpInstanceGroupManagerUpdatePolicy] = field(default=None)
@@ -2653,7 +2653,7 @@ class GcpInstance(GcpResource, BaseInstance):
         "min_cpu_platform": S("minCpuPlatform"),
         "network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
         "network_performance_config": S("networkPerformanceConfig", "totalEgressBandwidthTier"),
-        "params": S("params", default={}) >> Bend(GcpInstanceParams.mapping),
+        "instance_params": S("params", default={}) >> Bend(GcpInstanceParams.mapping),
         "private_ipv6_google_access": S("privateIpv6GoogleAccess"),
         "reservation_affinity": S("reservationAffinity", default={}) >> Bend(GcpReservationAffinity.mapping),
         "resource_policies": S("resourcePolicies", default=[]),
@@ -2704,7 +2704,7 @@ class GcpInstance(GcpResource, BaseInstance):
     min_cpu_platform: Optional[str] = field(default=None)
     network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
     network_performance_config: Optional[str] = field(default=None)
-    params: Optional[GcpInstanceParams] = field(default=None)
+    instance_params: Optional[GcpInstanceParams] = field(default=None)
     private_ipv6_google_access: Optional[str] = field(default=None)
     reservation_affinity: Optional[GcpReservationAffinity] = field(default=None)
     resource_policies: Optional[List[str]] = field(default=None)
@@ -2833,7 +2833,7 @@ class GcpInterconnectAttachment(GcpResource):
         "router": S("router"),
         "satisfies_pzs": S("satisfiesPzs"),
         "stack_type": S("stackType"),
-        "state": S("state"),
+        "interconnect_attachment_state": S("state"),
         "type": S("type"),
         "vlan_tag8021q": S("vlanTag8021q"),
     }
@@ -2862,7 +2862,7 @@ class GcpInterconnectAttachment(GcpResource):
     router: Optional[str] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
     stack_type: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
+    interconnect_attachment_state: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
     vlan_tag8021q: Optional[int] = field(default=None)
 
@@ -2949,7 +2949,7 @@ class GcpInterconnectOutageNotification:
         "name": S("name"),
         "source": S("source"),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "interconnect_outage_notification_state": S("state"),
     }
     affected_circuits: Optional[List[str]] = field(default=None)
     description: Optional[str] = field(default=None)
@@ -2958,7 +2958,7 @@ class GcpInterconnectOutageNotification:
     name: Optional[str] = field(default=None)
     source: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
+    interconnect_outage_notification_state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2999,7 +2999,7 @@ class GcpInterconnect(GcpResource):
         "provisioned_link_count": S("provisionedLinkCount"),
         "requested_link_count": S("requestedLinkCount"),
         "satisfies_pzs": S("satisfiesPzs"),
-        "state": S("state"),
+        "interconnect_state": S("state"),
     }
     admin_enabled: Optional[bool] = field(default=None)
     circuit_infos: Optional[List[GcpInterconnectCircuitInfo]] = field(default=None)
@@ -3017,7 +3017,7 @@ class GcpInterconnect(GcpResource):
     provisioned_link_count: Optional[int] = field(default=None)
     requested_link_count: Optional[int] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
-    state: Optional[str] = field(default=None)
+    interconnect_state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3134,7 +3134,7 @@ class GcpSourceInstanceProperties:
         "can_ip_forward": S("canIpForward"),
         "deletion_protection": S("deletionProtection"),
         "description": S("description"),
-        "disks": S("disks", default=[]) >> ForallBend(GcpSavedAttachedDisk.mapping),
+        "saved_disks": S("disks", default=[]) >> ForallBend(GcpSavedAttachedDisk.mapping),
         "guest_accelerators": S("guestAccelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
         "key_revocation_action_type": S("keyRevocationActionType"),
         "labels": S("labels"),
@@ -3149,7 +3149,7 @@ class GcpSourceInstanceProperties:
     can_ip_forward: Optional[bool] = field(default=None)
     deletion_protection: Optional[bool] = field(default=None)
     description: Optional[str] = field(default=None)
-    disks: Optional[List[GcpSavedAttachedDisk]] = field(default=None)
+    saved_disks: Optional[List[GcpSavedAttachedDisk]] = field(default=None)
     guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     key_revocation_action_type: Optional[str] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
@@ -3291,7 +3291,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             zone=zone,
             machineType=name,
         )
-        result[InternalZoneProp] = zone
+        result[InternalZoneProp] = zone  # `add_node()` picks this up and sets proper zone/region
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 
@@ -3438,7 +3438,7 @@ class GcpNetworkPeering:
         "network": S("network"),
         "peer_mtu": S("peerMtu"),
         "stack_type": S("stackType"),
-        "state": S("state"),
+        "network_peering_state": S("state"),
         "state_details": S("stateDetails"),
     }
     auto_create_routes: Optional[bool] = field(default=None)
@@ -3451,7 +3451,7 @@ class GcpNetworkPeering:
     network: Optional[str] = field(default=None)
     peer_mtu: Optional[int] = field(default=None)
     stack_type: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
+    network_peering_state: Optional[str] = field(default=None)
     state_details: Optional[str] = field(default=None)
 
 
@@ -3635,9 +3635,9 @@ class GcpNodeTemplate(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "accelerators": S("accelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
+        "guest_accelerators": S("accelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
         "cpu_overcommit_type": S("cpuOvercommitType"),
-        "disks": S("disks", default=[]) >> ForallBend(GcpLocalDisk.mapping),
+        "local_disks": S("disks", default=[]) >> ForallBend(GcpLocalDisk.mapping),
         "node_affinity_labels": S("nodeAffinityLabels"),
         "node_type": S("nodeType"),
         "node_type_flexibility": S("nodeTypeFlexibility", default={})
@@ -3646,9 +3646,9 @@ class GcpNodeTemplate(GcpResource):
         "status": S("status"),
         "status_message": S("statusMessage"),
     }
-    accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
+    guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     cpu_overcommit_type: Optional[str] = field(default=None)
-    disks: Optional[List[GcpLocalDisk]] = field(default=None)
+    local_disks: Optional[List[GcpLocalDisk]] = field(default=None)
     node_affinity_labels: Optional[Dict[str, str]] = field(default=None)
     node_type: Optional[str] = field(default=None)
     node_type_flexibility: Optional[GcpNodeTemplateNodeTypeFlexibility] = field(default=None)
@@ -3783,14 +3783,14 @@ class GcpPacketMirroring(GcpResource):
         "filter": S("filter", default={}) >> Bend(GcpPacketMirroringFilter.mapping),
         "mirrored_resources": S("mirroredResources", default={})
         >> Bend(GcpPacketMirroringMirroredResourceInfo.mapping),
-        "network": S("network", default={}) >> Bend(GcpPacketMirroringNetworkInfo.mapping),
+        "packet_mirroring_network": S("network", default={}) >> Bend(GcpPacketMirroringNetworkInfo.mapping),
         "priority": S("priority"),
     }
     collector_ilb: Optional[GcpPacketMirroringForwardingRuleInfo] = field(default=None)
     enable: Optional[str] = field(default=None)
     filter: Optional[GcpPacketMirroringFilter] = field(default=None)
     mirrored_resources: Optional[GcpPacketMirroringMirroredResourceInfo] = field(default=None)
-    network: Optional[GcpPacketMirroringNetworkInfo] = field(default=None)
+    packet_mirroring_network: Optional[GcpPacketMirroringNetworkInfo] = field(default=None)
     priority: Optional[int] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -3988,7 +3988,7 @@ class GcpCommitment(GcpResource):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "auto_renew": S("autoRenew"),
-        "category": S("category"),
+        "commitment_category": S("category"),
         "end_timestamp": S("endTimestamp"),
         "license_resource": S("licenseResource", default={}) >> Bend(GcpLicenseResourceCommitment.mapping),
         "merge_source_commitments": S("mergeSourceCommitments", default=[]),
@@ -4002,7 +4002,7 @@ class GcpCommitment(GcpResource):
         "type": S("type"),
     }
     auto_renew: Optional[bool] = field(default=None)
-    category: Optional[str] = field(default=None)
+    commitment_category: Optional[str] = field(default=None)
     end_timestamp: Optional[datetime] = field(default=None)
     license_resource: Optional[GcpLicenseResourceCommitment] = field(default=None)
     merge_source_commitments: Optional[List[str]] = field(default=None)
@@ -4282,7 +4282,7 @@ class GcpSecurityPolicy(GcpResource):
         "ddos_protection_config": S("ddosProtectionConfig", "ddosProtection"),
         "fingerprint": S("fingerprint"),
         "recaptcha_options_config": S("recaptchaOptionsConfig", "redirectSiteKey"),
-        "rules": S("rules", default=[]) >> ForallBend(GcpSecurityPolicyRule.mapping),
+        "security_policy_rules": S("rules", default=[]) >> ForallBend(GcpSecurityPolicyRule.mapping),
         "type": S("type"),
     }
     adaptive_protection_config: Optional[GcpSecurityPolicyAdaptiveProtectionConfig] = field(default=None)
@@ -4290,7 +4290,7 @@ class GcpSecurityPolicy(GcpResource):
     ddos_protection_config: Optional[str] = field(default=None)
     fingerprint: Optional[str] = field(default=None)
     recaptcha_options_config: Optional[str] = field(default=None)
-    rules: Optional[List[GcpSecurityPolicyRule]] = field(default=None)
+    security_policy_rules: Optional[List[GcpSecurityPolicyRule]] = field(default=None)
     type: Optional[str] = field(default=None)
 
 
@@ -5078,14 +5078,14 @@ class GcpResourcePolicy(GcpResource):
         >> Bend(GcpResourcePolicyGroupPlacementPolicy.mapping),
         "instance_schedule_policy": S("instanceSchedulePolicy", default={})
         >> Bend(GcpResourcePolicyInstanceSchedulePolicy.mapping),
-        "resource_status": S("resourceStatus", default={}) >> Bend(GcpResourcePolicyResourceStatus.mapping),
+        "resource_policy_resource_status": S("resourceStatus", default={}) >> Bend(GcpResourcePolicyResourceStatus.mapping),
         "snapshot_schedule_policy": S("snapshotSchedulePolicy", default={})
         >> Bend(GcpResourcePolicySnapshotSchedulePolicy.mapping),
         "status": S("status"),
     }
     group_placement_policy: Optional[GcpResourcePolicyGroupPlacementPolicy] = field(default=None)
     instance_schedule_policy: Optional[GcpResourcePolicyInstanceSchedulePolicy] = field(default=None)
-    resource_status: Optional[GcpResourcePolicyResourceStatus] = field(default=None)
+    resource_policy_resource_status: Optional[GcpResourcePolicyResourceStatus] = field(default=None)
     snapshot_schedule_policy: Optional[GcpResourcePolicySnapshotSchedulePolicy] = field(default=None)
     status: Optional[str] = field(default=None)
 
@@ -5258,13 +5258,13 @@ class GcpRouterNat:
         "enable_endpoint_independent_mapping": S("enableEndpointIndependentMapping"),
         "endpoint_types": S("endpointTypes", default=[]),
         "icmp_idle_timeout_sec": S("icmpIdleTimeoutSec"),
-        "log_config": S("logConfig", default={}) >> Bend(GcpRouterNatLogConfig.mapping),
+        "router_nat_log_config": S("logConfig", default={}) >> Bend(GcpRouterNatLogConfig.mapping),
         "max_ports_per_vm": S("maxPortsPerVm"),
         "min_ports_per_vm": S("minPortsPerVm"),
         "name": S("name"),
         "nat_ip_allocate_option": S("natIpAllocateOption"),
         "nat_ips": S("natIps", default=[]),
-        "rules": S("rules", default=[]) >> ForallBend(GcpRouterNatRule.mapping),
+        "router_nat_rules": S("rules", default=[]) >> ForallBend(GcpRouterNatRule.mapping),
         "source_subnetwork_ip_ranges_to_nat": S("sourceSubnetworkIpRangesToNat"),
         "subnetworks": S("subnetworks", default=[]) >> ForallBend(GcpRouterNatSubnetworkToNat.mapping),
         "tcp_established_idle_timeout_sec": S("tcpEstablishedIdleTimeoutSec"),
@@ -5277,13 +5277,13 @@ class GcpRouterNat:
     enable_endpoint_independent_mapping: Optional[bool] = field(default=None)
     endpoint_types: Optional[List[str]] = field(default=None)
     icmp_idle_timeout_sec: Optional[int] = field(default=None)
-    log_config: Optional[GcpRouterNatLogConfig] = field(default=None)
+    router_nat_log_config: Optional[GcpRouterNatLogConfig] = field(default=None)
     max_ports_per_vm: Optional[int] = field(default=None)
     min_ports_per_vm: Optional[int] = field(default=None)
     name: Optional[str] = field(default=None)
     nat_ip_allocate_option: Optional[str] = field(default=None)
     nat_ips: Optional[List[str]] = field(default=None)
-    rules: Optional[List[GcpRouterNatRule]] = field(default=None)
+    router_nat_rules: Optional[List[GcpRouterNatRule]] = field(default=None)
     source_subnetwork_ip_ranges_to_nat: Optional[str] = field(default=None)
     subnetworks: Optional[List[GcpRouterNatSubnetworkToNat]] = field(default=None)
     tcp_established_idle_timeout_sec: Optional[int] = field(default=None)
@@ -5320,7 +5320,7 @@ class GcpRouter(GcpResource):
         "bgp": S("bgp", default={}) >> Bend(GcpRouterBgp.mapping),
         "bgp_peers": S("bgpPeers", default=[]) >> ForallBend(GcpRouterBgpPeer.mapping),
         "encrypted_interconnect_router": S("encryptedInterconnectRouter"),
-        "interfaces": S("interfaces", default=[]) >> ForallBend(GcpRouterInterface.mapping),
+        "router_interfaces": S("interfaces", default=[]) >> ForallBend(GcpRouterInterface.mapping),
         "md5_authentication_keys": S("md5AuthenticationKeys", default=[])
         >> ForallBend(GcpRouterMd5AuthenticationKey.mapping),
         "nats": S("nats", default=[]) >> ForallBend(GcpRouterNat.mapping),
@@ -5329,7 +5329,7 @@ class GcpRouter(GcpResource):
     bgp: Optional[GcpRouterBgp] = field(default=None)
     bgp_peers: Optional[List[GcpRouterBgpPeer]] = field(default=None)
     encrypted_interconnect_router: Optional[bool] = field(default=None)
-    interfaces: Optional[List[GcpRouterInterface]] = field(default=None)
+    router_interfaces: Optional[List[GcpRouterInterface]] = field(default=None)
     md5_authentication_keys: Optional[List[GcpRouterMd5AuthenticationKey]] = field(default=None)
     nats: Optional[List[GcpRouterNat]] = field(default=None)
     network: Optional[str] = field(default=None)
@@ -5635,7 +5635,7 @@ class GcpSubnetwork(GcpResource):
         "ip_cidr_range": S("ipCidrRange"),
         "ipv6_access_type": S("ipv6AccessType"),
         "ipv6_cidr_range": S("ipv6CidrRange"),
-        "log_config": S("logConfig", default={}) >> Bend(GcpSubnetworkLogConfig.mapping),
+        "subnetwork_log_config": S("logConfig", default={}) >> Bend(GcpSubnetworkLogConfig.mapping),
         "network": S("network"),
         "private_ip_google_access": S("privateIpGoogleAccess"),
         "private_ipv6_google_access": S("privateIpv6GoogleAccess"),
@@ -5643,7 +5643,7 @@ class GcpSubnetwork(GcpResource):
         "role": S("role"),
         "secondary_ip_ranges": S("secondaryIpRanges", default=[]) >> ForallBend(GcpSubnetworkSecondaryRange.mapping),
         "stack_type": S("stackType"),
-        "state": S("state"),
+        "subnetwork_state": S("state"),
     }
     enable_flow_logs: Optional[bool] = field(default=None)
     external_ipv6_prefix: Optional[str] = field(default=None)
@@ -5653,7 +5653,7 @@ class GcpSubnetwork(GcpResource):
     ip_cidr_range: Optional[str] = field(default=None)
     ipv6_access_type: Optional[str] = field(default=None)
     ipv6_cidr_range: Optional[str] = field(default=None)
-    log_config: Optional[GcpSubnetworkLogConfig] = field(default=None)
+    subnetwork_log_config: Optional[GcpSubnetworkLogConfig] = field(default=None)
     network: Optional[str] = field(default=None)
     private_ip_google_access: Optional[bool] = field(default=None)
     private_ipv6_google_access: Optional[str] = field(default=None)
@@ -5661,7 +5661,7 @@ class GcpSubnetwork(GcpResource):
     role: Optional[str] = field(default=None)
     secondary_ip_ranges: Optional[List[GcpSubnetworkSecondaryRange]] = field(default=None)
     stack_type: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
+    subnetwork_state: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.network:

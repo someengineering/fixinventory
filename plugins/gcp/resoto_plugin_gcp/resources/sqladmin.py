@@ -51,7 +51,7 @@ class GcpSqlBackupRun(GcpResource):
         "disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
         "end_time": S("endTime"),
         "enqueued_time": S("enqueuedTime"),
-        "error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
+        "sql_operation_error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
         "instance": S("instance"),
         "location": S("location"),
         "start_time": S("startTime"),
@@ -65,7 +65,7 @@ class GcpSqlBackupRun(GcpResource):
     disk_encryption_status: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
     enqueued_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpSqlOperationError] = field(default=None)
+    sql_operation_error: Optional[GcpSqlOperationError] = field(default=None)
     instance: Optional[str] = field(default=None)
     location: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
@@ -587,7 +587,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "server_ca_cert": S("serverCaCert", default={}) >> Bend(GcpSqlSslCert.mapping),
         "service_account_email_address": S("serviceAccountEmailAddress"),
         "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
-        "state": S("state"),
+        "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
@@ -620,7 +620,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
     service_account_email_address: Optional[str] = field(default=None)
     settings: Optional[GcpSqlSettings] = field(default=None)
-    state: Optional[str] = field(default=None)
+    sql_database_instance_state: Optional[str] = field(default=None)
     suspension_reason: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -634,15 +634,6 @@ class GcpSqlDatabaseInstance(GcpResource):
             if spec := cls.api_spec:
                 items = graph_builder.client.list(spec, instance=self.name, project=self.project)
                 cls.collect(items, graph_builder)
-
-
-@define(eq=False, slots=False)
-class GcpSqlOperationErrors:
-    kind: ClassVar[str] = "gcp_sql_operation_errors"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "errors": S("errors", default=[]) >> ForallBend(GcpSqlOperationError.mapping)
-    }
-    errors: Optional[List[GcpSqlOperationError]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -786,7 +777,7 @@ class GcpSqlOperation(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "backup_context": S("backupContext", "backupId"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpSqlOperationErrors.mapping),
+        "sql_operation_errors": S("error", "errors", default=[]) >> ForallBend(GcpSqlOperationError.mapping),
         "export_context": S("exportContext", default={}) >> Bend(GcpSqlExportContext.mapping),
         "import_context": S("importContext", default={}) >> Bend(GcpSqlImportContext.mapping),
         "insert_time": S("insertTime"),
@@ -800,7 +791,7 @@ class GcpSqlOperation(GcpResource):
     }
     backup_context: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpSqlOperationErrors] = field(default=None)
+    sql_operation_errors: List[GcpSqlOperationError] = field(factory=list)
     export_context: Optional[GcpSqlExportContext] = field(default=None)
     import_context: Optional[GcpSqlImportContext] = field(default=None)
     insert_time: Optional[datetime] = field(default=None)

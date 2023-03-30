@@ -7,13 +7,16 @@ from typing import Optional, Type, Dict, Any
 import resotolib.proc
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from .collector import GCPProjectCollector
+# from .collector import GCPProjectCollector
+from .project_collector import GcpProjectCollector
 from .config import GcpConfig
-from .gcp_resources import GCPProject
+# from .gcp_resources import GCPProject
+from .resources.base import GcpProject
 from .utils import Credentials
 
 
@@ -100,8 +103,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         descriptors we are passing the already parsed `args` Namespace() to this
         method.
         """
-        project = GCPProject(id=project_id, tags={})
-        collector_name = f"gcp_{project.id}"
+        project = GcpProject(id=project_id, name=project_id)
+        collector_name = f"gcp_{project_id}"
         resotolib.proc.set_thread_name(collector_name)
 
         if args is not None:
@@ -118,7 +121,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         try:
             core_feedback.progress_done(project_id, 0, 1)
-            gpc = GCPProjectCollector(project)
+            gpc = GcpProjectCollector(Config.gcp, Cloud(id="Gcp", name="Gcp"), project, core_feedback)
             gpc.collect()
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:

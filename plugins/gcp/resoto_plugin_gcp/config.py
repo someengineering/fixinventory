@@ -24,3 +24,10 @@ class GcpConfig:
         default=True,
         metadata={"description": "Fork collector process instead of using threads"},
     )
+
+    def should_collect(self, name: str) -> bool:
+        if self.collect:
+            return name in self.collect
+        if self.no_collect:
+            return name not in self.no_collect
+        return True

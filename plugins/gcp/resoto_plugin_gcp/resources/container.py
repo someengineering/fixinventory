@@ -823,7 +823,7 @@ class GcpContainerCluster(GcpResource):
         "locations": S("locations", default=[]),
         "logging_config": S("loggingConfig", default={}) >> Bend(GcpContainerLoggingConfig.mapping),
         "logging_service": S("loggingService"),
-        "maintenance_policy": S("maintenancePolicy", default={}) >> Bend(GcpContainerMaintenancePolicy.mapping),
+        "container_cluster_maintenance_policy": S("maintenancePolicy", default={}) >> Bend(GcpContainerMaintenancePolicy.mapping),
         "master_auth": S("masterAuth", default={}) >> Bend(GcpContainerMasterAuth.mapping),
         "master_authorized_networks_config": S("masterAuthorizedNetworksConfig", default={})
         >> Bend(GcpContainerMasterAuthorizedNetworksConfig.mapping),
@@ -884,7 +884,7 @@ class GcpContainerCluster(GcpResource):
     locations: Optional[List[str]] = field(default=None)
     logging_config: Optional[GcpContainerLoggingConfig] = field(default=None)
     logging_service: Optional[str] = field(default=None)
-    maintenance_policy: Optional[GcpContainerMaintenancePolicy] = field(default=None)
+    container_cluster_maintenance_policy: Optional[GcpContainerMaintenancePolicy] = field(default=None)
     master_auth: Optional[GcpContainerMasterAuth] = field(default=None)
     master_authorized_networks_config: Optional[GcpContainerMasterAuthorizedNetworksConfig] = field(default=None)
     mesh_certificates: Optional[bool] = field(default=None)
@@ -980,11 +980,11 @@ class GcpContainerOperation(GcpResource):
         "cluster_conditions": S("clusterConditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
         "detail": S("detail"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpContainerStatus.mapping),
+        "container_operation_error": S("error", default={}) >> Bend(GcpContainerStatus.mapping),
         "location": S("location"),
         "nodepool_conditions": S("nodepoolConditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
         "operation_type": S("operationType"),
-        "progress": S("progress", default={}) >> Bend(GcpContainerOperationProgress.mapping),
+        "container_operation_progress": S("progress", default={}) >> Bend(GcpContainerOperationProgress.mapping),
         "start_time": S("startTime"),
         "status": S("status"),
         "status_message": S("statusMessage"),
@@ -993,11 +993,11 @@ class GcpContainerOperation(GcpResource):
     cluster_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     detail: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpContainerStatus] = field(default=None)
+    container_operation_error: Optional[GcpContainerStatus] = field(default=None)
     location: Optional[str] = field(default=None)
     nodepool_conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     operation_type: Optional[str] = field(default=None)
-    progress: Optional[GcpContainerOperationProgress] = field(default=None)
+    container_operation_progress: Optional[GcpContainerOperationProgress] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
     status: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
