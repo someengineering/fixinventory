@@ -31,7 +31,15 @@ from typing import (
 
 import prometheus_client
 import yaml
-from aiohttp import web, MultipartWriter, AsyncIterablePayload, BufferedReaderPayload, MultipartReader, ClientSession
+from aiohttp import (
+    web,
+    MultipartWriter,
+    AsyncIterablePayload,
+    BufferedReaderPayload,
+    MultipartReader,
+    ClientSession,
+    TCPConnector,
+)
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
@@ -172,7 +180,9 @@ class Api:
     @property
     def session(self) -> ClientSession:
         if self._session is None:
-            self._session = ClientSession()
+            # only keep connections alive for 5 seconds, cleanup closed transports
+            connector = TCPConnector(keepalive_timeout=5.0, enable_cleanup_closed=True)
+            self._session = ClientSession(connector=connector)
         return self._session
 
     def __add_routes(self, prefix: str) -> None:
