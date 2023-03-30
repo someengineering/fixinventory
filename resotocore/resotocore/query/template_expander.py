@@ -8,10 +8,9 @@ from ustache import default_getter, default_virtuals, render, PropertyGetter, Ta
 
 from resotocore.error import NoSuchTemplateError
 from resotocore.query import query_parser, QueryParser
-from resotocore.query.model import Query, Expandable, Template
+from resotocore.query.model import Query, Expandable, Template, PathRoot
 from resotocore.types import Json
 from resotocore.util import identity, duration, utc, utc_str
-
 from resotolib.parse_util import (
     double_quote_dp,
     single_quote_dp,
@@ -33,7 +32,7 @@ class TemplateExpander(QueryParser):
     """
     TemplateExpander is able to maintain (crud) a set of templates
     as well as expanding strings which might contain expandable sections that refer to templates
-    in the templates library.
+    in the template library.
     """
 
     @abstractmethod
@@ -103,7 +102,8 @@ class TemplateExpanderBase(TemplateExpander):
     ) -> Query:
         # if the query starts with the term "search " then we parse it as command line
         if to_parse.strip().startswith("search "):
-            to_parse = await self.parse_query_from_command_line(to_parse, on_section, **env)
+            in_section = PathRoot if omit_section_expansion else on_section or PathRoot
+            to_parse = await self.parse_query_from_command_line(to_parse, in_section, **env)
             omit_section_expansion = True  # already done
         rendered = self.render(to_parse, env) if env else to_parse
         expanded, _ = await self.expand(rendered)
@@ -138,7 +138,7 @@ class TemplateExpanderBase(TemplateExpander):
         pass
 
     @abstractmethod
-    async def parse_query_from_command_line(self, to_parse: str, on_section: Optional[str], **env: str) -> str:
+    async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
         pass
 
 

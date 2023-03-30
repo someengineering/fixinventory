@@ -35,7 +35,7 @@ class InMemoryTemplateExpander(TemplateExpanderBase):
     def default_props(self) -> Optional[Json]:
         return self.props
 
-    async def parse_query_from_command_line(self, to_parse: str, on_section: Optional[str], **env: str) -> str:
+    async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
         # straight forward implementation: simply strip the "search" command
         return re.sub("^search\\s+", "", to_parse)
 
@@ -97,8 +97,8 @@ async def test_query_creation(cli: CLI) -> None:
         assert sd == ss
 
     for section in [*Section.content_ordered, PathRoot]:
-        # await compare_query("is(aws_alb) and age>3d", section, True)
-        await compare_query("is(aws_alb) and age>3d", section, False)
+        await compare_query('is(aws_alb) and age>3d and mtime>"@UTC@"', section, True)
+        await compare_query('is(aws_alb) and age>3d and mtime>"@UTC@"', section, False)
 
 
 def test_render_simple() -> None:

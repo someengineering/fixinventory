@@ -3,7 +3,7 @@ from typing import Optional, List
 from resotocore.cli import strip_quotes
 from resotocore.cli.model import CLI, CLIContext
 from resotocore.db.templatedb import TemplateEntityDb
-from resotocore.query.model import Template, PathRoot
+from resotocore.query.model import Template
 from resotocore.query.template_expander import TemplateExpanderBase
 from resotocore.types import Json
 
@@ -32,9 +32,8 @@ class TemplateExpanderService(TemplateExpanderBase):
     async def list_templates(self) -> List[Template]:
         return [t async for t in self.db.all()]
 
-    async def parse_query_from_command_line(self, to_parse: str, on_section: Optional[str], **env: str) -> str:
-        # either section is defined, otherwise we use the root
-        final_env = {"section": on_section or PathRoot, **env}
+    async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
+        final_env = {**env, "section": on_section}
         parsed = await self.cli.evaluate_cli_command(to_parse, CLIContext(env=final_env), replace_place_holder=False)
         if len(parsed) == 1:
             first_line = parsed[0]
