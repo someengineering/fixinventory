@@ -1627,8 +1627,8 @@ class GcpHTTP2HealthCheck:
 
 
 @define(eq=False, slots=False)
-class GcpHTTPHealthCheck:
-    kind: ClassVar[str] = "gcp_http_health_check"
+class GcpHTTPHealthCheckSpec:
+    kind: ClassVar[str] = "gcp_http_health_check_spec"
     mapping: ClassVar[Dict[str, Bender]] = {
         "host": S("host"),
         "port": S("port"),
@@ -1732,7 +1732,7 @@ class GcpHealthCheck(GcpResource):
         "grpc_health_check": S("grpcHealthCheck", default={}) >> Bend(GcpGRPCHealthCheck.mapping),
         "healthy_threshold": S("healthyThreshold"),
         "http2_health_check": S("http2HealthCheck", default={}) >> Bend(GcpHTTP2HealthCheck.mapping),
-        "http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheck.mapping),
+        "http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheckSpec.mapping),
         "https_health_check": S("httpsHealthCheck", default={}) >> Bend(GcpHTTPSHealthCheckSpec.mapping),
         "health_check_log_config": S("logConfig", "enable"),
         "ssl_health_check": S("sslHealthCheck", default={}) >> Bend(GcpSSLHealthCheck.mapping),
@@ -1745,7 +1745,7 @@ class GcpHealthCheck(GcpResource):
     grpc_health_check: Optional[GcpGRPCHealthCheck] = field(default=None)
     healthy_threshold: Optional[int] = field(default=None)
     http2_health_check: Optional[GcpHTTP2HealthCheck] = field(default=None)
-    http_health_check: Optional[GcpHTTPHealthCheck] = field(default=None)
+    http_health_check: Optional[GcpHTTPHealthCheckSpec] = field(default=None)
     https_health_check: Optional[GcpHTTPSHealthCheckSpec] = field(default=None)
     health_check_log_config: Optional[bool] = field(default=None)
     ssl_health_check: Optional[GcpSSLHealthCheck] = field(default=None)
