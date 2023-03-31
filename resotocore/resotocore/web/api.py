@@ -54,8 +54,7 @@ from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
-from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
+from resotocore.cli.command import ListCommand, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -64,6 +63,8 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
     AliasTemplate,
+    WorkerCustomCommand,
+    CLI,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -353,10 +354,10 @@ class Api:
                 if separate_overrides:
                     payload = {"config": config.config, "overrides": self.get_override(config_id)}
                     if include_raw_config:
-                        raw_conifig = await self.config_handler.get_config(
+                        raw_config = await self.config_handler.get_config(
                             config_id, apply_overrides=False, resolve_env_vars=False
                         )
-                        payload["raw_config"] = raw_conifig.config if raw_conifig else None
+                        payload["raw_config"] = raw_config.config if raw_config else None
                 else:
                     payload = config.config
 

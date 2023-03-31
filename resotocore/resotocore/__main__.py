@@ -23,7 +23,7 @@ from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesH
 from resotocore.analytics import CoreEvent, NoEventSender
 from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
-from resotocore.cli.cli import CLI
+from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
 from resotocore.cli.model import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
@@ -45,7 +45,7 @@ from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
-from resotocore.query.template_expander import DBTemplateExpander
+from resotocore.query.template_expander_service import TemplateExpanderService
 from resotocore.report.inspector_service import InspectorService
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -140,7 +140,6 @@ def with_config(
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
-    template_expander = DBTemplateExpander(db.template_entity_db)
     # a "real" config override service, unlike the one used for core config
     config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
     config_handler = ConfigHandlerService(
@@ -161,12 +160,13 @@ def with_config(
         model_handler=model,
         worker_task_queue=worker_task_queue,
         config=config,
-        template_expander=template_expander,
         config_handler=config_handler,
         cert_handler=cert_handler,
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
-    cli = CLI(cli_deps, all_commands(cli_deps), default_env, alias_names())
+    cli = CLIService(cli_deps, all_commands(cli_deps), default_env, alias_names())
+    template_expander = TemplateExpanderService(db.template_entity_db, cli)
+    cli_deps.extend(template_expander=template_expander)
     inspector = InspectorService(cli)
     subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
     task_handler = TaskHandlerService(
