@@ -767,7 +767,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
     default_disk_size_gb: Optional[str] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
-    RESOURCE_GROUP_MAP: ClassVar[Dict[str, str]] = {
+    resource_group_map: ClassVar[Dict[str, str]] = {
         "local-ssd": "LocalSSD",
         "pd-balanced": "SSD",
         "pd-ssd": "SSD",
@@ -780,7 +780,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
             return
 
         log.debug((f"Looking up pricing for {self.rtdname} in {self.region().rtdname}"))
-        resource_group = self.RESOURCE_GROUP_MAP.get(self.name)
+        resource_group = self.resource_group_map.get(self.name)
 
         def sku_filter(sku: GcpSku) -> bool:
             if not self.name:
