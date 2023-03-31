@@ -625,7 +625,7 @@ class CLI(ABC):
         pass
 
     @abstractmethod
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[T]:
         pass
 
     @abstractmethod
@@ -634,6 +634,36 @@ class CLI(ABC):
         Called when a worker connects that introduces a custom command.
         The registered templated will always override any existing template.
         """
+
+    @property
+    @abstractmethod
+    def direct_commands(self) -> Dict[str, CLICommand]:
+        pass
+
+    @property
+    @abstractmethod
+    def alias_commands(self) -> Dict[str, CLICommand]:
+        pass
+
+    @property
+    @abstractmethod
+    def commands(self) -> Dict[str, CLICommand]:
+        pass
+
+    @property
+    @abstractmethod
+    def env(self) -> Dict[str, Any]:
+        pass
+
+    @property
+    @abstractmethod
+    def dependencies(self) -> CLIDependencies:
+        pass
+
+    @property
+    @abstractmethod
+    def alias_templates(self) -> Dict[str, AliasTemplate]:
+        pass
 
     @staticmethod
     def replacements(**env: str) -> Dict[str, str]:

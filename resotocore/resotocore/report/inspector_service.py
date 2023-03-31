@@ -6,8 +6,7 @@ from aiostream import stream
 from attr import evolve, define
 
 from resotocore.analytics import CoreEvent
-from resotocore.cli.cli import CLIService
-from resotocore.cli.model import CLIContext
+from resotocore.cli.model import CLIContext, CLI
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
@@ -54,7 +53,7 @@ class CheckContext:
 
 
 class InspectorService(Inspector, Service):
-    def __init__(self, cli: CLIService) -> None:
+    def __init__(self, cli: CLI) -> None:
         self.config_handler: ConfigHandler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli

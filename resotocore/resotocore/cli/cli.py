@@ -221,14 +221,38 @@ class CLIService(CLI):
         help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}
-        self.direct_commands = cmds
-        self.alias_commands = alias_cmds
-        self.commands: Dict[str, CLICommand] = {**cmds, **alias_cmds}
         self.cli_env = env
-        self.dependencies = dependencies
         self.alias_names = alias_names
-        self.alias_templates = alias_templates
+        self.__direct_commands = cmds
+        self.__alias_commands = alias_cmds
+        self.__commands: Dict[str, CLICommand] = {**cmds, **alias_cmds}
+        self.__dependencies = dependencies
+        self.__alias_templates = alias_templates
         self.reaper: Optional[Task[None]] = None
+
+    @property
+    def direct_commands(self) -> Dict[str, CLICommand]:
+        return self.__direct_commands
+
+    @property
+    def alias_commands(self) -> Dict[str, CLICommand]:
+        return self.__alias_commands
+
+    @property
+    def commands(self) -> Dict[str, CLICommand]:
+        return self.__commands
+
+    @property
+    def env(self) -> Dict[str, Any]:
+        return self.cli_env
+
+    @property
+    def dependencies(self) -> CLIDependencies:
+        return self.__dependencies
+
+    @property
+    def alias_templates(self) -> Dict[str, AliasTemplate]:
+        return self.__alias_templates
 
     def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
         """
@@ -518,5 +542,5 @@ class CLIService(CLI):
         res = [await parse_line(cmd_line) for cmd_line in command_lines]
         return res
 
-    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[Any]:
+    async def execute_cli_command(self, cli_input: str, sink: Sink[T], ctx: CLIContext = EmptyContext) -> List[T]:
         return [await parsed.to_sink(sink) for parsed in await self.evaluate_cli_command(cli_input, ctx, True)]

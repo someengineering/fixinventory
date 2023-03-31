@@ -103,14 +103,14 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
-    result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
+    result = await inspector.perform_benchmark("test", inspector.cli.env["graph"])
     assert result.checks[0].number_of_resources_failing == 11
     assert result.checks[1].number_of_resources_failing == 11
 
 
 async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
-    result = await inspector.perform_benchmark("test", inspector.cli.cli_env["graph"])
+    result = await inspector.perform_benchmark("test", inspector.cli.env["graph"])
     node_edge_list = result.to_graph()
     nodes, edges = partition_by(lambda x: x["type"] == "node", node_edge_list)  # type: ignore
     assert len(node_edge_list) == 5  # 3 nodes + 2 edges
@@ -139,7 +139,7 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
 
 async def test_list_failing(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
-    graph = inspector.cli.cli_env["graph"]
+    graph = inspector.cli.env["graph"]
     search_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_search")]
     assert len(search_res) == 11
     cmd_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd")]
