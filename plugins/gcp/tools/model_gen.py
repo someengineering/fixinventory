@@ -492,6 +492,7 @@ known_api_parameters = {
     "container": {"parent": "projects/{project}/locations/-"},
     "sqladmin": {"project": "{project}", "instance": "{instance}"},
     "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
+    "storage": {"project": "{project}", "bucket": "{bucket}"},
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
@@ -501,6 +502,7 @@ apis = [
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
     # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
+    ("storage", "v1", "", [])
 ]
 
 
