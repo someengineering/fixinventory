@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple
 
 from attr import define, field, evolve
 
@@ -200,6 +200,17 @@ class CheckCollectionResult:
         return any(account in c.number_of_resources_failing_by_account for c in self.checks) or any(
             c.has_failed_for_account(account) for c in self.children
         )
+
+    def passing_failing_checks_for_account(self, account: str) -> Tuple[int, int]:
+        passing, failing = reduce(
+            lambda l, r: (l[0] + r[0], l[1] + r[1]),
+            [c.passing_failing_checks_for_account(account) for c in self.children],
+            (0, 0),
+        )
+
+        all_checks = len(self.checks)
+        failing_count = sum(1 for c in self.checks if account in c.number_of_resources_failing_by_account)
+        return passing + all_checks - failing_count, failing + failing_count
 
     def filter_result(
         self, filter_failed: bool = False, failed_for_account: Optional[str] = None

@@ -21,6 +21,8 @@ def render_benchmark_result(benchmark: BenchmarkResult, account: str) -> str:
     result = f"# Report for account {account}\n"
     result += f"- Title: {benchmark.title}\n"
     result += f"- Version: {benchmark.version}\n"
+    passing, failing = benchmark.passing_failing_checks_for_account(account)
+    result += f"- Summary: {passing} checks passed and {failing} checks failed\n"
     for check in filtered.checks:
         result += render_check_result(check, account, 2)
     for collection in filtered.children:
@@ -31,6 +33,8 @@ def render_benchmark_result(benchmark: BenchmarkResult, account: str) -> str:
 def render_collection_result(collection: CheckCollectionResult, account: str, level: int) -> str:
     result = f"{'#' * level} {collection.title}\n\n"
     result += f"{collection.description}\n\n"
+    passing, failing = collection.passing_failing_checks_for_account(account)
+    result += f"{passing} checks passed and {failing} checks failed\n\n"
     for check in collection.checks:
         result += render_check_result(check, account, level + 1)
     for sub_collection in collection.children:
