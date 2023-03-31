@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC
+from asyncio import Lock
 from collections import defaultdict
 from datetime import timedelta, datetime
 from typing import Optional, Iterable, Dict, List
@@ -11,11 +11,12 @@ from resotocore.message_bus import MessageBus
 from resotocore.util import utc, Periodic
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.ids import SubscriberId
+from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
 
 
-class SubscriptionHandler(ABC):
+class SubscriptionHandler(Service):
     """
     SubscriptionHandler maintains all subscriptions in memory and syncs its internal state with the underlying db.
     Only reason for persistence is recovery of all subscriptions after restart.
@@ -30,8 +31,10 @@ class SubscriptionHandler(ABC):
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: Dict[str, datetime] = {}
+        self.lock: Optional[Lock] = None
 
     async def start(self) -> None:
+        self.lock = Lock()
         await self.__load_from_db()
         log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
@@ -89,8 +92,10 @@ class SubscriptionHandler(ABC):
         return existing
 
     async def __load_from_db(self) -> None:
-        self._subscribers_by_id = {s.id: s async for s in self.db.all()}
-        self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
+        assert self.lock is not None
+        async with self.lock:
+            self._subscribers_by_id = {s.id: s async for s in self.db.all()}
+            self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
 
     def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
         return self._subscribers_by_event

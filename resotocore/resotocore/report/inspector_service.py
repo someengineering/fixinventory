@@ -6,8 +6,7 @@ from aiostream import stream
 from attr import evolve, define
 
 from resotocore.analytics import CoreEvent
-from resotocore.cli.cli import CLI
-from resotocore.cli.model import CLIContext
+from resotocore.cli.model import CLIContext, CLI
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError

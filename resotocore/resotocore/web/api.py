@@ -26,11 +26,20 @@ from typing import (
     Tuple,
     Callable,
     Awaitable,
+    Iterable,
 )
 
 import prometheus_client
 import yaml
-from aiohttp import web, MultipartWriter, AsyncIterablePayload, BufferedReaderPayload, MultipartReader, ClientSession
+from aiohttp import (
+    web,
+    MultipartWriter,
+    AsyncIterablePayload,
+    BufferedReaderPayload,
+    MultipartReader,
+    ClientSession,
+    TCPConnector,
+)
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
@@ -45,8 +54,7 @@ from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
-from resotocore.cli.cli import CLI
-from resotocore.cli.command import ListCommand, alias_names, WorkerCustomCommand
+from resotocore.cli.command import ListCommand, alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -55,6 +63,8 @@ from resotocore.cli.model import (
     CLICommand,
     InternalPart,
     AliasTemplate,
+    WorkerCustomCommand,
+    CLI,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -68,7 +78,7 @@ from resotocore.message_bus import MessageBus, Message, ActionDone, Action, Acti
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, Model
 from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query import QueryParser
@@ -171,7 +181,9 @@ class Api:
     @property
     def session(self) -> ClientSession:
         if self._session is None:
-            self._session = ClientSession()
+            # only keep connections alive for 15 seconds, cleanup closed transports
+            connector = TCPConnector(keepalive_timeout=15.0, enable_cleanup_closed=True)
+            self._session = ClientSession(connector=connector)
         return self._session
 
     def __add_routes(self, prefix: str) -> None:
@@ -342,10 +354,10 @@ class Api:
                 if separate_overrides:
                     payload = {"config": config.config, "overrides": self.get_override(config_id)}
                     if include_raw_config:
-                        raw_conifig = await self.config_handler.get_config(
+                        raw_config = await self.config_handler.get_config(
                             config_id, apply_overrides=False, resolve_env_vars=False
                         )
-                        payload["raw_config"] = raw_conifig.config if raw_conifig else None
+                        payload["raw_config"] = raw_config.config if raw_config else None
                 else:
                     payload = config.config
 
@@ -390,7 +402,9 @@ class Api:
 
     async def get_configs_model(self, request: Request) -> StreamResponse:
         model = await self.config_handler.get_configs_model()
-        return await single_result(request, to_js(model))
+        if request.query.get("flat", "false") == "true":
+            model = Model.from_kinds(model.flat_kinds())
+        return await single_result(request, to_js(model, strip_nulls=True))
 
     async def update_configs_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
@@ -682,9 +696,12 @@ class Api:
         # default to internal model format, but allow to request json schema format
         if request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
+        kinds: Iterable[Kind]
+        if request.query.get("flat", "false") == "true":
+            kinds = md.flat_kinds()
         else:
-            result = to_js(md.kinds.values(), strip_nulls=True)
-            return await single_result(request, result)
+            kinds = md.kinds.values()
+        return await single_result(request, to_js(kinds, strip_nulls=True))
 
     async def update_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)

@@ -17,9 +17,9 @@ from pytest import fixture
 
 from resotocore import version
 from resotocore.cli import is_node
-from resotocore.cli.cli import CLI
-from resotocore.cli.command import HttpCommand, JqCommand, WorkerCustomCommand, AggregateCommand
-from resotocore.cli.model import CLIDependencies, CLIContext
+from resotocore.cli.cli import CLIService
+from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand
+from resotocore.cli.model import CLIDependencies, CLIContext, WorkerCustomCommand, CLI
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
@@ -122,7 +122,7 @@ async def test_descendants(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_search_source(cli: CLI) -> None:
+async def test_search_source(cli: CLIService) -> None:
     result = await cli.execute_cli_command('search is("foo") and some_int==0 --> identifier=~"9_"', stream.list)
     assert len(result[0]) == 10
     await cli.dependencies.template_expander.put_template(
@@ -295,7 +295,7 @@ async def test_format(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, test_workflow: Workflow) -> None:
+async def test_workflows_command(cli: CLIService, task_handler: TaskHandlerService, test_workflow: Workflow) -> None:
     async def execute(cmd: str) -> List[JsonElement]:
         ctx = CLIContext(cli.cli_env)
         return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
@@ -333,7 +333,7 @@ async def test_workflows_command(cli: CLI, task_handler: TaskHandlerService, tes
 
 
 @pytest.mark.asyncio
-async def test_jobs_command(cli: CLI, task_handler: TaskHandlerService, job_db: JobDb) -> None:
+async def test_jobs_command(cli: CLIService, task_handler: TaskHandlerService, job_db: JobDb) -> None:
     async def execute(cmd: str) -> List[List[JsonElement]]:
         ctx = CLIContext(cli.cli_env)
         return await cli.execute_cli_command(cmd, stream.list, ctx)
@@ -409,7 +409,7 @@ async def test_jobs_command(cli: CLI, task_handler: TaskHandlerService, job_db: 
 
 @pytest.mark.asyncio
 async def test_tag_command(
-    cli: CLI, performed_by: Dict[str, List[str]], incoming_tasks: List[WorkerTask], caplog: LogCaptureFixture
+    cli: CLIService, performed_by: Dict[str, List[str]], incoming_tasks: List[WorkerTask], caplog: LogCaptureFixture
 ) -> None:
     counter = 0
 
@@ -1014,7 +1014,8 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
     async def aggregate(agg_str: str) -> List[Json]:
         res = AggregateCommand(cli_deps).parse(agg_str)
         async with (await res.flow(in_stream)).stream() as flow:
-            return [s async for s in flow]
+            async with flow.stream() as streamer:
+            return [s async for s in streamer]
 
     assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
         {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},

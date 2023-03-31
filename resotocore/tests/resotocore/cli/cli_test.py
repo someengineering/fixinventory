@@ -4,7 +4,7 @@ import pytest
 from aiostream import stream
 
 from resotocore.cli import strip_quotes, js_value_at
-from resotocore.cli.cli import CLI, multi_command_parser
+from resotocore.cli.cli import multi_command_parser, CLIService
 from resotocore.cli.command import (
     ExecuteSearchCommand,
     ChunkCommand,
@@ -14,7 +14,7 @@ from resotocore.cli.command import (
     AggregateToCountCommand,
     PredecessorsPart,
 )
-from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext
+from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext, CLI
 from resotocore.error import CLIParseError
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.util import utc
@@ -73,7 +73,7 @@ async def test_multi_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_database(cli: CLI) -> None:
+async def test_query_database(cli: CLIService) -> None:
     query = 'search is("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
     count = "count f"
     commands = "|".join([query, count])

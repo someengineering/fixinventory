@@ -4,6 +4,8 @@ import json
 import re
 import sys
 from abc import ABC, abstractmethod
+from functools import lru_cache
+
 from attrs import define
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
@@ -269,13 +271,12 @@ class Kind(ABC):
             return AnyKind()
         elif "fqn" in js and ("properties" in js or "bases" in js):
             props = list(map(lambda p: from_js(p, Property), js.get("properties", [])))
-            bases: Optional[List[str]] = js.get("bases")
+            bases: List[str] = js.get("bases", [])
             allow_unknown_props = js.get("allow_unknown_props", False)
             successor_kinds = js.get("successor_kinds")
             aggregate_root = js.get("aggregate_root", True)
-            return ComplexKind(
-                js["fqn"], bases if bases else [], props, allow_unknown_props, successor_kinds, aggregate_root
-            )
+            metadata = js.get("metadata")
+            return ComplexKind(js["fqn"], bases, props, allow_unknown_props, successor_kinds, aggregate_root, metadata)
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -811,6 +812,7 @@ class ComplexKind(Kind):
         # EdgeType -> possible list of successor kinds
         successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
         aggregate_root: bool = True,
+        metadata: Optional[Json] = None,
     ):
         super().__init__(fqn)
         self.bases = bases
@@ -818,6 +820,7 @@ class ComplexKind(Kind):
         self.allow_unknown_props = allow_unknown_props
         self.successor_kinds = successor_kinds or {}
         self.aggregate_root = aggregate_root
+        self.metadata = metadata or {}
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -1102,6 +1105,10 @@ date_kind = DateKind("date")
 datetime_kind = DateTimeKind("datetime")
 duration_kind = DurationKind("duration")
 
+# Define synthetic properties in the metadata section (not defined in the model)
+# The predefined_properties kind is used to define the properties there.
+synthetic_metadata_kinds = tuple(["exported_age"])
+
 predefined_kinds = [
     string_kind,
     int32_kind,
@@ -1236,6 +1243,14 @@ class Model:
                 f'No kind definition found for {js["kind"]}' if "kind" in js else f"No attribute kind found in {js}"
             ) from ex
 
+    @lru_cache
+    def predefined_synthetic_props(self, allowed: Tuple[str, ...]) -> List[ResolvedProperty]:
+        predefined = self.get("predefined_properties")
+        if isinstance(predefined, ComplexKind):
+            return [p for p in predefined.synthetic_props() if p.prop.name in allowed]
+        else:
+            return []
+
     def graph(self) -> MultiDiGraph:
         graph = MultiDiGraph()
 
@@ -1305,6 +1320,54 @@ class Model:
             check_overlap_for([to_js(a) for a in updated.values()])
 
         return Model(updated)
+
+    def flat_kinds(self) -> List[Kind]:
+        """
+        Returns a list of all kinds. The hierarchy of complex kinds is flattened:
+        - all properties of all base kinds.
+        - all metadata merged in hierarchy.
+        - all successor kinds combined in hierarchy.
+        """
+        cpl: Dict[str, ComplexKind] = {kind.fqn: kind for kind in self.complex_kinds()}
+
+        def all_props(kind: ComplexKind) -> Dict[str, Property]:
+            props_by_name = {}
+            for props in [all_props(cpl[fqn]) for fqn in kind.bases] + [{p.name: p for p in kind.properties}]:
+                for key, value in props.items():
+                    props_by_name[key] = value
+            return props_by_name
+
+        def all_metadata(kind: ComplexKind) -> Dict[str, Any]:
+            metadata = {}
+            for meta in [all_metadata(cpl[fqn]) for fqn in kind.bases] + [kind.metadata]:
+                for key, value in meta.items():
+                    metadata[key] = value
+            return metadata
+
+        def all_successor_kinds(kind: ComplexKind) -> Dict[EdgeType, List[str]]:
+            successor_kinds = kind.successor_kinds.copy()
+            for base in kind.bases:
+                for edge_type, succ in all_successor_kinds(cpl[base]).items():
+                    successor_kinds[edge_type] = successor_kinds.get(edge_type, []) + succ
+            return successor_kinds
+
+        result: List[Kind] = []
+        for kind in self.kinds.values():
+            if isinstance(kind, ComplexKind):
+                result.append(
+                    ComplexKind(
+                        fqn=kind.fqn,
+                        bases=kind.bases,
+                        properties=list(all_props(kind).values()),
+                        allow_unknown_props=kind.allow_unknown_props,
+                        successor_kinds=all_successor_kinds(kind),
+                        aggregate_root=kind.aggregate_root,
+                        metadata=all_metadata(kind),
+                    )
+                )
+            else:
+                result.append(kind)
+        return result
 
 
 # register serializer for this class

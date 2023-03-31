@@ -343,6 +343,14 @@ def test_replace_env_vars():
     }
 
 
+def test_resolve_env_do_not_drop_nulls():
+    a = {"a": "foo", "b": None}
+
+    assert replace_env_vars(a, environment={}, keep_unresolved=False) == {"a": "foo", "b": None}
+    assert replace_env_vars("$(FOO)", environment={}, keep_unresolved=True) == "$(FOO)"
+    assert replace_env_vars("$(FOO)", environment={}, keep_unresolved=False) is None
+
+
 def test_merge_json_elements():
     a = {"a": {"foo": {"first": "first", "last": "laaaast"}}, "b": {"bar": 123}, "c": [6, 7]}
     b = {"a": {"foo": {"last": "last"}}, "b": {"baz": 456}, "c": [8, 9]}
@@ -373,6 +381,19 @@ def test_merge_json_elements():
         return update
 
     assert merge_json_elements(default, update, merge_fn) == {"b": {"ba": 3}, "c": 2}
+
+
+def test_do_not_drop_nulls():
+    a = {"a": "foo", "b": None}
+
+    b = {}
+    assert merge_json_elements(a, b) == {"a": "foo", "b": None}
+
+    c = {"a": "bar", "b": None}
+    assert merge_json_elements(a, c) == {"a": "bar", "b": None}
+
+    d = {"a": "bar", "b": "baz"}
+    assert merge_json_elements(a, d) == {"a": "bar", "b": "baz"}
 
 
 def test_drop_deleted_attributes():

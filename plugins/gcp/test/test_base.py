@@ -37,3 +37,13 @@ def test_nodes_by_filter(random_builder: GraphBuilder) -> None:
     assert len(nodes) == 5
     nodes = random_builder.nodes(clazz=GcpMachineType, maximum_persistent_disks=128)
     assert len(nodes) == 7
+
+
+def test_gcp_region_collects_quotas(random_builder: GraphBuilder) -> None:
+    with open(os.path.dirname(__file__) + "/files/gcp_regions.json") as f:
+        GcpRegion.collect(raw=json.load(f)["items"], builder=random_builder)
+
+    assert len(random_builder.nodes(clazz=GcpQuota)) > 0
+
+    predecessor = list(random_builder.graph.predecessors(random_builder.node(clazz=GcpQuota)))[0]  # type: ignore
+    assert isinstance(predecessor, GcpRegion)

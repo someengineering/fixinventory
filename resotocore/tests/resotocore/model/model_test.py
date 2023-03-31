@@ -1,5 +1,4 @@
 import json
-import sys
 from datetime import datetime, timedelta
 from textwrap import dedent
 from typing import Type, Any, Union, cast, List
@@ -32,6 +31,7 @@ from resotocore.model.model import (
     DurationKind,
     SyntheticProperty,
     string_kind,
+    synthetic_metadata_kinds,
 )
 from resotocore.model.typed_model import to_json, from_js
 from resotocore.types import Json
@@ -377,6 +377,21 @@ def test_graph(person_model: Model) -> None:
     assert len(graph.edges()) == 9
 
 
+def test_flatten(person_model: Model) -> None:
+    cpl = {m.fqn: m for m in person_model.complex_kinds()}
+    flat = {m.fqn: m for m in person_model.flat_kinds() if isinstance(m, ComplexKind)}
+    # base property is unchanged
+    assert len(flat["Base"].properties) == len(cpl["Base"].properties)
+    # address has all properties of base and address
+    assert len(flat["Address"].properties) == (len(cpl["Address"].properties) + len(cpl["Base"].properties))
+    # address overrides icon in metadata
+    assert flat["Address"].metadata["icon"] == "address.svg"
+    # person has all properties of base and address
+    assert len(flat["Person"].properties) == (len(cpl["Person"].properties) + len(cpl["Base"].properties))
+    # person inherits metadata from base
+    assert flat["Person"].metadata["icon"] == "icon.svg"
+
+
 def roundtrip(obj: Any, clazz: Type[object]) -> None:
     js = to_json(obj)
     again = from_js(js, clazz)
@@ -439,6 +454,10 @@ def test_markup() -> None:
     result = ctx.render_console(md)
     assert len(result) > len(md)
     assert "• b1 test" in result
+
+
+def test_synthetic_predefined(person_model: Model) -> None:
+    assert len(person_model.predefined_synthetic_props(synthetic_metadata_kinds)) == len(synthetic_metadata_kinds)
 
 
 def test_yaml(person_model: Model) -> None:

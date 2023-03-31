@@ -12,8 +12,7 @@ from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 from aiostream import stream
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
-from resotocore.cli.cli import CLI
-from resotocore.cli.model import CLIContext
+from resotocore.cli.model import CLIContext, CLI
 from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
