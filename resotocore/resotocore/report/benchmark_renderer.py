@@ -18,7 +18,7 @@ kind_reader = {
 
 def render_benchmark_result(benchmark: BenchmarkResult, account: str) -> str:
     filtered = benchmark.filter_result(failed_for_account=account) if benchmark.only_failed else benchmark
-    result = f"# Report for for Account {account}\n"
+    result = f"# Report for account {account}\n"
     result += f"- Title: {benchmark.title}\n"
     result += f"- Version: {benchmark.version}\n"
     for check in filtered.checks:
