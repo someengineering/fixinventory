@@ -5,7 +5,7 @@ from typing import Type, List
 
 from resoto_plugin_gcp.config import GcpConfig
 from resoto_plugin_gcp.utils import Credentials
-from resoto_plugin_gcp.resources import compute, container, billing, sqladmin
+from resoto_plugin_gcp.resources import compute, container, billing, sqladmin, storage
 from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
@@ -13,7 +13,7 @@ from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    compute.resources + container.resources + billing.resources + sqladmin.resources
+    compute.resources + container.resources + billing.resources + sqladmin.resources + storage.resources
 )
 
 

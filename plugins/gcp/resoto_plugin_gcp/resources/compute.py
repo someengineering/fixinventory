@@ -732,7 +732,7 @@ class GcpBackendService(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
             builder.dependant_node(self, clazz=health_check_types(), link=check)
-        for backend in self.backends or []:
+        for backend in self.backend_service_backends or []:
             if backend.group:
                 builder.dependant_node(self, link=backend.group)
         if self.network:
@@ -931,7 +931,8 @@ class GcpExternalVpnGateway(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "external_vpn_gateway_interfaces": S("interfaces", default=[]) >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
+        "external_vpn_gateway_interfaces": S("interfaces", default=[])
+        >> ForallBend(GcpExternalVpnGatewayInterface.mapping),
         "redundancy_type": S("redundancyType"),
     }
     external_vpn_gateway_interfaces: Optional[List[GcpExternalVpnGatewayInterface]] = field(default=None)
@@ -1061,7 +1062,7 @@ class GcpFirewallPolicy(GcpResource):
     short_name: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for rule in self.rules or []:
+        for rule in self.firewall_policy_rules or []:
             for resource in rule.target_resources or []:
                 builder.add_edge(self, clazz=GcpNetwork, link=resource)
 
@@ -2020,9 +2021,12 @@ class GcpStatefulPolicyPreservedStateDiskDevice:
 class GcpStatefulPolicyPreservedState:
     kind: ClassVar[str] = "gcp_stateful_policy_preserved_state"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "stateful_policy_preserved_state_disks": S("disks", default={}) >> MapDict(value_bender=Bend(GcpStatefulPolicyPreservedStateDiskDevice.mapping))
+        "stateful_policy_preserved_state_disks": S("disks", default={})
+        >> MapDict(value_bender=Bend(GcpStatefulPolicyPreservedStateDiskDevice.mapping))
     }
-    stateful_policy_preserved_state_disks: Optional[Dict[str, GcpStatefulPolicyPreservedStateDiskDevice]] = field(default=None)
+    stateful_policy_preserved_state_disks: Optional[Dict[str, GcpStatefulPolicyPreservedStateDiskDevice]] = field(
+        default=None
+    )
 
 
 @define(eq=False, slots=False)
@@ -3657,8 +3661,8 @@ class GcpNodeTemplate(GcpResource):
     status_message: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.disks:
-            for disk in self.disks:
+        if self.local_disks:
+            for disk in self.local_disks:
                 builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=disk.disk_type)
 
 
@@ -5078,7 +5082,8 @@ class GcpResourcePolicy(GcpResource):
         >> Bend(GcpResourcePolicyGroupPlacementPolicy.mapping),
         "instance_schedule_policy": S("instanceSchedulePolicy", default={})
         >> Bend(GcpResourcePolicyInstanceSchedulePolicy.mapping),
-        "resource_policy_resource_status": S("resourceStatus", default={}) >> Bend(GcpResourcePolicyResourceStatus.mapping),
+        "resource_policy_resource_status": S("resourceStatus", default={})
+        >> Bend(GcpResourcePolicyResourceStatus.mapping),
         "snapshot_schedule_policy": S("snapshotSchedulePolicy", default={})
         >> Bend(GcpResourcePolicySnapshotSchedulePolicy.mapping),
         "status": S("status"),

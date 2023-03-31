@@ -823,7 +823,8 @@ class GcpContainerCluster(GcpResource):
         "locations": S("locations", default=[]),
         "logging_config": S("loggingConfig", default={}) >> Bend(GcpContainerLoggingConfig.mapping),
         "logging_service": S("loggingService"),
-        "container_cluster_maintenance_policy": S("maintenancePolicy", default={}) >> Bend(GcpContainerMaintenancePolicy.mapping),
+        "container_cluster_maintenance_policy": S("maintenancePolicy", default={})
+        >> Bend(GcpContainerMaintenancePolicy.mapping),
         "master_auth": S("masterAuth", default={}) >> Bend(GcpContainerMasterAuth.mapping),
         "master_authorized_networks_config": S("masterAuthorizedNetworksConfig", default={})
         >> Bend(GcpContainerMasterAuthorizedNetworksConfig.mapping),

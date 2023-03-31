@@ -29,10 +29,10 @@ def test_gcp_backend_bucket(random_builder: GraphBuilder) -> None:
 def test_gcp_backend_service(random_builder: GraphBuilder) -> None:
     service = roundtrip(GcpBackendService, random_builder)
     assert service.health_checks
-    assert service.backends
+    assert service.backend_service_backends
     connect_resource(random_builder, service, GcpHealthCheck, selfLink=service.health_checks[0])
     assert len(random_builder.edges_of(GcpBackendService, GcpHealthCheck)) == 1
-    connect_resource(random_builder, service, GcpInstanceGroup, selfLink=service.backends[0].group)
+    connect_resource(random_builder, service, GcpInstanceGroup, selfLink=service.backend_service_backends[0].group)
     assert len(random_builder.edges_of(GcpBackendService, GcpInstanceGroup)) == 1
     connect_resource(random_builder, service, GcpNetwork, selfLink=service.network)
     assert len(random_builder.edges_of(GcpNetwork, GcpBackendService)) == 1
@@ -54,9 +54,9 @@ def test_gcp_external_vpn_gateway(random_builder: GraphBuilder) -> None:
 
 def test_gcp_firewall_policy(random_builder: GraphBuilder) -> None:
     policy = roundtrip(GcpFirewallPolicy, random_builder)
-    assert policy.rules
-    assert policy.rules[0].target_resources
-    connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.rules[0].target_resources[0])
+    assert policy.firewall_policy_rules
+    assert policy.firewall_policy_rules[0].target_resources
+    connect_resource(random_builder, policy, GcpNetwork, selfLink=policy.firewall_policy_rules[0].target_resources[0])
     assert len(random_builder.edges_of(GcpFirewallPolicy, GcpNetwork)) == 1
 
 
