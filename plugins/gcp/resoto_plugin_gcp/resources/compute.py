@@ -767,7 +767,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
     default_disk_size_gb: Optional[str] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
-    RESOURCE_GROUP_MAP = {
+    RESOURCE_GROUP_MAP: ClassVar[Dict[str, str]] = {
         "local-ssd": "LocalSSD",
         "pd-balanced": "SSD",
         "pd-ssd": "SSD",
