@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-example-collector",
-    version="3.2.7",
+    version="3.3.1",
     description="Resoto Example Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),

@@ -22,7 +22,7 @@ from rich.console import Console
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, NoEventSender
-from resotocore.cli.cli import CLI
+from resotocore.cli.cli import CLIService
 from resotocore.cli.command import (
     alias_names,
     all_commands,
@@ -267,6 +267,7 @@ def person_model() -> Model:
             Property("tags", "dictionary[string, string]", description="Key/value pairs."),
             Property("mtime", "datetime", description="Modification time of this node."),
         ],
+        metadata={"icon": "icon.svg"},
     )
     address = ComplexKind(
         "Address",
@@ -275,6 +276,7 @@ def person_model() -> Model:
             Property("zip", "zip", description="The zip code."),
             Property("city", "string", required=True, description="The name of the city.\nAnd another line."),
         ],
+        metadata={"icon": "address.svg"},
     )
     person = ComplexKind(
         "Person",
@@ -494,13 +496,13 @@ async def cli_deps(
 
 
 @fixture
-def cli(cli_deps: CLIDependencies) -> CLI:
+def cli(cli_deps: CLIDependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
-    return CLI(cli_deps, all_commands(cli_deps), env, alias_names())
+    return CLIService(cli_deps, all_commands(cli_deps), env, alias_names())
 
 
 @fixture
-async def inspector_service(cli: CLI) -> InspectorService:
+async def inspector_service(cli: CLIService) -> InspectorService:
     async with InspectorService(cli) as service:
         cli.dependencies.lookup["inspector"] = service
         return service
@@ -636,10 +638,10 @@ def workflow_instance(
 
 
 @fixture
-async def subscription_handler(message_bus: MessageBus) -> SubscriptionHandler:
+async def subscription_handler(message_bus: MessageBus) -> AsyncIterator[SubscriptionHandler]:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    result = SubscriptionHandler(in_mem, message_bus)
-    return result
+    async with SubscriptionHandler(in_mem, message_bus) as handler:
+        yield handler
 
 
 @fixture
@@ -649,7 +651,7 @@ async def task_handler(
     message_bus: MessageBus,
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
-    cli: CLI,
+    cli: CLIService,
     test_workflow: Workflow,
     additional_workflows: List[Workflow],
 ) -> AsyncGenerator[TaskHandlerService, None]:

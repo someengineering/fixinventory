@@ -1,4 +1,4 @@
 prompt-toolkit==3.0.36
 rich==13.3.1
-resotolib==3.2.7
+resotolib==3.3.1
 resotoclient==1.2.1

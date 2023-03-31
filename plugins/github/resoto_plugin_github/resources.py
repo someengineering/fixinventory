@@ -1,17 +1,23 @@
 from datetime import datetime
-import resotolib.logger
 from attrs import define
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, List, Dict, Any, Union
 from resotolib.graph import Graph
+from resotolib.logger import log
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseResource,
     BaseUser,
 )
-import github
-
-log = resotolib.logger.getLogger("resoto." + __name__)
+from resotolib.utils import make_valid_timestamp
+from github.Repository import Repository
+from github.Organization import Organization
+from github.NamedUser import NamedUser
+from github.Clones import Clones
+from github.View import View
+from github.Referrer import Referrer
+from github.Path import Path
+from github.GithubException import GithubException
 
 
 @define(eq=False, slots=False)
@@ -85,7 +91,7 @@ class GithubOrg(GithubResource, BaseResource):
     url: Optional[str] = None
 
     @staticmethod
-    def new(org: github.Organization.Organization) -> BaseResource:
+    def new(org: Organization) -> BaseResource:
         return GithubOrg(
             id=str(org.login),
             name=org.name,
@@ -176,7 +182,7 @@ class GithubUser(GithubResource, BaseUser):
     url: Optional[str] = None
 
     @staticmethod
-    def new(user: github.NamedUser.NamedUser) -> BaseResource:
+    def new(user: NamedUser) -> BaseResource:
         return GithubUser(
             id=str(user.login),
             avatar_url=user.avatar_url,
@@ -227,6 +233,101 @@ class GithubUser(GithubResource, BaseUser):
 
 
 @define(eq=False, slots=False)
+class GithubRepoClones:
+    kind: ClassVar[str] = "github_repo_clones"
+
+    timestamp: Optional[datetime] = None
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+
+    @staticmethod
+    def new(clones: Clones):
+        return GithubRepoClones(
+            timestamp=make_valid_timestamp(clones.timestamp), count=clones.count, uniques=clones.uniques
+        )
+
+
+@define(eq=False, slots=False)
+class GithubRepoClonesTraffic:
+    kind: ClassVar[str] = "github_repo_clones_traffic"
+
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+    clones: Optional[List[GithubRepoClones]] = None
+
+    @staticmethod
+    def new(clones_traffic: Optional[Dict[str, Any]]):
+        if clones_traffic is None:
+            return None
+
+        return GithubRepoClonesTraffic(
+            count=clones_traffic.get("count"),
+            uniques=clones_traffic.get("uniques"),
+            clones=[GithubRepoClones.new(clones) for clones in clones_traffic.get("clones", [])],
+        )
+
+
+@define(eq=False, slots=False)
+class GithubRepoView:
+    kind: ClassVar[str] = "github_repo_view"
+
+    timestamp: Optional[datetime] = None
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+
+    @staticmethod
+    def new(view: View):
+        return GithubRepoView(timestamp=make_valid_timestamp(view.timestamp), count=view.count, uniques=view.uniques)
+
+
+@define(eq=False, slots=False)
+class GithubRepoViewsTraffic:
+    kind: ClassVar[str] = "github_repo_views_traffic"
+
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+    views: Optional[List[GithubRepoView]] = None
+
+    @staticmethod
+    def new(views_traffic: Optional[Dict[str, Any]]):
+        if views_traffic is None:
+            return None
+
+        return GithubRepoViewsTraffic(
+            count=views_traffic.get("count"),
+            uniques=views_traffic.get("uniques"),
+            views=[GithubRepoView.new(view) for view in views_traffic.get("views", [])],
+        )
+
+
+@define(eq=False, slots=False)
+class GithubRepoTopReferrer:
+    kind: ClassVar[str] = "github_repo_top_referrer"
+
+    referrer: Optional[str] = None
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+
+    @staticmethod
+    def new(referrer: Referrer):
+        return GithubRepoTopReferrer(referrer=referrer.referrer, count=referrer.count, uniques=referrer.uniques)
+
+
+@define(eq=False, slots=False)
+class GithubRepoTopPath:
+    kind: ClassVar[str] = "github_repo_top_path"
+
+    title: Optional[str] = None
+    path: Optional[str] = None
+    count: Optional[int] = None
+    uniques: Optional[int] = None
+
+    @staticmethod
+    def new(path: Path):
+        return GithubRepoTopPath(title=path.title, path=path.path, count=path.count, uniques=path.uniques)
+
+
+@define(eq=False, slots=False)
 class GithubRepo(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_repo"
 
@@ -239,11 +340,13 @@ class GithubRepo(GithubResource, BaseResource):
     blobs_url: Optional[str] = None
     branches_url: Optional[str] = None
     clone_url: Optional[str] = None
+    clones_traffic: Optional[GithubRepoClonesTraffic] = None
     collaborators_url: Optional[str] = None
     comments_url: Optional[str] = None
     commits_url: Optional[str] = None
     compare_url: Optional[str] = None
     contents_url: Optional[str] = None
+    contributors_count: Optional[int] = None
     contributors_url: Optional[str] = None
     created_at: Optional[datetime] = None
     default_branch: Optional[str] = None
@@ -301,14 +404,17 @@ class GithubRepo(GithubResource, BaseResource):
     svn_url: Optional[str] = None
     tags_url: Optional[str] = None
     teams_url: Optional[str] = None
+    top_paths: Optional[List[GithubRepoTopPath]] = None
+    top_referrers: Optional[List[GithubRepoTopReferrer]] = None
     trees_url: Optional[str] = None
     updated_at: Optional[datetime] = None
     url: Optional[str] = None
     watchers: Optional[int] = None
     watchers_count: Optional[int] = None
+    views_traffic: Optional[GithubRepoViewsTraffic] = None
 
     @staticmethod
-    def new(repo: github.Repository.Repository):
+    def new(repo: Repository):
         return GithubRepo(
             id=repo.name,
             name=repo.name,
@@ -389,4 +495,41 @@ class GithubRepo(GithubResource, BaseResource):
             url=repo.url,
             watchers=repo.watchers,
             watchers_count=repo.watchers_count,
+            clones_traffic=GithubRepoClonesTraffic.new(get_clones_traffic(repo)),
+            views_traffic=GithubRepoViewsTraffic.new(get_views_traffic(repo)),
+            top_referrers=[GithubRepoTopReferrer.new(referrer) for referrer in get_top_referrers(repo)],
+            top_paths=[GithubRepoTopPath.new(path) for path in get_top_paths(repo)],
+            contributors_count=len(list(repo.get_contributors())),
         )
+
+
+def get_clones_traffic(repo: Repository) -> Optional[Dict[str, Union[int, List[Clones]]]]:
+    try:
+        return repo.get_clones_traffic()
+    except GithubException as e:
+        log.debug(f"Failed to get clones traffic for {repo.full_name}: {e}")
+        return None
+
+
+def get_views_traffic(repo: Repository) -> Optional[Dict[str, Union[int, List[View]]]]:
+    try:
+        return repo.get_views_traffic()
+    except GithubException as e:
+        log.debug(f"Failed to get views traffic for {repo.full_name}: {e}")
+        return None
+
+
+def get_top_referrers(repo: Repository) -> List[Referrer]:
+    try:
+        return repo.get_top_referrers()
+    except GithubException as e:
+        log.debug(f"Failed to get top referrers for {repo.full_name}: {e}")
+        return []
+
+
+def get_top_paths(repo: Repository) -> List[Path]:
+    try:
+        return repo.get_top_paths()
+    except GithubException as e:
+        log.debug(f"Failed to get top paths for {repo.full_name}: {e}")
+        return []

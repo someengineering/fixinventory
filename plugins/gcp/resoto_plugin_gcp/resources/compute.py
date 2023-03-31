@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
-from resoto_plugin_gcp.gcp_client import GcpApiSpec
+from resoto_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.billing import GcpSku
 from resotolib.baseresources import (
@@ -2649,7 +2649,7 @@ class GcpInstance(GcpResource, BaseInstance):
         "last_stop_timestamp": S("lastStopTimestamp"),
         "last_suspended_timestamp": S("lastSuspendedTimestamp"),
         "machine_type": S("machineType"),
-        "metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
+        "instance_metadata": S("metadata", default={}) >> Bend(GcpMetadata.mapping),
         "min_cpu_platform": S("minCpuPlatform"),
         "network_interfaces": S("networkInterfaces", default=[]) >> ForallBend(GcpNetworkInterface.mapping),
         "network_performance_config": S("networkPerformanceConfig", "totalEgressBandwidthTier"),
@@ -2700,7 +2700,7 @@ class GcpInstance(GcpResource, BaseInstance):
     last_stop_timestamp: Optional[datetime] = field(default=None)
     last_suspended_timestamp: Optional[datetime] = field(default=None)
     machine_type: Optional[str] = field(default=None)
-    metadata: Optional[GcpMetadata] = field(default=None)
+    instance_metadata: Optional[GcpMetadata] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
     network_interfaces: Optional[List[GcpNetworkInterface]] = field(default=None)
     network_performance_config: Optional[str] = field(default=None)
@@ -3291,6 +3291,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             zone=zone,
             machineType=name,
         )
+        result[InternalZoneProp] = zone
         machine_type_obj = GcpMachineType.from_api(result)
         builder.add_node(machine_type_obj, result)
 

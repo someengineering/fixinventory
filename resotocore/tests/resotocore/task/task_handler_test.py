@@ -6,7 +6,7 @@ import pytest
 from pytest import LogCaptureFixture
 
 from resotocore.analytics import AnalyticsEventSender
-from resotocore.cli.cli import CLI
+from resotocore.cli.cli import CLIService
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
@@ -42,7 +42,7 @@ async def test_recover_workflow(
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
     all_events: List[Message],
-    cli: CLI,
+    cli: CLIService,
     test_workflow: Workflow,
 ) -> None:
     def handler() -> TaskHandlerService:

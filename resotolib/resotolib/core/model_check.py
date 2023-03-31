@@ -1,6 +1,6 @@
 import re
 from attrs import define
-from typing import List, Dict, Tuple, Type
+from typing import List, Dict, Tuple, Type, Optional
 
 from resotolib.baseresources import BaseResource
 from resotolib.core.model_export import dataclasses_to_resotocore_model
@@ -18,7 +18,7 @@ class CheckProp:
 class CheckClass:
     fqn: str
     aggregate_root: bool
-    bases: List[str]
+    bases: Optional[List[str]]
     properties: List[CheckProp]
 
     def ignore(self) -> bool:

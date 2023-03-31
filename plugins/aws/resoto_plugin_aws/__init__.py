@@ -3,6 +3,7 @@ import multiprocessing
 from concurrent import futures
 from typing import List, Optional, Union, Any, Dict, Iterable
 
+import boto3
 import botocore.exceptions
 from botocore.model import OperationModel, Shape, StringShape, ListShape, StructureShape
 from jsons import pascalcase
@@ -56,6 +57,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def add_config(cfg: Config) -> None:
         cfg.add_config(AwsConfig)
+
+    @staticmethod
+    def auto_enableable() -> bool:
+        try:
+            account_id = boto3.session.Session().client("sts").get_caller_identity().get("Account")
+            log.debug(f"plugin: AWS auto discovery succeeded, running in account {account_id}.")
+            return True
+        except Exception as e:
+            log.debug(f"plugin: AWS auto discovery failed: {e}")
+        return False
 
     @metrics_collect.time()  # type: ignore
     def collect(self) -> None:
