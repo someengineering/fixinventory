@@ -180,8 +180,8 @@ class Api:
     @property
     def session(self) -> ClientSession:
         if self._session is None:
-            # only keep connections alive for 5 seconds, cleanup closed transports
-            connector = TCPConnector(keepalive_timeout=5.0, enable_cleanup_closed=True)
+            # only keep connections alive for 15 seconds, cleanup closed transports
+            connector = TCPConnector(keepalive_timeout=15.0, enable_cleanup_closed=True)
             self._session = ClientSession(connector=connector)
         return self._session
 

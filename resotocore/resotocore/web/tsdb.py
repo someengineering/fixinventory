@@ -1,4 +1,5 @@
 import logging
+from asyncio import sleep
 from functools import lru_cache
 from socket import gethostname
 from typing import Callable, Awaitable
@@ -38,6 +39,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
             in_headers = request.headers.copy()
             drop_request_specific_headers(in_headers)
             url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
+            max_retries = 5
 
             async def do_request(attempts_left: int) -> StreamResponse:
                 async with api_handler.session.request(
@@ -64,6 +66,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                                 f"Response(headers:{resp_header}, status:{cr.status}, body:{resp_body})"
                             )
                             cr.close()  # close the connection explicitly, might be pooled otherwise
+                            await sleep(2 ** (max_retries - attempts_left) * 0.1)  # exponential backoff
                             return await do_request(attempts_left - 1)
                         else:
                             log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
@@ -78,13 +81,14 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                             async for data in cr.content.iter_chunked(1024 * 1024):
                                 await response.write(data)
                             await response.write_eof()
+                            cr.close()  # TODO: remove this line, once the reason for 400 errors is known
                             return response
                     except Exception:
                         cr.close()  # close connection on any error
                         raise
 
             try:
-                return await do_request(attempts_left=3)  # retry the request up to 3 times
+                return await do_request(attempts_left=max_retries)
             except ClientConnectionError as e:
                 log.warning(f"Proxy tsdb request to: {url} is not reachable {e}")
                 raise HTTPBadGateway(text="tsdb server is not reachable") from e
