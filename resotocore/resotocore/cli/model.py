@@ -10,7 +10,7 @@ from enum import Enum
 from functools import reduce
 from operator import attrgetter
 from textwrap import dedent
-from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
+from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
@@ -43,10 +43,12 @@ from resotolib.utils import get_local_tzinfo
 class MediaType(Enum):
     Json = 1
     FilePath = 2
+    Markdown = 3
+    String = 4
 
     @property
-    def json(self) -> bool:
-        return self == MediaType.Json
+    def text(self) -> bool:
+        return self in (MediaType.Json, MediaType.String, MediaType.Markdown)
 
     @property
     def file_path(self) -> bool:
@@ -91,6 +93,18 @@ class CLIContext:
             return str(element)
         else:
             return element
+
+    def text_generator(
+        self, line: ParsedCommandLine, in_stream: AsyncIterator[JsonElement]
+    ) -> AsyncIterator[JsonElement]:
+        async def render_markdown() -> AsyncIterator[str]:
+            async for e in in_stream:
+                yield self.render_console(e)  # type: ignore
+
+        if line.produces == MediaType.Markdown:
+            return render_markdown()
+        else:
+            return in_stream
 
     def supports_color(self) -> bool:
         return (

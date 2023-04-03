@@ -525,7 +525,7 @@ async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
                         "categories": [],
                         "risk": "Some risk",
                         "severity": "medium",
-                        "detect": {"resoto": "is(foo) and does_not_exist!=null"},
+                        "detect": {"resoto": "is(foo)"},
                         "remediation": {"text": "Some remediation text", "url": "https://example.com"},
                     }
                 ],

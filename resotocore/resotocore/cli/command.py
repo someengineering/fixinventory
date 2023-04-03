@@ -2228,21 +2228,23 @@ class FormatCommand(CLICommand, OutputTransformer):
         parser.add_argument("--benchmark-result", dest="benchmark_result", action="store_true")
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
+        use: Optional[str] = None
+        if format_to_use:
+            if len(format_to_use) > 1:
+                raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
+            if len(formatting_string) > 0:
+                raise AttributeError("A format renderer can not be combined together with a format string!")
+            use = next(iter(format_to_use))
 
         async def render_single(converter: ConvertFn, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
                 async for elem in converter(streamer):
                     yield elem
 
-        async def format_stream(in_stream: Stream) -> Stream:
-            if format_to_use:
-                if len(format_to_use) > 1:
-                    raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
-                if len(formatting_string) > 0:
-                    raise AttributeError("A format renderer can not be combined together with a format string!")
-                use = next(iter(format_to_use))
+        async def format_stream(in_stream: Stream) -> JsGen:
+            if use:
                 if all_renderer := self.render_all.get(use):
-                    return all_renderer(in_stream, ctx)
+                    return all_renderer(in_stream)
                 elif single_renderer := self.formats.get(use):
                     return render_single(single_renderer, in_stream)
                 else:
@@ -2252,7 +2254,8 @@ class FormatCommand(CLICommand, OutputTransformer):
             else:
                 return in_stream
 
-        return CLIFlow(format_stream)
+        produces = MediaType.Markdown if use == "benchmark_result" else MediaType.String
+        return CLIFlow(format_stream, produces=produces)
 
 
 @make_parser
@@ -2659,7 +2662,7 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
-        return CLIFlow(fmt)
+        return CLIFlow(fmt, produces=MediaType.String)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -4634,6 +4637,24 @@ class ReportCommand(CLICommand):
     def info(self) -> str:
         return "Generate reports."
 
+    @staticmethod
+    def action_from_arg(arg: Optional[str]) -> Optional[str]:
+        args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
+        if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
+            return "benchmark_list"
+        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
+            return "benchmark_show"
+        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+            return "benchmark_run"
+        elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
+            return "check_list"
+        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
+            return "check_show"
+        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
+            return "check_run"
+        else:
+            return None
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
 
@@ -4660,7 +4681,7 @@ class ReportCommand(CLICommand):
                 bid,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
-                only_failing=parsed_args.fail_only,
+                only_failing=parsed_args.only_failing,
             )
             if not result.is_empty():
                 for node in result.to_graph():
@@ -4672,9 +4693,9 @@ class ReportCommand(CLICommand):
                 check_ids=[check_id],
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
-                only_failing=parsed_args.fail_only,
+                only_failing=parsed_args.only_failing,
             )
-            if not parsed_args.fail_only or result.has_failed():
+            if not parsed_args.only_failing or result.has_failed():
                 for node in result.to_graph():
                     yield node
 
@@ -4684,20 +4705,21 @@ class ReportCommand(CLICommand):
         run_parser = NoExitArgumentParser()
         run_parser.add_argument("--accounts", nargs="+")
         run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
-        run_parser.add_argument("--fail-only", action="store_true", default=False)
+        run_parser.add_argument("--only-failing", action="store_true", default=False)
 
-        if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
+        action = self.action_from_arg(arg)
+        if action == "benchmark_list":
             return CLISource.no_count(list_benchmarks)
-        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
+        elif action == "benchmark_show":
             return CLISource.no_count(partial(show_benchmark, args[2].strip()))
-        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+        elif action == "benchmark_run":
             parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
             return CLISource.no_count(partial(run_benchmark, args[2].strip(), parsed))
-        elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
+        elif action == "check_list":
             return CLISource.no_count(list_checks)
-        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
+        elif action == "check_show":
             return CLISource.no_count(partial(show_check, args[2].strip()))
-        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
+        elif action == "check_run":
             parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
             return CLISource.no_count(partial(run_check, args[2].strip(), parsed))
         else:

@@ -11,7 +11,7 @@ from attr import define, field, evolve
 from resotocore.ids import ConfigId
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
-from resotocore.util import uuid_str, if_set
+from resotocore.util import uuid_str, if_set, partition_by
 
 log = logging.getLogger(__name__)
 
@@ -201,10 +201,22 @@ class CheckCollectionResult:
             c.has_failed_for_account(account) for c in self.children
         )
 
-    def passing_failing_checks_for_account(self, account: str) -> Tuple[int, int]:
-        passing, failing = reduce(
-            lambda l, r: (l[0] + r[0], l[1] + r[1]),
+    def passing_failing_checks_for_account(self, account: str) -> Tuple[List[CheckResult], List[CheckResult]]:
+        passing_child_checks, failing_child_checks = reduce(
+            lambda pf, el: (pf[0] + el[0], pf[1] + el[1]),
             [c.passing_failing_checks_for_account(account) for c in self.children],
+            (cast(List[CheckResult], []), cast(List[CheckResult], [])),
+        )
+
+        failing_checks, passing_checks = partition_by(
+            lambda c: account in c.number_of_resources_failing_by_account, self.checks
+        )
+        return passing_checks + passing_child_checks, failing_checks + failing_child_checks
+
+    def passing_failing_checks_count_for_account(self, account: str) -> Tuple[int, int]:
+        passing, failing = reduce(
+            lambda pf, el: (pf[0] + el[0], pf[1] + el[1]),
+            [c.passing_failing_checks_count_for_account(account) for c in self.children],
             (0, 0),
         )
 
