@@ -14,7 +14,8 @@ log = logging.getLogger(__name__)
 
 class LocalResotocoreAppRuntime:
     """
-    Runtime implementation that runs the Infrastructure App directly on the resotocore.
+    Runtime implementation that runs the Infrastructure Apps directly on the resotocore.
+    Currently, only the Jinja2 language is supported.
     """
 
     def __init__(self, cli: CLI) -> None:
