@@ -1051,7 +1051,9 @@ async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: Be
     # the whole benchmark is printed to the user
     assert "Test section" in (await execute("report benchmark show test", Json))[0]
     # a single check is executed and produces a benchmark result: benchmark_node, check_node, edge == 3
-    assert len((await execute("report check run test_test_some_check", Json))) == 3
+    assert len((await execute("report check run test_test_some_check | dump", Json))) == 3
+    # without output transformer, a markdown report is generated
+    assert len((await execute("report check run test_test_some_check", str))) == 1
     # execute the test benchmark
     assert len((await execute("report benchmark run test | dump", Json))) == 9
     assert len((await execute("report benchmark run test --only-failing | dump", Json))) == 9
