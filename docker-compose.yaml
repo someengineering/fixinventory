@@ -76,6 +76,11 @@ services:
       - PSK
       - RESOTO_VERBOSE
       - RESOTO_LOG_TEXT
+      # Pass temporary AWS credentials if provided
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      # Define the resotocore URI to connect to
       - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
     restart: always
     stop_grace_period: 2m
