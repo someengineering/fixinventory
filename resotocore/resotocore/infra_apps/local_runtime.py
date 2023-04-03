@@ -1,13 +1,11 @@
-from typing import Optional, Dict, List, Any, AsyncIterator
+from typing import Dict, List, Any, AsyncIterator
 from resotocore.infra_apps.runtime import AppResult, Success, Failure
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import Json, JsonElement
-from resotocore.validator import Validator
 from resotocore.cli.model import CLI
 from jinja2 import Environment
 import logging
 from aiostream import stream
-from cerberus import schema_registry
 
 
 log = logging.getLogger(__name__)
@@ -28,10 +26,6 @@ class LocalResotocoreAppRuntime:
         """
         Runtime implementation that runs the app locally.
         """
-        errors = self._validate_config(manifest, config)
-        if errors:
-            return Failure(error=f"Invalid config: {errors}")
-
         try:
             result = []
             async for line in self._generate_template(manifest, config, stdin, kwargs):
@@ -60,13 +54,3 @@ class LocalResotocoreAppRuntime:
 
     async def _interpret_line(self, line: str) -> List[Any]:
         return await self.cli.execute_cli_command(line, stream.list)
-
-    def _validate_config(self, manifest: AppManifest, config: Json) -> Optional[Json]:
-        if manifest.config_schema:
-            schema_registry.add(f"infra_app_{manifest.name}_config", manifest.config_schema)
-
-            v = Validator(schema=manifest.config_schema, allow_unknown=False, require_all=True)
-            result = v.validate(config, normalize=False)
-            return None if result else v.errors
-        else:
-            return None
