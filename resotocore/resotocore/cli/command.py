@@ -4654,7 +4654,7 @@ class ReportCommand(CLICommand):
 
     ## Examples
 
-    ```shella
+    ```shell
     # List all available chekcs
     > report checks list
     aws_apigateway_authorizers_enabled
