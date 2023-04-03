@@ -1,11 +1,11 @@
 from typing import Optional, Dict, List, Any, AsyncIterator
 from resotocore.infra_apps.runtime import AppResult, Success, Failure
 from resotocore.infra_apps.manifest import AppManifest
-from jinja2 import Environment
-import logging
 from resotocore.types import Json, JsonElement
 from resotocore.validator import Validator
-from resotocore.cli.cli import CLI
+from resotocore.cli.model import CLI
+from jinja2 import Environment
+import logging
 from aiostream import stream
 
 
@@ -53,8 +53,9 @@ class LocalResotocoreAppRuntime:
             return Success(output=result)
 
         except Exception as e:
-            log.exception("Error running infrastructure app", e)
-            return Failure(error=f"Error running infrastructure app: {e}")
+            msg = f"Error running infrastructure app: {e}"
+            log.exception(msg)
+            return Failure(error=msg)
 
     async def _interpret_line(self, line: str) -> List[Any]:
         return await self.cli.execute_cli_command(line, stream.list)

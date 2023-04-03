@@ -1,6 +1,6 @@
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.infra_apps.runtime import Success
+from resotocore.infra_apps.runtime import AppResult, Success
 import pytest
 from resotocore.cli.model import CLI
 from aiostream import stream
@@ -68,8 +68,6 @@ async def test_template_generation(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_execute(cli: CLI) -> None:
-    result = await cli.execute_cli_command("echo foo", stream.list)
-
     source = "echo foo"
     manifest = AppManifest(
         name="test-app",
@@ -87,6 +85,6 @@ async def test_execute(cli: CLI) -> None:
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
-    result = await runtime.execute(manifest, config={}, kwargs={}, stdin={})
+    result: AppResult = await runtime.execute(manifest, config={}, kwargs={}, stdin={})
     assert isinstance(result, Success)
     assert result.output == [["foo"]]
