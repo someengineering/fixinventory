@@ -31,8 +31,10 @@ def render_benchmark_result(benchmark: BenchmarkResult, account: str) -> str:
         result += f"Summary: all {passing} checks passed\n\n"
     else:
         result += f"Summary: {passing} checks {check_mark} and {failing} checks {cross_mark}\n\n"
-    result += render_benchmark_summary(filtered, account)
-    result += "\n\n"
+    # If there are no children, ignore the summary (same information will be available as part of the check result)
+    if filtered.children:
+        result += render_benchmark_summary(filtered, account)
+        result += "\n\n"
     for check in filtered.checks:
         result += render_check_result(check, account)
     for collection in filtered.children:

@@ -4626,16 +4626,106 @@ class CertificateCommand(CLICommand):
 
 
 class ReportCommand(CLICommand):
+    """
+    ```shell
+    report benchmarks list
+    report benchmark show <benchmark-id>
+    report benchmark run <benchmark-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    report checks list
+    report checks show <check-id>
+    report checks run <check-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    ```
+
+    List and run benchmarks as well as specific benchmark checks.
+    Benchmarks are a collection of checks that are run against all or specific accounts.
+    Every check has a severity, that can also be used to filter relevant checks.
+
+    The result of a benchmark run is a report in Markdown format.
+    By default, this report is rendered and displayed in the console.
+    It is also possible to write the result to a file and open it in an external viewer.
+
+    ## Parameters
+    - `--accounts` [optional]: List of account ids (space separated) to run the benchmark against.
+        If not specified, the benchmark is run against all accounts.
+    - `--severity` [optional]: Severity level to filter checks. One of `info`, `low`, `medium`, `high`, `critical`
+
+    ## Options
+    - `--only-failing` [optional]: Only include checks that are failing in the report.
+
+    ## Examples
+
+    ```shella
+    # List all available chekcs
+    > report checks list
+    aws_apigateway_authorizers_enabled
+    aws_s3_account_level_public_access_blocks
+
+    # Display the details of a specific check
+    > report check show aws_apigateway_authorizers_enabled
+      ... output suppressed ...
+
+    # Perform the check against all accounts available, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled --only-failing
+      ... output suppressed ...
+
+    # Perform the check against all defined accounts, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled  --accounts 111 222 --only-failing
+      ... output suppressed ...
+
+    # List all available benchmarks
+    > report benchmarks list
+    aws_cis_1_5
+
+    # Display the details of a specific benchmark
+    > report benchmark show aws_cis_1_5
+    report_benchmark:
+      ... output suppressed ...
+
+    # Run benchmark against all accounts available
+    > report benchmark run aws_cis_1_5
+      ... output suppressed ...
+
+    # Run benchmark against account 111 and 222, check only critical checks
+    # The resulting report should contain only failed checks.
+    > report benchmark run aws_cis_1_5 --accounts 111 222  --severity critical --only-failing
+      ... output suppressed ...
+    ```
+    """
+
     @property
     def name(self) -> str:
         return "report"
 
     def args_info(self) -> ArgsInfo:
-        # TODO: define me!
-        return []
+        run_args = [
+            ArgInfo("--accounts", True, help_text="Space delimited list of accounts"),
+            ArgInfo(
+                "--severity",
+                True,
+                help_text="The severity level to filter checks",
+                possible_values=[s.value for s in ReportSeverity],
+            ),
+            ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
+        ]
+        return {
+            "benchmark": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<benchmark-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<benchmark-id>")],
+            },
+            "checks": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<check-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<check-id>")],
+            },
+        }
 
     def info(self) -> str:
         return "Generate reports."
+
+    @staticmethod
+    def is_run_action(arg: Optional[str]) -> bool:
+        return ReportCommand.action_from_arg(arg) in ("benchmark_run", "check_run")
 
     @staticmethod
     def action_from_arg(arg: Optional[str]) -> Optional[str]:
@@ -4656,8 +4746,6 @@ class ReportCommand(CLICommand):
             return None
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
-
         async def list_benchmarks() -> AsyncIterator[str]:
             for benchmark in await self.dependencies.inspector.list_benchmarks():
                 yield benchmark.id
@@ -4675,10 +4763,10 @@ class ReportCommand(CLICommand):
             for check in await self.dependencies.inspector.list_checks():
                 yield check.id
 
-        async def run_benchmark(bid: str, parsed_args: Namespace) -> AsyncIterator[Json]:
+        async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_benchmark(
                 ctx.graph_name,
-                bid,
+                parsed_args.identifier,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
@@ -4687,10 +4775,10 @@ class ReportCommand(CLICommand):
                 for node in result.to_graph():
                     yield node
 
-        async def run_check(check_id: str, parsed_args: Namespace) -> AsyncIterator[Json]:
+        async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_checks(
                 ctx.graph_name,
-                check_ids=[check_id],
+                check_ids=[parsed_args.identifier],
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
@@ -4703,25 +4791,27 @@ class ReportCommand(CLICommand):
             yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
 
         run_parser = NoExitArgumentParser()
+        run_parser.add_argument("identifier")
         run_parser.add_argument("--accounts", nargs="+")
         run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
         run_parser.add_argument("--only-failing", action="store_true", default=False)
 
         action = self.action_from_arg(arg)
+        args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
         if action == "benchmark_list":
             return CLISource.no_count(list_benchmarks)
         elif action == "benchmark_show":
             return CLISource.no_count(partial(show_benchmark, args[2].strip()))
         elif action == "benchmark_run":
-            parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
-            return CLISource.no_count(partial(run_benchmark, args[2].strip(), parsed))
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_benchmark, parsed))
         elif action == "check_list":
             return CLISource.no_count(list_checks)
         elif action == "check_show":
             return CLISource.no_count(partial(show_check, args[2].strip()))
         elif action == "check_run":
-            parsed = run_parser.parse_args(args[3].split() if len(args) > 3 else [])
-            return CLISource.no_count(partial(run_check, args[2].strip(), parsed))
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_check, parsed))
         else:
             return CLISource.single(show_help)
 
@@ -4756,7 +4846,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),
-        ReportCommand(d, "misc"),
+        ReportCommand(d, "misc", allowed_in_source_position=True),
         SearchPart(d, "search", allowed_in_source_position=True),
         SetDesiredCommand(d, "action"),
         SetMetadataCommand(d, "action"),

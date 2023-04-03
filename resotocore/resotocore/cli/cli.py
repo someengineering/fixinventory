@@ -469,7 +469,7 @@ class CLIService(CLI):
                 return cmds
             first_cmd = cmds[0] if len(cmds) > 0 else None
             last_cmd = cmds[-1] if len(cmds) > 0 else None
-            single_command = cmds[0] if len(cmds) == 1 else None
+            single = cmds[0] if len(cmds) == 1 else None
             output_transformer = [cmd for cmd in cmds if isinstance(cmd.command, OutputTransformer)]
             result = cmds
 
@@ -480,12 +480,8 @@ class CLIService(CLI):
                 return self.command("list", None, context)
 
             # benchmark run as single command is rewritten to benchmark run | format --benchmark-result
-            if (
-                single_command
-                and isinstance(single_command.command, ReportCommand)
-                and ReportCommand.action_from_arg(single_command.arg) == "benchmark_run"
-            ):
-                result = [single_command, fmt_benchmark()]
+            if single and isinstance(single.command, ReportCommand) and ReportCommand.is_run_action(single.arg):
+                result = [single, fmt_benchmark()]
             # if the last command is a write command without any format: add the format
             elif first_cmd and last_cmd and isinstance(last_cmd.command, WriteCommand) and not output_transformer:
                 # format is either list (default) or benchmark
