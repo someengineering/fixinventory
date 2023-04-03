@@ -7,6 +7,7 @@ from resotocore.cli.model import CLI
 from jinja2 import Environment
 import logging
 from aiostream import stream
+from cerberus import schema_registry
 
 
 log = logging.getLogger(__name__)
@@ -21,7 +22,29 @@ class LocalResotocoreAppRuntime:
     def __init__(self, cli: CLI) -> None:
         self.cli = cli
 
-    async def generate_template(
+    async def execute(
+        self, manifest: AppManifest, config: Json, stdin: JsonElement, kwargs: Dict[str, Any]
+    ) -> AppResult:
+        """
+        Runtime implementation that runs the app locally.
+        """
+        errors = self._validate_config(manifest, config)
+        if errors:
+            return Failure(error=f"Invalid config: {errors}")
+
+        try:
+            result = []
+            async for line in self._generate_template(manifest, config, stdin, kwargs):
+                result = await self._interpret_line(line)
+
+            return Success(output=result)
+
+        except Exception as e:
+            msg = f"Error running infrastructure app: {e}"
+            log.exception(msg)
+            return Failure(error=msg)
+
+    async def _generate_template(
         self, manifest: AppManifest, config: Json, stdin: JsonElement, kwargs: Dict[str, Any]
     ) -> AsyncIterator[str]:
         env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)
@@ -35,33 +58,15 @@ class LocalResotocoreAppRuntime:
                 continue
             yield line
 
-    async def execute(
-        self, manifest: AppManifest, config: Json, stdin: JsonElement, kwargs: Dict[str, Any]
-    ) -> AppResult:
-        """
-        Runtime implementation that runs the app locally.
-        """
-        # todo: validate config
-        # errors = self._validate_config(manifest, config)
-        # if errors:
-        # return Failure(error=f"Invalid config: {errors}")
-
-        try:
-            result = []
-            async for line in self.generate_template(manifest, config, stdin, kwargs):
-                result = await self._interpret_line(line)
-
-            return Success(output=result)
-
-        except Exception as e:
-            msg = f"Error running infrastructure app: {e}"
-            log.exception(msg)
-            return Failure(error=msg)
-
     async def _interpret_line(self, line: str) -> List[Any]:
         return await self.cli.execute_cli_command(line, stream.list)
 
     def _validate_config(self, manifest: AppManifest, config: Json) -> Optional[Json]:
-        v = Validator(schema=manifest.config_schema, allow_unknown=False)
-        result = v.validate(config, normalize=False)
-        return None if result else v.errors
+        if manifest.config_schema:
+            schema_registry.add(f"infra_app_{manifest.name}_config", manifest.config_schema)
+
+            v = Validator(schema=manifest.config_schema, allow_unknown=False, require_all=True)
+            result = v.validate(config, normalize=False)
+            return None if result else v.errors
+        else:
+            return None
