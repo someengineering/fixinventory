@@ -57,6 +57,12 @@ class GcpClient:
         self.core_feedback = core_feedback
 
     def get(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
+        return self.call_single(api_spec, None, **kwargs)
+
+    def set_labels(self, api_spec: GcpApiSpec, body:Dict[str, Any], **kwargs: Any) -> Json:
+        return self.call_single(api_spec, body, **kwargs)
+
+    def call_single(self, api_spec: GcpApiSpec, body: Optional[Any] = None, **kwargs: Any) -> Json:
         client = _discovery_function(
             api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
         )
@@ -65,6 +71,8 @@ class GcpClient:
             executor = getattr(executor, accessor)()
         params_map = {**{"project": self.project_id, "region": self.region}, **kwargs}
         params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
+        if body:
+            params.update({"body": body})
         request = getattr(executor, api_spec.action)(**params)
         result: Json = request.execute()
         return result

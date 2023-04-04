@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import concurrent
+from copy import deepcopy
 import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
 
 from attr import define, field
-from google.auth.credentials import Credentials
+from google.auth.credentials import Credentials as GoogleAuthCredentials
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
-from resoto_plugin_gcp.utils import delete_resource, update_label
+from resoto_plugin_gcp.utils import delete_resource, Credentials
 from resotolib.baseresources import BaseResource, BaseAccount, Cloud, EdgeType, BaseRegion, BaseZone, BaseQuota
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -92,7 +93,7 @@ class GraphBuilder:
         graph: Graph,
         cloud: Cloud,
         project: GcpProject,
-        credentials: Credentials,
+        credentials: GoogleAuthCredentials,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         region: Optional[GcpRegion] = None,
@@ -301,14 +302,22 @@ class GcpResource(BaseResource):
     link: Optional[str] = None
     label_fingerprint: Optional[str] = None
 
+    @property
+    def _get_identifier(self) -> str:
+        return self.api_spec.accessors[-1][:-1] # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
+
+    @property
+    def _set_label_identifier(self) -> str:
+        return "resource"
+
     def delete(self, graph: Graph) -> bool:
         return delete_resource(self)
 
     def update_tag(self, key: str, value: str) -> bool:
-        return update_label(self, key, value)
+        return self.update_label(key, value)
 
     def delete_tag(self, key: str) -> bool:
-        return update_label(self, key, None)
+        return self.update_label(key, None)
 
     def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
         """
@@ -333,6 +342,44 @@ class GcpResource(BaseResource):
 
     def to_json(self) -> Json:
         return to_js(self)
+
+    def update_label(self, key: str, value: Optional[str]) -> bool:
+        client = GcpClient(
+            Credentials.get(self.account().id),
+            project_id=self.account().id,
+            region=self.region().name if self.region() else None
+        )
+        api_spec = deepcopy(self.api_spec)
+        api_spec.action = "setLabels"
+        api_spec.request_parameter[self._set_label_identifier] = "{resource}"
+        api_spec.request_parameter["zone"] = "{zone}" #TODO: hopefully this doesnt break resources that are not zonal
+
+        labels = dict(self.tags)
+        if value is None:
+            if key in labels:
+                del labels[key]
+            else:
+                return False
+        else:
+            labels.update({key: value})
+
+        client.set_labels(
+            api_spec,
+            body={"labels": labels, "labelFingerprint": self.label_fingerprint},
+            zone=self.zone().name,
+            resource=self.name,
+        )
+        # Retrieve updated resource
+        api_spec.action = "get"
+        api_spec.request_parameter.pop(self._set_label_identifier)
+        api_spec.request_parameter[self._get_identifier] = "{resource}"
+        result = client.get(
+            api_spec,
+            zone=self.zone().name,
+            resource=self.name,
+        )
+        self.label_fingerprint = result.get("labelFingerprint")
+        return True
 
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:

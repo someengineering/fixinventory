@@ -228,34 +228,6 @@ def delete_resource(resource: BaseResource) -> bool:
     return True
 
 
-def update_label(resource: BaseResource, key: str, value: Optional[str]) -> bool:
-    get_kwargs = {str(resource._get_identifier): resource.name}
-    set_labels_kwargs = {str(resource._set_label_identifier): resource.name}
-
-    common_kwargs = common_resource_kwargs(resource)
-    get_kwargs.update(common_kwargs)
-    set_labels_kwargs.update(common_kwargs)
-
-    labels = dict(resource.tags)
-    if value is None:
-        if key in labels:
-            del labels[key]
-        else:
-            return False
-    else:
-        labels.update({key: value})
-    body = {"labels": labels, "labelFingerprint": resource.label_fingerprint}
-    set_labels_kwargs["body"] = body
-    gr = gcp_resource(resource)
-    request = gr.setLabels(**set_labels_kwargs)
-    response = request.execute()
-    # Update label_fingerprint
-    request = gr.get(**get_kwargs)
-    response = request.execute()
-    resource.label_fingerprint = response.get("labelFingerprint")
-    return True
-
-
 def gcp_service(resource: BaseResource, graph: Graph = None):
     service_kwargs = {}
     if resource.account().id != "undefined":
