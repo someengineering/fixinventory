@@ -12,6 +12,7 @@ from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId
 from resotocore.model.model import Model
+from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.model import Aggregate, AggregateFunction, Query, P, AggregateVariable, AggregateVariableName
 from resotocore.report import (
     Inspector,
@@ -33,6 +34,7 @@ from resotocore.report import (
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
+from resotocore.util import value_in_path
 from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
@@ -237,6 +239,9 @@ class InspectorService(Inspector, Service):
             return stream.empty()  # type: ignore
 
     async def __perform_benchmark(self, benchmark: Benchmark, graph: str, context: CheckContext) -> BenchmarkResult:
+        if context.accounts is None:
+            context.accounts = await self.__list_accounts(benchmark, graph)
+
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
         check_by_id = {c.id: c for c in perform_checks if context.includes_severity(c.severity)}
         result = await self.__perform_checks(graph, perform_checks, context)
@@ -330,6 +335,16 @@ class InspectorService(Inspector, Service):
             return {}
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
+
+    async def __list_accounts(self, benchmark: Benchmark, graph: str) -> List[str]:
+        model = await self.model_handler.load_model()
+        gdb = self.db_access.get_graph_db(graph)
+        query = Query.by("account")
+        if benchmark.clouds:
+            query = query.combine(Query.by(P.single("ancestors.cloud.reported.id").is_in(benchmark.clouds)))
+        async with await gdb.search_list(QueryModel(query, model)) as crs:
+            ids = [value_in_path(a, NodePath.reported_id) async for a in crs]
+            return [aid for aid in ids if aid is not None]
 
     async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
         try:
