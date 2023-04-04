@@ -488,8 +488,9 @@ class CLIService(CLI):
                 fmt = fmt_benchmark() if isinstance(first_cmd.command, ReportCommand) else fmt_list()
                 result = [*cmds[0:-1], fmt, cmds[-1]]
 
-            # If no resulting output transformer is defined, add the default `list` command
-            if not [cmd for cmd in result if isinstance(cmd.command, (OutputTransformer, PreserveOutputFormat))]:
+            # produces text and no resulting output transformer is defined: add the default `list` command
+            has_format = any(c for c in result if isinstance(c.command, (OutputTransformer, PreserveOutputFormat)))
+            if last_cmd.action.produces.text and not has_format:
                 result = [*result, fmt_list()]
             return result
 
