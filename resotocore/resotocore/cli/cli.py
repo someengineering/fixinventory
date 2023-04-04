@@ -460,18 +460,22 @@ class CLIService(CLI):
             return ctx, commands
 
         def rewrite_command_line(cmds: List[ExecutableCommand]) -> List[ExecutableCommand]:
-            # rewrite the command line to make it more user-friendly
-            # Rules:
-            # - add the list command if no output format is defined
-            # - add a format to write commands if no output format is defined
-            # - report benchmark run will be formatted as benchmark result automatically
-            if context.env.get("no_rewrite"):
+            """
+            Rewrite the command line to make it more user-friendly.
+            Rules:
+            - add the list command if no output format is defined
+            - add a format to write commands if no output format is defined
+            - report benchmark run will be formatted as benchmark result automatically
+            """
+            if context.env.get("no_rewrite") or len(cmds) == 0:
                 return cmds
-            first_cmd = cmds[0] if len(cmds) > 0 else None
-            last_cmd = cmds[-1] if len(cmds) > 0 else None
+            first_cmd = cmds[0]
+            last_cmd = cmds[-1]
             single = cmds[0] if len(cmds) == 1 else None
-            output_transformer = [cmd for cmd in cmds if isinstance(cmd.command, OutputTransformer)]
             result = cmds
+
+            def no_format() -> bool:
+                return not any(c for c in result if isinstance(c.command, (OutputTransformer, PreserveOutputFormat)))
 
             def fmt_benchmark() -> ExecutableCommand:
                 return self.command("format", "--benchmark-result", context)
@@ -483,14 +487,13 @@ class CLIService(CLI):
             if single and isinstance(single.command, ReportCommand) and ReportCommand.is_run_action(single.arg):
                 result = [single, fmt_benchmark()]
             # if the last command is a write command without any format: add the format
-            elif first_cmd and last_cmd and isinstance(last_cmd.command, WriteCommand) and not output_transformer:
+            elif isinstance(last_cmd.command, WriteCommand) and no_format():
                 # format is either list (default) or benchmark
                 fmt = fmt_benchmark() if isinstance(first_cmd.command, ReportCommand) else fmt_list()
                 result = [*cmds[0:-1], fmt, cmds[-1]]
 
             # produces text and no resulting output transformer is defined: add the default `list` command
-            has_format = any(c for c in result if isinstance(c.command, (OutputTransformer, PreserveOutputFormat)))
-            if last_cmd.action.produces.text and not has_format:
+            if last_cmd.action.produces.text and no_format():
                 result = [*result, fmt_list()]
             return result
 
