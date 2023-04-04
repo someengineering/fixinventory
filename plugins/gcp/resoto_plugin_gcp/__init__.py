@@ -45,6 +45,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: GCP collecting resources")
         assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
+        cloud = Cloud(id=self.cloud, name="Gcp")
+
         credentials = Credentials.all()
         if len(Config.gcp.project) > 0:
             for project in list(credentials.keys()):
@@ -77,6 +79,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     self.collect_project,
                     project_id,
                     self.core_feedback.with_context("gcp"),
+                    cloud,
                     **collect_args,  # type: ignore
                 )
                 for project_id in credentials.keys()
@@ -92,6 +95,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def collect_project(
         project_id: str,
         core_feedback: CoreFeedback,
+        cloud: Cloud,
         args: Optional[Namespace] = None,
         running_config: Optional[RunningConfig] = None,
         credentials: Optional[Dict[str, Any]] = None,
@@ -123,7 +127,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         try:
             core_feedback.progress_done(project_id, 0, 1)
-            gpc = GcpProjectCollector(Config.gcp, Cloud(id="Gcp", name="Gcp"), project, core_feedback)
+            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback)
             gpc.collect()
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
