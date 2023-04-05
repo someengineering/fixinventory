@@ -24,6 +24,15 @@ log = logging.getLogger("resoto.plugins.gcp")
 
 T = TypeVar("T")
 
+def get_client(resource: BaseResource) -> GcpClient:
+    project = resource.account()
+    assert isinstance(project, GcpProject)
+    return GcpClient(
+            Credentials.get(project.id),
+            project_id=project.id,
+            region=resource.region().name if resource.region() else None,
+        )
+
 
 class CancelOnFirstError(Exception):
     pass
@@ -303,11 +312,7 @@ class GcpResource(BaseResource):
     label_fingerprint: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
-        client = GcpClient(
-            Credentials.get(self.account().id),
-            project_id=self.account().id,
-            region=self.region().name if self.region() else None,
-        )
+        client = get_client(self)
         client.delete(
             self.api_spec.for_delete(),
             zone=self.zone().name,
@@ -316,11 +321,7 @@ class GcpResource(BaseResource):
         return True
 
     def update_tag(self, key: str, value: str) -> bool:
-        client = GcpClient(
-            Credentials.get(self.account().id),
-            project_id=self.account().id,
-            region=self.region().name if self.region() else None,
-        )
+        client = get_client(self)
 
         labels = dict(self.tags)
         if value is None:
@@ -330,13 +331,16 @@ class GcpResource(BaseResource):
                 return False
         else:
             labels.update({key: value})
-
-        client.set_labels(
-            self.api_spec.for_set_labels(),
-            body={"labels": labels, "labelFingerprint": self.label_fingerprint},
-            zone=self.zone().name,
-            resource=self.name,
-        )
+        try:
+            client.set_labels(
+                self.api_spec.for_set_labels(),
+                body={"labels": labels, "labelFingerprint": self.label_fingerprint},
+                zone=self.zone().name,
+                resource=self.name,
+            )
+        except AttributeError:
+            log.debug(f"resources of type {self.kind} cannot be labeled.")
+            return False
         # Retrieve updated label fingerprint
         result = client.get(
             self.api_spec.for_get(),

@@ -29,11 +29,13 @@ class GcpApiSpec:
     response_path: str
     response_regional_sub_path: Optional[str] = None
     set_label_identifier: str = "resource"
+    get_identifier: Optional[str] = None
+    delete_identifier: Optional[str] = None
 
     def for_delete(self):
         api_spec = deepcopy(self)
         api_spec.action = "delete"
-        api_spec.request_parameter[self.delete_identifier] = "{resource}"
+        api_spec.request_parameter[self._delete_identifier] = "{resource}"
         if self.is_zone_specific:
             api_spec.request_parameter["zone"] = "{zone}"
         return api_spec
@@ -41,7 +43,7 @@ class GcpApiSpec:
     def for_get(self):
         api_spec = deepcopy(self)
         api_spec.action = "get"
-        api_spec.request_parameter[self.get_identifier] = "{resource}"
+        api_spec.request_parameter[self._get_identifier] = "{resource}"
         if self.is_zone_specific:
             api_spec.request_parameter["zone"] = "{zone}"
         return api_spec
@@ -55,12 +57,12 @@ class GcpApiSpec:
         return api_spec
 
     @property
-    def get_identifier(self) -> str:
-        return self.accessors[-1][:-1]  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
+    def _get_identifier(self) -> str:
+        return self.get_identifier or self.accessors[-1][:-1]  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
 
     @property
-    def delete_identifier(self) -> str:
-        return self.get_identifier
+    def _delete_identifier(self) -> str:
+        return self.delete_identifier or self._get_identifier
 
     @property
     def next_action(self) -> str:

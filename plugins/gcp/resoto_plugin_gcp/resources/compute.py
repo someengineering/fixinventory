@@ -71,6 +71,7 @@ class GcpAddress(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="addresses",
+        get_identifier="address",
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id").or_else(S("name")).or_else(S("selfLink")),
