@@ -30,6 +30,14 @@ class GcpApiSpec:
     response_regional_sub_path: Optional[str] = None
     set_label_identifier: str = "resource"
 
+    def for_delete(self):
+        api_spec = deepcopy(self)
+        api_spec.action = "delete"
+        api_spec.request_parameter[self.delete_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
     def for_get(self):
         api_spec = deepcopy(self)
         api_spec.action = "get"
@@ -49,6 +57,10 @@ class GcpApiSpec:
     @property
     def get_identifier(self) -> str:
         return self.accessors[-1][:-1]  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
+
+    @property
+    def delete_identifier(self) -> str:
+        return self.get_identifier
 
     @property
     def next_action(self) -> str:
@@ -77,6 +89,9 @@ class GcpClient:
         self.project_id = project_id
         self.region = region
         self.core_feedback = core_feedback
+
+    def delete(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
+        return self.call_single(api_spec, None, **kwargs)
 
     def get(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
         return self.call_single(api_spec, None, **kwargs)

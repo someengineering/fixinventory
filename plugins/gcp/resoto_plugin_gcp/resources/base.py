@@ -303,39 +303,19 @@ class GcpResource(BaseResource):
     label_fingerprint: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
-        return delete_resource(self)
+        client = GcpClient(
+            Credentials.get(self.account().id),
+            project_id=self.account().id,
+            region=self.region().name if self.region() else None,
+        )
+        client.delete(
+            self.api_spec.for_delete(),
+            zone=self.zone().name,
+            resource=self.name,
+        )
+        return True
 
     def update_tag(self, key: str, value: str) -> bool:
-        return self._update_label(key, value)
-
-    def delete_tag(self, key: str) -> bool:
-        return self._update_label(key, None)
-
-    def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
-        """
-        Hook method to adjust the resource before it is added to the graph.
-        Default: do not change the resource.
-        """
-        return self
-
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        """
-        Hook method to post process the resource after it is added to the graph.
-        Default: do nothing.
-        """
-        pass
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        """
-        Hook method which is called when all resources have been collected.
-        Connect the resource to other resources in the graph.
-        """
-        pass
-
-    def to_json(self) -> Json:
-        return to_js(self)
-
-    def _update_label(self, key: str, value: Optional[str]) -> bool:
         client = GcpClient(
             Credentials.get(self.account().id),
             project_id=self.account().id,
@@ -365,6 +345,33 @@ class GcpResource(BaseResource):
         )
         self.label_fingerprint = result.get("labelFingerprint")
         return True
+
+    def delete_tag(self, key: str) -> bool:
+        return self.update_tag(key, None)
+
+    def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
+        """
+        Hook method to adjust the resource before it is added to the graph.
+        Default: do not change the resource.
+        """
+        return self
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        """
+        Hook method to post process the resource after it is added to the graph.
+        Default: do nothing.
+        """
+        pass
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        """
+        Hook method which is called when all resources have been collected.
+        Connect the resource to other resources in the graph.
+        """
+        pass
+
+    def to_json(self) -> Json:
+        return to_js(self)
 
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
