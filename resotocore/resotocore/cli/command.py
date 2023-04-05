@@ -4611,9 +4611,9 @@ class CertificateCommand(CLICommand):
 class InfrastructureAppsCommand(CLICommand):
     """
     ```shell
-    apps search [pattern] [someengineering/resoto-apps]
-    app info <app_name> [someengineering/resoto-apps]
-    app install <app_name> [someengineering/resoto-apps]
+    apps search [pattern] [--repo someengineering/resoto-apps]
+    app info <app_name> [--repo someengineering/resoto-apps]
+    app install <app_name> [--repo someengineering/resoto-apps]
     app edit <app_name>
     app uninstall <app_name>
     app update <app_name>|all
@@ -4633,11 +4633,14 @@ class InfrastructureAppsCommand(CLICommand):
 
 
     ## Parameters
-    - <app_name>: The identifier of the infrastructure app.
-    - [pattern]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
-    - [--dry-run]: Run the app but do not make any changes.
-    - [--validate]: Validate the app but do not run it.
-    - [--config <config_name>]: The configuration to use to run the app. Defaults to the default configuration.
+    - `app_name` [required]: The identifier of the infrastructure app.
+    - `pattern` [optional]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
+
+    ## Options
+    - `--repo <repo>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
+    - `--dry-run`: Run the app but do not make any changes.
+    - `--validate`: Validate the app but do not run it.
+    - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """
 
     @property
@@ -4649,17 +4652,18 @@ class InfrastructureAppsCommand(CLICommand):
 
     def args_info(self) -> ArgsInfo:
         return {
-            "search": [ArgInfo(None, True, help_text="Pattern for searching for apps.")],
-            "info": [ArgInfo(None, True, help_text="The identifier of the infrastructure app.")],
-            "install": [ArgInfo(None, True, help_text="The identifier of the infrastructure app.")],
-            "edit": [ArgInfo(None, True, help_text="The identifier of the infrastructure app.")],
-            "uninstall": [ArgInfo(None, True, help_text="The identifier of the infrastructure app.")],
-            "update": [ArgInfo(None, True, help_text="The identifier of the infrastructure app.")],
+            "search": [ArgInfo(None, True, help_text="<pattern>")],
+            "info": [ArgInfo(None, True, help_text="<app_name>")],
+            "install": [ArgInfo(None, True, help_text="<app_name>")],
+            "edit": [ArgInfo(None, True, help_text="<app_name>")],
+            "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
+            "update": [ArgInfo(None, True, help_text="<app_name>")],
+            "list": [ArgInfo(None, False)],
             "run": [
-                ArgInfo(None, True, help_text="The identifier of the infrastructure app."),
-                ArgInfo("--dry-run", False, help_text="Run the app but do not make any changes."),
-                ArgInfo("--validate", False, help_text="Validate the app but do not run it."),
-                ArgInfo("--config", True, help_text="The configuration to use to run the app."),
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--dry-run", False),
+                ArgInfo("--validate", False),
+                ArgInfo("--config", True, help_text="<config_name>"),
             ],
         }
 
