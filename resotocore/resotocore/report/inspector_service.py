@@ -12,6 +12,7 @@ from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId
 from resotocore.model.model import Model
+from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.model import Aggregate, AggregateFunction, Query, P, AggregateVariable, AggregateVariableName
 from resotocore.report import (
     Inspector,
@@ -28,9 +29,12 @@ from resotocore.report import (
     BenchmarkConfigRoot,
     ResotoReportBenchmark,
     ResotoReportCheck,
+    ReportSeverity,
+    ReportSeverityPriority,
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
+from resotocore.util import value_in_path
 from resotocore.web.service import Service
 
 log = logging.getLogger(__name__)
@@ -49,7 +53,15 @@ def check_id(name: str) -> ConfigId:
 @define
 class CheckContext:
     accounts: Optional[List[str]] = None
+    severity: Optional[ReportSeverity] = None
+    only_failed: bool = False
     parallel_checks: int = 10
+
+    def includes_severity(self, severity: ReportSeverity) -> bool:
+        if self.severity is None:
+            return True
+        else:
+            return ReportSeverityPriority[self.severity] <= ReportSeverityPriority[severity]
 
 
 class InspectorService(Inspector, Service):
@@ -79,8 +91,22 @@ class InspectorService(Inspector, Service):
                 log.info(f"Creating check collection config {cid}")
                 await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
 
+    async def list_benchmarks(self) -> List[Benchmark]:
+        return [
+            await self.__benchmark(i)
+            async for i in self.config_handler.list_config_ids()
+            if i.startswith(BenchmarkConfigPrefix)
+        ]
+
+    async def benchmark(self, name: str) -> Optional[Benchmark]:
+        try:
+            return await self.__benchmark(benchmark_id(name))
+        except ValueError:
+            return None
+
     async def list_checks(
         self,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
@@ -99,30 +125,40 @@ class InspectorService(Inspector, Service):
         return await self.filter_checks(inspection_matches)
 
     async def perform_benchmark(
-        self, benchmark_name: str, graph: str, accounts: Optional[List[str]] = None
+        self,
+        graph: str,
+        benchmark_name: str,
+        *,
+        accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
-        cfg = await self.config_handler.get_config(benchmark_id(benchmark_name))
-        if cfg is None or BenchmarkConfigRoot not in cfg.config:
-            raise ValueError(f"Unknown benchmark: {benchmark_name}")
-        benchmark = BenchmarkConfig.from_config(cfg)
-        context = CheckContext(accounts=accounts)
+        benchmark = await self.__benchmark(benchmark_id(benchmark_name))
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         return await self.__perform_benchmark(benchmark, graph, context)
 
     async def perform_checks(
         self,
         graph: str,
+        *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
         category: Optional[str] = None,
         kind: Optional[str] = None,
+        check_ids: Optional[List[str]] = None,
         accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
     ) -> BenchmarkResult:
-        checks = await self.list_checks(provider, service, category, kind)
+        checks = await self.list_checks(
+            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
+        )
         provider_name = f"{provider}_" if provider else ""
         service_name = f"{service}_" if service else ""
         category_name = f"{category}_" if category else ""
         kind_name = f"{kind}_" if kind else ""
-        title = f"{provider_name}{service_name}{category_name}{kind_name}_benchmark"
+        check_id_name = f"{check_ids[0]}_" if check_ids else ""
+        title = f"{provider_name}{service_name}{category_name}{kind_name}{check_id_name}benchmark"
         benchmark = Benchmark(
             id=title,
             title=title,
@@ -133,8 +169,14 @@ class InspectorService(Inspector, Service):
             checks=[c.id for c in checks],
             children=[],
         )
-        context = CheckContext(accounts=accounts)
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         return await self.__perform_benchmark(benchmark, graph, context)
+
+    async def __benchmark(self, cfg_id: ConfigId) -> Benchmark:
+        cfg = await self.config_handler.get_config(cfg_id)
+        if cfg is None or BenchmarkConfigRoot not in cfg.config:
+            raise ValueError(f"Unknown benchmark: {cfg_id}")
+        return BenchmarkConfig.from_config(cfg)
 
     async def filter_checks(self, report_filter: Optional[Callable[[ReportCheck], bool]] = None) -> List[ReportCheck]:
         cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
@@ -197,19 +239,24 @@ class InspectorService(Inspector, Service):
             return stream.empty()  # type: ignore
 
     async def __perform_benchmark(self, benchmark: Benchmark, graph: str, context: CheckContext) -> BenchmarkResult:
+        if context.accounts is None:
+            context.accounts = await self.__list_accounts(benchmark, graph)
+
         perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
-        check_by_id = {c.id: c for c in perform_checks}
+        check_by_id = {c.id: c for c in perform_checks if context.includes_severity(c.severity)}
         result = await self.__perform_checks(graph, perform_checks, context)
         await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
 
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
-            check_results = [CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or []]
+            check_results = [
+                CheckResult(check_by_id[cid], result.get(cid, {})) for cid in cc.checks or [] if cid in check_by_id
+            ]
             children = [to_result(c) for c in cc.children or []]
             return CheckCollectionResult(
                 cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
             )
 
-        top = to_result(benchmark)
+        top = to_result(benchmark).filter_result(context.only_failed)
         return BenchmarkResult(
             benchmark.title,
             benchmark.description,
@@ -218,6 +265,9 @@ class InspectorService(Inspector, Service):
             documentation=benchmark.documentation,
             checks=top.checks,
             children=top.children,
+            accounts=context.accounts,
+            only_failed=context.only_failed,
+            severity=context.severity,
         )
 
     async def __perform_checks(
@@ -285,6 +335,16 @@ class InspectorService(Inspector, Service):
             return {}
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
+
+    async def __list_accounts(self, benchmark: Benchmark, graph: str) -> List[str]:
+        model = await self.model_handler.load_model()
+        gdb = self.db_access.get_graph_db(graph)
+        query = Query.by("account")
+        if benchmark.clouds:
+            query = query.combine(Query.by(P.single("ancestors.cloud.reported.id").is_in(benchmark.clouds)))
+        async with await gdb.search_list(QueryModel(query, model)) as crs:
+            ids = [value_in_path(a, NodePath.reported_id) async for a in crs]
+            return [aid for aid in ids if aid is not None]
 
     async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
         try:

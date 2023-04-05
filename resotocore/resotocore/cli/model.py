@@ -10,7 +10,7 @@ from enum import Enum
 from functools import reduce
 from operator import attrgetter
 from textwrap import dedent
-from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set
+from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
 from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
@@ -30,6 +30,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import TemplateExpander, render_template
+from resotocore.report import Inspector
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
@@ -42,10 +43,12 @@ from resotolib.utils import get_local_tzinfo
 class MediaType(Enum):
     Json = 1
     FilePath = 2
+    Markdown = 3
+    String = 4
 
     @property
-    def json(self) -> bool:
-        return self == MediaType.Json
+    def text(self) -> bool:
+        return self in (MediaType.Json, MediaType.String, MediaType.Markdown)
 
     @property
     def file_path(self) -> bool:
@@ -74,6 +77,10 @@ class CLIContext:
     console_renderer: Optional[ConsoleRenderer] = None
     source: Optional[str] = None  # who is calling
 
+    @property
+    def graph_name(self) -> str:
+        return self.env["graph"]
+
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section
         section = self.env.get("section") if self.query else PathRoot
@@ -86,6 +93,18 @@ class CLIContext:
             return str(element)
         else:
             return element
+
+    def text_generator(
+        self, line: ParsedCommandLine, in_stream: AsyncIterator[JsonElement]
+    ) -> AsyncIterator[JsonElement]:
+        async def render_markdown() -> AsyncIterator[str]:
+            async for e in in_stream:
+                yield self.render_console(e)  # type: ignore
+
+        if line.produces == MediaType.Markdown:
+            return render_markdown()
+        else:
+            return in_stream
 
     def supports_color(self) -> bool:
         return (
@@ -198,6 +217,10 @@ class CLIDependencies:
         return self.lookup["cert_handler"]  # type:ignore
 
     @property
+    def inspector(self) -> Inspector:
+        return self.lookup["inspector"]  # type:ignore
+
+    @property
     def http_session(self) -> ClientSession:
         session: Optional[ClientSession] = self.lookup.get("http_session")
         if not session:
@@ -249,6 +272,15 @@ class CLISource(CLIAction):
         res = self._fn()
         count, gen = await res if iscoroutine(res) else res
         return count, self.make_stream(await gen if iscoroutine(gen) else gen)
+
+    @staticmethod
+    def no_count(
+        fn: Callable[[], Union[JsGen, Awaitable[JsGen]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
+    ) -> CLISource:
+        return CLISource.with_count(fn, None, produces, requires, envelope)
 
     @staticmethod
     def with_count(

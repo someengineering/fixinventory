@@ -33,7 +33,7 @@ class TemplateExpanderService(TemplateExpanderBase):
         return [t async for t in self.db.all()]
 
     async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
-        final_env = {**env, "section": on_section}
+        final_env = {**env, "section": on_section, "no_rewrite": "true"}
         parsed = await self.cli.evaluate_cli_command(to_parse, CLIContext(env=final_env), replace_place_holder=False)
         if len(parsed) == 1:
             first_line = parsed[0]
