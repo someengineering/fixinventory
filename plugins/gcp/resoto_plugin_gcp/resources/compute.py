@@ -2679,6 +2679,7 @@ class GcpInstance(GcpResource, BaseInstance):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="instances",
+        set_label_identifier="instance"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id").or_else(S("name")).or_else(S("selfLink")),

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Optional, List, Dict, Any, Set
 
 from attr import define
@@ -27,6 +28,27 @@ class GcpApiSpec:
     request_parameter_in: Set[str]
     response_path: str
     response_regional_sub_path: Optional[str] = None
+    set_label_identifier: str = "resource"
+
+    def for_get(self):
+        api_spec = deepcopy(self)
+        api_spec.action = "get"
+        api_spec.request_parameter[self.get_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
+    def for_set_labels(self):
+        api_spec = deepcopy(self)
+        api_spec.action = "setLabels"
+        api_spec.request_parameter[self.set_label_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
+    @property
+    def get_identifier(self) -> str:
+        return self.accessors[-1][:-1]  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
 
     @property
     def next_action(self) -> str:
@@ -59,7 +81,7 @@ class GcpClient:
     def get(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
         return self.call_single(api_spec, None, **kwargs)
 
-    def set_labels(self, api_spec: GcpApiSpec, body:Dict[str, Any], **kwargs: Any) -> Json:
+    def set_labels(self, api_spec: GcpApiSpec, body: Dict[str, Any], **kwargs: Any) -> Json:
         return self.call_single(api_spec, body, **kwargs)
 
     def call_single(self, api_spec: GcpApiSpec, body: Optional[Any] = None, **kwargs: Any) -> Json:

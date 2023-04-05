@@ -302,22 +302,14 @@ class GcpResource(BaseResource):
     link: Optional[str] = None
     label_fingerprint: Optional[str] = None
 
-    @property
-    def _get_identifier(self) -> str:
-        return self.api_spec.accessors[-1][:-1] # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
-
-    @property
-    def _set_label_identifier(self) -> str:
-        return "resource"
-
     def delete(self, graph: Graph) -> bool:
         return delete_resource(self)
 
     def update_tag(self, key: str, value: str) -> bool:
-        return self.update_label(key, value)
+        return self._update_label(key, value)
 
     def delete_tag(self, key: str) -> bool:
-        return self.update_label(key, None)
+        return self._update_label(key, None)
 
     def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
         """
@@ -343,16 +335,12 @@ class GcpResource(BaseResource):
     def to_json(self) -> Json:
         return to_js(self)
 
-    def update_label(self, key: str, value: Optional[str]) -> bool:
+    def _update_label(self, key: str, value: Optional[str]) -> bool:
         client = GcpClient(
             Credentials.get(self.account().id),
             project_id=self.account().id,
-            region=self.region().name if self.region() else None
+            region=self.region().name if self.region() else None,
         )
-        api_spec = deepcopy(self.api_spec)
-        api_spec.action = "setLabels"
-        api_spec.request_parameter[self._set_label_identifier] = "{resource}"
-        api_spec.request_parameter["zone"] = "{zone}" #TODO: hopefully this doesnt break resources that are not zonal
 
         labels = dict(self.tags)
         if value is None:
@@ -364,17 +352,14 @@ class GcpResource(BaseResource):
             labels.update({key: value})
 
         client.set_labels(
-            api_spec,
+            self.api_spec.for_set_labels(),
             body={"labels": labels, "labelFingerprint": self.label_fingerprint},
             zone=self.zone().name,
             resource=self.name,
         )
-        # Retrieve updated resource
-        api_spec.action = "get"
-        api_spec.request_parameter.pop(self._set_label_identifier)
-        api_spec.request_parameter[self._get_identifier] = "{resource}"
+        # Retrieve updated label fingerprint
         result = client.get(
-            api_spec,
+            self.api_spec.for_get(),
             zone=self.zone().name,
             resource=self.name,
         )
