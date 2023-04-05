@@ -10,6 +10,7 @@ services:
 
     volumes:
       - ../..:/workspaces:cached
+      - devcontainer-resoto-bashhistory:/commandhistory
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
@@ -36,7 +37,10 @@ services:
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
     # (Adding the "ports" property to this file will not forward from the container.)
 
+volumes:
+  # keep the bash history between container rebuilds
+  devcontainer-resoto-bashhistory:
 # Uncomment this in case you want to keep arangodb data in a separate volume
-# volumes:
 #   arangodb-data:
 #   arangodb-apps-data:
+

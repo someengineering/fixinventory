@@ -83,7 +83,6 @@ from resotocore.cli.model import (
     NoTerminalOutput,
     ArgsInfo,
     ArgInfo,
-    AliasTemplate,
 )
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
@@ -3039,34 +3038,6 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     @abstractmethod
     def timeout(self) -> timedelta:
         pass
-
-
-@define
-class WorkerCustomCommand:
-    """
-    A worker might provide custom commands. This definition is provided by the worker.
-    """
-
-    name: str
-    info: Optional[str] = None
-    args_description: Dict[str, str] = field(factory=dict)
-    description: Optional[str] = None
-    filter: Dict[str, List[str]] = field(factory=dict)
-    allowed_on_kind: Optional[str] = None
-    expect_node_result: bool = False
-
-    def to_template(self) -> AliasTemplate:
-        allowed_kind = f" --allowed-on {self.allowed_on_kind}" if self.allowed_on_kind else ""
-        result_flag = "" if self.expect_node_result else " --no-node-result"
-        command = f"--command '{self.name}'"
-        args = "--arg '{{args}}'"
-        return AliasTemplate(
-            name=self.name,
-            info=self.info or "",
-            args_description=self.args_description,
-            template=f"execute-task{result_flag}{allowed_kind} {command} {args}",
-            description=self.description,
-        )
 
 
 class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):

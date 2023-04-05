@@ -42,6 +42,29 @@ def test_gcp_disk_type(random_builder: GraphBuilder) -> None:
     roundtrip(GcpDiskType, random_builder)
 
 
+def test_disk_type_ondemand_cost(random_builder: GraphBuilder) -> None:
+    known_prices_per_gig = [
+        ("pd-standard", "us-east1", 0.08),
+    ]
+    with open(os.path.dirname(__file__) + "/files/skus.json") as f:
+        GcpSku.collect(raw=json.load(f)["skus"], builder=random_builder)
+
+    with open(os.path.dirname(__file__) + "/files/disk_type.json") as f:
+        GcpDiskType.collect(raw=json.load(f)["items"]["diskTypes"], builder=random_builder)
+
+    regions = random_builder.resources_of(GcpRegion)
+    disk_types = random_builder.resources_of(GcpDiskType)
+
+    for price in known_prices_per_gig:
+        region = next((obj for obj in regions if obj.id == price[1]), None)
+        disk_type = next((obj for obj in disk_types if obj.name == price[0]), None)
+        assert disk_type
+        disk_type._region = region
+        disk_type.connect_in_graph(random_builder, {"Dummy": "Source"})
+        assert disk_type.ondemand_cost > 0.0
+        assert round(disk_type.ondemand_cost, 5) == price[2]
+
+
 def test_gcp_disk(random_builder: GraphBuilder) -> None:
     disk = roundtrip(GcpDisk, random_builder)
     connect_resource(random_builder, disk, GcpDiskType, selfLink=disk.volume_type)

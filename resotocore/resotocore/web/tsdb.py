@@ -1,9 +1,10 @@
 import logging
+from asyncio import sleep
 from functools import lru_cache
 from socket import gethostname
 from typing import Callable, Awaitable
 
-from aiohttp import ClientConnectionError
+from aiohttp import ClientConnectionError, ClientResponse
 from aiohttp.web import HTTPNotFound, Request, StreamResponse
 from aiohttp.web_exceptions import HTTPBadGateway
 from multidict import CIMultiDict
@@ -33,11 +34,23 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
         headers.popall("Accept-Encoding", None)
         headers.popall("Host", None)
 
+    def should_be_retried(response: ClientResponse) -> bool:
+        # We see valid requests failing in k8s with 400.
+        # Prometheus will send a content-length header in such a case.
+        # Retry the request, if it is missing, since it is not coming from prometheus.
+        if response.status == 400 and response.content_length in (None, 0):
+            return True
+        elif response.status >= 500:
+            return True
+        else:
+            return False
+
     async def proxy_request(request: Request) -> StreamResponse:
         if api_handler.config.api.tsdb_proxy_url:
             in_headers = request.headers.copy()
             drop_request_specific_headers(in_headers)
             url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
+            max_retries = 5
 
             async def do_request(attempts_left: int) -> StreamResponse:
                 async with api_handler.session.request(
@@ -50,9 +63,8 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     ssl=api_handler.cert_handler.client_context,
                 ) as cr:
                     try:
-                        # we see valid requests failing in prometheus with 400, so we also retry client errors
-                        # ideally we would only retry on 5xx errors
-                        if (cr.status == 400 or cr.status >= 500) and attempts_left > 0:
+                        # in case of error: do we need to retry?
+                        if cr.status >= 400 and attempts_left > 0 and should_be_retried(cr):
                             req_header = ", ".join(f"{k}={v}" for k, v in in_headers.items())
                             req_params = ", ".join(f"{k}={v}" for k, v in request.query.items())
                             req_body = await request.content.read()
@@ -64,6 +76,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                                 f"Response(headers:{resp_header}, status:{cr.status}, body:{resp_body})"
                             )
                             cr.close()  # close the connection explicitly, might be pooled otherwise
+                            await sleep(2 ** (max_retries - attempts_left) * 0.1)  # exponential backoff
                             return await do_request(attempts_left - 1)
                         else:
                             log.info(f"Proxy tsdb request to: {url} resulted in status={cr.status}")
@@ -84,7 +97,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                         raise
 
             try:
-                return await do_request(attempts_left=3)  # retry the request up to 3 times
+                return await do_request(attempts_left=max_retries)
             except ClientConnectionError as e:
                 log.warning(f"Proxy tsdb request to: {url} is not reachable {e}")
                 raise HTTPBadGateway(text="tsdb server is not reachable") from e
