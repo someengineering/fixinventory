@@ -1,5 +1,6 @@
 from typing import AsyncGenerator, Optional, Union, List
 import asyncio
+from asyncio import Lock
 import subprocess
 from pathlib import Path
 import aiofiles
@@ -59,6 +60,14 @@ class PackageManager:
     ) -> None:
         self.entity_db = entity_db
         self.config_handler = config_handler
+        self.install_delete_lock: Optional[Lock] = None
+        self.update_lock: Optional[Lock] = None
+        self.update_all_lock: Optional[Lock] = None
+
+    async def start(self) -> None:
+        self.install_delete_lock = asyncio.Lock()
+        self.update_lock = asyncio.Lock()
+        self.update_all_lock = asyncio.Lock()
 
     def list(self) -> AsyncGenerator[InfraAppName, None]:
         return self.entity_db.keys()
@@ -69,39 +78,55 @@ class PackageManager:
         return None
 
     async def update(self, name: InfraAppName) -> Optional[AppManifest]:
-        if package := await self.entity_db.get(name):
-            await self.delete(package.manifest.name)
-            return await self.install(package.manifest.name, package.source)
+        if not self.update_lock:
+            raise RuntimeError("PackageManager not started")
+
+        async with self.update_lock:
+            if package := await self.entity_db.get(name):
+                await self.delete(package.manifest.name)
+                return await self.install(package.manifest.name, package.source)
         return None
 
     async def update_all(self) -> None:
-        async for package in self.entity_db.all():
-            await self.update(package.manifest.name)
+        if not self.update_all_lock:
+            raise RuntimeError("PackageManager not started")
+
+        async with self.update_all_lock:
+            async for package in self.entity_db.all():
+                await self.update(package.manifest.name)
 
     async def delete(self, name: InfraAppName) -> bool:
-        await self.entity_db.delete(name)
-        await self.config_handler.delete_config(config_id(name))
-        return True
+        if not self.install_delete_lock:
+            raise RuntimeError("PackageManager not started")
+
+        async with self.install_delete_lock:
+            await self.entity_db.delete(name)
+            await self.config_handler.delete_config(config_id(name))
+            return True
 
     async def install(self, name: InfraAppName, source: InstallationSource) -> Optional[AppManifest]:
-        if installed := await self.entity_db.get(name):
-            return installed.manifest
+        if not self.install_delete_lock:
+            raise RuntimeError("PackageManager not started")
 
-        manifest = await self._fetch_manifest(name, source)
-        if not manifest:
-            return None
-        conf_id = config_id(name)
-        if schema := manifest.config_schema:
-            kinds: List[Kind] = [from_js(kind, ComplexKind) for kind in schema]
-            await self.config_handler.update_configs_model(kinds)
-        config_entity = ConfigEntity(conf_id, manifest.default_config or {}, None)
-        try:
-            await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
-            stored = await self.entity_db.update(InfraAppPackage(manifest, source))
-            return stored.manifest
-        except Exception as e:
-            logger.error(f"Failed to install {name} from {source}", exc_info=e)
-            return None
+        async with self.install_delete_lock:
+            if installed := await self.entity_db.get(name):
+                return installed.manifest
+
+            manifest = await self._fetch_manifest(name, source)
+            if not manifest:
+                return None
+            conf_id = config_id(name)
+            if schema := manifest.config_schema:
+                kinds: List[Kind] = [from_js(kind, ComplexKind) for kind in schema]
+                await self.config_handler.update_configs_model(kinds)
+            config_entity = ConfigEntity(conf_id, manifest.default_config or {}, None)
+            try:
+                await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
+                stored = await self.entity_db.update(InfraAppPackage(manifest, source))
+                return stored.manifest
+            except Exception as e:
+                logger.error(f"Failed to install {name} from {source}", exc_info=e)
+                return None
 
     async def _fetch_manifest(self, app_name: str, source: InstallationSource) -> Optional[AppManifest]:
         if isinstance(source, FromHttp):
