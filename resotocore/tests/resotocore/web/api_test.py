@@ -301,7 +301,7 @@ async def test_cli(core_client: ApiClient) -> None:
     parsed, to_execute = result[0]
     assert len(parsed.commands) == 2
     assert (parsed.commands[0].cmd, parsed.commands[1].cmd) == ("search", "count")
-    assert len(to_execute) == 2
+    assert len(to_execute) == 3
     assert (to_execute[0].get("cmd"), to_execute[1].get("cmd")) == ("execute_search", "aggregate_to_count")
 
     # execute search with count

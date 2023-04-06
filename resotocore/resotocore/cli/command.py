@@ -11,6 +11,7 @@ import shutil
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
+from argparse import Namespace
 from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
@@ -46,11 +47,6 @@ from aiostream.core import Stream
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -120,6 +116,8 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
+from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
+from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
@@ -156,6 +154,10 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 log = logging.getLogger(__name__)
 
@@ -1368,7 +1370,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         # db name is coming from the env
-        graph_name = ctx.env["graph"]
+        graph_name = ctx.graph_name
         if not arg:
             raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
@@ -1892,7 +1894,7 @@ class SetDesiredStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -2028,7 +2030,7 @@ class SetMetadataStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -2135,6 +2137,9 @@ class ProtectCommand(SetMetadataStateBase):
         return {"protected": True}
 
 
+ConvertFn = Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]
+
+
 class FormatCommand(CLICommand, OutputTransformer):
     """
     ```
@@ -2199,7 +2204,7 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
-    formats: Dict[str, Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]] = {
+    formats: Dict[str, ConvertFn] = {
         "ndjson": respond_ndjson,
         "json": partial(respond_json, indent=2),
         "text": respond_text,
@@ -2208,6 +2213,8 @@ class FormatCommand(CLICommand, OutputTransformer):
         "graphml": respond_graphml,
         "dot": respond_dot,
     }
+
+    render_all = {"benchmark_result": respond_benchmark_result}
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
@@ -2218,27 +2225,37 @@ class FormatCommand(CLICommand, OutputTransformer):
         parser.add_argument("--yaml", dest="yaml", action="store_true")
         parser.add_argument("--cytoscape", dest="cytoscape", action="store_true")
         parser.add_argument("--dot", dest="dot", action="store_true")
+        parser.add_argument("--benchmark-result", dest="benchmark_result", action="store_true")
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
+        use: Optional[str] = None
+        if format_to_use:
+            if len(format_to_use) > 1:
+                raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
+            if len(formatting_string) > 0:
+                raise AttributeError("A format renderer can not be combined together with a format string!")
+            use = next(iter(format_to_use))
 
-        async def render_format(format_name: str, iss: Stream) -> JsGen:
+        async def render_single(converter: ConvertFn, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
-                async for elem in self.formats[format_name](streamer):
+                async for elem in converter(streamer):
                     yield elem
 
-        async def format_stream(in_stream: Stream) -> Stream:
-            if format_to_use:
-                if len(format_to_use) > 1:
-                    raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
-                if len(formatting_string) > 0:
-                    raise AttributeError("A format renderer can not be combined together with a format string!")
-                return render_format(next(iter(format_to_use)), in_stream)
+        async def format_stream(in_stream: Stream) -> JsGen:
+            if use:
+                if all_renderer := self.render_all.get(use):
+                    return all_renderer(in_stream)
+                elif single_renderer := self.formats.get(use):
+                    return render_single(single_renderer, in_stream)
+                else:
+                    raise ValueError(f"Unknown format: {use}")
             elif formatting_string:
                 return stream.map(in_stream, ctx.formatter(arg)) if arg else in_stream
             else:
                 return in_stream
 
-        return CLIFlow(format_stream)
+        produces = MediaType.Markdown if use == "benchmark_result" else MediaType.String
+        return CLIFlow(format_stream, produces=produces)
 
 
 @make_parser
@@ -2645,7 +2662,7 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
-        return CLIFlow(fmt)
+        return CLIFlow(fmt, produces=MediaType.String)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -4608,6 +4625,197 @@ class CertificateCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class ReportCommand(CLICommand):
+    """
+    ```shell
+    report benchmarks list
+    report benchmark show <benchmark-id>
+    report benchmark run <benchmark-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    report checks list
+    report checks show <check-id>
+    report checks run <check-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    ```
+
+    List and run benchmarks as well as specific benchmark checks.
+    Benchmarks are a collection of checks that are run against all or specific accounts.
+    Every check has a severity, that can also be used to filter relevant checks.
+
+    The result of a benchmark run is a report in Markdown format.
+    By default, this report is rendered and displayed in the console.
+    It is also possible to write the result to a file and open it in an external viewer.
+
+    ## Parameters
+    - `--accounts` [optional]: List of account ids (space separated) to run the benchmark against.
+        If not specified, the benchmark is run against all accounts.
+    - `--severity` [optional]: Severity level to filter checks. One of `info`, `low`, `medium`, `high`, `critical`
+
+    ## Options
+    - `--only-failing` [optional]: Only include checks that are failing in the report.
+
+    ## Examples
+
+    ```shell
+    # List all available chekcs
+    > report checks list
+    aws_apigateway_authorizers_enabled
+    aws_s3_account_level_public_access_blocks
+
+    # Display the details of a specific check
+    > report check show aws_apigateway_authorizers_enabled
+      ... output suppressed ...
+
+    # Perform the check against all accounts available, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled --only-failing
+      ... output suppressed ...
+
+    # Perform the check against all defined accounts, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled  --accounts 111 222 --only-failing
+      ... output suppressed ...
+
+    # List all available benchmarks
+    > report benchmarks list
+    aws_cis_1_5
+
+    # Display the details of a specific benchmark
+    > report benchmark show aws_cis_1_5
+    report_benchmark:
+      ... output suppressed ...
+
+    # Run benchmark against all accounts available
+    > report benchmark run aws_cis_1_5
+      ... output suppressed ...
+
+    # Run benchmark against account 111 and 222, check only critical checks
+    # The resulting report should contain only failed checks.
+    > report benchmark run aws_cis_1_5 --accounts 111 222  --severity critical --only-failing
+      ... output suppressed ...
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "report"
+
+    def args_info(self) -> ArgsInfo:
+        run_args = [
+            ArgInfo("--accounts", True, help_text="Space delimited list of accounts"),
+            ArgInfo(
+                "--severity",
+                True,
+                help_text="The severity level to filter checks",
+                possible_values=[s.value for s in ReportSeverity],
+            ),
+            ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
+        ]
+        return {
+            "benchmark": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<benchmark-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<benchmark-id>")],
+            },
+            "checks": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<check-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<check-id>")],
+            },
+        }
+
+    def info(self) -> str:
+        return "Generate reports."
+
+    @staticmethod
+    def is_run_action(arg: Optional[str]) -> bool:
+        return ReportCommand.action_from_arg(arg) in ("benchmark_run", "check_run")
+
+    @staticmethod
+    def action_from_arg(arg: Optional[str]) -> Optional[str]:
+        args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
+        if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
+            return "benchmark_list"
+        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
+            return "benchmark_show"
+        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+            return "benchmark_run"
+        elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
+            return "check_list"
+        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
+            return "check_show"
+        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
+            return "check_run"
+        else:
+            return None
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def list_benchmarks() -> AsyncIterator[str]:
+            for benchmark in await self.dependencies.inspector.list_benchmarks():
+                yield benchmark.id
+
+        async def show_benchmark(bid: str) -> AsyncIterator[Optional[str]]:
+            yield await self.dependencies.config_handler.config_yaml(ConfigId(BenchmarkConfigPrefix + bid))
+
+        async def show_check(cid: str) -> AsyncIterator[Json]:
+            model = await self.dependencies.config_handler.get_configs_model()
+            kind = model.get("resoto_core_report_check")
+            for check in await self.dependencies.inspector.list_checks(check_ids=[cid]):
+                yield kind.create_yaml(to_js(check)) if isinstance(kind, ComplexKind) else yaml.safe_dump(to_js(check))
+
+        async def list_checks() -> AsyncIterator[str]:
+            for check in await self.dependencies.inspector.list_checks():
+                yield check.id
+
+        async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_benchmark(
+                ctx.graph_name,
+                parsed_args.identifier,
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.only_failing,
+            )
+            if not result.is_empty():
+                for node in result.to_graph():
+                    yield node
+
+        async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_checks(
+                ctx.graph_name,
+                check_ids=[parsed_args.identifier],
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.only_failing,
+            )
+            if not parsed_args.only_failing or result.has_failed():
+                for node in result.to_graph():
+                    yield node
+
+        async def show_help() -> AsyncIterator[str]:
+            yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
+
+        run_parser = NoExitArgumentParser()
+        run_parser.add_argument("identifier")
+        run_parser.add_argument("--accounts", nargs="+")
+        run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
+        run_parser.add_argument("--only-failing", action="store_true", default=False)
+
+        action = self.action_from_arg(arg)
+        args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
+        if action == "benchmark_list":
+            return CLISource.no_count(list_benchmarks)
+        elif action == "benchmark_show":
+            return CLISource.no_count(partial(show_benchmark, args[2].strip()))
+        elif action == "benchmark_run":
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_benchmark, parsed))
+        elif action == "check_list":
+            return CLISource.no_count(list_checks)
+        elif action == "check_show":
+            return CLISource.no_count(partial(show_check, args[2].strip()))
+        elif action == "check_run":
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_check, parsed))
+        else:
+            return CLISource.single(show_help)
+
+
 class InfrastructureAppsCommand(CLICommand):
     """
     ```shell
@@ -4759,6 +4967,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),
+        ReportCommand(d, "misc", allowed_in_source_position=True),
         SearchPart(d, "search", allowed_in_source_position=True),
         SetDesiredCommand(d, "action"),
         SetMetadataCommand(d, "action"),
