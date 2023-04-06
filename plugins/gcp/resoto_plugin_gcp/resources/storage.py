@@ -5,7 +5,6 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
-from resoto_plugin_gcp.utils import gcp_resource
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 
@@ -222,12 +221,22 @@ class GcpWebsite:
     main_page_suffix: Optional[str] = field(default=None)
     not_found_page: Optional[str] = field(default=None)
 
+
 @define(eq=False, slots=False)
 class GcpObject(GcpResource):
     # GcpObjects are necessary to empty buckets before deletion
     # they are not intended to be collected and stored in the graph
     kind: ClassVar[str] = "gcp_object"
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(service="storage", version="v1", accessors=["objects"], action="list", request_parameter={'bucket': '{bucket}'}, request_parameter_in={"bucket"}, response_path="items", response_regional_sub_path=None)
+    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
+        service="storage",
+        version="v1",
+        accessors=["objects"],
+        action="list",
+        request_parameter={"bucket": "{bucket}"},
+        request_parameter_in={"bucket"},
+        response_path="items",
+        response_regional_sub_path=None,
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id").or_else(S("name")).or_else(S("selfLink")),
         "name": S("name"),
@@ -332,7 +341,7 @@ class GcpBucket(GcpResource):
         )
         return True
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: Optional[str]) -> bool:
         client = get_client(self)
 
         labels = dict(self.tags)
@@ -354,7 +363,7 @@ class GcpBucket(GcpResource):
         )
         return True
 
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         return self.update_tag(key, None)
 
 

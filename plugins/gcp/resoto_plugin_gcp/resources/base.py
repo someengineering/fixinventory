@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import concurrent
-from copy import deepcopy
 import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
@@ -11,7 +10,7 @@ from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
-from resoto_plugin_gcp.utils import delete_resource, Credentials
+from resoto_plugin_gcp.utils import Credentials
 from resotolib.baseresources import BaseResource, BaseAccount, Cloud, EdgeType, BaseRegion, BaseZone, BaseQuota
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -24,14 +23,15 @@ log = logging.getLogger("resoto.plugins.gcp")
 
 T = TypeVar("T")
 
+
 def get_client(resource: BaseResource) -> GcpClient:
     project = resource.account()
     assert isinstance(project, GcpProject)
     return GcpClient(
-            Credentials.get(project.id),
-            project_id=project.id,
-            region=resource.region().name if resource.region() else None,
-        )
+        Credentials.get(project.id),
+        project_id=project.id,
+        region=resource.region().name if resource.region() else None,
+    )
 
 
 class CancelOnFirstError(Exception):
@@ -312,6 +312,8 @@ class GcpResource(BaseResource):
     label_fingerprint: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
+        if not self.api_spec:
+            return False
         client = get_client(self)
         client.delete(
             self.api_spec.for_delete(),
@@ -320,7 +322,9 @@ class GcpResource(BaseResource):
         )
         return True
 
-    def update_tag(self, key: str, value: str) -> bool:
+    def update_tag(self, key: str, value: Optional[str]) -> bool:
+        if not self.api_spec:
+            return False
         client = get_client(self)
 
         labels = dict(self.tags)

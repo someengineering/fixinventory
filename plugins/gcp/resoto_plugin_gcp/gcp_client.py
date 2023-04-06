@@ -1,3 +1,4 @@
+from __future__ import annotations
 from copy import deepcopy
 from typing import Optional, List, Dict, Any, Set
 
@@ -32,7 +33,7 @@ class GcpApiSpec:
     get_identifier: Optional[str] = None
     delete_identifier: Optional[str] = None
 
-    def for_delete(self):
+    def for_delete(self) -> GcpApiSpec:
         api_spec = deepcopy(self)
         api_spec.action = "delete"
         api_spec.request_parameter[self._delete_identifier] = "{resource}"
@@ -40,7 +41,7 @@ class GcpApiSpec:
             api_spec.request_parameter["zone"] = "{zone}"
         return api_spec
 
-    def for_get(self):
+    def for_get(self) -> GcpApiSpec:
         api_spec = deepcopy(self)
         api_spec.action = "get"
         api_spec.request_parameter[self._get_identifier] = "{resource}"
@@ -48,7 +49,7 @@ class GcpApiSpec:
             api_spec.request_parameter["zone"] = "{zone}"
         return api_spec
 
-    def for_set_labels(self):
+    def for_set_labels(self) -> GcpApiSpec:
         api_spec = deepcopy(self)
         api_spec.action = "setLabels"
         api_spec.request_parameter[self.set_label_identifier] = "{resource}"
@@ -58,7 +59,9 @@ class GcpApiSpec:
 
     @property
     def _get_identifier(self) -> str:
-        return self.get_identifier or self.accessors[-1][:-1]  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
+        return (
+            self.get_identifier or self.accessors[-1][:-1]
+        )  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
 
     @property
     def _delete_identifier(self) -> str:
