@@ -27,7 +27,7 @@ def app_manifest_entity_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb
 
 
 def config_id(name: InfraAppName) -> ConfigId:
-    return ConfigId(f"resoto.apps.{name}")
+    return ConfigId(f"resoto/apps/{name}")
 
 
 @frozen

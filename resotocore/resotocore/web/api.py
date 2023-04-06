@@ -254,16 +254,19 @@ class Api:
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
                 web.get(prefix + "/configs", self.list_configs),
-                web.put(prefix + "/config/{config_id}", self.put_config),
-                web.get(prefix + "/config/{config_id}", self.get_config),
-                web.patch(prefix + "/config/{config_id}", self.patch_config),
-                web.delete(prefix + "/config/{config_id}", self.delete_config),
+                web.patch(prefix + "/config/{config_id:[^{}]+}", self.patch_config),
+                web.delete(prefix + "/config/{config_id:[^{}]+}", self.delete_config),
                 # config model operations
                 web.get(prefix + "/configs/validation", self.list_config_models),
                 web.get(prefix + "/configs/model", self.get_configs_model),
                 web.patch(prefix + "/configs/model", self.update_configs_model),
-                web.put(prefix + "/config/{config_id}/validation", self.put_config_validation),
-                web.get(prefix + "/config/{config_id}/validation", self.get_config_validation),
+                web.put(prefix + "/config_validation/{config_id:[^{}]+}", self.put_config_validation),
+                web.get(prefix + "/config_validation/{config_id:[^{}]+}", self.get_config_validation),
+                web.put(prefix + "/config/{config_id:[^{}]+}/validation", self.put_config_validation),
+                web.get(prefix + "/config/{config_id:[^{}]+}/validation", self.get_config_validation),
+                # config operations, moved here to avoid early matching
+                web.put(prefix + "/config/{config_id:[^{}]+}", self.put_config),
+                web.get(prefix + "/config/{config_id:[^{}]+}", self.get_config),
                 # ca operations
                 web.get(prefix + "/ca/cert", self.certificate),
                 web.post(prefix + "/ca/sign", self.sign_certificate),
