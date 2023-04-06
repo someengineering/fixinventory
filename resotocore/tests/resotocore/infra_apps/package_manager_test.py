@@ -1,5 +1,5 @@
 from typing import cast, Awaitable
-from resotocore.infra_apps.package_manager import PackageManager, AppManifestEntityDb, app_manifest_entity_db, FromGit
+from resotocore.infra_apps.package_manager import PackageManager, PackageEntityDb, app_manifest_entity_db, FromGit
 import pytest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
@@ -10,9 +10,9 @@ from asyncio import Future
 
 
 @pytest.fixture
-async def model_db(test_db: StandardDatabase) -> AppManifestEntityDb:
+async def model_db(test_db: StandardDatabase) -> PackageEntityDb:
     async_db = AsyncArangoDB(test_db)
-    entity_db = app_manifest_entity_db(async_db, "app_manifest_entity_db")
+    entity_db = app_manifest_entity_db(async_db, "test_package_entity_db")
     await entity_db.create_update_schema()
     await entity_db.wipe()
     return entity_db
@@ -36,7 +36,7 @@ config_handler = cast(
 
 
 @pytest.mark.asyncio
-async def test_install_delete(model_db: AppManifestEntityDb) -> None:
+async def test_install_delete(model_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup_untagged")
     repo_url = "https://github.com/someengineering/resoto-apps.git"
     package_manager = PackageManager(model_db, config_handler)
@@ -51,6 +51,11 @@ async def test_install_delete(model_db: AppManifestEntityDb) -> None:
     installed_app = await package_manager.info(name)
     assert installed_app is not None
     assert installed_app.name == name
+
+    # update is possible
+    updated_manifest = await package_manager.update(name)
+    assert updated_manifest is not None
+    assert updated_manifest.name == name
 
     # check that it can be deleted
     await package_manager.delete(name)

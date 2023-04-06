@@ -56,7 +56,7 @@ class AppManifest:
 
     """
 
-    name: str
+    name: InfraAppName
     description: str
     version: str
     readme: str
