@@ -88,7 +88,7 @@ from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId, InfraAppId
+from resotocore.ids import ConfigId, TaskId, InfraAppName
 from resotocore.ids import TaskDescriptorId
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
@@ -4879,19 +4879,19 @@ class InfrastructureAppsCommand(CLICommand):
         async def apps_search(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
             yield f"App search not yet implemented. Pattern: {pattern}"
 
-        async def app_info(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+        async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App info not yet implemented, app_name {app_name}"
 
-        async def app_install(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+        async def app_install(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App installation not yet implemented, app_name {app_name}"
 
-        async def app_edit(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+        async def app_edit(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App editing not yet implemented, app_name {app_name}"
 
-        async def app_uninstall(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+        async def app_uninstall(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App uninstallation not yet implemented, app_name {app_name}"
 
-        async def app_update(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+        async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App update not yet implemented, app_name {app_name}"
 
         async def app_update_all() -> AsyncIterator[JsonElement]:
@@ -4901,7 +4901,7 @@ class InfrastructureAppsCommand(CLICommand):
             yield "App list not yet implemented"
 
         async def app_run(
-            app_name: InfraAppId, dry_run: bool, validate: bool, config: Optional[str]
+            app_name: InfraAppName, dry_run: bool, validate: bool, config: Optional[str]
         ) -> AsyncIterator[JsonElement]:
             yield (
                 f"App run not yet implemented, app_name {app_name}, "
@@ -4914,15 +4914,15 @@ class InfrastructureAppsCommand(CLICommand):
         elif len(args) == 2 and args[0] == "search":
             return CLISource.single(partial(apps_search, args[1]))
         elif len(args) == 2 and args[0] == "info":
-            return CLISource.single(partial(app_info, InfraAppId(args[1])))
+            return CLISource.single(partial(app_info, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "install":
-            return CLISource.single(partial(app_install, InfraAppId(args[1])))
+            return CLISource.single(partial(app_install, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "edit":
-            return CLISource.single(partial(app_edit, InfraAppId(args[1])))
+            return CLISource.single(partial(app_edit, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "uninstall":
-            return CLISource.single(partial(app_uninstall, InfraAppId(args[1])))
+            return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "update":
-            return CLISource.single(partial(app_update, InfraAppId(args[1])))
+            return CLISource.single(partial(app_update, InfraAppName(args[1])))
         elif len(args) == 1 and args[0] == "update":
             return CLISource.single(app_update_all)
         elif len(args) == 1 and args[0] == "list":
@@ -4932,7 +4932,7 @@ class InfrastructureAppsCommand(CLICommand):
             dry_run = "--dry-run" in rest
             validate = "--validate" in rest
             config = rest[rest.index("--config") + 1] if "--config" in rest else None
-            return CLISource.single(partial(app_run, InfraAppId(args[1]), dry_run, validate, config))
+            return CLISource.single(partial(app_run, InfraAppName(args[1]), dry_run, validate, config))
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
