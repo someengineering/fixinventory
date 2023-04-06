@@ -4,7 +4,9 @@ from typing import ClassVar, Dict, Optional, List
 from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
+from resoto_plugin_gcp.utils import gcp_resource
+from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 
 
@@ -220,6 +222,17 @@ class GcpWebsite:
     main_page_suffix: Optional[str] = field(default=None)
     not_found_page: Optional[str] = field(default=None)
 
+@define(eq=False, slots=False)
+class GcpObject(GcpResource):
+    # GcpObjects are necessary to empty buckets before deletion
+    # they are not intended to be collected and stored in the graph
+    kind: ClassVar[str] = "gcp_object"
+    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(service="storage", version="v1", accessors=["objects"], action="list", request_parameter={'bucket': '{bucket}'}, request_parameter_in={"bucket"}, response_path="items", response_regional_sub_path=None)
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "name": S("name"),
+    }
+
 
 @define(eq=False, slots=False)
 class GcpBucket(GcpResource):
@@ -231,6 +244,8 @@ class GcpBucket(GcpResource):
         action="list",
         request_parameter={"project": "{project}"},
         request_parameter_in={"project"},
+        # single_request_parameter={"project": "{project}"},
+        # single_request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
     )
@@ -294,6 +309,53 @@ class GcpBucket(GcpResource):
     requester_pays: Optional[bool] = field(default=None)
     versioning_enabled: Optional[bool] = field(default=None)
     lifecycle_rule: List[GcpRule] = field(factory=list)
+
+    def pre_delete(self, graph: Graph) -> bool:
+        client = get_client(self)
+        objects = client.list(GcpObject.api_spec, bucket=self.name)
+        for obj in objects:
+            object_in_bucket = GcpObject.from_api(obj)
+            client.delete(
+                object_in_bucket.api_spec.for_delete(),
+                bucket=self.name,
+                resource=object_in_bucket.name,
+            )
+        return True
+
+    def delete(self, graph: Graph) -> bool:
+        client = get_client(self)
+        api_spec = self.api_spec.for_delete()
+        api_spec.request_parameter = {"bucket": "{bucket}"}
+        client.delete(
+            api_spec,
+            bucket=self.name,
+        )
+        return True
+
+    def update_tag(self, key, value) -> bool:
+        client = get_client(self)
+
+        labels = dict(self.tags)
+        if value is None:
+            if key in labels:
+                del labels[key]
+            else:
+                return False
+        else:
+            labels.update({key: value})
+
+        api_spec = self.api_spec.for_set_labels()
+        api_spec.action = "patch"
+        api_spec.request_parameter = {"bucket": "{bucket}"}
+        client.set_labels(
+            api_spec,
+            body={"labels": labels},
+            bucket=self.name,
+        )
+        return True
+
+    def delete_tag(self, key) -> bool:
+        return self.update_tag(key, None)
 
 
 resources = [GcpBucket]
