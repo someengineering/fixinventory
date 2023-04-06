@@ -88,7 +88,7 @@ from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId
+from resotocore.ids import ConfigId, TaskId, InfraAppId
 from resotocore.ids import TaskDescriptorId
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
@@ -4816,6 +4816,127 @@ class ReportCommand(CLICommand):
             return CLISource.single(show_help)
 
 
+class InfrastructureAppsCommand(CLICommand):
+    """
+    ```shell
+    apps search [pattern] [--repo someengineering/resoto-apps]
+    app info <app_name> [--repo someengineering/resoto-apps]
+    app install <app_name> [--repo someengineering/resoto-apps]
+    app edit <app_name>
+    app uninstall <app_name>
+    app update <app_name>|all
+    apps list
+    app run <app_name> [--dry-run] [--validate] --config [config_name]
+    ```
+
+    - `apps search [pattern]`: Lists all apps available in https://github.com/someengineering/resoto-apps/
+    (or other repo if specified). Supports filtering by pattern.
+    - `app info <app_name>`: Show information about an app.
+    - `app install <app_name>`: Install an app.
+    - `app edit <app_name>`: Edit an app.
+    - `app uninstall <app_name>`: Uninstall an app.
+    - `app update <app_name>|all`: Update an app or all apps.
+    - `apps list`: List all installed apps.
+    - `app run <app_name> [--dry-run] [--validate] [--config <config_name>]`: Run an app.
+
+
+    ## Parameters
+    - `app_name` [required]: The identifier of the infrastructure app.
+    - `pattern` [optional]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
+
+    ## Options
+    - `--repo <repo>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
+    - `--dry-run`: Run the app but do not make any changes.
+    - `--validate`: Validate the app but do not run it.
+    - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
+    """
+
+    @property
+    def name(self) -> str:
+        return "apps"
+
+    def info(self) -> str:
+        return "Manage infrastructure apps."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "search": [ArgInfo(None, True, help_text="<pattern>")],
+            "info": [ArgInfo(None, True, help_text="<app_name>")],
+            "install": [ArgInfo(None, True, help_text="<app_name>")],
+            "edit": [ArgInfo(None, True, help_text="<app_name>")],
+            "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
+            "update": [ArgInfo(None, True, help_text="<app_name>")],
+            "list": [ArgInfo(None, False)],
+            "run": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--dry-run", False),
+                ArgInfo("--validate", False),
+                ArgInfo("--config", True, help_text="<config_name>"),
+            ],
+        }
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def apps_search(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
+            yield f"App search not yet implemented. Pattern: {pattern}"
+
+        async def app_info(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+            yield f"App info not yet implemented, app_name {app_name}"
+
+        async def app_install(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+            yield f"App installation not yet implemented, app_name {app_name}"
+
+        async def app_edit(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+            yield f"App editing not yet implemented, app_name {app_name}"
+
+        async def app_uninstall(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+            yield f"App uninstallation not yet implemented, app_name {app_name}"
+
+        async def app_update(app_name: InfraAppId) -> AsyncIterator[JsonElement]:
+            yield f"App update not yet implemented, app_name {app_name}"
+
+        async def app_update_all() -> AsyncIterator[JsonElement]:
+            yield "Update all apps not yet implemented"
+
+        async def apps_list() -> AsyncIterator[JsonElement]:
+            yield "App list not yet implemented"
+
+        async def app_run(
+            app_name: InfraAppId, dry_run: bool, validate: bool, config: Optional[str]
+        ) -> AsyncIterator[JsonElement]:
+            yield (
+                f"App run not yet implemented, app_name {app_name}, "
+                "dry_run {dry_run}, validate {validate}, config {config}"
+            )
+
+        args = re.split("\\s+", arg, maxsplit=2) if arg else []
+        if len(args) == 1 and args[0] == "search":
+            return CLISource.single(partial(apps_search, None))
+        elif len(args) == 2 and args[0] == "search":
+            return CLISource.single(partial(apps_search, args[1]))
+        elif len(args) == 2 and args[0] == "info":
+            return CLISource.single(partial(app_info, InfraAppId(args[1])))
+        elif len(args) == 2 and args[0] == "install":
+            return CLISource.single(partial(app_install, InfraAppId(args[1])))
+        elif len(args) == 2 and args[0] == "edit":
+            return CLISource.single(partial(app_edit, InfraAppId(args[1])))
+        elif len(args) == 2 and args[0] == "uninstall":
+            return CLISource.single(partial(app_uninstall, InfraAppId(args[1])))
+        elif len(args) == 2 and args[0] == "update":
+            return CLISource.single(partial(app_update, InfraAppId(args[1])))
+        elif len(args) == 1 and args[0] == "update":
+            return CLISource.single(app_update_all)
+        elif len(args) == 1 and args[0] == "list":
+            return CLISource.single(apps_list)
+        elif len(args) >= 2 and args[0] == "run":
+            rest = re.split("\\s+", args[2]) if args[2:] else []
+            dry_run = "--dry-run" in rest
+            validate = "--validate" in rest
+            config = rest[rest.index("--config") + 1] if "--config" in rest else None
+            return CLISource.single(partial(app_run, InfraAppId(args[1]), dry_run, validate, config))
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -4864,7 +4985,13 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
-        commands.extend([FileCommand(d, "misc"), UploadCommand(d, "misc")])
+        commands.extend(
+            [
+                FileCommand(d, "misc"),
+                UploadCommand(d, "misc"),
+                InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
+            ]
+        )
 
     return commands
 
@@ -4886,5 +5013,6 @@ def alias_names() -> Dict[str, str]:
         "lists": "list",
         "template": "templates",
         "workflow": "workflows",
+        "app": "apps",
         "man": "help",
     }

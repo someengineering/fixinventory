@@ -315,7 +315,7 @@ async def test_cli(core_client: ApiClient) -> None:
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
-    assert len(info.commands) == 40
+    assert len(info.commands) == 41
 
 
 @pytest.mark.asyncio
