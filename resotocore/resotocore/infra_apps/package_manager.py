@@ -138,7 +138,8 @@ class PackageManager:
                         new_manifest = await self._read_manifest_from_git_repo(repo_dir, manifest.name)
                         if not new_manifest:
                             logger.warning(
-                                f"Failed to read manifest {manifest.name} from git repo {source.git_url}, skipping update"
+                                f"Failed to read manifest {manifest.name} from "
+                                "git repo {source.git_url}, skipping update"
                             )
                             continue
                         await self._delete(manifest.name)
