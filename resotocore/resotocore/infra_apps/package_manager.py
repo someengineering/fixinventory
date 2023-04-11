@@ -1,11 +1,16 @@
-from typing import AsyncGenerator, Optional, Union, List
+from typing import AsyncGenerator, Optional, Union, List, Callable
 import asyncio
 from asyncio import Lock
 import subprocess
 from pathlib import Path
 import aiofiles
+from aiofiles import os as aos
 from attrs import frozen
 import aiohttp
+import time
+from datetime import timedelta
+import shutil
+from functools import partial
 
 from async_lru import alru_cache
 
@@ -57,17 +62,43 @@ class PackageManager:
         self,
         entity_db: PackageEntityDb,
         config_handler: ConfigHandler,
+        repos_directory: Path = Path("/tmp/resoto-package-manager-repos"),
+        check_interval: timedelta = timedelta(hours=1),
+        cleanup_after: timedelta = timedelta(days=1),
+        current_epoch_seconds: Callable[[], float] = time.time,
     ) -> None:
+        """
+        Package manager for infra apps.
+
+        Args:
+            entity_db: EntityDb for storing app manifests
+            config_handler: ConfigHandler for storing app configs
+            repos_directory: Directory where repos are temporarily cloned
+            check_interval: Interval between checks for old repos cleanup
+            cleanup_after: Time after which old repos are deleted from cache
+        """
+
         self.entity_db = entity_db
         self.config_handler = config_handler
         self.install_delete_lock: Optional[Lock] = None
         self.update_lock: Optional[Lock] = None
         self.update_all_lock: Optional[Lock] = None
+        self.repos_directory: Path = repos_directory
+        self.check_interval = check_interval
+        self.cleanup_after = cleanup_after
+        self.current_epoch_seconds = current_epoch_seconds
+        self.cleanup_task: Optional[asyncio.Task[None]] = None
 
     async def start(self) -> None:
         self.install_delete_lock = asyncio.Lock()
         self.update_lock = asyncio.Lock()
         self.update_all_lock = asyncio.Lock()
+        self.cleanup_task = asyncio.create_task(self._cleanup_old_repos())
+
+    async def stop(self) -> None:
+        if self.cleanup_task:
+            self.cleanup_task.cancel()
+            await self.cleanup_task
 
     def list(self) -> AsyncGenerator[InfraAppName, None]:
         return self.entity_db.keys()
@@ -152,9 +183,11 @@ class PackageManager:
 
     @alru_cache(maxsize=128, ttl=600)
     async def _git_clone(self, repo_url: str) -> Optional[Path]:
+        suffix = "-" + "-".join(repo_url.split("/")[-2:])
+        suffix = suffix.replace(".git", "")
         try:
             # pylint: disable=unnecessary-dunder-call
-            tmpdir = await aiofiles.tempfile.TemporaryDirectory().__aenter__()
+            tmpdir = await aiofiles.tempfile.TemporaryDirectory(suffix=suffix, dir=self.repos_directory).__aenter__()
             await asyncio.to_thread(
                 lambda: subprocess.run(
                     ["git", "clone", repo_url, tmpdir],
@@ -180,3 +213,17 @@ class PackageManager:
         except Exception as e:
             logger.error(f"Failed to fetch manifest from {url}", exc_info=e)
             return None
+
+    async def _cleanup_old_repos(self) -> None:
+        while True:
+            await asyncio.sleep(self.check_interval.seconds)
+            try:
+                for path in await aos.listdir(self.repos_directory):
+                    path = self.repos_directory / path
+                    if await aos.path.isdir(path):
+                        mtime = await aos.path.getmtime(path)
+                        if (self.current_epoch_seconds() - mtime) > self.cleanup_after.seconds:
+                            logger.debug(f"Cleaning up old repo {path}")
+                            await asyncio.to_thread(partial(shutil.rmtree, path))
+            except Exception as e:
+                logger.error("Failed to cleanup old repos", exc_info=e)
