@@ -61,7 +61,7 @@ class PackageManager:
         self,
         entity_db: PackageEntityDb,
         config_handler: ConfigHandler,
-        repos_cache_directory: Path = Path("~/.cache/resoto-package-manager"),
+        repos_cache_directory: Path = Path.home() / ".cache" / "resoto-infra-apps",
         check_interval: timedelta = timedelta(hours=1),
         cleanup_after: timedelta = timedelta(days=1),
         current_epoch_seconds: Callable[[], float] = time.time,
