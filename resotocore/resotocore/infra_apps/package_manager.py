@@ -94,6 +94,7 @@ class PackageManager:
         self.update_lock = asyncio.Lock()
         self.update_all_lock = asyncio.Lock()
         self.cleanup_task = asyncio.create_task(self._cleanup_old_repos())
+        self.repos_directory.mkdir(parents=True, exist_ok=True)
 
     async def stop(self) -> None:
         if self.cleanup_task:
@@ -218,7 +219,7 @@ class PackageManager:
         while True:
             await asyncio.sleep(self.check_interval.seconds)
             try:
-                for path in await aos.listdir(self.repos_directory):
+                for path in await aos.listdir(self.repos_directory):  # type: ignore
                     path = self.repos_directory / path
                     if await aos.path.isdir(path):
                         mtime = await aos.path.getmtime(path)

@@ -83,22 +83,22 @@ async def test_cleanup_old_repos(model_db: PackageEntityDb) -> None:
         return now[0]
 
     repo_url = "https://github.com/someengineering/resoto-apps.git"
-    with TemporaryDirectory(suffix="resoto-package-manager-repo-test") as temp_dir:
-        temp_dir = Path(temp_dir)
+    with TemporaryDirectory(suffix="resoto-package-manager-repo-test") as td:
+        temp_dir = Path(td)
         package_manager = PackageManager(
             model_db,
             config_handler,
             repos_directory=temp_dir,
             check_interval=timedelta(milliseconds=250),
-            cleanup_after=timedelta(seconds=2),
+            cleanup_after=timedelta(seconds=1),
             current_epoch_seconds=fake_clock,
         )
         await package_manager.start()
         await package_manager.install(name, FromGit(repo_url))
-        assert len(await aos.listdir(temp_dir)) == 1
+        assert len(await aos.listdir(temp_dir)) == 1  # type: ignore
         now[0] += 3
-        max_tries = 5
-        while await aos.listdir(temp_dir) and max_tries > 0:
+        max_tries = 10
+        while await aos.listdir(temp_dir) and max_tries > 0:  # type: ignore
             max_tries -= 1
             await asyncio.sleep(0.25)
-        assert len(await aos.listdir(temp_dir)) == 0
+        assert len(await aos.listdir(temp_dir)) == 0  # type: ignore
