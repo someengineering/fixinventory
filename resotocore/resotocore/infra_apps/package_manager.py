@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Optional, Union, List, Callable, Dict
+from typing import AsyncGenerator, Optional, Union, List, Dict
 import asyncio
 from asyncio import Lock
 import subprocess
@@ -7,8 +7,6 @@ import aiofiles
 from aiofiles import os as aos
 from attrs import frozen
 import aiohttp
-import time
-from datetime import timedelta
 import shutil
 import hashlib
 from collections import defaultdict
@@ -62,9 +60,6 @@ class PackageManager:
         entity_db: PackageEntityDb,
         config_handler: ConfigHandler,
         repos_cache_directory: Path = Path.home() / ".cache" / "resoto-infra-apps",
-        check_interval: timedelta = timedelta(hours=1),
-        cleanup_after: timedelta = timedelta(days=1),
-        current_epoch_seconds: Callable[[], float] = time.time,
     ) -> None:
         """
         Package manager for infra apps.
@@ -72,18 +67,13 @@ class PackageManager:
         Args:
             entity_db: EntityDb for storing app manifests
             config_handler: ConfigHandler for storing app configs
-            repos_directory: Directory where repos are temporarily cloned
-            check_interval: Interval between checks for old repos cleanup
-            cleanup_after: Time after which old repos are deleted from cache
+            repos_cache_directory: Directory where the infra apps repos are cloned
         """
 
         self.entity_db = entity_db
         self.config_handler = config_handler
         self.update_lock: Optional[Lock] = None
         self.repos_cache_directory: Path = repos_cache_directory
-        self.check_interval = check_interval
-        self.cleanup_after = cleanup_after
-        self.current_epoch_seconds = current_epoch_seconds
         self.cleanup_task: Optional[asyncio.Task[None]] = None
 
     async def start(self) -> None:
