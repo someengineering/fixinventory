@@ -6,10 +6,10 @@ from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from typing import AsyncGenerator, Iterator, Dict, Any, Generator
 from typing import List, Optional
 from typing import Tuple, AsyncIterator, cast
-from types import SimpleNamespace
 
 from aiohttp import ClientSession
 from aiohttp.hdrs import METH_ANY
@@ -18,6 +18,7 @@ from aiohttp.web import Request, Response, Application, route
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
 from pytest import fixture
+from rich.console import Console
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, NoEventSender
@@ -30,6 +31,7 @@ from resotocore.cli.model import CLIDependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import (
     GraphUpdateConfig,
     CoreConfig,
@@ -46,7 +48,7 @@ from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config, parse_args
-from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId
+from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -60,7 +62,9 @@ from resotocore.model.model import Model, Kind, ComplexKind, Property, Synthetic
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.template_expander import TemplateExpander
+from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
+from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -424,7 +428,7 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
     core_config = cast(CoreConfig, SimpleNamespace())
-    override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda id: {}, get_all_overrides=lambda: {}))
+    override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda _: {}, get_all_overrides=lambda: {}))
     return ConfigHandlerService(
         cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config, override_service
     )
@@ -500,7 +504,63 @@ def cli(cli_deps: CLIDependencies) -> CLIService:
 @fixture
 async def inspector_service(cli: CLIService) -> InspectorService:
     async with InspectorService(cli) as service:
+        cli.dependencies.lookup["inspector"] = service
         return service
+
+
+@fixture
+async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
+    test_check = ConfigEntity(
+        ConfigId(CheckConfigPrefix + "test"),
+        {
+            "report_check": {
+                "provider": "test",
+                "service": "test",
+                "checks": [
+                    {
+                        "id": "test_test_some_check",
+                        "name": "some_check",
+                        "title": "Test",
+                        "result_kind": "foo",
+                        "categories": [],
+                        "risk": "Some risk",
+                        "severity": "medium",
+                        "detect": {"resoto": "is(foo)"},
+                        "remediation": {"text": "Some remediation text", "url": "https://example.com"},
+                    }
+                ],
+            }
+        },
+    )
+    test_benchmark = ConfigEntity(
+        ConfigId(BenchmarkConfigPrefix + "test"),
+        {
+            "report_benchmark": {
+                "id": "test",
+                "title": "test",
+                "framework": "test",
+                "clouds": ["test"],
+                "version": "1.5",
+                "description": "test",
+                "children": [
+                    {
+                        "title": "Section 1",
+                        "description": "Test section.",
+                        "checks": ["test_test_some_check"],
+                    },
+                    {
+                        "title": "Section 2",
+                        "description": "Test section.",
+                        "checks": ["test_test_some_check"],
+                    },
+                ],
+                "checks": [],
+            }
+        },
+    )
+    await config_handler.put_config(test_check)
+    await config_handler.put_config(test_benchmark)
+    return BenchmarkConfig.from_config(test_benchmark)
 
 
 @fixture
@@ -646,3 +706,9 @@ async def merge_handler(
     await handler.start()
     yield handler
     await handler.stop()
+
+
+@fixture
+def console_renderer() -> ConsoleRenderer:
+    tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 25))
+    return ConsoleRenderer(tty_columns, tty_rows, ConsoleColorSystem.from_name(Console().color_system or "standard"))

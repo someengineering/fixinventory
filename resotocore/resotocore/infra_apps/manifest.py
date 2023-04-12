@@ -2,6 +2,7 @@ from typing import Literal, List, Union, Optional, Any
 from attrs import frozen
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
+from resotocore.ids import InfraAppName
 from yaml import safe_load
 from jsons import loads as jsons_loads
 
@@ -55,17 +56,17 @@ class AppManifest:
 
     """
 
-    name: str
+    name: InfraAppName
     description: str
     version: str
     readme: str
-    language: Literal["jinja2"]
+    language: str
     url: str
     icon: str
     categories: List[str]
-    config_schema: Optional[Json]
+    config_schema: Optional[List[Json]]
     default_config: Optional[Json]
-    args_schema: List[AppArgs]
+    args_schema: Optional[List[AppArgs]]
     source: str
 
     # Object creation methods. Use these instead of the __init__ method.
@@ -76,7 +77,13 @@ class AppManifest:
 
     @staticmethod
     def from_json_str(json_str: str) -> "AppManifest":
-        return AppManifest.from_json(jsons_loads(json_str))
+        json = jsons_loads(json_str)
+        manifest = AppManifest.from_json(json)
+        return manifest
+
+    @staticmethod
+    def from_bytes(b: bytes) -> "AppManifest":
+        return AppManifest.from_json_str(b.decode("utf-8"))
 
     @staticmethod
     def from_yaml_str(yaml_str: str) -> "AppManifest":
@@ -84,7 +91,7 @@ class AppManifest:
 
     @staticmethod
     def new(
-        name: str,
+        name: InfraAppName,
         description: str,
         version: str,
         readme: str,
@@ -92,7 +99,7 @@ class AppManifest:
         url: str,
         icon: str,
         categories: List[str],
-        config_schema: Optional[Json],
+        config_schema: Optional[List[Json]],
         default_config: Optional[Json],
         args_schema: List[AppArgs],
         source: str,

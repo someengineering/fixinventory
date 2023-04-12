@@ -318,11 +318,11 @@ class ApiClient:
             return await response.json()  # type: ignore
 
     async def get_config_validation(self, cfg_id: str) -> Optional[ConfigValidation]:
-        async with self.session.get(self.base_path + f"/config/{cfg_id}/validation") as response:
+        async with self.session.get(self.base_path + f"/config_validation/{cfg_id}") as response:
             return from_js(await response.json(), ConfigValidation)
 
     async def put_config_validation(self, cfg: ConfigValidation) -> ConfigValidation:
-        async with self.session.put(self.base_path + f"/config/{cfg.id}/validation", json=to_js(cfg)) as response:
+        async with self.session.put(self.base_path + f"/config_validation/{cfg.id}", json=to_js(cfg)) as response:
             return from_js(await response.json(), ConfigValidation)
 
     async def ping(self) -> str:

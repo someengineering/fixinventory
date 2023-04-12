@@ -13,6 +13,7 @@ from resotocore.cli.command import (
     EchoCommand,
     AggregateToCountCommand,
     PredecessorsPart,
+    DumpCommand,
 )
 from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext, CLI
 from resotocore.error import CLIParseError
@@ -49,25 +50,25 @@ def test_command_line_parser() -> None:
 async def test_multi_command(cli: CLI) -> None:
     nums = ",".join([f'{{ "num": {a}}}' for a in range(0, 100)])
     source = "echo [" + nums + "," + nums + "]"
-    command1 = f"{source} | chunk 7"
-    command2 = f"{source} | chunk | flatten | uniq"
-    command3 = f"{source} | chunk 10"
+    command1 = f"{source} | chunk 7 | dump"
+    command2 = f"{source} | chunk | flatten | uniq | dump"
+    command3 = f"{source} | chunk 10 | dump"
     commands = ";".join([command1, command2, command3])
     result = await cli.evaluate_cli_command(commands)
     assert len(result) == 3
     line1, line2, line3 = result
-    assert len(line1.commands) == 2
-    l1p1, l1p2 = line1.commands
+    assert len(line1.commands) == 3
+    l1p1, l1p2, _ = line1.commands
     assert isinstance(l1p1, EchoCommand)
     assert isinstance(l1p2, ChunkCommand)
-    assert len(line2.commands) == 4
-    l2p1, l2p2, l2p3, l2p4 = line2.commands
+    assert len(line2.commands) == 5
+    l2p1, l2p2, l2p3, l2p4, _ = line2.commands
     assert isinstance(l2p1, EchoCommand)
     assert isinstance(l2p2, ChunkCommand)
     assert isinstance(l2p3, FlattenCommand)
     assert isinstance(l2p4, UniqCommand)
-    assert len(line3.commands) == 2
-    l3p1, l3p2 = line3.commands
+    assert len(line3.commands) == 3
+    l3p1, l3p2, _ = line3.commands
     assert isinstance(l3p1, EchoCommand)
     assert isinstance(l3p2, ChunkCommand)
 
@@ -75,15 +76,15 @@ async def test_multi_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_query_database(cli: CLIService) -> None:
     query = 'search is("foo") and some_string=="hello" --> f>12 and f<100 and g[*]==2'
-    count = "count f"
-    commands = "|".join([query, count])
+    commands = "|".join([query, "count f", "dump"])
     result = await cli.evaluate_cli_command(commands)
     assert len(result) == 1
     line1 = result[0]
-    assert len(line1.commands) == 2
-    p1, p2 = line1.commands
+    assert len(line1.commands) == 3
+    p1, p2, p3 = line1.commands
     assert isinstance(p1, ExecuteSearchCommand)
     assert isinstance(p2, AggregateToCountCommand)
+    assert isinstance(p3, DumpCommand)
 
     with pytest.raises(Exception):
         await cli.evaluate_cli_command("search a>>>>")  # command is un-parsable
@@ -153,7 +154,7 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command('search some_int==0 | search identifier=~"9_" | descendants')
     sort = "sort reported.kind asc, reported.name asc, reported.id asc"
     assert len(commands) == 1
-    assert len(commands[0].commands) == 1
+    assert len(commands[0].commands) == 2  # list command is added automagically
     assert commands[0].commands[0].name == "execute_search"
     assert (
         commands[0].executable_commands[0].arg
