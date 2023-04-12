@@ -1,6 +1,7 @@
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.infra_apps.runtime import AppResult, Success
+from resotocore.ids import InfraAppName
 import pytest
 from resotocore.cli.model import CLI
 from typing import AsyncGenerator, Optional
@@ -41,7 +42,7 @@ async def test_template_generation(cli: CLI) -> None:
     }
 
     manifest = AppManifest(
-        name="test-app",
+        name=InfraAppName("test-app"),
         description="test app description",
         version="0.0.0",
         readme="",
@@ -72,7 +73,7 @@ async def test_template_generation(cli: CLI) -> None:
 async def test_execute(cli: CLI) -> None:
     source = "echo foo"
     manifest = AppManifest(
-        name="test-app",
+        name=InfraAppName("test-app"),
         description="test app description",
         version="0.0.0",
         readme="",
@@ -101,7 +102,7 @@ async def test_search(cli: CLI) -> None:
     """
 
     manifest = AppManifest(
-        name="test-app",
+        name=InfraAppName("test-app"),
         description="test app description",
         version="0.0.0",
         readme="",
