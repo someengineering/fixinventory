@@ -1,19 +1,17 @@
-from typing import AsyncGenerator, Optional, Union, List, Dict
+from typing import AsyncGenerator, Optional, List, Dict
 import asyncio
 from asyncio import Lock
 import subprocess
 from pathlib import Path
 import aiofiles
 from aiofiles import os as aos
-from attrs import frozen
 import aiohttp
 import shutil
 import hashlib
 from collections import defaultdict
 
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.db.entitydb import EntityDb, ArangoEntityDb
+from resotocore.db.packagedb import PackageEntityDb, InstallationSource, FromHttp, FromGit, InfraAppPackage
 from resotocore.config import ConfigHandler
 from resotocore.config import ConfigEntity
 from resotocore.ids import InfraAppName, ConfigId
@@ -22,32 +20,6 @@ from resotocore.model.typed_model import from_js
 from logging import getLogger
 
 logger = getLogger(__name__)
-
-
-@frozen
-class FromHttp:
-    http_url: str
-
-
-@frozen
-class FromGit:
-    git_url: str
-
-
-InstallationSource = Union[FromHttp, FromGit]
-
-
-@frozen
-class InfraAppPackage:
-    manifest: AppManifest
-    source: InstallationSource
-
-
-PackageEntityDb = EntityDb[InfraAppName, InfraAppPackage]
-
-
-def app_manifest_entity_db(db: AsyncArangoDB, collection: str) -> ArangoEntityDb[InfraAppName, InfraAppPackage]:
-    return ArangoEntityDb(db, collection, InfraAppPackage, lambda k: InfraAppName(k.manifest.name))
 
 
 def config_id(name: InfraAppName) -> ConfigId:
@@ -94,23 +66,22 @@ class PackageManager:
         return None
 
     async def update(self, name: InfraAppName) -> Optional[AppManifest]:
-        if not self.update_lock:
-            raise RuntimeError("PackageManager not started")
+        assert self.update_lock, "PackageManager not started"
 
         async with self.update_lock:
             if package := await self.entity_db.get(name):
                 new_manifest = await self._fetch_manifest(name, package.source)
                 if not new_manifest:
-                    logger.warning(f"Failed to fetch manifest for app {name}, skipping update")
-                    return None
+                    msg = f"Failed to fetch manifest for app {name}, skipping update"
+                    logger.warning(msg)
+                    raise RuntimeError(msg)
 
                 await self._delete(package.manifest.name)
                 return await self._install_from_manifest(new_manifest, package.source)
         return None
 
     async def update_all(self) -> None:
-        if not self.update_lock:
-            raise RuntimeError("PackageManager not started")
+        assert self.update_lock, "PackageManager not started"
 
         async with self.update_lock:
             packages: Dict[InstallationSource, List[AppManifest]] = defaultdict(list)
@@ -147,8 +118,7 @@ class PackageManager:
                     raise NotImplementedError(f"Updating from {source} not implemented")
 
     async def delete(self, name: InfraAppName) -> None:
-        if not self.update_lock:
-            raise RuntimeError("PackageManager not started")
+        assert self.update_lock, "PackageManager not started"
         async with self.update_lock:
             await self._delete(name)
 
@@ -157,8 +127,7 @@ class PackageManager:
         await self.config_handler.delete_config(config_id(name))
 
     async def install(self, name: InfraAppName, source: InstallationSource) -> Optional[AppManifest]:
-        if not self.update_lock:
-            raise RuntimeError("PackageManager not started")
+        assert self.update_lock, "PackageManager not started"
 
         async with self.update_lock:
             if installed := await self.entity_db.get(name):

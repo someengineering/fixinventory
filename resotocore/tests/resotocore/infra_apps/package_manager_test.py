@@ -1,24 +1,19 @@
 from typing import cast, Awaitable
-from resotocore.infra_apps.package_manager import PackageManager, PackageEntityDb, app_manifest_entity_db, FromGit
-import pytest
+from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db, FromGit
+from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
 from arango.database import StandardDatabase
 from types import SimpleNamespace
 from resotocore.config import ConfigHandler
-import asyncio
+import pytest
 from asyncio import Future
-import time
-from datetime import timedelta
-from tempfile import TemporaryDirectory
-from pathlib import Path
-import aiofiles.os as aos
 
 
 @pytest.fixture
 async def model_db(test_db: StandardDatabase) -> PackageEntityDb:
     async_db = AsyncArangoDB(test_db)
-    entity_db = app_manifest_entity_db(async_db, "test_package_entity_db")
+    entity_db = app_package_entity_db(async_db, "test_package_entity_db")
     await entity_db.create_update_schema()
     await entity_db.wipe()
     return entity_db
