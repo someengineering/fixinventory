@@ -92,6 +92,36 @@ async def test_execute(cli: CLI) -> None:
     assert result.output == [["foo"]]
 
 
+@pytest.mark.asyncio
+async def test_search(cli: CLI) -> None:
+    source = """
+    {% for resource in search('is(foo)') %}
+    {{ resource.id }}
+    {% endfor %}
+    """
+
+    manifest = AppManifest(
+        name="test-app",
+        description="test app description",
+        version="0.0.0",
+        readme="",
+        language="jinja2",
+        url="",
+        icon="",
+        categories=[],
+        default_config=None,
+        config_schema=None,
+        args_schema=[],
+        source=source,
+    )
+
+    runtime = LocalResotocoreAppRuntime(cli)
+
+    lines = [line async for line in runtime._generate_template(manifest, {}, stdin(), namespace)]
+
+    assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+
 async def stdin() -> AsyncGenerator[Optional[str], None]:
     yield None
 
