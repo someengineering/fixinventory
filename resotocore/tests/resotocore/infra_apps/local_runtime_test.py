@@ -3,6 +3,8 @@ from resotocore.infra_apps.manifest import AppManifest
 from resotocore.infra_apps.runtime import AppResult, Success
 import pytest
 from resotocore.cli.model import CLI
+from typing import AsyncGenerator, Optional
+from argparse import Namespace
 
 
 @pytest.mark.asyncio
@@ -54,7 +56,8 @@ async def test_template_generation(cli: CLI) -> None:
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
-    lines = [line async for line in runtime._generate_template(manifest, config, None, {})]
+
+    lines = [line async for line in runtime._generate_template(manifest, config, stdin(), namespace)]
     assert lines == [
         (
             "search /metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false "
@@ -84,6 +87,13 @@ async def test_execute(cli: CLI) -> None:
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
-    result: AppResult = await runtime.execute(manifest, config={}, kwargs={}, stdin={})
+    result: AppResult = await runtime.execute(manifest, config={}, kwargs=namespace, stdin=stdin())
     assert isinstance(result, Success)
     assert result.output == [["foo"]]
+
+
+async def stdin() -> AsyncGenerator[Optional[str], None]:
+    yield None
+
+
+namespace = Namespace()
