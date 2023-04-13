@@ -7,7 +7,7 @@ ARG UI_IMAGE_TAG=latest
 FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
 FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
 
-FROM someengineering/resotopython:1.0.3 as build-env
+FROM someengineering/resotopython:1.0.4 as build-env
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
