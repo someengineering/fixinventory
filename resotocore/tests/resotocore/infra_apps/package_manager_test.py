@@ -51,7 +51,7 @@ async def test_install_delete(model_db: PackageEntityDb) -> None:
     installed_apps = [name async for name in package_manager.list()]
     assert installed_apps == [name]
 
-    installed_app = await package_manager.info(name)
+    installed_app = await package_manager.get_manifest(name)
     assert installed_app is not None
     assert installed_app.name == name
 

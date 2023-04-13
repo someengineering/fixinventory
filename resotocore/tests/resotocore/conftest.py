@@ -51,6 +51,7 @@ from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.dependencies import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId
 from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -525,6 +526,13 @@ async def package_manager(
     async with PackageManager(package_entity_db, config_handler) as service:
         cli.dependencies.lookup["infra_apps_package_manager"] = service
         return service
+
+
+@fixture
+async def infra_apps_runtime(cli: CLIService) -> LocalResotocoreAppRuntime:
+    runtime = LocalResotocoreAppRuntime(cli)
+    cli.dependencies.lookup["infra_apps_runtime"] = runtime
+    return runtime
 
 
 @fixture

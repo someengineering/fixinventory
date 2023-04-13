@@ -106,7 +106,7 @@ class PackageManager(Service):
     def list(self) -> AsyncGenerator[InfraAppName, None]:
         return self.entity_db.keys()
 
-    async def info(self, name: InfraAppName) -> Optional[AppManifest]:
+    async def get_manifest(self, name: InfraAppName) -> Optional[AppManifest]:
         if package := await self.entity_db.get(name):
             return package.manifest
         return None

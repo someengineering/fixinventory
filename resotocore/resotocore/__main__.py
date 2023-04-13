@@ -179,8 +179,8 @@ def with_config(
     )
     merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
     cli_deps.extend(task_handler=task_handler, inspector=inspector)
-    infra_app_local_runtime = LocalResotocoreAppRuntime(cli)
-    cli_deps.extend(infra_app_local_runtime=infra_app_local_runtime)
+    infra_apps_runtime = LocalResotocoreAppRuntime(cli)
+    cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
     infra_apps_package_manager = PackageManager(db.package_entity_db, config_handler)
     cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
     api = Api(

@@ -1,5 +1,5 @@
-from typing import List, Any, AsyncIterator, AsyncGenerator
-from resotocore.infra_apps.runtime import AppResult, Success, Failure, Runtime
+from typing import List, Any, AsyncIterator
+from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import Json, JsonElement
 from resotocore.db.model import QueryModel
@@ -29,30 +29,27 @@ class LocalResotocoreAppRuntime(Runtime):
         graph: str,
         manifest: AppManifest,
         config: Json,
-        stdin: AsyncGenerator[JsonElement, None],
+        stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
-    ) -> AppResult:
+    ) -> AsyncIterator[JsonElement]:
         """
         Runtime implementation that runs the app locally.
         """
         try:
-            result = []
             async for line in self.generate_template(graph, manifest, config, stdin, kwargs):
                 result = await self._interpret_line(line)
-
-            return Success(output=result)
+                yield result
 
         except Exception as e:
             msg = f"Error running infrastructure app: {e}"
             log.exception(msg)
-            return Failure(error=msg)
 
-    async def generate_template(  # type: ignore
+    async def generate_template(
         self,
         graph: str,
         manifest: AppManifest,
         config: Json,
-        stdin: AsyncGenerator[JsonElement, None],
+        stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
     ) -> AsyncIterator[str]:
         graphdb = self.dbaccess.get_graph_db(graph)

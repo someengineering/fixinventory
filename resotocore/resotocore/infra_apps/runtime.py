@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Union, Dict, List, Any, AsyncGenerator, AsyncIterator
+from typing import Union, List, Any, AsyncIterator
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import JsonElement, Json
 from attrs import frozen
@@ -18,9 +18,6 @@ class Success:
 
 AppResult = Union[Failure, Success]
 
-# Interface to run an infrastructure app.
-AppRunner = Callable[[AppManifest, Json, Dict[str, Any]], Awaitable[AppResult]]
-
 
 class Runtime(ABC):
     """
@@ -33,11 +30,12 @@ class Runtime(ABC):
         graph: str,
         manifest: AppManifest,
         config: Json,
-        stdin: AsyncGenerator[JsonElement, None],
+        stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
-    ) -> AppResult:
+    ) -> AsyncIterator[JsonElement]:
         """
         Executes the infrastructure app."""
+        yield None
 
     @abstractmethod
     async def generate_template(
@@ -45,9 +43,10 @@ class Runtime(ABC):
         graph: str,
         manifest: AppManifest,
         config: Json,
-        stdin: AsyncGenerator[JsonElement, None],
+        stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
     ) -> AsyncIterator[str]:
         """
         Generates the template for the infrastructure app. Does not execute any commands
         """
+        yield ""

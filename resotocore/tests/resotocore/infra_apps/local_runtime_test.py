@@ -1,10 +1,9 @@
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.infra_apps.runtime import AppResult, Success
 from resotocore.ids import InfraAppName
 import pytest
 from resotocore.cli.model import CLI
-from typing import AsyncGenerator, Optional
+from typing import AsyncIterator, Optional
 from argparse import Namespace
 
 
@@ -72,7 +71,7 @@ async def test_template_generation(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_execute(cli: CLI) -> None:
-    source = "echo foo"
+    source = "echo foo; echo bar; json ['a', 'b', 'c']"
     manifest = AppManifest(
         name=InfraAppName("test-app"),
         description="test app description",
@@ -90,9 +89,8 @@ async def test_execute(cli: CLI) -> None:
 
     runtime = LocalResotocoreAppRuntime(cli)
     g = cli.env["graph"]
-    result: AppResult = await runtime.execute(g, manifest, config={}, kwargs=namespace, stdin=stdin())
-    assert isinstance(result, Success)
-    assert result.output == [["foo"]]
+    async for js_elem in runtime.execute(g, manifest, config={}, kwargs=namespace, stdin=stdin()):
+        assert js_elem == [["foo"], ["bar"], ["a", "b", "c"]]
 
 
 @pytest.mark.asyncio
@@ -126,7 +124,7 @@ async def test_search(cli: CLI) -> None:
     assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 
-async def stdin() -> AsyncGenerator[Optional[str], None]:
+async def stdin() -> AsyncIterator[Optional[str]]:
     yield None
 
 

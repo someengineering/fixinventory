@@ -297,7 +297,9 @@ class CLIService(CLI):
             except Exception as ex:
                 log.warning(f"Error in main loop: {ex}")
 
-    def command(self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> ExecutableCommand:
+    def command(
+        self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any
+    ) -> ExecutableCommand:
         """
         Create an executable command for given command name, args and context.
         :param name: the name of the command to execute (must be a known command)
@@ -310,7 +312,7 @@ class CLIService(CLI):
         if name in self.commands:
             command = self.commands[name]
             try:
-                action = command.parse(arg, ctx, cmd_name=name)
+                action = command.parse(arg, ctx, cmd_name=name, **kwargs)
                 return ExecutableCommand(name, command, arg, action)
             except Exception as ex:
                 raise CLIParseError(f"{name} can not parse arg {arg}. Reason: {ex}") from ex
@@ -508,7 +510,9 @@ class CLIService(CLI):
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             ctx = adjust_context(parsed)
-            ctx, commands = await combine_query_parts([self.command(c.cmd, c.args, ctx) for c in parsed.commands], ctx)
+            ctx, commands = await combine_query_parts(
+                [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)], ctx
+            )
             rewritten = rewrite_command_line(commands)
             not_met = [r for cmd in rewritten for r in cmd.action.required if r.name not in context.uploaded_files]
             envelope = {k: v for cmd in rewritten for k, v in cmd.action.envelope.items()}

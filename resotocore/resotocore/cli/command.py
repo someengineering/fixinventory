@@ -4885,7 +4885,7 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App search not yet implemented. Pattern: {pattern}"
 
         async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            manifest = await self.dependencies.infra_apps_package_manager.info(app_name)
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
             if manifest:
                 yield to_js(manifest)
             else:
@@ -4911,12 +4911,44 @@ class InfrastructureAppsCommand(CLICommand):
             yield "App list not yet implemented"
 
         async def app_run(
-            app_name: InfraAppName, dry_run: bool, validate: bool, config: Optional[str]
+            in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
         ) -> AsyncIterator[JsonElement]:
-            yield (
-                f"App run not yet implemented, app_name {app_name}, "
-                "dry_run {dry_run}, validate {validate}, config {config}"
+            runtime = self.dependencies.infra_apps_runtime
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise ValueError(f"App {app_name} is not installed.")
+            app_config = None
+            if config:
+                ce = await self.dependencies.config_handler.get_config(ConfigId(config))
+                if ce:
+                    app_config = ce.config
+                else:
+                    raise ValueError(f"Config {config} not found.")
+            else:
+                app_config = manifest.default_config or {}
+
+            stdin: AsyncIterator[JsonElement] = (
+                stream.iterate(in_stream) if isinstance(in_stream, Stream) else in_stream
             )
+
+            if dry_run:
+                async for line in runtime.generate_template(
+                    graph=ctx.graph_name,
+                    manifest=manifest,
+                    config=app_config,
+                    stdin=stdin,
+                    kwargs=Namespace(),
+                ):
+                    yield line
+            else:
+                async for json_elem in runtime.execute(
+                    graph=ctx.graph_name,
+                    manifest=manifest,
+                    config=app_config,
+                    stdin=stdin,
+                    kwargs=Namespace(),
+                ):
+                    yield json_elem
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if len(args) == 1 and args[0] == "search":
@@ -4960,11 +4992,31 @@ class InfrastructureAppsCommand(CLICommand):
         elif len(args) == 1 and args[0] == "list":
             return CLISource.single(apps_list)
         elif len(args) >= 2 and args[0] == "run":
-            rest = re.split("\\s+", args[2]) if args[2:] else []
-            dry_run = "--dry-run" in rest
-            validate = "--validate" in rest
-            config = rest[rest.index("--config") + 1] if "--config" in rest else None
-            return CLISource.single(partial(app_run, InfraAppName(args[1]), dry_run, validate, config))
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
+            parser.add_argument("--config", dest="config", type=str, default=None)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            in_source_position = kwargs.get("position") == 0
+
+            if in_source_position:
+                return CLISource.no_count(
+                    partial(
+                        app_run,
+                        in_stream=stream.empty(),
+                        app_name=InfraAppName(parsed.app_name),
+                        dry_run=parsed.dry_run,
+                        config=parsed.config,
+                    )
+                )
+            else:
+                return CLIFlow(
+                    partial(
+                        app_run, app_name=InfraAppName(parsed.app_name), dry_run=parsed.dry_run, config=parsed.config
+                    )
+                )
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 

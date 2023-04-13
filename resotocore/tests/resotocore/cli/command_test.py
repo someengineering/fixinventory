@@ -37,6 +37,7 @@ from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
 from resotocore.ids import InfraAppName
 from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.runtime import Runtime
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1063,7 +1064,7 @@ async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: Be
 
 
 @pytest.mark.asyncio
-async def test_apps(cli: CLI, package_manager: PackageManager) -> None:
+async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtime: Runtime) -> None:
     T = TypeVar("T")
 
     async def execute(cmd: str, _: Type[T]) -> List[T]:
@@ -1072,6 +1073,14 @@ async def test_apps(cli: CLI, package_manager: PackageManager) -> None:
 
     # install a package
     assert "installed successfully" in (await execute("apps install cleanup_untagged", str))[0]
-    manifest = await package_manager.info(InfraAppName("cleanup_untagged"))
+    manifest = await package_manager.get_manifest(InfraAppName("cleanup_untagged"))
     assert manifest is not None
     assert manifest.name == "cleanup_untagged"
+
+    # run the app
+    result = await execute("apps run cleanup_untagged --dry-run", str)
+    assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
+
+    # run the app with stdin
+    result = await execute("echo foo | apps run cleanup_untagged --dry-run", str)
+    assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
