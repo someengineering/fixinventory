@@ -1,5 +1,5 @@
 from typing import List, Any, AsyncIterator, AsyncGenerator
-from resotocore.infra_apps.runtime import AppResult, Success, Failure
+from resotocore.infra_apps.runtime import AppResult, Success, Failure, Runtime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import Json, JsonElement
 from resotocore.db.model import QueryModel
@@ -12,7 +12,7 @@ from argparse import Namespace
 log = logging.getLogger(__name__)
 
 
-class LocalResotocoreAppRuntime:
+class LocalResotocoreAppRuntime(Runtime):
     """
     Runtime implementation that runs the Infrastructure Apps directly on the resotocore.
     Currently, only the Jinja2 language is supported.
@@ -32,7 +32,7 @@ class LocalResotocoreAppRuntime:
         """
         try:
             result = []
-            async for line in self._generate_template(manifest, config, stdin, kwargs):
+            async for line in self.generate_template(manifest, config, stdin, kwargs):
                 result = await self._interpret_line(line)
 
             return Success(output=result)
@@ -42,7 +42,7 @@ class LocalResotocoreAppRuntime:
             log.exception(msg)
             return Failure(error=msg)
 
-    async def _generate_template(
+    async def generate_template(  # type: ignore
         self, manifest: AppManifest, config: Json, stdin: AsyncGenerator[JsonElement, None], kwargs: Namespace
     ) -> AsyncIterator[str]:
         env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)

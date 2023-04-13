@@ -58,7 +58,7 @@ async def test_template_generation(cli: CLI) -> None:
 
     runtime = LocalResotocoreAppRuntime(cli)
 
-    lines = [line async for line in runtime._generate_template(manifest, config, stdin(), namespace)]
+    lines = [line async for line in runtime.generate_template(manifest, config, stdin(), namespace)]
     assert lines == [
         (
             "search /metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false "
@@ -118,7 +118,7 @@ async def test_search(cli: CLI) -> None:
 
     runtime = LocalResotocoreAppRuntime(cli)
 
-    lines = [line async for line in runtime._generate_template(manifest, {}, stdin(), namespace)]
+    lines = [line async for line in runtime.generate_template(manifest, {}, stdin(), namespace)]
 
     assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
