@@ -20,12 +20,13 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.model.typed_model import from_js
 from logging import getLogger
+from resotocore.web.service import Service
 
 logger = getLogger(__name__)
 
 
 def config_id(name: InfraAppName) -> ConfigId:
-    return ConfigId(f"resoto/apps/{name}")
+    return ConfigId(f"resoto_apps_{name}")
 
 
 class Failure(ABC):
@@ -71,7 +72,7 @@ class ManifestInstallFailed(Failure):
         return f"Failed to install app {self.name} from manifest. Reason: {self.reason}"
 
 
-class PackageManager:
+class PackageManager(Service):
     def __init__(
         self,
         entity_db: PackageEntityDb,

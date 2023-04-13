@@ -86,6 +86,7 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
+from resotocore.db.packagedb import InstallationSource, FromGit, FromHttp
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName
@@ -4862,7 +4863,11 @@ class InfrastructureAppsCommand(CLICommand):
         return {
             "search": [ArgInfo(None, True, help_text="<pattern>")],
             "info": [ArgInfo(None, True, help_text="<app_name>")],
-            "install": [ArgInfo(None, True, help_text="<app_name>")],
+            "install": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--repo", True, help_text="<repo>", option_group="source"),
+                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+            ],
             "edit": [ArgInfo(None, True, help_text="<app_name>")],
             "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
             "update": [ArgInfo(None, True, help_text="<app_name>")],
@@ -4880,10 +4885,15 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App search not yet implemented. Pattern: {pattern}"
 
         async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App info not yet implemented, app_name {app_name}"
+            manifest = await self.dependencies.infra_apps_package_manager.info(app_name)
+            if manifest:
+                yield to_js(manifest)
+            else:
+                raise ValueError(f"App {app_name} is not installed.")
 
-        async def app_install(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App installation not yet implemented, app_name {app_name}"
+        async def app_install(app_name: InfraAppName, source: InstallationSource) -> AsyncIterator[JsonElement]:
+            manifest = await self.dependencies.infra_apps_package_manager.install(app_name, source)
+            yield f"App {app_name} version {manifest.version} installed successfully"
 
         async def app_edit(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App editing not yet implemented, app_name {app_name}"
@@ -4915,8 +4925,30 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(partial(apps_search, args[1]))
         elif len(args) == 2 and args[0] == "info":
             return CLISource.single(partial(app_info, InfraAppName(args[1])))
-        elif len(args) == 2 and args[0] == "install":
-            return CLISource.single(partial(app_install, InfraAppName(args[1])))
+        elif len(args) >= 2 and args[0] == "install":
+            parser = NoExitArgumentParser()
+            source_group = parser.add_mutually_exclusive_group()
+            source_group.add_argument("--repo", dest="repo", type=str)
+            source_group.add_argument("--url", dest="url", type=str)
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            source: Optional[InstallationSource] = None
+            if parsed.repo:
+                source = FromGit(parsed.repo)
+            elif parsed.url:
+                source = FromHttp(parsed.url)
+            else:
+                source = FromGit("https://github.com/someengineering/resoto-apps.git")
+
+            return CLISource.single(
+                partial(
+                    app_install,
+                    InfraAppName(parsed.app_name),
+                    source,
+                )
+            )
         elif len(args) == 2 and args[0] == "edit":
             return CLISource.single(partial(app_edit, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "uninstall":
@@ -4982,6 +5014,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
+        InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
@@ -4989,7 +5022,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
             [
                 FileCommand(d, "misc"),
                 UploadCommand(d, "misc"),
-                InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
             ]
         )
 

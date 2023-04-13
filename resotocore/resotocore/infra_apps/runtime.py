@@ -29,14 +29,24 @@ class Runtime(ABC):
 
     @abstractmethod
     async def execute(
-        self, manifest: AppManifest, config: Json, stdin: AsyncGenerator[JsonElement, None], kwargs: Namespace
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncGenerator[JsonElement, None],
+        kwargs: Namespace,
     ) -> AppResult:
         """
         Executes the infrastructure app."""
 
     @abstractmethod
     async def generate_template(
-        self, manifest: AppManifest, config: Json, stdin: AsyncGenerator[JsonElement, None], kwargs: Namespace
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncGenerator[JsonElement, None],
+        kwargs: Namespace,
     ) -> AsyncIterator[str]:
         """
         Generates the template for the infrastructure app. Does not execute any commands

@@ -35,6 +35,8 @@ from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
+from resotocore.ids import InfraAppName
+from resotocore.infra_apps.package_manager import PackageManager
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1058,3 +1060,18 @@ async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: Be
     assert len((await execute("report benchmark run test | dump", Json))) == 9
     assert len((await execute("report benchmark run test --only-failing | dump", Json))) == 9
     assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 0
+
+
+@pytest.mark.asyncio
+async def test_apps(cli: CLI, package_manager: PackageManager) -> None:
+    T = TypeVar("T")
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    # install a package
+    assert "installed successfully" in (await execute("apps install cleanup_untagged", str))[0]
+    manifest = await package_manager.info(InfraAppName("cleanup_untagged"))
+    assert manifest is not None
+    assert manifest.name == "cleanup_untagged"

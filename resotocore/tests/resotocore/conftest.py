@@ -47,8 +47,10 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
+from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.dependencies import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId
+from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -189,6 +191,14 @@ async def running_task_db(async_db: AsyncArangoDB) -> RunningTaskDb:
 def db_access(graph_db: ArangoGraphDB) -> DbAccess:
     access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), empty_config())
     return access
+
+
+@fixture
+async def package_entity_db(async_db: AsyncArangoDB) -> PackageEntityDb:
+    package_entity_db = app_package_entity_db(async_db, "test_package_entity_db")
+    await package_entity_db.create_update_schema()
+    await package_entity_db.wipe()
+    return package_entity_db
 
 
 @fixture
@@ -505,6 +515,15 @@ def cli(cli_deps: CLIDependencies) -> CLIService:
 async def inspector_service(cli: CLIService) -> InspectorService:
     async with InspectorService(cli) as service:
         cli.dependencies.lookup["inspector"] = service
+        return service
+
+
+@fixture
+async def package_manager(
+    cli: CLIService, config_handler: ConfigHandler, package_entity_db: PackageEntityDb
+) -> PackageManager:
+    async with PackageManager(package_entity_db, config_handler) as service:
+        cli.dependencies.lookup["infra_apps_package_manager"] = service
         return service
 
 

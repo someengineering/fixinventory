@@ -20,19 +20,24 @@ class LocalResotocoreAppRuntime(Runtime):
 
     def __init__(self, cli: CLI) -> None:
         self.cli = cli
-        self.graphdb = cli.dependencies.db_access.get_graph_db(cli.env["graph"])
+        self.dbaccess = cli.dependencies.db_access
         self.model_handler = cli.dependencies.model_handler
         self.template_expander = cli.dependencies.template_expander
 
     async def execute(
-        self, manifest: AppManifest, config: Json, stdin: AsyncGenerator[JsonElement, None], kwargs: Namespace
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncGenerator[JsonElement, None],
+        kwargs: Namespace,
     ) -> AppResult:
         """
         Runtime implementation that runs the app locally.
         """
         try:
             result = []
-            async for line in self.generate_template(manifest, config, stdin, kwargs):
+            async for line in self.generate_template(graph, manifest, config, stdin, kwargs):
                 result = await self._interpret_line(line)
 
             return Success(output=result)
@@ -43,8 +48,14 @@ class LocalResotocoreAppRuntime(Runtime):
             return Failure(error=msg)
 
     async def generate_template(  # type: ignore
-        self, manifest: AppManifest, config: Json, stdin: AsyncGenerator[JsonElement, None], kwargs: Namespace
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncGenerator[JsonElement, None],
+        kwargs: Namespace,
     ) -> AsyncIterator[str]:
+        graphdb = self.dbaccess.get_graph_db(graph)
         env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)
         template = env.from_string(manifest.source)
         template.globals["args"] = kwargs
@@ -56,7 +67,7 @@ class LocalResotocoreAppRuntime(Runtime):
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported")
-            async with await self.graphdb.search_list(QueryModel(query, model)) as ctx:
+            async with await graphdb.search_list(QueryModel(query, model)) as ctx:
                 async for result in ctx:
                     yield result
 

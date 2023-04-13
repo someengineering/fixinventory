@@ -57,8 +57,9 @@ async def test_template_generation(cli: CLI) -> None:
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
+    g = cli.env["graph"]
 
-    lines = [line async for line in runtime.generate_template(manifest, config, stdin(), namespace)]
+    lines = [line async for line in runtime.generate_template(g, manifest, config, stdin(), namespace)]
     assert lines == [
         (
             "search /metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false "
@@ -88,7 +89,8 @@ async def test_execute(cli: CLI) -> None:
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
-    result: AppResult = await runtime.execute(manifest, config={}, kwargs=namespace, stdin=stdin())
+    g = cli.env["graph"]
+    result: AppResult = await runtime.execute(g, manifest, config={}, kwargs=namespace, stdin=stdin())
     assert isinstance(result, Success)
     assert result.output == [["foo"]]
 
@@ -118,7 +120,8 @@ async def test_search(cli: CLI) -> None:
 
     runtime = LocalResotocoreAppRuntime(cli)
 
-    lines = [line async for line in runtime.generate_template(manifest, {}, stdin(), namespace)]
+    g = cli.env["graph"]
+    lines = [line async for line in runtime.generate_template(g, manifest, {}, stdin(), namespace)]
 
     assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
