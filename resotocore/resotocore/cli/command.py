@@ -4899,7 +4899,8 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App {app_name} uninstalled"
 
         async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App update not yet implemented, app_name {app_name}"
+            updated_manifest = await self.dependencies.infra_apps_package_manager.update(app_name)
+            yield f"App {app_name} updated sucessfully to the latest version ({updated_manifest.version})"
 
         async def app_update_all() -> AsyncIterator[JsonElement]:
             yield "Update all apps not yet implemented"
