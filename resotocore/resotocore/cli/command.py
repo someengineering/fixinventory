@@ -86,6 +86,9 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
+from resotocore.db.packagedb import InstallationSource, FromGit, FromHttp
+from resotocore.infra_apps.package_manager import Failure
+from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName
@@ -102,7 +105,7 @@ from resotocore.model.model import (
     PropertyPath,
 )
 from resotocore.model.resolve_in_graph import NodePath
-from resotocore.model.typed_model import to_json, to_js
+from resotocore.model.typed_model import to_json, to_js, from_js
 from resotocore.query.model import (
     Query,
     P,
@@ -4826,7 +4829,7 @@ class InfrastructureAppsCommand(CLICommand):
     app uninstall <app_name>
     app update <app_name>|all
     apps list
-    app run <app_name> [--dry-run] [--validate] --config [config_name]
+    app run <app_name> [--dry-run] --config [config_name]
     ```
 
     - `apps search [pattern]`: Lists all apps available in https://github.com/someengineering/resoto-apps/
@@ -4837,7 +4840,7 @@ class InfrastructureAppsCommand(CLICommand):
     - `app uninstall <app_name>`: Uninstall an app.
     - `app update <app_name>|all`: Update an app or all apps.
     - `apps list`: List all installed apps.
-    - `app run <app_name> [--dry-run] [--validate] [--config <config_name>]`: Run an app.
+    - `app run <app_name> [--dry-run] [--config <config_name>]`: Run an app.
 
 
     ## Parameters
@@ -4847,7 +4850,6 @@ class InfrastructureAppsCommand(CLICommand):
     ## Options
     - `--repo <repo>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
     - `--dry-run`: Run the app but do not make any changes.
-    - `--validate`: Validate the app but do not run it.
     - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """
 
@@ -4862,7 +4864,11 @@ class InfrastructureAppsCommand(CLICommand):
         return {
             "search": [ArgInfo(None, True, help_text="<pattern>")],
             "info": [ArgInfo(None, True, help_text="<app_name>")],
-            "install": [ArgInfo(None, True, help_text="<app_name>")],
+            "install": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--repo", True, help_text="<repo>", option_group="source"),
+                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+            ],
             "edit": [ArgInfo(None, True, help_text="<app_name>")],
             "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
             "update": [ArgInfo(None, True, help_text="<app_name>")],
@@ -4880,33 +4886,103 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App search not yet implemented. Pattern: {pattern}"
 
         async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App info not yet implemented, app_name {app_name}"
+            yield await self.dependencies.infra_apps_package_manager.info(app_name)
 
-        async def app_install(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App installation not yet implemented, app_name {app_name}"
+        async def app_install(app_name: InfraAppName, source: InstallationSource) -> AsyncIterator[JsonElement]:
+            manifest = await self.dependencies.infra_apps_package_manager.install(app_name, source)
+            yield f"App {app_name} version {manifest.version} installed successfully"
 
-        async def app_edit(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App editing not yet implemented, app_name {app_name}"
+        async def send_file(content: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, "manifest.yaml")
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    await f.write(content)
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def edit_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Editing a config is a two-step process:
+            # 1) download the config and make it available to edit
+            # 2) upload the config file and update the config from content --> update_config
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise AttributeError(f"No app with this name: {app_name}")
+            yml = yaml.safe_dump(to_js(manifest))
+            return send_file(yml)
+
+        async def update_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Usually invoked by resh automatically via edit_app, but can also be triggered manually.
+            # An app with given name is changed by the content of uploaded file "app_name.yaml"
+            content = ""
+            try:
+                async with aiofiles.open(ctx.uploaded_files["manifest.yaml"], "r") as f:
+                    content = await f.read()
+                    manifest: AppManifest = from_js(yaml.safe_load(content), AppManifest)
+                await self.dependencies.infra_apps_package_manager.update_from_manifest(manifest)
+            except Exception as ex:
+                log.debug(f"Could not update the app manifest: {ex}.", exc_info=ex)
+                # Yaml file: add the error as comment on top
+                error = "\n".join(f"## {line}" for line in str(ex).splitlines())
+                message = f"## Update the app failed. Please correct.\n{error}\n\n"
+                # Remove error message from previous check
+                config = "\n".join(dropwhile(lambda m: m.startswith("##") or len(m.strip()) == 0, content.splitlines()))
+                async for file in send_file(message + config):
+                    yield file
 
         async def app_uninstall(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App uninstallation not yet implemented, app_name {app_name}"
+            await self.dependencies.infra_apps_package_manager.delete(app_name)
+            yield f"App {app_name} uninstalled"
 
         async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App update not yet implemented, app_name {app_name}"
+            updated_manifest = await self.dependencies.infra_apps_package_manager.update(app_name)
+            yield f"App {app_name} updated sucessfully to the latest version ({updated_manifest.version})"
 
         async def app_update_all() -> AsyncIterator[JsonElement]:
-            yield "Update all apps not yet implemented"
+            async for name, result in self.dependencies.infra_apps_package_manager.update_all():
+                if isinstance(result, Failure):
+                    yield f"App {name} failed to update: {result}"
+                else:
+                    yield f"App {name} updated sucessfully to the latest version ({result.version})"
 
         async def apps_list() -> AsyncIterator[JsonElement]:
-            yield "App list not yet implemented"
+            async for app in self.dependencies.infra_apps_package_manager.list():
+                yield app
 
         async def app_run(
-            app_name: InfraAppName, dry_run: bool, validate: bool, config: Optional[str]
+            in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
         ) -> AsyncIterator[JsonElement]:
-            yield (
-                f"App run not yet implemented, app_name {app_name}, "
-                "dry_run {dry_run}, validate {validate}, config {config}"
+            runtime = self.dependencies.infra_apps_runtime
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise ValueError(f"App {app_name} is not installed.")
+            app_config = None
+            if config:
+                ce = await self.dependencies.config_handler.get_config(ConfigId(config))
+                if ce:
+                    app_config = ce.config
+                else:
+                    raise ValueError(f"Config {config} not found.")
+            else:
+                app_config = manifest.default_config or {}
+
+            stdin: AsyncIterator[JsonElement] = (
+                stream.iterate(in_stream) if isinstance(in_stream, Stream) else in_stream
             )
+
+            if dry_run:
+                return runtime.generate_template(
+                    graph=ctx.graph_name,
+                    manifest=manifest,
+                    config=app_config,
+                    stdin=stdin,
+                    kwargs=Namespace(),
+                )
+            else:
+                return runtime.execute(
+                    graph=ctx.graph_name, manifest=manifest, config=app_config, stdin=stdin, kwargs=Namespace(), ctx=ctx
+                )
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if len(args) == 1 and args[0] == "search":
@@ -4915,24 +4991,79 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(partial(apps_search, args[1]))
         elif len(args) == 2 and args[0] == "info":
             return CLISource.single(partial(app_info, InfraAppName(args[1])))
-        elif len(args) == 2 and args[0] == "install":
-            return CLISource.single(partial(app_install, InfraAppName(args[1])))
-        elif len(args) == 2 and args[0] == "edit":
-            return CLISource.single(partial(app_edit, InfraAppName(args[1])))
+        elif len(args) >= 2 and args[0] == "install":
+            parser = NoExitArgumentParser()
+            source_group = parser.add_mutually_exclusive_group()
+            source_group.add_argument("--repo", dest="repo", type=str)
+            source_group.add_argument("--url", dest="url", type=str)
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            source: Optional[InstallationSource] = None
+            if parsed.repo:
+                source = FromGit(parsed.repo)
+            elif parsed.url:
+                source = FromHttp(parsed.url)
+            else:
+                source = FromGit("https://github.com/someengineering/resoto-apps.git")
+
+            return CLISource.single(
+                partial(
+                    app_install,
+                    InfraAppName(parsed.app_name),
+                    source,
+                )
+            )
+        elif arg and len(args) == 2 and args[0] == "edit":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(edit_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+            )
+        elif arg and len(args) == 3 and args[0] == "update":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(update_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+                requires=[CLIFileRequirement("manifest.yaml", args[2])],
+            )
         elif len(args) == 2 and args[0] == "uninstall":
             return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
+        elif len(args) == 2 and args[0] == "update" and args[1] == "all":
+            return CLISource.single(app_update_all)
         elif len(args) == 2 and args[0] == "update":
             return CLISource.single(partial(app_update, InfraAppName(args[1])))
-        elif len(args) == 1 and args[0] == "update":
-            return CLISource.single(app_update_all)
         elif len(args) == 1 and args[0] == "list":
             return CLISource.single(apps_list)
         elif len(args) >= 2 and args[0] == "run":
-            rest = re.split("\\s+", args[2]) if args[2:] else []
-            dry_run = "--dry-run" in rest
-            validate = "--validate" in rest
-            config = rest[rest.index("--config") + 1] if "--config" in rest else None
-            return CLISource.single(partial(app_run, InfraAppName(args[1]), dry_run, validate, config))
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
+            parser.add_argument("--config", dest="config", type=str, default=None)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            in_source_position = kwargs.get("position") == 0
+
+            if in_source_position:
+                return CLISource.no_count(
+                    partial(
+                        app_run,
+                        in_stream=stream.empty(),
+                        app_name=InfraAppName(parsed.app_name),
+                        dry_run=parsed.dry_run,
+                        config=parsed.config,
+                    )
+                )
+            else:
+                return CLIFlow(
+                    partial(
+                        app_run, app_name=InfraAppName(parsed.app_name), dry_run=parsed.dry_run, config=parsed.config
+                    )
+                )
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
@@ -4982,6 +5113,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
+        InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
@@ -4989,7 +5121,6 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
             [
                 FileCommand(d, "misc"),
                 UploadCommand(d, "misc"),
-                InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
             ]
         )
 

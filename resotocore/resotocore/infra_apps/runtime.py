@@ -1,7 +1,9 @@
-from typing import Awaitable, Callable, Union, Dict, List, Any
+from typing import Union, List, Any, AsyncIterator
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.types import Json
+from resotocore.types import JsonElement, Json
 from attrs import frozen
+from abc import ABC, abstractmethod
+from argparse import Namespace
 
 
 @frozen
@@ -16,5 +18,36 @@ class Success:
 
 AppResult = Union[Failure, Success]
 
-# Interface to run an infrastructure app.
-AppRunner = Callable[[AppManifest, Json, Dict[str, Any]], Awaitable[AppResult]]
+
+class Runtime(ABC):
+    """
+    Runtime is the interface to run an infrastructure app.
+    """
+
+    @abstractmethod
+    async def execute(
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncIterator[JsonElement],
+        kwargs: Namespace,
+        ctx: Any,  # CLIContext, but here we use Any to avoid circular dependency
+    ) -> AsyncIterator[JsonElement]:
+        """
+        Executes the infrastructure app."""
+        yield None
+
+    @abstractmethod
+    async def generate_template(
+        self,
+        graph: str,
+        manifest: AppManifest,
+        config: Json,
+        stdin: AsyncIterator[JsonElement],
+        kwargs: Namespace,
+    ) -> AsyncIterator[str]:
+        """
+        Generates the template for the infrastructure app. Does not execute any commands
+        """
+        yield ""
