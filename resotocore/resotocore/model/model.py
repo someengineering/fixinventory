@@ -82,6 +82,7 @@ class Property:
     required: bool = False
     synthetic: Optional[SyntheticProperty] = None
     description: Optional[str] = None
+    metadata: Optional[Json] = None
 
     def __attrs_post_init__(self) -> None:
         assert self.synthetic is None or not self.required, "Synthetic properties can not be required!"

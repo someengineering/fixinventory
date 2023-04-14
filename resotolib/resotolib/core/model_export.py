@@ -17,13 +17,14 @@ from resotolib.baseresources import BaseResource
 from resotolib.durations import duration_str
 from resotolib.types import Json
 from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
-from resotolib.json import to_json as _to_json
 
 if sys.version_info >= (3, 10):
     from types import UnionType, NoneType
 else:
     UnionType = Union
     NoneType = type(None)
+
+property_metadata_to_strip = ["restart_required", "description", "required", "kind"]
 
 
 # List[X] -> list, list -> list
@@ -173,20 +174,22 @@ def dataclasses_to_resotocore_model(
         # detected by the type itself. Example: int32/int64 or float/double
         # If not defined, we fallback to the largest container: int64 and double
         name = field.name
-        kind = field.metadata.get("type_hint", model_name(field.type))
-        desc = field.metadata.get("description", "")
-        required = field.metadata.get("required", False)
-        synthetic = field.metadata.get("synthetic")
+        meta = field.metadata.copy()
+        kind = meta.pop("type_hint", model_name(field.type))
+        desc = meta.pop("description", "")
+        required = meta.pop("required", False)
+        synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
+        for ps in property_metadata_to_strip:
+            meta.pop(ps, None)
 
-        def json(name: str, kind_str: str, required: bool, description: str, **kwargs: Any) -> Json:
-            return {
-                "name": name,
-                "kind": kind_str,
-                "required": required,
-                "description": description,
-                **kwargs,
-            }
+        def json(
+            name: str, kind_str: str, required: bool, description: str, meta: Optional[Dict[str, str]], **kwargs: Any
+        ) -> Json:
+            js = {"name": name, "kind": kind_str, "required": required, "description": description, **kwargs}
+            if meta:
+                js["metadata"] = meta
+            return js
 
         synthetics = [
             json(
@@ -194,13 +197,14 @@ def dataclasses_to_resotocore_model(
                 synth_trafo,
                 False,
                 f"Synthetic prop {synth_trafo} on {name}",
+                None,
                 synthetic={"path": [name]},
             )
             for synth_prop, synth_trafo in synthetic.items()
         ]
 
         # required = not is_optional(field.type)
-        return [json(name, kind, required, desc)] + synthetics
+        return [json(name, kind, required, desc, meta)] + synthetics
 
     for cls in classes:
         if attrs.has(cls):
