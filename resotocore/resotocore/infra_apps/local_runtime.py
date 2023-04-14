@@ -9,6 +9,8 @@ import logging
 from aiostream.core import Stream
 from aiostream import stream
 from argparse import Namespace
+from resotolib.durations import parse_duration
+
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ class LocalResotocoreAppRuntime(Runtime):
         template.globals["args"] = kwargs
         template.globals["stdin"] = stdin
         template.globals["config"] = config
+        template.globals["parse_duration"] = parse_duration
 
         model = await self.model_handler.load_model()
 
