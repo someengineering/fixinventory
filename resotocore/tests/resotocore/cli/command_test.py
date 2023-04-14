@@ -1084,3 +1084,12 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     # run the app with stdin
     result = await execute("echo foo | apps run cleanup_untagged --dry-run", str)
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
+
+    # list all apps
+    result = await execute("apps list", str)
+    assert result == ["cleanup_untagged"]
+
+    # uninstall the app
+    await execute("apps uninstall cleanup_untagged", str)
+    result = await execute("apps list", str)
+    assert result == []

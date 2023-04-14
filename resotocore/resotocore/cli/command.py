@@ -4899,7 +4899,8 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App editing not yet implemented, app_name {app_name}"
 
         async def app_uninstall(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App uninstallation not yet implemented, app_name {app_name}"
+            await self.dependencies.infra_apps_package_manager.delete(app_name)
+            yield f"App {app_name} uninstalled"
 
         async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield f"App update not yet implemented, app_name {app_name}"
@@ -4908,7 +4909,8 @@ class InfrastructureAppsCommand(CLICommand):
             yield "Update all apps not yet implemented"
 
         async def apps_list() -> AsyncIterator[JsonElement]:
-            yield "App list not yet implemented"
+            async for app in self.dependencies.infra_apps_package_manager.list():
+                yield app
 
         async def app_run(
             in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
@@ -4932,23 +4934,17 @@ class InfrastructureAppsCommand(CLICommand):
             )
 
             if dry_run:
-                async for line in runtime.generate_template(
+                return runtime.generate_template(
                     graph=ctx.graph_name,
                     manifest=manifest,
                     config=app_config,
                     stdin=stdin,
                     kwargs=Namespace(),
-                ):
-                    yield line
+                )
             else:
-                async for json_elem in runtime.execute(
-                    graph=ctx.graph_name,
-                    manifest=manifest,
-                    config=app_config,
-                    stdin=stdin,
-                    kwargs=Namespace(),
-                ):
-                    yield json_elem
+                return runtime.execute(
+                    graph=ctx.graph_name, manifest=manifest, config=app_config, stdin=stdin, kwargs=Namespace(), ctx=ctx
+                )
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if len(args) == 1 and args[0] == "search":

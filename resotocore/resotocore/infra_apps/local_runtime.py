@@ -1,11 +1,12 @@
-from typing import List, Any, AsyncIterator
+from typing import List, AsyncIterator
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import Json, JsonElement
 from resotocore.db.model import QueryModel
-from resotocore.cli.model import CLI
+from resotocore.cli.model import CLI, CLIContext
 from jinja2 import Environment
 import logging
+from aiostream.core import Stream
 from aiostream import stream
 from argparse import Namespace
 
@@ -31,14 +32,16 @@ class LocalResotocoreAppRuntime(Runtime):
         config: Json,
         stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
+        ctx: CLIContext,
     ) -> AsyncIterator[JsonElement]:
         """
         Runtime implementation that runs the app locally.
         """
         try:
             async for line in self.generate_template(graph, manifest, config, stdin, kwargs):
-                result = await self._interpret_line(line)
-                yield result
+                async with (await self._interpret_line(line, ctx)).stream() as streamer:
+                    async for item in streamer:
+                        yield item
 
         except Exception as e:
             msg = f"Error running infrastructure app: {e}"
@@ -77,5 +80,13 @@ class LocalResotocoreAppRuntime(Runtime):
                 continue
             yield line
 
-    async def _interpret_line(self, line: str) -> List[Any]:
-        return await self.cli.execute_cli_command(line, stream.list)
+    async def _interpret_line(self, line: str, ctx: CLIContext) -> Stream:
+        command_streams: List[Stream] = []
+        total_nr_outputs: int = 0
+        parsed_commands = await self.cli.evaluate_cli_command(line, ctx, True)
+        for parsed in parsed_commands:
+            nr_outputs, command_output_stream = await parsed.execute()
+            total_nr_outputs = total_nr_outputs + (nr_outputs or 0)
+            command_streams.append(command_output_stream)
+
+        return stream.concat(stream.iterate(command_streams), task_limit=1)

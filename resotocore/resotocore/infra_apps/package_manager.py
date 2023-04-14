@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Optional, List, Dict, Union
+from typing import AsyncIterator, Optional, List, Dict, Union
 import asyncio
 from asyncio import Lock
 import subprocess
@@ -103,7 +103,7 @@ class PackageManager(Service):
             self.cleanup_task.cancel()
             await self.cleanup_task
 
-    def list(self) -> AsyncGenerator[InfraAppName, None]:
+    def list(self) -> AsyncIterator[InfraAppName]:
         return self.entity_db.keys()
 
     async def get_manifest(self, name: InfraAppName) -> Optional[AppManifest]:

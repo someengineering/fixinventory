@@ -32,6 +32,7 @@ class Runtime(ABC):
         config: Json,
         stdin: AsyncIterator[JsonElement],
         kwargs: Namespace,
+        ctx: Any,  # CLIContext, but here we use Any to avoid circular dependency
     ) -> AsyncIterator[JsonElement]:
         """
         Executes the infrastructure app."""
