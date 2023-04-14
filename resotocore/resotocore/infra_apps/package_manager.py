@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Optional, List, Dict, Union
+from typing import AsyncIterator, Optional, List, Dict, Union, Tuple
 import asyncio
 from asyncio import Lock
 import subprocess
@@ -151,7 +151,7 @@ class PackageManager(Service):
             else:
                 raise RuntimeError(f"App {name} is not installed, cannot update")
 
-    async def update_all(self) -> None:
+    async def update_all(self) -> AsyncIterator[Tuple[InfraAppName, Union[AppManifest, Failure]]]:
         assert self.update_lock, "PackageManager not started"
 
         async with self.update_lock:
@@ -164,6 +164,8 @@ class PackageManager(Service):
                     repo_dir = await self._get_latest_git_repo(source.git_url)
                     if isinstance(repo_dir, Failure):
                         logger.warning(f"Failed to fetch git repo {source.git_url}, skipping update")
+                        for manifest in manifests:
+                            yield (manifest.name, repo_dir)
                         continue
 
                     for manifest in manifests:
@@ -173,18 +175,22 @@ class PackageManager(Service):
                                 f"Failed to read manifest {manifest.name} from "
                                 "git repo {source.git_url}, skipping update"
                             )
+                            yield (manifest.name, new_manifest)
                             continue
                         await self._delete(manifest.name)
                         await self._install_from_manifest(new_manifest, source)
+                        yield (manifest.name, new_manifest)
 
                 elif isinstance(source, FromHttp):
                     for manifest in manifests:
                         new_manifest = await self._download_manifest(source.http_url)
                         if isinstance(new_manifest, Failure):
                             logger.warning(f"Failed to download manifest for app {manifest.name}, skipping update")
+                            yield (manifest.name, new_manifest)
                             continue
                         await self._delete(manifest.name)
                         await self._install_from_manifest(new_manifest, source)
+                        yield (manifest.name, new_manifest)
                 else:
                     raise NotImplementedError(f"Updating from {source} not implemented")
 

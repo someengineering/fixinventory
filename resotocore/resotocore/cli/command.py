@@ -87,6 +87,7 @@ from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.db.packagedb import InstallationSource, FromGit, FromHttp
+from resotocore.infra_apps.package_manager import Failure
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName
@@ -4827,7 +4828,7 @@ class InfrastructureAppsCommand(CLICommand):
     app uninstall <app_name>
     app update <app_name>|all
     apps list
-    app run <app_name> [--dry-run] [--validate] --config [config_name]
+    app run <app_name> [--dry-run] --config [config_name]
     ```
 
     - `apps search [pattern]`: Lists all apps available in https://github.com/someengineering/resoto-apps/
@@ -4838,7 +4839,7 @@ class InfrastructureAppsCommand(CLICommand):
     - `app uninstall <app_name>`: Uninstall an app.
     - `app update <app_name>|all`: Update an app or all apps.
     - `apps list`: List all installed apps.
-    - `app run <app_name> [--dry-run] [--validate] [--config <config_name>]`: Run an app.
+    - `app run <app_name> [--dry-run] [--config <config_name>]`: Run an app.
 
 
     ## Parameters
@@ -4848,7 +4849,6 @@ class InfrastructureAppsCommand(CLICommand):
     ## Options
     - `--repo <repo>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
     - `--dry-run`: Run the app but do not make any changes.
-    - `--validate`: Validate the app but do not run it.
     - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """
 
@@ -4903,7 +4903,11 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App {app_name} updated sucessfully to the latest version ({updated_manifest.version})"
 
         async def app_update_all() -> AsyncIterator[JsonElement]:
-            yield "Update all apps not yet implemented"
+            async for name, result in self.dependencies.infra_apps_package_manager.update_all():
+                if isinstance(result, Failure):
+                    yield f"App {name} failed to update: {result}"
+                else:
+                    yield f"App {name} updated sucessfully to the latest version ({result.version})"
 
         async def apps_list() -> AsyncIterator[JsonElement]:
             async for app in self.dependencies.infra_apps_package_manager.list():
@@ -4978,10 +4982,10 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(partial(app_edit, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "uninstall":
             return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
+        elif len(args) == 2 and args[0] == "update" and args[1] == "all":
+            return CLISource.single(app_update_all)
         elif len(args) == 2 and args[0] == "update":
             return CLISource.single(partial(app_update, InfraAppName(args[1])))
-        elif len(args) == 1 and args[0] == "update":
-            return CLISource.single(app_update_all)
         elif len(args) == 1 and args[0] == "list":
             return CLISource.single(apps_list)
         elif len(args) >= 2 and args[0] == "run":

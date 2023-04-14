@@ -1,6 +1,7 @@
 from typing import cast, Awaitable
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db, FromGit
 from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
 from arango.database import StandardDatabase
@@ -61,9 +62,9 @@ async def test_install_delete(model_db: PackageEntityDb) -> None:
     assert updated_manifest.name == name
 
     # update all is possible
-    await package_manager.update_all()
+    updated_apps = [name async for name, manifest in package_manager.update_all() if isinstance(manifest, AppManifest)]
     installed_apps = [name async for name in package_manager.list()]
-    assert installed_apps == [name]
+    assert installed_apps == updated_apps == [name]
 
     # check that it can be deleted
     await package_manager.delete(name)
