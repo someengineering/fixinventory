@@ -151,6 +151,20 @@ class PackageManager(Service):
             else:
                 raise RuntimeError(f"App {name} is not installed, cannot update")
 
+    async def update_from_manifest(self, manifest: AppManifest) -> AppManifest:
+        assert self.update_lock, "PackageManager not started"
+
+        async with self.update_lock:
+            if package := await self.entity_db.get(manifest.name):
+                await self._delete(package.manifest.name)
+                result = await self._install_from_manifest(manifest, package.source)
+                if isinstance(result, Failure):
+                    logger.warning(f"Failed to install app {manifest.name} from manifest, skipping update")
+                    raise RuntimeError(str(result))
+                return result
+            else:
+                raise RuntimeError(f"App {manifest.name} is not installed, cannot update")
+
     async def update_all(self) -> AsyncIterator[Tuple[InfraAppName, Union[AppManifest, Failure]]]:
         assert self.update_lock, "PackageManager not started"
 

@@ -88,6 +88,7 @@ from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.db.packagedb import InstallationSource, FromGit, FromHttp
 from resotocore.infra_apps.package_manager import Failure
+from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName
@@ -104,7 +105,7 @@ from resotocore.model.model import (
     PropertyPath,
 )
 from resotocore.model.resolve_in_graph import NodePath
-from resotocore.model.typed_model import to_json, to_js
+from resotocore.model.typed_model import to_json, to_js, from_js
 from resotocore.query.model import (
     Query,
     P,
@@ -4891,8 +4892,44 @@ class InfrastructureAppsCommand(CLICommand):
             manifest = await self.dependencies.infra_apps_package_manager.install(app_name, source)
             yield f"App {app_name} version {manifest.version} installed successfully"
 
-        async def app_edit(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield f"App editing not yet implemented, app_name {app_name}"
+        async def send_file(content: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, "manifest.yaml")
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    await f.write(content)
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def edit_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Editing a config is a two-step process:
+            # 1) download the config and make it available to edit
+            # 2) upload the config file and update the config from content --> update_config
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise AttributeError(f"No app with this name: {app_name}")
+            yml = yaml.safe_dump(to_js(manifest))
+            return send_file(yml)
+
+        async def update_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Usually invoked by resh automatically via edit_app, but can also be triggered manually.
+            # An app with given name is changed by the content of uploaded file "app_name.yaml"
+            content = ""
+            try:
+                async with aiofiles.open(ctx.uploaded_files["manifest.yaml"], "r") as f:
+                    content = await f.read()
+                    manifest: AppManifest = from_js(yaml.safe_load(content), AppManifest)
+                await self.dependencies.infra_apps_package_manager.update_from_manifest(manifest)
+            except Exception as ex:
+                log.debug(f"Could not update the app manifest: {ex}.", exc_info=ex)
+                # Yaml file: add the error as comment on top
+                error = "\n".join(f"## {line}" for line in str(ex).splitlines())
+                message = f"## Update the app failed. Please correct.\n{error}\n\n"
+                # Remove error message from previous check
+                config = "\n".join(dropwhile(lambda m: m.startswith("##") or len(m.strip()) == 0, content.splitlines()))
+                async for file in send_file(message + config):
+                    yield file
 
         async def app_uninstall(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             await self.dependencies.infra_apps_package_manager.delete(app_name)
@@ -4978,8 +5015,21 @@ class InfrastructureAppsCommand(CLICommand):
                     source,
                 )
             )
-        elif len(args) == 2 and args[0] == "edit":
-            return CLISource.single(partial(app_edit, InfraAppName(args[1])))
+        elif arg and len(args) == 2 and args[0] == "edit":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(edit_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+            )
+        elif arg and len(args) == 3 and args[0] == "update":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(update_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+                requires=[CLIFileRequirement("manifest.yaml", args[2])],
+            )
         elif len(args) == 2 and args[0] == "uninstall":
             return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
         elif len(args) == 2 and args[0] == "update" and args[1] == "all":

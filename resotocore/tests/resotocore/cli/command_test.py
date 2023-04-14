@@ -14,6 +14,7 @@ from aiohttp.web import Request
 from aiostream import stream
 from aiostream.core import Stream
 from pytest import fixture
+from attrs import evolve
 
 from resotocore import version
 from resotocore.cli import is_node
@@ -1064,12 +1065,18 @@ async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: Be
 
 
 @pytest.mark.asyncio
-async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtime: Runtime) -> None:
+async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtime: Runtime, tmp_directory: str) -> None:
     T = TypeVar("T")
 
     async def execute(cmd: str, _: Type[T]) -> List[T]:
         result = await cli.execute_cli_command(cmd, stream.list)
         return cast(List[T], result[0])
+
+    async def check_file_is_yaml(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                with open(s, "r") as file:
+                    yaml.safe_load(file.read())
 
     # install a package
     assert "installed successfully" in (await execute("apps install cleanup_untagged", str))[0]
@@ -1100,6 +1107,23 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
         "App cleanup_untagged updated sucessfully to the latest version"
         in (await execute("apps update cleanup_untagged", str))[0]
     )
+
+    # edit the manifest: will make the manifest available as file
+    manifest_file = os.path.join(tmp_directory, "manifest.yml")
+    old_manifest = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup_untagged"))
+    assert old_manifest is not None
+    await cli.execute_cli_command("apps edit cleanup_untagged", check_file_is_yaml)
+    # update the manifest
+    updated_manifest = evolve(old_manifest, version="42")
+    updated_manifest_str = yaml.dump(to_js(updated_manifest))
+    with open(manifest_file, "w", encoding="utf-8") as file:
+        file.write(updated_manifest_str)
+    ctx = CLIContext(uploaded_files={"manifest.yaml": manifest_file})
+    update_result = await cli.execute_cli_command(f"apps update cleanup_untagged {manifest_file}", stream.list, ctx)
+    assert update_result == [[]]
+    # show the manifest - should be the same as the created one
+    updated_result = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup_untagged"))
+    assert updated_result == updated_manifest
 
     # list all apps
     result = await execute("apps list", str)
