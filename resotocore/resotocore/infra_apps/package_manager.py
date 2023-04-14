@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 
 
 def config_id(name: InfraAppName) -> ConfigId:
-    return ConfigId(f"resoto_apps_{name}")
+    return ConfigId(f"resoto.apps.{name}")
 
 
 class Failure(ABC):
