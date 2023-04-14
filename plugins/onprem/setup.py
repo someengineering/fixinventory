@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-onprem",
-    version="3.3.2",
+    version="3.3.3",
     description="Resoto On-Premises Collector Plugin",
     license="Apache 2.0",
     packages=find_packages(),
