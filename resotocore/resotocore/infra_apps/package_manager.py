@@ -18,6 +18,7 @@ from resotocore.config import ConfigHandler
 from resotocore.config import ConfigEntity
 from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
+from resotocore.types import Json
 from resotocore.model.typed_model import from_js
 from logging import getLogger
 from resotocore.web.service import Service
@@ -93,6 +94,7 @@ class PackageManager(Service):
         self.update_lock: Optional[Lock] = None
         self.repos_cache_directory: Path = repos_cache_directory
         self.cleanup_task: Optional[asyncio.Task[None]] = None
+        self.default_source: InstallationSource = FromGit("https://github.com/someengineering/resoto-apps.git")
 
     async def start(self) -> None:
         self.update_lock = asyncio.Lock()
@@ -110,6 +112,25 @@ class PackageManager(Service):
         if package := await self.entity_db.get(name):
             return package.manifest
         return None
+
+    async def info(self, name: InfraAppName) -> Json:
+        async def get_manifest() -> AppManifest:
+            if package := await self.entity_db.get(name):
+                return package.manifest
+            else:
+                result = await self._fetch_manifest(name, self.default_source)
+                if isinstance(result, Failure):
+                    raise ValueError(f"Can't find the package {name}, reason: {result}")
+                return result
+
+        manifest = await get_manifest()
+        json = {
+            "name": manifest.name,
+            "description": manifest.description,
+            "url": manifest.url,
+            "version": manifest.version,
+        }
+        return json
 
     async def update(self, name: InfraAppName) -> AppManifest:
         assert self.update_lock, "PackageManager not started"

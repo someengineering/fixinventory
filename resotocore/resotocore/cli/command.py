@@ -4885,11 +4885,7 @@ class InfrastructureAppsCommand(CLICommand):
             yield f"App search not yet implemented. Pattern: {pattern}"
 
         async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
-            if manifest:
-                yield to_js(manifest)
-            else:
-                raise ValueError(f"App {app_name} is not installed.")
+            yield await self.dependencies.infra_apps_package_manager.info(app_name)
 
         async def app_install(app_name: InfraAppName, source: InstallationSource) -> AsyncIterator[JsonElement]:
             manifest = await self.dependencies.infra_apps_package_manager.install(app_name, source)
