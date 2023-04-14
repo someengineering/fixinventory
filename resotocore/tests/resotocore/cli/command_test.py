@@ -1077,6 +1077,10 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     assert manifest is not None
     assert manifest.name == "cleanup_untagged"
 
+    # info about the app
+    info_json = (await execute("apps info cleanup_untagged", Json))[0]
+    assert info_json["name"] == "cleanup_untagged"
+
     # run the app
     result = await execute("apps run cleanup_untagged --dry-run", str)
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
