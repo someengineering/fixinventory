@@ -30,7 +30,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-v1-${{hashFiles('./resotolib/requirements.txt')}}-${{hashFiles('./resotolib/requirements-test.txt')}}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-v1
 
       - name: Install Dependencies
         run: |
