@@ -5,5 +5,5 @@ aiohttp[speedups]==3.8.4
 aiostream==0.4.5
 resotolib==3.3.3
 
-setuptools==67.2.0
+setuptools==67.6.1
 jsons~=1.6.2

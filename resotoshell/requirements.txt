@@ -1,4 +1,4 @@
-prompt-toolkit==3.0.36
-rich==13.3.3
+prompt-toolkit==3.0.38
+rich==13.3.4
 resotolib==3.3.3
 resotoclient==1.2.1
