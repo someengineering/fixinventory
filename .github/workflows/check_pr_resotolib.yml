@@ -21,16 +21,16 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: 'pypy-3.9-v7.3.9'
+          python-version: '3.9'
           architecture: 'x64'
 
       - name: Restore dependency cache
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-v1-${{hashFiles('./resotolib/requirements.txt')}}-${{hashFiles('./resotolib/requirements-test.txt')}}
+          key: ${{ runner.os }}-pip-${{hashFiles('./resotolib/requirements.txt')}}-${{hashFiles('./resotolib/requirements-test.txt')}}
           restore-keys: |
-            ${{ runner.os }}-pip-v1
+            ${{ runner.os }}-pip-
 
       - name: Install Dependencies
         run: |
