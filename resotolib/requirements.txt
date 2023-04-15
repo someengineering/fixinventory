@@ -15,5 +15,5 @@ tzlocal==4.3
 tzdata==2023.3
 cattrs==22.2.0
 attrs==22.2.0
-setuptools==67.6.1
+setuptools>=67.6.1 # always allow latest version
 PyYAML==6.0
