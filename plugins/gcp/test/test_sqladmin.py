@@ -4,10 +4,6 @@ from resoto_plugin_gcp.resources.base import GraphBuilder
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 
 
-def test_gcp_sql_flag(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpSqlFlag, random_builder)
-
-
 def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:
     db = roundtrip(GcpSqlDatabaseInstance, random_builder)
     connect_resource(random_builder, db, GcpSslCertificate, selfLink=db.server_ca_cert.self_link)  # type: ignore

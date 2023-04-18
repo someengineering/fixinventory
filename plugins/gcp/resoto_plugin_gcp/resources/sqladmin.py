@@ -134,47 +134,6 @@ class GcpSqlDatabase(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpSqlFlag(GcpResource):
-    kind: ClassVar[str] = "gcp_sql_flag"
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
-        version="v1",
-        accessors=["flags"],
-        action="list",
-        request_parameter={},
-        request_parameter_in=set(),
-        response_path="items",
-        response_regional_sub_path=None,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
-        "tags": S("labels", default={}),
-        "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
-        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "allowed_int_values": S("allowedIntValues", default=[]),
-        "allowed_string_values": S("allowedStringValues", default=[]),
-        "applies_to": S("appliesTo", default=[]),
-        "in_beta": S("inBeta"),
-        "max_value": S("maxValue"),
-        "min_value": S("minValue"),
-        "requires_restart": S("requiresRestart"),
-        "type": S("type"),
-    }
-    allowed_int_values: Optional[List[str]] = field(default=None)
-    allowed_string_values: Optional[List[str]] = field(default=None)
-    applies_to: Optional[List[str]] = field(default=None)
-    in_beta: Optional[bool] = field(default=None)
-    max_value: Optional[str] = field(default=None)
-    min_value: Optional[str] = field(default=None)
-    requires_restart: Optional[bool] = field(default=None)
-    type: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class GcpSqlFailoverreplica:
     kind: ClassVar[str] = "gcp_sql_failoverreplica"
     mapping: ClassVar[Dict[str, Bender]] = {"available": S("available"), "name": S("name")}
@@ -892,4 +851,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
+resources = [GcpSqlDatabaseInstance]
