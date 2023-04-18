@@ -490,10 +490,10 @@ class GcpRegion(GcpResource, BaseRegion):
     region_supports_pzs: Optional[bool] = field(default=None)
 
     @classmethod
-    def fallback_global_region(cls: Type[GcpResource], graph_builder: GraphBuilder):
-            fgr = cls(id="global", tags={}, name="global", account=graph_builder.project)
-            graph_builder.add_node(fgr, {})
-            return fgr
+    def fallback_global_region(cls: Type[GcpRegion], graph_builder: GraphBuilder) -> GcpRegion:
+        fgr = cls(id="global", tags={}, name="global", account=graph_builder.project)
+        graph_builder.add_node(fgr, {})
+        return fgr
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for quota_js in source.get("quotas", []):
