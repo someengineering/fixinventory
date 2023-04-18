@@ -3448,8 +3448,6 @@ class GcpMachineType(GcpResource, BaseInstanceType):
                 self.ondemand_cost = ondemand_cost / 1000000000
             return
 
-        log.debug(f"Unable to determine SKU(s) for {self.rtdname}: {[sku.dname for sku in skus]}")
-
 
 @define(eq=False, slots=False)
 class GcpNetworkEdgeSecurityService(GcpResource):
