@@ -1099,8 +1099,6 @@ class GCPProjectCollector:
                 graph.add_edge(sku, resource, edge_type=EdgeType.default)
             if ondemand_cost > 0:
                 resource.ondemand_cost = ondemand_cost / 1000000000
-        else:
-            log.debug((f"Unable to determine SKU(s) for {resource}:" f" {[sku.dname for sku in skus]}"))
 
     @metrics_collect_machine_types.time()
     def collect_machine_types(self):
