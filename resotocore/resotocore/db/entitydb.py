@@ -97,7 +97,7 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
                 raise ex
         if hasattr(t, "revision") and "_rev" in result:
             if attrs.has(type(t)):
-                t = attrs.evolve(t, revision=result["_rev"])
+                t = attrs.evolve(t, revision=result["_rev"])  # type: ignore
             else:
                 setattr(t, "revision", result["_rev"])
         return t

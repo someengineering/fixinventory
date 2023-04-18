@@ -21,6 +21,7 @@ declare git_install=false
 declare dev_mode=false
 declare unattended=false
 declare venv=true
+declare install_plugins=true
 declare branch=main
 
 main() {
@@ -38,6 +39,7 @@ main() {
             --path)         shift; install_path="${1:-}" ;;
             --branch)       shift; branch="${1:-}" ;;
             --no-venv)      venv=false ;;
+            --no-plugins)   install_plugins=false ;;
             --dev)          dev_mode=true ;;
             --git)          git_install=true ;;
             --yes)          unattended=true ;;
@@ -76,17 +78,21 @@ main() {
         exit 1
     fi
 
+    CWD=$(pwd)
     echo "Using $python_cmd"
     ensure_install_path
     if [ "$venv" = true ]; then
         activate_venv "$python_cmd"
     fi
+    cd "$CWD"
     ensure_pip
     if [ "$dev_mode" = true ]; then
         install_dev
     fi
     install_resoto
-    install_plugins
+    if [ "$install_plugins" = true ]; then
+        install_plugins
+    fi
     echo -e "Install/Update completed.\nRun\n\tsource ${install_path}/venv/bin/activate\nto activate venv."
 }
 
@@ -148,7 +154,7 @@ ensure_pip() {
     if ! python -m pip help > /dev/null 2>&1; then
         python -m ensurepip -q -U
     fi
-    pip install -q -U pip wheel poetry
+    pip install -q -U pip wheel
 }
 
 install_dev() {

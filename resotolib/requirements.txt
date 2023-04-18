@@ -1,19 +1,19 @@
-networkx==3.0
+networkx==3.1
 jsons==1.6.3
-typeguard==2.13.3
+typeguard==3.0.2
 websocket-client==1.5.1
 psutil==5.9.4
 requests==2.28.2
 prometheus-client==0.16.0
 PyJWT==2.6.0
 CherryPy==18.8.0
-cryptography==39.0.1
+cryptography==40.0.2
 aiohttp[speedups]==3.8.4
 Pint==0.20.1
-parsy==2.0
-tzlocal==4.2
-tzdata==2022.7
+parsy==2.1
+tzlocal==4.3
+tzdata==2023.3
 cattrs==22.2.0
 attrs==22.2.0
-setuptools==67.2.0
+setuptools>=67.6.1 # always allow latest version
 PyYAML==6.0

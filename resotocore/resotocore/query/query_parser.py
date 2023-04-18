@@ -1,10 +1,39 @@
-from attrs import evolve
 from functools import reduce
 from typing import List
 
 import parsy
+from attrs import evolve
 from parsy import string, Parser, regex
 
+from resotocore.error import ParseError
+from resotocore.model.graph_access import EdgeTypes, Direction
+from resotocore.query.model import (
+    Predicate,
+    CombinedTerm,
+    IsTerm,
+    Part,
+    Navigation,
+    Query,
+    FunctionTerm,
+    IdTerm,
+    AggregateVariable,
+    AggregateFunction,
+    Aggregate,
+    AllTerm,
+    Sort,
+    SortOrder,
+    WithClauseFilter,
+    WithClause,
+    AggregateVariableName,
+    AggregateVariableCombined,
+    NotTerm,
+    MergeTerm,
+    MergeQuery,
+    FulltextTerm,
+    Limit,
+    ContextTerm,
+)
+from resotocore.types import EdgeType
 from resotolib.parse_util import (
     lparen_p,
     lexeme,
@@ -42,35 +71,6 @@ from resotolib.parse_util import (
     double_quoted_string_dp,
     float_dp,
     dot_p,
-)
-
-from resotocore.error import ParseError
-from resotocore.model.graph_access import EdgeTypes, Direction
-from resotocore.query.model import (
-    Predicate,
-    CombinedTerm,
-    IsTerm,
-    Part,
-    Navigation,
-    Query,
-    FunctionTerm,
-    IdTerm,
-    AggregateVariable,
-    AggregateFunction,
-    Aggregate,
-    AllTerm,
-    Sort,
-    SortOrder,
-    WithClauseFilter,
-    WithClause,
-    AggregateVariableName,
-    AggregateVariableCombined,
-    NotTerm,
-    MergeTerm,
-    MergeQuery,
-    FulltextTerm,
-    Limit,
-    ContextTerm,
 )
 
 operation_p = (
@@ -441,7 +441,7 @@ def query_parser() -> Parser:
 
 
 def parse_query(query: str, **env: str) -> Query:
-    def set_edge_type_if_not_set(part: Part, edge_types: List[str]) -> Part:
+    def set_edge_type_if_not_set(part: Part, edge_types: List[EdgeType]) -> Part:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
             if wc.navigation and not wc.navigation.maybe_edge_types:
@@ -451,7 +451,7 @@ def parse_query(query: str, **env: str) -> Query:
             return evolve(wc, navigation=nav, with_clause=inner)
 
         nav = part.navigation
-        if part.navigation and not part.navigation.maybe_edge_types:
+        if nav and not nav.maybe_edge_types:
             nav = evolve(nav, maybe_edge_types=edge_types)
         adapted_wc = set_in_with_clause(part.with_clause) if part.with_clause else part.with_clause
         return evolve(part, navigation=nav, with_clause=adapted_wc)
@@ -459,7 +459,7 @@ def parse_query(query: str, **env: str) -> Query:
     try:
         parsed: Query = query_parser.parse(query.strip())
         pre = parsed.preamble
-        ets: List[str] = pre.get("edge_type", env.get("edge_type", EdgeTypes.default)).split(",")  # type: ignore
+        ets: List[EdgeType] = pre.get("edge_type", env.get("edge_type", EdgeTypes.default)).split(",")  # type: ignore
         for et in ets:
             if et not in EdgeTypes.all:
                 raise AttributeError(f"Given edge_type {et} is not available. Use one of {EdgeTypes.all}")

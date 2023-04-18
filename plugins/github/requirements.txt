@@ -1,2 +1,2 @@
 resotolib==3.3.3
-PyGithub==1.57
+PyGithub==1.58.1
