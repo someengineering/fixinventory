@@ -55,6 +55,8 @@ class GcpProjectCollector:
 
             # fetch all region level resources
             for region in global_builder.resources_of(GcpRegion):
+                if region.name == "global":
+                    continue
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
 
             global_builder.executor.wait_for_submitted_work()

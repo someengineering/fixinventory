@@ -124,6 +124,7 @@ class GraphBuilder:
         self.zone_by_name: Dict[str, GcpZone] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
+        self.fallback_global_region = GcpRegion.fallback_global_region(self)
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -221,8 +222,8 @@ class GraphBuilder:
             self.add_edge(node, node=self.region, reverse=True)
             return
 
-        # Fallback to project, i.e. for non-regional resources
-        self.add_edge(node, node=self.project, reverse=True)
+        # Fallback to global region
+        self.add_edge(node, node=self.fallback_global_region, reverse=True)
         return
 
     def add_edge(
@@ -487,6 +488,12 @@ class GcpRegion(GcpResource, BaseRegion):
     status: Optional[str] = field(default=None)
     region_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     region_supports_pzs: Optional[bool] = field(default=None)
+
+    @classmethod
+    def fallback_global_region(cls: Type[GcpResource], graph_builder: GraphBuilder):
+            fgr = cls(id="global", tags={}, name="global", account=graph_builder.project)
+            graph_builder.add_node(fgr, {})
+            return fgr
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for quota_js in source.get("quotas", []):
