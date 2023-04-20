@@ -20,6 +20,8 @@
 
 
 ## Overview
+![Resoto UI Graph View](./misc/resoto_graph.gif)
+
 🔍 Search Infrastructure: Resoto maps out your cloud infrastructure in a [graph](https://resoto.com/docs/concepts/graph) and provides a simple [search syntax](https://resoto.com/docs/concepts/search).
 
 📊 Generate Reports: Resoto keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://resoto.com/docs/concepts/cloud-data-sync).
