@@ -11,6 +11,7 @@ import hashlib
 from collections import defaultdict
 from abc import ABC
 from attrs import frozen
+from jsons import loads as json_loads
 
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.db.packagedb import PackageEntityDb, InstallationSource, FromHttp, FromGit, InfraAppPackage
@@ -95,6 +96,7 @@ class PackageManager(Service):
         self.repos_cache_directory: Path = repos_cache_directory
         self.cleanup_task: Optional[asyncio.Task[None]] = None
         self.default_source: InstallationSource = FromGit("https://github.com/someengineering/resoto-apps.git")
+        self.cdn_url = "https://cdn.some.engineering/resoto/apps/index.json"
 
     async def start(self) -> None:
         self.update_lock = asyncio.Lock()
@@ -104,6 +106,22 @@ class PackageManager(Service):
         if self.cleanup_task:
             self.cleanup_task.cancel()
             await self.cleanup_task
+
+    async def search(self, query: Optional[str]) -> AsyncIterator[AppManifest]:
+        available_manifests = await self._get_manifests_from_cdn()
+        if query is None:
+            for manifest in available_manifests:
+                yield manifest
+        else:
+            for manifest in available_manifests:
+                if query in manifest.name:
+                    yield manifest
+                if query in manifest.description:
+                    yield manifest
+                if query in manifest.readme:
+                    yield manifest
+                if query in manifest.categories:
+                    yield manifest
 
     def list(self) -> AsyncIterator[InfraAppName]:
         return self.entity_db.keys()
@@ -328,3 +346,18 @@ class PackageManager(Service):
         except Exception as e:
             logger.error(f"Failed to fetch manifest from {url}", exc_info=e)
             return ManifestDownloadFailed(url, str(e))
+
+    async def _get_manifests_from_cdn(self) -> List[AppManifest]:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self.cdn_url) as response:
+                    if response.status != 200:
+                        raise RuntimeError(f"Failed to fetch {self.cdn_url}")
+                    manifests_bytes = await response.read()
+                    json = json_loads(manifests_bytes.decode())
+                    assert isinstance(json, list)
+                    manifests = [AppManifest.from_json(manifest_json) for manifest_json in json]
+                    return manifests
+        except Exception as e:
+            logger.error(f"Failed to fetch manifests from {self.cdn_url}", exc_info=e)
+            return []

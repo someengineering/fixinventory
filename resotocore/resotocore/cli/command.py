@@ -4883,7 +4883,12 @@ class InfrastructureAppsCommand(CLICommand):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         async def apps_search(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
-            yield f"App search not yet implemented. Pattern: {pattern}"
+            async for manifest in self.dependencies.infra_apps_package_manager.search(pattern):
+                yield {
+                    "name": manifest.name,
+                    "description": manifest.description,
+                    "version": manifest.version,
+                }
 
         async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             yield await self.dependencies.infra_apps_package_manager.info(app_name)
