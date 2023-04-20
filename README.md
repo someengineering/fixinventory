@@ -20,14 +20,13 @@
 
 
 ## Overview
-![Resoto UI Graph View](./misc/resoto_graph.gif)
-
 🔍 Search Infrastructure: Resoto maps out your cloud infrastructure in a [graph](https://resoto.com/docs/concepts/graph) and provides a simple [search syntax](https://resoto.com/docs/concepts/search).
 
 📊 Generate Reports: Resoto keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://resoto.com/docs/concepts/cloud-data-sync).
 
 🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://resoto.com/docs/concepts/automation).
 
+![Resoto UI Graph View](./misc/resoto_graph.gif)
 
 Currently, Resoto can collect [AWS](plugins/aws), [Google Cloud](plugins/gcp), [DigitalOcean](plugins/digitalocean), [VMWare Vsphere](plugins/vsphere), [OneLogin](plugins/onelogin), and [Slack](plugins/slack) resources. If the cloud you are using is not listed, it is easy to write your own collectors. An example can be found [here](plugins/example_collector).
 
