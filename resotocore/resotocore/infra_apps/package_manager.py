@@ -113,14 +113,15 @@ class PackageManager(Service):
             for manifest in available_manifests:
                 yield manifest
         else:
+            query = query.lower()
             for manifest in available_manifests:
-                if query in manifest.name:
+                if query in manifest.name.lower():
                     yield manifest
                     continue
-                if query in manifest.description:
+                if query in manifest.description.lower():
                     yield manifest
                     continue
-                if query in manifest.readme:
+                if query in manifest.readme.lower():
                     yield manifest
                     continue
                 if query in manifest.categories:

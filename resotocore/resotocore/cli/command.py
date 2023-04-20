@@ -4992,8 +4992,8 @@ class InfrastructureAppsCommand(CLICommand):
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if len(args) == 1 and args[0] == "search":
             return CLISource.single(partial(apps_search, None))
-        elif len(args) == 2 and args[0] == "search":
-            return CLISource.single(partial(apps_search, args[1]))
+        elif len(args) >= 2 and args[0] == "search":
+            return CLISource.single(partial(apps_search, " ".join(args[1:])))
         elif len(args) == 2 and args[0] == "info":
             return CLISource.single(partial(app_info, InfraAppName(args[1])))
         elif len(args) >= 2 and args[0] == "install":
