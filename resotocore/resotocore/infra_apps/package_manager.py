@@ -116,12 +116,16 @@ class PackageManager(Service):
             for manifest in available_manifests:
                 if query in manifest.name:
                     yield manifest
+                    continue
                 if query in manifest.description:
                     yield manifest
+                    continue
                 if query in manifest.readme:
                     yield manifest
+                    continue
                 if query in manifest.categories:
                     yield manifest
+                    continue
 
     def list(self) -> AsyncIterator[InfraAppName]:
         return self.entity_db.keys()
