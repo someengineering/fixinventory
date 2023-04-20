@@ -1079,57 +1079,57 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
                     yaml.safe_load(file.read())
 
     # install a package
-    assert "installed successfully" in (await execute("apps install cleanup_untagged", str))[0]
-    manifest = await package_manager.get_manifest(InfraAppName("cleanup_untagged"))
+    assert "installed successfully" in (await execute("apps install cleanup-untagged", str))[0]
+    manifest = await package_manager.get_manifest(InfraAppName("cleanup-untagged"))
     assert manifest is not None
-    assert manifest.name == "cleanup_untagged"
+    assert manifest.name == "cleanup-untagged"
 
     # info about the app
-    info_json = (await execute("apps info cleanup_untagged", Json))[0]
-    assert info_json["name"] == "cleanup_untagged"
+    info_json = (await execute("apps info cleanup-untagged", Json))[0]
+    assert info_json["name"] == "cleanup-untagged"
 
     # run the app
-    result = await execute("apps run cleanup_untagged --dry-run", str)
+    result = await execute("apps run cleanup-untagged --dry-run", str)
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
 
     # run the app with stdin
-    result = await execute("echo foo | apps run cleanup_untagged --dry-run", str)
+    result = await execute("echo foo | apps run cleanup-untagged --dry-run", str)
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
 
     # update the app
     assert (
-        "App cleanup_untagged updated sucessfully to the latest version"
-        in (await execute("apps update cleanup_untagged", str))[0]
+        "App cleanup-untagged updated sucessfully to the latest version"
+        in (await execute("apps update cleanup-untagged", str))[0]
     )
 
     # update all apps
     assert (
-        "App cleanup_untagged updated sucessfully to the latest version"
-        in (await execute("apps update cleanup_untagged", str))[0]
+        "App cleanup-untagged updated sucessfully to the latest version"
+        in (await execute("apps update cleanup-untagged", str))[0]
     )
 
     # edit the manifest: will make the manifest available as file
     manifest_file = os.path.join(tmp_directory, "manifest.yml")
-    old_manifest = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup_untagged"))
+    old_manifest = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup-untagged"))
     assert old_manifest is not None
-    await cli.execute_cli_command("apps edit cleanup_untagged", check_file_is_yaml)
+    await cli.execute_cli_command("apps edit cleanup-untagged", check_file_is_yaml)
     # update the manifest
     updated_manifest = evolve(old_manifest, version="42")
     updated_manifest_str = yaml.dump(to_js(updated_manifest))
     with open(manifest_file, "w", encoding="utf-8") as file:
         file.write(updated_manifest_str)
     ctx = CLIContext(uploaded_files={"manifest.yaml": manifest_file})
-    update_result = await cli.execute_cli_command(f"apps update cleanup_untagged {manifest_file}", stream.list, ctx)
+    update_result = await cli.execute_cli_command(f"apps update cleanup-untagged {manifest_file}", stream.list, ctx)
     assert update_result == [[]]
     # show the manifest - should be the same as the created one
-    updated_result = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup_untagged"))
+    updated_result = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup-untagged"))
     assert updated_result == updated_manifest
 
     # list all apps
     result = await execute("apps list", str)
-    assert result == ["cleanup_untagged"]
+    assert result == ["cleanup-untagged"]
 
     # uninstall the app
-    await execute("apps uninstall cleanup_untagged", str)
+    await execute("apps uninstall cleanup-untagged", str)
     result = await execute("apps list", str)
     assert result == []

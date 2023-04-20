@@ -1,5 +1,5 @@
 from typing import cast, Awaitable
-from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db, FromGit
+from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
@@ -39,12 +39,11 @@ config_handler = cast(
 
 @pytest.mark.asyncio
 async def test_install_delete(model_db: PackageEntityDb) -> None:
-    name = InfraAppName("cleanup_untagged")
-    repo_url = "https://github.com/someengineering/resoto-apps.git"
+    name = InfraAppName("cleanup-untagged")
     package_manager = PackageManager(model_db, config_handler)
     await package_manager.start()
 
-    manifest = await package_manager.install(name, FromGit(repo_url))
+    manifest = await package_manager.install(name, None)
     assert manifest is not None
     assert manifest.name == name
 

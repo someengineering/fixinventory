@@ -86,7 +86,6 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
-from resotocore.db.packagedb import InstallationSource, FromGit, FromHttp
 from resotocore.infra_apps.package_manager import Failure
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
@@ -4862,11 +4861,16 @@ class InfrastructureAppsCommand(CLICommand):
 
     def args_info(self) -> ArgsInfo:
         return {
-            "search": [ArgInfo(None, True, help_text="<pattern>")],
-            "info": [ArgInfo(None, True, help_text="<app_name>")],
+            "search": [
+                ArgInfo(None, True, help_text="<pattern>"),
+                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+            ],
+            "info": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+            ],
             "install": [
                 ArgInfo(None, True, help_text="<app_name>"),
-                ArgInfo("--repo", True, help_text="<repo>", option_group="source"),
                 ArgInfo("--url", True, help_text="<url>", option_group="source"),
             ],
             "edit": [ArgInfo(None, True, help_text="<app_name>")],
@@ -4882,19 +4886,19 @@ class InfrastructureAppsCommand(CLICommand):
         }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        async def apps_search(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
-            async for manifest in self.dependencies.infra_apps_package_manager.search(pattern):
+        async def apps_search(pattern: Optional[str], url: Optional[str]) -> AsyncIterator[JsonElement]:
+            async for manifest in self.dependencies.infra_apps_package_manager.search(pattern, url):
                 yield {
                     "name": manifest.name,
                     "description": manifest.description,
                     "version": manifest.version,
                 }
 
-        async def app_info(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
-            yield await self.dependencies.infra_apps_package_manager.info(app_name)
+        async def app_info(app_name: InfraAppName, url: Optional[str]) -> AsyncIterator[JsonElement]:
+            yield await self.dependencies.infra_apps_package_manager.info(app_name, url)
 
-        async def app_install(app_name: InfraAppName, source: InstallationSource) -> AsyncIterator[JsonElement]:
-            manifest = await self.dependencies.infra_apps_package_manager.install(app_name, source)
+        async def app_install(app_name: InfraAppName, url: Optional[str]) -> AsyncIterator[JsonElement]:
+            manifest = await self.dependencies.infra_apps_package_manager.install(app_name, url)
             yield f"App {app_name} version {manifest.version} installed successfully"
 
         async def send_file(content: str) -> AsyncIterator[str]:
@@ -4991,33 +4995,38 @@ class InfrastructureAppsCommand(CLICommand):
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if len(args) == 1 and args[0] == "search":
-            return CLISource.single(partial(apps_search, None))
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("--url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(apps_search, None, parsed.url))
         elif len(args) >= 2 and args[0] == "search":
-            return CLISource.single(partial(apps_search, " ".join(args[1:])))
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("pattern", type=str, nargs="*")
+            parser.add_argument("--url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(apps_search, " ".join(parsed.pattern), parsed.url))
         elif len(args) == 2 and args[0] == "info":
-            return CLISource.single(partial(app_info, InfraAppName(args[1])))
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parser.add_argument("--url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(app_info, InfraAppName(parsed.app_name), parsed.url))
         elif len(args) >= 2 and args[0] == "install":
             parser = NoExitArgumentParser()
             source_group = parser.add_mutually_exclusive_group()
-            source_group.add_argument("--repo", dest="repo", type=str)
             source_group.add_argument("--url", dest="url", type=str)
             parser.add_argument("command", type=str)
             parser.add_argument("app_name", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
 
-            source: Optional[InstallationSource] = None
-            if parsed.repo:
-                source = FromGit(parsed.repo)
-            elif parsed.url:
-                source = FromHttp(parsed.url)
-            else:
-                source = FromGit("https://github.com/someengineering/resoto-apps.git")
-
             return CLISource.single(
                 partial(
                     app_install,
                     InfraAppName(parsed.app_name),
-                    source,
+                    parsed.url,
                 )
             )
         elif arg and len(args) == 2 and args[0] == "edit":
