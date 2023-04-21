@@ -25,4 +25,4 @@ setuptools>=65.5.3 # not directly required, pinned by Snyk to avoid a vulnerabil
 resotoui==3.3.1
 deepdiff==6.3.0
 Jinja2==3.1.2
-
+aiohttp-jinja2==1.5.1

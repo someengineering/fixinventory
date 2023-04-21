@@ -28,7 +28,10 @@ from typing import (
     Awaitable,
     Iterable,
 )
+from urllib.parse import urlencode
 
+import aiohttp_jinja2
+import jinja2
 import prometheus_client
 import yaml
 from aiohttp import (
@@ -43,7 +46,7 @@ from aiohttp import (
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
-from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
+from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable, HTTPSeeOther
 from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
@@ -174,6 +177,9 @@ class Api:
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
+        aiohttp_jinja2.setup(
+            self.app, loader=jinja2.FileSystemLoader(os.path.abspath(os.path.dirname(__file__) + "/../templates"))
+        )
 
     @property
     def session(self) -> ClientSession:
@@ -278,6 +284,9 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
+                web.get(prefix + "/login", self.forward("/pages/login")),
+                web.get(prefix + "/pages/login", self.login_page),
+                web.post(prefix + "/authenticate", self.authenticate),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
                 web.static(f"{prefix}/ui/", ui_path),
@@ -302,8 +311,9 @@ class Api:
 
     @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
-        async def forward_to(_: Request) -> StreamResponse:
-            return web.HTTPFound(to)
+        async def forward_to(request: Request) -> StreamResponse:
+            goto = to + "?" + urlencode(request.query) if request.query else to
+            return web.HTTPFound(goto)
 
         return forward_to
 
@@ -314,6 +324,30 @@ class Api:
     @staticmethod
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
+
+    @aiohttp_jinja2.template("login.html")
+    async def login_page(self, request: Request) -> Json:
+        return {"username": "", "password": "", "redirect": request.query.get("redirect", "")}
+
+    async def authenticate(self, request: Request) -> StreamResponse:
+        post_data = await request.post()
+        username = post_data.get("username", "")
+        password = post_data.get("password", "")
+        redirect = post_data.get("redirect", "")
+        if username and password:
+            # TODO check username and password -> set response header
+            if redirect:
+                return HTTPSeeOther(str(redirect))
+            else:
+                return HTTPOk(text="Logged in.")
+        else:
+            return aiohttp_jinja2.render_template(
+                "login.html",
+                request,
+                context=dict(
+                    username=username, password=password, redirect=redirect, error="Invalid username or password"
+                ),
+            )
 
     async def list_configs(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
