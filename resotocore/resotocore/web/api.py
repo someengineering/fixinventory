@@ -52,6 +52,7 @@ from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from attrs import evolve
+from multidict import MultiDictProxy
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
@@ -87,6 +88,7 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
+from resotocore.user import UserManagement
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
@@ -121,7 +123,18 @@ def section_of(request: Request) -> Optional[str]:
 
 
 # No Authorization required for following paths
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+AlwaysAllowed = {
+    "/",
+    "/metrics",
+    "/api-doc.*",
+    "/system/.*",
+    "/ui.*",  # TODO: should be removed once we have the login process in place
+    "/ca/cert",
+    "/notebook.*",  # TODO: should be removed once we have the login process in place
+    "/login",
+    "/static/.*",
+    "/authenticate",
+}
 # Authorization is not required, but implemented as part of the request handler
 DeferredCheck = {"/events"}
 
@@ -142,6 +155,7 @@ class Api:
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
+        user_management: UserManagement,
         get_override: Callable[[ConfigId], Optional[Json]],
     ):
         self.db = db
@@ -157,6 +171,7 @@ class Api:
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
+        self.user_management = user_management
         self.get_override = get_override
 
         self.app = web.Application(
@@ -284,8 +299,7 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
-                web.get(prefix + "/login", self.forward("/pages/login")),
-                web.get(prefix + "/pages/login", self.login_page),
+                web.get(prefix + "/login", self.login_page),
                 web.post(prefix + "/authenticate", self.authenticate),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
@@ -326,28 +340,42 @@ class Api:
         return web.HTTPOk(text="ok")
 
     @aiohttp_jinja2.template("login.html")
-    async def login_page(self, request: Request) -> Json:
-        return {"username": "", "password": "", "redirect": request.query.get("redirect", "")}
+    async def login_page(self, request: Request) -> MultiDictProxy[str]:
+        return request.query  # take values from request query parameters
 
     async def authenticate(self, request: Request) -> StreamResponse:
         post_data = await request.post()
-        username = post_data.get("username", "")
-        password = post_data.get("password", "")
-        redirect = post_data.get("redirect", "")
-        if username and password:
-            # TODO check username and password -> set response header
-            if redirect:
-                return HTTPSeeOther(str(redirect))
-            else:
-                return HTTPOk(text="Logged in.")
-        else:
-            return aiohttp_jinja2.render_template(
-                "login.html",
-                request,
-                context=dict(
-                    username=username, password=password, redirect=redirect, error="Invalid username or password"
-                ),
-            )
+        email = str(post_data.get("email", ""))
+        password = str(post_data.get("password", ""))
+        redirect = str(post_data.get("redirect", ""))
+        method = str(post_data.get("method", "")).split(",")
+        if email and password:
+            user = await self.user_management.login(email, password)
+            if user:
+                headers: Dict[str, str] = {}
+                params: Dict[str, str] = {}
+                authorization: Optional[str] = None
+                if self.config.args.psk:
+                    jwt = encode_jwt({}, self.config.args.psk)
+                    authorization = f"Bearer {jwt}"
+                    headers["Authorization"] = authorization
+                    if "params" in method:
+                        params["jwt"] = jwt
+                        params["method"] = "Bearer"
+                if redirect:
+                    if params:
+                        redirect += "?" + urlencode(params)
+                    response: StreamResponse = HTTPSeeOther(str(redirect), headers=headers)
+                else:
+                    response = HTTPOk(text=urlencode(params), headers=headers)
+                if authorization:
+                    response.set_cookie("resoto_authorization", authorization, secure=True, httponly=True)
+                return response
+        return aiohttp_jinja2.render_template(
+            "login.html",
+            request,
+            context=dict(email=email, password=password, redirect=redirect, error="Invalid username or password"),
+        )
 
     async def list_configs(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())

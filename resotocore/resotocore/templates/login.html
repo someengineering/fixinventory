@@ -17,15 +17,15 @@ Login to Resoto
             {% endif %}
 
             <div class="form-floating">
-                <input id="username" name="username" type="text" class="form-control" placeholder="name@example.com"
-                       value="{{ username }}">
-                <label for="username">User name</label>
+                <input id="email" name="email" type="email" class="form-control" placeholder="name@example.com" value="{{ email }}">
+                <label for="email">Email Address</label>
             </div>
             <div class="form-floating">
                 <input id="password" name="password" type="password" class="form-control"  placeholder="Password" value="{{ password }}">
                 <label for="password">Password</label>
             </div>
             <input name="redirect" type="hidden" value="{{ redirect }}">
+            <input name="method" type="hidden" value="{{ method }}">
             <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
         </form>
     </div>

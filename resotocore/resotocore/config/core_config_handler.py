@@ -29,6 +29,7 @@ from resotocore.model.typed_model import from_js
 from resotocore.report import ResotoReportBenchmark, ResotoReportCheck, Inspector, BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.report_config import config_model as report_config_model
 from resotocore.types import Json
+from resotocore.user import config_model as user_config_model, UsersConfigId, ResotoUsersConfig
 from resotocore.util import deep_merge, restart_service, value_in_path, value_in_path_get
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTaskName, WorkerTask
 
@@ -155,13 +156,24 @@ class CoreConfigHandler:
                     ConfigEntity(ResotoCoreCommandsConfigId, to_update), validate=False
                 )
                 log.info("Default resoto commands config updated.")
-
         except Exception as ex:
             log.error(f"Could not update resoto command configuration: {ex}", exc_info=ex)
 
+        # make sure there is a default user configuration
+        try:
+            existing_users = await self.config_handler.get_config(UsersConfigId)
+            user_update: Optional[Json] = None
+            if existing_users is None:
+                user_update = ResotoUsersConfig().json()
+            if user_update is not None:
+                await self.config_handler.put_config(ConfigEntity(UsersConfigId, user_update), validate=False)
+                log.info("Default resoto users config updated.")
+        except Exception as ex:
+            log.error(f"Could not update resoto users configuration: {ex}", exc_info=ex)
+
     async def __update_model(self) -> None:
         try:
-            models = core_config_model() + report_config_model()
+            models = core_config_model() + report_config_model() + user_config_model()
             kinds = from_js(models, List[Kind])
             await self.config_handler.update_configs_model(kinds)
             await self.config_handler.put_config_validation(

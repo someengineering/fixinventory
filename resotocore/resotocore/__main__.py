@@ -50,6 +50,7 @@ from resotocore.report.inspector_service import InspectorService
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
+from resotocore.user.user_management import UserManagementService
 from resotocore.util import shutdown_process, utc
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
@@ -155,6 +156,7 @@ def with_config(
         config_override_service,
     )
     log_ship = event_stream(config, cert_handler.client_context)
+    user_management = UserManagementService(config_handler)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
@@ -164,6 +166,7 @@ def with_config(
         config=config,
         config_handler=config_handler,
         cert_handler=cert_handler,
+        user_management=user_management,
     )
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = CLIService(cli_deps, all_commands(cli_deps), default_env, alias_names())
@@ -197,6 +200,7 @@ def with_config(
         cli,
         template_expander,
         config,
+        user_management,
         config_override_service.get_override,
     )
     event_emitter = emit_recurrent_events(
