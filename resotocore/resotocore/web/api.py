@@ -201,6 +201,7 @@ class Api:
                 web.delete(prefix + "/graph/{graph_id}", self.wipe),
                 # search the graph
                 web.post(prefix + "/graph/{graph_id}/search/raw", self.raw),
+                web.post(prefix + "/graph/{graph_id}/search/structure", self.query_structure),
                 web.post(prefix + "/graph/{graph_id}/search/explain", self.explain),
                 web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
                 web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
@@ -843,6 +844,10 @@ class Api:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
+
+    async def query_structure(self, request: Request) -> StreamResponse:
+        _, query_model = await self.graph_query_model_from_request(request)
+        return web.json_response(query_model.query.structure())
 
     async def query_list(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)

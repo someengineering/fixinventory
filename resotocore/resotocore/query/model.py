@@ -1112,6 +1112,110 @@ class Query:
         # noinspection PyTypeChecker
         return reduce(lambda left, right: CombinedTerm(left, "and", right), terms)
 
+    def structure(self) -> Json:
+        """
+        External representation of the query.
+        """
+
+        def merge_query_structure(m: MergeQuery) -> Json:
+            return {"name": m.name, "query": query_structure(m.query), "only_first": m.only_first}
+
+        def term_structure(term: Term) -> Json:
+            if isinstance(term, AllTerm):
+                return {"kind": "all"}
+            elif isinstance(term, CombinedTerm):
+                return {
+                    "kind": "combined",
+                    "left": term_structure(term.left),
+                    "op": term.op,
+                    "right": term_structure(term.right),
+                }
+            elif isinstance(term, ContextTerm):
+                return {"kind": "context", "name": term.name, "term": term_structure(term.term)}
+            elif isinstance(term, FulltextTerm):
+                return {"kind": "fulltext", "text": term.text}
+            elif isinstance(term, FunctionTerm):
+                return {"kind": "function", "property_path": term.property_path, "args": term.args}
+            elif isinstance(term, IdTerm):
+                return {"kind": "id", "id": term.id}
+            elif isinstance(term, IsTerm):
+                return {"kind": "is", "kinds": term.kinds}
+            elif isinstance(term, MergeTerm):
+                result = {
+                    "kind": "merge",
+                    "pre_filter": term_structure(term.pre_filter),
+                    "merge": [merge_query_structure(m) for m in term.merge],
+                }
+                if term.post_filter:
+                    result["post_filter"] = term_structure(term.post_filter)
+                return result
+            elif isinstance(term, NotTerm):
+                return {"kind": "not", "term": term_structure(term.term)}
+            elif isinstance(term, Predicate):
+                return {"kind": "predicate", "name": term.name, "op": term.op, "value": term.value, "args": term.args}
+            else:
+                raise AttributeError(f"Unknown term kind {term}")
+
+        def sort_structure(sort: Sort) -> Json:
+            return {"name": sort.name, "order": sort.order}
+
+        def limit_structure(limit: Limit) -> Json:
+            return {"offset": limit.offset, "length": limit.length}
+
+        def navigation_structure(navigation: Navigation) -> Json:
+            return {
+                "direction": navigation.direction,
+                "edge_types": navigation.edge_types,
+                "start": navigation.start,
+                "until": navigation.until,
+            }
+
+        def with_clause_structure(clause: WithClause) -> Json:
+            return {
+                "term": term_structure(clause.term) if clause.term else None,
+                "navigation": navigation_structure(clause.navigation) if clause.navigation else None,
+                "with": with_clause_structure(clause.with_clause) if clause.with_clause else None,
+            }
+
+        def part_structure(part: Part) -> Json:
+            return {
+                "term": term_structure(part.term),
+                "tag": part.tag,
+                "with": with_clause_structure(part.with_clause) if part.with_clause else None,
+                "sort": [sort_structure(sort) for sort in part.sort],
+                "limit": limit_structure(part.limit) if part.limit else None,
+                "navigation": navigation_structure(part.navigation) if part.navigation else None,
+            }
+
+        def aggregate_variable_structure(av: AggregateVariable) -> Json:
+            if isinstance(av.name, AggregateVariableName):
+                return {"name": av.name.name, "as": av.get_as_name()}
+            elif isinstance(av.name, AggregateVariableCombined):
+                return {
+                    "combined_names": [p if isinstance(p, str) else {"name": p.name} for p in av.name.parts],
+                    "as": av.get_as_name(),
+                }
+            else:
+                raise AttributeError(f"Unknown aggregate variable name type {av.name}")
+
+        def aggregate_function_structure(av: AggregateFunction) -> Json:
+            return {"function": av.function, "name": av.name, "ops": av.ops, "as": av.as_name}
+
+        def aggregate_structure(aggregate: Aggregate) -> Json:
+            return {
+                "group_by": [aggregate_variable_structure(gb) for gb in aggregate.group_by],
+                "group_func": [aggregate_function_structure(gf) for gf in aggregate.group_func],
+            }
+
+        def query_structure(q: Query) -> Json:
+            return {
+                "preamble": q.preamble,
+                "parts": [part_structure(part) for part in reversed(q.parts)],
+                "aggregate": aggregate_structure(q.aggregate) if q.aggregate else None,
+            }
+
+        return query_structure(self)
+
 
 # register serializer for this class
 set_deserializer(Term.from_json, Term)
