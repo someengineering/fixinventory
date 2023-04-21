@@ -1,5 +1,6 @@
 .form-signin input[id="email"] {
     margin-bottom: -1px;
+    min-width: 320px;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
 }
@@ -8,4 +9,8 @@
     margin-bottom: 10px;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+
+body {
+    background-color: #f7f7f7;
 }
