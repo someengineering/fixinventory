@@ -28,7 +28,6 @@ from typing import (
     Callable,
     Awaitable,
     Iterable,
-    Pattern,
 )
 from urllib.parse import urlencode
 
@@ -363,8 +362,7 @@ class Api:
             password_repeat = str(post_data.get("password_repeat", ""))
             company = str(post_data.get("company", ""))
             fullname = str(post_data.get("fullname", ""))
-            email_re: Pattern = re.compile(r"[^@]+@[^@]+\.[^@]+")
-            if not email_re.fullmatch(email):
+            if not re.fullmatch(r"[^@]+@[^@]+\.[^@]+", email):
                 errors.append("Invalid email address")
             if not password:
                 errors.append("Password is required")

@@ -35,7 +35,6 @@ class UserManagement(Service, ABC):
         """
         Indicates if users exist in the system.
         """
-        pass
 
     @abstractmethod
     async def create_first_user(self, company: str, fullname: str, email: str, password: str) -> ResotoUser:
@@ -49,7 +48,6 @@ class UserManagement(Service, ABC):
         :return: the created user
         :throws: AssertionError if there are already users in the system.
         """
-        pass
 
     @abstractmethod
     async def login(self, email: str, password: str) -> Optional[ResotoUser]:
@@ -59,7 +57,6 @@ class UserManagement(Service, ABC):
         :param password: the password of the user
         :return: The user if the credentials are valid, None otherwise.
         """
-        pass
 
 
 def config_model() -> List[Json]:
