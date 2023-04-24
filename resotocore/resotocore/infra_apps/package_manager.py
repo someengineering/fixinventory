@@ -39,7 +39,7 @@ class ManifestNotFound(Failure):
     name: InfraAppName
 
     def __str__(self) -> str:
-        return f"Manifest for app {self.name} was not found in the git repository"
+        return f"Manifest for app {self.name} was not found."
 
 
 @frozen
@@ -49,15 +49,6 @@ class ManifestDownloadFailed(Failure):
 
     def __str__(self) -> str:
         return f"Failed to download app manifest from {self.url}: {self.reason}"
-
-
-@frozen
-class RepositoryCloneFailed(Failure):
-    url: str
-    reason: str
-
-    def __str__(self) -> str:
-        return f"Failed to clone git repository {self.url}: {self.reason}"
 
 
 @frozen
