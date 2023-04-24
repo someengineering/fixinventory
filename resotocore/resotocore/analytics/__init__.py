@@ -40,6 +40,8 @@ class CoreEvent:
     ServerError = "error.server"
     UsageMetricsTurnedOff = "usage-metrics.turned-off"
     BenchmarkPerformed = "report.benchmark"
+    FirstUserCreated = "user.created.first"
+    UserCreated = "user.created"
 
 
 @define(frozen=True)

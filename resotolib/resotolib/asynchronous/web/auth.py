@@ -86,7 +86,7 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
         if authorized or always_allowed(request):
             return await handler(request)
         else:
-            raise web.HTTPUnauthorized()
+            raise web.HTTPSeeOther("/login?redirect=" + request.raw_path, headers=request.headers)
 
     return valid_jwt_handler
 

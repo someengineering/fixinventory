@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import string
 import tempfile
@@ -27,6 +28,7 @@ from typing import (
     Callable,
     Awaitable,
     Iterable,
+    Pattern,
 )
 from urllib.parse import urlencode
 
@@ -52,7 +54,6 @@ from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from attrs import evolve
-from multidict import MultiDictProxy
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
@@ -128,11 +129,11 @@ AlwaysAllowed = {
     "/metrics",
     "/api-doc.*",
     "/system/.*",
-    "/ui.*",  # TODO: should be removed once we have the login process in place
-    "/ca/cert",
-    "/notebook.*",  # TODO: should be removed once we have the login process in place
-    "/login",
     "/static/.*",
+    "/ca/cert",
+    "/login",
+    "/logout",
+    "/create-first-user",
     "/authenticate",
 }
 # Authorization is not required, but implemented as part of the request handler
@@ -300,6 +301,8 @@ class Api:
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 web.get(prefix + "/login", self.login_page),
+                web.post(prefix + "/create-first-user", self.create_first_user),
+                web.route(METH_ANY, prefix + "/logout", self.logout_page),
                 web.post(prefix + "/authenticate", self.authenticate),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
@@ -339,9 +342,47 @@ class Api:
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
 
-    @aiohttp_jinja2.template("login.html")
-    async def login_page(self, request: Request) -> MultiDictProxy[str]:
-        return request.query  # take values from request query parameters
+    async def login_page(self, request: Request) -> StreamResponse:
+        template = "login.html" if await self.user_management.has_users() else "create_first_user.html"
+        return aiohttp_jinja2.render_template(template, request, context=request.query)
+
+    @staticmethod
+    async def logout_page(request: Request) -> StreamResponse:
+        response = aiohttp_jinja2.render_template("logout.html", request, context=request.query)
+        response.set_cookie(
+            "resoto_authorization", "", secure=True, httponly=True, expires="Thu, Jan 01 1970 00:00:00 UTC"
+        )
+        return response
+
+    async def create_first_user(self, request: Request) -> StreamResponse:
+        post_data = await request.post()
+        errors = []
+        try:
+            email = str(post_data.get("email", ""))
+            password = str(post_data.get("password", ""))
+            password_repeat = str(post_data.get("password_repeat", ""))
+            company = str(post_data.get("company", ""))
+            fullname = str(post_data.get("fullname", ""))
+            email_re: Pattern = re.compile(r"[^@]+@[^@]+\.[^@]+")
+            if not email_re.fullmatch(email):
+                errors.append("Invalid email address")
+            if not password:
+                errors.append("Password is required")
+            if not company:
+                errors.append("Company name is required")
+            if not fullname:
+                errors.append("Full name is required")
+            if password != password_repeat:
+                errors.append("Passwords do not match")
+            if not errors:
+                await self.user_management.create_first_user(company, fullname, email, password)
+                return await self.authenticate(request)
+        except Exception as e:
+            errors.append(str(e))
+        error_string = ". ".join(errors)
+        return aiohttp_jinja2.render_template(
+            "create_first_user.html", request, context={**post_data, "error": error_string}
+        )
 
     async def authenticate(self, request: Request) -> StreamResponse:
         post_data = await request.post()
@@ -349,32 +390,28 @@ class Api:
         password = str(post_data.get("password", ""))
         redirect = str(post_data.get("redirect", ""))
         method = str(post_data.get("method", "")).split(",")
-        if email and password:
-            user = await self.user_management.login(email, password)
-            if user:
-                headers: Dict[str, str] = {}
-                params: Dict[str, str] = {}
-                authorization: Optional[str] = None
-                if self.config.args.psk:
-                    jwt = encode_jwt({}, self.config.args.psk)
-                    authorization = f"Bearer {jwt}"
-                    headers["Authorization"] = authorization
-                    if "params" in method:
-                        params["jwt"] = jwt
-                        params["method"] = "Bearer"
-                if redirect:
-                    if params:
-                        redirect += "?" + urlencode(params)
-                    response: StreamResponse = HTTPSeeOther(str(redirect), headers=headers)
-                else:
-                    response = HTTPOk(text=urlencode(params), headers=headers)
-                if authorization:
-                    response.set_cookie("resoto_authorization", authorization, secure=True, httponly=True)
-                return response
+        if email and password and await self.user_management.login(email, password):
+            headers: Dict[str, str] = {}
+            params: Dict[str, str] = {}
+            authorization: Optional[str] = None
+            if self.config.args.psk:
+                jwt = encode_jwt({}, self.config.args.psk)
+                authorization = f"Bearer {jwt}"
+                headers["Authorization"] = authorization
+                if "params" in method:
+                    params["jwt"] = jwt
+                    params["method"] = "Bearer"
+            if redirect:
+                if params:
+                    redirect += "?" + urlencode(params)
+                response: StreamResponse = HTTPSeeOther(str(redirect), headers=headers)
+            else:
+                response = HTTPOk(text=urlencode(params), headers=headers)
+            if authorization:
+                response.set_cookie("resoto_authorization", authorization, secure=True, httponly=True)
+            return response
         return aiohttp_jinja2.render_template(
-            "login.html",
-            request,
-            context=dict(email=email, password=password, redirect=redirect, error="Invalid username or password"),
+            "login.html", request, context=dict(**post_data, error="Invalid username or password")
         )
 
     async def list_configs(self, request: Request) -> StreamResponse:

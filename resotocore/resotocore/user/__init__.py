@@ -16,6 +16,7 @@ UsersConfigId = ConfigId("resoto.users")
 @define
 class ResotoUser:
     kind: ClassVar[str] = "resoto_user"
+    fullname: str = field(metadata={"description": "The full name of the user."})
     password_hash: str = field(metadata={"description": "The sha256 hash of the user's password."})
 
 
@@ -30,7 +31,34 @@ class ResotoUsersConfig:
 
 class UserManagement(Service, ABC):
     @abstractmethod
+    async def has_users(self) -> bool:
+        """
+        Indicates if users exist in the system.
+        """
+        pass
+
+    @abstractmethod
+    async def create_first_user(self, company: str, fullname: str, email: str, password: str) -> ResotoUser:
+        """
+        Create the first user in the system.
+        Precondition: has_users() == False
+        :param company: the name of the company
+        :param fullname: the full name of the user
+        :param email: the email address of the user
+        :param password: the password of the user
+        :return: the created user
+        :throws: AssertionError if there are already users in the system.
+        """
+        pass
+
+    @abstractmethod
     async def login(self, email: str, password: str) -> Optional[ResotoUser]:
+        """
+        Login with the given credentials.
+        :param email: the email address of the user
+        :param password: the password of the user
+        :return: The user if the credentials are valid, None otherwise.
+        """
         pass
 
 
