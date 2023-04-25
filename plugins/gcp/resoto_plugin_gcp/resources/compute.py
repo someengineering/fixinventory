@@ -798,7 +798,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
 
             if self.name == "pd-balanced" and not sku.description.startswith("Balanced"):
                 return False
-            if self.name != "pd-balanced" and sku.description.startswith("Balanced"):
+            if self.name != "pd-balanced" and "Balanced" in sku.description:
                 return False
             if self.zone().name != "undefined" and sku.description.startswith("Regional"):
                 # Zonal (i.e. not regional?) disk_type but regional SKU
