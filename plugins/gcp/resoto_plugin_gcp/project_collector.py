@@ -91,7 +91,7 @@ class GcpProjectCollector:
             remove_nodes.clear()
 
         # nodes need to be removed in the correct order
-        rmnodes((compute.GcpNodeType, compute.GcpMachineType, compute.GcpDiskType))
+        rmnodes((compute.GcpNodeType, compute.GcpMachineType, compute.GcpDiskType, compute.GcpAcceleratorType))
         rmnodes(billing.GcpSku)
         rmnodes(billing.GcpService)
 
