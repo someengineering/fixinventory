@@ -2,7 +2,7 @@ import resotolib.logger
 import resotolib.proc
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
-from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo
+from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo, GithubPullRequest
 from .config import GithubConfig
 from github import Github
 from github.GithubException import UnknownObjectException
@@ -20,6 +20,7 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             return
 
         github = Github(Config.github.access_token)
+        pull_request_state = Config.github.pull_request_state.value
 
         log.debug("plugin: collecting GitHub resources")
 
@@ -60,9 +61,16 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
                         except UnknownObjectException:
                             log.error(f"Could not find an org or user for repo: {repo_fullname} - skipping")
                             continue
-            r = GithubRepo.new(github.get_repo(repo_fullname))
+
+            repo = github.get_repo(repo_fullname)
+            r = GithubRepo.new(repo)
             log.debug(f"Adding {r.kdname}")
             self.graph.add_resource(src, r)
+
+            for pull_request in repo.get_pulls(state=pull_request_state):
+                pr = GithubPullRequest.new(pull_request)
+                log.debug(f"Adding {pr.kdname}")
+                self.graph.add_resource(r, pr)
 
     @staticmethod
     def add_config(config: Config) -> None:

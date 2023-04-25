@@ -18,6 +18,7 @@ from github.View import View
 from github.Referrer import Referrer
 from github.Path import Path
 from github.GithubException import GithubException
+from github.PullRequest import PullRequest
 
 
 @define(eq=False, slots=False)
@@ -325,6 +326,97 @@ class GithubRepoTopPath:
     @staticmethod
     def new(path: Path):
         return GithubRepoTopPath(title=path.title, path=path.path, count=path.count, uniques=path.uniques)
+
+
+@define(eq=False, slots=False)
+class GithubPullRequest(GithubResource, BaseResource):
+    kind: ClassVar[str] = "github_pull_request"
+
+    additions: Optional[int] = None
+    # assignee: Optional[str] = None
+    # assignees: Optional[List[str]] = None
+    # base: Optional[str] = None
+    body: Optional[str] = None
+    changed_files: Optional[int] = None
+    closed_at: Optional[datetime] = None
+    comments: Optional[int] = None
+    comments_url: Optional[str] = None
+    commits: Optional[int] = None
+    commits_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    deletions: Optional[int] = None
+    diff_url: Optional[str] = None
+    draft: Optional[bool] = None
+    # head: Optional[str] = None
+    html_url: Optional[str] = None
+    pr_id: Optional[int] = None
+    issue_url: Optional[str] = None
+    # labels: Optional[List[str]] = None
+    merge_commit_sha: Optional[str] = None
+    mergeable: Optional[bool] = None
+    mergeable_state: Optional[str] = None
+    merged: Optional[bool] = None
+    merged_at: Optional[datetime] = None
+    # merged_by: Optional[str] = None
+    # milestone: Optional[str] = None
+    number: Optional[int] = None
+    patch_url: Optional[str] = None
+    rebaseable: Optional[bool] = None
+    review_comments: Optional[int] = None
+    review_comments_url: Optional[str] = None
+    state: Optional[str] = None
+    title: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    url: Optional[str] = None
+    # user: Optional[str] = None
+    maintainer_can_modify: Optional[bool] = None
+
+    @staticmethod
+    def new(pr: PullRequest):
+        return GithubPullRequest(
+            name=str(pr.title),
+            additions=pr.additions,
+            # assignee=pr.assignee,
+            # assignees=pr.assignees,
+            # base=pr.base,
+            body=pr.body,
+            changed_files=pr.changed_files,
+            closed_at=make_valid_timestamp(pr.closed_at),
+            comments=pr.comments,
+            comments_url=pr.comments_url,
+            commits=pr.commits,
+            commits_url=pr.commits_url,
+            created_at=make_valid_timestamp(pr.created_at),
+            ctime=make_valid_timestamp(pr.created_at),
+            deletions=pr.deletions,
+            diff_url=pr.diff_url,
+            draft=pr.draft,
+            # head=pr.head,
+            html_url=pr.html_url,
+            pr_id=pr.id,
+            issue_url=pr.issue_url,
+            # labels=pr.labels,
+            merge_commit_sha=pr.merge_commit_sha,
+            mergeable=pr.mergeable,
+            mergeable_state=pr.mergeable_state,
+            merged=pr.merged,
+            merged_at=make_valid_timestamp(pr.merged_at),
+            # merged_by=pr.merged_by,
+            # milestone=pr.milestone,
+            number=pr.number,
+            id=str(pr.number),
+            patch_url=pr.patch_url,
+            rebaseable=pr.rebaseable,
+            review_comments=pr.review_comments,
+            review_comments_url=pr.review_comments_url,
+            state=pr.state,
+            title=pr.title,
+            updated_at=make_valid_timestamp(pr.updated_at),
+            mtime=make_valid_timestamp(pr.updated_at),
+            url=pr.url,
+            # user=pr.user,
+            maintainer_can_modify=pr.maintainer_can_modify,
+        )
 
 
 @define(eq=False, slots=False)
