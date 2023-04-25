@@ -34,9 +34,11 @@ class GcpProjectCollector:
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.project.safe_name)
+            project_global_region =  GcpRegion.fallback_global_region(self.project)
             global_builder = GraphBuilder(
-                self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback
+                self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback, project_global_region
             )
+            global_builder.add_node(project_global_region, {})
 
             # fetch available regions and zones
             self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])

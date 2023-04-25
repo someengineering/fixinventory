@@ -105,6 +105,7 @@ class GraphBuilder:
         credentials: GoogleAuthCredentials,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
+        fallback_global_region: GcpRegion,
         region: Optional[GcpRegion] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
@@ -119,12 +120,12 @@ class GraphBuilder:
         self.executor = executor
         self.name = f"GCP:{project.name}"
         self.core_feedback = core_feedback
+        self.fallback_global_region = fallback_global_region
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpZone] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
-        self.fallback_global_region = GcpRegion.fallback_global_region(self)
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -295,6 +296,7 @@ class GraphBuilder:
             self.client.credentials,
             self.executor,
             self.core_feedback,
+            self.fallback_global_region,
             region,
             self.graph_nodes_access,
             self.graph_edges_access,
@@ -490,10 +492,8 @@ class GcpRegion(GcpResource, BaseRegion):
     region_supports_pzs: Optional[bool] = field(default=None)
 
     @classmethod
-    def fallback_global_region(cls: Type[GcpRegion], graph_builder: GraphBuilder) -> GcpRegion:
-        fgr = cls(id="global", tags={}, name="global", account=graph_builder.project)
-        graph_builder.add_node(fgr, {})
-        return fgr
+    def fallback_global_region(cls: Type[GcpRegion], project: GcpProject) -> GcpRegion:
+        return cls(id="global", tags={}, name="global", account=project)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for quota_js in source.get("quotas", []):
