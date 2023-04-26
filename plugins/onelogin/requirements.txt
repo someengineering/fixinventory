@@ -1,2 +1,2 @@
-resotolib==3.3.4
+resotolib==3.4.0
 onelogin==2.0.4 # version 3 has breaking changes.

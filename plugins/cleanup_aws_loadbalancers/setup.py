@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-cleanup-aws-loadbalancers",
-    version="3.3.4",
+    version="3.4.0",
     description="AWS Loadbalancers Cleaner Plugin",
     license="Apache 2.0",
     packages=find_packages(),
