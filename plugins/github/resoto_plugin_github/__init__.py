@@ -2,6 +2,9 @@ import resotolib.logger
 import resotolib.proc
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
+from resotolib.durations import parse_duration
+from resotolib.utils import make_valid_timestamp
+from datetime import datetime, timezone
 from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, GithubRepo, GithubPullRequest
 from .config import GithubConfig
 from github import Github
@@ -21,6 +24,12 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
 
         github = Github(Config.github.access_token)
         pull_request_state = Config.github.pull_request_state.value
+        pull_request_sort = Config.github.pull_request_sort.value
+        pull_request_direction = Config.github.pull_request_direction.value
+        pull_request_limit = Config.github.pull_request_limit
+        pull_request_age = Config.github.pull_request_age
+        if pull_request_age is not None:
+            pull_request_age = parse_duration(pull_request_age)
 
         log.debug("plugin: collecting GitHub resources")
 
@@ -67,10 +76,30 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Adding {r.kdname}")
             self.graph.add_resource(src, r)
 
-            for pull_request in repo.get_pulls(state=pull_request_state):
+            pr_i = 0
+            utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            log.debug(
+                f"Fetching pull requests for {r.kdname}: state={pull_request_state}, sort={pull_request_sort}, direction={pull_request_direction}"
+            )
+            for pull_request in repo.get_pulls(
+                state=pull_request_state, sort=pull_request_sort, direction=pull_request_direction
+            ):
+                if pull_request_limit is not None and pr_i == pull_request_limit:
+                    log.debug(f"Reached pull request limit of {pull_request_limit}")
+                    break
+                if pull_request_age is not None:
+                    if pull_request_sort == "updated":
+                        pr_timestamp = make_valid_timestamp(pull_request.updated_at)
+                    else:
+                        pr_timestamp = make_valid_timestamp(pull_request.created_at)
+                    if (utc - pr_timestamp) > pull_request_age:
+                        log.debug(f"Reached pull request age limit of {pull_request_age}")
+                        break
+
                 pr = GithubPullRequest.new(pull_request)
                 log.debug(f"Adding {pr.kdname}")
                 self.graph.add_resource(r, pr)
+                pr_i += 1
 
     @staticmethod
     def add_config(config: Config) -> None:

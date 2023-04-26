@@ -9,6 +9,18 @@ class PullRequestState(Enum):
     all = "all"
 
 
+class PullRequestSort(Enum):
+    created = "created"
+    updated = "updated"
+    popularity = "popularity"
+    long_running = "long-running"
+
+
+class PullRequestDirection(Enum):
+    asc = "asc"
+    desc = "desc"
+
+
 @define
 class GithubConfig:
     kind: ClassVar[str] = "github"
@@ -18,5 +30,16 @@ class GithubConfig:
     users: List[str] = field(factory=list, metadata={"description": "Github users"})
     pool_size: int = field(default=5, metadata={"description": "Github thread pool size"})
     pull_request_state: PullRequestState = field(
-        default=PullRequestState.open, metadata={"description": "Github pull request state"}
+        default=PullRequestState.open, metadata={"description": "Github pull request state (open/closed/all)"}
+    )
+    pull_request_sort: PullRequestSort = field(
+        default=PullRequestSort.created,
+        metadata={"description": "Github pull request sorting (created/updated/popularity/long-running)"},
+    )
+    pull_request_direction: PullRequestDirection = field(
+        default=PullRequestDirection.desc, metadata={"description": "Github pull request direction (asc/desc)"}
+    )
+    pull_request_limit: Optional[int] = field(default=None, metadata={"description": "How many pull requests to fetch"})
+    pull_request_age: Optional[str] = field(
+        default=None, metadata={"description": "Max age of pull requests to fetch (e.g. 7d, 2w, etc.)"}
     )
