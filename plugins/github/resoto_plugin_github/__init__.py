@@ -9,6 +9,7 @@ from .resources import GithubAccount, GithubRegion, GithubOrg, GithubUser, Githu
 from .config import GithubConfig
 from github import Github
 from github.GithubException import UnknownObjectException
+from github.PullRequest import PullRequest
 
 
 log = resotolib.logger.getLogger("resoto." + __name__)
@@ -76,7 +77,24 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Adding {r.kdname}")
             self.graph.add_resource(src, r)
 
-            utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            def too_old(pull_request: PullRequest) -> bool:
+                if pull_request_age is not None:
+                    if pull_request_sort == "updated":
+                        pr_timestamp = make_valid_timestamp(pull_request.updated_at)
+                    else:
+                        pr_timestamp = make_valid_timestamp(pull_request.created_at)
+                    pr_age = datetime.utcnow().replace(tzinfo=timezone.utc) - pr_timestamp
+                    if pr_age > pull_request_age:
+                        log.debug(f"Reached pull request age limit of {pull_request_age}")
+                        return True
+                return False
+
+            def too_many(pr_i: int) -> bool:
+                if pull_request_limit is not None and pr_i == pull_request_limit:
+                    log.debug(f"Reached pull request limit of {pull_request_limit}")
+                    return True
+                return False
+
             log.debug(
                 f"Fetching pull requests for {r.kdname}:"
                 f" state={pull_request_state}, sort={pull_request_sort}, direction={pull_request_direction}"
@@ -84,17 +102,8 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             for pr_i, pull_request in enumerate(
                 repo.get_pulls(state=pull_request_state, sort=pull_request_sort, direction=pull_request_direction)
             ):
-                if pull_request_limit is not None and pr_i == pull_request_limit:
-                    log.debug(f"Reached pull request limit of {pull_request_limit}")
+                if too_many(pr_i) or too_old(pull_request):
                     break
-                if pull_request_age is not None:
-                    if pull_request_sort == "updated":
-                        pr_timestamp = make_valid_timestamp(pull_request.updated_at)
-                    else:
-                        pr_timestamp = make_valid_timestamp(pull_request.created_at)
-                    if (utc - pr_timestamp) > pull_request_age:
-                        log.debug(f"Reached pull request age limit of {pull_request_age}")
-                        break
 
                 pr = GithubPullRequest.new(pull_request)
                 log.debug(f"Adding {pr.kdname}")
