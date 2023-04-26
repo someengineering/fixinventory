@@ -76,13 +76,13 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"Adding {r.kdname}")
             self.graph.add_resource(src, r)
 
-            pr_i = 0
             utc = datetime.utcnow().replace(tzinfo=timezone.utc)
             log.debug(
-                f"Fetching pull requests for {r.kdname}: state={pull_request_state}, sort={pull_request_sort}, direction={pull_request_direction}"
+                f"Fetching pull requests for {r.kdname}:"
+                f" state={pull_request_state}, sort={pull_request_sort}, direction={pull_request_direction}"
             )
-            for pull_request in repo.get_pulls(
-                state=pull_request_state, sort=pull_request_sort, direction=pull_request_direction
+            for pr_i, pull_request in enumerate(
+                repo.get_pulls(state=pull_request_state, sort=pull_request_sort, direction=pull_request_direction)
             ):
                 if pull_request_limit is not None and pr_i == pull_request_limit:
                     log.debug(f"Reached pull request limit of {pull_request_limit}")
@@ -99,7 +99,6 @@ class GithubCollectorPlugin(BaseCollectorPlugin):
                 pr = GithubPullRequest.new(pull_request)
                 log.debug(f"Adding {pr.kdname}")
                 self.graph.add_resource(r, pr)
-                pr_i += 1
 
     @staticmethod
     def add_config(config: Config) -> None:
