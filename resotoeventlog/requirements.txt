@@ -3,6 +3,6 @@
 aiohttp-swagger3==0.7.4
 aiohttp[speedups]==3.8.4
 aiostream==0.4.5
-resotolib==3.3.4
+resotolib==3.4.0
 
 jsons~=1.6.2
