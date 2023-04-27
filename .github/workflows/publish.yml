@@ -214,7 +214,7 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          sed -i 's/edge/${{ steps.release.outputs.tag }}/g' docker-compose.yaml
+          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}")) | (.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
 
       - name: Update resource data models
         if: steps.release.outputs.prerelease == 'false'
