@@ -6,7 +6,7 @@ from collections import deque
 from datetime import timedelta
 from logging import StreamHandler, LogRecord
 from ssl import SSLContext
-from typing import Optional, TypeVar, Mapping, Union
+from typing import Optional, TypeVar, Mapping, Union, Any
 
 import jsons
 from aiohttp import ClientSession, ClientWebSocketResponse, Fingerprint
@@ -33,9 +33,9 @@ class EventStreamer:
         self.url = url
         self.connection_args = dict(params=params, headers=headers, ssl=ssl)
         self.buffer: deque[str] = deque(maxlen=max_outstanding)
-        self.queue = asyncio.Queue()
+        self.queue: asyncio.Queue[str] = asyncio.Queue()
         self.periodic = Periodic("flush log messages", self.__shuffle_messages, frequency)
-        self.task: Optional[Task] = None
+        self.task: Optional[Task[Any]] = None
 
     async def start(self) -> None:
         log.info("Start log streamer")
@@ -45,10 +45,11 @@ class EventStreamer:
     async def stop(self) -> None:
         log.info("Stopping log streamer")
         await self.periodic.stop()
-        self.task.cancel()
-        await self.task
+        if self.task:
+            self.task.cancel()
+            await self.task
 
-    def send_event(self, event: Event):
+    def send_event(self, event: Event) -> None:
         self.buffer.append(jsons.dumps(event))
 
     async def __shuffle_messages(self) -> None:
@@ -61,7 +62,7 @@ class EventStreamer:
             while True:
                 try:
                     log.debug("Try to connect to log streamer")
-                    async with session.ws_connect(self.url, **self.connection_args) as ws:
+                    async with session.ws_connect(self.url, **self.connection_args) as ws:  # type: ignore
                         await self.__send_with_connection(ws)
                 except Exception as e:
                     await asyncio.sleep(3)
@@ -85,7 +86,7 @@ level_to_severity = {
 default_log_props = {"message": "message", "pid": "process", "thread": "threadName"}
 
 
-class LogStreamHandler(StreamHandler):
+class LogStreamHandler(StreamHandler):  # type: ignore
     def __init__(
         self,
         process: str,
@@ -136,7 +137,7 @@ class EventStreamSync(EventStream):
     def __enter__(self) -> None:
         self.start()
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.stop()
 
     def start(self) -> None:
@@ -147,10 +148,10 @@ class EventStreamSync(EventStream):
 
 
 class EventStreamAsync(EventStream):
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         await self.start()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self.stop()
 
     async def start(self) -> None:
@@ -179,12 +180,12 @@ class EventStreamSyncService(EventStreamBase, EventStreamSync):
     def start(self) -> None:
         if self.start_future is None:
             loop = asyncio.get_event_loop()
-            self.start_future = asyncio.run_coroutine_threadsafe(self.streamer.start(), loop)
+            self.start_future = asyncio.run_coroutine_threadsafe(self.streamer.start(), loop)  # type: ignore
 
     def stop(self) -> None:
         if self.start_future is not None:
             loop = asyncio.get_event_loop()
-            self.stop_future = asyncio.run_coroutine_threadsafe(self.streamer.stop(), loop)
+            self.stop_future = asyncio.run_coroutine_threadsafe(self.streamer.stop(), loop)  # type: ignore
             self.start_future = None
 
 

@@ -34,7 +34,7 @@ def raw_jwt_from_auth_message(msg: str) -> Optional[str]:
     try:
         js = json.loads(msg)
         assert js.get("kind") == "authorization"
-        return js.get("jwt")
+        return js.get("jwt")  # type: ignore
     except Exception:
         return None
 
@@ -72,7 +72,7 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
         authorized = False
         if auth_header:
             # make sure origin and host match, so the request is valid
-            origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname
+            origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname  # type: ignore
             host: Optional[str] = request.headers.get("Host")
             if host is not None and origin is not None:
                 if ":" in host:

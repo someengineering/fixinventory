@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, Optional
+from typing import Any, Dict, List, Type, Optional, Callable
 
 from resotolib.types import DecoratedFn
 
@@ -33,9 +33,9 @@ class CommandDefinition:
         self.expect_resource = expect_resource
         self.expect_node_result = expect_node_result
         self.allowed_on_kind = allowed_on_kind
-        self.filter = filter
+        self.filter = filter or {}
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner: str, name: str) -> None:
         # store this definition on the owners side (class)
         if getattr(owner, definitions, None) is None:
             setattr(owner, definitions, [])
@@ -43,7 +43,7 @@ class CommandDefinition:
         # make the function available at the call side (class)
         setattr(owner, name, self.fn)
 
-    def __call__(self) -> DecoratedFn:
+    def __call__(self) -> Callable[..., Any]:
         return self.fn
 
 
@@ -94,7 +94,7 @@ class execute_command:  # noqa: N801
         self.allowed_on_kind = allowed_on_kind
         self.filter = filter or {}
 
-    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
+    def __call__(self, fn: DecoratedFn) -> CommandDefinition:
         return CommandDefinition(
             fn,
             name=self.name,
@@ -157,7 +157,7 @@ class execute_command_on_resource:  # noqa: N801
         self.allowed_on_kind = allowed_on_kind
         self.filter = filter or {}
 
-    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
+    def __call__(self, fn: DecoratedFn) -> CommandDefinition:
         return CommandDefinition(
             fn,
             name=self.name,

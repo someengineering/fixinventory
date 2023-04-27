@@ -1,13 +1,13 @@
 import threading
 import cherrypy
 from resotolib.logger import log
-from typing import Optional
+from typing import Optional, Any
 
 
 class WebServer(threading.Thread):
     def __init__(
         self,
-        web_app,
+        web_app: Any,
         web_host: str = "::",
         web_port: int = 9955,
         ssl_cert: Optional[str] = None,
@@ -22,8 +22,8 @@ class WebServer(threading.Thread):
         self.ssl_key = ssl_key
 
     @property
-    def serving(self):
-        return cherrypy.engine.state == cherrypy.engine.states.STARTED
+    def serving(self) -> bool:
+        return bool(cherrypy.engine.state == cherrypy.engine.states.STARTED)
 
     def run(self) -> None:
         # CherryPy always prefixes its log messages with a timestamp.
@@ -75,6 +75,6 @@ class WebServer(threading.Thread):
         cherrypy.engine.start()
         cherrypy.engine.block()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         log.debug("Received request to shutdown http server threads")
         cherrypy.engine.exit()
