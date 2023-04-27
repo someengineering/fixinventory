@@ -578,7 +578,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     secondary_gce_zone: Optional[str] = field(default=None)
     server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
     service_account_email_address: Optional[str] = field(default=None)
-    settings: GcpSqlSettings = field(default=None)
+    settings: Optional[GcpSqlSettings] = field(default=None)
     sql_database_instance_state: Optional[str] = field(default=None)
     suspension_reason: Optional[List[str]] = field(default=None)
 
