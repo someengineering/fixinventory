@@ -1352,4 +1352,5 @@ class EventGraphDB(GraphDB):
         await self.real.create_update_schema()
 
     async def copy_graph(self, to_graph: str) -> GraphDB:
-        return await self.real.copy_graph(to_graph)
+        db = await self.real.copy_graph(to_graph)
+        return cast(GraphDB, db)
