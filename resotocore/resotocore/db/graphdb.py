@@ -1098,11 +1098,6 @@ class ArangoGraphDB(GraphDB):
 
         return new_graph_db
 
-    async def delete(self) -> None:
-        await self.db.delete_graph(self.name, drop_collections=True)
-        await self.db.delete_collection(self.node_history, ignore_missing=True)
-        await self.db.delete_collection(self.in_progress, ignore_missing=True)
-
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{from_node}:{to_node}"))

@@ -14,6 +14,7 @@ from pytest import mark, raises
 from resotocore.analytics import CoreEvent, InMemoryEventSender
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
 from resotocore.db.model import QueryModel, GraphUpdate
+from resotocore.db.db_access import DbAccess
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
@@ -576,7 +577,7 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_send
 
 
 @mark.asyncio
-async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess) -> None:
     await graph_db.wipe()
 
     # populate some data in the graphes
@@ -587,9 +588,7 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     db = graph_db.db
     copy_db_name = "copy_" + graph_db.name
     # make sure the copy graph does not exist
-    await db.delete_graph(copy_db_name, drop_collections=True, ignore_missing=True)
-    await db.delete_collection(f"{copy_db_name}_default", ignore_missing=True)
-    await db.delete_collection(f"{copy_db_name}_delete", ignore_missing=True)
+    await db_access.delete_graph(copy_db_name)
 
     # copy the graph
     copy_db = await graph_db.copy_graph(copy_db_name)
@@ -609,8 +608,6 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     existing_delete_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_delete")}
     copy_delete_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_delete")}
     assert existing_delete_edge_ids == copy_delete_edge_ids
-
-    await copy_db.delete()
 
 
 def test_render_metadata_section(foo_model: Model) -> None:
