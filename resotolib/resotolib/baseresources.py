@@ -533,7 +533,7 @@ class BaseResource(ABC):
             zone = UnknownZone(id="undefined", tags={})
         return zone
 
-    def location(self, graph: Optional[Any] = None) -> "BaseResource":
+    def resource_location(self, graph: Optional[Any] = None) -> "BaseResource":
         if graph is None:
             graph = self._graph
         zone = self.zone(graph)

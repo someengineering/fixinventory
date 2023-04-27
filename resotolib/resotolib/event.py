@@ -1,11 +1,13 @@
 import os
 import time
-from resotolib.logger import log
-from resotolib.lock import RWLock
 from collections import defaultdict
-from threading import Thread, Lock
-from typing import Callable, Iterable, Any, Optional, Dict
 from enum import Enum
+from threading import Thread, Lock
+from typing import Callable, Iterable, Any, Dict
+
+from resotolib.lock import RWLock
+from resotolib.logger import log
+from resotolib.types import Json
 
 
 class EventType(Enum):
@@ -41,7 +43,7 @@ class EventType(Enum):
 class Event:
     """An Event"""
 
-    def __init__(self, event_type: EventType, data: Optional[Any] = None) -> None:
+    def __init__(self, event_type: EventType, data: Json) -> None:
         self.event_type = event_type
         self.data = data
 

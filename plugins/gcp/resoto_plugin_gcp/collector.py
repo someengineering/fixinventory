@@ -834,7 +834,7 @@ class GCPProjectCollector:
                 graph.remove_node(resource)
                 return
 
-            log.debug((f"Looking up pricing for {resource.rtdname}" f" in {resource.location(graph).rtdname}"))
+            log.debug((f"Looking up pricing for {resource.rtdname}" f" in {resource.resource_location(graph).rtdname}"))
             resource_group_map = {
                 "local-ssd": "LocalSSD",
                 "pd-balanced": "SSD",
@@ -1024,7 +1024,7 @@ class GCPProjectCollector:
             graph.remove_node(resource)
             return
 
-        log.debug((f"Looking up pricing for {resource.rtdname}" f" in {resource.location(graph).rtdname}"))
+        log.debug(f"Looking up pricing for {resource.rtdname}" f" in {resource.resource_location(graph).rtdname}")
         skus = []
         for sku in graph.searchall(
             {
