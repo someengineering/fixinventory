@@ -114,7 +114,7 @@ class GcpModel:
         else:
             api = ""
         base_mapping = {
-            "id": 'S("id").or_else(S("name")).or_else(S("selfLink"))',
+            "id": 'S("name").or_else(S("id")).or_else(S("selfLink"))',
             "tags": 'S("labels", default={})',
             "name": 'S("name")',
             "ctime": 'S("creationTimestamp")',
