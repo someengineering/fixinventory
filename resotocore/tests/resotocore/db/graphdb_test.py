@@ -575,6 +575,44 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_send
     assert merge_event.batch is False
 
 
+@mark.asyncio
+async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
+
+    # populate some data in the graphes
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
+    assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
+    assert len(nodes) == 8
+
+    db = graph_db.db
+    copy_db_name = "copy_" + graph_db.name
+    # make sure the copy graph does not exist
+    await db.delete_graph(copy_db_name, drop_collections=True, ignore_missing=True)
+    await db.delete_collection(f"{copy_db_name}_default", ignore_missing=True)
+    await db.delete_collection(f"{copy_db_name}_delete", ignore_missing=True)
+
+    # copy the graph
+    copy_db = await graph_db.copy_graph(copy_db_name)
+    assert copy_db.name == copy_db_name
+
+    # validate the vertices
+    existing_vertex_ids = {a["_key"] for a in await db.all(graph_db.name)}
+    copy_vertex_ids = {a["_key"] for a in await db.all(copy_db_name)}
+    assert existing_vertex_ids == copy_vertex_ids
+
+    # validate the default edges
+    existing_default_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_default")}
+    copy_default_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_default")}
+    assert existing_default_edge_ids == copy_default_edge_ids
+
+    # validate the delete edges
+    existing_delete_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_delete")}
+    copy_delete_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_delete")}
+    assert existing_delete_edge_ids == copy_delete_edge_ids
+
+    await copy_db.delete()
+
+
 def test_render_metadata_section(foo_model: Model) -> None:
     printer = ArangoGraphDB.document_to_instance_fn(foo_model)
     out = printer({"_key": "1", "reported": {"kind": "foo"}, "metadata": {"exported_at": "2023-03-06T19:37:51Z"}})

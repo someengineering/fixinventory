@@ -907,7 +907,7 @@ class ArangoGraphDB(GraphDB):
             # ignore if the root not is already created
             return None
 
-    async def create_update_schema(self) -> None:
+    async def create_update_schema(self, init_with_data: bool = True) -> None:
         db = self.db
 
         async def create_update_graph(
@@ -1035,7 +1035,73 @@ class ArangoGraphDB(GraphDB):
             create_update_edge_indexes(edge_collection)
 
         await create_update_views(vertex)
-        await self.insert_genesis_data()
+        if init_with_data:
+            await self.insert_genesis_data()
+
+    async def copy_graph(self, to_graph: str) -> "ArangoGraphDB":
+        if await self.db.has_collection(to_graph):
+            raise ValueError(f"Graph {to_graph} already exists")
+
+        new_graph_db = ArangoGraphDB(db=self.db, name=to_graph, adjust_node=self.node_adjuster, config=self.config)
+
+        # collection creation can't be a part of a transaction so we do that first
+        # we simply reuse the existing create_update_schema method but do not insert any genesis data
+        async def create_new_collections(new_db: ArangoGraphDB) -> None:
+            await new_db.create_update_schema(init_with_data=False)
+
+        # we want to have a consistent snapshot view of the graph
+        async def copy_data() -> None:
+            old_vertex = self.vertex_name
+            old_default_edge = self.edge_collection(EdgeTypes.default)
+            old_delete_edge = self.edge_collection(EdgeTypes.delete)
+
+            new_vertex = new_graph_db.vertex_name
+            new_default_edge = new_graph_db.edge_collection(EdgeTypes.default)
+            new_delete_edge = new_graph_db.edge_collection(EdgeTypes.delete)
+
+            tx = f"""
+                function () {{
+                    const db = require('@arangodb').db;
+
+                    db._query(
+                        "FOR vertex IN {old_vertex} "
+                        + "LET clean_vertex = UNSET(vertex, '_id', '_rev') "
+                        + "INSERT clean_vertex INTO {new_vertex}"
+                    );
+
+                    db._query(
+                        "FOR edge IN {old_default_edge} "
+                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
+                        + "LET from = REGEX_REPLACE(edge._from, '^{old_vertex}', '{new_vertex}') "
+                        + "LET to = REGEX_REPLACE(edge._to, '^{old_vertex}', '{new_vertex}') "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_default_edge}"
+                    );
+
+                    db._query(
+                        "FOR edge IN {old_delete_edge} "
+                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
+                        + "LET from = REGEX_REPLACE(edge._from, '^{old_vertex}', '{new_vertex}') "
+                        + "LET to = REGEX_REPLACE(edge._to, '^{old_vertex}', '{new_vertex}') "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_delete_edge}"
+                    );
+                }}
+            """
+
+            await self.db.execute_transaction(
+                tx,
+                read=[old_vertex, old_default_edge, old_delete_edge],
+                write=[new_vertex, new_default_edge, new_delete_edge],
+            )
+
+        await create_new_collections(new_graph_db)
+        await copy_data()
+
+        return new_graph_db
+
+    async def delete(self) -> None:
+        await self.db.delete_graph(self.name, drop_collections=True)
+        await self.db.delete_collection(self.node_history, ignore_missing=True)
+        await self.db.delete_collection(self.in_progress, ignore_missing=True)
 
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
