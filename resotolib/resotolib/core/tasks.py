@@ -118,7 +118,7 @@ class CoreTasks(threading.Thread):
         self.task_handler = task_handler
         self.max_workers = max_workers
         self.tls_data = tls_data
-        self.ws = None
+        self.ws: Optional[websocket.WebSocketApp] = None
         self.shutdown_event = threading.Event()
         self.queue: queue.Queue[Json] = queue.Queue()
 
@@ -146,14 +146,14 @@ class CoreTasks(threading.Thread):
             log.debug(f"{self.identifier} received: {message}")
             for handler in self.task_handler:
                 if handler.matches(message):
-                    assert self.ws is not None, "Websocket is not connected"
                     try:
                         result = handler.execute(message)
-                        log.debug(f"Sending reply {result.to_json()}")
-                        self.ws.send(json.dumps(result.to_json()))
+                        if self.ws:
+                            log.debug(f"Sending reply {result.to_json()}")
+                            self.ws.send(json.dumps(result.to_json()))
                     except Exception as ex:
                         log.exception(f"Something went wrong while processing {message}")
-                        if task_id := message.get("task_id"):
+                        if task_id := message.get("task_id") and self.ws:
                             self.ws.send(jsons.dumps(CoreTaskResult(task_id, error=str(ex)).to_json()))
                     break
             self.queue.task_done()
@@ -182,7 +182,6 @@ class CoreTasks(threading.Thread):
         sslopt = None
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
-        assert self.ws is not None, "Websocket is not connected"
         self.ws.run_forever(sslopt=sslopt, ping_interval=20, ping_timeout=10, ping_payload="ping")
 
     def shutdown(self, event: Optional[Event] = None) -> None:

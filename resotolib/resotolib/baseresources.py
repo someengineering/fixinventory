@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import weakref
-from _weakref import ReferenceType
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
@@ -152,7 +151,6 @@ class BaseResource(ABC):
     _cleaned: bool = False
     _protected: bool = False
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
-    __graph: Optional[ReferenceType[Any]] = None
 
     ctime: Optional[datetime] = field(
         default=None,
@@ -335,22 +333,19 @@ class BaseResource(ABC):
         return self._ctime
 
     def _ctime_setter(self, value: Optional[datetime]) -> None:
-        if value:
-            self._ctime = make_valid_timestamp(value)  # type: ignore
+        self._ctime = make_valid_timestamp(value) if value else None  # type: ignore
 
     def _atime_getter(self) -> Optional[datetime]:
         return self._atime
 
     def _atime_setter(self, value: Optional[datetime]) -> None:
-        if value:
-            self._atime = make_valid_timestamp(value)  # type: ignore
+        self._atime = make_valid_timestamp(value) if value else None  # type: ignore
 
     def _mtime_getter(self) -> Optional[datetime]:
         return self._mtime
 
     def _mtime_setter(self, value: Optional[datetime]) -> None:
-        if value:
-            self._mtime = make_valid_timestamp(value)  # type: ignore
+        self._mtime = make_valid_timestamp(value) if value else None  # type: ignore
 
     @property
     def clean(self) -> bool:
@@ -620,7 +615,7 @@ class BaseResource(ABC):
 
     @_graph.setter
     def _graph(self, value: Any) -> None:
-        self.__graph = weakref.ref(value)
+        self.__graph = weakref.ref(value)  # type: ignore
 
     def __getstate__(self) -> Dict[str, Any]:
         ret = self.__dict__.copy()

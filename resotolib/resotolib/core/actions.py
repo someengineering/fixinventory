@@ -57,7 +57,7 @@ class CoreFeedback:
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
             logger.error(self.context_str + message)
-        self._info_message("error", message)
+        self._info_message("error", message[0:250])  # truncate message to 250 characters
 
     @property
     def context_str(self) -> str:
@@ -111,12 +111,12 @@ class CoreActions(threading.Thread):
 
     def run(self) -> None:
         def listen_on_queue(in_messages: Queue[Json]) -> None:
-            assert self.ws is not None, "Websocket is not initialized"
             while not self.shutdown_event.is_set():
                 with suppress(Exception):
                     message = in_messages.get(timeout=1)
                     log.debug("Got feedback message. Send it to core", message)
-                    self.ws.send(json.dumps(message))
+                    if self.ws:
+                        self.ws.send(json.dumps(message))
 
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -217,8 +217,7 @@ class CoreActions(threading.Thread):
                 result: Json = self.message_processor(json_message)
                 if result is None:
                     return
-                if self.wait_for_ws():
-                    assert self.ws is not None, "Websocket is not initialized"
+                if self.wait_for_ws() and self.ws:
                     log.debug(f"Sending reply {result}")
                     self.ws.send(json.dumps(result))
                 else:
