@@ -154,6 +154,10 @@ class GraphDB(ABC):
     async def create_update_schema(self) -> None:
         pass
 
+    @abstractmethod
+    async def copy_graph(self, to_graph: str) -> "ArangoGraphDB":
+        pass
+
 
 class ArangoGraphDB(GraphDB):
     def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
@@ -1346,3 +1350,6 @@ class EventGraphDB(GraphDB):
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
+
+    async def copy_graph(self, graph_name: str) -> GraphDB:
+        return await self.real.copy_graph(graph_name)
