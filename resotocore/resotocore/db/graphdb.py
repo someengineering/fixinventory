@@ -1042,7 +1042,7 @@ class ArangoGraphDB(GraphDB):
         if init_with_data:
             await self.insert_genesis_data()
 
-    async def copy_graph(self, to_graph: str) -> "ArangoGraphDB":
+    async def copy_graph(self, to_graph: str) -> GraphDB:
         if await self.db.has_collection(to_graph):
             raise ValueError(f"Graph {to_graph} already exists")
 
@@ -1100,7 +1100,7 @@ class ArangoGraphDB(GraphDB):
         await create_new_collections(new_graph_db)
         await copy_data()
 
-        return new_graph_db
+        return cast(GraphDB, new_graph_db)
 
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
@@ -1352,5 +1352,4 @@ class EventGraphDB(GraphDB):
         await self.real.create_update_schema()
 
     async def copy_graph(self, to_graph: str) -> GraphDB:
-        db = await self.real.copy_graph(to_graph)
-        return cast(GraphDB, db)
+        return await self.real.copy_graph(to_graph)
