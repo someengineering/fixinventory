@@ -3,6 +3,7 @@ import asyncio
 from asyncio import Lock
 from pathlib import Path
 import aiohttp
+import aiofiles
 from collections import defaultdict
 from abc import ABC
 from attrs import frozen
@@ -93,7 +94,10 @@ class PackageManager(Service):
             await self.cleanup_task
 
     async def search(self, query: Optional[str], url: Optional[str]) -> AsyncIterator[AppManifest]:
-        available_manifests = (await self._get_manifests_from_cdn(url)).values()
+        maybe_available_manifests = await self._get_manifests(url)
+        if isinstance(maybe_available_manifests, Failure):
+            raise RuntimeError(str(maybe_available_manifests))
+        available_manifests = maybe_available_manifests.values()
         if query is None:
             for manifest in available_manifests:
                 yield manifest
@@ -182,7 +186,10 @@ class PackageManager(Service):
                 packages[package.source_url].append(package.manifest)
 
             for url, manifests in packages.items():
-                manifests_cache = await self._get_manifests_from_cdn(url)
+                manifests_cache = await self._get_manifests(url)
+                if isinstance(manifests_cache, Failure):
+                    logger.warning(f"Failed to download manifests for url {url}, skipping update")
+                    continue
                 for manifest in manifests:
                     new_manifest = manifests_cache.get(manifest.name, ManifestNotFound(manifest.name))
                     if isinstance(new_manifest, Failure):
@@ -235,13 +242,24 @@ class PackageManager(Service):
             return ManifestInstallFailed(manifest.name, str(e))
 
     async def _fetch_manifest(self, app_name: InfraAppName, url: str) -> Union[Failure, AppManifest]:
-        manifests = await self._get_manifests_from_cdn(url)
+        url = url or self.cdn_url
+        manifests = await self._get_manifests(url)
+        if isinstance(manifests, Failure):
+            return manifests
         return manifests.get(app_name, ManifestNotFound(app_name))
 
-    async def _get_manifests_from_cdn(self, url: Optional[str]) -> Dict[InfraAppName, AppManifest]:
+    async def _get_manifests(self, url: Optional[str]) -> Union[Failure, Dict[InfraAppName, AppManifest]]:
+        url = url or self.cdn_url
+        if url.startswith("file://"):
+            path = Path(url[7:])
+            return await self._get_manifests_from_file(path)
+        else:
+            return await self._get_manifests_from_cdn(url)
+
+    async def _get_manifests_from_cdn(self, url: str) -> Union[Failure, Dict[InfraAppName, AppManifest]]:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url or self.cdn_url) as response:
+                async with session.get(url) as response:
                     if response.status != 200:
                         raise RuntimeError(f"Failed to fetch {self.cdn_url}")
                     manifests_bytes = await response.read()
@@ -254,4 +272,19 @@ class PackageManager(Service):
                     return manifests
         except Exception as e:
             logger.error(f"Failed to fetch manifests from {self.cdn_url}", exc_info=e)
-            return {}
+            return ManifestDownloadFailed(url, str(e))
+
+    async def _get_manifests_from_file(self, path: Path) -> Union[Failure, Dict[InfraAppName, AppManifest]]:
+        try:
+            async with aiofiles.open(path) as f:
+                manifests_bytes = await f.read()
+                json = json_loads(manifests_bytes)
+                assert isinstance(json, list)
+                manifests: Dict[InfraAppName, AppManifest] = {}
+                for manifest_json in json:
+                    manifest = AppManifest.from_json(manifest_json)
+                    manifests[manifest.name] = manifest
+                return manifests
+        except Exception as e:
+            logger.error(f"Failed to fetch manifests from {path}", exc_info=e)
+            return ManifestDownloadFailed(str(path.absolute()), str(e))
