@@ -4847,7 +4847,7 @@ class InfrastructureAppsCommand(CLICommand):
     - `pattern` [optional]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
 
     ## Options
-    - `--index-url <url>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
+    - `--index-url <url>`: The index file to use for searching for apps. Defaults to https://cdn.some.engineering/resoto/apps/index.json.
     - `--dry-run`: Run the app but do not make any changes.
     - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """
