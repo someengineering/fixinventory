@@ -68,7 +68,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
     invalid_login_attempts: Optional[int] = None
     last_login: Optional[datetime] = None
     locked_until: Optional[datetime] = None
-    state: Optional[int] = None
+    state: Optional[str] = None
     password_age: Optional[timedelta] = None
 
     @staticmethod
@@ -117,7 +117,7 @@ class OneLoginUser(OneLoginResource, BaseUser):
             invalid_login_attempts=user.invalid_login_attempts,
             last_login=user.last_login,
             locked_until=user.locked_until,
-            state=user.state,
+            state=str(user.state),
             ctime=user.created_at,
             atime=user.last_login,
             mtime=user.updated_at,

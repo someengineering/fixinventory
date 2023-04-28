@@ -67,15 +67,14 @@ class PluginLoader:
             self.find_plugins()
         configured_collectors: Set[str] = set(Config.resotoworker.collector)
 
-        if plugin_type == PluginType.POST_COLLECT and len(configured_collectors) > 0:
+        if plugin_type == PluginType.POST_COLLECT:
             post_collect_plugins = cast(List[Type[BasePostCollectPlugin]], self._plugins.get(plugin_type, []))
             return [
                 plugin
                 for plugin in post_collect_plugins
                 if plugin.activate_with.issubset(configured_collectors) or plugin.name in configured_collectors
             ]
-
-        if plugin_type == PluginType.COLLECTOR and len(configured_collectors) > 0:
+        elif plugin_type == PluginType.COLLECTOR:
             plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
             return [plugin for plugin in plugins if plugin.cloud in configured_collectors]
 

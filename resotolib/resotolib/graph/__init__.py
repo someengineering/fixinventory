@@ -7,11 +7,13 @@ import threading
 from collections import defaultdict, namedtuple, deque
 from datetime import datetime
 from enum import Enum
+from functools import lru_cache
 from time import time
-from typing import Dict, Iterator, List, Tuple, Optional, Union, Any
+from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type
 
 import jsons
 import networkx
+from attr import resolve_types
 from attrs import define, fields
 from networkx.algorithms.dag import is_directed_acyclic_graph
 from prometheus_client import Summary
@@ -375,11 +377,17 @@ class Graph(networkx.MultiDiGraph):
         return GraphExportIterator(self)
 
 
+@lru_cache(maxsize=4096)  # Only resolve types once per type
+def resolve_type(clazz: Type[Any]) -> None:
+    resolve_types(clazz)
+
+
 def validate_dataclass(node: BaseResource):
+    resolve_type(type(node))  # make sure all type annotations are resolved
     for field in fields(type(node)):
         value = getattr(node, field.name)
         try:
-            check_type(str(value), value, field.type)
+            check_type(value, field.type)
         except TypeError:
             log.exception(
                 f"In {node.rtdname} expected {field.name}"

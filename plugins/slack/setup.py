@@ -10,7 +10,7 @@ def read(file_name: str) -> str:
 
 setup(
     name="resoto-plugin-slack",
-    version="3.3.3",
+    version="3.4.0",
     description="Resoto Slack Plugin",
     license="Apache 2.0",
     packages=find_packages(),
