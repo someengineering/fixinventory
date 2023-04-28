@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from functools import wraps, cached_property
-from datetime import datetime, timezone, timedelta
-from copy import deepcopy
 import base64
 import hashlib
 import weakref
-from resotolib.logger import log
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type
-from resotolib.utils import make_valid_timestamp, utc_str
-from resotolib.json import from_json as _from_json, to_json as _to_json
-from resotolib.types import Json
-from prometheus_client import Counter, Summary
-from attrs import define, field, resolve_types, Factory
+from functools import wraps, cached_property
+from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
+
 import jsons
+from attrs import define, field, resolve_types, Factory
+from prometheus_client import Counter, Summary
+
+from resotolib.json import from_json as _from_json, to_json as _to_json
+from resotolib.logger import log
+from resotolib.types import Json
+from resotolib.utils import make_valid_timestamp, utc_str
 
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",
@@ -30,9 +32,9 @@ metrics_resource_cleanup_exceptions = Counter(
 metrics_resource_cleanup = Summary("resoto_resource_cleanup_seconds", "Time it took the resource cleanup() method")
 
 
-def unless_protected(f):
+def unless_protected(f: Callable[..., bool]) -> Callable[..., bool]:
     @wraps(f)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> bool:
         if not isinstance(self, BaseResource):
             raise ValueError("unless_protected() only supports BaseResource type objects")
         if self.protected:
@@ -65,7 +67,7 @@ class EdgeType(Enum):
     delete = "delete"
 
     @staticmethod
-    def from_value(value: Optional[str] = None) -> Enum:
+    def from_value(value: Optional[str] = None) -> EdgeType:
         try:
             return EdgeType(value)
         except ValueError:
@@ -74,17 +76,17 @@ class EdgeType(Enum):
 
 
 class ResourceChanges:
-    def __init__(self, node) -> None:
+    def __init__(self, node: BaseResource) -> None:
         self.node = node
-        self.reported = set()
-        self.desired = set()
-        self.metadata = set()
+        self.reported: Set[str] = set()
+        self.desired: Set[str] = set()
+        self.metadata: Set[str] = set()
         self.changed = False
 
     def add(self, property: str) -> None:
-        if property in ("tags"):
+        if property == "tags":
             self.reported.add(property)
-        elif property in ("clean"):
+        elif property == "clean":
             self.desired.add(property)
         elif property in ("cleaned", "protected"):
             self.metadata.add(property)
@@ -94,8 +96,8 @@ class ResourceChanges:
             raise ValueError(f"Unknown property {property}")
         self.changed = True
 
-    def get(self) -> Dict:
-        changes = {}
+    def get(self) -> Dict[str, Any]:
+        changes: Dict[str, Any] = {}
         for section in ("reported", "desired", "metadata"):
             for attribute in getattr(self, section, []):
                 if section not in changes:
@@ -148,7 +150,7 @@ class BaseResource(ABC):
     _clean: bool = False
     _cleaned: bool = False
     _protected: bool = False
-    _deferred_connections: List = field(factory=list)
+    _deferred_connections: List[Dict[str, Any]] = field(factory=list)
 
     ctime: Optional[datetime] = field(
         default=None,
@@ -168,7 +170,7 @@ class BaseResource(ABC):
             self.name = self.id
         self._changes: ResourceChanges = ResourceChanges(self)
         self.__graph = None
-        self.__log: List = []
+        self.__log: List[Json] = []
         self._raise_tags_exceptions: bool = False
         if not hasattr(self, "_ctime"):
             self._ctime = None
@@ -177,7 +179,7 @@ class BaseResource(ABC):
         if not hasattr(self, "_mtime"):
             self._mtime = None
 
-    def _keys(self) -> tuple:
+    def _keys(self) -> Tuple[Any, ...]:
         """Return a tuple of all keys that make this resource unique
 
         Must not be called before the resource is connected to the graph
@@ -250,7 +252,7 @@ class BaseResource(ABC):
             ),
         )
 
-    def log(self, msg: str, data=None, exception=None) -> None:
+    def log(self, msg: str, data: Optional[Any] = None, exception: Optional[Exception] = None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         log_entry = {
             "timestamp": now,
@@ -269,11 +271,11 @@ class BaseResource(ABC):
         return self._changes
 
     @property
-    def event_log(self) -> List:
+    def event_log(self) -> List[Json]:
         return self.__log
 
     @property
-    def str_event_log(self) -> List:
+    def str_event_log(self) -> List[Json]:
         return [
             {
                 "timestamp": utc_str(le["timestamp"]),
@@ -303,44 +305,47 @@ class BaseResource(ABC):
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.ctime is not None:
             return now - self.ctime
+        else:
+            return None
 
     @property
     def last_access(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.atime is not None:
             return now - self.atime
+        else:
+            return None
 
     @property
     def last_update(self) -> Optional[timedelta]:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         if self.mtime is not None:
             return now - self.mtime
+        else:
+            return None
 
     def _ctime_getter(self) -> Optional[datetime]:
-        if "resoto:ctime" in self.tags:
-            ctime = self.tags["resoto:ctime"]
+        if ctime_string := self.tags.get("resoto:ctime"):
             try:
-                ctime = make_valid_timestamp(datetime.fromisoformat(ctime))
+                return make_valid_timestamp(datetime.fromisoformat(ctime_string))
             except ValueError:
                 pass
-            else:
-                return ctime
         return self._ctime
 
     def _ctime_setter(self, value: Optional[datetime]) -> None:
-        self._ctime = make_valid_timestamp(value)
+        self._ctime = make_valid_timestamp(value) if value else None  # type: ignore
 
     def _atime_getter(self) -> Optional[datetime]:
         return self._atime
 
     def _atime_setter(self, value: Optional[datetime]) -> None:
-        self._atime = make_valid_timestamp(value)
+        self._atime = make_valid_timestamp(value) if value else None  # type: ignore
 
     def _mtime_getter(self) -> Optional[datetime]:
         return self._mtime
 
     def _mtime_setter(self, value: Optional[datetime]) -> None:
-        self._mtime = make_valid_timestamp(value)
+        self._mtime = make_valid_timestamp(value) if value else None  # type: ignore
 
     @property
     def clean(self) -> bool:
@@ -382,9 +387,9 @@ class BaseResource(ABC):
 
     # deprecated. future collectors plugins should be responsible for running pre_cleanup
     # and calling delete_resource on resources
-    @metrics_resource_cleanup.time()
+    @metrics_resource_cleanup.time()  # type: ignore
     @unless_protected
-    def cleanup(self, graph=None) -> bool:
+    def cleanup(self, graph: Optional[Any] = None) -> bool:
         if self.phantom:
             raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
 
@@ -427,7 +432,7 @@ class BaseResource(ABC):
     # deprecated. future collectors plugins should be responsible for running pre_cleanup
     # and calling pre_delete_resource on resources
     @unless_protected
-    def pre_cleanup(self, graph=None) -> bool:
+    def pre_cleanup(self, graph: Optional[Any] = None) -> bool:
         if not hasattr(self, "pre_delete"):
             return True
 
@@ -472,11 +477,11 @@ class BaseResource(ABC):
 
     @unless_protected
     @abstractmethod
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         raise NotImplementedError
 
-    def account(self, graph=None) -> "BaseAccount":
-        account = None
+    def account(self, graph: Optional[Any] = None) -> "BaseAccount":
+        account: Optional[BaseAccount] = None
         if graph is None:
             graph = self._graph
         if self._account:
@@ -487,8 +492,8 @@ class BaseResource(ABC):
             account = UnknownAccount(id="undefined", tags={})
         return account
 
-    def cloud(self, graph=None) -> "BaseCloud":
-        cloud = None
+    def cloud(self, graph: Optional[Any] = None) -> "BaseCloud":
+        cloud: Optional[BaseCloud] = None
         if graph is None:
             graph = self._graph
         if self._cloud:
@@ -499,8 +504,8 @@ class BaseResource(ABC):
             cloud = UnknownCloud(id="undefined", tags={})
         return cloud
 
-    def region(self, graph=None) -> "BaseRegion":
-        region = None
+    def region(self, graph: Optional[Any] = None) -> "BaseRegion":
+        region: Optional[BaseRegion] = None
         if graph is None:
             graph = self._graph
         if self._region:
@@ -511,8 +516,8 @@ class BaseResource(ABC):
             region = UnknownRegion(id="undefined", tags={})
         return region
 
-    def zone(self, graph=None) -> "BaseZone":
-        zone = None
+    def zone(self, graph: Optional[Any] = None) -> "BaseZone":
+        zone: Optional[BaseZone] = None
         if graph is None:
             graph = self._graph
         if self._zone:
@@ -523,7 +528,7 @@ class BaseResource(ABC):
             zone = UnknownZone(id="undefined", tags={})
         return zone
 
-    def location(self, graph=None):
+    def resource_location(self, graph: Optional[Any] = None) -> "BaseResource":
         if graph is None:
             graph = self._graph
         zone = self.zone(graph)
@@ -541,11 +546,11 @@ class BaseResource(ABC):
         return UnknownLocation(id="undefined", tags={})
 
     def add_deferred_connection(
-        self, search: Dict, parent: bool = True, edge_type: EdgeType = EdgeType.default
+        self, search: Dict[str, Any], parent: bool = True, edge_type: EdgeType = EdgeType.default
     ) -> None:
         self._deferred_connections.append({"search": search, "parent": parent, "edge_type": edge_type})
 
-    def resolve_deferred_connections(self, graph) -> None:
+    def resolve_deferred_connections(self, graph: Any) -> None:
         if graph is None:
             graph = self._graph
         while self._deferred_connections:
@@ -561,67 +566,69 @@ class BaseResource(ABC):
                     dst = node
                 graph.add_edge(src, dst, edge_type=edge_type)
 
-    def predecessors(self, graph=None, edge_type=None) -> Iterator:
+    def predecessors(self, graph: Optional[Any] = None, edge_type: Optional[EdgeType] = None) -> Iterator[BaseResource]:
         """Returns an iterator of the node's parent nodes"""
         if graph is None:
             graph = self._graph
         if graph is None:
-            return ()
-        return graph.predecessors(self, edge_type=edge_type)
+            return iter(())
+        return graph.predecessors(self, edge_type=edge_type)  # type: ignore
 
-    def successors(self, graph=None, edge_type=None) -> Iterator:
+    def successors(self, graph: Optional[Any] = None, edge_type: Optional[EdgeType] = None) -> Iterator[BaseResource]:
         """Returns an iterator of the node's child nodes"""
         if graph is None:
             graph = self._graph
         if graph is None:
-            return ()
-        return graph.successors(self, edge_type=edge_type)
+            return iter(())
+        return graph.successors(self, edge_type=edge_type)  # type: ignore
 
-    def predecessor_added(self, resource, graph) -> None:
+    def predecessor_added(self, resource: BaseResource, graph: Any) -> None:
         """Called when a predecessor is added to this node"""
         pass
 
-    def successor_added(self, resource, graph) -> None:
+    def successor_added(self, resource: BaseResource, graph: Any) -> None:
         """Called when a successor is added to this node"""
         pass
 
-    def ancestors(self, graph, edge_type=None) -> Iterator:
+    def ancestors(self, graph: Any, edge_type: Optional[EdgeType] = None) -> Iterator[BaseResource]:
         """Returns an iterator of the node's ancestors"""
         if graph is None:
             graph = self._graph
         if graph is None:
-            return ()
-        return graph.ancestors(self, edge_type=edge_type)
+            return iter(())
+        return graph.ancestors(self, edge_type=edge_type)  # type: ignore
 
-    def descendants(self, graph, edge_type=None) -> Iterator:
+    def descendants(self, graph: Any, edge_type: Optional[EdgeType] = None) -> Iterator[BaseResource]:
         """Returns an iterator of the node's descendants"""
         if graph is None:
             graph = self._graph
         if graph is None:
-            return ()
-        return graph.descendants(self, edge_type=edge_type)
+            return iter(())
+        return graph.descendants(self, edge_type=edge_type)  # type: ignore
 
     @property
-    def _graph(self):
+    def _graph(self) -> Optional[Any]:
         if self.__graph is not None:
             return self.__graph()
+        else:
+            return None
 
     @_graph.setter
-    def _graph(self, value) -> None:
-        self.__graph = weakref.ref(value)
+    def _graph(self, value: Any) -> None:
+        self.__graph = weakref.ref(value)  # type: ignore
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         ret = self.__dict__.copy()
         ret["_BaseResource__graph"] = None
         return ret
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
 
 
-BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)
-BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)
-BaseResource.atime = property(BaseResource._atime_getter, BaseResource._atime_setter)
+BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)  # type: ignore
+BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)  # type: ignore
+BaseResource.atime = property(BaseResource._atime_getter, BaseResource._atime_setter)  # type: ignore
 
 
 BaseResourceType = TypeVar("BaseResourceType", bound=BaseResource)
@@ -632,19 +639,19 @@ class PhantomBaseResource(BaseResource):
     kind: ClassVar[str] = "phantom_resource"
     phantom: ClassVar[bool] = True
 
-    def update_tag(self, key, value) -> bool:
+    def update_tag(self, key: str, value: str) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and does not maintain tags")
         return False
 
-    def delete_tag(self, key) -> bool:
+    def delete_tag(self, key: str) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and does not maintain tags")
         return False
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and can't be deleted")
         return False
 
-    def cleanup(self, graph=None) -> bool:
+    def cleanup(self, graph: Optional[Any] = None) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and can't be cleaned up")
         return False
 
@@ -716,7 +723,7 @@ class BaseCloud(BaseResource):
     kind: ClassVar[str] = "base_cloud"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cloud", "group": "control"}
 
-    def cloud(self, graph=None):
+    def cloud(self, graph: Optional[Any] = None) -> BaseCloud:
         return self
 
 
@@ -725,7 +732,7 @@ class BaseAccount(BaseResource):
     kind: ClassVar[str] = "account"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
 
-    def account(self, graph=None):
+    def account(self, graph: Optional[Any] = None) -> BaseAccount:
         return self
 
 
@@ -734,7 +741,7 @@ class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
 
-    def region(self, graph=None):
+    def region(self, graph: Optional[Any] = None) -> BaseRegion:
         return self
 
 
@@ -743,7 +750,7 @@ class BaseZone(BaseResource):
     kind: ClassVar[str] = "zone"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "control"}
 
-    def zone(self, graph=None):
+    def zone(self, graph: Optional[Any] = None) -> BaseZone:
         return self
 
 
@@ -755,7 +762,7 @@ class InstanceStatus(Enum):
     UNKNOWN = "unknown"
 
 
-def serialize_enum(obj, **kwargs):
+def serialize_enum(obj: Enum, **kwargs: Any) -> Any:
     return obj.value
 
 
@@ -770,9 +777,6 @@ class BaseInstance(BaseResource):
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
     instance_status: Optional[InstanceStatus] = None
-
-    def instance_type_info(self, graph) -> BaseInstanceType:
-        return graph.search_first_parent_class(self, BaseInstanceType)
 
 
 @define(eq=False, slots=False)
@@ -823,9 +827,6 @@ class BaseVolume(BaseResource):
     volume_encrypted: Optional[bool] = None
     snapshot_before_delete: bool = False
 
-    def volume_type_info(self, graph) -> BaseVolumeType:
-        return graph.search_first_parent_class(self, BaseVolumeType)
-
 
 @define(eq=False, slots=False)
 class BaseSnapshot(BaseResource):
@@ -845,7 +846,7 @@ class Cloud(BaseCloud):
     kind: ClassVar[str] = "cloud"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cloud", "group": "control"}
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -854,7 +855,7 @@ class GraphRoot(PhantomBaseResource):
     kind: ClassVar[str] = "graph_root"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "graph_root", "group": "control"}
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1050,7 +1051,7 @@ class BaseStack(BaseResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "control"}
     stack_status: str = ""
     stack_status_reason: str = ""
-    stack_parameters: Dict = field(factory=dict)
+    stack_parameters: Dict[str, str] = field(factory=dict)
 
 
 @define(eq=False, slots=False)
@@ -1099,15 +1100,13 @@ class BaseDNSRecordSet(BaseResource):
         super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
-    def dns_zone(self, graph=None) -> "BaseDNSZone":
+    def dns_zone(self, graph: Optional[Any] = None) -> "BaseDNSZone":
         if graph is None:
             graph = self._graph
-        dns_zone = graph.search_first_parent_class(self, BaseDNSZone)
-        if dns_zone is None:
-            dns_zone = UnknownDNSZone(id="undefined", tags={})
-        return dns_zone
+        dns_zone = graph.search_first_parent_class(self, BaseDNSZone) if graph else None
+        return dns_zone or UnknownDNSZone(id="undefined", tags={})
 
-    def _keys(self) -> tuple:
+    def _keys(self) -> tuple[Any, ...]:
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
@@ -1149,15 +1148,13 @@ class BaseDNSRecord(BaseResource):
         super().__attrs_post_init__()
         self.record_type = self.record_type.upper()
 
-    def dns_zone(self, graph=None) -> "BaseDNSZone":
+    def dns_zone(self, graph: Optional[Any] = None) -> "BaseDNSZone":
         if graph is None:
             graph = self._graph
-        dns_zone = graph.search_first_parent_class(self, BaseDNSZone)
-        if dns_zone is None:
-            dns_zone = UnknownDNSZone(id="undefined", tags={})
-        return dns_zone
+        dns_zone = graph.search_first_parent_class(self, BaseDNSZone) if graph else None
+        return dns_zone or UnknownDNSZone(id="undefined", tags={})
 
-    def _keys(self) -> tuple:
+    def _keys(self) -> tuple[Any, ...]:
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
         return (
@@ -1178,7 +1175,7 @@ class BaseDNSRecord(BaseResource):
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1186,7 +1183,7 @@ class UnknownCloud(BaseCloud):
 class UnknownAccount(BaseAccount):
     kind: ClassVar[str] = "unknown_account"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1194,7 +1191,7 @@ class UnknownAccount(BaseAccount):
 class UnknownRegion(BaseRegion):
     kind: ClassVar[str] = "unknown_region"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1202,7 +1199,7 @@ class UnknownRegion(BaseRegion):
 class UnknownDNSZone(BaseDNSZone):
     kind: ClassVar[str] = "unknown_dns_zone"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1210,7 +1207,7 @@ class UnknownDNSZone(BaseDNSZone):
 class UnknownZone(BaseZone):
     kind: ClassVar[str] = "unknown_zone"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 
@@ -1218,7 +1215,7 @@ class UnknownZone(BaseZone):
 class UnknownLocation(BaseResource):
     kind: ClassVar[str] = "unknown_location"
 
-    def delete(self, graph) -> bool:
+    def delete(self, graph: Any) -> bool:
         return False
 
 

@@ -134,7 +134,7 @@ class F(Bender):
     ```
     """
 
-    def __init__(self, func: Callable[[Any], Any], *args: Any, **kwargs: Any):  # type: ignore
+    def __init__(self, func: Callable[[Any], Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._func = func
         self._args = args
@@ -329,7 +329,7 @@ class Sort(Bender):
 
     def execute(self, source: Any) -> Any:
         if isinstance(source, list):
-            return sorted(source, key=lambda x: bend(self._extractor, x))
+            return sorted(source, key=lambda x: bend(self._extractor, x))  # type: ignore
         else:
             return source
 

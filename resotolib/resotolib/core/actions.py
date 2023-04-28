@@ -10,6 +10,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 
 from attr import define, evolve, field
+from requests import Response
 
 from resotolib.core.progress import Progress, ProgressDone
 from resotolib.logger import log
@@ -17,7 +18,7 @@ from resotolib.event import EventType, remove_event_listener, add_event_listener
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.core.ca import TLSData
-from typing import Callable, Dict, Optional, List
+from typing import Callable, Dict, Optional, List, Any
 
 from resotolib.types import Json
 from resotolib.utils import utc_str
@@ -56,7 +57,7 @@ class CoreFeedback:
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
             logger.error(self.context_str + message)
-        self._info_message("error", message)
+        self._info_message("error", message[0:250])  # truncate message to 250 characters
 
     @property
     def context_str(self) -> str:
@@ -89,9 +90,9 @@ class CoreActions(threading.Thread):
         identifier: str,
         resotocore_uri: str,
         resotocore_ws_uri: str,
-        actions: Dict,
+        actions: Dict[str, Json],
         incoming_messages: Optional[Queue[Json]] = None,
-        message_processor: Optional[Callable] = None,
+        message_processor: Optional[Callable[[Json], Any]] = None,
         tls_data: Optional[TLSData] = None,
         max_concurrent_actions: int = 5,
     ) -> None:
@@ -101,7 +102,7 @@ class CoreActions(threading.Thread):
         self.resotocore_ws_uri = resotocore_ws_uri
         self.actions = actions
         self.message_processor = message_processor
-        self.ws = None
+        self.ws: Optional[websocket.WebSocketApp] = None
         self.incoming_messages = incoming_messages
         self.tls_data = tls_data
         self.shutdown_event = threading.Event()
@@ -109,12 +110,13 @@ class CoreActions(threading.Thread):
         self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions + 1, thread_name_prefix=self.identifier)
 
     def run(self) -> None:
-        def listen_on_queue(in_messages: Queue) -> None:
+        def listen_on_queue(in_messages: Queue[Json]) -> None:
             while not self.shutdown_event.is_set():
                 with suppress(Exception):
                     message = in_messages.get(timeout=1)
                     log.debug("Got feedback message. Send it to core", message)
-                    self.ws.send(json.dumps(message))
+                    if self.ws:
+                        self.ws.send(json.dumps(message))
 
         self.name = self.identifier
         add_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -142,7 +144,7 @@ class CoreActions(threading.Thread):
 
         ws_uri = f"{self.resotocore_ws_uri}/subscriber/{self.identifier}/handle"
         log.debug(f"{self.identifier} connecting to {ws_uri}")
-        headers = {}
+        headers: Dict[str, str] = {}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         try:
@@ -163,7 +165,7 @@ class CoreActions(threading.Thread):
         finally:
             self.ws = None
 
-    def shutdown(self, event: Event = None) -> None:
+    def shutdown(self, event: Optional[Event] = None) -> None:
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
         log.debug("Received shutdown event - shutting down resotocore message bus listener")
         self.shutdown_event.set()
@@ -171,15 +173,20 @@ class CoreActions(threading.Thread):
         if self.ws:
             self.ws.close()
 
-    def register(self, action: str, data: Optional[Dict] = None) -> bool:
+    def register(self, action: str, data: Optional[Dict[str, str]] = None) -> bool:
         log.debug(f"{self.identifier} registering for {action} actions ({data})")
         return self.registration(action, requests.post, data)
 
-    def unregister(self, action: str, data: Optional[Dict] = None) -> bool:
+    def unregister(self, action: str, data: Optional[Dict[str, str]] = None) -> bool:
         log.debug(f"{self.identifier} unregistering from {action} actions ({data})")
         return self.registration(action, requests.delete, data)
 
-    def registration(self, action: str, client: Callable, data: Optional[Dict] = None) -> bool:
+    def registration(
+        self,
+        action: str,
+        client: Callable[..., Response],
+        data: Optional[Dict[str, str]] = None,
+    ) -> bool:
         url = f"{self.resotocore_uri}/subscriber/{self.identifier}/{action}"
         headers = {"accept": "application/json"}
 
@@ -200,17 +207,17 @@ class CoreActions(threading.Thread):
 
     def process_message(self, message: str) -> None:
         try:
-            message: Json = json.loads(message)
+            json_message: Json = json.loads(message)
         except json.JSONDecodeError:
             log.exception(f"Unable to decode received message {message}")
             return
         log.debug(f"{self.identifier} received: {message}")
         if self.message_processor is not None and callable(self.message_processor):
             try:
-                result = self.message_processor(message)
+                result: Json = self.message_processor(json_message)
                 if result is None:
                     return
-                if self.wait_for_ws():
+                if self.wait_for_ws() and self.ws:
                     log.debug(f"Sending reply {result}")
                     self.ws.send(json.dumps(result))
                 else:
@@ -221,7 +228,7 @@ class CoreActions(threading.Thread):
     def on_error(self, _: websocket.WebSocketApp, e: Exception) -> None:
         log.debug(f"{self.identifier} message bus error: {e!r}")
 
-    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str):
+    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
         log.debug(f"{self.identifier} disconnected from resotocore message bus: {close_status_code}: {close_msg}")
 
     def on_open(self, _: websocket.WebSocketApp) -> None:

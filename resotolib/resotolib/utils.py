@@ -6,31 +6,26 @@ import socket
 import string
 import time
 from argparse import ArgumentParser
-from datetime import date, datetime, timezone, timedelta
 from copy import deepcopy
-
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    from backports.zoneinfo import ZoneInfo
-from tzlocal import get_localzone_name
+from datetime import date, datetime, timezone, timedelta
 from functools import wraps, cached_property
-from pprint import pformat
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable, cast
-from resotolib.types import DecoratedFn, JsonElement
+from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable, cast, Iterator, TypeVar
+from zoneinfo import ZoneInfo
 
 import pkg_resources
 import requests
+from tzlocal import get_localzone_name
 
 from resotolib.logger import log
+from resotolib.types import DecoratedFn, JsonElement
+
+T = TypeVar("T")
+UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def rnd_str(str_len: int = 10) -> str:
     return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len))
-
-
-UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def utc() -> datetime:
@@ -76,7 +71,7 @@ def str2timedelta(td: str) -> timedelta:
         )
     else:
         m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", td)
-    args = {key: float(val) for key, val in m.groupdict().items()}
+    args = {key: float(val) for key, val in m.groupdict().items()}  # type: ignore
     return timedelta(**args)
 
 
@@ -98,7 +93,7 @@ def get_local_tzinfo() -> ZoneInfo:
     return ZoneInfo(zone_name)
 
 
-def chunks(items: List, n: int) -> List:
+def chunks(items: List[T], n: int) -> Iterator[List[T]]:
     """Split a list of items into multiple lists of size n and yield each chunk"""
     for s in range(0, len(items), n):
         e = s + n
@@ -118,29 +113,8 @@ def unset_cached_properties(obj: Any) -> None:
             obj.__dict__.pop(attr_a.attrname, None)
 
 
-def split_esc(s, delim):
-    """Split with support for delimiter escaping
-
-    Via: https://stackoverflow.com/a/29107566
-    """
-    i, res, buf = 0, [], ""
-    while True:
-        j, e = s.find(delim, i), 0
-        if j < 0:  # end reached
-            return res + [buf + s[i:]]  # add remainder
-        while j - e and s[j - e - 1] == "\\":
-            e += 1  # number of escapes
-        d = e // 2  # number of double escapes
-        if e != d * 2:  # odd number of escapes
-            buf += s[i : j - d - 1] + s[j]  # add the escaped char
-            i = j + 1  # and skip it
-            continue  # add more to buf
-        res.append(buf + s[i : j - d])
-        i, buf = j + len(delim), ""  # start after delim
-
-
 # via https://stackoverflow.com/a/1094933
-def iec_size_format(byte_size: int) -> str:
+def iec_size_format(byte_size: float) -> str:
     for unit in ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]:
         if abs(byte_size) < 1024.0:
             return f"{byte_size:.2f} {unit}"
@@ -162,19 +136,9 @@ def sha256sum(filename: str, buffer_size: int = 128 * 1024) -> str:
     return h.hexdigest()
 
 
-def json_default(o):
-    if hasattr(o, "to_json"):
-        return o.to_json()
-    elif isinstance(o, (date, datetime)):
-        return utc_str(o)
-    elif isinstance(o, Exception):
-        return pformat(o)
-    raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
-
-
 def log_runtime(f: DecoratedFn) -> DecoratedFn:
     @wraps(f)
-    def timer(*args, **kwargs):
+    def timer(*args: Any, **kwargs: Any) -> Any:
         start = time.time()
         ret = f(*args, **kwargs)
         runtime = time.time() - start
@@ -185,19 +149,18 @@ def log_runtime(f: DecoratedFn) -> DecoratedFn:
         log.debug(f"Runtime of {f.__name__}({args_str}{kwargs_str}): {runtime:.3f} seconds")
         return ret
 
-    return timer
+    return timer  # type: ignore
 
 
-def except_log_and_pass(do_raise: Optional[Tuple] = None):
-    if do_raise is None:
-        do_raise = ()
+def except_log_and_pass(do_raise: Optional[Tuple[Any]] = None) -> Callable[..., Any]:
+    do_raise_tuple = do_raise if do_raise is not None else ()
 
-    def acallable(f):
+    def acallable(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
-        def catch_and_log(*args, **kwargs):
+        def catch_and_log(*args: Any, **kwargs: Any) -> Any:
             try:
                 return f(*args, **kwargs)
-            except do_raise:
+            except do_raise_tuple:
                 raise
             except Exception:
                 args_str = ", ".join([repr(arg) for arg in args])
@@ -214,7 +177,9 @@ def except_log_and_pass(do_raise: Optional[Tuple] = None):
 resource_attributes_blacklist = ["event_log"]
 
 
-def get_resource_attributes(resource, exclude_private: bool = True, keep_data_structures: bool = False) -> Dict:
+def get_resource_attributes(
+    resource: Any, exclude_private: bool = True, keep_data_structures: bool = False
+) -> Dict[str, Any]:
     attributes = dict(resource.__dict__)
     attributes["kind"] = resource.kind
 
@@ -273,12 +238,12 @@ def get_resource_attributes(resource, exclude_private: bool = True, keep_data_st
     return attributes
 
 
-def type_str(o):
+def type_str(o: Any) -> str:
     cls = o.__class__
-    module = cls.__module__
+    module = str(cls.__module__)
     if module == "builtins":
-        return cls.__qualname__
-    return module + "." + cls.__qualname__
+        return str(cls.__qualname__)
+    return module + "." + str(cls.__qualname__)
 
 
 def get_local_ip_addresses(
@@ -411,7 +376,7 @@ def update_check(
         current_version_ctime = make_valid_timestamp(
             datetime.strptime(current_release_response.json()["published_at"], "%Y-%m-%dT%H:%M:%SZ")
         )
-        current_version_age = latest_version_ctime - current_version_ctime
+        current_version_age = latest_version_ctime - current_version_ctime  # type: ignore
         msg = (
             f"Current version {current_version} is {current_version_age.days} days out of date."
             f" Latest version is {latest_version}!"
@@ -420,7 +385,7 @@ def update_check(
     return msg
 
 
-def safe_members_in_tarfile(tarfile: TarFile) -> List:
+def safe_members_in_tarfile(tarfile: TarFile) -> List[Any]:
     # via vmware/pyvcloud/vcd/utils.py
     def badpath(path: str, base: str) -> bool:
         # joinpath will ignore base if path is absolute
@@ -432,7 +397,7 @@ def safe_members_in_tarfile(tarfile: TarFile) -> List:
         return badpath(info.linkname, base=tip)
 
     base = os.path.realpath(os.path.abspath((".")))
-    basename = os.path.basename(tarfile.name)
+    basename = os.path.basename(tarfile.name)  # type: ignore
     result = []
     for tar_info in tarfile.getmembers():
         if badpath(tar_info.name, base):
@@ -446,9 +411,9 @@ def safe_members_in_tarfile(tarfile: TarFile) -> List:
     return result
 
 
-def rrdata_as_dict(record_type: str, record_data: str) -> Dict:
+def rrdata_as_dict(record_type: str, record_data: str) -> Dict[str, Any]:
     record_type = record_type.upper()
-    rrdata = {}
+    rrdata: Dict[str, Any] = {}
     record_elements = []
     if record_type not in ("TXT"):
         record_data = " ".join(
@@ -540,17 +505,17 @@ def replace_env_vars(elem: JsonElement, environment: Mapping[str, str], keep_unr
         elem: JsonElement, environment: Mapping[str, str], keep_unresolved: bool, path: List[Union[str, int]]
     ) -> Union[JsonElement, UnresolvedEnvVar]:
         if isinstance(elem, dict):
-            replaced = {
+            replaced_dict = {
                 k: replace_env_vars_helper(v, environment, keep_unresolved, path + [k]) for k, v in elem.items()
             }
-            without_unresolved = {k: v for k, v in replaced.items() if v is not Unresolved}
-            return without_unresolved
+            without_unresolved_dict = {k: v for k, v in replaced_dict.items() if v is not Unresolved}
+            return without_unresolved_dict
         elif isinstance(elem, list):
-            replaced = [
+            replaced_list = [
                 replace_env_vars_helper(v, environment, keep_unresolved, path + [i]) for i, v, in enumerate(elem)
             ]
-            without_unresolved = [v for v in replaced if v is not Unresolved]
-            return without_unresolved
+            without_unresolved_list = [v for v in replaced_list if v is not Unresolved]
+            return without_unresolved_list
         elif isinstance(elem, str):
             str_value = elem
             for match in re.finditer(env_var_substitution_pattern, elem):

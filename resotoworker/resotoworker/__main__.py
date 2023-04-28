@@ -199,7 +199,7 @@ def main() -> None:
     # We wait for the shutdown Event to be set() and then end the program
     # While doing so we print the list of active threads once per 15 minutes
     shutdown_event.wait()
-    web_server.shutdown()  # type: ignore
+    web_server.shutdown()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
     resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
@@ -271,7 +271,7 @@ def core_actions_processor(
 
 
 def shutdown(event: Event) -> None:
-    reason = event.data.get("reason")
+    reason = str(event.data.get("reason"))
     emergency = event.data.get("emergency")
 
     if emergency:

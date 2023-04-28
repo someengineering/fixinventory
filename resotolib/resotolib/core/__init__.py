@@ -32,8 +32,8 @@ def resotocore_is_up(resotocore_uri: str, timeout: int = 5) -> bool:
 def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
     start_time = time.time()
     core_up = False
-    wait_time = -1
-    remaining_wait = timeout
+    wait_time: float = -1
+    remaining_wait: float = timeout
     waitlog = log.info
     while wait_time < timeout:
         if resotocore_is_up(resotocore_uri):
@@ -65,7 +65,7 @@ class ResotocoreURI:
             resotocore_uri = self.resotocore_uri
         if resotocore_uri is None:
             raise AttributeError("resotocore_uri is not set")
-        return urlparse(resotocore_uri)
+        return urlparse(resotocore_uri)  # type: ignore
 
     @property
     def http_uri(self) -> str:

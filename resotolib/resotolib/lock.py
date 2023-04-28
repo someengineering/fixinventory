@@ -1,4 +1,5 @@
 import threading
+from typing import Any
 
 
 class RWLock:
@@ -44,7 +45,7 @@ class RWLock:
                 self.rwlock.reader_acquire()
                 return self.rwlock
 
-            def __exit__(self, typ, value, tb) -> None:
+            def __exit__(self, typ: Any, value: Any, tb: Any) -> None:
                 self.rwlock.reader_release()
 
         self.read_access = _ReadAccess(self)
@@ -57,7 +58,7 @@ class RWLock:
                 self.rwlock.writer_acquire()
                 return self.rwlock
 
-            def __exit__(self, typ, value, tb) -> None:
+            def __exit__(self, typ: Any, value: Any, tb: Any) -> None:
                 self.rwlock.writer_release()
 
         self.write_access = _WriteAccess(self)
@@ -89,14 +90,14 @@ class _LightSwitch:
         self.__counter = 0
         self.__mutex = threading.Lock()
 
-    def acquire(self, lock) -> None:
+    def acquire(self, lock: threading.Lock) -> None:
         self.__mutex.acquire()
         self.__counter += 1
         if self.__counter == 1:
             lock.acquire()
         self.__mutex.release()
 
-    def release(self, lock) -> None:
+    def release(self, lock: threading.Lock) -> None:
         self.__mutex.acquire()
         self.__counter -= 1
         if self.__counter == 0:
