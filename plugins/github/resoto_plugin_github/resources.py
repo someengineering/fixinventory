@@ -18,6 +18,7 @@ from github.View import View
 from github.Referrer import Referrer
 from github.Path import Path
 from github.GithubException import GithubException
+from github.PullRequest import PullRequest
 
 
 @define(eq=False, slots=False)
@@ -100,8 +101,8 @@ class GithubOrg(GithubResource, BaseResource):
             blog=org.blog,
             collaborators=org.collaborators,
             company=org.company,
-            created_at=org.created_at,
-            ctime=org.created_at,
+            created_at=make_valid_timestamp(org.created_at),
+            ctime=make_valid_timestamp(org.created_at),
             default_repository_permission=org.default_repository_permission,
             description=org.description,
             disk_usage=org.disk_usage,
@@ -128,8 +129,8 @@ class GithubOrg(GithubResource, BaseResource):
             repos_url=org.repos_url,
             total_private_repos=org.total_private_repos,
             org_type=org.type,
-            updated_at=org.updated_at,
-            mtime=org.updated_at,
+            updated_at=make_valid_timestamp(org.updated_at),
+            mtime=make_valid_timestamp(org.updated_at),
             url=org.url,
         )
 
@@ -191,8 +192,8 @@ class GithubUser(GithubResource, BaseUser):
             collaborators=user.collaborators,
             company=user.company,
             contributions=user.contributions,
-            created_at=user.created_at,
-            ctime=user.created_at,
+            created_at=make_valid_timestamp(user.created_at),
+            ctime=make_valid_timestamp(user.created_at),
             disk_usage=user.disk_usage,
             email=user.email,
             events_url=user.events_url,
@@ -221,13 +222,13 @@ class GithubUser(GithubResource, BaseUser):
             site_admin=user.site_admin,
             starred_url=user.starred_url,
             subscriptions_url=user.subscriptions_url,
-            suspended_at=user.suspended_at,
+            suspended_at=make_valid_timestamp(user.suspended_at),
             team_count=user.team_count,
             total_private_repos=user.total_private_repos,
             twitter_username=user.twitter_username,
             user_type=user.type,
-            updated_at=user.updated_at,
-            mtime=user.updated_at,
+            updated_at=make_valid_timestamp(user.updated_at),
+            mtime=make_valid_timestamp(user.updated_at),
             url=user.url,
         )
 
@@ -325,6 +326,97 @@ class GithubRepoTopPath:
     @staticmethod
     def new(path: Path):
         return GithubRepoTopPath(title=path.title, path=path.path, count=path.count, uniques=path.uniques)
+
+
+@define(eq=False, slots=False)
+class GithubPullRequest(GithubResource, BaseResource):
+    kind: ClassVar[str] = "github_pull_request"
+
+    additions: Optional[int] = None
+    # assignee: Optional[str] = None
+    # assignees: Optional[List[str]] = None
+    # base: Optional[str] = None
+    body: Optional[str] = None
+    changed_files: Optional[int] = None
+    closed_at: Optional[datetime] = None
+    comments: Optional[int] = None
+    comments_url: Optional[str] = None
+    commits: Optional[int] = None
+    commits_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    deletions: Optional[int] = None
+    diff_url: Optional[str] = None
+    draft: Optional[bool] = None
+    # head: Optional[str] = None
+    html_url: Optional[str] = None
+    pr_id: Optional[int] = None
+    issue_url: Optional[str] = None
+    # labels: Optional[List[str]] = None
+    merge_commit_sha: Optional[str] = None
+    mergeable: Optional[bool] = None
+    mergeable_state: Optional[str] = None
+    merged: Optional[bool] = None
+    merged_at: Optional[datetime] = None
+    # merged_by: Optional[str] = None
+    # milestone: Optional[str] = None
+    number: Optional[int] = None
+    patch_url: Optional[str] = None
+    rebaseable: Optional[bool] = None
+    review_comments: Optional[int] = None
+    review_comments_url: Optional[str] = None
+    state: Optional[str] = None
+    title: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    url: Optional[str] = None
+    # user: Optional[str] = None
+    maintainer_can_modify: Optional[bool] = None
+
+    @staticmethod
+    def new(pr: PullRequest):
+        return GithubPullRequest(
+            name=str(pr.title),
+            additions=pr.additions,
+            # assignee=pr.assignee,
+            # assignees=pr.assignees,
+            # base=pr.base,
+            body=pr.body,
+            changed_files=pr.changed_files,
+            closed_at=make_valid_timestamp(pr.closed_at),
+            comments=pr.comments,
+            comments_url=pr.comments_url,
+            commits=pr.commits,
+            commits_url=pr.commits_url,
+            created_at=make_valid_timestamp(pr.created_at),
+            ctime=make_valid_timestamp(pr.created_at),
+            deletions=pr.deletions,
+            diff_url=pr.diff_url,
+            draft=pr.draft,
+            # head=pr.head,
+            html_url=pr.html_url,
+            pr_id=pr.id,
+            issue_url=pr.issue_url,
+            # labels=pr.labels,
+            merge_commit_sha=pr.merge_commit_sha,
+            mergeable=pr.mergeable,
+            mergeable_state=pr.mergeable_state,
+            merged=pr.merged,
+            merged_at=make_valid_timestamp(pr.merged_at),
+            # merged_by=pr.merged_by,
+            # milestone=pr.milestone,
+            number=pr.number,
+            id=str(pr.number),
+            patch_url=pr.patch_url,
+            rebaseable=pr.rebaseable,
+            review_comments=pr.review_comments,
+            review_comments_url=pr.review_comments_url,
+            state=pr.state,
+            title=pr.title,
+            updated_at=make_valid_timestamp(pr.updated_at),
+            mtime=make_valid_timestamp(pr.updated_at),
+            url=pr.url,
+            # user=pr.user,
+            maintainer_can_modify=pr.maintainer_can_modify,
+        )
 
 
 @define(eq=False, slots=False)
@@ -433,8 +525,8 @@ class GithubRepo(GithubResource, BaseResource):
             compare_url=repo.compare_url,
             contents_url=repo.contents_url,
             contributors_url=repo.contributors_url,
-            created_at=repo.created_at,
-            ctime=repo.created_at,
+            created_at=make_valid_timestamp(repo.created_at),
+            ctime=make_valid_timestamp(repo.created_at),
             default_branch=repo.default_branch,
             delete_branch_on_merge=repo.delete_branch_on_merge,
             deployments_url=repo.deployments_url,
@@ -476,7 +568,7 @@ class GithubRepo(GithubResource, BaseResource):
             open_issues_count=repo.open_issues_count,
             private=repo.private,
             pulls_url=repo.pulls_url,
-            pushed_at=repo.pushed_at,
+            pushed_at=make_valid_timestamp(repo.pushed_at),
             releases_url=repo.releases_url,
             size=repo.size,
             ssh_url=repo.ssh_url,
@@ -490,8 +582,8 @@ class GithubRepo(GithubResource, BaseResource):
             tags_url=repo.tags_url,
             teams_url=repo.teams_url,
             trees_url=repo.trees_url,
-            updated_at=repo.updated_at,
-            mtime=repo.updated_at,
+            updated_at=make_valid_timestamp(repo.updated_at),
+            mtime=make_valid_timestamp(repo.updated_at),
             url=repo.url,
             watchers=repo.watchers,
             watchers_count=repo.watchers_count,

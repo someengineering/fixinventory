@@ -48,7 +48,7 @@ _config = RunningConfig()
 
 
 class MetaConfig(type):
-    def __getattr__(cls, name):
+    def __getattr__(cls, name: str) -> Any:
         if name in _config.data:
             return _config.data[name]
         else:
@@ -61,7 +61,7 @@ class Config(metaclass=MetaConfig):
     def __init__(
         self,
         config_name: str,
-        resotocore_uri: str = None,
+        resotocore_uri: Optional[str] = None,
         tls_data: Optional[TLSData] = None,
     ) -> None:
         self._config_lock = threading.Lock()
@@ -79,14 +79,14 @@ class Config(metaclass=MetaConfig):
             tls_data=tls_data,
         )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name in self.running_config.data:
             return self.running_config.data[name]
         else:
             raise ConfigNotFoundError(f"No such config {name}")
 
     def shutdown(self) -> None:
-        self._ce.stop()
+        self._ce.shutdown()
 
     @staticmethod
     def init_default_config() -> None:
@@ -103,9 +103,9 @@ class Config(metaclass=MetaConfig):
         Dataclass must have a kind ClassVar which specifies the top level config name.
         """
         if hasattr(config, "kind"):
-            Config.running_config.classes[config.kind] = config
+            Config.running_config.classes[config.kind] = config  # type: ignore
             Config.running_config.types[config.kind] = {}
-            for field in fields(config):
+            for field in fields(config):  # type: ignore
                 if hasattr(field, "type"):
                     Config.running_config.types[config.kind][field.name] = optional_origin(field.type)
         else:
@@ -128,7 +128,7 @@ class Config(metaclass=MetaConfig):
                 # We need two configs here: one with env_vars resolved and overrides applied
                 # and one with the raw config as it was stored in the database
                 config_response, new_config_revision = get_config(
-                    self.config_name, self.resotocore_uri, verify=self.verify
+                    self.config_name, self.resotocore_uri, verify=self.verify  # type: ignore
                 )
                 # config with env_vars resolved and overrides applied
                 config_json = config_response["config"]
@@ -232,7 +232,7 @@ class Config(metaclass=MetaConfig):
             if config_id in Config.running_config.classes:
                 message = f" reason: {reason}" if reason else ""
                 log.debug(f"Loading config section {config_id}" + message)
-                clazz: Type[Any] = Config.running_config.classes.get(config_id, Any) if not read_as_json else Any
+                clazz: Type[Any] = Config.running_config.classes.get(config_id, Any) if not read_as_json else Any  # type: ignore # noqa: E501
                 # use the from_json class from config, if available
                 if loader := getattr(clazz, "from_json", None):
                     new_config[config_id] = loader(config_data)
@@ -243,7 +243,7 @@ class Config(metaclass=MetaConfig):
         return new_config
 
     @staticmethod
-    def restart_required(new_config: Dict) -> bool:
+    def restart_required(new_config: Json) -> bool:
         for config_id, config_data in new_config.items():
             if config_id in Config.running_config.data:
                 for field in fields(type(config_data)):
@@ -332,7 +332,7 @@ class Config(metaclass=MetaConfig):
                 log.exception(f"Failed to override config {override}")
 
     @staticmethod
-    def cast_target_type(config_value: Any, current_value: Any, fallback_target_type: type) -> object:
+    def cast_target_type(config_value: Any, current_value: Any, fallback_target_type: Optional[type]) -> object:
         if current_value is None and fallback_target_type is not None:
             target_type = fallback_target_type
         else:
@@ -344,8 +344,8 @@ class Config(metaclass=MetaConfig):
         return config_value
 
     @staticmethod
-    def dict() -> Dict:
-        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True, strip_privates=True)
+    def dict() -> Json:
+        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True, strip_privates=True)  # type: ignore # noqa: E501
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri, verify=self.verify)
@@ -379,7 +379,7 @@ class Config(metaclass=MetaConfig):
         return False
 
     @property
-    def model(self) -> List:
+    def model(self) -> List[Json]:
         """Return the config dataclass model in resotocore format"""
         classes = set(_config.classes.values())
         return dataclasses_to_resotocore_model(classes)

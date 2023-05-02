@@ -65,7 +65,7 @@ class Progress(ABC):
             }
         elif isinstance(self, ProgressTree):
             node_iter = (part.data for part in self.sub_tree.all_nodes_itr() if part.data is not None)
-            nodes: List[Progress] = sorted(node_iter, key=key) if key else list(node_iter)  # type: ignore
+            nodes: List[Progress] = sorted(node_iter, key=key) if key else list(node_iter)
             return {"kind": "tree", "name": self.name, **p, "parts": [part.to_json() for part in nodes]}
         else:
             raise AttributeError("No handler to marshal progress")
@@ -83,7 +83,7 @@ class Progress(ABC):
 
             def level_info(nd: Node) -> Json:
                 if dt := nd.data:
-                    return dt.info_json()
+                    return dt.info_json()  # type: ignore
                 else:
                     return {child.tag: level_info(child) for child in cloned.children(nd.identifier)}
 
@@ -111,7 +111,7 @@ class ProgressDone(Progress):
     current: int
     total: int
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         if self.total <= 0:
             raise ValueError("total must be greater than 0")
         if self.current > self.total:
@@ -153,7 +153,7 @@ class ProgressTree(Progress):
         if node is None:
             return None
         elif node.data is not None:
-            return node.data
+            return node.data  # type: ignore
         else:
             return evolve(self, sub_tree=Tree(self.sub_tree.subtree(nid), deep=True))
 
@@ -171,7 +171,7 @@ class ProgressTree(Progress):
             node = self.sub_tree.get_node(nid)
             # either the node is a data node or a tree node with children
             if node.data is not None:
-                return node.data.overall_progress()
+                return node.data.overall_progress()  # type: ignore
             else:
                 parts = [sub_progress_info(child.identifier) for child in self.sub_tree.children(nid)]
                 total_max = max(parts, key=lambda x: x.total).total if parts else 1
@@ -182,7 +182,7 @@ class ProgressTree(Progress):
                     total += total_max
                 return ProgressInfo(current, total)
 
-        return sub_progress_info(self.sub_tree.root)
+        return sub_progress_info(self.sub_tree.root)  # type: ignore
 
     def mark_done(self) -> Progress:
         cloned = evolve(self, sub_tree=Tree(self.sub_tree.subtree(self.sub_tree.root), deep=True))
@@ -197,7 +197,7 @@ class ProgressTree(Progress):
         return cloned
 
     def add_progress(self, progress: Progress) -> None:
-        last = self.sub_tree.root
+        last: str = self.sub_tree.root  # type: ignore
         last_path = last
         path = last
         for part in progress.path:

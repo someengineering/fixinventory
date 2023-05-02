@@ -4,7 +4,7 @@ import os
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast
 
 import pytest
 import yaml
@@ -14,6 +14,7 @@ from aiohttp.web import Request
 from aiostream import stream
 from aiostream.core import Stream
 from pytest import fixture
+from attrs import evolve
 
 from resotocore import version
 from resotocore.cli import is_node
@@ -28,11 +29,16 @@ from resotocore.error import CLIParseError
 from resotocore.model.model import Model
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
+from resotocore.report import Inspector
+from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
+from resotocore.ids import InfraAppName
+from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.runtime import Runtime
 from tests.resotocore.util_test import not_in_path
 
 
@@ -186,21 +192,21 @@ async def test_count_command(cli: CLI, json_source: str) -> None:
 
 @pytest.mark.asyncio
 async def test_head_command(cli: CLI) -> None:
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2", stream.list) == [[1, 2]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head -2", stream.list) == [[1, 2]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | head", stream.list) == [[1, 2, 3, 4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head 2 | dump", stream.list) == [[1, 2]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head -2 | dump", stream.list) == [[1, 2]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | head | dump", stream.list) == [[1, 2, 3, 4, 5]]
 
 
 @pytest.mark.asyncio
 async def test_tail_command(cli: CLI) -> None:
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2", stream.list) == [[4, 5]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail -2", stream.list) == [[4, 5]]
-    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail", stream.list) == [[1, 2, 3, 4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail 2 | dump", stream.list) == [[4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail -2 | dump", stream.list) == [[4, 5]]
+    assert await cli.execute_cli_command("json [1,2,3,4,5] | tail | dump", stream.list) == [[1, 2, 3, 4, 5]]
 
 
 @pytest.mark.asyncio
 async def test_chunk_command(cli: CLI, json_source: str) -> None:
-    result: List[List[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50", stream.list)
+    result: List[List[str]] = await cli.execute_cli_command(f"{json_source} | chunk 50 | dump", stream.list)
     assert len(result[0]) == 4  # 200 in chunks of 50
     for a in result[0]:
         assert len(a) == 50
@@ -220,7 +226,7 @@ async def test_uniq_command(cli: CLI, json_source: str) -> None:
 
 @pytest.mark.asyncio
 async def test_set_desired_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is("foo") | set_desired a="test" b=1 c=true', stream.list)
+    result = await cli.execute_cli_command('search is("foo") | set_desired a="test" b=1 c=true | dump', stream.list)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["desired"].items()
@@ -228,7 +234,7 @@ async def test_set_desired_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_set_metadata_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is("foo") | set_metadata a="test" b=1 c=true', stream.list)
+    result = await cli.execute_cli_command('search is("foo") | set_metadata a="test" b=1 c=true | dump', stream.list)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["metadata"].items()
@@ -236,7 +242,7 @@ async def test_set_metadata_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_clean_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is("foo") | clean', stream.list)
+    result = await cli.execute_cli_command('search is("foo") | clean | dump', stream.list)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"clean": True}.items() <= elem["desired"].items()
@@ -244,7 +250,7 @@ async def test_clean_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_protect_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is("foo") | protect', stream.list)
+    result = await cli.execute_cli_command('search is("foo") | protect | dump', stream.list)
     assert len(result[0]) == 11
     for elem in result[0]:
         assert {"protected": True}.items() <= elem["metadata"].items()
@@ -252,13 +258,13 @@ async def test_protect_command(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_list_sink(cli: CLI, cli_deps: CLIDependencies) -> None:
-    result = await cli.execute_cli_command("json [1,2,3]", stream.list)
+    result = await cli.execute_cli_command("json [1,2,3] | dump", stream.list)
     assert result == [[1, 2, 3]]
 
 
 @pytest.mark.asyncio
 async def test_flat_sink(cli: CLI) -> None:
-    parsed = await cli.evaluate_cli_command("json [1,2,3]; json [4,5,6]; json [7,8,9]")
+    parsed = await cli.evaluate_cli_command("json [1,2,3] | dump; json [4,5,6] | dump; json [7,8,9] | dump")
     result = await stream.list(stream.concat(stream.iterate((await p.execute())[1] for p in parsed)))
     assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -423,7 +429,7 @@ async def test_tag_command(
     assert await cli.execute_cli_command("echo id_does_not_exist | tag update foo bla", stream.list) == [[]]
     assert nr_of_performed() == 0
     res1 = await cli.execute_cli_command(
-        'json ["root", "collector"] | tag update foo "bla_{reported.some_int}"', stream.list
+        'json ["root", "collector"] | tag update foo "bla_{reported.some_int}" | dump', stream.list
     )
     assert nr_of_performed() == 2
     assert {a["id"] for a in res1[0]} == {"root", "collector"}
@@ -511,7 +517,7 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
 @pytest.mark.asyncio
 async def test_sort_command(cli: CLI) -> None:
     async def identifiers(query: str) -> List[str]:
-        result = await cli.execute_cli_command(query, stream.list)
+        result = await cli.execute_cli_command(query + " | dump", stream.list)
         return [r["reported"]["identifier"] for r in result[0]]
 
     id_wo = await identifiers("search is(bla) | sort identifier")
@@ -526,7 +532,7 @@ async def test_sort_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_limit_command(cli: CLI) -> None:
     async def identifiers(query: str) -> List[str]:
-        result = await cli.execute_cli_command(query, stream.list)
+        result = await cli.execute_cli_command(query + " | dump", stream.list)
         return [r["reported"]["identifier"] for r in result[0]]
 
     assert await identifiers("search is(bla) sort identifier | limit 1") == ["0_0"]
@@ -911,7 +917,7 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             "severity": "warning",
             "component": "Resoto",
             "custom_details": {
-                "no-cloud": {"no-account": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
+                "collector": {"sub_root": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
             },
         },
         "routing_key": "123",
@@ -1011,9 +1017,8 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
 
     async def aggregate(agg_str: str) -> List[Json]:
         res = AggregateCommand(cli_deps).parse(agg_str)
-        flow = await res.flow(in_stream)
-        async with flow.stream() as streamer:
-            return [s async for s in streamer]
+        async with (await res.flow(in_stream)).stream() as flow:
+            return [s async for s in flow]
 
     assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
         {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},
@@ -1031,3 +1036,100 @@ async def test_aggregate(cli_deps: CLIDependencies) -> None:
         {"group": {"name": "1_1_null"}, "count": 2},
         {"group": {"name": "2_1_null"}, "count": 2},
     ]
+
+
+@pytest.mark.asyncio
+async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: BenchmarkConfig) -> None:
+    T = TypeVar("T")
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    # all benchmarks are listed
+    assert "test" in await execute("report benchmark list", str)
+    assert "test" in await execute("report benchmarks list", str)
+    # all checks are listed
+    assert "test_test_some_check" in await execute("report check list", str)
+    assert "test_test_some_check" in await execute("report checks list", str)
+    # the whole benchmark is printed to the user
+    assert "Test section" in (await execute("report benchmark show test", Json))[0]
+    # a single check is executed and produces a benchmark result: benchmark_node, check_node, edge == 3
+    assert len((await execute("report check run test_test_some_check | dump", Json))) == 3
+    # without output transformer, a markdown report is generated
+    assert len((await execute("report check run test_test_some_check", str))) == 1
+    # execute the test benchmark
+    assert len((await execute("report benchmark run test | dump", Json))) == 9
+    assert len((await execute("report benchmark run test --only-failing | dump", Json))) == 9
+    assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 0
+
+
+@pytest.mark.asyncio
+async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtime: Runtime, tmp_directory: str) -> None:
+    T = TypeVar("T")
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    async def check_file_is_yaml(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                with open(s, "r") as file:
+                    yaml.safe_load(file.read())
+
+    # install a package
+    assert "installed successfully" in (await execute("apps install cleanup-untagged", str))[0]
+    manifest = await package_manager.get_manifest(InfraAppName("cleanup-untagged"))
+    assert manifest is not None
+    assert manifest.name == "cleanup-untagged"
+
+    # info about the app
+    info_json = (await execute("apps info cleanup-untagged", Json))[0]
+    assert info_json["name"] == "cleanup-untagged"
+
+    # run the app
+    result = await execute("apps run cleanup-untagged --dry-run", str)
+    assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
+
+    # run the app with stdin
+    result = await execute("echo foo | apps run cleanup-untagged --dry-run", str)
+    assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
+
+    # update the app
+    assert (
+        "App cleanup-untagged updated sucessfully to the latest version"
+        in (await execute("apps update cleanup-untagged", str))[0]
+    )
+
+    # update all apps
+    assert (
+        "App cleanup-untagged updated sucessfully to the latest version"
+        in (await execute("apps update cleanup-untagged", str))[0]
+    )
+
+    # edit the manifest: will make the manifest available as file
+    manifest_file = os.path.join(tmp_directory, "manifest.yml")
+    old_manifest = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup-untagged"))
+    assert old_manifest is not None
+    await cli.execute_cli_command("apps edit cleanup-untagged", check_file_is_yaml)
+    # update the manifest
+    updated_manifest = evolve(old_manifest, version="42")
+    updated_manifest_str = yaml.dump(to_js(updated_manifest))
+    with open(manifest_file, "w", encoding="utf-8") as file:
+        file.write(updated_manifest_str)
+    ctx = CLIContext(uploaded_files={"manifest.yaml": manifest_file})
+    update_result = await cli.execute_cli_command(f"apps update cleanup-untagged {manifest_file}", stream.list, ctx)
+    assert update_result == [[]]
+    # show the manifest - should be the same as the created one
+    updated_result = await cli.dependencies.infra_apps_package_manager.get_manifest(InfraAppName("cleanup-untagged"))
+    assert updated_result == updated_manifest
+
+    # list all apps
+    result = await execute("apps list", str)
+    assert result == ["cleanup-untagged"]
+
+    # uninstall the app
+    await execute("apps uninstall cleanup-untagged", str)
+    result = await execute("apps list", str)
+    assert result == []

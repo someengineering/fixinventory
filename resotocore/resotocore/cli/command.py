@@ -11,6 +11,7 @@ import shutil
 import tarfile
 import tempfile
 from abc import abstractmethod, ABC
+from argparse import Namespace
 from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
@@ -46,11 +47,6 @@ from aiostream.core import Stream
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -90,9 +86,11 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
+from resotocore.infra_apps.package_manager import Failure
+from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId
+from resotocore.ids import ConfigId, TaskId, InfraAppName
 from resotocore.ids import TaskDescriptorId
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
@@ -106,7 +104,7 @@ from resotocore.model.model import (
     PropertyPath,
 )
 from resotocore.model.resolve_in_graph import NodePath
-from resotocore.model.typed_model import to_json, to_js
+from resotocore.model.typed_model import to_json, to_js, from_js
 from resotocore.query.model import (
     Query,
     P,
@@ -120,6 +118,8 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
+from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
+from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.util import (
@@ -156,6 +156,10 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 log = logging.getLogger(__name__)
 
@@ -1368,7 +1372,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         # db name is coming from the env
-        graph_name = ctx.env["graph"]
+        graph_name = ctx.graph_name
         if not arg:
             raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
@@ -1892,7 +1896,7 @@ class SetDesiredStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_desired, arg, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
@@ -2028,7 +2032,7 @@ class SetMetadataStateBase(CLICommand, ABC):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
-        func = partial(self.set_metadata, ctx.env["graph"], self.patch(arg, ctx))
+        func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -2135,6 +2139,9 @@ class ProtectCommand(SetMetadataStateBase):
         return {"protected": True}
 
 
+ConvertFn = Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]
+
+
 class FormatCommand(CLICommand, OutputTransformer):
     """
     ```
@@ -2199,7 +2206,7 @@ class FormatCommand(CLICommand, OutputTransformer):
             ArgInfo(expects_value=True, help_text="format definition with {} placeholders", option_group="output"),
         ]
 
-    formats: Dict[str, Callable[[AsyncIterator[JsonElement]], AsyncIterator[JsonElement]]] = {
+    formats: Dict[str, ConvertFn] = {
         "ndjson": respond_ndjson,
         "json": partial(respond_json, indent=2),
         "text": respond_text,
@@ -2208,6 +2215,8 @@ class FormatCommand(CLICommand, OutputTransformer):
         "graphml": respond_graphml,
         "dot": respond_dot,
     }
+
+    render_all = {"benchmark_result": respond_benchmark_result}
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         parser = NoExitArgumentParser()
@@ -2218,27 +2227,37 @@ class FormatCommand(CLICommand, OutputTransformer):
         parser.add_argument("--yaml", dest="yaml", action="store_true")
         parser.add_argument("--cytoscape", dest="cytoscape", action="store_true")
         parser.add_argument("--dot", dest="dot", action="store_true")
+        parser.add_argument("--benchmark-result", dest="benchmark_result", action="store_true")
         parsed, formatting_string = parser.parse_known_args(arg.split() if arg else [])
         format_to_use = {k for k, v in vars(parsed).items() if v is True}
+        use: Optional[str] = None
+        if format_to_use:
+            if len(format_to_use) > 1:
+                raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
+            if len(formatting_string) > 0:
+                raise AttributeError("A format renderer can not be combined together with a format string!")
+            use = next(iter(format_to_use))
 
-        async def render_format(format_name: str, iss: Stream) -> JsGen:
+        async def render_single(converter: ConvertFn, iss: Stream) -> JsGen:
             async with iss.stream() as streamer:
-                async for elem in self.formats[format_name](streamer):
+                async for elem in converter(streamer):
                     yield elem
 
-        async def format_stream(in_stream: Stream) -> Stream:
-            if format_to_use:
-                if len(format_to_use) > 1:
-                    raise AttributeError(f'You can define only one format. Defined: {", ".join(format_to_use)}')
-                if len(formatting_string) > 0:
-                    raise AttributeError("A format renderer can not be combined together with a format string!")
-                return render_format(next(iter(format_to_use)), in_stream)
+        async def format_stream(in_stream: Stream) -> JsGen:
+            if use:
+                if all_renderer := self.render_all.get(use):
+                    return all_renderer(in_stream)
+                elif single_renderer := self.formats.get(use):
+                    return render_single(single_renderer, in_stream)
+                else:
+                    raise ValueError(f"Unknown format: {use}")
             elif formatting_string:
                 return stream.map(in_stream, ctx.formatter(arg)) if arg else in_stream
             else:
                 return in_stream
 
-        return CLIFlow(format_stream)
+        produces = MediaType.Markdown if use == "benchmark_result" else MediaType.String
+        return CLIFlow(format_stream, produces=produces)
 
 
 @make_parser
@@ -2645,7 +2664,7 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
-        return CLIFlow(fmt)
+        return CLIFlow(fmt, produces=MediaType.String)
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -4608,6 +4627,461 @@ class CertificateCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class ReportCommand(CLICommand):
+    """
+    ```shell
+    report benchmarks list
+    report benchmark show <benchmark-id>
+    report benchmark run <benchmark-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    report checks list
+    report checks show <check-id>
+    report checks run <check-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    ```
+
+    List and run benchmarks as well as specific benchmark checks.
+    Benchmarks are a collection of checks that are run against all or specific accounts.
+    Every check has a severity, that can also be used to filter relevant checks.
+
+    The result of a benchmark run is a report in Markdown format.
+    By default, this report is rendered and displayed in the console.
+    It is also possible to write the result to a file and open it in an external viewer.
+
+    ## Parameters
+    - `--accounts` [optional]: List of account ids (space separated) to run the benchmark against.
+        If not specified, the benchmark is run against all accounts.
+    - `--severity` [optional]: Severity level to filter checks. One of `info`, `low`, `medium`, `high`, `critical`
+
+    ## Options
+    - `--only-failing` [optional]: Only include checks that are failing in the report.
+
+    ## Examples
+
+    ```shell
+    # List all available chekcs
+    > report checks list
+    aws_apigateway_authorizers_enabled
+    aws_s3_account_level_public_access_blocks
+
+    # Display the details of a specific check
+    > report check show aws_apigateway_authorizers_enabled
+      ... output suppressed ...
+
+    # Perform the check against all accounts available, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled --only-failing
+      ... output suppressed ...
+
+    # Perform the check against all defined accounts, showing only a result if the check fails.
+    > report check run aws_apigateway_authorizers_enabled  --accounts 111 222 --only-failing
+      ... output suppressed ...
+
+    # List all available benchmarks
+    > report benchmarks list
+    aws_cis_1_5
+
+    # Display the details of a specific benchmark
+    > report benchmark show aws_cis_1_5
+    report_benchmark:
+      ... output suppressed ...
+
+    # Run benchmark against all accounts available
+    > report benchmark run aws_cis_1_5
+      ... output suppressed ...
+
+    # Run benchmark against account 111 and 222, check only critical checks
+    # The resulting report should contain only failed checks.
+    > report benchmark run aws_cis_1_5 --accounts 111 222  --severity critical --only-failing
+      ... output suppressed ...
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "report"
+
+    def args_info(self) -> ArgsInfo:
+        run_args = [
+            ArgInfo("--accounts", True, help_text="Space delimited list of accounts"),
+            ArgInfo(
+                "--severity",
+                True,
+                help_text="The severity level to filter checks",
+                possible_values=[s.value for s in ReportSeverity],
+            ),
+            ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
+        ]
+        return {
+            "benchmark": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<benchmark-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<benchmark-id>")],
+            },
+            "checks": {
+                "list": [],
+                "run": [ArgInfo(None, help_text="<check-id>"), *run_args],
+                "show": [ArgInfo(None, help_text="<check-id>")],
+            },
+        }
+
+    def info(self) -> str:
+        return "Generate reports."
+
+    @staticmethod
+    def is_run_action(arg: Optional[str]) -> bool:
+        return ReportCommand.action_from_arg(arg) in ("benchmark_run", "check_run")
+
+    @staticmethod
+    def action_from_arg(arg: Optional[str]) -> Optional[str]:
+        args = re.split("\\s+", arg.strip(), maxsplit=3) if arg else []
+        if len(args) == 2 and args[0] in ("benchmark", "benchmarks") and args[1] == "list":
+            return "benchmark_list"
+        elif len(args) == 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "show":
+            return "benchmark_show"
+        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
+            return "benchmark_run"
+        elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
+            return "check_list"
+        elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
+            return "check_show"
+        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
+            return "check_run"
+        else:
+            return None
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def list_benchmarks() -> AsyncIterator[str]:
+            for benchmark in await self.dependencies.inspector.list_benchmarks():
+                yield benchmark.id
+
+        async def show_benchmark(bid: str) -> AsyncIterator[Optional[str]]:
+            yield await self.dependencies.config_handler.config_yaml(ConfigId(BenchmarkConfigPrefix + bid))
+
+        async def show_check(cid: str) -> AsyncIterator[Json]:
+            model = await self.dependencies.config_handler.get_configs_model()
+            kind = model.get("resoto_core_report_check")
+            for check in await self.dependencies.inspector.list_checks(check_ids=[cid]):
+                yield kind.create_yaml(to_js(check)) if isinstance(kind, ComplexKind) else yaml.safe_dump(to_js(check))
+
+        async def list_checks() -> AsyncIterator[str]:
+            for check in await self.dependencies.inspector.list_checks():
+                yield check.id
+
+        async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_benchmark(
+                ctx.graph_name,
+                parsed_args.identifier,
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.only_failing,
+            )
+            if not result.is_empty():
+                for node in result.to_graph():
+                    yield node
+
+        async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
+            result = await self.dependencies.inspector.perform_checks(
+                ctx.graph_name,
+                check_ids=[parsed_args.identifier],
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.only_failing,
+            )
+            if not parsed_args.only_failing or result.has_failed():
+                for node in result.to_graph():
+                    yield node
+
+        async def show_help() -> AsyncIterator[str]:
+            yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
+
+        run_parser = NoExitArgumentParser()
+        run_parser.add_argument("identifier")
+        run_parser.add_argument("--accounts", nargs="+")
+        run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
+        run_parser.add_argument("--only-failing", action="store_true", default=False)
+
+        action = self.action_from_arg(arg)
+        args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
+        if action == "benchmark_list":
+            return CLISource.no_count(list_benchmarks)
+        elif action == "benchmark_show":
+            return CLISource.no_count(partial(show_benchmark, args[2].strip()))
+        elif action == "benchmark_run":
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_benchmark, parsed))
+        elif action == "check_list":
+            return CLISource.no_count(list_checks)
+        elif action == "check_show":
+            return CLISource.no_count(partial(show_check, args[2].strip()))
+        elif action == "check_run":
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(run_check, parsed))
+        else:
+            return CLISource.single(show_help)
+
+
+class InfrastructureAppsCommand(CLICommand):
+    """
+    ```shell
+    apps search [pattern] [--index-url https://cdn.some.engineering/resoto/apps/index.json]
+    app info <app_name> [--index-url https://cdn.some.engineering/resoto/apps/index.json]
+    app install <app_name> [--index-url https://cdn.some.engineering/resoto/apps/index.json]
+    app edit <app_name>
+    app uninstall <app_name>
+    app update <app_name>|all
+    apps list
+    app run <app_name> [--dry-run] --config [config_name]
+    ```
+
+    - `apps search [pattern]`: Lists all apps available in the index
+      https://cdn.some.engineering/resoto/apps/index.json (or other URL if specified). Supports filtering by pattern.
+    - `app info <app_name>`: Show information about an app.
+    - `app install <app_name>`: Install an app.
+    - `app edit <app_name>`: Edit an app.
+    - `app uninstall <app_name>`: Uninstall an app.
+    - `app update <app_name>|all`: Update an app or all apps.
+    - `apps list`: List all installed apps.
+    - `app run <app_name> [--dry-run] [--config <config_name>]`: Run an app.
+
+
+    ## Parameters
+    - `app_name` [required]: The identifier of the infrastructure app.
+    - `pattern` [optional]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
+
+    ## Options
+    - `--index-url <url>`: The index file to use for searching for apps.
+      Defaults to https://cdn.some.engineering/resoto/apps/index.json.
+    - `--dry-run`: Run the app but do not make any changes.
+    - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
+    """
+
+    @property
+    def name(self) -> str:
+        return "apps"
+
+    def info(self) -> str:
+        return "Manage infrastructure apps."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "search": [
+                ArgInfo(None, True, help_text="<pattern>"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
+            ],
+            "info": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
+            ],
+            "install": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
+            ],
+            "edit": [ArgInfo(None, True, help_text="<app_name>")],
+            "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
+            "update": [ArgInfo(None, True, help_text="<app_name>")],
+            "list": [ArgInfo(None, False)],
+            "run": [
+                ArgInfo(None, True, help_text="<app_name>"),
+                ArgInfo("--dry-run", False),
+                ArgInfo("--config", True, help_text="<config_name>"),
+            ],
+        }
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def apps_search(pattern: Optional[str], url: Optional[str]) -> AsyncIterator[JsonElement]:
+            async for manifest in self.dependencies.infra_apps_package_manager.search(pattern, url):
+                yield {
+                    "name": manifest.name,
+                    "description": manifest.description,
+                    "version": manifest.version,
+                }
+
+        async def app_info(app_name: InfraAppName, url: Optional[str]) -> AsyncIterator[JsonElement]:
+            yield await self.dependencies.infra_apps_package_manager.info(app_name, url)
+
+        async def app_install(app_name: InfraAppName, url: Optional[str]) -> AsyncIterator[JsonElement]:
+            manifest = await self.dependencies.infra_apps_package_manager.install(app_name, url)
+            yield f"App {app_name} version {manifest.version} installed successfully"
+
+        async def send_file(content: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, "manifest.yaml")
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    await f.write(content)
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def edit_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Editing a config is a two-step process:
+            # 1) download the config and make it available to edit
+            # 2) upload the config file and update the config from content --> update_config
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise AttributeError(f"No app with this name: {app_name}")
+            yml = yaml.safe_dump(to_js(manifest))
+            return send_file(yml)
+
+        async def update_app(app_name: InfraAppName) -> AsyncIterator[str]:
+            # Usually invoked by resh automatically via edit_app, but can also be triggered manually.
+            # An app with given name is changed by the content of uploaded file "app_name.yaml"
+            content = ""
+            try:
+                async with aiofiles.open(ctx.uploaded_files["manifest.yaml"], "r") as f:
+                    content = await f.read()
+                    manifest: AppManifest = from_js(yaml.safe_load(content), AppManifest)
+                await self.dependencies.infra_apps_package_manager.update_from_manifest(manifest)
+            except Exception as ex:
+                log.debug(f"Could not update the app manifest: {ex}.", exc_info=ex)
+                # Yaml file: add the error as comment on top
+                error = "\n".join(f"## {line}" for line in str(ex).splitlines())
+                message = f"## Update the app failed. Please correct.\n{error}\n\n"
+                # Remove error message from previous check
+                config = "\n".join(dropwhile(lambda m: m.startswith("##") or len(m.strip()) == 0, content.splitlines()))
+                async for file in send_file(message + config):
+                    yield file
+
+        async def app_uninstall(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
+            await self.dependencies.infra_apps_package_manager.delete(app_name)
+            yield f"App {app_name} uninstalled"
+
+        async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
+            updated_manifest = await self.dependencies.infra_apps_package_manager.update(app_name)
+            yield f"App {app_name} updated sucessfully to the latest version ({updated_manifest.version})"
+
+        async def app_update_all() -> AsyncIterator[JsonElement]:
+            async for name, result in self.dependencies.infra_apps_package_manager.update_all():
+                if isinstance(result, Failure):
+                    yield f"App {name} failed to update: {result}"
+                else:
+                    yield f"App {name} updated sucessfully to the latest version ({result.version})"
+
+        async def apps_list() -> AsyncIterator[JsonElement]:
+            async for app in self.dependencies.infra_apps_package_manager.list():
+                yield app
+
+        async def app_run(
+            in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
+        ) -> AsyncIterator[JsonElement]:
+            runtime = self.dependencies.infra_apps_runtime
+            manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
+            if not manifest:
+                raise ValueError(f"App {app_name} is not installed.")
+            app_config = None
+            if config:
+                ce = await self.dependencies.config_handler.get_config(ConfigId(config))
+                if ce:
+                    app_config = ce.config
+                else:
+                    raise ValueError(f"Config {config} not found.")
+            else:
+                app_config = manifest.default_config or {}
+
+            stdin: AsyncIterator[JsonElement] = (
+                stream.iterate(in_stream) if isinstance(in_stream, Stream) else in_stream
+            )
+
+            if dry_run:
+                return runtime.generate_template(
+                    graph=ctx.graph_name,
+                    manifest=manifest,
+                    config=app_config,
+                    stdin=stdin,
+                    kwargs=Namespace(),
+                )
+            else:
+                return runtime.execute(
+                    graph=ctx.graph_name, manifest=manifest, config=app_config, stdin=stdin, kwargs=Namespace(), ctx=ctx
+                )
+
+        args = re.split("\\s+", arg, maxsplit=2) if arg else []
+        if len(args) == 1 and args[0] == "search":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("--index-url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(apps_search, None, parsed.url))
+        elif len(args) >= 2 and args[0] == "search":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("pattern", type=str, nargs="*")
+            parser.add_argument("--index-url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(apps_search, " ".join(parsed.pattern), parsed.url))
+        elif len(args) == 2 and args[0] == "info":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parser.add_argument("--index-url", dest="url", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(app_info, InfraAppName(parsed.app_name), parsed.url))
+        elif len(args) >= 2 and args[0] == "install":
+            parser = NoExitArgumentParser()
+            source_group = parser.add_mutually_exclusive_group()
+            source_group.add_argument("--index-url", dest="url", type=str)
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            return CLISource.single(
+                partial(
+                    app_install,
+                    InfraAppName(parsed.app_name),
+                    parsed.url,
+                )
+            )
+        elif arg and len(args) == 2 and args[0] == "edit":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(edit_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+            )
+        elif arg and len(args) == 3 and args[0] == "update":
+            app_name = InfraAppName(args[1])
+            return CLISource.single(
+                partial(update_app, app_name),
+                produces=MediaType.FilePath,
+                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+                requires=[CLIFileRequirement("manifest.yaml", args[2])],
+            )
+        elif len(args) == 2 and args[0] == "uninstall":
+            return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
+        elif len(args) == 2 and args[0] == "update" and args[1] == "all":
+            return CLISource.single(app_update_all)
+        elif len(args) == 2 and args[0] == "update":
+            return CLISource.single(partial(app_update, InfraAppName(args[1])))
+        elif len(args) == 1 and args[0] == "list":
+            return CLISource.single(apps_list)
+        elif len(args) >= 2 and args[0] == "run":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("app_name", type=str)
+            parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
+            parser.add_argument("--config", dest="config", type=str, default=None)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            in_source_position = kwargs.get("position") == 0
+
+            if in_source_position:
+                return CLISource.no_count(
+                    partial(
+                        app_run,
+                        in_stream=stream.empty(),
+                        app_name=InfraAppName(parsed.app_name),
+                        dry_run=parsed.dry_run,
+                        config=parsed.config,
+                    )
+                )
+            else:
+                return CLIFlow(
+                    partial(
+                        app_run, app_name=InfraAppName(parsed.app_name), dry_run=parsed.dry_run, config=parsed.config
+                    )
+                )
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -4638,6 +5112,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),
+        ReportCommand(d, "misc", allowed_in_source_position=True),
         SearchPart(d, "search", allowed_in_source_position=True),
         SetDesiredCommand(d, "action"),
         SetMetadataCommand(d, "action"),
@@ -4652,10 +5127,16 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
+        InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
-        commands.extend([FileCommand(d, "misc"), UploadCommand(d, "misc")])
+        commands.extend(
+            [
+                FileCommand(d, "misc"),
+                UploadCommand(d, "misc"),
+            ]
+        )
 
     return commands
 
@@ -4677,5 +5158,6 @@ def alias_names() -> Dict[str, str]:
         "lists": "list",
         "template": "templates",
         "workflow": "workflows",
+        "app": "apps",
         "man": "help",
     }

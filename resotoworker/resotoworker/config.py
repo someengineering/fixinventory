@@ -43,7 +43,7 @@ def set_default_collectors(collector_plugins: List[Type[BaseCollectorPlugin]]) -
 class HomeDirectoryFile:
     kind: ClassVar[str] = "resotoworker_home_directory_file"
     path: str = field(metadata={"description": "Path to the file"})
-    content: str = field(metadata={"description": "Content of the file"})
+    content: str = field(metadata={"description": "Content of the file", "ui-hint": "multiline"})
 
 
 @define

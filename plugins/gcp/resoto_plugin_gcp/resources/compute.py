@@ -3011,12 +3011,12 @@ class GcpInterconnectOutageNotification:
     }
     affected_circuits: Optional[List[str]] = field(default=None)
     description: Optional[str] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
+    end_time: Optional[str] = field(default=None)
     issue_type: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
     source: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
-    interconnect_outage_notification_state: Optional[str] = field(default=None)
+    start_time: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -3577,7 +3577,7 @@ class GcpNodeGroupMaintenanceWindow:
         "start_time": S("startTime"),
     }
     maintenance_duration: Optional[GcpDuration] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5031,7 +5031,7 @@ class GcpResourcePolicyDailyCycle:
     }
     days_in_cycle: Optional[int] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5044,7 +5044,7 @@ class GcpResourcePolicyHourlyCycle:
     }
     duration: Optional[str] = field(default=None)
     hours_in_cycle: Optional[int] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -5053,7 +5053,7 @@ class GcpResourcePolicyWeeklyCycleDayOfWeek:
     mapping: ClassVar[Dict[str, Bender]] = {"day": S("day"), "duration": S("duration"), "start_time": S("startTime")}
     day: Optional[str] = field(default=None)
     duration: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)

@@ -1,20 +1,10 @@
 import json
 from attrs import define, field
-from typing import ClassVar, Optional, Dict, Mapping
+from typing import ClassVar, Optional, Dict, Mapping, Any
 import sys
 import os
 import logging
-from logging import (
-    basicConfig,
-    getLogger,
-    DEBUG,
-    INFO,
-    WARNING,
-    ERROR,
-    CRITICAL,
-    StreamHandler,
-    Formatter,
-)
+from logging import basicConfig, getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL, StreamHandler, Formatter, LogRecord
 
 
 from resotolib.args import ArgumentParser
@@ -56,10 +46,6 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
-def add_config(config) -> None:
-    config.add_config(LoggingConfig)
-
-
 @define
 class LoggingConfig:
     kind: ClassVar[str] = "logging"
@@ -78,7 +64,7 @@ class JsonFormatter(Formatter):
         fmt_dict: Mapping[str, str],
         time_format: str = "%Y-%m-%dT%H:%M:%S",
         static_values: Optional[Dict[str, str]] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.fmt_dict = fmt_dict
         self.time_format = time_format
@@ -88,10 +74,10 @@ class JsonFormatter(Formatter):
     def usesTime(self) -> bool:  # noqa: N802
         return self.__use_time
 
-    def formatMessage(self, record) -> dict:  # noqa: N802
+    def formatMessage(self, record: LogRecord) -> dict:  # type: ignore # noqa: N802
         return {fmt_key: record.__dict__[fmt_val] for fmt_key, fmt_val in self.fmt_dict.items()}
 
-    def formatJsonMessage(self, record) -> Json:  # noqa: N802
+    def formatJsonMessage(self, record) -> Json:  # type: ignore # noqa: N802
         record.message = record.getMessage()
 
         if self.__use_time:
@@ -111,7 +97,7 @@ class JsonFormatter(Formatter):
             message_dict["stack_info"] = self.formatStack(record.stack_info)
         return message_dict
 
-    def format(self, record) -> str:
+    def format(self, record: LogRecord) -> str:
         message_dict = self.formatJsonMessage(record)
         return json.dumps(message_dict, default=str)
 
@@ -159,7 +145,7 @@ def setup_logger(
 
 
 # via https://stackoverflow.com/a/35804945/92184
-def add_logging_level(level_name: str, level_num: int, method_name: Optional[str] = None):
+def add_logging_level(level_name: str, level_num: int, method_name: Optional[str] = None) -> None:
     """
     Comprehensively adds a new logging level to the `logging` module and the
     currently configured logging class.
@@ -194,11 +180,11 @@ def add_logging_level(level_name: str, level_num: int, method_name: Optional[str
     if hasattr(logging.getLoggerClass(), method_name):
         raise AttributeError("{} already defined in logger class".format(method_name))
 
-    def log_for_level(self, message, *args, **kwargs):
+    def log_for_level(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
         if self.isEnabledFor(level_num):
             self._log(level_num, message, args, **kwargs)
 
-    def log_to_root(message, *args, **kwargs):
+    def log_to_root(message: str, *args: Any, **kwargs: Any) -> None:
         logging.log(level_num, message, *args, **kwargs)
 
     logging.addLevelName(level_num, level_name)

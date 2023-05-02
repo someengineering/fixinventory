@@ -54,6 +54,8 @@ from resotocore.util import shutdown_process, utc
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
+from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
+from resotocore.infra_apps.package_manager import PackageManager
 from resotolib.asynchronous.web import runner
 
 log = logging.getLogger("resotocore")
@@ -177,6 +179,10 @@ def with_config(
     )
     merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
     cli_deps.extend(task_handler=task_handler, inspector=inspector)
+    infra_apps_runtime = LocalResotocoreAppRuntime(cli)
+    cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
+    infra_apps_package_manager = PackageManager(db.package_entity_db, config_handler)
+    cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
     api = Api(
         db,
         model,
@@ -216,6 +222,7 @@ def with_config(
         await cert_handler.start()
         await log_ship.start()
         await api.start()
+        await infra_apps_package_manager.start()
         if created:
             docker = inside_docker()
             kubernetes = inside_kubernetes()
@@ -245,6 +252,7 @@ def with_config(
 
     async def on_stop() -> None:
         duration = utc() - info.started_at
+        await infra_apps_package_manager.stop()
         await api.stop()
         await log_ship.stop()
         await cert_handler.stop()

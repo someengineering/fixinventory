@@ -8,6 +8,9 @@ from ipaddress import (
     IPv4Network,
     IPv6Network,
 )
+
+from cryptography.hazmat._oid import ExtendedKeyUsageOID
+
 from resotolib.utils import get_local_hostnames, get_local_ip_addresses
 from datetime import datetime, timedelta, timezone
 from cryptography import x509
@@ -20,7 +23,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
     generate_private_key,
 )
 from cryptography.x509.base import Certificate, CertificateSigningRequest
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 
 
 def gen_rsa_key(key_size: int = 2048) -> RSAPrivateKey:
@@ -150,9 +153,9 @@ def sign_csr(
     if server_auth or client_auth:
         key_usage = []
         if server_auth:
-            key_usage.append(x509.ExtendedKeyUsageOID.SERVER_AUTH)
+            key_usage.append(ExtendedKeyUsageOID.SERVER_AUTH)
         if client_auth:
-            key_usage.append(x509.ExtendedKeyUsageOID.CLIENT_AUTH)
+            key_usage.append(ExtendedKeyUsageOID.CLIENT_AUTH)
         crt_build = crt_build.add_extension(x509.ExtendedKeyUsage(key_usage), critical=False)
     for extension in csr.extensions:
         if not isinstance(extension.value, x509.SubjectAlternativeName):
@@ -185,7 +188,7 @@ def write_ca_bundle(cert: Certificate, cert_path: str, include_certifi: bool = T
         f.write("\n".encode())
         f.write(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
         f.write(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
-        label = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+        label: str = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value  # type: ignore
         f.write(f"# Label: {label}\n".encode())
         f.write(f"# Serial: {cert.serial_number}\n".encode())
         md5 = cert_fingerprint(cert, "MD5")
@@ -215,8 +218,8 @@ def write_key_to_file(
 def key_to_bytes(
     key: RSAPrivateKey,
     passphrase: Optional[str] = None,
-):
-    kwargs = {"encryption_algorithm": serialization.NoEncryption()}
+) -> bytes:
+    kwargs: Dict[str, Any] = {"encryption_algorithm": serialization.NoEncryption()}
     if passphrase is not None:
         kwargs["encryption_algorithm"] = serialization.BestAvailableEncryption(passphrase.encode())
     return key.private_bytes(
@@ -265,8 +268,8 @@ def load_key_from_bytes(
 ) -> RSAPrivateKey:
     backend = default_backend()
     if passphrase is not None:
-        passphrase = passphrase.encode()
-    return backend.load_pem_private_key(key, passphrase, skip_rsa_key_validation)
+        passphrase = passphrase.encode()  # type: ignore
+    return backend.load_pem_private_key(key, passphrase, skip_rsa_key_validation)  # type: ignore
 
 
 def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network]:

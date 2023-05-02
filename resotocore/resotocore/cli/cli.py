@@ -36,6 +36,8 @@ from resotocore.cli.command import (
     SortPart,
     LimitPart,
     HistoryPart,
+    ReportCommand,
+    WriteCommand,
 )
 from resotocore.cli.model import (
     ParsedCommand,
@@ -55,6 +57,8 @@ from resotocore.cli.model import (
     ArgInfo,
     AliasTemplateParameter,
     WorkerCustomCommand,
+    OutputTransformer,
+    PreserveOutputFormat,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -293,7 +297,9 @@ class CLIService(CLI):
             except Exception as ex:
                 log.warning(f"Error in main loop: {ex}")
 
-    def command(self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext) -> ExecutableCommand:
+    def command(
+        self, name: str, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any
+    ) -> ExecutableCommand:
         """
         Create an executable command for given command name, args and context.
         :param name: the name of the command to execute (must be a known command)
@@ -306,7 +312,7 @@ class CLIService(CLI):
         if name in self.commands:
             command = self.commands[name]
             try:
-                action = command.parse(arg, ctx, cmd_name=name)
+                action = command.parse(arg, ctx, cmd_name=name, **kwargs)
                 return ExecutableCommand(name, command, arg, action)
             except Exception as ex:
                 raise CLIParseError(f"{name} can not parse arg {arg}. Reason: {ex}") from ex
@@ -455,6 +461,44 @@ class CLIService(CLI):
                 return ctx_wq, [*query_parts, *remaining]
             return ctx, commands
 
+        def rewrite_command_line(cmds: List[ExecutableCommand]) -> List[ExecutableCommand]:
+            """
+            Rewrite the command line to make it more user-friendly.
+            Rules:
+            - add the list command if no output format is defined
+            - add a format to write commands if no output format is defined
+            - report benchmark run will be formatted as benchmark result automatically
+            """
+            if context.env.get("no_rewrite") or len(cmds) == 0:
+                return cmds
+            first_cmd = cmds[0]
+            last_cmd = cmds[-1]
+            single = cmds[0] if len(cmds) == 1 else None
+            result = cmds
+
+            def no_format() -> bool:
+                return not any(c for c in result if isinstance(c.command, (OutputTransformer, PreserveOutputFormat)))
+
+            def fmt_benchmark() -> ExecutableCommand:
+                return self.command("format", "--benchmark-result", context)
+
+            def fmt_list() -> ExecutableCommand:
+                return self.command("list", None, context)
+
+            # benchmark run as single command is rewritten to benchmark run | format --benchmark-result
+            if single and isinstance(single.command, ReportCommand) and ReportCommand.is_run_action(single.arg):
+                result = [single, fmt_benchmark()]
+            # if the last command is a write command without any format: add the format
+            elif isinstance(last_cmd.command, WriteCommand) and no_format():
+                # format is either list (default) or benchmark
+                fmt = fmt_benchmark() if isinstance(first_cmd.command, ReportCommand) else fmt_list()
+                result = [*cmds[0:-1], fmt, cmds[-1]]
+
+            # produces text and no resulting output transformer is defined: add the default `list` command
+            if last_cmd.action.produces.text and no_format():
+                result = [*result, fmt_list()]
+            return result
+
         def adjust_context(parsed: ParsedCommands) -> CLIContext:
             cmd_env = {**self.cli_env, **context.env, **parsed.env}
             ctx = evolve(context, env=cmd_env)
@@ -466,10 +510,13 @@ class CLIService(CLI):
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             ctx = adjust_context(parsed)
-            ctx, commands = await combine_query_parts([self.command(c.cmd, c.args, ctx) for c in parsed.commands], ctx)
-            not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
-            envelope = {k: v for cmd in commands for k, v in cmd.action.envelope.items()}
-            return ParsedCommandLine(ctx, parsed, commands, not_met, envelope)
+            ctx, commands = await combine_query_parts(
+                [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)], ctx
+            )
+            rewritten = rewrite_command_line(commands)
+            not_met = [r for cmd in rewritten for r in cmd.action.required if r.name not in context.uploaded_files]
+            envelope = {k: v for cmd in rewritten for k, v in cmd.action.envelope.items()}
+            return ParsedCommandLine(ctx, parsed, rewritten, not_met, envelope)
 
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:

@@ -48,18 +48,15 @@ from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
-from aiostream.core import Stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
-from resotocore.cli.command import ListCommand, alias_names
+from resotocore.cli.command import alias_names
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
-    OutputTransformer,
-    PreserveOutputFormat,
     CLICommand,
     InternalPart,
     AliasTemplate,
@@ -204,6 +201,7 @@ class Api:
                 web.delete(prefix + "/graph/{graph_id}", self.wipe),
                 # search the graph
                 web.post(prefix + "/graph/{graph_id}/search/raw", self.raw),
+                web.post(prefix + "/graph/{graph_id}/search/structure", self.query_structure),
                 web.post(prefix + "/graph/{graph_id}/search/explain", self.explain),
                 web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
                 web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
@@ -257,16 +255,19 @@ class Api:
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
                 web.get(prefix + "/configs", self.list_configs),
-                web.put(prefix + "/config/{config_id}", self.put_config),
-                web.get(prefix + "/config/{config_id}", self.get_config),
-                web.patch(prefix + "/config/{config_id}", self.patch_config),
-                web.delete(prefix + "/config/{config_id}", self.delete_config),
+                web.patch(prefix + "/config/{config_id:[^{}]+}", self.patch_config),
+                web.delete(prefix + "/config/{config_id:[^{}]+}", self.delete_config),
                 # config model operations
                 web.get(prefix + "/configs/validation", self.list_config_models),
                 web.get(prefix + "/configs/model", self.get_configs_model),
                 web.patch(prefix + "/configs/model", self.update_configs_model),
-                web.put(prefix + "/config/{config_id}/validation", self.put_config_validation),
-                web.get(prefix + "/config/{config_id}/validation", self.get_config_validation),
+                web.put(prefix + "/config_validation/{config_id:[^{}]+}", self.put_config_validation),
+                web.get(prefix + "/config_validation/{config_id:[^{}]+}", self.get_config_validation),
+                web.put(prefix + "/config/{config_id:[^{}]+}/validation", self.put_config_validation),
+                web.get(prefix + "/config/{config_id:[^{}]+}/validation", self.get_config_validation),
+                # config operations, moved here to avoid early matching
+                web.put(prefix + "/config/{config_id:[^{}]+}", self.put_config),
+                web.get(prefix + "/config/{config_id:[^{}]+}", self.get_config),
                 # ca operations
                 web.get(prefix + "/ca/cert", self.certificate),
                 web.post(prefix + "/ca/sign", self.sign_certificate),
@@ -502,7 +503,9 @@ class Api:
         kind = request.query.get("kind")
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_checks(graph, provider, service, category, kind, accounts)
+        result = await self.inspector.perform_checks(
+            graph, provider=provider, service=service, category=category, kind=kind, accounts=accounts
+        )
         return await single_result(request, to_js(result))
 
     async def perform_benchmark(self, request: Request) -> StreamResponse:
@@ -510,7 +513,7 @@ class Api:
         graph = request.match_info["graph_id"]
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_benchmark(benchmark, graph, accounts)
+        result = await self.inspector.perform_benchmark(graph, benchmark, accounts=accounts)
         result_graph = result.to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             await self.stream_response_from_gen(request, streamer, len(result_graph))
@@ -521,7 +524,7 @@ class Api:
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        inspections = await self.inspector.list_checks(provider, service, category, kind)
+        inspections = await self.inspector.list_checks(provider=provider, service=service, category=category, kind=kind)
         return await single_result(request, to_js(inspections))
 
     async def inspection_results(self, request: Request) -> StreamResponse:
@@ -842,6 +845,10 @@ class Api:
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
 
+    async def query_structure(self, request: Request) -> StreamResponse:
+        _, query_model = await self.graph_query_model_from_request(request)
+        return web.json_response(query_model.query.structure())
+
     async def query_list(self, request: Request) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request)
         count = request.query.get("count", "true").lower() != "false"
@@ -994,12 +1001,14 @@ class Api:
 
             # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
             parsed = await self.cli.evaluate_cli_command(command, ctx)
-            return await self.execute_parsed(request, command, parsed)
+            return await self.execute_parsed(request, command, parsed, ctx)
         finally:
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    async def execute_parsed(self, request: Request, command: str, parsed: List[ParsedCommandLine]) -> StreamResponse:
+    async def execute_parsed(
+        self, request: Request, command: str, parsed: List[ParsedCommandLine], ctx: CLIContext
+    ) -> StreamResponse:
         # make sure, all requirements are fulfilled
         not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
@@ -1009,29 +1018,19 @@ class Api:
             status=200, reason="OK", headers={"Content-Type": f"multipart/mixed;boundary={boundary}"}
         )
 
-        async def list_or_gen(current: ParsedCommandLine) -> Tuple[Optional[int], Stream]:
-            maybe_count, out_gen = await current.execute()
-            if (
-                request.headers.get("accept") == "text/plain"
-                and current.executable_commands
-                and not isinstance(current.executable_commands[-1].command, (OutputTransformer, PreserveOutputFormat))
-            ):
-                out_gen = await ListCommand(self.cli.dependencies).parse(ctx=current.ctx).flow(out_gen)
-
-            return maybe_count, out_gen
-
         if not_met_requirements:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
             data = {"command": command, "env": dict(request.query), "required": to_json(requirements)}
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
-            count, generator = await list_or_gen(first_result)
+            count, generator = await first_result.execute()
             # flat the results from 0 or 1
             async with generator.stream() as streamer:
                 gen = await force_gen(streamer)
-                if first_result.produces.json:
-                    return await self.stream_response_from_gen(request, gen, count)
+                if first_result.produces.text:
+                    text_gen = ctx.text_generator(first_result, gen)
+                    return await self.stream_response_from_gen(request, text_gen, count)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(first_result, gen, boundary, mp_response)
@@ -1042,12 +1041,13 @@ class Api:
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
-                count, generator = await list_or_gen(single)
+                count, generator = await single.execute()
                 async with generator.stream() as streamer:
                     gen = await force_gen(streamer)
-                    if single.produces.json:
+                    if single.produces.text:
                         with MultipartWriter(repr(single.produces), boundary) as mp:
-                            content_type, result_stream = await result_binary_gen(request, gen)
+                            text_gen = ctx.text_generator(single, gen)
+                            content_type, result_stream = await result_binary_gen(request, text_gen)
                             mp.append_payload(
                                 AsyncIterablePayload(result_stream, content_type=content_type, headers=single.envelope)
                             )

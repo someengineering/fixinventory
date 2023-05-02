@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from threading import Thread, current_thread
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Any
 
 from prometheus_client import Counter
 
@@ -101,18 +101,18 @@ class BaseActionPlugin(ABC, Thread):
         self.tls_data = tls_data
 
     @abstractmethod
-    def do_action(self, data: Dict):
+    def do_action(self, data: Dict[str, Any]) -> None:
         """Perform an action"""
         pass
 
-    def action_processor(self, message: Dict) -> Optional[Json]:
+    def action_processor(self, message: Json) -> Optional[Json]:
         """Process incoming action messages"""
         if not isinstance(message, dict):
             log.error(f"Invalid message: {message}")
             return None
         kind = message.get("kind")
         message_type = message.get("message_type")
-        data = message.get("data")
+        data: Json = message.get("data", {})
         log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
         if kind == "action":
             try:
@@ -129,12 +129,13 @@ class BaseActionPlugin(ABC, Thread):
             else:
                 reply_kind = "action_done"
 
-            reply_message = {
+            return {
                 "kind": reply_kind,
                 "message_type": message_type,
                 "data": data,
             }
-            return reply_message
+        else:
+            return None
 
     def run(self) -> None:
         try:
@@ -235,7 +236,7 @@ class BaseCollectorPlugin(BasePlugin):
 
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
-        return resource.cleanup(graph)
+        return resource.cleanup(graph)  # type: ignore
 
     def go(self) -> None:
         self.collect()

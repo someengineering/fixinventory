@@ -1,4 +1,5 @@
 import pytest
+from hypothesis import given, settings, HealthCheck
 
 from resotocore.model.graph_access import Direction
 from resotocore.query.model import (
@@ -20,6 +21,7 @@ from resotocore.query.model import (
     Limit,
 )
 from resotocore.query.query_parser import parse_query
+from tests.resotocore.query import query
 
 
 def simple_reference() -> None:
@@ -312,3 +314,9 @@ def test_merge_term_combination() -> None:
     assert str(sq1 | mq1) == '(is("foo") or age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
     assert str(mq1 & sq1) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
     assert str(sq1 & mq1) == '(is("foo") and age > "23h") {bla: all -default-> is("bla")} bla.test == 2'
+
+
+@given(query)
+@settings(max_examples=30, suppress_health_check=HealthCheck.all())
+def test_generated_query(q: Query) -> None:
+    assert q.structure()

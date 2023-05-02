@@ -25,6 +25,14 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             desired={"node_id": uid},
             metadata={"node_id": uid},
             replace=replace,
+            ancestors={
+                "cloud": {"reported": {"name": "collector", "id": "collector"}},
+                "account": {"reported": {"name": "sub_root", "id": "sub_root"}},
+            },
+            refs={
+                "cloud_id": "collector",
+                "account_id": "sub_root",
+            },
         )
 
     # root -> collector -> sub_root -> **rest

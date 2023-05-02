@@ -26,6 +26,7 @@ from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.templatedb import template_entity_db
+from resotocore.db.packagedb import app_package_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
@@ -51,6 +52,7 @@ class DbAccess(ABC):
         config_validation_entity: str = "config_validation",
         configs_model: str = "configs_model",
         template_entity: str = "templates",
+        infra_app_packages: str = "infra_app_packages",
     ):
         self.event_sender = event_sender
         self.database = arango_database
@@ -65,6 +67,7 @@ class DbAccess(ABC):
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
+        self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -79,6 +82,7 @@ class DbAccess(ABC):
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
+        await self.package_entity_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
             log.info(f'Found graph: {graph["name"]}')
             db = self.get_graph_db(graph["name"])

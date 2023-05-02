@@ -1,23 +1,26 @@
-import requests
 import json
+from typing import Optional, Iterator, Dict, Any
 from urllib.parse import urlencode
+
+import requests
+
+from resotolib.args import ArgumentParser
+from resotolib.baseresources import EdgeType
 from resotolib.config import Config
 from resotolib.core import resotocore
-from resotolib.graph import Graph, sanitize
-from resotolib.core.model_export import node_from_dict, node_to_dict
 from resotolib.core.ca import TLSData
-from resotolib.baseresources import EdgeType
-from resotolib.args import ArgumentParser
-from resotolib.logger import log
+from resotolib.core.model_export import node_from_dict, node_to_dict
+from resotolib.graph import Graph, sanitize
 from resotolib.jwt import encode_jwt_to_headers
-from typing import Optional
+from resotolib.logger import log
+from resotolib.types import Json
 
 
 class CoreGraph:
     def __init__(
         self,
-        base_uri: str = None,
-        graph: str = None,
+        base_uri: Optional[str] = None,
+        graph: Optional[str] = None,
         tls_data: Optional[TLSData] = None,
     ) -> None:
         if base_uri is None:
@@ -34,7 +37,7 @@ class CoreGraph:
         self.graph_uri = f"{self.base_uri}/graph/{self.graph_name}"
         self.search_uri = f"{self.graph_uri}/search/graph"
 
-    def execute(self, command: str):
+    def execute(self, command: str) -> Iterator[Json]:
         log.debug(f"Executing command: {command}")
         headers = {"Accept": "application/x-ndjson", "Content-Type": "text/plain"}
         execute_endpoint = f"{self.base_uri}/cli/execute"
@@ -43,7 +46,7 @@ class CoreGraph:
             execute_endpoint += f"?{query_string}"
         return self.post(execute_endpoint, command, headers, verify=self.verify)
 
-    def search(self, search: str, edge_type: Optional[EdgeType] = None):
+    def search(self, search: str, edge_type: Optional[EdgeType] = None) -> Iterator[Json]:
         log.debug(f"Sending search {search}")
         headers = {"Accept": "application/x-ndjson"}
         search_endpoint = self.search_uri
@@ -53,7 +56,7 @@ class CoreGraph:
         return self.post(search_endpoint, search, headers, verify=self.verify)
 
     @staticmethod
-    def post(uri, data, headers, verify: Optional[str] = None):
+    def post(uri: str, data: str, headers: Dict[str, str], verify: Optional[str] = None) -> Iterator[Json]:
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         r = requests.post(uri, data=data, headers=headers, stream=True, verify=verify)
@@ -64,14 +67,14 @@ class CoreGraph:
             if not line:
                 continue
             try:
-                data = json.loads(line.decode("utf-8"))
-                yield data
+                response: Json = json.loads(line.decode("utf-8"))
+                yield response
             except TypeError as e:
                 log.error(e)
                 continue
 
     def graph(self, search: str) -> Graph:
-        def process_data_line(data: dict, graph: Graph):
+        def process_data_line(data: Json, graph: Graph) -> None:
             """Process a single line of resotocore graph data"""
 
             if data.get("type") == "node":
@@ -92,7 +95,7 @@ class CoreGraph:
                 graph.add_edge(node_mapping[node_from], node_mapping[node_to], edge_type=edge_type)
 
         graph = Graph()
-        node_mapping = {}
+        node_mapping: Dict[Any, Any] = {}
         for data in self.search(search):
             try:
                 process_data_line(data, graph)
@@ -102,7 +105,7 @@ class CoreGraph:
         sanitize(graph)
         return graph
 
-    def patch_nodes(self, graph: Graph):
+    def patch_nodes(self, graph: Graph) -> None:
         headers = {"Content-Type": "application/x-ndjson"}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
@@ -120,10 +123,10 @@ class CoreGraph:
 
 
 class GraphChangeIterator:
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph) -> None:
         self.graph = graph
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[bytes]:
         for node in self.graph.nodes:
             if not node.changes.changed:
                 continue

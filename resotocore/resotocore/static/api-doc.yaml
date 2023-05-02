@@ -1167,6 +1167,133 @@ paths:
             application/x-ndjson:
               schema:
                 $ref: "#/components/schemas/Aggregated"
+  /graph/{graph_id}/search/structure:
+    post:
+      summary: "Show the structure of the search"
+      description: |
+        Structure of the search as json object.
+      tags:
+        - graph_search
+      parameters:
+        - name: graph_id
+          in: path
+          description: "The identifier of the graph"
+          example: resoto
+          required: true
+          schema:
+            type: string
+        - name: section
+          in: query
+          description: "The name of the section used for all property paths. If not defined root is assumed."
+          required: false
+          schema:
+            type: string
+            enum:
+              - reported
+              - desired
+              - metadata
+      requestBody:
+        description: "The search to perform"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: |
+                search is(graph_root) and reported.name=="root" --> | aggregate kind as resource_kind: sum(1) as count
+      responses:
+        "200":
+          description: "The execution plan of the database"
+          content:
+            application/json:
+              example: |
+                {
+                    "aggregate": {
+                        "group_by": [
+                            {
+                                "as": "resource_kind",
+                                "name": "kind"
+                            }
+                        ],
+                        "group_func": [
+                            {
+                                "as": "count",
+                                "function": "sum",
+                                "name": 1,
+                                "ops": []
+                            }
+                        ]
+                    },
+                    "parts": [
+                        {
+                            "limit": null,
+                            "navigation": {
+                                "direction": "out",
+                                "edge_types": [
+                                    "default"
+                                ],
+                                "start": 1,
+                                "until": 1
+                            },
+                            "sort": [
+                                {
+                                    "name": "reported.kind",
+                                    "order": "asc"
+                                },
+                                {
+                                    "name": "reported.name",
+                                    "order": "asc"
+                                },
+                                {
+                                    "name": "reported.id",
+                                    "order": "asc"
+                                }
+                            ],
+                            "tag": null,
+                            "term": {
+                                "kind": "combined",
+                                "left": {
+                                    "kind": "is",
+                                    "kinds": [
+                                        "graph_root"
+                                    ]
+                                },
+                                "op": "and",
+                                "right": {
+                                    "args": {},
+                                    "kind": "predicate",
+                                    "name": "reported.name",
+                                    "op": "==",
+                                    "value": "root"
+                                }
+                            },
+                            "with": null
+                        },
+                        {
+                            "limit": null,
+                            "navigation": null,
+                            "sort": [
+                                {
+                                    "name": "reported.kind",
+                                    "order": "asc"
+                                },
+                                {
+                                    "name": "reported.name",
+                                    "order": "asc"
+                                },
+                                {
+                                    "name": "reported.id",
+                                    "order": "asc"
+                                }
+                            ],
+                            "tag": null,
+                            "term": {
+                                "kind": "all"
+                            },
+                            "with": null
+                        }
+                    ],
+                    "preamble": {}
+                }
   /graph/{graph_id}/search/explain:
     post:
       summary: "Explain the search execution plan"

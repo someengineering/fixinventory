@@ -41,7 +41,7 @@ def to_json(node: Any, **kwargs: Any) -> Json:
                     del unstructured[field]
         else:
             raise ValueError(f"Don't know how to handle type of strip_attr: {strip_attr}")
-    result: Json = jsons.dump(  # type: ignore
+    result: Json = jsons.dump(
         unstructured,
         strip_microseconds=True,
         strip_nulls=True,
@@ -57,7 +57,7 @@ def to_json_str(node: Any, json_kwargs: Optional[Dict[str, object]] = None, **kw
     """
     Json string representation of the given object.
     """
-    return json.dumps(to_json(node, **kwargs), **(json_kwargs or {}))
+    return json.dumps(to_json(node, **kwargs), **(json_kwargs or {}))  # type: ignore
 
 
 def from_json(json: JsonElement, clazz: Type[AnyT], **kwargs: Any) -> AnyT:
