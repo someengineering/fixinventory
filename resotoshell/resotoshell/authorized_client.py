@@ -12,12 +12,15 @@ from urllib.parse import urlencode
 
 import jwt
 from aiohttp import web, hdrs, ClientSession
-from oauthlib.oauth2 import AccessDeniedError
 from resotoclient.async_client import ResotoClient
 
 from resotolib.core import resotocore
 from resotolib.logger import log
 from resotolib.utils import get_free_port
+
+
+class AccessDeniedError(Exception):
+    pass
 
 
 async def authorized_client(args: Namespace) -> ResotoClient:
