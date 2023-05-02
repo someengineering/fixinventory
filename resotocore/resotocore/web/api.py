@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 import string
 import tempfile
@@ -383,12 +382,12 @@ class Api:
         post_data = await request.post()
         errors = []
         try:
-            email = str(post_data.get("email", ""))
+            email = str(post_data.get("email", "")).strip()
             password = str(post_data.get("password", ""))
             password_repeat = str(post_data.get("password_repeat", ""))
-            company = str(post_data.get("company", ""))
-            fullname = str(post_data.get("fullname", ""))
-            if not re.fullmatch(r"[^@]+@[^@]+\.[^@]+", email):
+            company = str(post_data.get("company", "")).strip()
+            fullname = str(post_data.get("fullname", "")).strip()
+            if not email or email.startswith("@") or email.endswith("@") or email.count("@") != 1:
                 errors.append("Invalid email address")
             if not password:
                 errors.append("Password is required")
