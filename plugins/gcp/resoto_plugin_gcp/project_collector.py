@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
-from queue import Queue
 from typing import Type, List
 
 from resoto_plugin_gcp.config import GcpConfig
@@ -105,20 +104,3 @@ class GcpProjectCollector:
                     f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"
                 )
                 resource_class.collect_resources(regional_builder)
-
-
-if __name__ == "__main__":
-    # TODO: remove this only here for local testing
-    from google.oauth2.service_account import Credentials as OauthCredentials
-
-    cloud = Cloud(id="Gcp", name="Gcp")
-    project = GcpProject(id="vpc-host-nonprod-320811", name="vpc-host-nonprod-320811")
-    feedback = CoreFeedback("test", "test", "test", Queue())
-    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
-        "/Users/anja/.gcp/vpc_host_nonprod.json"
-    )
-    Credentials._initialized = True
-    collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
-    collector.collect()
-    for nd in collector.graph.nodes:
-        print(nd)
