@@ -1,6 +1,6 @@
 import re
 from attrs import define
-from typing import List, Dict, Tuple, Type, Optional
+from typing import List, Dict, Tuple, Type, Optional, Any
 
 from resotolib.baseresources import BaseResource
 from resotolib.core.model_export import dataclasses_to_resotocore_model
@@ -105,7 +105,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     :raise Exception: if there is an overlap
     """
 
-    def dynamic_import(name) -> List[type]:
+    def dynamic_import(name: str) -> List[Type[Any]]:
         components = name.split(".")
         mod = __import__(components[0])
         for comp in components[1:]:

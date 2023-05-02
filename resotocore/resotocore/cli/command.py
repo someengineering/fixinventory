@@ -4821,9 +4821,9 @@ class ReportCommand(CLICommand):
 class InfrastructureAppsCommand(CLICommand):
     """
     ```shell
-    apps search [pattern] [--repo someengineering/resoto-apps]
-    app info <app_name> [--repo someengineering/resoto-apps]
-    app install <app_name> [--repo someengineering/resoto-apps]
+    apps search [pattern] [--index-url https://cdn.some.engineering/resoto/apps/index.json]
+    app info <app_name> [--index-url https://cdn.some.engineering/resoto/apps/index.json]
+    app install <app_name> [--index-url https://cdn.some.engineering/resoto/apps/index.json]
     app edit <app_name>
     app uninstall <app_name>
     app update <app_name>|all
@@ -4831,8 +4831,8 @@ class InfrastructureAppsCommand(CLICommand):
     app run <app_name> [--dry-run] --config [config_name]
     ```
 
-    - `apps search [pattern]`: Lists all apps available in https://github.com/someengineering/resoto-apps/
-    (or other repo if specified). Supports filtering by pattern.
+    - `apps search [pattern]`: Lists all apps available in the index
+      https://cdn.some.engineering/resoto/apps/index.json (or other URL if specified). Supports filtering by pattern.
     - `app info <app_name>`: Show information about an app.
     - `app install <app_name>`: Install an app.
     - `app edit <app_name>`: Edit an app.
@@ -4847,7 +4847,8 @@ class InfrastructureAppsCommand(CLICommand):
     - `pattern` [optional]: Pattern for searching for apps. Supports glob wildcards such as * and ?.
 
     ## Options
-    - `--repo <repo>`: The repo to use for searching for apps. Defaults to someengineering/resoto-apps.
+    - `--index-url <url>`: The index file to use for searching for apps.
+      Defaults to https://cdn.some.engineering/resoto/apps/index.json.
     - `--dry-run`: Run the app but do not make any changes.
     - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """
@@ -4863,15 +4864,15 @@ class InfrastructureAppsCommand(CLICommand):
         return {
             "search": [
                 ArgInfo(None, True, help_text="<pattern>"),
-                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
             ],
             "info": [
                 ArgInfo(None, True, help_text="<app_name>"),
-                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
             ],
             "install": [
                 ArgInfo(None, True, help_text="<app_name>"),
-                ArgInfo("--url", True, help_text="<url>", option_group="source"),
+                ArgInfo("--index-url", True, help_text="<index-url>", option_group="source"),
             ],
             "edit": [ArgInfo(None, True, help_text="<app_name>")],
             "uninstall": [ArgInfo(None, True, help_text="<app_name>")],
@@ -4880,7 +4881,6 @@ class InfrastructureAppsCommand(CLICommand):
             "run": [
                 ArgInfo(None, True, help_text="<app_name>"),
                 ArgInfo("--dry-run", False),
-                ArgInfo("--validate", False),
                 ArgInfo("--config", True, help_text="<config_name>"),
             ],
         }
@@ -4997,27 +4997,27 @@ class InfrastructureAppsCommand(CLICommand):
         if len(args) == 1 and args[0] == "search":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
-            parser.add_argument("--url", dest="url", type=str)
+            parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(apps_search, None, parsed.url))
         elif len(args) >= 2 and args[0] == "search":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("pattern", type=str, nargs="*")
-            parser.add_argument("--url", dest="url", type=str)
+            parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(apps_search, " ".join(parsed.pattern), parsed.url))
         elif len(args) == 2 and args[0] == "info":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("app_name", type=str)
-            parser.add_argument("--url", dest="url", type=str)
+            parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(app_info, InfraAppName(parsed.app_name), parsed.url))
         elif len(args) >= 2 and args[0] == "install":
             parser = NoExitArgumentParser()
             source_group = parser.add_mutually_exclusive_group()
-            source_group.add_argument("--url", dest="url", type=str)
+            source_group.add_argument("--index-url", dest="url", type=str)
             parser.add_argument("command", type=str)
             parser.add_argument("app_name", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())

@@ -14,9 +14,8 @@ from attr import resolve_types
 from attrs import Attribute
 
 from resotolib.baseresources import BaseResource
-from resotolib.durations import duration_str
 from resotolib.types import Json
-from resotolib.utils import type_str, str2timedelta, str2timezone, utc_str
+from resotolib.utils import type_str, str2timedelta, str2timezone
 
 if sys.version_info >= (3, 10):
     from types import UnionType, NoneType
@@ -28,14 +27,14 @@ property_metadata_to_strip = ["restart_required", "description", "required", "ki
 
 
 # List[X] -> list, list -> list
-def optional_origin(clazz: type) -> type:
+def optional_origin(clazz: Type[Any]) -> Type[Any]:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
     origin = get_origin(maybe_optional)
-    return origin if origin else maybe_optional
+    return origin if origin else maybe_optional  # type: ignore
 
 
 # Optional[x] -> true
-def is_optional(clazz: type) -> bool:
+def is_optional(clazz: Union[type, Tuple[Any]]) -> bool:
     args = get_args(clazz)
     return get_origin(clazz) is Union and type(None) in args and len(args) == 2
 
@@ -60,7 +59,7 @@ def is_enum(clazz: type) -> bool:
 def type_arg(clazz: type) -> type:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
     args = get_args(maybe_optional)
-    return args[0] if args and len(args) == 1 else object
+    return args[0] if args and len(args) == 1 else object  # type: ignore
 
 
 # Dict[X,Y] -> (X,Y), dict -> (object, object)
@@ -116,7 +115,9 @@ simple_type = tuple(lookup.keys())
 
 
 # Model name from the internal python class name
-def model_name(clazz: Union[type, Tuple[Any]]) -> str:
+def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
+    if clazz is None:
+        return "any"
     to_check = get_args(clazz)[0] if is_optional(clazz) else clazz
     if is_collection(to_check):
         return f"{model_name(type_arg(to_check))}[]"
@@ -131,28 +132,28 @@ def model_name(clazz: Union[type, Tuple[Any]]) -> str:
         # since union types are not supported, we fallback to any here
         return "any"
     elif isinstance(to_check, TypeVar):
-        return model_name(get_args(to_check))
+        return model_name(get_args(to_check))  # type: ignore
     elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
     elif attrs.has(to_check):
         name = getattr(to_check, "kind", None)
         if not name:
             raise AttributeError(f"dataclass {to_check} need to define a ClassVar kind!")
-        return name
+        return name  # type: ignore
     else:
         return "any"
 
 
 # define if a field should be exported or not.
 # Use python default: hide props starting with underscore.
-def should_export(field: Attribute) -> bool:
+def should_export(field: Attribute) -> bool:  # type: ignore
     return not field.name.startswith("_")
 
 
 def dataclasses_to_resotocore_model(
-    classes: Set[type],
+    classes: Set[Type[Any]],
     allow_unknown_props: bool = False,
-    aggregate_root: Optional[type] = None,
+    aggregate_root: Optional[Type[Any]] = None,
     walk_subclasses: bool = True,
 ) -> List[Json]:
     """
@@ -168,7 +169,7 @@ def dataclasses_to_resotocore_model(
     :return: the model definition in the resotocore json format.
     """
 
-    def prop(field: Attribute) -> List[Json]:
+    def prop(field: Attribute) -> List[Json]:  # type: ignore
         # the field itself can define the type via a type hint
         # this is useful for int and float in python where the representation can not be
         # detected by the type itself. Example: int32/int64 or float/double
@@ -234,7 +235,7 @@ def dataclasses_to_resotocore_model(
     def export_data_class(clazz: type) -> None:
         bases = [base for base in clazz.__bases__ if attrs.has(base)]
         base_names = [model_name(base) for base in bases]
-        base_props: Set[Attribute] = reduce(lambda result, base: result | set(attrs.fields(base)), bases, set())
+        base_props: Set[Attribute] = reduce(lambda result, base: result | set(attrs.fields(base)), bases, set())  # type: ignore # noqa: E501
         props = [
             p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)
         ]
@@ -272,7 +273,7 @@ def dataclasses_to_resotocore_model(
             resolve_types(cls)  # make sure all string based types are resolved correctly
             export_data_class(cls)
         elif is_enum(cls):
-            export_enum(cls)  # type: ignore
+            export_enum(cls)
         else:
             raise AttributeError(f"Don't know how to handle: {cls}")
     return model
@@ -296,17 +297,7 @@ def dynamic_object_to_resotocore_model(name: str, properties: Dict[str, type]) -
     return dependant
 
 
-def format_value_for_export(value: Any) -> Any:
-    if isinstance(value, (date, datetime)):
-        return utc_str(value)
-    elif isinstance(value, (timedelta, timezone)):
-        return duration_str(value)
-    elif isinstance(value, Enum):
-        return value.value
-    return value
-
-
-def get_node_attributes(node: BaseResource) -> Dict:
+def get_node_attributes(node: BaseResource) -> Json:
     if not hasattr(node, "to_json"):
         raise ValueError(f"Node {node} has no to_json() method!")
     result = node.to_json()
@@ -315,7 +306,7 @@ def get_node_attributes(node: BaseResource) -> Dict:
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
-    node_dict = {"id": node._resotocore_id if node._resotocore_id else node.chksum}
+    node_dict: Json = {"id": node._resotocore_id if node._resotocore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
     else:
@@ -349,7 +340,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
 
 @lru_cache(maxsize=None)
 def locate_python_type(python_type: str) -> Any:
-    cls = locate(python_type)
+    cls: Type[Any] = locate(python_type)  # type: ignore
     if attrs.has(cls):
         attrs.resolve_types(cls)
     return cls
@@ -383,10 +374,10 @@ converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj)
 converter.register_structure_hook(timedelta, lambda obj, typ: str2timedelta(obj))
 converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
 # work around until this is solved: https://github.com/python-attrs/cattrs/issues/278
-converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)
+converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)  # type: ignore
 
 
-def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> BaseResource:
+def node_from_dict(node_data: Json, include_select_ancestors: bool = False) -> BaseResource:
     """Create a resource from resotocore graph node data
 
     If include_select_ancestors is True, the resource will be created with
@@ -436,7 +427,7 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
         }
     )
 
-    node = converter.structure_attrs_fromdict(new_node_data, node_type)
+    node: BaseResource = converter.structure_attrs_fromdict(new_node_data, node_type)
     for field_name, value in ancestors.items():
         setattr(node, field_name, value)
     node._raise_tags_exceptions = True
@@ -446,8 +437,8 @@ def node_from_dict(node_data: Dict, include_select_ancestors: bool = False) -> B
     return node
 
 
-def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Dict):
-    valid_fields = set(field.name for field in attrs.fields(node_type))
+def cleanup_node_field_types(node_type: BaseResource, node_data_reported: Json) -> None:
+    valid_fields = set(field.name for field in attrs.fields(node_type))  # type: ignore
     for field_name in list(node_data_reported.keys()):
         if field_name not in valid_fields:
             del node_data_reported[field_name]

@@ -179,7 +179,9 @@ def clazz_model(
         return spl if spl else type_name_of(name)
 
     def simple_shape(s: Shape) -> Optional[str]:
-        if s.get("type") == "string" and "in RFC3339 text format" in s.get("description", ""):
+        if s.get("type") == "string" and (
+            s.get("format") == "google-datetime" or "RFC3339" in s.get("description", "")
+        ):
             return "datetime"
         elif spl := simple_type_map.get(s.get("type")):
             return spl

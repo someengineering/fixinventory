@@ -4,11 +4,14 @@ from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
+from resotocore.config import ConfigHandler
 from arango.database import StandardDatabase
 from types import SimpleNamespace
-from resotocore.config import ConfigHandler
 import pytest
 from asyncio import Future
+import aiofiles
+import aiohttp
+from pathlib import Path
 
 
 @pytest.fixture
@@ -71,3 +74,34 @@ async def test_install_delete(model_db: PackageEntityDb) -> None:
     # check that it is not installed anymore
     installed_apps_after_deletion = [name async for name in package_manager.list()]
     assert installed_apps_after_deletion == []
+
+
+@pytest.mark.asyncio
+async def test_local_install(model_db: PackageEntityDb) -> None:
+    name = InfraAppName("cleanup-untagged")
+    package_manager = PackageManager(model_db, config_handler)
+    await package_manager.start()
+
+    # check that the app is not installed
+    installed_apps = [name async for name in package_manager.list()]
+    assert installed_apps == []
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(package_manager.cdn_url) as response:
+            assert response.status == 200
+            index_bytes = await response.read()
+
+            async with aiofiles.tempfile.TemporaryDirectory() as tmp:
+                index_path = Path(tmp) / "index.json"
+
+                async with aiofiles.open(index_path, "wb") as f:
+                    await f.write(index_bytes)
+
+                await package_manager.install(
+                    name,
+                    "file://" + str(index_path),
+                )
+
+    # check that the app is installed
+    installed_apps = [name async for name in package_manager.list()]
+    assert installed_apps == [name]

@@ -1,11 +1,13 @@
 import os
 import time
-from resotolib.logger import log
-from resotolib.lock import RWLock
 from collections import defaultdict
-from threading import Thread, Lock
-from typing import Callable, Iterable
 from enum import Enum
+from threading import Thread, Lock
+from typing import Callable, Iterable, Any, Dict
+
+from resotolib.lock import RWLock
+from resotolib.logger import log
+from resotolib.types import Json
 
 
 class EventType(Enum):
@@ -41,16 +43,16 @@ class EventType(Enum):
 class Event:
     """An Event"""
 
-    def __init__(self, event_type: EventType, data=None) -> None:
+    def __init__(self, event_type: EventType, data: Json) -> None:
         self.event_type = event_type
         self.data = data
 
 
-_events = defaultdict(dict)
+_events: Dict[EventType, Dict[Callable[[Event], None], Any]] = defaultdict(dict)
 _events_lock = RWLock()
 
 
-def event_listener_registered(event_type: EventType, listener: Callable) -> bool:
+def event_listener_registered(event_type: EventType, listener: Callable[[Event], None]) -> bool:
     """Return whether listener is registered to event"""
     if _events is None:
         return False
@@ -111,7 +113,7 @@ def dispatch_event(event: Event, blocking: bool = False) -> None:
 
 def add_event_listener(
     event_type: EventType,
-    listener: Callable,
+    listener: Callable[[Event], None],
     blocking: bool = False,
     timeout: int = 900,
     one_shot: bool = False,
@@ -135,7 +137,7 @@ def add_event_listener(
         return False
 
 
-def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
+def remove_event_listener(event_type: EventType, listener: Callable[[Event], None]) -> bool:
     """Remove an Event Listener"""
     with _events_lock.write_access:
         if event_listener_registered(event_type, listener):
@@ -147,7 +149,7 @@ def remove_event_listener(event_type: EventType, listener: Callable) -> bool:
         return False
 
 
-def list_event_listeners() -> Iterable:
+def list_event_listeners() -> Iterable[str]:
     with _events_lock.read_access:
         for event_type, listeners in _events.items():
             for listener, listener_data in listeners.items():

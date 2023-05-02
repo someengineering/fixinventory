@@ -1,7 +1,9 @@
+from __future__ import annotations
 import json
 import uuid
 from collections import defaultdict
 from copy import deepcopy
+from typing import Iterable, Optional, List
 
 from resotolib.logger import log
 
@@ -198,7 +200,7 @@ class Tree(object):
     def __contains__(self, identifier):
         return identifier in self.nodes.keys()
 
-    def __init__(self, tree=None, deep=False, node_class=None, identifier=None):
+    def __init__(self, tree=None, deep=False, node_class=None, identifier=None) -> None:
         """Initiate a new tree or copy another tree with a shallow or
         deep copy.
         """
@@ -214,7 +216,7 @@ class Tree(object):
 
         #: Get or set the identifier of the root. This attribute can be accessed and modified
         #: with ``.`` and ``=`` operator respectively.
-        self.root = None
+        self.root: Optional[str] = None
 
         if tree is not None:
             self.root = tree.root
@@ -316,11 +318,11 @@ class Tree(object):
         self.__update_pred_pointer(node.identifier, pid)
         node.set_initial_tree_id(self._identifier)
 
-    def all_nodes(self):
+    def all_nodes(self) -> List[Node]:
         """Return all nodes in a list"""
         return list(self._nodes.values())
 
-    def all_nodes_itr(self):
+    def all_nodes_itr(self) -> Iterable[Node]:
         """
         Returns all nodes in an iterator.
         Added by William Rusnack
@@ -359,7 +361,7 @@ class Tree(object):
                 ascendant_level = self.level(ascendant)
         return None
 
-    def children(self, nid):
+    def children(self, nid) -> List[Node]:
         """
         Return the children (Node) list of nid.
         Empty list is returned if nid does not exist
@@ -370,7 +372,7 @@ class Tree(object):
         """Check if the tree contains node of given id"""
         return True if nid in self._nodes else False
 
-    def create_node(self, tag=None, identifier=None, parent=None, data=None):
+    def create_node(self, tag=None, identifier=None, parent=None, data=None) -> Node:
         """
         Create a child node for given @parent node. If ``identifier`` is absent,
         a UUID will be generated automatically.
@@ -481,7 +483,7 @@ class Tree(object):
         """
         return filter(func, self.all_nodes_itr())
 
-    def get_node(self, nid):
+    def get_node(self, nid) -> Node:
         """
         Get the object of the node with ID of ``nid``.
 
@@ -508,7 +510,7 @@ class Tree(object):
             fpointer = []
         return fpointer
 
-    def leaves(self, nid=None):
+    def leaves(self, nid=None) -> List[Node]:
         """Get leaves of the whole tree or a subtree."""
         leaves = []
         if nid is None:
@@ -710,7 +712,7 @@ class Tree(object):
 
         return res
 
-    def remove_node(self, identifier):
+    def remove_node(self, identifier) -> int:
         """Remove a node indicated by 'identifier' with all its successors.
         Return the number of removed nodes.
         """
@@ -834,7 +836,7 @@ class Tree(object):
             except Exception:
                 raise TypeError("level should be an integer instead of '%s'" % type(level))
 
-    def subtree(self, nid, identifier=None):
+    def subtree(self, nid: Optional[str], identifier: Optional[str] = None) -> Tree:
         """
         Return a shallow COPY of subtree with nid being the new root.
         If nid is None, return an empty tree.

@@ -346,7 +346,7 @@ class GcpSqlBackupConfiguration:
     location: Optional[str] = field(default=None)
     point_in_time_recovery_enabled: Optional[bool] = field(default=None)
     replication_log_archiving_enabled: Optional[bool] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[str] = field(default=None)
     transaction_log_retention_days: Optional[int] = field(default=None)
 
 

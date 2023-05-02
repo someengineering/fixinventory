@@ -37,7 +37,7 @@ async def clean_ws_handler(ws_id: str, websocket_handler: WSHandler) -> None:
 
 
 def js_str(a: Any) -> str:
-    return jsons.dumps(a, strip_privates=True)
+    return jsons.dumps(a, strip_privates=True)  # type: ignore
 
 
 async def accept_websocket(

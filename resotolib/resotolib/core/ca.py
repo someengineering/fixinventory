@@ -3,7 +3,7 @@ import time
 import warnings
 import requests
 from ssl import create_default_context, SSLContext
-from typing import Tuple, Optional, List, Dict, Union
+from typing import Tuple, Optional, List, Dict, Union, Any
 from resotolib.args import ArgumentParser
 from resotolib.core import resotocore
 from resotolib.x509 import (
@@ -64,9 +64,9 @@ def get_signed_cert(
     common_name: str,
     san_dns_names: Optional[List[str]] = None,
     san_ip_addresses: Optional[List[str]] = None,
-    resotocore_uri: str = None,
-    psk: str = None,
-    ca_cert_path: str = None,
+    resotocore_uri: Optional[str] = None,
+    psk: Optional[str] = None,
+    ca_cert_path: Optional[str] = None,
     connect_to_ips: Optional[List[str]] = None,
 ) -> Tuple[RSAPrivateKey, Certificate]:
     if resotocore_uri is None:
@@ -83,13 +83,13 @@ def get_signed_cert(
         san_ip_addresses=san_ip_addresses,
     )
     cert_csr_bytes = csr_to_bytes(cert_csr)
-    headers = {}
+    headers: Dict[str, str] = {}
     if psk is not None:
         encode_jwt_to_headers(headers, {}, psk)
-    request_kwargs = {}
+    request_kwargs: Dict[str, str] = {}
     if ca_cert_path is not None:
         request_kwargs["verify"] = ca_cert_path
-    r = requests.post(f"{resotocore_uri}/ca/sign", cert_csr_bytes, headers=headers, **request_kwargs)
+    r = requests.post(f"{resotocore_uri}/ca/sign", cert_csr_bytes, headers=headers, **request_kwargs)  # type: ignore
     if r.status_code != 200:
         raise ValueError(f"Failed to get signed certificate: {r.text}")
     cert_bytes = r.content
@@ -103,9 +103,9 @@ class TLSData:
         common_name: str,
         san_dns_names: Optional[List[str]] = None,
         san_ip_addresses: Optional[List[str]] = None,
-        tempdir: str = None,
-        resotocore_uri: str = None,
-        psk: str = None,
+        tempdir: Optional[str] = None,
+        resotocore_uri: Optional[str] = None,
+        psk: Optional[str] = None,
         ca_only: bool = False,
         renew_before: timedelta = timedelta(days=1),
     ) -> None:
@@ -119,9 +119,9 @@ class TLSData:
             resotocore_uri = resotocore.http_uri
         self.__resotocore_uri = resotocore_uri
         self.__psk = psk
-        self.__ca_cert = None
-        self.__cert = None
-        self.__key = None
+        self.__ca_cert: Optional[Certificate] = None
+        self.__cert: Optional[Certificate] = None
+        self.__key: Optional[RSAPrivateKey] = None
         self.__ca_cert_path = f"{self.__tempdir.name}/ca.crt"
         self.__cert_path = f"{self.__tempdir.name}/cert.crt"
         self.__key_path = f"{self.__tempdir.name}/cert.key"
@@ -134,7 +134,7 @@ class TLSData:
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.shutdown()
 
     def start(self) -> None:
@@ -151,7 +151,7 @@ class TLSData:
             self.__watcher.join()
             self.__watcher = None
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         d = self.__dict__.copy()
         del d["_TLSData__load_lock"]
         del d["_TLSData__loaded"]
@@ -162,12 +162,12 @@ class TLSData:
         del d["_TLSData__watcher"]
         d["__is_loaded"] = self.__loaded.is_set()
         if self.__loaded.is_set():
-            d["__ca_cert_bytes"] = cert_to_bytes(self.__ca_cert)
-            d["__cert_bytes"] = cert_to_bytes(self.__cert)
-            d["__key_bytes"] = key_to_bytes(self.__key)
+            d["__ca_cert_bytes"] = cert_to_bytes(self.__ca_cert)  # type: ignore
+            d["__cert_bytes"] = cert_to_bytes(self.__cert)  # type: ignore
+            d["__key_bytes"] = key_to_bytes(self.__key)  # type: ignore
         return d
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Dict[str, Any]) -> None:
         d["_TLSData__load_lock"] = Lock()
         d["_TLSData__loaded"] = Event()
         d["_TLSData__exit"] = Condition()
@@ -213,9 +213,9 @@ class TLSData:
             last_cert_update = time.time() - os.path.getmtime(self.__cert_path)
             if last_ca_cert_update > refresh_every_sec or last_cert_update > refresh_every_sec:
                 log.debug("Refreshing cert/key files on disk")
-                write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)
-                write_cert_to_file(self.__cert, self.__cert_path)
-                write_key_to_file(self.__key, self.__key_path)
+                write_ca_bundle(self.__ca_cert, self.__ca_cert_path, include_certifi=True)  # type: ignore
+                write_cert_to_file(self.__cert, self.__cert_path)  # type: ignore
+                write_key_to_file(self.__key, self.__key_path)  # type: ignore
         except FileNotFoundError:
             pass
 
@@ -270,21 +270,24 @@ class TLSData:
             self.__loaded.set()
 
     @property
-    def ca_cert(self) -> str:
+    def ca_cert(self) -> Certificate:
         if not os.path.isfile(self.__ca_cert_path):
             self.load()
+        assert self.__ca_cert is not None, "CA cert is None"
         return self.__ca_cert
 
     @property
-    def cert(self) -> str:
+    def cert(self) -> Certificate:
         if not self.__loaded.is_set():
             self.load()
+        assert self.__cert is not None, "Cert is None"
         return self.__cert
 
     @property
-    def key(self) -> str:
+    def key(self) -> RSAPrivateKey:
         if not self.__loaded.is_set():
             self.load()
+        assert self.__key is not None, "Key is None"
         return self.__key
 
     @property

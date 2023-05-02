@@ -4,10 +4,12 @@ import base64
 import hashlib
 import time
 from resotolib.args import ArgumentParser
-from typing import Any, Optional, Tuple, Dict
+from typing import Any, Optional, Tuple, Dict, Mapping
+
+from resotolib.types import Json
 
 
-def key_from_psk(psk: str, salt: bytes = None) -> Tuple[bytes, bytes]:
+def key_from_psk(psk: str, salt: Optional[bytes] = None) -> Tuple[bytes, bytes]:
     """Derive a 256 bit key from a passphrase/pre-shared-key.
     A salt can be optionally provided. If not one will be generated.
     Returns both the key and the salt.
@@ -35,17 +37,17 @@ def encode_jwt(
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
     headers.update({"salt": salt_encoded})
-    return jwt.encode(payload, key, algorithm="HS256", headers=headers)
+    return jwt.encode(payload, key, algorithm="HS256", headers=headers)  # type: ignore
 
 
-def decode_jwt(encoded_jwt: str, psk: str, options: Optional[Dict[str, Any]] = None) -> dict:
+def decode_jwt(encoded_jwt: str, psk: str, options: Optional[Dict[str, Any]] = None) -> Json:
     """Decode a JWT using a key derived from a pre-shared-key and a salt stored
     in the JWT headers.
     """
     salt_encoded = jwt.get_unverified_header(encoded_jwt).get("salt")
-    salt = base64.standard_b64decode(salt_encoded)
+    salt = base64.standard_b64decode(salt_encoded) if salt_encoded else None
     key, _ = key_from_psk(psk, salt)
-    return jwt.decode(encoded_jwt, key, algorithms=["HS256"], options=options)
+    return jwt.decode(encoded_jwt, key, algorithms=["HS256"], options=options)  # type: ignore
 
 
 def encode_jwt_to_headers(
@@ -64,7 +66,7 @@ def encode_jwt_to_headers(
 
 
 def decode_jwt_from_headers(
-    http_headers: Dict[str, str],
+    http_headers: Mapping[str, str],
     psk: str,
     scheme: str = "Bearer",
     options: Optional[Dict[str, Any]] = None,

@@ -19,12 +19,12 @@ class WebApp:
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
-    def health(self):
+    def health(self) -> str:
         cherrypy.response.headers["Content-Type"] = "text/plain"
         return "ok\r\n"
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=["GET"])
-    def metrics(self):
+    def metrics(self) -> bytes:
         cherrypy.response.headers["Content-Type"] = CONTENT_TYPE_LATEST
         return generate_latest()
