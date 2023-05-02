@@ -16,7 +16,7 @@ from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryC
 from resotocore.db.model import QueryModel, GraphUpdate
 from resotocore.db.db_access import DbAccess
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
-from resotocore.ids import NodeId
+from resotocore.ids import NodeId, GraphName
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
 from resotocore.model.model import Model
 from resotocore.model.typed_model import from_js, to_js
@@ -562,8 +562,9 @@ async def test_events(
     await event_graph_db.delete_node(NodeId("some_other"))
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
-    await db_access.delete_graph("graph_copy_for_event")
-    await event_graph_db.copy_graph("graph_copy_for_event")
+    copy_graph_name = GraphName("graph_copy_for_event")
+    await db_access.delete_graph(copy_graph_name)
+    await event_graph_db.copy_graph(copy_graph_name)
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
@@ -582,7 +583,7 @@ async def test_events(
     copy_event = AccessJson(event_sender.events[5].context)
     assert copy_event.graph == event_graph_db.name
     assert copy_event.to_graph == "graph_copy_for_event"
-    await db_access.delete_graph("graph_copy_for_event")
+    await db_access.delete_graph(copy_graph_name)
 
 
 @mark.asyncio
@@ -595,7 +596,7 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
     assert len(nodes) == 8
 
     db = graph_db.db
-    copy_db_name = "copy_" + graph_db.name
+    copy_db_name = GraphName("copy_" + graph_db.name)
     # make sure the copy graph does not exist
     await db_access.delete_graph(copy_db_name)
 

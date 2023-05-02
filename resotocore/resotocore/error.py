@@ -1,3 +1,6 @@
+from resotocore.ids import GraphName
+
+
 class CoreException(Exception):
     pass
 
@@ -54,7 +57,7 @@ class OptimisticLockingFailed(CoreException, ClientError):
 
 
 class NoSuchGraph(CoreException, NotFoundError):
-    def __init__(self, graph: str):
+    def __init__(self, graph: GraphName):
         super().__init__(f"No graph with this name {graph}")
         self.graph = graph
 
