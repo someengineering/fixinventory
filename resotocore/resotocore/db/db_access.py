@@ -21,7 +21,7 @@ from resotocore.db.configdb import config_entity_db, config_validation_entity_db
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
-from resotocore.db.modeldb import ModelDb, model_db
+from resotocore.db.modeldb import KindDb, kind_db
 from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
@@ -59,14 +59,14 @@ class DbAccess(ABC):
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
         self.adjust_node = adjust_node
-        self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
+        self.kind_db = EventEntityDb(kind_db(self.db, model_name), event_sender, model_name)
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.pending_deferred_edge_db = pending_deferred_edge_db(self.db, deferred_edge_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
-        self.configs_model_db = model_db(self.db, configs_model)
+        self.configs_kind_db = kind_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
         self.graph_dbs: Dict[str, GraphDB] = {}
@@ -74,13 +74,13 @@ class DbAccess(ABC):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        await self.model_db.create_update_schema()
+        await self.kind_db.create_update_schema()
         await self.subscribers_db.create_update_schema()
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
         await self.config_entity_db.create_update_schema()
         await self.config_validation_entity_db.create_update_schema()
-        await self.configs_model_db.create_update_schema()
+        await self.configs_kind_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
         await self.package_entity_db.create_update_schema()
@@ -124,8 +124,8 @@ class DbAccess(ABC):
             self.graph_dbs[name] = event_db
             return event_db
 
-    def get_model_db(self) -> ModelDb:
-        return self.model_db
+    def get_kind_db(self) -> KindDb:
+        return self.kind_db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

@@ -7,7 +7,7 @@ from typing import Optional, List, Set, Callable
 from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
-from resotocore.db.modeldb import ModelDb
+from resotocore.db.modeldb import KindDb
 from resotocore.types import EdgeType
 from resotocore.model.model import Model, Kind, ComplexKind, Property
 from resotocore.util import exist
@@ -86,7 +86,7 @@ PlantUmlAttrs = (
 
 
 class ModelHandlerDB(ModelHandler):
-    def __init__(self, db: ModelDb, plantuml_server: str):
+    def __init__(self, db: KindDb, plantuml_server: str):
         self.db = db
         self.plantuml_server = plantuml_server
         self.__loaded_model: Optional[Model] = None

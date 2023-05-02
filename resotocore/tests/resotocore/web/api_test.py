@@ -41,9 +41,9 @@ async def core_client(
     port = 28900  # use a different port than the default one
 
     # wipe and cleanly import the test model
-    await db_access.model_db.create_update_schema()
-    await db_access.model_db.wipe()
-    await db_access.model_db.update_many(foo_kinds)
+    await db_access.kind_db.create_update_schema()
+    await db_access.kind_db.wipe()
+    await db_access.kind_db.update_many(foo_kinds)
 
     config_dir = tempfile.TemporaryDirectory()
     # todo: do not restart after the config override was loaded for the very first time and uncomment this part
