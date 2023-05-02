@@ -1,6 +1,7 @@
 from typing import Union, List, Any, AsyncIterator
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import JsonElement, Json
+from resotocore.ids import GraphId
 from attrs import frozen
 from abc import ABC, abstractmethod
 from argparse import Namespace
@@ -27,7 +28,7 @@ class Runtime(ABC):
     @abstractmethod
     async def execute(
         self,
-        graph: str,
+        graph: GraphId,
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],
@@ -41,7 +42,7 @@ class Runtime(ABC):
     @abstractmethod
     async def generate_template(
         self,
-        graph: str,
+        graph: GraphId,
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],

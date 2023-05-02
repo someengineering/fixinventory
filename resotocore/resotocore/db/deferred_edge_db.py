@@ -8,13 +8,14 @@ from typing import List, cast
 import logging
 
 from resotocore.types import Json
+from resotocore.ids import GraphId
 
 
 @define
 class PendingDeferredEdges:
     task_id: TaskId
     created_at: datetime  # update the corresponding TTL index when changing this name
-    graph: str
+    graph: GraphId
     edges: List[DeferredEdge]
 
 

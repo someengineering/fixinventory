@@ -49,7 +49,7 @@ from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.dependencies import empty_config, parse_args
-from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId
+from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphId
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.message_bus import (
@@ -174,7 +174,7 @@ def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> Standard
 
 @fixture
 async def graph_db(async_db: AsyncArangoDB) -> ArangoGraphDB:
-    graph_db = ArangoGraphDB(async_db, "ns", NoAdjust(), GraphUpdateConfig())
+    graph_db = ArangoGraphDB(async_db, GraphId("ns"), NoAdjust(), GraphUpdateConfig())
     await graph_db.create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db

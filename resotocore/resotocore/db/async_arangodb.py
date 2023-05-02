@@ -30,6 +30,7 @@ from resotocore.async_extensions import run_async
 from resotocore.error import QueryTookToLongError
 from resotocore.metrics import timed
 from resotocore.util import identity
+from resotocore.ids import GraphId
 
 log = logging.getLogger(__name__)
 
@@ -493,7 +494,7 @@ class AsyncArangoDBBase:
 
     async def delete_vertex(
         self,
-        graph: str,
+        graph: GraphId,
         vertex: Json,
         rev: Optional[str] = None,
         check_rev: bool = True,
@@ -504,7 +505,7 @@ class AsyncArangoDBBase:
             self.db.graph(graph).delete_vertex, vertex, rev, check_rev, ignore_missing, sync  # type: ignore
         )
 
-    async def has_graph(self, name: str) -> bool:
+    async def has_graph(self, name: GraphId) -> bool:
         return await run_async(self.db.has_graph, name)  # type: ignore
 
     async def create_graph(
@@ -530,19 +531,19 @@ class AsyncArangoDBBase:
     def graph(self, name: str) -> Graph:
         return self.db.graph(name)
 
-    async def has_vertex_collection(self, graph: str, name: str) -> bool:
+    async def has_vertex_collection(self, graph: GraphId, name: str) -> bool:
         return await run_async(self.db.graph(graph).has_vertex_collection, name)  # type: ignore
 
-    async def create_vertex_collection(self, graph: str, name: str) -> VertexCollection:
+    async def create_vertex_collection(self, graph: GraphId, name: str) -> VertexCollection:
         log.info(f"Create vertex collection {name} for graph {graph}")
         return await run_async(self.db.graph(graph).create_vertex_collection, name)  # type: ignore
 
-    async def has_edge_definition(self, graph: str, name: str) -> bool:
+    async def has_edge_definition(self, graph: GraphId, name: str) -> bool:
         return await run_async(self.db.graph(graph).has_edge_definition, name)  # type: ignore
 
     async def create_edge_definition(
         self,
-        graph: str,
+        graph: GraphId,
         edge_collection: str,
         from_vertex_collections: Sequence[str],
         to_vertex_collections: Sequence[str],

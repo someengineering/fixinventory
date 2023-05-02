@@ -4,11 +4,12 @@ from aiostream import stream
 from resotocore.report import Benchmark
 from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.report.inspector_service import InspectorService
+from resotocore.ids import GraphId
 
 
 @pytest.mark.asyncio
 async def test_benchmark_renderer(inspector_service: InspectorService, test_benchmark: Benchmark) -> None:
-    bench_result = await inspector_service.perform_benchmark("ns", "test")
+    bench_result = await inspector_service.perform_benchmark(GraphId("ns"), "test")
     render_result = [elem async for elem in respond_benchmark_result(stream.iterate(bench_result.to_graph()))]
     assert len(render_result) == 1
     assert (

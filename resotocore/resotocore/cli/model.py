@@ -33,6 +33,7 @@ from resotocore.query.template_expander import TemplateExpander, render_template
 from resotocore.report import Inspector
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
+from resotocore.ids import GraphId
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -80,8 +81,8 @@ class CLIContext:
     source: Optional[str] = None  # who is calling
 
     @property
-    def graph_name(self) -> str:
-        return self.env["graph"]
+    def graph_name(self) -> GraphId:
+        return GraphId(self.env["graph"])
 
     def variable_in_section(self, variable: str) -> str:
         # if there is no query, always assume the root section
