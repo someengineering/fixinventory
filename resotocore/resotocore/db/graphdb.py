@@ -154,6 +154,10 @@ class GraphDB(ABC):
     async def create_update_schema(self) -> None:
         pass
 
+    @abstractmethod
+    async def copy_graph(self, to_graph: str) -> "GraphDB":
+        pass
+
 
 class ArangoGraphDB(GraphDB):
     def __init__(self, db: AsyncArangoDB, name: str, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
@@ -907,7 +911,7 @@ class ArangoGraphDB(GraphDB):
             # ignore if the root not is already created
             return None
 
-    async def create_update_schema(self) -> None:
+    async def create_update_schema(self, init_with_data: bool = True) -> None:
         db = self.db
 
         async def create_update_graph(
@@ -1035,7 +1039,68 @@ class ArangoGraphDB(GraphDB):
             create_update_edge_indexes(edge_collection)
 
         await create_update_views(vertex)
-        await self.insert_genesis_data()
+        if init_with_data:
+            await self.insert_genesis_data()
+
+    async def copy_graph(self, to_graph: str) -> GraphDB:
+        if await self.db.has_graph(to_graph):
+            raise ValueError(f"Graph {to_graph} already exists")
+
+        new_graph_db = ArangoGraphDB(db=self.db, name=to_graph, adjust_node=self.node_adjuster, config=self.config)
+
+        # collection creation can't be a part of a transaction so we do that first
+        # we simply reuse the existing create_update_schema method but do not insert any genesis data
+        async def create_new_collections(new_db: ArangoGraphDB) -> None:
+            await new_db.create_update_schema(init_with_data=False)
+
+        # we want to have a consistent snapshot view of the graph
+        async def copy_data() -> None:
+            old_vertex = self.vertex_name
+            old_default_edge = self.edge_collection(EdgeTypes.default)
+            old_delete_edge = self.edge_collection(EdgeTypes.delete)
+
+            new_vertex = new_graph_db.vertex_name
+            new_default_edge = new_graph_db.edge_collection(EdgeTypes.default)
+            new_delete_edge = new_graph_db.edge_collection(EdgeTypes.delete)
+
+            tx = f"""
+                function () {{
+                    const db = require('@arangodb').db;
+
+                    db._query(
+                        "FOR vertex IN {old_vertex} "
+                        + "LET clean_vertex = UNSET(vertex, '_id', '_rev') "
+                        + "INSERT clean_vertex INTO {new_vertex}"
+                    );
+
+                    db._query(
+                        "FOR edge IN {old_default_edge} "
+                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
+                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_default_edge}"
+                    );
+
+                    db._query(
+                        "FOR edge IN {old_delete_edge} "
+                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
+                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_delete_edge}"
+                    );
+                }}
+            """
+
+            await self.db.execute_transaction(
+                tx,
+                read=[old_vertex, old_default_edge, old_delete_edge],
+                write=[new_vertex, new_default_edge, new_delete_edge],
+            )
+
+        await create_new_collections(new_graph_db)
+        await copy_data()
+
+        return cast(GraphDB, new_graph_db)
 
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
@@ -1285,3 +1350,10 @@ class EventGraphDB(GraphDB):
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
+
+    async def copy_graph(self, to_graph: str) -> GraphDB:
+        await self.event_sender.core_event(
+            CoreEvent.GraphCopied,
+            {"graph": self.graph_name, "to_graph": to_graph},
+        )
+        return await self.real.copy_graph(to_graph)

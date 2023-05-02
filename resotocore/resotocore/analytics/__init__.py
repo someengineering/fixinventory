@@ -25,6 +25,7 @@ class CoreEvent:
     NodeDeleted = "graphdb.node-deleted"
     DeferredEdgesUpdated = "graphdb.deferred-edges-updated"
     GraphMerged = "graphdb.graph-merged"
+    GraphCopied = "graphdb.graph-copied"
     BatchUpdateGraphMerged = "graphdb.batch-update-graph-merged"
     BatchUpdateCommitted = "graphdb.batch-update-committed"
     BatchUpdateAborted = "graphdb.batch-update-aborted"

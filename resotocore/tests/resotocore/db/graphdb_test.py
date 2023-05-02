@@ -14,6 +14,7 @@ from pytest import mark, raises
 from resotocore.analytics import CoreEvent, InMemoryEventSender
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
 from resotocore.db.model import QueryModel, GraphUpdate
+from resotocore.db.db_access import DbAccess
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
@@ -553,12 +554,16 @@ async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @mark.asyncio
-async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender) -> None:
+async def test_events(
+    event_graph_db: EventGraphDB, foo_model: Model, event_sender: InMemoryEventSender, db_access: DbAccess
+) -> None:
     await event_graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
     await event_graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
     await event_graph_db.delete_node(NodeId("some_other"))
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
+    await db_access.delete_graph("graph_copy_for_event")
+    await event_graph_db.copy_graph("graph_copy_for_event")
     # make sure all events will arrive
     await asyncio.sleep(0.1)
     # ensure the correct count and order of events
@@ -568,11 +573,50 @@ async def test_events(event_graph_db: EventGraphDB, foo_model: Model, event_send
         CoreEvent.NodeDeleted,
         CoreEvent.GraphMerged,
         CoreEvent.BatchUpdateGraphMerged,
+        CoreEvent.GraphCopied,
     ]
     merge_event = AccessJson(event_sender.events[3].context)
     assert merge_event.graph == event_graph_db.graph_name
     assert merge_event.providers == ["collector"]
     assert merge_event.batch is False
+    copy_event = AccessJson(event_sender.events[5].context)
+    assert copy_event.graph == event_graph_db.name
+    assert copy_event.to_graph == "graph_copy_for_event"
+    await db_access.delete_graph("graph_copy_for_event")
+
+
+@mark.asyncio
+async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess) -> None:
+    await graph_db.wipe()
+
+    # populate some data in the graphes
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
+    assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
+    assert len(nodes) == 8
+
+    db = graph_db.db
+    copy_db_name = "copy_" + graph_db.name
+    # make sure the copy graph does not exist
+    await db_access.delete_graph(copy_db_name)
+
+    # copy the graph
+    copy_db = await graph_db.copy_graph(copy_db_name)
+    assert copy_db.name == copy_db_name
+
+    # validate the vertices
+    existing_vertex_ids = {a["_key"] for a in await db.all(graph_db.name)}
+    copy_vertex_ids = {a["_key"] for a in await db.all(copy_db_name)}
+    assert existing_vertex_ids == copy_vertex_ids
+
+    # validate the default edges
+    existing_default_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_default")}
+    copy_default_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_default")}
+    assert existing_default_edge_ids == copy_default_edge_ids
+
+    # validate the delete edges
+    existing_delete_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_delete")}
+    copy_delete_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_delete")}
+    assert existing_delete_edge_ids == copy_delete_edge_ids
 
 
 def test_render_metadata_section(foo_model: Model) -> None:
