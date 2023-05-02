@@ -23,7 +23,7 @@ from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
 from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
-from resotocore.ids import NodeId, GraphId
+from resotocore.ids import NodeId, GraphName
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
 from resotocore.model.model import Model, ComplexKind, TransformKind, ResolvedProperty, synthetic_metadata_kinds
@@ -44,7 +44,7 @@ class HistoryChange(Enum):
 class GraphDB(ABC):
     @property
     @abstractmethod
-    def name(self) -> GraphId:
+    def name(self) -> GraphName:
         pass
 
     @abstractmethod
@@ -155,12 +155,12 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def copy_graph(self, to_graph: GraphId) -> "GraphDB":
+    async def copy_graph(self, to_graph: GraphName) -> "GraphDB":
         pass
 
 
 class ArangoGraphDB(GraphDB):
-    def __init__(self, db: AsyncArangoDB, name: GraphId, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
+    def __init__(self, db: AsyncArangoDB, name: GraphName, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
         super().__init__()
         self._name = name
         self.node_adjuster = adjust_node
@@ -171,7 +171,7 @@ class ArangoGraphDB(GraphDB):
         self.config = config
 
     @property
-    def name(self) -> GraphId:
+    def name(self) -> GraphName:
         return self._name
 
     def edge_collection(self, edge_type: EdgeType) -> str:
@@ -915,7 +915,7 @@ class ArangoGraphDB(GraphDB):
         db = self.db
 
         async def create_update_graph(
-            graph_name: GraphId, vertex_name: str, edge_name: str
+            graph_name: GraphName, vertex_name: str, edge_name: str
         ) -> Tuple[Graph, VertexCollection, EdgeCollection]:
             graph = db.graph(graph_name) if await db.has_graph(graph_name) else await db.create_graph(graph_name)
             vertex_collection = (
@@ -1042,7 +1042,7 @@ class ArangoGraphDB(GraphDB):
         if init_with_data:
             await self.insert_genesis_data()
 
-    async def copy_graph(self, to_graph: GraphId) -> GraphDB:
+    async def copy_graph(self, to_graph: GraphName) -> GraphDB:
         if await self.db.has_graph(to_graph):
             raise ValueError(f"Graph {to_graph} already exists")
 
@@ -1204,7 +1204,7 @@ class EventGraphDB(GraphDB):
         self.graph_name = real.name
 
     @property
-    def name(self) -> GraphId:
+    def name(self) -> GraphName:
         return self.real.name
 
     async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
@@ -1351,7 +1351,7 @@ class EventGraphDB(GraphDB):
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
 
-    async def copy_graph(self, to_graph: GraphId) -> GraphDB:
+    async def copy_graph(self, to_graph: GraphName) -> GraphDB:
         await self.event_sender.core_event(
             CoreEvent.GraphCopied,
             {"graph": self.graph_name, "to_graph": to_graph},

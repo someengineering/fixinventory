@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tup
 
 from attr import define, field, evolve
 
-from resotocore.ids import ConfigId, GraphId
+from resotocore.ids import ConfigId, GraphName
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from resotocore.util import uuid_str, if_set, partition_by
@@ -340,7 +340,7 @@ class Inspector(ABC):
     @abstractmethod
     async def perform_benchmark(
         self,
-        graph: GraphId,
+        graph: GraphName,
         benchmark_name: str,
         *,
         accounts: Optional[List[str]] = None,
@@ -361,7 +361,7 @@ class Inspector(ABC):
     @abstractmethod
     async def perform_checks(
         self,
-        graph: GraphId,
+        graph: GraphName,
         *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
@@ -389,7 +389,7 @@ class Inspector(ABC):
 
     @abstractmethod
     async def list_failing_resources(
-        self, graph: GraphId, check_uid: str, account_ids: Optional[List[str]] = None
+        self, graph: GraphName, check_uid: str, account_ids: Optional[List[str]] = None
     ) -> AsyncIterator[Json]:
         pass
 

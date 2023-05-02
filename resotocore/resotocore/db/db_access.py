@@ -31,7 +31,7 @@ from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
-from resotocore.ids import GraphId
+from resotocore.ids import GraphName
 from resotocore.util import Periodic, utc, shutdown_process, uuid_str
 
 log = logging.getLogger(__name__)
@@ -93,12 +93,12 @@ class DbAccess(ABC):
     async def stop(self) -> None:
         await self.cleaner.stop()
 
-    async def create_graph(self, name: GraphId) -> GraphDB:
+    async def create_graph(self, name: GraphName) -> GraphDB:
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
         return db
 
-    async def delete_graph(self, name: GraphId) -> None:
+    async def delete_graph(self, name: GraphName) -> None:
         db = self.database
         if db.has_graph(name):
             db.delete_graph(name, drop_collections=True, ignore_missing=True)
@@ -110,10 +110,10 @@ class DbAccess(ABC):
                     db.delete_collection(coll["name"])
             self.graph_dbs.pop(name, None)
 
-    async def list_graphs(self) -> List[GraphId]:
+    async def list_graphs(self) -> List[GraphName]:
         return [a["name"] for a in cast(List[Json], self.database.graphs()) if not a["name"].endswith("_hs")]
 
-    def get_graph_db(self, name: GraphId, no_check: bool = False) -> GraphDB:
+    def get_graph_db(self, name: GraphName, no_check: bool = False) -> GraphDB:
         if name in self.graph_dbs:
             return self.graph_dbs[name]
         else:

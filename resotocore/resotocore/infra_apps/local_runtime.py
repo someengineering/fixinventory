@@ -2,7 +2,7 @@ from typing import List, AsyncIterator
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.types import Json, JsonElement
-from resotocore.ids import GraphId
+from resotocore.ids import GraphName
 from resotocore.db.model import QueryModel
 from resotocore.cli.model import CLI, CLIContext
 from jinja2 import Environment
@@ -30,7 +30,7 @@ class LocalResotocoreAppRuntime(Runtime):
 
     async def execute(
         self,
-        graph: GraphId,
+        graph: GraphName,
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],
@@ -52,7 +52,7 @@ class LocalResotocoreAppRuntime(Runtime):
 
     async def generate_template(
         self,
-        graph: GraphId,
+        graph: GraphName,
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],
