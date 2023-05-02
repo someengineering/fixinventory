@@ -527,20 +527,6 @@ class AsyncArangoDBBase:
             shard_count,
         )
 
-    async def delete_graph(
-        self,
-        name: str,
-        ignore_missing: bool = False,
-        drop_collections: Optional[bool] = None,
-    ) -> bool:
-        log.info(f"Delete graph {name}.")
-        return await run_async(
-            self.db.delete_graph,  # type: ignore
-            name,
-            ignore_missing,
-            drop_collections,
-        )
-
     def graph(self, name: str) -> Graph:
         return self.db.graph(name)
 
