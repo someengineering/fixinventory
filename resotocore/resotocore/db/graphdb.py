@@ -155,7 +155,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def copy_graph(self, to_graph: str) -> "ArangoGraphDB":
+    async def copy_graph(self, to_graph: str) -> "GraphDB":
         pass
 
 
@@ -1043,7 +1043,7 @@ class ArangoGraphDB(GraphDB):
             await self.insert_genesis_data()
 
     async def copy_graph(self, to_graph: str) -> GraphDB:
-        if await self.db.has_collection(to_graph):
+        if await self.db.has_graph(to_graph):
             raise ValueError(f"Graph {to_graph} already exists")
 
         new_graph_db = ArangoGraphDB(db=self.db, name=to_graph, adjust_node=self.node_adjuster, config=self.config)
@@ -1076,16 +1076,16 @@ class ArangoGraphDB(GraphDB):
                     db._query(
                         "FOR edge IN {old_default_edge} "
                         + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = REGEX_REPLACE(edge._from, '^{old_vertex}', '{new_vertex}') "
-                        + "LET to = REGEX_REPLACE(edge._to, '^{old_vertex}', '{new_vertex}') "
+                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
                         + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_default_edge}"
                     );
 
                     db._query(
                         "FOR edge IN {old_delete_edge} "
                         + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = REGEX_REPLACE(edge._from, '^{old_vertex}', '{new_vertex}') "
-                        + "LET to = REGEX_REPLACE(edge._to, '^{old_vertex}', '{new_vertex}') "
+                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
                         + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_delete_edge}"
                     );
                 }}
