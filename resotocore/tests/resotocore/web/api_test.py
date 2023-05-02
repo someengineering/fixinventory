@@ -11,8 +11,9 @@ from _pytest.fixtures import fixture
 from aiohttp import ClientSession, MultipartReader
 from networkx import MultiDiGraph
 from resotoclient import models as rc
-from resotoclient.async_client import ResotoClient as ApiClient
+from resotoclient.async_client import ResotoClient
 
+from resotolib.utils import get_free_port
 from tests.resotocore import create_graph
 from resotocore.__main__ import run
 from resotocore.analytics import AnalyticsEvent
@@ -32,13 +33,13 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
 @fixture
 async def core_client(
     client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
-) -> AsyncIterator[ApiClient]:
+) -> AsyncIterator[ResotoClient]:
     """
     Note: adding this fixture to a test: a complete resotocore process is started.
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """
-    port = 28900  # use a different port than the default one
+    port = get_free_port()  # use a different port than the default one
 
     # wipe and cleanly import the test model
     await db_access.model_db.create_update_schema()
@@ -90,7 +91,7 @@ l1:
         count -= 1
         if count == 0:
             raise AssertionError("Process does not came up as expected")
-    async with ApiClient(f"http://localhost:{port}", None) as client:
+    async with ResotoClient(f"http://localhost:{port}") as client:
         yield client
     # terminate the process
     process.terminate()
@@ -107,7 +108,7 @@ g = "graphtest"
 
 
 @pytest.mark.asyncio
-async def test_system_api(core_client: ApiClient, client_session: ClientSession) -> None:
+async def test_system_api(core_client: ResotoClient, client_session: ClientSession) -> None:
     assert await core_client.ping() == "pong"
     assert await core_client.ready() == "ok"
     # make sure we get redirected to the api docs
@@ -120,7 +121,7 @@ async def test_system_api(core_client: ApiClient, client_session: ClientSession)
 
 
 @pytest.mark.asyncio
-async def test_model_api(core_client: ApiClient) -> None:
+async def test_model_api(core_client: ResotoClient) -> None:
     # GET /model
     assert len((await core_client.model()).kinds) >= len(predefined_kinds)
 
@@ -139,7 +140,7 @@ async def test_model_api(core_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_graph_api(core_client: ApiClient) -> None:
+async def test_graph_api(core_client: ResotoClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
         await core_client.delete_graph(g)
@@ -252,7 +253,7 @@ async def test_graph_api(core_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_subscribers(core_client: ApiClient) -> None:
+async def test_subscribers(core_client: ResotoClient) -> None:
     # provide a clean slate
     for subscriber in await core_client.subscribers():
         await core_client.delete_subscriber(subscriber.id)
@@ -287,7 +288,7 @@ async def test_subscribers(core_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cli(core_client: ApiClient) -> None:
+async def test_cli(core_client: ResotoClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
         await core_client.delete_graph(g)
@@ -319,7 +320,7 @@ async def test_cli(core_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_config(core_client: ApiClient, foo_kinds: List[rc.Kind]) -> None:
+async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> None:
     # make sure we have a clean slate
     async for config in core_client.configs():
         await core_client.delete_config(config)
