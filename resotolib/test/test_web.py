@@ -1,8 +1,13 @@
-import socket
-import requests
-import time
 import os
 import tempfile
+import time
+
+import cherrypy
+import requests
+
+from resotolib.utils import get_free_port
+from resotolib.web import WebServer
+from resotolib.web.metrics import WebApp
 from resotolib.x509 import (
     gen_rsa_key,
     gen_csr,
@@ -11,17 +16,6 @@ from resotolib.x509 import (
     write_cert_to_file,
     write_key_to_file,
 )
-from resotolib.web import WebServer
-from resotolib.web.metrics import WebApp
-import cherrypy
-
-
-def get_free_port() -> int:
-    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp.bind(("", 0))
-    _, free_port = tcp.getsockname()
-    tcp.close()
-    return free_port
 
 
 def test_web():
@@ -91,4 +85,3 @@ def disabled_test_secure_web():
         while web_server.is_alive():
             print("Waiting for web server to shutdown")
             time.sleep(1)
-        cherrypy.engine

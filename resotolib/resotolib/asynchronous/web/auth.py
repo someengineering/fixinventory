@@ -2,21 +2,50 @@ import json
 import logging
 import re
 from contextvars import ContextVar
+from datetime import datetime, timedelta
 from re import RegexFlag
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Callable, Awaitable
 from urllib.parse import urlparse
 
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web import middleware
+from attr import define
+
 from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
 from resotolib.asynchronous.web import RequestHandler, Middleware
+from resotolib.jwt import encode_jwt
+from resotolib.utils import utc
 
 log = logging.getLogger(__name__)
 JWT = Dict[str, Any]
 __JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
+CodeLifeTime = timedelta(minutes=5)
+
+
+@define
+class AuthorizedUser:
+    email: str
+    roles: Set[str]
+    authorized_at: datetime
+
+    def is_valid(self) -> bool:
+        return utc() - self.authorized_at < CodeLifeTime
+
+
+__authorization_codes: Dict[str, AuthorizedUser] = {}
+
+
+async def authorized_user(code: str) -> Optional[AuthorizedUser]:
+    for invalid_code in [k for k, v in __authorization_codes.items() if not v.is_valid()]:
+        __authorization_codes.pop(invalid_code, None)
+    return __authorization_codes.get(code)
+
+
+def add_authorized_user(code: str, user: AuthorizedUser) -> None:
+    __authorization_codes[code] = user
 
 
 async def jwt_from_context() -> JWT:
@@ -53,23 +82,26 @@ def set_valid_jwt(request: Request, jwt_raw: str, psk: str) -> Optional[JWT]:
     except PyJWTError:
         return None
     if jwt:
+        request["authorized"] = True  # deferred check in websocket handler
         request["jwt"] = jwt
-        request["authorized"] = True
         __JWT_Context.set(jwt)
     return jwt
 
 
-def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
+def check_auth(
+    psk: str,
+    jwt_lifetime: timedelta,
+    always_allowed_paths: Set[str],
+    not_allowed: Optional[Callable[[Request], Awaitable[StreamResponse]]] = None,
+) -> Middleware:
     def always_allowed(request: Request) -> bool:
         for path in always_allowed_paths:
             if re.fullmatch(path, request.path, RegexFlag.IGNORECASE):
                 return True
         return False
 
-    @middleware
-    async def valid_jwt_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+    async def valid_jwt(request: Request) -> bool:
         auth_header = request.headers.get("Authorization") or request.cookies.get("resoto_authorization")
-        authorized = False
         if auth_header:
             # make sure origin and host match, so the request is valid
             origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname  # type: ignore
@@ -83,18 +115,50 @@ def check_jwt(psk: str, always_allowed_paths: Set[str]) -> Middleware:
 
             # try to authorize the request, even if it is one of the always allowed paths
             authorized = set_valid_jwt(request, auth_header, psk) is not None
-        if authorized or always_allowed(request):
+            return authorized
+        return False
+
+    async def valid_code(request: Request) -> bool:
+        code = request.query.get("code")
+        if code:
+            if (user := await authorized_user(code)) and user.is_valid():
+                data = {"email": user.email, "roles": ",".join(user.roles)}
+                jwt = encode_jwt(data, psk, expire_in=int(jwt_lifetime.total_seconds()))
+                request["send_auth_response_header"] = f"Bearer {jwt}"
+                request["jwt"] = data
+                return True
+        return False
+
+    @middleware
+    async def valid_auth_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+        allowed = False
+        if always_allowed(request):
+            allowed = True
+        elif request.headers.get("Authorization"):
+            allowed = await valid_jwt(request)
+        elif request.query.get("code"):
+            allowed = await valid_code(request)
+        if allowed:
+            request["authorized"] = True
             return await handler(request)
         else:
-            raise web.HTTPSeeOther("/login?redirect=" + request.raw_path, headers=request.headers)
+            if not_allowed:
+                return await not_allowed(request)
+            else:
+                raise web.HTTPUnauthorized()
 
-    return valid_jwt_handler
+    return valid_auth_handler
 
 
-def auth_handler(psk: Optional[str], always_allowed_paths: Set[str]) -> Middleware:
+def auth_handler(
+    psk: Optional[str],
+    jwt_lifetime: timedelta,
+    always_allowed_paths: Set[str],
+    not_allowed: Optional[Callable[[Request], Awaitable[StreamResponse]]] = None,
+) -> Middleware:
     if psk:
         log.info("Use JWT authentication with a pre shared key")
-        return check_jwt(psk, always_allowed_paths)
+        return check_auth(psk, jwt_lifetime, always_allowed_paths, not_allowed)
     else:
         log.info("No authentication requested.")
         return no_check

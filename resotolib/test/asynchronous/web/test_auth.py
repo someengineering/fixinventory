@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -6,7 +7,7 @@ from aiohttp.test_utils import TestClient
 from multidict import CIMultiDict
 from pytest import mark
 from aiohttp.web import Application, Request, Response
-from resotolib.asynchronous.web.auth import check_jwt, jwt_from_context
+from resotolib.asynchronous.web.auth import check_auth, jwt_from_context
 from resotolib.jwt import encode_jwt
 
 # noinspection PyUnresolvedReferences
@@ -27,7 +28,7 @@ async def app_with_auth() -> Application:
         assert "exp" in jwt
         return Response(text="Hello, world")
 
-    app = Application(middlewares=[check_jwt("test", set())])
+    app = Application(middlewares=[check_auth("test", timedelta(minutes=5), set())])
     app.router.add_get("/", hello)
     return app
 
@@ -37,14 +38,6 @@ async def test_correct_psk(aiohttp_client: Any, app_with_auth: Application) -> N
     client: TestClient = await aiohttp_client(app_with_auth)
     jwt = encode_jwt({"foo": "bla"}, "test")
     resp = await client.get("/", headers=CIMultiDict({"Authorization": f"Bearer {jwt}"}))
-    assert resp.status == 200
-
-
-@mark.asyncio
-async def test_correct_psk_as_cookie(aiohttp_client: Any, app_with_auth: Application) -> None:
-    client: TestClient = await aiohttp_client(app_with_auth)
-    jwt = encode_jwt({"foo": "bla"}, "test")
-    resp = await client.get("/", cookies=CIMultiDict({"resoto_authorization": f"Bearer {jwt}"}))
     assert resp.status == 200
 
 

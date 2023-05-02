@@ -5,7 +5,6 @@ from argparse import Namespace
 from datetime import datetime
 from signal import SIGTERM
 from threading import Event
-from typing import Callable
 
 from prompt_toolkit.formatted_text import FormattedText
 from resotoclient.async_client import ResotoClient
@@ -17,6 +16,7 @@ from resotolib.core import resotocore, add_args as core_add_args, wait_for_resot
 from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
+from resotoshell.authorized_client import authorized_client
 from resotoshell.promptsession import PromptSession, core_metadata
 from resotoshell.shell import Shell
 
@@ -39,16 +39,11 @@ async def main_async() -> None:
         sys.exit(1)
     resotolib.proc.initializer()
 
-    client = ResotoClient(
-        url=resotocore.http_uri,
-        psk=args.psk,
-        custom_ca_cert_path=args.ca_cert,
-        verify=args.verify_certs,
-    )
+    client = await authorized_client(args)
 
     async def check_system_info() -> None:
         try:
-            async for line in client.cli_execute("system info"):
+            async for _ in client.cli_execute("system info"):
                 break
         except Exception as e:
             log.error(f"resotocore is not accessible: {e}")
@@ -158,15 +153,6 @@ def detect_color_system(args: Namespace) -> str:
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
-    def is_file(message: str) -> Callable[[str], str]:
-        def check_file(path: str) -> str:
-            if os.path.isfile(path):
-                return path
-            else:
-                raise AttributeError(f"{message}: path {path} is not a directory!")
-
-        return check_file
-
     arg_parser.add_argument(
         "--resotocore-section",
         help="All queries are interpreted with this section name. If not set, the server default is used.",

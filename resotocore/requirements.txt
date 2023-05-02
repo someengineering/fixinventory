@@ -2,6 +2,7 @@
 
 aiohttp-swagger3==0.7.4
 aiohttp[speedups]==3.8.4
+aiohttp-jinja2==1.5.1
 jsons==1.6.3
 parsy==2.1
 plantuml==0.3.0
@@ -25,4 +26,3 @@ setuptools>=65.5.3 # not directly required, pinned by Snyk to avoid a vulnerabil
 resotoui==3.4.0
 deepdiff==6.3.0
 Jinja2==3.1.2
-aiohttp-jinja2==1.5.1

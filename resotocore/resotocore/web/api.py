@@ -89,7 +89,7 @@ from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
 from resotocore.user import UserManagement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -108,7 +108,13 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotolib.asynchronous.web.auth import auth_handler, set_valid_jwt, raw_jwt_from_auth_message
+from resotolib.asynchronous.web.auth import (
+    auth_handler,
+    set_valid_jwt,
+    raw_jwt_from_auth_message,
+    AuthorizedUser,
+    add_authorized_user,
+)
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 
@@ -179,7 +185,12 @@ class Api:
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth_handler(config.args.psk, AlwaysAllowed | DeferredCheck),
+                auth_handler(
+                    config.args.psk,
+                    timedelta(seconds=config.api.access_token_expiration_seconds),
+                    AlwaysAllowed | DeferredCheck,
+                    self.login_with_redirect,
+                ),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
@@ -301,6 +312,7 @@ class Api:
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 web.get(prefix + "/login", self.login_page),
+                web.get(prefix + "/user", self.get_user),
                 web.post(prefix + "/create-first-user", self.create_first_user),
                 web.route(METH_ANY, prefix + "/logout", self.logout_page),
                 web.post(prefix + "/authenticate", self.authenticate),
@@ -327,6 +339,12 @@ class Api:
                 await self.session.close()
 
     @staticmethod
+    async def login_with_redirect(request: Request) -> StreamResponse:
+        params = request.query.copy()
+        params["redirect"] = request.path
+        return web.HTTPSeeOther("/login?" + urlencode(params))
+
+    @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
         async def forward_to(request: Request) -> StreamResponse:
             goto = to + "?" + urlencode(request.query) if request.query else to
@@ -345,6 +363,13 @@ class Api:
     async def login_page(self, request: Request) -> StreamResponse:
         template = "login.html" if await self.user_management.has_users() else "create_first_user.html"
         return aiohttp_jinja2.render_template(template, request, context=request.query)
+
+    @staticmethod
+    async def get_user(request: Request) -> StreamResponse:
+        if jwt := request.get("jwt"):
+            return web.json_response(jwt)
+        else:
+            return web.HTTPNoContent()
 
     @staticmethod
     async def logout_page(request: Request) -> StreamResponse:
@@ -388,26 +413,18 @@ class Api:
         email = str(post_data.get("email", ""))
         password = str(post_data.get("password", ""))
         redirect = str(post_data.get("redirect", ""))
-        method = str(post_data.get("method", "")).split(",")
-        if email and password and await self.user_management.login(email, password):
-            headers: Dict[str, str] = {}
+        if email and password and (user := await self.user_management.login(email, password)):
             params: Dict[str, str] = {}
-            authorization: Optional[str] = None
             if self.config.args.psk:
-                jwt = encode_jwt({}, self.config.args.psk)
-                authorization = f"Bearer {jwt}"
-                headers["Authorization"] = authorization
-                if "params" in method:
-                    params["jwt"] = jwt
-                    params["method"] = "Bearer"
+                code = uuid_str()
+                add_authorized_user(code, AuthorizedUser(email, user.roles, utc()))
+                params["code"] = code
             if redirect:
                 if params:
                     redirect += "?" + urlencode(params)
-                response: StreamResponse = HTTPSeeOther(str(redirect), headers=headers)
+                response: StreamResponse = HTTPSeeOther(redirect)
             else:
-                response = HTTPOk(text=urlencode(params), headers=headers)
-            if authorization:
-                response.set_cookie("resoto_authorization", authorization, secure=True, httponly=True)
+                response = HTTPOk(text=urlencode(params))
             return response
         return aiohttp_jinja2.render_template(
             "login.html", request, context=dict(**post_data, error="Invalid username or password")
@@ -631,9 +648,6 @@ class Api:
         accounts = [a.strip() for a in acc.split(",")] if acc else None
         inspections = await self.inspector.list_failing_resources(graph, check_id, accounts)
         return await self.stream_response_from_gen(request, inspections)
-
-    async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
-        raise web.HTTPFound("api-doc")
 
     async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]

@@ -42,6 +42,10 @@ async def on_response_prepare(request: Request, response: StreamResponse) -> Non
         response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
         response.headers["Access-Control-Max-Age"] = "86400"
 
+    # If requested, send the JWT in the response header
+    if auth_header := request.get("send_auth_response_header"):
+        response.headers["Authorization"] = auth_header
+
 
 @middleware
 async def cors_handler(request: Request, handler: RequestHandler) -> StreamResponse:
