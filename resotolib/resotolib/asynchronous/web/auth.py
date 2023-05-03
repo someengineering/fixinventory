@@ -12,6 +12,7 @@ from aiohttp.web import Request, StreamResponse
 from aiohttp.web import middleware
 from attr import define
 
+from resotocore.user import AccessRole
 from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
@@ -28,7 +29,7 @@ CodeLifeTime = timedelta(minutes=5)
 @define
 class AuthorizedUser:
     email: str
-    roles: Set[str]
+    roles: Set[AccessRole]
     authorized_at: datetime
 
     def is_valid(self) -> bool:

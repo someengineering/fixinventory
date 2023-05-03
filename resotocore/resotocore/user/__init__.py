@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, ClassVar, Optional, Type, Set, Any
+from typing import Dict, List, ClassVar, Optional, Type, Set, Any, Literal, Union
 
 from attr import define, field
 
@@ -12,13 +12,15 @@ from resotolib.core.model_export import dataclasses_to_resotocore_model
 UsersConfigRoot = "resoto_users"
 UsersConfigId = ConfigId("resoto.users")
 
+AccessRole = Union[Literal["admin"], Literal["read_write"], Literal["read_only"]]
+
 
 @define
 class ResotoUser:
     kind: ClassVar[str] = "resoto_user"
     fullname: str = field(metadata={"description": "The full name of the user."})
     password_hash: str = field(metadata={"description": "The sha256 hash of the user's password."})
-    roles: Set[str] = field(factory=set, metadata={"description": "The roles of the user."})
+    roles: Set[AccessRole] = field(factory=set, metadata={"description": "The roles of the user."})
 
 
 @define

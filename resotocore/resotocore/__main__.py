@@ -156,7 +156,7 @@ def with_config(
         config_override_service,
     )
     log_ship = event_stream(config, cert_handler.client_context)
-    user_management = UserManagementService(config_handler, event_sender)
+    user_management = UserManagementService(db, config_handler, event_sender)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
         event_sender=event_sender,

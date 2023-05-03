@@ -3537,7 +3537,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     @staticmethod
     async def show_system_info() -> AsyncIterator[Json]:
         info = to_js(system_info())
-        yield {**{"name": "resotocore"}, **info}
+        yield {"name": "resotocore", **info}
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")

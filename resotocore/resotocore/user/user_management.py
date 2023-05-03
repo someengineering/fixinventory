@@ -5,6 +5,7 @@ from typing import Optional, Dict
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
+from resotocore.db.db_access import DbAccess
 from resotocore.model.typed_model import from_js
 from resotocore.types import Json
 from resotocore.user import UserManagement, UsersConfigId, ResotoUser, UsersConfigRoot
@@ -16,7 +17,8 @@ ITERATIONS = 210000  # https://cheatsheetseries.owasp.org/cheatsheets/Password_S
 
 
 class UserManagementService(UserManagement):
-    def __init__(self, config_handler: ConfigHandler, event_sender: AnalyticsEventSender):
+    def __init__(self, db_access: DbAccess, config_handler: ConfigHandler, event_sender: AnalyticsEventSender):
+        self.db_access = db_access
         self.config_handler = config_handler
         self.event_sender = event_sender
 
@@ -43,7 +45,7 @@ class UserManagementService(UserManagement):
 
     async def create_first_user(self, company: str, fullname: str, email: str, password: str) -> ResotoUser:
         assert not await self.has_users()  # only allowed if no users exist
-        # TODO: store company name
+        assert self.db_access.system_data_db.update_info(company=company)
         hashed = self.hash_password(password)
         await self.config_handler.put_config(
             ConfigEntity(
@@ -54,7 +56,7 @@ class UserManagementService(UserManagement):
         await self.event_sender.core_event(
             CoreEvent.FirstUserCreated, {"company": company, "fullname": fullname, "email": email}
         )
-        return ResotoUser(fullname=fullname, password_hash=hashed)
+        return ResotoUser(fullname=fullname, password_hash=hashed, roles={"admin"})
 
     async def login(self, email: str, password: str) -> Optional[ResotoUser]:
         user_config = await self.config_handler.get_config(UsersConfigId)
