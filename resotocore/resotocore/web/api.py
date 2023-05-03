@@ -130,15 +130,15 @@ def section_of(request: Request) -> Optional[str]:
 # No Authorization required for following paths
 AlwaysAllowed = {
     "/",
-    "/metrics",
     "/api-doc.*",
-    "/system/.*",
-    "/static/.*",
-    "/ca/cert",
-    "/login",
-    "/logout",
-    "/create-first-user",
     "/authenticate",
+    "/ca/cert",
+    "/create-first-user",
+    "/login",
+    "/metrics",
+    "/static/.*",
+    "/system/.*",
+    "/ui.*",
 }
 # Authorization is not required, but implemented as part of the request handler
 DeferredCheck = {"/events"}
@@ -310,10 +310,10 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
+                # user operations
                 web.get(prefix + "/login", self.login_page),
                 web.get(prefix + "/user", self.get_user),
                 web.post(prefix + "/create-first-user", self.create_first_user),
-                web.route(METH_ANY, prefix + "/logout", self.logout_page),
                 web.post(prefix + "/authenticate", self.authenticate),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
@@ -369,14 +369,6 @@ class Api:
             return web.json_response(jwt)
         else:
             return web.HTTPNoContent()
-
-    @staticmethod
-    async def logout_page(request: Request) -> StreamResponse:
-        response = aiohttp_jinja2.render_template("logout.html", request, context=request.query)
-        response.set_cookie(
-            "resoto_authorization", "", secure=True, httponly=True, expires="Thu, Jan 01 1970 00:00:00 UTC"
-        )
-        return response
 
     async def create_first_user(self, request: Request) -> StreamResponse:
         post_data = await request.post()

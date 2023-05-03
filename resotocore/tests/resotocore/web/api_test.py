@@ -1,7 +1,7 @@
 from asyncio import sleep
-from contextlib import suppress
+from contextlib import suppress, asynccontextmanager
 from multiprocessing import Process
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Optional
 from pathlib import Path
 import tempfile
 
@@ -34,12 +34,32 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
 async def core_client(
     client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
 ) -> AsyncIterator[ResotoClient]:
+    async with create_core_client(client_session, foo_kinds, db_access, None) as client:
+        yield client
+
+
+@fixture
+async def core_client_with_psk(
+    client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
+) -> AsyncIterator[ResotoClient]:
+    async with create_core_client(client_session, foo_kinds, db_access, psk="test") as client:
+        yield client
+
+
+@asynccontextmanager
+async def create_core_client(
+    client_session: ClientSession,
+    foo_kinds: List[Kind],
+    db_access: DbAccess,
+    psk: Optional[str] = None,
+) -> AsyncIterator[ResotoClient]:
     """
     Note: adding this fixture to a test: a complete resotocore process is started.
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """
     port = get_free_port()  # use a different port than the default one
+    additional_args = ["--psk", psk] if psk else []
 
     # wipe and cleanly import the test model
     await db_access.model_db.create_update_schema()
@@ -49,7 +69,7 @@ async def core_client(
     config_dir = tempfile.TemporaryDirectory()
     # todo: do not restart after the config override was loaded for the very first time and uncomment this part
 
-    config_path = Path(config_dir.name) / "test_override_conifg_id.yaml"
+    config_path = Path(config_dir.name) / "test_override_config_id.yaml"
 
     with config_path.open("w") as override_config:
         override_config.write(
@@ -77,6 +97,7 @@ l1:
                 "resotocore.api.web_hosts=0.0.0.0",
                 "--override-path",
                 str(config_path),
+                *additional_args,
             ],
         ),
     )
@@ -91,7 +112,7 @@ l1:
         count -= 1
         if count == 0:
             raise AssertionError("Process does not came up as expected")
-    async with ResotoClient(f"http://localhost:{port}") as client:
+    async with ResotoClient(f"http://localhost:{port}", psk=psk) as client:
         yield client
     # terminate the process
     process.terminate()
@@ -369,7 +390,7 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
     await core_client.delete_config(cfg_id)
     assert [conf async for conf in core_client.configs()] == []
 
-    cfg_override_id = "test_override_conifg_id"
+    cfg_override_id = "test_override_config_id"
 
     # set a simple state, the override should not be applied since
     # we want to get a DB value only
@@ -398,3 +419,76 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
         "config": {"l1": {"l2": 1}},
         "overrides": {"l1": {"l2": 42}},
     }
+
+
+@pytest.mark.asyncio
+async def test_authorization(core_client_with_psk: ResotoClient, client_session: ClientSession) -> None:
+    url = core_client_with_psk.resotocore_url
+    # make sure all users are deleted
+    await core_client_with_psk.delete_config("resoto.users")
+
+    # Step 1: create first user ================================
+
+    # getting a restricted resource returns a redirect to login
+    async with client_session.get(f"{url}/user", allow_redirects=False) as resp:
+        assert resp.status == 303
+        assert resp.headers["Location"] == "/login?redirect=/user"
+    # the first user creation page is returned
+    async with client_session.get(f"{url}/user") as resp:
+        assert resp.status == 200
+        assert resp.content_type == "text/html"
+        assert "/create-first-user" in await resp.text()
+    # the form is submitted
+    async with client_session.post(
+        f"{url}/create-first-user",
+        allow_redirects=False,
+        data={
+            "company": "some company",
+            "fullname": "John Doe",
+            "email": "test@test.de",
+            "password": "test",
+            "password_repeat": "test",
+            "redirect": "/user",
+        },
+    ) as resp:
+        assert resp.status == 303
+        # a code is added to the redirect as request parameter
+        user_with_code = resp.headers["Location"]
+        assert "/user?code=" in user_with_code
+    # the code is used to authenticate
+    async with client_session.get(f"{url}{user_with_code}", allow_redirects=False) as resp:
+        assert resp.status == 200
+        auth_header = resp.headers["Authorization"]
+        assert auth_header.startswith("Bearer ")
+    # the auth header can be used for subsequent requests
+    async with client_session.get(f"{url}/user", headers={"Authorization": auth_header}) as resp:
+        assert resp.status == 200
+        user = await resp.json()
+        assert user["email"] == "test@test.de"
+        assert user["roles"] == "admin"
+
+    # Step 1: login with existing user ================================
+
+    # subsequent interactions need to log in
+    async with client_session.get(f"{url}/user") as resp:
+        assert resp.status == 200
+        assert resp.content_type == "text/html"
+        assert "/authenticate" in await resp.text()
+    # the login form is submitted
+    async with client_session.post(
+        f"{url}/authenticate",
+        allow_redirects=False,
+        data={"email": "test@test.de", "password": "test", "redirect": "/user"},
+    ) as resp:
+        assert resp.status == 303
+        # a code is added to the redirect as request parameter
+        user_with_code = resp.headers["Location"]
+        assert "/user?code=" in user_with_code
+    # the code is used to authenticate
+    async with client_session.get(f"{url}{user_with_code}", allow_redirects=False) as resp:
+        assert resp.status == 200
+        auth_header = resp.headers["Authorization"]
+        assert auth_header.startswith("Bearer ")
+    # the auth header can be used for subsequent requests
+    async with client_session.get(f"{url}/user", headers={"Authorization": auth_header}) as resp:
+        assert resp.status == 200
