@@ -1,4 +1,5 @@
 from contextlib import suppress
+from typing import AsyncIterator
 
 import pytest
 from arango.database import StandardDatabase
@@ -11,7 +12,7 @@ from resotocore.util import uuid_str, utc
 
 
 @pytest.fixture
-async def system_data_db(test_db: StandardDatabase) -> SystemDataDb:
+async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataDb]:
     with suppress(Exception):
         system = SystemData(uuid_str(), utc(), 1)
         test_db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=False)
@@ -20,7 +21,8 @@ async def system_data_db(test_db: StandardDatabase) -> SystemDataDb:
             "system_data", {"_key": "ca", "key": "private_key", "certificate": "some cert"}, overwrite=False
         )
     async_db = AsyncArangoDB(test_db)
-    return SystemDataDb(async_db)
+    yield SystemDataDb(async_db)
+    test_db.collection("system_data").delete({"_key": "ca"})
 
 
 @pytest.mark.asyncio
