@@ -1,12 +1,24 @@
+from contextlib import suppress
+
 import pytest
 from arango.database import StandardDatabase
 
+from resotocore.db import SystemData
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.system_data_db import SystemDataDb
+from resotocore.model.typed_model import to_js
+from resotocore.util import uuid_str, utc
 
 
 @pytest.fixture
 async def system_data_db(test_db: StandardDatabase) -> SystemDataDb:
+    with suppress(Exception):
+        system = SystemData(uuid_str(), utc(), 1)
+        test_db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=False)
+    with suppress(Exception):
+        test_db.insert_document(
+            "system_data", {"_key": "ca", "key": "private_key", "certificate": "some cert"}, overwrite=False
+        )
     async_db = AsyncArangoDB(test_db)
     return SystemDataDb(async_db)
 
