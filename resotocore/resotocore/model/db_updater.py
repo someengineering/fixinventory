@@ -130,7 +130,7 @@ class DbUpdaterProcess(Process):
             raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
 
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
-        model = Model.from_kinds([kind async for kind in db.kind_db.all()])
+        model = Model.from_kinds([kind async for kind in db.model_db.all()])
         builder = GraphBuilder(model)
         nxt = self.next_action()
         while isinstance(nxt, ReadElement):

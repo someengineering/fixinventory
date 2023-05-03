@@ -436,12 +436,12 @@ def config_handler(task_queue: WorkerTaskQueue, worker: Any, message_bus: Messag
     # Note: the worker fixture is required, since it starts worker tasks
     cfg_db = InMemoryDb(ConfigEntity, lambda c: c.id)
     validation_db = InMemoryDb(ConfigValidation, lambda c: c.id)
-    kind_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
+    model_db = InMemoryDb(Kind, lambda c: c.fqn)  # type: ignore
     event_sender = InMemoryEventSender()
     core_config = cast(CoreConfig, SimpleNamespace())
     override_service = cast(ConfigOverride, SimpleNamespace(get_override=lambda _: {}, get_all_overrides=lambda: {}))
     return ConfigHandlerService(
-        cfg_db, validation_db, kind_db, task_queue, message_bus, event_sender, core_config, override_service
+        cfg_db, validation_db, model_db, task_queue, message_bus, event_sender, core_config, override_service
     )
 
 

@@ -143,11 +143,11 @@ def with_config(
     worker_task_queue = WorkerTaskQueue()
     model = ModelHandlerDB(db, config.runtime.plantuml_server)
     # a "real" config override service, unlike the one used for core config
-    config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_kind_db))
+    config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
     config_handler = ConfigHandlerService(
         db.config_entity_db,
         db.config_validation_entity_db,
-        db.configs_kind_db,
+        db.configs_model_db,
         worker_task_queue,
         message_bus,
         event_sender,

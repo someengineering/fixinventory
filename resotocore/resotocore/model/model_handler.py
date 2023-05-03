@@ -97,15 +97,14 @@ class ModelHandlerDB(ModelHandler):
         if model := self.__loaded_model.get(graph_name):
             return model
         else:
-            # kinds = [kind async for kind in self.kind_db.all()]
             default_legacy_graph_name = GraphName("resoto")
             graph_model_db = await self.db_access.get_graph_model_db(graph_name)
-            kind_db = self.db_access.get_kind_db()
+            model_db = self.db_access.get_model_db()
             # check the new implementation for the kinds
             model_kinds = [kind async for kind in graph_model_db.all()]
             # if nothing found and the graph is the legacy default one, look in the legacy implementation
             if not model_kinds and graph_name == default_legacy_graph_name:
-                model_kinds = [kind async for kind in kind_db.all()]
+                model_kinds = [kind async for kind in model_db.all()]
             model = Model.from_kinds(model_kinds)
             self.__loaded_model[graph_name] = model
             return model

@@ -10,7 +10,7 @@ from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import Periodic
 from resotocore.config import ConfigOverride
-from resotocore.db.modeldb import KindDb
+from resotocore.db.modeldb import ModelDb
 from resotocore.model.model import Model, Kind
 from resotolib.utils import merge_json_elements
 from deepdiff import DeepDiff
@@ -21,8 +21,8 @@ import jsons
 log = logging.getLogger("config_override_service")
 
 
-async def model_from_db(kind_db: KindDb) -> Model:
-    kinds = [kind async for kind in kind_db.all()]
+async def model_from_db(model_db: ModelDb) -> Model:
+    kinds = [kind async for kind in model_db.all()]
     return Model.from_kinds(list(kinds))
 
 

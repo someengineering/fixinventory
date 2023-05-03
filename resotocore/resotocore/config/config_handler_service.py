@@ -11,7 +11,7 @@ import hashlib
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
-from resotocore.db.modeldb import KindDb
+from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
 from resotocore.types import Json, JsonElement
@@ -29,7 +29,7 @@ class ConfigHandlerService(ConfigHandler):
         self,
         cfg_db: ConfigEntityDb,
         validation_db: ConfigValidationEntityDb,
-        kind_db: KindDb,
+        model_db: ModelDb,
         task_queue: WorkerTaskQueue,
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
@@ -38,7 +38,7 @@ class ConfigHandlerService(ConfigHandler):
     ) -> None:
         self.cfg_db = cfg_db
         self.validation_db = validation_db
-        self.kind_db = kind_db
+        self.model_db = model_db
         self.task_queue = task_queue
         self.message_bus = message_bus
         self.event_sender = event_sender
@@ -161,7 +161,7 @@ class ConfigHandlerService(ConfigHandler):
         return await self.validation_db.update(validation)
 
     async def get_configs_model(self) -> Model:
-        kinds = [kind async for kind in self.kind_db.all()]
+        kinds = [kind async for kind in self.model_db.all()]
         return Model.from_kinds(list(kinds))
 
     async def update_configs_model(self, kinds: List[Kind]) -> Model:
@@ -171,7 +171,7 @@ class ConfigHandlerService(ConfigHandler):
         # have different types in different sections
         updated = model.update_kinds(kinds, check_overlap=False)
         # store all updated kinds
-        await self.kind_db.update_many(kinds)
+        await self.model_db.update_many(kinds)
         return updated
 
     async def config_yaml(self, cfg_id: ConfigId, revision: bool = False) -> Optional[str]:
