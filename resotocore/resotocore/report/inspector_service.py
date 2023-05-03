@@ -10,7 +10,7 @@ from resotocore.cli.model import CLIContext, CLI
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
-from resotocore.ids import ConfigId
+from resotocore.ids import ConfigId, GraphName
 from resotocore.model.model import Model
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.model import Aggregate, AggregateFunction, Query, P, AggregateVariable, AggregateVariableName
@@ -126,7 +126,7 @@ class InspectorService(Inspector, Service):
 
     async def perform_benchmark(
         self,
-        graph: str,
+        graph: GraphName,
         benchmark_name: str,
         *,
         accounts: Optional[List[str]] = None,
@@ -139,7 +139,7 @@ class InspectorService(Inspector, Service):
 
     async def perform_checks(
         self,
-        graph: str,
+        graph: GraphName,
         *,
         provider: Optional[str] = None,
         service: Optional[str] = None,
@@ -190,12 +190,14 @@ class InspectorService(Inspector, Service):
         # fmt: on
 
     async def list_failing_resources(
-        self, graph: str, check_uid: str, account_ids: Optional[List[str]] = None
+        self, graph: GraphName, check_uid: str, account_ids: Optional[List[str]] = None
     ) -> AsyncIterator[Json]:
         context = CheckContext(accounts=account_ids)
         return await self.__list_failing_resources(graph, check_uid, context)
 
-    async def __list_failing_resources(self, graph: str, check_uid: str, context: CheckContext) -> AsyncIterator[Json]:
+    async def __list_failing_resources(
+        self, graph: GraphName, check_uid: str, context: CheckContext
+    ) -> AsyncIterator[Json]:
         checks = await self.list_checks(check_ids=[check_uid])
         if not checks:
             raise NotFoundError(f"Check {check_uid} not found")
@@ -238,7 +240,9 @@ class InspectorService(Inspector, Service):
         else:
             return stream.empty()  # type: ignore
 
-    async def __perform_benchmark(self, benchmark: Benchmark, graph: str, context: CheckContext) -> BenchmarkResult:
+    async def __perform_benchmark(
+        self, benchmark: Benchmark, graph: GraphName, context: CheckContext
+    ) -> BenchmarkResult:
         if context.accounts is None:
             context.accounts = await self.__list_accounts(benchmark, graph)
 
@@ -271,7 +275,7 @@ class InspectorService(Inspector, Service):
         )
 
     async def __perform_checks(
-        self, graph: str, checks: List[ReportCheck], context: CheckContext
+        self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
     ) -> Dict[str, CountByAccount]:
         # load model
         model = await self.model_handler.load_model()
@@ -288,7 +292,7 @@ class InspectorService(Inspector, Service):
             return {key: value async for key, value in streamer}
 
     async def __perform_check(
-        self, graph: str, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
+        self, graph: GraphName, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
     ) -> CountByAccount:
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(config)
@@ -336,7 +340,7 @@ class InspectorService(Inspector, Service):
         else:
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
 
-    async def __list_accounts(self, benchmark: Benchmark, graph: str) -> List[str]:
+    async def __list_accounts(self, benchmark: Benchmark, graph: GraphName) -> List[str]:
         model = await self.model_handler.load_model()
         gdb = self.db_access.get_graph_db(graph)
         query = Query.by("account")

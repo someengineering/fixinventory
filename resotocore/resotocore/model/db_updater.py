@@ -26,7 +26,7 @@ from resotocore.error import ImportAborted
 from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
 from resotocore.types import Json
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, GraphName
 from resotocore.util import utc, uuid_str, shutdown_process
 
 log = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class MergeGraph(ProcessAction):
     Parent -> Child: once EOF of the incoming graph is reached.
     """
 
-    graph: str
+    graph: GraphName
     change_id: str
     is_batch: bool = False
     task_id: Optional[TaskId] = None

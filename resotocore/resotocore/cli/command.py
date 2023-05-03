@@ -90,8 +90,7 @@ from resotocore.infra_apps.package_manager import Failure
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId, InfraAppName
-from resotocore.ids import TaskDescriptorId
+from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
     Model,
@@ -1900,7 +1899,7 @@ class SetDesiredStateBase(CLICommand, ABC):
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
+        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
@@ -2012,7 +2011,7 @@ class CleanCommand(SetDesiredStateBase):
         return {"clean": True}
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: str, patch: Json, items: List[Json]
+        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
@@ -2035,7 +2034,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
-    async def set_metadata(self, graph_name: str, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
+    async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model()
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
@@ -2996,7 +2995,9 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                     .merge_with("ancestors.zone", NavigateUntilRoot, P.of_kind("zone"))
                 ).rewrite_for_ancestors_descendants(variables)
                 query_model = QueryModel(query, model)
-                async with await self.dependencies.db_access.get_graph_db(env["graph"]).search_list(query_model) as crs:
+                async with await self.dependencies.db_access.get_graph_db(GraphName(env["graph"])).search_list(
+                    query_model
+                ) as crs:
                     async for a in crs:
                         yield a
 
@@ -3011,7 +3012,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             try:
                 result = await future_result
                 if is_node(result):
-                    db = self.dependencies.db_access.get_graph_db(env["graph"])
+                    db = self.dependencies.db_access.get_graph_db(GraphName(env["graph"]))
                     try:
                         updated: Json = await db.update_node(model, result["id"], result, True, None)
                         return updated

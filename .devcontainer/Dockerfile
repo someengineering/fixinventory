@@ -12,7 +12,14 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends vim
+    && apt-get -y install --no-install-recommends vim wget
+
+
+RUN wget -qO- https://download.arangodb.com/arangodb310/DEBIAN/Release.key | apt-key add -
+RUN echo 'deb https://download.arangodb.com/arangodb310/DEBIAN/ /' | tee /etc/apt/sources.list.d/arangodb.list
+RUN apt-get install -y apt-transport-https
+RUN apt-get update
+RUN apt-get install -y arangodb3-client
 
 COPY resotocore/requirements*.txt /tmp/resoto-requirements/resotocore/
 COPY resotoeventlog/requirements*.txt /tmp/resoto-requirements/resotoeventlog/
