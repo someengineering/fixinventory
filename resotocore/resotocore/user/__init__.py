@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, ClassVar, Optional, Type, Set, Any, Literal, Union
+from typing import Dict, List, ClassVar, Optional, Type, Set, Any
 
 from attr import define, field
 
@@ -7,12 +7,11 @@ from resotocore.ids import ConfigId
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from resotocore.web.service import Service
+from resotolib.asynchronous.web.auth import AccessRole
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 UsersConfigRoot = "resoto_users"
 UsersConfigId = ConfigId("resoto.users")
-
-AccessRole = Union[Literal["admin"], Literal["read_write"], Literal["read_only"]]
 
 
 @define
