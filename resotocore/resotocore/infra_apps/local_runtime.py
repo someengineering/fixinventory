@@ -66,7 +66,7 @@ class LocalResotocoreAppRuntime(Runtime):
         template.globals["config"] = config
         template.globals["parse_duration"] = parse_duration
 
-        model = await self.model_handler.load_model()
+        model = await self.model_handler.load_model(graph)
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query

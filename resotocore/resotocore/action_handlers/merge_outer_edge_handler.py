@@ -43,9 +43,9 @@ class MergeOuterEdgesHandler:
     async def merge_outer_edges(self, task_id: TaskId) -> Tuple[int, int]:
         pending_outer_edge_db = self.db_access.pending_deferred_edge_db
         pending_edges = await pending_outer_edge_db.get(task_id)
-        model = await self.model_handler.load_model()
         if pending_edges:
             graph_db = self.db_access.get_graph_db(pending_edges.graph)
+            model = await self.model_handler.load_model(pending_edges.graph)
 
             async def find_node_id(selector: NodeSelector) -> Optional[NodeId]:
                 try:

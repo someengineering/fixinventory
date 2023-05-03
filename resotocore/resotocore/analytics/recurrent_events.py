@@ -7,6 +7,7 @@ from resotocore.model.model_handler import ModelHandler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.util import Periodic
 from resotocore.worker_task_queue import WorkerTaskQueue
+from resotocore.ids import GraphName
 
 
 def emit_recurrent_events(
@@ -20,7 +21,8 @@ def emit_recurrent_events(
 ) -> Periodic:
     async def emit_events() -> None:
         # information about the model
-        model = await model_handler.load_model()
+        default_graph = GraphName("resoto")
+        model = await model_handler.load_model(default_graph)
         await event_sender.core_event(
             CoreEvent.ModelInfo,
             dict(version=version()),

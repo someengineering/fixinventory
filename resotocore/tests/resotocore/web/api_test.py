@@ -20,6 +20,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
 from resotocore.util import rnd_str, AccessJson, utc
+from resotocore.ids import GraphName
 
 
 def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
@@ -44,6 +45,12 @@ async def core_client(
     await db_access.kind_db.create_update_schema()
     await db_access.kind_db.wipe()
     await db_access.kind_db.update_many(foo_kinds)
+
+    for graph_name in [g, "test", "hello", "bonjour", "foo"]:
+        db = await db_access.get_graph_model_db(GraphName(graph_name))
+        await db.create_update_schema()
+        await db.wipe()
+        await db.update_many(foo_kinds)
 
     config_dir = tempfile.TemporaryDirectory()
     # todo: do not restart after the config override was loaded for the very first time and uncomment this part
@@ -81,7 +88,7 @@ l1:
     )
     process.start()
     ready = False
-    count = 10
+    count = 20
     while not ready:
         await sleep(0.5)
         with suppress(Exception):
