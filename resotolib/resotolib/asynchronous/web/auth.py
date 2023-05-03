@@ -4,17 +4,16 @@ import re
 from contextvars import ContextVar
 from datetime import datetime, timedelta
 from re import RegexFlag
-from typing import Any, Dict, Optional, Set, Callable, Awaitable, Union, Literal
+from typing import Any, Dict, Optional, Set, Callable, Awaitable
 from urllib.parse import urlparse
 
 from aiohttp import web
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web import middleware
 from attr import define
-
-from resotolib import jwt as ck_jwt
 from jwt import PyJWTError
 
+from resotolib import jwt as ck_jwt
 from resotolib.asynchronous.web import RequestHandler, Middleware
 from resotolib.jwt import encode_jwt
 from resotolib.utils import utc
@@ -23,13 +22,12 @@ log = logging.getLogger(__name__)
 JWT = Dict[str, Any]
 __JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
 CodeLifeTime = timedelta(minutes=5)
-AccessRole = Union[Literal["admin"], Literal["read_write"], Literal["read_only"]]
 
 
 @define
 class AuthorizedUser:
     email: str
-    roles: Set[AccessRole]
+    roles: Set[str]
     authorized_at: datetime
 
     def is_valid(self) -> bool:

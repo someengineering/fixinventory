@@ -7,7 +7,6 @@ from resotocore.ids import ConfigId
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from resotocore.web.service import Service
-from resotolib.asynchronous.web.auth import AccessRole
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 UsersConfigRoot = "resoto_users"
@@ -19,7 +18,7 @@ class ResotoUser:
     kind: ClassVar[str] = "resoto_user"
     fullname: str = field(metadata={"description": "The full name of the user."})
     password_hash: str = field(metadata={"description": "The sha256 hash of the user's password."})
-    roles: Set[AccessRole] = field(factory=set, metadata={"description": "The roles of the user."})
+    roles: Set[str] = field(factory=set, metadata={"description": "The roles of the user."})
 
 
 @define

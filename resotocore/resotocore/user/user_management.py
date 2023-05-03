@@ -6,7 +6,7 @@ from typing import Optional, Dict
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.db.db_access import DbAccess
-from resotocore.model.typed_model import from_js
+from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 from resotocore.user import UserManagement, UsersConfigId, ResotoUser, UsersConfigRoot
 from resotocore.util import value_in_path_get, value_in_path
@@ -45,18 +45,16 @@ class UserManagementService(UserManagement):
 
     async def create_first_user(self, company: str, fullname: str, email: str, password: str) -> ResotoUser:
         assert not await self.has_users()  # only allowed if no users exist
-        assert self.db_access.system_data_db.update_info(company=company)
+        await self.db_access.system_data_db.update_info(company=company)
         hashed = self.hash_password(password)
+        user = ResotoUser(fullname=fullname, password_hash=hashed, roles={"admin"})
         await self.config_handler.put_config(
-            ConfigEntity(
-                UsersConfigId,
-                {UsersConfigRoot: {"users": {email: {"fullname": fullname, "password_hash": hashed}}}},
-            )
+            ConfigEntity(UsersConfigId, {UsersConfigRoot: {"users": {email: to_js(user)}}})
         )
         await self.event_sender.core_event(
             CoreEvent.FirstUserCreated, {"company": company, "fullname": fullname, "email": email}
         )
-        return ResotoUser(fullname=fullname, password_hash=hashed, roles={"admin"})
+        return user
 
     async def login(self, email: str, password: str) -> Optional[ResotoUser]:
         user_config = await self.config_handler.get_config(UsersConfigId)
