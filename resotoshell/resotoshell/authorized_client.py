@@ -73,8 +73,8 @@ async def authorized_client(args: Namespace) -> ResotoClient:
 
 async def fetch_auth_header(resotocore_url: str, params: Optional[Dict[str, str]] = None) -> Optional[Tuple[str, str]]:
     async with ClientSession() as session:
-        # Call to /user will return data about the user - we are only interested in the Authorization header
-        async with session.get(resotocore_url + "/user", params=params, allow_redirects=False) as resp:
+        # Call will return data about the user - we are only interested in the Authorization header
+        async with session.get(resotocore_url + "/authorization/user", params=params, allow_redirects=False) as resp:
             if resp.status < 300:
                 if auth := resp.headers.get("Authorization"):
                     log.debug(f"Received user information:  {await resp.text()}")

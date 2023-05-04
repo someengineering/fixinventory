@@ -87,6 +87,11 @@ def set_valid_jwt(request: Request, jwt_raw: str, psk: str) -> Optional[JWT]:
     return jwt
 
 
+def renew_user_jwt(psk: str, jwt_lifetime: timedelta, user: AuthorizedUser) -> str:
+    data = {"email": user.email, "roles": ",".join(user.roles)}
+    return encode_jwt(data, psk, expire_in=int(jwt_lifetime.total_seconds()))
+
+
 def check_auth(
     psk: str,
     jwt_lifetime: timedelta,

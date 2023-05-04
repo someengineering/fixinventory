@@ -9,7 +9,7 @@ import uuid
 import zipfile
 from asyncio import Future, Queue
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from functools import partial
 from io import BytesIO
 from pathlib import Path
@@ -113,6 +113,7 @@ from resotolib.asynchronous.web.auth import (
     raw_jwt_from_auth_message,
     AuthorizedUser,
     add_authorized_user,
+    renew_user_jwt,
 )
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
@@ -186,7 +187,7 @@ class Api:
                 metrics_handler,
                 auth_handler(
                     config.args.psk,
-                    timedelta(seconds=config.api.access_token_expiration_seconds),
+                    config.api.access_token_expiration(),
                     AlwaysAllowed | DeferredCheck,
                     self.login_with_redirect,
                 ),
@@ -310,11 +311,12 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
-                # user operations
+                # auth operations
                 web.get(prefix + "/login", self.login_page),
-                web.get(prefix + "/user", self.get_user),
                 web.post(prefix + "/create-first-user", self.create_first_user),
                 web.post(prefix + "/authenticate", self.authenticate),
+                web.get(prefix + "/authorization/user", self.get_authorized_user),
+                web.get(prefix + "/authorization/renew", self.renew_authorization),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
                 web.static(f"{prefix}/ui/", ui_path),
@@ -364,7 +366,7 @@ class Api:
         return aiohttp_jinja2.render_template(template, request, context=request.query)
 
     @staticmethod
-    async def get_user(request: Request) -> StreamResponse:
+    async def get_authorized_user(request: Request) -> StreamResponse:
         if jwt := request.get("jwt"):
             return web.json_response(jwt)
         else:
@@ -420,6 +422,16 @@ class Api:
         return aiohttp_jinja2.render_template(
             "login.html", request, context=dict(**post_data, error="Invalid username or password")
         )
+
+    async def renew_authorization(self, request: Request) -> StreamResponse:
+        if psk := self.config.args.psk:
+            jwt: Dict[str, str] = request.get("jwt", {})
+            exp = datetime.fromtimestamp(int(jwt["exp"]), tz=timezone.utc)
+            user = AuthorizedUser(jwt["email"], set(jwt["roles"].split(",")), exp)
+            renewed = renew_user_jwt(psk, self.config.api.access_token_expiration(), user)
+            return HTTPNoContent(headers={"Authorization": f"Bearer {renewed}"})
+        else:
+            return HTTPNoContent()  # no psk, no renewal
 
     async def list_configs(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())

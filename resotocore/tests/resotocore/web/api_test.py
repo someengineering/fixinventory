@@ -430,11 +430,11 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
     # Step 1: create first user ================================
 
     # getting a restricted resource returns a redirect to login
-    async with client_session.get(f"{url}/user", allow_redirects=False) as resp:
+    async with client_session.get(f"{url}/authorization/user", allow_redirects=False) as resp:
         assert resp.status == 303
-        assert resp.headers["Location"] == "/login?redirect=/user"
+        assert resp.headers["Location"] == "/login?redirect=/authorization/user"
     # the first user creation page is returned
-    async with client_session.get(f"{url}/user") as resp:
+    async with client_session.get(f"{url}/authorization/user") as resp:
         assert resp.status == 200
         assert resp.content_type == "text/html"
         assert "/create-first-user" in await resp.text()
@@ -448,29 +448,29 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
             "email": "test@test.de",
             "password": "test",
             "password_repeat": "test",
-            "redirect": "/user",
+            "redirect": "/authorization/user",
         },
     ) as resp:
         assert resp.status == 303
         # a code is added to the redirect as request parameter
         user_with_code = resp.headers["Location"]
-        assert "/user?code=" in user_with_code
+        assert "/authorization/user?code=" in user_with_code
     # the code is used to authenticate
     async with client_session.get(f"{url}{user_with_code}", allow_redirects=False) as resp:
         assert resp.status == 200
         auth_header = resp.headers["Authorization"]
         assert auth_header.startswith("Bearer ")
     # the auth header can be used for subsequent requests
-    async with client_session.get(f"{url}/user", headers={"Authorization": auth_header}) as resp:
+    async with client_session.get(f"{url}/authorization/user", headers={"Authorization": auth_header}) as resp:
         assert resp.status == 200
         user = await resp.json()
         assert user["email"] == "test@test.de"
         assert user["roles"] == "admin"
 
-    # Step 1: login with existing user ================================
+    # Step 2: login with existing user ================================
 
     # subsequent interactions need to log in
-    async with client_session.get(f"{url}/user") as resp:
+    async with client_session.get(f"{url}/authorization/user") as resp:
         assert resp.status == 200
         assert resp.content_type == "text/html"
         assert "/authenticate" in await resp.text()
@@ -478,17 +478,23 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
     async with client_session.post(
         f"{url}/authenticate",
         allow_redirects=False,
-        data={"email": "test@test.de", "password": "test", "redirect": "/user"},
+        data={"email": "test@test.de", "password": "test", "redirect": "/authorization/user"},
     ) as resp:
         assert resp.status == 303
         # a code is added to the redirect as request parameter
         user_with_code = resp.headers["Location"]
-        assert "/user?code=" in user_with_code
+        assert "/authorization/user?code=" in user_with_code
     # the code is used to authenticate
     async with client_session.get(f"{url}{user_with_code}", allow_redirects=False) as resp:
         assert resp.status == 200
         auth_header = resp.headers["Authorization"]
         assert auth_header.startswith("Bearer ")
     # the auth header can be used for subsequent requests
-    async with client_session.get(f"{url}/user", headers={"Authorization": auth_header}) as resp:
+    async with client_session.get(f"{url}/authorization/user", headers={"Authorization": auth_header}) as resp:
         assert resp.status == 200
+
+    # Step 3: renew the authorization header ================================
+    # the auth header can be used for subsequent requests
+    async with client_session.get(f"{url}/authorization/renew", headers={"Authorization": auth_header}) as resp:
+        assert resp.status == 204
+        assert resp.headers["Authorization"].startswith("Bearer ")

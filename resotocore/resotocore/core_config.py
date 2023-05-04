@@ -148,6 +148,9 @@ class ApiConfig(ConfigObject):
         default=3600, metadata={"description": "The expiration time of the access token in seconds (default: 1h)"}
     )
 
+    def access_token_expiration(self) -> timedelta:
+        return timedelta(seconds=self.access_token_expiration_seconds)
+
 
 # Define rules to validate this config
 schema_registry.add(
