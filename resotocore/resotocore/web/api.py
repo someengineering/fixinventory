@@ -28,7 +28,7 @@ from typing import (
     Awaitable,
     Iterable,
 )
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
 import aiohttp_jinja2
 import jinja2
@@ -342,7 +342,7 @@ class Api:
     @staticmethod
     async def login_with_redirect(request: Request) -> StreamResponse:
         params = request.query.copy()
-        params["redirect"] = request.path
+        params["redirect"] = request.raw_path
         return web.HTTPSeeOther("/login?" + urlencode(params))
 
     @staticmethod
@@ -364,13 +364,6 @@ class Api:
     async def login_page(self, request: Request) -> StreamResponse:
         template = "login.html" if await self.user_management.has_users() else "create_first_user.html"
         return aiohttp_jinja2.render_template(template, request, context=request.query)
-
-    @staticmethod
-    async def get_authorized_user(request: Request) -> StreamResponse:
-        if jwt := request.get("jwt"):
-            return web.json_response(jwt)
-        else:
-            return web.HTTPNoContent()
 
     async def create_first_user(self, request: Request) -> StreamResponse:
         post_data = await request.post()
@@ -407,14 +400,18 @@ class Api:
         password = str(post_data.get("password", ""))
         redirect = str(post_data.get("redirect", ""))
         if email and password and (user := await self.user_management.login(email, password)):
-            params: Dict[str, str] = {}
+            params: Dict[str, List[str]] = {}
             if self.config.args.psk:
                 code = uuid_str()
                 add_authorized_user(code, AuthorizedUser(email, user.roles, utc()))
-                params["code"] = code
+                params["code"] = [code]
             if redirect:
                 if params:
-                    redirect += "?" + urlencode(params)
+                    parsed = urlparse(redirect)
+                    query_params = parse_qs(parsed.query)
+                    query_params.update(params)
+                    parsed = parsed._replace(query=urlencode(query_params, doseq=True))
+                    redirect = urlunparse(parsed)
                 response: StreamResponse = HTTPSeeOther(redirect)
             else:
                 response = HTTPOk(text=urlencode(params))
@@ -423,13 +420,20 @@ class Api:
             "login.html", request, context=dict(**post_data, error="Invalid username or password")
         )
 
+    @staticmethod
+    async def get_authorized_user(request: Request) -> StreamResponse:
+        if jwt := request.get("jwt"):
+            return web.json_response(jwt)
+        else:
+            return web.HTTPNoContent()
+
     async def renew_authorization(self, request: Request) -> StreamResponse:
         if psk := self.config.args.psk:
-            jwt: Dict[str, str] = request.get("jwt", {})
-            exp = datetime.fromtimestamp(int(jwt["exp"]), tz=timezone.utc)
-            user = AuthorizedUser(jwt["email"], set(jwt["roles"].split(",")), exp)
-            renewed = renew_user_jwt(psk, self.config.api.access_token_expiration(), user)
-            return HTTPNoContent(headers={"Authorization": f"Bearer {renewed}"})
+            jwt_raw: Dict[str, str] = request.get("jwt", {})
+            exp = datetime.fromtimestamp(int(jwt_raw["exp"]), tz=timezone.utc)
+            user = AuthorizedUser(jwt_raw["email"], set(jwt_raw["roles"].split(",")), exp)
+            renewed, data = renew_user_jwt(psk, self.config.api.access_token_expiration(), user)
+            return web.json_response(data, headers={"Authorization": f"Bearer {renewed}"})
         else:
             return HTTPNoContent()  # no psk, no renewal
 

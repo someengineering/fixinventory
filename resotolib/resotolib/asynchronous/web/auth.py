@@ -1,10 +1,11 @@
 import json
 import logging
 import re
+import time
 from contextvars import ContextVar
 from datetime import datetime, timedelta
 from re import RegexFlag
-from typing import Any, Dict, Optional, Set, Callable, Awaitable
+from typing import Any, Dict, Optional, Set, Callable, Awaitable, Tuple
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -16,6 +17,7 @@ from jwt import PyJWTError
 from resotolib import jwt as ck_jwt
 from resotolib.asynchronous.web import RequestHandler, Middleware
 from resotolib.jwt import encode_jwt
+from resotolib.types import Json
 from resotolib.utils import utc
 
 log = logging.getLogger(__name__)
@@ -87,9 +89,10 @@ def set_valid_jwt(request: Request, jwt_raw: str, psk: str) -> Optional[JWT]:
     return jwt
 
 
-def renew_user_jwt(psk: str, jwt_lifetime: timedelta, user: AuthorizedUser) -> str:
-    data = {"email": user.email, "roles": ",".join(user.roles)}
-    return encode_jwt(data, psk, expire_in=int(jwt_lifetime.total_seconds()))
+def renew_user_jwt(psk: str, jwt_lifetime: timedelta, user: AuthorizedUser) -> Tuple[str, Json]:
+    exp = int(time.time() + jwt_lifetime.total_seconds())
+    data = {"email": user.email, "roles": ",".join(user.roles), "exp": exp}
+    return encode_jwt(data, psk, expire_in=int(jwt_lifetime.total_seconds())), data
 
 
 def check_auth(
