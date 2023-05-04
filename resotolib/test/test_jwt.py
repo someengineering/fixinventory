@@ -13,9 +13,16 @@ from jwt import (
     ImmatureSignatureError,
     MissingRequiredClaimError,
 )
+from resotolib.x509 import (
+    bootstrap_ca,
+    gen_rsa_key,
+    gen_csr,
+    sign_csr,
+    cert_is_signed_by_ca,
+)
 
 
-def test_jwt():
+def test_jwt_psk():
     psk = "somesecret"
     payload = {"Hello": "World"}
     j1 = encode_jwt(payload, psk, expire_in=-1)
@@ -52,3 +59,13 @@ def test_jwt():
     with pytest.raises(MissingRequiredClaimError) as e:
         decode_jwt(j1, psk, options={"require": ["exp"]})
     assert str(e.value) == 'Token is missing the "exp" claim'
+
+
+def test_jwt_pki():
+    ca_key, ca_cert = bootstrap_ca()
+    cert_key = gen_rsa_key()
+    cert_crt = sign_csr(gen_csr(cert_key), ca_key, ca_cert)
+    payload = {"Hello": "World"}
+    jwt = encode_jwt(payload, cert_key, expire_in=-1)
+    assert cert_is_signed_by_ca(cert_crt, ca_cert)
+    assert decode_jwt(jwt, cert_crt) == payload
