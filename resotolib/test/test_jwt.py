@@ -20,7 +20,7 @@ from resotolib.x509 import (
     gen_csr,
     sign_csr,
     cert_is_signed_by_ca,
-    cert_fingerprint,
+    x5t_s256,
 )
 
 
@@ -74,4 +74,4 @@ def test_jwt_pki():
 
     jwt = encode_jwt(payload, cert_key, cert=cert_crt)
     assert decode_jwt(jwt, cert_crt).get("Hello") == "World"
-    assert get_unverified_header(jwt).get("x5t#S256") == cert_fingerprint(cert_crt)
+    assert get_unverified_header(jwt).get("x5t#S256") == x5t_s256(cert_crt)

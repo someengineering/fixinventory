@@ -4,7 +4,7 @@ import base64
 import hashlib
 import time
 from resotolib.args import ArgumentParser
-from resotolib.x509 import cert_fingerprint
+from resotolib.x509 import x5t_s256
 from typing import Any, Optional, Tuple, Dict, Mapping, Union, cast
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.x509.base import Certificate
@@ -53,7 +53,7 @@ def encode_jwt_pki(
     """Encodes a payload into a JWT either using an RSA private key."""
     headers.update({"alg": "RS256"})
     if cert is not None:
-        headers.update({"x5t#S256": cert_fingerprint(cert, "SHA256")})
+        headers.update({"x5t#S256": x5t_s256(cert)})
     return jwt.encode(payload, private_key, algorithm="RS256", headers=headers)  # type: ignore
 
 

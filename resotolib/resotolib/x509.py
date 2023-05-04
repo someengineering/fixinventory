@@ -1,4 +1,5 @@
 import os
+import base64
 import certifi
 from ipaddress import (
     ip_address,
@@ -301,3 +302,19 @@ def cert_is_signed_by_ca(cert: Certificate, ca_cert: Certificate) -> bool:
         return True
     except InvalidSignature:
         return False
+
+
+def x5t_any(cert: Certificate, hash_algorithm: str) -> str:
+    public_bytes = cert.public_bytes(serialization.Encoding.DER)
+    hash_instance = hashes.Hash(getattr(hashes, hash_algorithm.upper())(), default_backend())
+    hash_instance.update(public_bytes)
+    thumbprint = hash_instance.finalize()
+    return base64.urlsafe_b64encode(thumbprint).rstrip(b"=").decode("utf-8")
+
+
+def x5t(cert: Certificate) -> str:
+    return x5t_any(cert, "SHA1")
+
+
+def x5t_s256(cert: Certificate) -> str:
+    return x5t_any(cert, "SHA256")
