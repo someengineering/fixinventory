@@ -4,7 +4,7 @@ import base64
 import hashlib
 import time
 from resotolib.args import ArgumentParser
-from typing import Any, Optional, Tuple, Dict, Mapping, Union
+from typing import Any, Optional, Tuple, Dict, Mapping, Union, cast
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.x509.base import Certificate
 
@@ -98,7 +98,7 @@ def decode_jwt_pki(
 ) -> Json:
     """Decode a JWT using an RSA public key."""
     if isinstance(public_key, Certificate):
-        public_key = public_key.public_key()
+        public_key = cast(RSAPublicKey, public_key.public_key())
         assert isinstance(public_key, RSAPublicKey)
     return jwt.decode(encoded_jwt, public_key, algorithms=["RS256"], options=options)  # type: ignore
 
