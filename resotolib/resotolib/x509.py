@@ -288,7 +288,7 @@ def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
 
 def cert_is_signed_by_ca(cert: Certificate, ca_cert: Certificate) -> bool:
     try:
-        public_key: RSAPublicKey = ca_cert.public_key()
+        public_key = ca_cert.public_key()
         assert isinstance(public_key, RSAPublicKey)
         public_key.verify(
             cert.signature,

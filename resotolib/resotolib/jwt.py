@@ -74,8 +74,10 @@ def decode_jwt(
     """
     alg = jwt.get_unverified_header(encoded_jwt).get("alg")
     if alg == "RS256":
+        assert isinstance(psk_or_cert, (Certificate, RSAPublicKey))
         return decode_jwt_pki(encoded_jwt, psk_or_cert, options)
     elif alg == "HS256":
+        assert isinstance(psk_or_cert, str)
         return decode_jwt_psk(encoded_jwt, psk_or_cert, options)
     else:
         raise ValueError(f"Unsupported JWT algorithm: {alg}")
