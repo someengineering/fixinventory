@@ -5907,7 +5907,6 @@ class GcpTargetVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_target_vpn_gateway"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
-        "successors": {"default": ["gcp_forwarding_rule"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -5939,9 +5938,6 @@ class GcpTargetVpnGateway(GcpResource):
     tunnels: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.forwarding_rules:
-            for rule in self.forwarding_rules:
-                builder.add_edge(self, clazz=GcpForwardingRule, link=rule)
         if self.network:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=self.network)
 
