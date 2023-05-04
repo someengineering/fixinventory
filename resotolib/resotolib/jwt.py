@@ -4,6 +4,7 @@ import base64
 import hashlib
 import time
 from resotolib.args import ArgumentParser
+from resotolib.x509 import x5t_s256
 from typing import Any, Optional, Tuple, Dict, Mapping, Union, cast
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.x509.base import Certificate
@@ -27,6 +28,7 @@ def encode_jwt(
     key: Union[str, RSAPrivateKey],
     headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
+    cert: Optional[Certificate] = None,
 ) -> str:
     """Encodes a payload into a JWT either using a pre-shared-key or an RSA private key."""
     payload = dict(payload)
@@ -37,7 +39,7 @@ def encode_jwt(
         payload.update({"exp": int(time.time()) + expire_in})
 
     if isinstance(key, RSAPrivateKey):
-        return encode_jwt_pki(payload, key, headers)
+        return encode_jwt_pki(payload, key, headers, cert)
     else:
         return encode_jwt_psk(payload, key, headers)
 
@@ -46,9 +48,12 @@ def encode_jwt_pki(
     payload: Dict[str, Any],
     private_key: RSAPrivateKey,
     headers: Dict[str, str],
+    cert: Optional[Certificate] = None,
 ) -> str:
     """Encodes a payload into a JWT either using an RSA private key."""
     headers.update({"alg": "RS256"})
+    if cert is not None:
+        headers.update({"x5t#S256": x5t_s256(cert)})
     return jwt.encode(payload, private_key, algorithm="RS256", headers=headers)  # type: ignore
 
 
@@ -110,11 +115,12 @@ def encode_jwt_to_headers(
     scheme: str = "Bearer",
     headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
+    cert: Optional[Certificate] = None,
 ) -> Dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary. Also returns that dict.
     """
-    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, key, headers, expire_in)}"})
+    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, key, headers, expire_in, cert)}"})
     return http_headers
 
 
