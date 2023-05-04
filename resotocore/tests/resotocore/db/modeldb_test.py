@@ -13,7 +13,7 @@ from resotocore.model.model import ComplexKind, Property, StringKind, NumberKind
 
 
 @pytest.fixture
-def test_model() -> List[Kind]:
+def test_kinds() -> List[Kind]:
     string_kind = StringKind("some.string", 0, 3, "\\w+")
     int_kind = NumberKind("some.int", "int32", 0, 100)
     bool_kind = BooleanKind("some.bool")
@@ -63,27 +63,27 @@ def event_db(model_db: ModelDb, event_sender: AnalyticsEventSender) -> EventMode
 
 
 @pytest.mark.asyncio
-async def test_load(model_db: ModelDb, test_model: List[Kind]) -> None:
-    await model_db.update_many(test_model)
+async def test_load(model_db: ModelDb, test_kinds: List[Kind]) -> None:
+    await model_db.update_many(test_kinds)
     loaded = [kind async for kind in model_db.all()]
-    assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
+    assert test_kinds.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_update(model_db: ModelDb, test_model: List[Kind]) -> None:
+async def test_update(model_db: ModelDb, test_kinds: List[Kind]) -> None:
     # multiple updates should work as expected
-    await model_db.update_many(test_model)
-    await model_db.update_many(test_model)
-    await model_db.update_many(test_model)
+    await model_db.update_many(test_kinds)
+    await model_db.update_many(test_kinds)
+    await model_db.update_many(test_kinds)
     loaded = [kind async for kind in model_db.all()]
-    assert test_model.sort(key=fqn) == loaded.sort(key=fqn)
+    assert test_kinds.sort(key=fqn) == loaded.sort(key=fqn)
 
 
 @pytest.mark.asyncio
-async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
-    await model_db.update_many(test_model)
-    remaining = list(test_model)
-    for _ in test_model:
+async def test_delete(model_db: ModelDb, test_kinds: List[Kind]) -> None:
+    await model_db.update_many(test_kinds)
+    remaining = list(test_kinds)
+    for _ in test_kinds:
         kind = remaining.pop()
         await model_db.delete_value(kind)
         loaded = [kind async for kind in model_db.all()]
@@ -92,12 +92,12 @@ async def test_delete(model_db: ModelDb, test_model: List[Kind]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_events(event_db: EventModelDb, test_model: List[Kind], event_sender: InMemoryEventSender) -> None:
+async def test_events(event_db: EventModelDb, test_kinds: List[Kind], event_sender: InMemoryEventSender) -> None:
     # 2 times update
-    await event_db.update_many(test_model)
-    await event_db.update_many(test_model)
+    await event_db.update_many(test_kinds)
+    await event_db.update_many(test_kinds)
     # 6 times delete
-    for kind in test_model:
+    for kind in test_kinds:
         await event_db.delete_value(kind)
     # make sure all events will arrive
     await asyncio.sleep(0.1)

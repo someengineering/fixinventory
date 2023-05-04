@@ -60,6 +60,7 @@ class DbAccess(ABC):
         self.db = AsyncArangoDB(arango_database)
         self.adjust_node = adjust_node
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
+        self.graph_model_dbs: Dict[GraphName, ModelDb] = {}
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.pending_deferred_edge_db = pending_deferred_edge_db(self.db, deferred_edge_name)
@@ -126,6 +127,16 @@ class DbAccess(ABC):
 
     def get_model_db(self) -> ModelDb:
         return self.model_db
+
+    async def get_graph_model_db(self, graph_name: GraphName) -> ModelDb:
+        if db := self.graph_model_dbs.get(graph_name):
+            return db
+        else:
+            model_name = f"model_{graph_name}"
+            db = EventEntityDb(model_db(self.db, model_name), self.event_sender, model_name)
+            await db.create_update_schema()
+            self.graph_model_dbs[graph_name] = db
+            return db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)
