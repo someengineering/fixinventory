@@ -28,7 +28,7 @@ def encode_jwt(
     key: Union[str, RSAPrivateKey],
     headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
-    public_key: Optional[RSAPublicKey] = None,
+    cert: Optional[Certificate] = None,
 ) -> str:
     """Encodes a payload into a JWT either using a pre-shared-key or an RSA private key."""
     payload = dict(payload)
@@ -39,7 +39,7 @@ def encode_jwt(
         payload.update({"exp": int(time.time()) + expire_in})
 
     if isinstance(key, RSAPrivateKey):
-        return encode_jwt_pki(payload, key, headers, public_key)
+        return encode_jwt_pki(payload, key, headers, cert)
     else:
         return encode_jwt_psk(payload, key, headers)
 
@@ -48,12 +48,12 @@ def encode_jwt_pki(
     payload: Dict[str, Any],
     private_key: RSAPrivateKey,
     headers: Dict[str, str],
-    public_key: Optional[RSAPublicKey] = None,
+    cert: Optional[Certificate] = None,
 ) -> str:
     """Encodes a payload into a JWT either using an RSA private key."""
     headers.update({"alg": "RS256"})
-    if public_key is not None:
-        headers.update({"x5t#S256": cert_fingerprint(public_key, "SHA256")})
+    if cert is not None:
+        headers.update({"x5t#S256": cert_fingerprint(cert, "SHA256")})
     return jwt.encode(payload, private_key, algorithm="RS256", headers=headers)  # type: ignore
 
 
@@ -115,12 +115,12 @@ def encode_jwt_to_headers(
     scheme: str = "Bearer",
     headers: Optional[Dict[str, str]] = None,
     expire_in: int = 300,
-    public_key: Optional[RSAPublicKey] = None,
+    cert: Optional[Certificate] = None,
 ) -> Dict[str, str]:
     """Takes a payload and psk turns them into a JWT and adds that to a http headers
     dictionary. Also returns that dict.
     """
-    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, key, headers, expire_in, public_key)}"})
+    http_headers.update({"Authorization": f"{scheme} {encode_jwt(payload, key, headers, expire_in, cert)}"})
     return http_headers
 
 
