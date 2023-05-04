@@ -72,6 +72,6 @@ def test_jwt_pki():
     assert cert_is_signed_by_ca(cert_crt, ca_cert)
     assert decode_jwt(jwt, cert_crt) == payload
 
-    jwt = encode_jwt(payload, cert_key, public_key=cert_crt)
+    jwt = encode_jwt(payload, cert_key, cert=cert_crt)
     assert decode_jwt(jwt, cert_crt).get("Hello") == "World"
     assert get_unverified_header(jwt).get("x5t#S256") == cert_fingerprint(cert_crt)
