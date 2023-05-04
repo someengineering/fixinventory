@@ -21,6 +21,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPrivateKey,
+    RSAPublicKey,
     generate_private_key,
 )
 from cryptography.x509.base import Certificate, CertificateSigningRequest
@@ -287,7 +288,9 @@ def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
 
 def cert_is_signed_by_ca(cert: Certificate, ca_cert: Certificate) -> bool:
     try:
-        ca_cert.public_key().verify(
+        public_key: RSAPublicKey = ca_cert.public_key()
+        assert isinstance(public_key, RSAPublicKey)
+        public_key.verify(
             cert.signature,
             cert.tbs_certificate_bytes,
             padding.PKCS1v15(),
