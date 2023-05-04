@@ -12,6 +12,7 @@ from jwt import (
     ExpiredSignatureError,
     ImmatureSignatureError,
     MissingRequiredClaimError,
+    get_unverified_header,
 )
 from resotolib.x509 import (
     bootstrap_ca,
@@ -19,6 +20,7 @@ from resotolib.x509 import (
     gen_csr,
     sign_csr,
     cert_is_signed_by_ca,
+    cert_fingerprint,
 )
 
 
@@ -69,3 +71,7 @@ def test_jwt_pki():
     jwt = encode_jwt(payload, cert_key, expire_in=-1)
     assert cert_is_signed_by_ca(cert_crt, ca_cert)
     assert decode_jwt(jwt, cert_crt) == payload
+
+    jwt = encode_jwt(payload, cert_key, public_key=cert_crt)
+    assert decode_jwt(jwt, cert_crt).get("Hello") == "World"
+    assert get_unverified_header(jwt).get("x5t#S256") == cert_fingerprint(cert_crt)
