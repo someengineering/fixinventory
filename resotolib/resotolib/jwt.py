@@ -99,6 +99,7 @@ def decode_jwt_pki(
     """Decode a JWT using an RSA public key."""
     if isinstance(public_key, Certificate):
         public_key = public_key.public_key()
+        assert isinstance(public_key, RSAPublicKey)
     return jwt.decode(encoded_jwt, public_key, algorithms=["RS256"], options=options)  # type: ignore
 
 

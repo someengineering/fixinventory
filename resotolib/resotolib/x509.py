@@ -289,12 +289,14 @@ def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
 def cert_is_signed_by_ca(cert: Certificate, ca_cert: Certificate) -> bool:
     try:
         public_key = ca_cert.public_key()
+        signature_hash_algorithm = cert.signature_hash_algorithm
         assert isinstance(public_key, RSAPublicKey)
+        assert isinstance(signature_hash_algorithm, hashes.HashAlgorithm)
         public_key.verify(
             cert.signature,
             cert.tbs_certificate_bytes,
             padding.PKCS1v15(),
-            cert.signature_hash_algorithm,
+            signature_hash_algorithm,
         )
         return True
     except InvalidSignature:
