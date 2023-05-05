@@ -39,7 +39,7 @@ from resotocore.worker_task_queue import WorkerTask
 from resotocore.ids import InfraAppName, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
-from resotocore.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1146,9 +1146,17 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
         result = await cli.execute_cli_command(cmd, stream.list)
         return cast(List[T], result[0])
 
+    # cleanup everything
+    for graph in await graph_manager.list(None):
+        await graph_manager.delete(graph)
+
+    # create a graph
+    await graph_manager.db_access.create_graph(GraphName("graphtest"))
+    await graph_manager.db_access.create_graph(GraphName("ns"))
+
     # list all graphs
     graphs = await execute("graph list", str)
-    assert set(graphs) == {"ns", "graphtest"}
+    assert set(graphs) == {"graphtest", "ns"}
 
     # list via regex
     graphs = await execute("graph list .*apht.*", str)
@@ -1156,8 +1164,8 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
 
     # copy a graph
     await execute("graph copy graphtest graphtest2", str)
-    graphs = await graph_manager.list(None)
-    assert set(graphs) == {"ns", "graphtest", "graphtest2"}
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2"}
 
     # copy to the existing graph without --force
     with pytest.raises(Exception):
@@ -1165,13 +1173,13 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
 
     # copy to the existing graph with --force
     await execute("graph copy graphtest graphtest2 --force", str)
-    graphs = await graph_manager.list(None)
-    assert set(graphs) == {"ns", "graphtest", "graphtest2"}
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2"}
 
     # implicitly copy the current graph to the new one
     await execute("graph copy graphtest3", str)
-    graphs = await graph_manager.list(None)
-    assert set(graphs) == {"ns", "graphtest", "graphtest2", "graphtest3"}
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2", "graphtest3"}
 
     # make a snapshot
     await execute("graph snapshot graphtest foo", str)
@@ -1183,8 +1191,8 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
 
     # delete a graph
     await execute("graph delete graphtest2", str)
-    graphs = await graph_manager.list(None)
-    assert set(graphs) == {"ns", "graphtest", "graphtest3"}
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest3"}
 
     # clean up
     await graph_manager.delete(GraphName("graphtest3"))

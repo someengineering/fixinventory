@@ -48,7 +48,7 @@ from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
-from resotocore.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.dependencies import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
 from resotocore.infra_apps.package_manager import PackageManager

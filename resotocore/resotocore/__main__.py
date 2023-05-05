@@ -56,7 +56,7 @@ from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.asynchronous.web import runner
 
 log = logging.getLogger("resotocore")

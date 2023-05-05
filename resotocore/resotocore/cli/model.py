@@ -39,7 +39,7 @@ from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
 

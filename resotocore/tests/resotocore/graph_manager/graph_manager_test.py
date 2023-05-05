@@ -27,7 +27,7 @@ async def test_template_generation(foo_model: Model, db_access: DbAccess) -> Non
     assert GraphName("test_graph") in await graph_manager.list(".*")
 
     # copy
-    await graph_manager.copy(GraphName("test_graph"), GraphName("test_graph_copy"))
+    await graph_manager.copy(GraphName("test_graph"), GraphName("test_graph_copy"), False)
     assert set(await graph_manager.list(".*")).issuperset(["test_graph", "test_graph_copy"])
 
     # snapshot
