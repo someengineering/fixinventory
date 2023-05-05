@@ -64,6 +64,7 @@ class LocalResotocoreAppRuntime(Runtime):
         template = env.from_string(manifest.source)
 
         model = await self.model_handler.load_model(graph)
+
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported")

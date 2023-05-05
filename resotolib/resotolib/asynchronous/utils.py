@@ -1,5 +1,6 @@
 from typing import AsyncGenerator
 
+
 async def async_lines(async_generator: AsyncGenerator[str, None]) -> AsyncGenerator[str, None]:
     buffer = ""
     async for chunk in async_generator:
