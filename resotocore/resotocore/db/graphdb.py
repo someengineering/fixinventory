@@ -1068,29 +1068,42 @@ class ArangoGraphDB(GraphDB):
                     const db = require('@arangodb').db;
 
                     db._query(
-                        "FOR vertex IN {old_vertex} "
+                        query="FOR vertex IN @@old_vertex "
                         + "LET clean_vertex = UNSET(vertex, '_id', '_rev') "
-                        + "INSERT clean_vertex INTO {new_vertex}"
+                        + "INSERT clean_vertex INTO @@new_vertex",
+                        bindVars= {{
+                            "@old_vertex": "{old_vertex}",
+                            "@new_vertex": "{new_vertex}"
+                        }}
                     );
 
                     db._query(
-                        "FOR edge IN {old_default_edge} "
+                        query="FOR edge IN @@old_default_edge "
                         + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
-                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
-                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_default_edge}"
+                        + "LET from = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._to)['key']) "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO @@new_default_edge",
+                        bindVars= {{
+                            "@old_default_edge": "{old_default_edge}",
+                            "@new_default_edge": "{new_default_edge}",
+                            "new_vertex": "{new_vertex}"
+                        }}
                     );
 
                     db._query(
-                        "FOR edge IN {old_delete_edge} "
+                        query="FOR edge IN @@old_delete_edge "
                         + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._from)['key']) "
-                        + "LET to = CONCAT('{new_vertex}/', PARSE_IDENTIFIER(edge._to)['key']) "
-                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO {new_delete_edge}"
+                        + "LET from = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._from)['key']) "
+                        + "LET to = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._to)['key']) "
+                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO @@new_delete_edge",
+                        bindVars= {{
+                            "@old_delete_edge": "{old_delete_edge}",
+                            "@new_delete_edge": "{new_delete_edge}",
+                            "new_vertex": "{new_vertex}"
+                        }}
                     );
                 }}
             """
-
             await self.db.execute_transaction(
                 tx,
                 read=[old_vertex, old_default_edge, old_delete_edge],
