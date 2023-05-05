@@ -5,13 +5,13 @@ from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
 from resotocore.db.model import QueryModel
 from resotocore.cli.model import CLI, CLIContext
-from resotolib.asynchronous.utils import async_lines
 from jinja2 import Environment
 import logging
 from aiostream.core import Stream
 from aiostream import stream
 from argparse import Namespace
 from resotolib.durations import parse_duration
+from resotolib.asynchronous.utils import async_lines
 
 
 log = logging.getLogger(__name__)
