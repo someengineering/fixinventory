@@ -414,7 +414,7 @@ class Api:
                     redirect = urlunparse(parsed)
                 response: StreamResponse = HTTPSeeOther(redirect)
             else:
-                response = HTTPOk(text=urlencode(params))
+                response = HTTPOk(text=urlencode(params, doseq=True))
             return response
         return aiohttp_jinja2.render_template(
             "login.html", request, context=dict(**post_data, error="Invalid username or password")
