@@ -142,7 +142,7 @@ def with_config(
     message_bus = MessageBus()
     scheduler = Scheduler()
     worker_task_queue = WorkerTaskQueue()
-    model = ModelHandlerDB(db.get_model_db(), config.runtime.plantuml_server)
+    model = ModelHandlerDB(db, config.runtime.plantuml_server)
     # a "real" config override service, unlike the one used for core config
     config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
     config_handler = ConfigHandlerService(

@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 @pytest.fixture
-async def model_db(test_db: StandardDatabase) -> PackageEntityDb:
+async def package_entity_db(test_db: StandardDatabase) -> PackageEntityDb:
     async_db = AsyncArangoDB(test_db)
     entity_db = app_package_entity_db(async_db, "test_package_entity_db")
     await entity_db.create_update_schema()
@@ -41,9 +41,9 @@ config_handler = cast(
 
 
 @pytest.mark.asyncio
-async def test_install_delete(model_db: PackageEntityDb) -> None:
+async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(model_db, config_handler)
+    package_manager = PackageManager(package_entity_db, config_handler)
     await package_manager.start()
 
     manifest = await package_manager.install(name, None)
@@ -77,9 +77,9 @@ async def test_install_delete(model_db: PackageEntityDb) -> None:
 
 
 @pytest.mark.asyncio
-async def test_local_install(model_db: PackageEntityDb) -> None:
+async def test_local_install(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(model_db, config_handler)
+    package_manager = PackageManager(package_entity_db, config_handler)
     await package_manager.start()
 
     # check that the app is not installed

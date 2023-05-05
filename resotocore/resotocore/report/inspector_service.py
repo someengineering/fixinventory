@@ -203,7 +203,7 @@ class InspectorService(Inspector, Service):
             raise NotFoundError(f"Check {check_uid} not found")
         inspection = checks[0]
         # load model
-        model = await self.model_handler.load_model()
+        model = await self.model_handler.load_model(graph)
         # load configuration
         cfg_entity = await self.config_handler.get_config(ResotoReportValues)
         cfg = cfg_entity.config if cfg_entity else {}
@@ -278,7 +278,7 @@ class InspectorService(Inspector, Service):
         self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
     ) -> Dict[str, CountByAccount]:
         # load model
-        model = await self.model_handler.load_model()
+        model = await self.model_handler.load_model(graph)
         # load configuration
         cfg_entity = await self.config_handler.get_config(ResotoReportValues)
         cfg = cfg_entity.config if cfg_entity else {}
@@ -341,7 +341,7 @@ class InspectorService(Inspector, Service):
             raise ValueError(f"Invalid inspection {inspection.id}: no resoto or resoto_cmd defined")
 
     async def __list_accounts(self, benchmark: Benchmark, graph: GraphName) -> List[str]:
-        model = await self.model_handler.load_model()
+        model = await self.model_handler.load_model(graph)
         gdb = self.db_access.get_graph_db(graph)
         query = Query.by("account")
         if benchmark.clouds:

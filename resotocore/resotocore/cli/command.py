@@ -1386,7 +1386,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart):
         db = self.dependencies.db_access.get_graph_db(graph_name)
 
         async def load_query_model() -> QueryModel:
-            model = await self.dependencies.model_handler.load_model()
+            model = await self.dependencies.model_handler.load_model(graph_name)
             query_model = QueryModel(query, model)
             await db.to_query(query_model)  # only here to validate the query itself (can throw)
             return query_model
@@ -1815,6 +1815,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
         parser.add_argument("-p", "--property-path", dest="property_path", type=str)
         parser.add_argument("name", type=str, nargs="?")
         args = parser.parse_args(strip_quotes(arg or "").split())
+        graph_name = ctx.graph_name
 
         def kind_to_js(model: Model, kind: Kind) -> Json:
             if isinstance(kind, SimpleKind):
@@ -1862,7 +1863,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
             ]
 
         async def source() -> Tuple[int, Stream]:
-            model = await self.dependencies.model_handler.load_model()
+            model = await self.dependencies.model_handler.load_model(graph_name)
 
             def show(k: ComplexKind) -> bool:
                 return args.show_all or (
@@ -1901,7 +1902,7 @@ class SetDesiredStateBase(CLICommand, ABC):
     async def set_desired(
         self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
-        model = await self.dependencies.model_handler.load_model()
+        model = await self.dependencies.model_handler.load_model(graph_name)
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -2035,7 +2036,7 @@ class SetMetadataStateBase(CLICommand, ABC):
         return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
-        model = await self.dependencies.model_handler.load_model()
+        model = await self.dependencies.model_handler.load_model(graph_name)
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
@@ -3145,7 +3146,10 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
                 return self.send_to_queue_stream(stream.map(load, fn), handler, True)
 
             # dependencies are not resolved directly (no async function is allowed here)
-            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            async def load_model() -> Model:
+                return await self.dependencies.model_handler.load_model(ctx.graph_name)
+
+            dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
 
         def setup_source() -> Stream:
@@ -3265,8 +3269,11 @@ class TagCommand(SendWorkerTaskCommand):
                 result_handler = self.update_node_in_graphdb(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
+            async def load_model() -> Model:
+                return await self.dependencies.model_handler.load_model(ctx.graph_name)
+
             # dependencies are not resolved directly (no async function is allowed here)
-            dependencies = stream.call(self.dependencies.model_handler.load_model)
+            dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
 
         return CLIFlow(setup_stream)

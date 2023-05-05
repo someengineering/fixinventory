@@ -224,8 +224,10 @@ class Api:
             [
                 # Model operations
                 web.get(prefix + "/model", self.get_model),
-                web.get(prefix + "/model/uml", self.model_uml),
+                web.get(prefix + "/model/{graph_id}", self.get_model),
+                web.get(prefix + "/model/{graph_id}/uml", self.model_uml),
                 web.patch(prefix + "/model", self.update_model),
+                web.patch(prefix + "/model/{graph_id}", self.update_model),
                 # CRUD Graph operations
                 web.get(prefix + "/graph", self.list_graphs),
                 web.get(prefix + "/graph/{graph_id}", self.get_node),
@@ -778,6 +780,7 @@ class Api:
 
     async def model_uml(self, request: Request) -> StreamResponse:
         output = request.query.get("output", "svg")
+        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         show = request.query["show"].split(",") if "show" in request.query else None
         hide = request.query["hide"].split(",") if "hide" in request.query else None
         with_inheritance = request.query.get("with_inheritance", "true") != "false"
@@ -790,6 +793,7 @@ class Api:
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
+            graph=graph_id,
             output=output,
             show_packages=show,
             hide_packages=hide,
@@ -811,7 +815,8 @@ class Api:
         return response
 
     async def get_model(self, request: Request) -> StreamResponse:
-        md = await self.model_handler.load_model()
+        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        md = await self.model_handler.load_model(graph_id)
         # default to internal model format, but allow to request json schema format
         if request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
@@ -823,16 +828,17 @@ class Api:
         return await single_result(request, to_js(kinds, strip_nulls=True))
 
     async def update_model(self, request: Request) -> StreamResponse:
+        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
-        model = await self.model_handler.update_model(kinds)
+        model = await self.model_handler.update_model(graph_id, kinds)
         return await single_result(request, to_js(model, strip_nulls=True))
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
-        model = await self.model_handler.load_model()
+        model = await self.model_handler.load_model(graph_id)
         node = await graph.get_node(model, node_id)
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
@@ -845,7 +851,7 @@ class Api:
         parent_node_id = NodeId(request.match_info.get("parent_node_id", "root"))
         graph = self.db.get_graph_db(graph_id)
         item = await self.json_from_request(request)
-        md = await self.model_handler.load_model()
+        md = await self.model_handler.load_model(graph_id)
         node = await graph.create_node(md, node_id, item, parent_node_id)
         return await single_result(request, node)
 
@@ -855,7 +861,7 @@ class Api:
         section = section_of(request)
         graph = self.db.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
-        md = await self.model_handler.load_model()
+        md = await self.model_handler.load_model(graph_id)
         node = await graph.update_node(md, node_id, patch, False, section)
         return await single_result(request, node)
 
@@ -869,7 +875,7 @@ class Api:
         return web.HTTPNoContent()
 
     async def update_nodes(self, request: Request) -> StreamResponse:
-        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         allowed = {*Section.content, "id", "revision"}
         updates: Dict[NodeId, Json] = {}
         async for elem in self.to_json_generator(request):
@@ -881,8 +887,8 @@ class Api:
             assert uid not in updates, f"Only one update allowed per id! {elem}"
             del elem["id"]
             updates[uid] = elem
-        db = self.db.get_graph_db(graph_id)
-        model = await self.model_handler.load_model()
+        db = self.db.get_graph_db(graph_name)
+        model = await self.model_handler.load_model(graph_name)
         result_gen = db.update_nodes(model, updates)
         return await self.stream_response_from_gen(request, result_gen)
 
@@ -894,8 +900,9 @@ class Api:
         graph_id = request.match_info.get("graph_id", "resoto")
         if "_" in graph_id:
             raise AttributeError("Graph name should not have underscores!")
-        graph = await self.db.create_graph(GraphName(graph_id))
-        model = await self.model_handler.load_model()
+        graph_name = GraphName(graph_id)
+        graph = await self.db.create_graph(graph_name)
+        model = await self.model_handler.load_model(graph_name)
         root = await graph.get_node(model, NodeId("root"))
         return web.json_response(root)
 
@@ -947,9 +954,10 @@ class Api:
     async def graph_query_model_from_request(self, request: Request) -> Tuple[GraphDB, QueryModel]:
         section = section_of(request)
         query_string = await request.text()
-        graph_db = self.db.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
+        graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
+        graph_db = self.db.get_graph_db(graph_name)
         q = await self.query_parser.parse_query(query_string, section, **request.query)
-        m = await self.model_handler.load_model()
+        m = await self.model_handler.load_model(graph_name)
         return graph_db, QueryModel(q, m)
 
     async def raw(self, request: Request) -> StreamResponse:

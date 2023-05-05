@@ -2,13 +2,14 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from functools import reduce
-from typing import Optional, List, Set, Callable
+from typing import Optional, List, Set, Callable, Dict
 
 from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
-from resotocore.db.modeldb import ModelDb
+from resotocore.db.db_access import DbAccess
 from resotocore.types import EdgeType
+from resotocore.ids import GraphName
 from resotocore.model.model import Model, Kind, ComplexKind, Property
 from resotocore.util import exist
 
@@ -17,12 +18,13 @@ log = logging.getLogger(__name__)
 
 class ModelHandler(ABC):
     @abstractmethod
-    async def load_model(self) -> Model:
+    async def load_model(self, graph_name: GraphName) -> Model:
         pass
 
     @abstractmethod
     async def uml_image(
         self,
+        graph_name: GraphName,
         output: str = "svg",
         *,
         show_packages: Optional[List[str]] = None,
@@ -56,7 +58,7 @@ class ModelHandler(ABC):
         """
 
     @abstractmethod
-    async def update_model(self, kinds: List[Kind]) -> Model:
+    async def update_model(self, graph_name: GraphName, kinds: List[Kind]) -> Model:
         pass
 
 
@@ -86,22 +88,30 @@ PlantUmlAttrs = (
 
 
 class ModelHandlerDB(ModelHandler):
-    def __init__(self, db: ModelDb, plantuml_server: str):
-        self.db = db
+    def __init__(self, db_access: DbAccess, plantuml_server: str):
+        self.db_access = db_access
         self.plantuml_server = plantuml_server
-        self.__loaded_model: Optional[Model] = None
+        self.__loaded_model: Dict[GraphName, Model] = {}
+        self.default_legacy_graph_name = GraphName("resoto")
 
-    async def load_model(self) -> Model:
-        if self.__loaded_model:
-            return self.__loaded_model
+    async def load_model(self, graph_name: GraphName) -> Model:
+        if model := self.__loaded_model.get(graph_name):
+            return model
         else:
-            kinds = [kind async for kind in self.db.all()]
-            model = Model.from_kinds(list(kinds))
-            self.__loaded_model = model
+            graph_model_db = await self.db_access.get_graph_model_db(graph_name)
+            model_db = self.db_access.get_model_db()
+            # check the new implementation for the kinds
+            model_kinds = [kind async for kind in graph_model_db.all()]
+            # if nothing found and the graph is the legacy default one, look in the legacy implementation
+            if not model_kinds and graph_name == self.default_legacy_graph_name:
+                model_kinds = [kind async for kind in model_db.all()]
+            model = Model.from_kinds(model_kinds)
+            self.__loaded_model[graph_name] = model
             return model
 
     async def uml_image(
         self,
+        graph_name: GraphName,
         output: str = "svg",
         *,
         show_packages: Optional[List[str]] = None,
@@ -118,7 +128,7 @@ class ModelHandlerDB(ModelHandler):
     ) -> bytes:
         allowed_edge_types: Set[EdgeType] = dependency_edges or set()
         assert output in ("svg", "png", "puml"), "Only svg, png and puml is supported!"
-        model = await self.load_model()
+        model = await self.load_model(graph_name)
         graph = model.graph()
         show = [re.compile(s) for s in show_packages] if show_packages else None
         hide = [re.compile(s) for s in hide_packages] if hide_packages else None
@@ -209,13 +219,16 @@ class ModelHandlerDB(ModelHandler):
             plant_uml = PlantUML(f"{self.plantuml_server}/{output}/")
             return await run_async(plant_uml.processes, puml)
 
-    async def update_model(self, kinds: List[Kind]) -> Model:
+    async def update_model(self, graph_name: GraphName, kinds: List[Kind]) -> Model:
         # load existing model
-        model = await self.load_model()
+        model = await self.load_model(graph_name)
         # make sure the update is valid
         updated = model.update_kinds(kinds)
         # store all updated kinds
-        await self.db.update_many(kinds)
+        db = await self.db_access.get_graph_model_db(graph_name)
+        await db.update_many(kinds)
+        if graph_name == self.default_legacy_graph_name:
+            await self.db_access.get_model_db().update_many(kinds)
         # unset loaded model
-        self.__loaded_model = updated
+        self.__loaded_model[graph_name] = updated
         return updated

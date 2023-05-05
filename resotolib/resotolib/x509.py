@@ -1,4 +1,5 @@
 import os
+import base64
 import certifi
 from ipaddress import (
     ip_address,
@@ -18,11 +19,14 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPrivateKey,
+    RSAPublicKey,
     generate_private_key,
 )
 from cryptography.x509.base import Certificate, CertificateSigningRequest
+from cryptography.exceptions import InvalidSignature
 from typing import List, Optional, Tuple, Union, Dict, Any
 
 
@@ -281,3 +285,36 @@ def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network
 
 def cert_fingerprint(cert: Certificate, hash_algorithm: str = "SHA256") -> str:
     return ":".join(f"{b:02X}" for b in cert.fingerprint(getattr(hashes, hash_algorithm.upper())()))
+
+
+def cert_is_signed_by_ca(cert: Certificate, ca_cert: Certificate) -> bool:
+    try:
+        public_key = ca_cert.public_key()
+        signature_hash_algorithm = cert.signature_hash_algorithm
+        assert isinstance(public_key, RSAPublicKey)
+        assert isinstance(signature_hash_algorithm, hashes.HashAlgorithm)
+        public_key.verify(
+            cert.signature,
+            cert.tbs_certificate_bytes,
+            padding.PKCS1v15(),
+            signature_hash_algorithm,
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+
+def x5t_any(cert: Certificate, hash_algorithm: str) -> str:
+    public_bytes = cert.public_bytes(serialization.Encoding.DER)
+    hash_instance = hashes.Hash(getattr(hashes, hash_algorithm.upper())(), default_backend())
+    hash_instance.update(public_bytes)
+    thumbprint = hash_instance.finalize()
+    return base64.urlsafe_b64encode(thumbprint).rstrip(b"=").decode("utf-8")
+
+
+def x5t(cert: Certificate) -> str:
+    return x5t_any(cert, "SHA1")
+
+
+def x5t_s256(cert: Certificate) -> str:
+    return x5t_any(cert, "SHA256")

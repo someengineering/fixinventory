@@ -13,6 +13,7 @@ from resotolib.x509 import (
     load_key_from_file,
     key_to_bytes,
     cert_fingerprint,
+    cert_is_signed_by_ca,
 )
 
 
@@ -55,3 +56,4 @@ def test_x509():
         assert cert_fingerprint(loaded_cert_crt) == cert_fingerprint(cert_crt)
         assert key_to_bytes(ca_key) == key_to_bytes(loaded_ca_key)
         assert key_to_bytes(cert_key) == key_to_bytes(loaded_cert_key)
+        assert cert_is_signed_by_ca(cert_crt, ca_cert)
