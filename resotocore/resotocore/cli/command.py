@@ -5177,6 +5177,10 @@ class GraphCommand(CLICommand):
             snapshot_name = await self.dependencies.graph_manager.snapshot(source, label)
             yield f"Graph {source} snapshoted to {snapshot_name}."
 
+        async def graph_delete(graph_name: GraphName) -> AsyncIterator[JsonElement]:
+            await self.dependencies.graph_manager.delete(graph_name)
+            yield f"Graph {graph_name} deleted."
+
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if args[0] == "list":
             parser = NoExitArgumentParser()
@@ -5201,6 +5205,13 @@ class GraphCommand(CLICommand):
             parser.add_argument("label", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(graph_snapshot, GraphName(parsed.source), parsed.label))
+        elif args[0] == "delete":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str)
+            parser.add_argument("-y", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_delete, GraphName(parsed.graph_name)))
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
