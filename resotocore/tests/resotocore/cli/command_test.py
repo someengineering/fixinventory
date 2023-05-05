@@ -36,7 +36,7 @@ from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
-from resotocore.ids import InfraAppName
+from resotocore.ids import InfraAppName, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.graph_manager import GraphManager
@@ -1140,6 +1140,8 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
 async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
     T = TypeVar("T")
 
+    await graph_manager.delete(GraphName("graphtest2"))
+
     async def execute(cmd: str, _: Type[T]) -> List[T]:
         result = await cli.execute_cli_command(cmd, stream.list)
         return cast(List[T], result[0])
@@ -1151,3 +1153,26 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
     # list via regex
     graphs = await execute("graph list .*apht.*", str)
     assert set(graphs) == {"graphtest"}
+
+    # copy a graph
+    await execute("graph copy graphtest graphtest2", str)
+    graphs = await graph_manager.list(None)
+    assert set(graphs) == {"ns", "graphtest", "graphtest2"}
+
+    # copy to the existing graph without --force
+    with pytest.raises(Exception):
+        await execute("graph copy graphtest graphtest2", str)
+
+    # copy to the existing graph with --force
+    await execute("graph copy graphtest graphtest2 --force", str)
+    graphs = await graph_manager.list(None)
+    assert set(graphs) == {"ns", "graphtest", "graphtest2"}
+
+    # implicitly copy the current graph to the new one
+    await execute("graph copy graphtest3", str)
+    graphs = await graph_manager.list(None)
+    assert set(graphs) == {"ns", "graphtest", "graphtest2", "graphtest3"}
+
+    # clean up
+    await graph_manager.delete(GraphName("graphtest2"))
+    await graph_manager.delete(GraphName("graphtest3"))

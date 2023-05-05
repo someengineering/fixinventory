@@ -19,16 +19,19 @@ class GraphManager(Service):
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
 
-    async def copy(self, source: GraphName, destination: GraphName) -> None:
+    async def copy(self, source: GraphName, destination: GraphName, ignore_existing: bool) -> None:
         if not self.lock:
             raise RuntimeError("GraphManager has not been started")
 
         async with self.lock:
-            # create a temporary new collection
             if not await self.db_access.db.has_graph(source):
                 raise ValueError(f"Source graph {source} does not exist")
+
             if await self.db_access.db.has_graph(destination):
-                raise ValueError(f"Destination graph {destination} already exists")
+                if ignore_existing:
+                    await self.delete(destination)
+                else:
+                    raise ValueError(f"Destination graph {destination} already exists")
 
             source_graph = self.db_access.get_graph_db(name=source)
 
@@ -43,7 +46,7 @@ class GraphManager(Service):
     async def snapshot(self, source: GraphName, label: str) -> None:
         time = utc_str().replace(":", "-")
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
-        await self.copy(source, snapshot_name)
+        await self.copy(source, snapshot_name, ignore_existing=False)
 
     async def delete(self, source: GraphName) -> None:
         await self.db_access.delete_graph(source)

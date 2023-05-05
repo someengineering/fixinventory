@@ -5094,7 +5094,7 @@ class GraphCommand(CLICommand):
     """
     ```shell
     graph list [pattern]
-    graph copy [-y] [from_graph_namae] <to_graph_name>
+    graph copy [-force] [from_graph_namae] <to_graph_name>
     graph snapshot [from_graph_name] <snapshot_label>
     graph delete [-y] <graph_name>
     graph export [-y] [graph_name] <file_name>
@@ -5102,8 +5102,8 @@ class GraphCommand(CLICommand):
     ```
 
     - `graph list [pattern]`: Lists all graphs. Supports filtering by pattern.
-    - `graph copy [-y] [from_graph_name] <to_graph_name>`: Copies the graph.
-       If the target graph alearly exists, it will be overwritten.
+    - `graph copy [--force] [from_graph_name] <to_graph_name>`: Copies the graph.
+       If the target graph alearly exists, and a --force flag is provided, the graph will be overwritten.
     - `graph snapshot [from_graph_name] <snapshot_label>`: Make a graph snapshot.
     - `graph delete [-y] <graph_name>`: Delete a graph.
     - `graph export [-y] [graph_name] <file_name>`: Export the graph into a file.
@@ -5135,7 +5135,7 @@ class GraphCommand(CLICommand):
             "copy": [
                 ArgInfo(None, True, help_text="<from_graph_name>"),
                 ArgInfo(None, True, help_text="<to_graph_name>"),
-                ArgInfo("-y", False),
+                ArgInfo("--force", False),
             ],
             "snapshot": [
                 ArgInfo(None, True, help_text="<from_graph_name>"),
@@ -5163,6 +5163,14 @@ class GraphCommand(CLICommand):
             for graph in graphs:
                 yield graph
 
+        async def graph_copy(
+            source: Optional[GraphName], destination: GraphName, force: bool
+        ) -> AsyncIterator[JsonElement]:
+            if not source:
+                source = ctx.graph_name
+            await self.dependencies.graph_manager.copy(source, destination, ignore_existing=force)
+            yield {"message": f"Graph {source} copied to {destination}."}
+
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if args[0] == "list":
             parser = NoExitArgumentParser()
@@ -5170,6 +5178,16 @@ class GraphCommand(CLICommand):
             parser.add_argument("pattern", type=str, nargs="?", default=None)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(graph_list, parsed.pattern))
+        elif args[0] == "copy":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("source", type=str, nargs="?", default=None)
+            parser.add_argument("destination", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(
+                partial(graph_copy, GraphName(parsed.source), GraphName(parsed.destination), parsed.force)
+            )
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 

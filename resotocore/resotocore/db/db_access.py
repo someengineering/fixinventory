@@ -115,13 +115,14 @@ class DbAccess(ABC):
                 # remove all temp collection names
                 for coll in cast(List[Json], db.collections()):
                     if coll["name"].startswith(f"{name}_temp_"):
-                        db.delete_collection(coll["name"])
+                        db.delete_collection(coll["name"], ignore_missing=True)
                 self.graph_dbs.pop(name, None)
 
         return await run_async(delete, name)
 
     async def delete_graph_model(self, graph_name: GraphName) -> None:
         await self.db.delete_collection(self.graph_model_name(graph_name), ignore_missing=True)
+        self.graph_model_dbs.pop(graph_name, None)
 
     async def list_graphs(self) -> List[GraphName]:
         return [a["name"] for a in cast(List[Json], self.database.graphs()) if not a["name"].endswith("_hs")]
