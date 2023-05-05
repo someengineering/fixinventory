@@ -5,6 +5,7 @@ from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
 from resotocore.db.model import QueryModel
 from resotocore.cli.model import CLI, CLIContext
+from resotolib.asynchronous.utils import async_lines
 from jinja2 import Environment
 import logging
 from aiostream.core import Stream
@@ -61,13 +62,8 @@ class LocalResotocoreAppRuntime(Runtime):
         graphdb = self.dbaccess.get_graph_db(graph)
         env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)
         template = env.from_string(manifest.source)
-        template.globals["args"] = kwargs
-        template.globals["stdin"] = stdin
-        template.globals["config"] = config
-        template.globals["parse_duration"] = parse_duration
 
         model = await self.model_handler.load_model(graph)
-
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported")
@@ -75,11 +71,12 @@ class LocalResotocoreAppRuntime(Runtime):
                 async for result in ctx:
                     yield result
 
+        template.globals["parse_duration"] = parse_duration
         template.globals["search"] = perform_search
 
-        async for line in template.generate_async(config=config, *kwargs._get_kwargs()):
-            log.debug(f"Rendered infrastructure app line: {line}")
+        async for line in async_lines(template.generate_async(config=config, args=kwargs, stdin=stdin)):
             line = line.strip()
+            log.debug(f"Rendered infrastructure app line: {line}")
             if not line:
                 continue
             yield line
