@@ -496,5 +496,5 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
     # Step 3: renew the authorization header ================================
     # the auth header can be used for subsequent requests
     async with client_session.get(f"{url}/authorization/renew", headers={"Authorization": auth_header}) as resp:
-        assert resp.status == 204
+        assert resp.status == 200
         assert resp.headers["Authorization"].startswith("Bearer ")
