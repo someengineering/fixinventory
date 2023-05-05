@@ -1173,6 +1173,14 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
     graphs = await graph_manager.list(None)
     assert set(graphs) == {"ns", "graphtest", "graphtest2", "graphtest3"}
 
+    # make a snapshot
+    await execute("graph snapshot graphtest foo", str)
+    snapshots = await graph_manager.list("snapshot.*")
+    assert len(snapshots) == 1
+    assert snapshots[0].startswith("snapshot")
+
     # clean up
     await graph_manager.delete(GraphName("graphtest2"))
     await graph_manager.delete(GraphName("graphtest3"))
+    for snapshot in snapshots:
+        await graph_manager.delete(GraphName(snapshot))

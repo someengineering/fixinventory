@@ -19,7 +19,7 @@ class GraphManager(Service):
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
 
-    async def copy(self, source: GraphName, destination: GraphName, ignore_existing: bool) -> None:
+    async def copy(self, source: GraphName, destination: GraphName, ignore_existing: bool) -> GraphName:
         if not self.lock:
             raise RuntimeError("GraphManager has not been started")
 
@@ -42,11 +42,12 @@ class GraphManager(Service):
 
             model_kinds = [kind async for kind in source_model_db.all()]
             await destination_model_db.update_many(model_kinds)
+            return destination
 
-    async def snapshot(self, source: GraphName, label: str) -> None:
+    async def snapshot(self, source: GraphName, label: str) -> GraphName:
         time = utc_str().replace(":", "-")
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
-        await self.copy(source, snapshot_name, ignore_existing=False)
+        return await self.copy(source, snapshot_name, ignore_existing=False)
 
     async def delete(self, source: GraphName) -> None:
         await self.db_access.delete_graph(source)

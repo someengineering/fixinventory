@@ -5169,7 +5169,13 @@ class GraphCommand(CLICommand):
             if not source:
                 source = ctx.graph_name
             await self.dependencies.graph_manager.copy(source, destination, ignore_existing=force)
-            yield {"message": f"Graph {source} copied to {destination}."}
+            yield f"Graph {source} copied to {destination}."
+
+        async def graph_snapshot(source: Optional[GraphName], label: str) -> AsyncIterator[JsonElement]:
+            if not source:
+                source = ctx.graph_name
+            snapshot_name = await self.dependencies.graph_manager.snapshot(source, label)
+            yield f"Graph {source} snapshoted to {snapshot_name}."
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if args[0] == "list":
@@ -5188,6 +5194,13 @@ class GraphCommand(CLICommand):
             return CLISource.single(
                 partial(graph_copy, GraphName(parsed.source), GraphName(parsed.destination), parsed.force)
             )
+        elif args[0] == "snapshot":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("source", type=str, nargs="?", default=None)
+            parser.add_argument("label", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_snapshot, GraphName(parsed.source), parsed.label))
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
