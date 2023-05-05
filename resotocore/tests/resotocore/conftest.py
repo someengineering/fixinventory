@@ -48,6 +48,7 @@ from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
+from resotocore.graph_manager import GraphManager
 from resotocore.dependencies import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
@@ -525,6 +526,13 @@ async def package_manager(
 ) -> PackageManager:
     async with PackageManager(package_entity_db, config_handler) as service:
         cli.dependencies.lookup["infra_apps_package_manager"] = service
+        return service
+
+
+@fixture
+async def graph_manager(cli: CLIService, db_access: DbAccess) -> GraphManager:
+    async with GraphManager(db_access) as service:
+        cli.dependencies.lookup["graph_manager"] = service
         return service
 
 

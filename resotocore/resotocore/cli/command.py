@@ -5090,6 +5090,90 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class GraphCommand(CLICommand):
+    """
+    ```shell
+    graph list [pattern]
+    graph copy [-y] [from_graph_namae] <to_graph_name>
+    graph snapshot [from_graph_name] <snapshot_label>
+    graph delete [-y] <graph_name>
+    graph export [-y] [graph_name] <file_name>
+    graph import [-y] [graph_name] <file_name>
+    ```
+
+    - `graph list [pattern]`: Lists all graphs. Supports filtering by pattern.
+    - `graph copy [-y] [from_graph_name] <to_graph_name>`: Copies the graph.
+       If the target graph alearly exists, it will be overwritten.
+    - `graph snapshot [from_graph_name] <snapshot_label>`: Make a graph snapshot.
+    - `graph delete [-y] <graph_name>`: Delete a graph.
+    - `graph export [-y] [graph_name] <file_name>`: Export the graph into a file.
+    - `graph import [-y] [graph_name] <file_name>`: Impor the graph from a file.
+
+    ## Parameters
+    - `pattern` [optional]: Pattern for searching for apps. Supports regex.
+    - `from_graph_name` [required]: The name of the graph to make a copy or snapshot from.
+    - `to_graph_name` [optional]: The name of the target graph to make a copy.
+       If not specified, the name of the current graph is used.
+    - `file_name` [required]: The name of the file to save the graph to.
+
+    ## Options
+    - `-y`: Skip the confirmation dialogue.
+    """
+
+    @property
+    def name(self) -> str:
+        return "graph"
+
+    def info(self) -> str:
+        return "Operations on graphs."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "list": [
+                ArgInfo(None, True, help_text="<pattern>"),
+            ],
+            "copy": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("-y", False),
+            ],
+            "snapshot": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+            ],
+            "delete": [
+                ArgInfo(None, True, help_text="<graph_name>"),
+                ArgInfo("-y", False),
+            ],
+            "export": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("-y", False),
+            ],
+            "import": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("-y", False),
+            ],
+        }
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def graph_list(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
+            graphs = await self.dependencies.graph_manager.list(pattern)
+            for graph in graphs:
+                yield graph
+
+        args = re.split("\\s+", arg, maxsplit=2) if arg else []
+        if args[0] == "list":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("pattern", type=str, nargs="?", default=None)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_list, parsed.pattern))
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -5136,6 +5220,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
         InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
+        GraphCommand(d, "graph", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:

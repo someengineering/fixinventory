@@ -4,10 +4,11 @@ from asyncio import Lock
 from resotocore.db.db_access import DbAccess
 from resotocore.util import utc_str
 from resotocore.ids import GraphName
+from resotocore.web.service import Service
 import re
 
 
-class GraphManager:
+class GraphManager(Service):
     def __init__(self, db_access: DbAccess) -> None:
         self.db_access = db_access
         self.lock: Optional[Lock] = None
@@ -15,8 +16,8 @@ class GraphManager:
     async def start(self) -> None:
         self.lock = Lock()
 
-    async def list(self, pattern: str) -> List[GraphName]:
-        return [key for key in await self.db_access.list_graphs() if re.match(pattern, key)]
+    async def list(self, pattern: Optional[str]) -> List[GraphName]:
+        return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
 
     async def copy(self, source: GraphName, destination: GraphName) -> None:
         if not self.lock:

@@ -39,6 +39,7 @@ from resotocore.worker_task_queue import WorkerTask
 from resotocore.ids import InfraAppName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
+from resotocore.graph_manager import GraphManager
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1133,3 +1134,20 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     await execute("apps uninstall cleanup-untagged", str)
     result = await execute("apps list", str)
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
+    T = TypeVar("T")
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    # list all graphs
+    graphs = await execute("graph list", str)
+    assert set(graphs) == {"ns", "graphtest"}
+
+    # list via regex
+    graphs = await execute("graph list .*apht.*", str)
+    assert set(graphs) == {"graphtest"}
