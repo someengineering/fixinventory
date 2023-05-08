@@ -2922,8 +2922,8 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
-            update = args[0] == "update"
-            return CLISource.single(partial(put_job, args[1].strip(), update))
+            is_update = args[0] == "update"
+            return CLISource.single(partial(put_job, args[1].strip(), is_update))
         elif arg and len(args) == 2 and args[0] == "delete":
             return CLISource.single(partial(delete_job, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "show":
