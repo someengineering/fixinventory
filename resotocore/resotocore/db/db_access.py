@@ -33,7 +33,7 @@ from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 from resotocore.ids import GraphName
-from resotocore.util import Periodic, utc, shutdown_process, uuid_str
+from resotocore.util import Periodic, utc, shutdown_process, uuid_str, check_graph_name
 
 log = logging.getLogger(__name__)
 
@@ -100,10 +100,33 @@ class DbAccess(ABC):
     def graph_model_name(self, graph_name: GraphName) -> str:
         return f"{graph_name}_model"
 
-    async def create_graph(self, name: GraphName) -> GraphDB:
+    async def create_graph(self, name: GraphName, validate_name: bool = True) -> GraphDB:
+        if validate_name:
+            check_graph_name(name)
+
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
         return db
+
+    async def copy_graph(self, source: GraphName, destination: GraphName, validate_name: bool) -> GraphName:
+        """NOT THREAD SAFE! Be sure to use locks when calling this method."""
+        if validate_name:
+            check_graph_name(destination)
+
+        if not await self.db.has_graph(source):
+            raise ValueError(f"Source graph {source} does not exist")
+
+        source_db = self.get_graph_db(destination, no_check=True)
+
+        await source_db.copy_graph(destination)
+
+        source_model_db = await self.get_graph_model_db(source)
+        destination_model_db = await self.get_graph_model_db(destination)
+
+        model_kinds = [kind async for kind in source_model_db.all()]
+        await destination_model_db.update_many(model_kinds)
+
+        return destination
 
     async def delete_graph(self, name: GraphName) -> None:
         def delete(name: GraphName) -> None:
