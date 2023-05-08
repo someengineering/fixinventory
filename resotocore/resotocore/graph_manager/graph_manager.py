@@ -43,7 +43,7 @@ class GraphManager(Service):
             )
 
     async def snapshot(self, source: GraphName, label: str) -> GraphName:
-        time = utc_str().replace(":", "-")
+        time = utc_str().replace(":", "_")
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
         return await self.copy(source, snapshot_name, ignore_existing=False, validate_name=False)
