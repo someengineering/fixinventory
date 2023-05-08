@@ -10,7 +10,7 @@ import logging
 from aiostream.core import Stream
 from aiostream import stream
 from argparse import Namespace
-from resotolib.durations import parse_duration
+from resotolib.durations import parse_optional_duration
 from resotolib.asynchronous.utils import async_lines
 
 
@@ -72,7 +72,7 @@ class LocalResotocoreAppRuntime(Runtime):
                 async for result in ctx:
                     yield result
 
-        template.globals["parse_duration"] = parse_duration
+        template.globals["parse_duration"] = parse_optional_duration
         template.globals["search"] = perform_search
 
         async for line in async_lines(template.generate_async(config=config, args=kwargs, stdin=stdin)):
