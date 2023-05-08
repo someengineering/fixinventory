@@ -1,9 +1,9 @@
-from typing import AsyncGenerator
+from typing import AsyncIterator
 
 
-async def async_lines(async_generator: AsyncGenerator[str, None]) -> AsyncGenerator[str, None]:
+async def async_lines(async_iterator: AsyncIterator[str]) -> AsyncIterator[str]:
     buffer = ""
-    async for chunk in async_generator:
+    async for chunk in async_iterator:
         buffer += chunk
         lines = buffer.split("\n")
         for line in lines[:-1]:
