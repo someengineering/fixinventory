@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import secrets
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Callable, TypeVar, Awaitable
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
@@ -14,6 +14,8 @@ from resotocore.util import value_in_path_get, value_in_path
 ALGORITHM = "pbkdf2_sha512"
 DELIMITER = "$"
 ITERATIONS = 210000  # https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
+
+T = TypeVar("T")
 
 
 class UserManagementService(UserManagement):
@@ -63,3 +65,54 @@ class UserManagementService(UserManagement):
             if (user := users.get(email)) and self.verify_password(password, user.get("password_hash", "")):
                 return from_js(user, ResotoUser)
         return None
+
+    async def create_user(self, email: str, fullname: str, password: str, roles: List[str]) -> ResotoUser:
+        async def fn(users: Dict[str, ResotoUser]) -> ResotoUser:
+            if email in users:
+                raise ValueError(f"User with email {email} already exists")
+            if not email or email.startswith("@") or email.endswith("@") or email.count("@") != 1:
+                raise ValueError(f"Invalid email address {email}")
+            hashed = self.hash_password(password)
+            user = ResotoUser(fullname, password_hash=hashed, roles=set(roles))
+            users[email] = user
+            return user
+
+        return await self.__change_users(fn)
+
+    async def delete_user(self, email: str) -> Optional[ResotoUser]:
+        async def fn(users: Dict[str, ResotoUser]) -> Optional[ResotoUser]:
+            return users.pop(email, None)
+
+        return await self.__change_users(fn)
+
+    async def update_user(
+        self, email: str, *, password: Optional[str] = None, roles: Optional[List[str]] = None
+    ) -> ResotoUser:
+        async def fn(users: Dict[str, ResotoUser]) -> ResotoUser:
+            if email not in users:
+                raise ValueError(f"User with email {email} does not exist")
+            user = users[email]
+            if password is not None:
+                user.password_hash = self.hash_password(password)
+            if roles is not None:
+                user.roles = set(roles)
+            users[email] = user
+            return user
+
+        return await self.__change_users(fn)
+
+    async def __change_users(self, fn: Callable[[Dict[str, ResotoUser]], Awaitable[T]]) -> T:
+        users = await self.users()
+        result = await fn(users)
+        users_raw = {email: to_js(user) for email, user in users.items()}
+        await self.config_handler.put_config(ConfigEntity(UsersConfigId, {UsersConfigRoot: {"users": users_raw}}))
+        return result
+
+    async def user(self, email: str) -> Optional[ResotoUser]:
+        users = await self.users()
+        return users.get(email)
+
+    async def users(self) -> Dict[str, ResotoUser]:
+        user_config = await self.config_handler.get_config(UsersConfigId)
+        users_raw: Json = value_in_path_get(user_config.config, [UsersConfigRoot, "users"], {}) if user_config else {}
+        return {email: from_js(data, ResotoUser) for email, data in users_raw.items()}

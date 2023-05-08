@@ -13,6 +13,9 @@ UsersConfigRoot = "resoto_users"
 UsersConfigId = ConfigId("resoto.users")
 
 
+ValidRoles = {"admin", "readwrite", "readonly"}
+
+
 @define
 class ResotoUser:
     kind: ClassVar[str] = "resoto_user"
@@ -57,6 +60,53 @@ class UserManagement(Service, ABC):
         :param email: the email address of the user
         :param password: the password of the user
         :return: The user if the credentials are valid, None otherwise.
+        """
+
+    @abstractmethod
+    async def create_user(self, email: str, fullname: str, password: str, roles: List[str]) -> ResotoUser:
+        """
+        Create a new user.
+        :param email: the email address of the user
+        :param fullname: the full name of the user
+        :param password: password of the user
+        :param roles: all roles of the user
+        :return: the created user
+        """
+
+    @abstractmethod
+    async def update_user(
+        self, email: str, *, password: Optional[str] = None, roles: Optional[List[str]] = None
+    ) -> ResotoUser:
+        """
+        Update an existing user.
+
+        :param email: the email address of the user
+        :param password: the new password of the user
+        :param roles: all roles of the user
+        :return: the updated user
+        """
+
+    @abstractmethod
+    async def delete_user(self, email: str) -> Optional[ResotoUser]:
+        """
+        Delete an existing user.
+        :param email: the email address of the user
+        :return: the deleted user if it existed before calling this method, None otherwise
+        """
+
+    @abstractmethod
+    async def user(self, email: str) -> Optional[ResotoUser]:
+        """
+        Get a user by email.
+        :param email: the email address of the user
+        :return: the user if it exists, None otherwise
+        """
+
+    @abstractmethod
+    async def users(self) -> Dict[str, ResotoUser]:
+        """
+        List all users.
+        :return: the list of users.
         """
 
 

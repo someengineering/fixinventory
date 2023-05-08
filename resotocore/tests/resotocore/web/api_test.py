@@ -344,7 +344,7 @@ async def test_cli(core_client: ResotoClient) -> None:
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
-    assert len(info.commands) == 41
+    assert len(info.commands) == 42
 
 
 @pytest.mark.asyncio

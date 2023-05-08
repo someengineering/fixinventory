@@ -90,6 +90,7 @@ from resotocore.task.task_description import (
 )
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
+from resotocore.user import UserManagement
 from resotocore.user.user_management import UserManagementService
 from resotocore.util import value_in_path, uuid_str, utc
 from resotocore.web.certificate_handler import CertificateHandler
@@ -488,6 +489,7 @@ async def cli_deps(
     expander: TemplateExpander,
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
+    user_management: UserManagement,
 ) -> AsyncIterator[CLIDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
@@ -503,6 +505,7 @@ async def cli_deps(
         forked_tasks=Queue(),
         config_handler=config_handler,
         cert_handler=cert_handler,
+        user_management=user_management,
     )
     await db_access.start()
     yield deps
