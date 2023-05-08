@@ -11,6 +11,7 @@ from aiostream.core import Stream
 from aiostream import stream
 from argparse import Namespace
 from resotolib.durations import parse_duration
+from resotolib.asynchronous.utils import async_lines
 
 
 log = logging.getLogger(__name__)
@@ -61,10 +62,6 @@ class LocalResotocoreAppRuntime(Runtime):
         graphdb = self.dbaccess.get_graph_db(graph)
         env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)
         template = env.from_string(manifest.source)
-        template.globals["args"] = kwargs
-        template.globals["stdin"] = stdin
-        template.globals["config"] = config
-        template.globals["parse_duration"] = parse_duration
 
         model = await self.model_handler.load_model(graph)
 
@@ -75,11 +72,12 @@ class LocalResotocoreAppRuntime(Runtime):
                 async for result in ctx:
                     yield result
 
+        template.globals["parse_duration"] = parse_duration
         template.globals["search"] = perform_search
 
-        async for line in template.generate_async(config=config, *kwargs._get_kwargs()):
-            log.debug(f"Rendered infrastructure app line: {line}")
+        async for line in async_lines(template.generate_async(config=config, args=kwargs, stdin=stdin)):
             line = line.strip()
+            log.debug(f"Rendered infrastructure app line: {line}")
             if not line:
                 continue
             yield line
