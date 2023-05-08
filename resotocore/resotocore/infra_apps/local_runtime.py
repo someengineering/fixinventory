@@ -68,7 +68,7 @@ class LocalResotocoreAppRuntime(Runtime):
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported")
-            async with await graphdb.search_list(QueryModel(query, model)) as ctx:
+            async with await graphdb.search_graph_gen(QueryModel(query, model)) as ctx:
                 async for result in ctx:
                     yield result
 

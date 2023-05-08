@@ -46,13 +46,15 @@ class CoreGraph:
             execute_endpoint += f"?{query_string}"
         return self.post(execute_endpoint, command, headers, verify=self.verify)
 
-    def search(self, search: str, edge_type: Optional[EdgeType] = None) -> Iterator[Json]:
+    def search(self, search: str, edge_type: Optional[EdgeType] = None, section: str = "reported") -> Iterator[Json]:
         log.debug(f"Sending search {search}")
         headers = {"Accept": "application/x-ndjson"}
         search_endpoint = self.search_uri
+        query = {"section": section}
         if edge_type is not None:
-            query_string = urlencode({"edge_type": edge_type.value})
-            search_endpoint += f"?{query_string}"
+            query["edge_type"] = edge_type.value
+        query_string = urlencode(query)
+        search_endpoint += f"?{query_string}"
         return self.post(search_endpoint, search, headers, verify=self.verify)
 
     @staticmethod
