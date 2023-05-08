@@ -130,9 +130,9 @@ def sign_csr(
     days_valid: int = 365,
     server_auth: bool = True,
     client_auth: bool = True,
-    key_usage: Optional[Dict[str, bool]] = None,
+    key_usages: Optional[Dict[str, bool]] = None,
 ) -> Certificate:
-    usage = key_usage or {}
+    usage = key_usages or {}
     crt_build = (
         x509.CertificateBuilder()
         .subject_name(csr.subject)
