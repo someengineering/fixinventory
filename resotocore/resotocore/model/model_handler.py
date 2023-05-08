@@ -42,6 +42,7 @@ class ModelHandler(ABC):
         """
         Generate a PlantUML image of the model.
 
+        :param graph_name: the name of the graph
         :param output: "svg" or "png"
         :param show_packages: regexp that matches packages to show
         :param hide_packages: regexp that matches packages to hide

@@ -107,16 +107,10 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotolib.asynchronous.web.auth import (
-    auth_handler,
-    set_valid_jwt,
-    raw_jwt_from_auth_message,
-    AuthorizedUser,
-    add_authorized_user,
-    renew_user_jwt,
-)
+from resotocore.web.auth import set_valid_jwt, raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
+from resotolib.x509 import cert_to_bytes
 
 log = logging.getLogger(__name__)
 
@@ -179,18 +173,16 @@ class Api:
         self.config = config
         self.user_management = user_management
         self.get_override = get_override
+        self.auth_handler = AuthHandler(
+            db.system_data_db, config, cert_handler, AlwaysAllowed, self.login_with_redirect
+        )
 
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth_handler(
-                    config.args.psk,
-                    config.api.access_token_expiration(),
-                    AlwaysAllowed | DeferredCheck,
-                    self.login_with_redirect,
-                ),
+                self.auth_handler.middleware(),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
@@ -331,9 +323,10 @@ class Api:
         )
 
     async def start(self) -> None:
-        pass
+        await self.auth_handler.start()
 
     async def stop(self) -> None:
+        await self.auth_handler.stop()
         if not self.in_shutdown:
             self.in_shutdown = True
             for ws_id in list(self.websocket_handler):
@@ -404,8 +397,7 @@ class Api:
         if email and password and (user := await self.user_management.login(email, password)):
             params: Dict[str, List[str]] = {}
             if self.config.args.psk:
-                code = uuid_str()
-                add_authorized_user(code, AuthorizedUser(email, user.roles, utc()))
+                code = await self.auth_handler.add_authorized_user(AuthorizedUser(email, user.roles, utc()))
                 params["code"] = [code]
             if redirect:
                 if params:
@@ -430,11 +422,10 @@ class Api:
             return web.HTTPNoContent()
 
     async def renew_authorization(self, request: Request) -> StreamResponse:
-        if psk := self.config.args.psk:
-            jwt_raw: Dict[str, str] = request.get("jwt", {})
+        if jwt_raw := request.get("jwt"):
             exp = datetime.fromtimestamp(int(jwt_raw["exp"]), tz=timezone.utc)
             user = AuthorizedUser(jwt_raw["email"], set(jwt_raw["roles"].split(",")), exp)
-            renewed, data = renew_user_jwt(psk, self.config.api.access_token_expiration(), user)
+            renewed, data = self.auth_handler.user_jwt(user)
             return web.json_response(data, headers={"Authorization": f"Bearer {renewed}"})
         else:
             return HTTPNoContent()  # no psk, no renewal
@@ -558,7 +549,7 @@ class Api:
         csr_bytes = await request.content.read()
         cert, fingerprint = self.cert_handler.sign(csr_bytes)
         headers = {"SHA256-Fingerprint": fingerprint}
-        return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
+        return HTTPOk(headers=headers, body=cert_to_bytes(cert), content_type="application/x-pem-file")
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
@@ -780,7 +771,7 @@ class Api:
 
     async def model_uml(self, request: Request) -> StreamResponse:
         output = request.query.get("output", "svg")
-        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         show = request.query["show"].split(",") if "show" in request.query else None
         hide = request.query["hide"].split(",") if "hide" in request.query else None
         with_inheritance = request.query.get("with_inheritance", "true") != "false"
@@ -793,7 +784,7 @@ class Api:
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
-            graph=graph_id,
+            graph_name=graph_name,
             output=output,
             show_packages=show,
             hide_packages=hide,

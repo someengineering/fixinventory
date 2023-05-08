@@ -5,11 +5,11 @@ from datetime import timedelta
 from pathlib import Path
 from ssl import SSLContext, create_default_context, Purpose
 from tempfile import TemporaryDirectory
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union, Dict
 
 from arango.database import StandardDatabase
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-from cryptography.x509 import Certificate
+from cryptography.x509 import Certificate, CertificateSigningRequest
 
 from resotocore.core_config import CoreConfig, CertificateConfig
 from resotocore.types import Json
@@ -91,10 +91,17 @@ class CertificateHandler:
         cert = sign_csr(csr, self._ca_key, self._ca_cert, days_valid)
         return key, cert
 
-    def sign(self, csr_bytes: bytes) -> Tuple[bytes, str]:
-        csr = load_csr_from_bytes(csr_bytes)
-        certificate = sign_csr(csr, self._ca_key, self._ca_cert)
-        return cert_to_bytes(certificate), cert_fingerprint(certificate)
+    def sign(
+        self,
+        csr_or_bytes: Union[CertificateSigningRequest, bytes],
+        days_valid: int = 365,
+        server_auth: bool = True,
+        client_auth: bool = True,
+        key_usage: Optional[Dict[str, bool]] = None,
+    ) -> Tuple[Certificate, str]:
+        csr = load_csr_from_bytes(csr_or_bytes) if isinstance(csr_or_bytes, bytes) else csr_or_bytes
+        certificate = sign_csr(csr, self._ca_key, self._ca_cert, days_valid, server_auth, client_auth, key_usage)
+        return certificate, cert_fingerprint(certificate)
 
     @property
     def host_context(self) -> Optional[SSLContext]:
