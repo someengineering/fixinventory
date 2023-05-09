@@ -818,7 +818,7 @@ class GcpSqlUser(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name").or_else(K("(anonymous)@")+S("host", default="localhost")),
+        "id": S("name").or_else(K("(anonymous)@") + S("host", default="localhost")),
         "tags": S("labels", default={}),
         "name": S("name", default="(anonymous)"),
         "ctime": S("creationTimestamp"),
