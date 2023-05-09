@@ -436,12 +436,11 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
 
     # Step 1: create first user ================================
 
-    # getting a restricted resource returns a redirect to login
+    # getting a restricted resource returns a 401
     async with client_session.get(f"{url}/authorization/user", allow_redirects=False) as resp:
-        assert resp.status == 303
-        assert resp.headers["Location"] == "/login?redirect=/authorization/user"
-    # the first user creation page is returned
-    async with client_session.get(f"{url}/authorization/user") as resp:
+        assert resp.status == 401
+    # go to the login page, which is the first user creation page
+    async with client_session.get(f"{url}/login") as resp:
         assert resp.status == 200
         assert resp.content_type == "text/html"
         assert "/create-first-user" in await resp.text()
@@ -478,6 +477,8 @@ async def test_authorization(core_client_with_psk: ResotoClient, client_session:
 
     # subsequent interactions need to log in
     async with client_session.get(f"{url}/authorization/user") as resp:
+        assert resp.status == 401
+    async with client_session.get(f"{url}/login") as resp:
         assert resp.status == 200
         assert resp.content_type == "text/html"
         assert "/authenticate" in await resp.text()

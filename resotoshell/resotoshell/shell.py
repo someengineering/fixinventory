@@ -30,7 +30,7 @@ color_system_to_color_depth = {
 }
 
 
-class ShutdownShell(Exception):
+class ShutdownShellError(Exception):
     pass
 
 
@@ -92,7 +92,7 @@ class Shell:
                         await handle_response(mp, True)
                     elif response.status_code == 401:
                         self.stderr("Session invalid. Please restart and login again.")
-                        raise ShutdownShell()
+                        raise ShutdownShellError()
                     else:
                         log.debug(f"HTTP error, code: {response.status_code}")
                         self.stderr(await response.text())
@@ -114,7 +114,7 @@ class Shell:
                 " Is it up and reachable?"
             )
             self.stderr(err)
-        except ShutdownShell:
+        except ShutdownShellError:
             raise
         except Exception as ex:
             self.stderr(f"Error performing command: `{command}`\nReason: {ex}")
