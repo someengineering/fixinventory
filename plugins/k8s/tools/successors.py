@@ -19,4 +19,4 @@ def get_successors(client: ResotoClient) -> None:
 
 
 if __name__ == "__main__":
-    get_successors(ResotoClient("https://localhost:8900", None))
+    get_successors(ResotoClient("https://localhost:8900"))
