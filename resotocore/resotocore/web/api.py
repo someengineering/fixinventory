@@ -125,6 +125,7 @@ def section_of(request: Request) -> Optional[str]:
 # No Authorization required for following paths
 AlwaysAllowed = {
     "/",
+    "/.well-known/.*",
     "/api-doc.*",
     "/authenticate",
     "/ca/cert",
@@ -306,6 +307,7 @@ class Api:
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 # auth operations
+                web.get(prefix + "/.well-known/jwks.json", self.jwks),
                 web.get(prefix + "/login", self.login_page),
                 web.post(prefix + "/create-first-user", self.create_first_user),
                 web.post(prefix + "/authenticate", self.authenticate),
@@ -355,6 +357,9 @@ class Api:
     @staticmethod
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
+
+    async def jwks(self, _: Request) -> StreamResponse:
+        return web.json_response(self.auth_handler.signing_key_jwk)
 
     async def login_page(self, request: Request) -> StreamResponse:
         template = "login.html" if await self.user_management.has_users() else "create_first_user.html"

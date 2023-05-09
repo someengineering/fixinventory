@@ -23,7 +23,7 @@ from resotocore.util import uuid_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotolib import jwt as ck_jwt
 from resotolib.asynchronous.web import RequestHandler, Middleware
-from resotolib.jwt import encode_jwt
+from resotolib.jwt import encode_jwt, create_jwk_dict
 from resotolib.types import Json
 from resotolib.utils import utc
 from resotolib.x509 import gen_rsa_key, gen_csr, key_to_bytes, cert_to_bytes, load_key_from_bytes, load_cert_from_bytes
@@ -102,6 +102,7 @@ class AuthHandler:
         self.authorization_codes: Dict[str, AuthorizedUser] = {}
         self.signing_key_private: Optional[RSAPrivateKey] = None  # set on start
         self.signing_key_certificate: Optional[Certificate] = None  # set on start
+        self.signing_key_jwk: Optional[Json] = None  # set on start
 
     async def start(self) -> None:
         keys = await self.system_db.jwt_signing_keys()
@@ -116,10 +117,13 @@ class AuthHandler:
             await self.system_db.update_jwt_signing_keys(key_string, cert_to_bytes(cert).decode("utf-8"))
             self.signing_key_private = signing_key
             self.signing_key_certificate = cert
+            self.signing_key_jwk = {"keys": [create_jwk_dict(cert)]}
         else:
-            key_str, cert_str = keys
-            self.signing_key_private = load_key_from_bytes(key_str.encode("utf-8"))
-            self.signing_key_certificate = load_cert_from_bytes(cert_str.encode("utf-8"))
+            key_string, cert_str = keys
+            cert = load_cert_from_bytes(cert_str.encode("utf-8"))
+            self.signing_key_private = load_key_from_bytes(key_string.encode("utf-8"))
+            self.signing_key_certificate = cert
+            self.signing_key_jwk = {"keys": [create_jwk_dict(cert)]}
 
     async def stop(self) -> None:
         pass
