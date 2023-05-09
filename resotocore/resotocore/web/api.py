@@ -107,7 +107,7 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotocore.web.auth import set_valid_jwt, raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
+from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 from resotolib.x509 import cert_to_bytes
@@ -137,7 +137,7 @@ AlwaysAllowed = {
     "/ui.*",
 }
 # Authorization is not required, but implemented as part of the request handler
-DeferredCheck = {"/events"}
+DeferredCheck = {"/events", "/work/queue"}
 
 
 class Api:
@@ -175,7 +175,7 @@ class Api:
         self.user_management = user_management
         self.get_override = get_override
         self.auth_handler = AuthHandler(
-            db.system_data_db, config, cert_handler, AlwaysAllowed, self.login_with_redirect
+            db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck, self.login_with_redirect
         )
 
         self.app = web.Application(
@@ -675,7 +675,7 @@ class Api:
 
         async def authorize_request(msg: str) -> None:
             nonlocal handler
-            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+            if (r := raw_jwt_from_auth_message(msg)) and await self.auth_handler.validate_jwt(r, request) is not None:
                 handler = handle_message
             else:
                 raise ValueError("No Authorization header provided and no valid auth message sent")
@@ -715,7 +715,7 @@ class Api:
 
         async def authorize_request(msg: str) -> None:
             nonlocal handler
-            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+            if (r := raw_jwt_from_auth_message(msg)) and await self.auth_handler.validate_jwt(r, request) is not None:
                 handler = handle_connect
             else:
                 raise ValueError("No Authorization header provided and no valid auth message sent")

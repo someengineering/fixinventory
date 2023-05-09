@@ -30,7 +30,7 @@ from resotolib.x509 import gen_rsa_key, gen_csr, key_to_bytes, cert_to_bytes, lo
 
 log = logging.getLogger(__name__)
 JWT = Dict[str, Any]
-__JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
+_JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
 CodeLifeTime = timedelta(minutes=5)
 
 
@@ -48,7 +48,7 @@ async def jwt_from_context() -> JWT:
     """
     Inside a request handler, this value retrieves the current jwt.
     """
-    return __JWT_Context.get()
+    return _JWT_Context.get()
 
 
 def raw_jwt_from_auth_message(msg: str) -> Optional[str]:
@@ -69,19 +69,6 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
     # all requests are authorized automatically
     request["authorized"] = True
     return await handler(request)
-
-
-def set_valid_jwt(request: Request, jwt_raw: str, psk_or_cert: Union[str, Certificate, RSAPublicKey]) -> Optional[JWT]:
-    try:
-        # note: the expiration is already checked by this function
-        jwt_token = ck_jwt.decode_jwt_from_header_value(jwt_raw, psk_or_cert)
-    except PyJWTError:
-        return None
-    if jwt_token:
-        request["authorized"] = True  # deferred check in websocket handler
-        request["jwt"] = jwt_token
-        __JWT_Context.set(jwt_token)
-    return jwt_token
 
 
 class AuthHandler:
@@ -136,6 +123,40 @@ class AuthHandler:
             log.info("No authentication requested.")
             return no_check
 
+    async def validate_jwt(self, auth_header: str, request: Request) -> bool:
+        def set_valid_jwt(psk_or_cert: Union[str, Certificate, RSAPublicKey]) -> Optional[JWT]:
+            try:
+                # note: the expiration is already checked by this function
+                jwt_token = ck_jwt.decode_jwt_from_header_value(auth_header, psk_or_cert)
+            except PyJWTError:
+                return None
+            if jwt_token:
+                request["authorized"] = True  # deferred check in websocket handler
+                request["jwt"] = jwt_token
+                _JWT_Context.set(jwt_token)
+            return jwt_token
+
+        assert self.signing_key_certificate is not None, "AuthHandler not started"
+        # based on the jwt, we either use the PSK or the public key
+        _, token = auth_header.split(" ", maxsplit=1)
+        jwt_header = jwt.get_unverified_header(token)
+        # in case of RS256, the public key is used to verify the signature
+        secret = self.signing_key_certificate if jwt_header.get("alg") == "RS256" else self.psk
+        # try to authorize the request, even if it is one of the always allowed paths
+        authorized = set_valid_jwt(secret) is not None
+        return authorized
+
+    async def validate_code(self, code: str, request: Request) -> bool:
+        if (user := await self.authorized_user(code)) and user.is_valid():
+            jwt_token, data = self.user_jwt(user)
+            # this will be picked up in on_response_prepare and sent as a header
+            request["send_auth_response_header"] = f"Bearer {jwt_token}"
+            # set encoded data the same way as if it was a jwt
+            request["jwt"] = data
+            request["authorized"] = True
+            return True
+        return False
+
     def check_auth(self) -> Middleware:
         def always_allowed(request: Request) -> bool:
             for path in self.always_allowed_paths:
@@ -143,54 +164,26 @@ class AuthHandler:
                     return True
             return False
 
-        async def valid_jwt(request: Request) -> bool:
-            assert self.signing_key_certificate is not None, "AuthHandler not started"
-            auth_header = request.headers.get("Authorization") or request.cookies.get("resoto_authorization")
-            if auth_header:
-                # make sure origin and host match, so the request is valid
-                origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname  # type: ignore
-                host: Optional[str] = request.headers.get("Host")
-                if host is not None and origin is not None:
-                    if ":" in host:
-                        host = host.split(":")[0]
-                    if origin.lower() != host.lower():
-                        log.warning(
-                            f"Origin {origin} is not allowed in request from {request.remote} to {request.path}"
-                        )
-                        raise web.HTTPForbidden()
-                # based on the jwt, we either use the PSK or the public key
-                _, token = auth_header.split(" ", maxsplit=1)
-                jwt_header = jwt.get_unverified_header(token)
-                # in case of RS256, the public key is used to verify the signature
-                secret = self.signing_key_certificate if jwt_header.get("alg") == "RS256" else self.psk
-                # try to authorize the request, even if it is one of the always allowed paths
-                authorized = set_valid_jwt(request, auth_header, secret) is not None
-                return authorized
-            return False
-
-        async def valid_code(request: Request) -> bool:
-            code = request.query.get("code")
-            if code:
-                if (user := await self.authorized_user(code)) and user.is_valid():
-                    jwt_token, data = self.user_jwt(user)
-                    # this will be picked up in on_response_prepare and sent as a header
-                    request["send_auth_response_header"] = f"Bearer {jwt_token}"
-                    # set encoded data the same way as if it was a jwt
-                    request["jwt"] = data
-                    return True
-            return False
-
         @middleware
         async def valid_auth_handler(request: Request, handler: RequestHandler) -> StreamResponse:
+            # make sure origin and host match, so the request is valid
+            origin: Optional[str] = urlparse(request.headers.get("Origin")).hostname  # type: ignore
+            host: Optional[str] = request.headers.get("Host")
+            if host is not None and origin is not None:
+                if ":" in host:
+                    host = host.split(":")[0]
+                if origin.lower() != host.lower():
+                    log.warning(f"Origin {origin} is not allowed in request from {request.remote} to {request.path}")
+                    raise web.HTTPForbidden()
+
             allowed = False
             if always_allowed(request):
                 allowed = True
-            elif request.headers.get("Authorization"):
-                allowed = await valid_jwt(request)
-            elif request.query.get("code"):
-                allowed = await valid_code(request)
+            elif auth_head := (request.headers.get("Authorization") or request.cookies.get("resoto_authorization")):
+                allowed = await self.validate_jwt(auth_head, request)
+            elif code := request.query.get("code"):
+                allowed = await self.validate_code(code, request)
             if allowed:
-                request["authorized"] = True
                 return await handler(request)
             else:
                 if self.not_allowed:
