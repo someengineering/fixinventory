@@ -461,7 +461,7 @@ class CLIService(CLI):
                 return ctx_wq, [*query_parts, *remaining]
             return ctx, commands
 
-        def rewrite_command_line(cmds: List[ExecutableCommand]) -> List[ExecutableCommand]:
+        def rewrite_command_line(cmds: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
             """
             Rewrite the command line to make it more user-friendly.
             Rules:
@@ -469,7 +469,7 @@ class CLIService(CLI):
             - add a format to write commands if no output format is defined
             - report benchmark run will be formatted as benchmark result automatically
             """
-            if context.env.get("no_rewrite") or len(cmds) == 0:
+            if ctx.env.get("no_rewrite") or len(cmds) == 0:
                 return cmds
             first_cmd = cmds[0]
             last_cmd = cmds[-1]
@@ -480,10 +480,10 @@ class CLIService(CLI):
                 return not any(c for c in result if isinstance(c.command, (OutputTransformer, PreserveOutputFormat)))
 
             def fmt_benchmark() -> ExecutableCommand:
-                return self.command("format", "--benchmark-result", context)
+                return self.command("format", "--benchmark-result", ctx)
 
             def fmt_list() -> ExecutableCommand:
-                return self.command("list", None, context)
+                return self.command("list", None, ctx)
 
             # benchmark run as single command is rewritten to benchmark run | format --benchmark-result
             if single and isinstance(single.command, ReportCommand) and ReportCommand.is_run_action(single.arg):
@@ -513,7 +513,7 @@ class CLIService(CLI):
             ctx, commands = await combine_query_parts(
                 [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)], ctx
             )
-            rewritten = rewrite_command_line(commands)
+            rewritten = rewrite_command_line(commands, ctx)
             not_met = [r for cmd in rewritten for r in cmd.action.required if r.name not in context.uploaded_files]
             envelope = {k: v for cmd in rewritten for k, v in cmd.action.envelope.items()}
             return ParsedCommandLine(ctx, parsed, rewritten, not_met, envelope)
