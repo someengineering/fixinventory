@@ -18,7 +18,7 @@ from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell.authorized_client import authorized_client
 from resotoshell.promptsession import PromptSession, core_metadata
-from resotoshell.shell import Shell
+from resotoshell.shell import Shell, ShutdownShell
 
 
 async def main_async() -> None:
@@ -88,7 +88,7 @@ async def repl(client: ResotoClient, args: Namespace, session: PromptSession) ->
                 await shell.handle_command(command)
             except KeyboardInterrupt:
                 pass
-            except EOFError:
+            except (EOFError, ShutdownShell):
                 shutdown_event.set()
             except (RuntimeError, ValueError) as e:
                 log.error(e)

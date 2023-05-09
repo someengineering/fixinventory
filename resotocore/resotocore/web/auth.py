@@ -78,7 +78,7 @@ class AuthHandler:
         config: CoreConfig,
         cert_handler: CertificateHandler,
         always_allowed_paths: Set[str],
-        not_allowed: Optional[Callable[[Request], Awaitable[StreamResponse]]],
+        not_allowed: Optional[Callable[[Request], Awaitable[StreamResponse]]] = None,
     ) -> None:
         self.system_db = system_db
         self.config = config

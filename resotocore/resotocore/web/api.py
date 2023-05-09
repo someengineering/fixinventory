@@ -174,9 +174,7 @@ class Api:
         self.config = config
         self.user_management = user_management
         self.get_override = get_override
-        self.auth_handler = AuthHandler(
-            db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck, self.login_with_redirect
-        )
+        self.auth_handler = AuthHandler(db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck)
 
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
