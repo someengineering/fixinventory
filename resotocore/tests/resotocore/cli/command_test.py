@@ -552,6 +552,10 @@ async def test_list_command(cli: CLI) -> None:
     result = await cli.execute_cli_command(f'search is (foo) and identifier=="4" | {list_cmd}', stream.list)
     assert result[0] == ["si=0, some_string=hello"]
 
+    # list is added automatically when no output renderer is defined and has the same behaviour as if it was given
+    result = await cli.execute_cli_command('search is (foo) and identifier=="4" sort some_int', stream.list)
+    assert result[0][0].startswith("kind=foo, identifier=4, some_int=0, age=")
+
     # List is using the correct type
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     result = await cli.execute_cli_command(f"json {json.dumps(props)}" " | list a,b,c,d,e,f", stream.list)
