@@ -56,6 +56,13 @@ def parse_duration(ds: str) -> timedelta:
     return timedelta(seconds=duration_parser.parse(ds))
 
 
+def parse_optional_duration(ds: str) -> Optional[timedelta]:
+    try:
+        return parse_duration(ds)
+    except Exception:
+        return None
+
+
 def duration_str(duration: timedelta, precision: Optional[int] = 0, down_to_unit: Optional[str] = None) -> str:
     """
     Convert a timedelta to a string representing the duration human-readable short unit syntax.

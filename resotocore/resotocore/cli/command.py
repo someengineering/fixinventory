@@ -2673,7 +2673,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     jobs list
     jobs show <id>
     jobs add [--id <id>] [--schedule <cron_expression>] [--wait-for-event <event_name>] <command_line>
-    jobs update <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
+    jobs update --id <id> [--schedule <cron_expression>] [--wait-for-event <event_name> :] <command_line>
     jobs delete <id>
     jobs activate <id>
     jobs deactivate <id>
@@ -2684,7 +2684,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
     - `jobs list`: get the list of all jobs in the system
     - `jobs show <id>`: show the current definition of the job defined by given job identifier.
     - `jobs add ...`: add a job to the task handler with provided identifier, trigger and command line to execute.
-    - `jobs update <id> ...` : update trigger and or command line of an existing job with provided identifier.
+    - `jobs update --id <id> ...` : update trigger and or command line of an existing job with provided identifier.
     - `jobs delete <id>`: delete the job with the provided identifier.
     - `jobs activate <id>`: activate the triggers of a job.
     - `jobs deactivate <id>`: deactivate the triggers of a job. The job will not get started in case the trigger fires.
@@ -2851,9 +2851,9 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             else:
                 yield f"No job with this id: {job_id}"
 
-        async def put_job(arg_str: str) -> AsyncIterator[str]:
+        async def put_job(arg_str: str, is_update: bool = False) -> AsyncIterator[str]:
             arg_parser = NoExitArgumentParser()
-            arg_parser.add_argument("--id", dest="id", default=rnd_str())
+            arg_parser.add_argument("--id", dest="id", default=rnd_str(), required=is_update)
             arg_parser.add_argument("--schedule", dest="schedule", type=lambda r: TimeTrigger(strip_quotes(r)))
             arg_parser.add_argument("--wait-for-event", dest="event", type=lambda e: EventTrigger(strip_quotes(e)))
             arg_parser.add_argument(
@@ -2875,7 +2875,8 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             else:
                 job = Job(uid, ExecuteCommand(command), timeout, environment=ctx.env)
             await self.dependencies.task_handler.add_job(job)
-            yield f"Job {job.id} added."
+            update_str = "updated" if is_update else "added"
+            yield f"Job {job.id} {update_str}."
 
         async def delete_job(job_id: str) -> AsyncIterator[str]:
             job = await self.dependencies.task_handler.delete_job(job_id)
@@ -2921,7 +2922,8 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
-            return CLISource.single(partial(put_job, args[1].strip()))
+            is_update = args[0] == "update"
+            return CLISource.single(partial(put_job, args[1].strip(), is_update))
         elif arg and len(args) == 2 and args[0] == "delete":
             return CLISource.single(partial(delete_job, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "show":

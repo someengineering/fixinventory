@@ -97,7 +97,7 @@ l1:
         count -= 1
         if count == 0:
             raise AssertionError("Process does not came up as expected")
-    async with ApiClient(f"http://localhost:{port}", None) as client:
+    async with ApiClient(f"http://localhost:{port}") as client:
         yield client
     # terminate the process
     process.terminate()
