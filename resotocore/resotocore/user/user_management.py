@@ -75,6 +75,7 @@ class UserManagementService(UserManagement):
             hashed = self.hash_password(password)
             user = ResotoUser(fullname, password_hash=hashed, roles=set(roles))
             users[email] = user
+            await self.event_sender.core_event(CoreEvent.UserCreated, {"fullname": fullname, "email": email})
             return user
 
         return await self.__change_users(fn)
