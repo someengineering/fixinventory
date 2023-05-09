@@ -8,7 +8,7 @@ from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
@@ -818,9 +818,9 @@ class GcpSqlUser(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
+        "id": S("name").or_else(K("(anonymous)@")+S("host", default="localhost")),
         "tags": S("labels", default={}),
-        "name": S("name"),
+        "name": S("name", default="(anonymous)"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
@@ -828,7 +828,7 @@ class GcpSqlUser(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "dual_password_type": S("dualPasswordType"),
         "etag": S("etag"),
-        "host": S("host"),
+        "host": S("host", default="localhost"),
         "instance": S("instance"),
         "password": S("password"),
         "password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
