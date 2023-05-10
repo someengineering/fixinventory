@@ -71,14 +71,14 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         else:
             collect_method = self.collect_project
 
-        with pool_executor(**pool_args) as executor:  # type: ignore
+        with pool_executor(**pool_args) as executor:
             wait_for = [
                 executor.submit(
                     collect_method,
                     project_id,
                     self.core_feedback.with_context("gcp"),
                     cloud,
-                    **collect_args,  # type: ignore
+                    **collect_args,
                 )
                 for project_id in credentials.keys()
             ]
