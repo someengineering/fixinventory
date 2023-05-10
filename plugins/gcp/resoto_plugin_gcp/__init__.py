@@ -1,8 +1,7 @@
 import multiprocessing
 from resotolib.args import Namespace
 from concurrent import futures
-from concurrent.futures import Executor
-from typing import Optional, Type, Dict, Any
+from typing import Optional, Dict, Any
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
@@ -59,11 +58,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         max_workers = (
             len(credentials) if len(credentials) < Config.gcp.project_pool_size else Config.gcp.project_pool_size
         )
+        collect_args = {}
         pool_args = {"max_workers": max_workers}
+        pool_executor = futures.ThreadPoolExecutor
         if Config.gcp.fork_process:
-            #     pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            #     pool_args["initializer"] = resotolib.proc.initializer
-            #     pool_executor: Type[Executor] = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
                 "running_config": Config.running_config,
@@ -71,10 +69,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             }
             collect_method = collect_in_process
         else:
-            #     pool_executor = futures.ThreadPoolExecutor
-            collect_args = {}
             collect_method = self.collect_project
-        pool_executor = futures.ThreadPoolExecutor
 
         with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
