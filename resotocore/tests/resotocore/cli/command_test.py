@@ -1141,10 +1141,11 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
 
 
 @pytest.mark.asyncio
-async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
+async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) -> None:
     T = TypeVar("T")
 
     await graph_manager.delete(GraphName("graphtest2"))
+    await graph_manager.delete(GraphName("graphtest_import"))
 
     async def execute(cmd: str, _: Type[T]) -> List[T]:
         result = await cli.execute_cli_command(cmd, stream.list)
@@ -1198,24 +1199,22 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
     graph_names = await graph_manager.list(None)
     assert set(graph_names) == {"ns", "graphtest", "graphtest3"}
 
-    async def check_file(res: Stream, check_content: Optional[str] = None) -> None:
-        async with res.stream() as streamer:
-            only_one = True
-            async for s in streamer:
-                assert isinstance(s, str)
-                p = Path(s)
-                assert p.exists() and p.is_file()
-                assert 1 < p.stat().st_size < 100000
-                assert p.name.startswith("graphtest.backup")
-                assert only_one
-                only_one = False
-                if check_content:
-                    with open(s, "r") as file:
-                        data = file.read()
-                        assert data == check_content
+    dump = os.path.join(tmp_directory, "dump")
 
-    # result can be read as json
-    await cli.execute_cli_command("graph export graphtest graphtest.backup ", check_file)
+    async def move_dump(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                os.rename(s, dump)
+
+    # graph export works
+    await cli.execute_cli_command("graph export graphtest dump", move_dump)
+
+    ctx = CLIContext(uploaded_files={"dump": dump})
+
+    # graph import works too
+    await cli.execute_cli_command("graph import graphtest_import graphtest.backup", stream.list, ctx)
+    assert await graph_manager.list(GraphName("graphtest_import")) == [GraphName("graphtest_import")]
 
     # clean up
     await graph_manager.delete(GraphName("graphtest3"))
+    await graph_manager.delete(GraphName("graphtest_import"))

@@ -5201,6 +5201,25 @@ class GraphCommand(CLICommand):
             lines = await self.dependencies.graph_manager.export_graph(graph_name)
             return write_result_to_file(lines, file_name)
 
+        async def graph_import(
+            graph_name: Optional[GraphName], file_name: str, force: bool
+        ) -> AsyncIterator[JsonElement]:
+            if not graph_name:
+                graph_name = ctx.graph_name
+
+            path = ctx.uploaded_files.get("dump")
+            if not path:
+                raise ValueError(f"File {file_name} was not uploaded.")
+
+            async with aiofiles.open(path, "r") as f:
+
+                async def iterator() -> AsyncIterator[str]:
+                    async for line in f:
+                        yield line.strip()
+
+                await self.dependencies.graph_manager.import_graph(graph_name, iterator(), replace_existing=force)
+            yield f"Graph {graph_name} imported from {file_name}."
+
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if args[0] == "list":
             parser = NoExitArgumentParser()
@@ -5239,6 +5258,20 @@ class GraphCommand(CLICommand):
             parser.add_argument("--force", action="store_true")
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(graph_export, parsed.graph_name, parsed.file_name), MediaType.FilePath)
+        elif args[0] == "import":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str, nargs="?", default=None)
+            parser.add_argument("file_name", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            return CLISource.single(
+                partial(graph_import, parsed.graph_name, parsed.file_name, parsed.force),
+                MediaType.Json,
+                [CLIFileRequirement("dump", parsed.file_name)],
+            )
+
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
