@@ -5098,18 +5098,20 @@ class GraphCommand(CLICommand):
     graph list [pattern]
     graph copy [-force] [from_graph_namae] <to_graph_name>
     graph snapshot [from_graph_name] <snapshot_label>
-    graph delete [-y] <graph_name>
-    graph export [-y] [graph_name] <file_name>
-    graph import [-y] [graph_name] <file_name>
+    graph delete <graph_name>
+    graph export [--force] [graph_name] <file_name>
+    graph import [--force] [graph_name] <file_name>
     ```
 
     - `graph list [pattern]`: Lists all graphs. Supports filtering by pattern.
     - `graph copy [--force] [from_graph_name] <to_graph_name>`: Copies the graph.
        If the target graph alearly exists, and a --force flag is provided, the graph will be overwritten.
     - `graph snapshot [from_graph_name] <snapshot_label>`: Make a graph snapshot.
-    - `graph delete [-y] <graph_name>`: Delete a graph.
-    - `graph export [-y] [graph_name] <file_name>`: Export the graph into a file.
-    - `graph import [-y] [graph_name] <file_name>`: Impor the graph from a file.
+    - `graph delete <graph_name>`: Delete a graph.
+    - `graph export [--force] [graph_name] <file_name>`: Export the graph into a file. If the file already exists,
+       and a --force flag is provided, the file will be overwritten.
+    - `graph import [--force] [graph_name] <file_name>`: Impor the graph from a file. If the graph already exists,
+       and a --force flag is provided, the graph will be overwritten.
 
     ## Parameters
     - `pattern` [optional]: Pattern for searching for apps. Supports regex.
@@ -5119,7 +5121,7 @@ class GraphCommand(CLICommand):
     - `file_name` [required]: The name of the file to save the graph to.
 
     ## Options
-    - `-y`: Skip the confirmation dialogue.
+    - `--force`: Overwrite the target graph or file if it already exists.
     """
 
     @property
@@ -5145,17 +5147,16 @@ class GraphCommand(CLICommand):
             ],
             "delete": [
                 ArgInfo(None, True, help_text="<graph_name>"),
-                ArgInfo("-y", False),
             ],
             "export": [
                 ArgInfo(None, True, help_text="<from_graph_name>"),
                 ArgInfo(None, True, help_text="<to_graph_name>"),
-                ArgInfo("-y", False),
+                ArgInfo("--force", False),
             ],
             "import": [
                 ArgInfo(None, True, help_text="<from_graph_name>"),
                 ArgInfo(None, True, help_text="<to_graph_name>"),
-                ArgInfo("-y", False),
+                ArgInfo("--force", False),
             ],
         }
 
@@ -5170,7 +5171,7 @@ class GraphCommand(CLICommand):
         ) -> AsyncIterator[JsonElement]:
             if not source:
                 source = ctx.graph_name
-            await self.dependencies.graph_manager.copy(source, destination, ignore_existing=force)
+            await self.dependencies.graph_manager.copy(source, destination, replace_existing=force)
             yield f"Graph {source} copied to {destination}."
 
         async def graph_snapshot(source: Optional[GraphName], label: str) -> AsyncIterator[JsonElement]:
@@ -5182,6 +5183,23 @@ class GraphCommand(CLICommand):
         async def graph_delete(graph_name: GraphName) -> AsyncIterator[JsonElement]:
             await self.dependencies.graph_manager.delete(graph_name)
             yield f"Graph {graph_name} deleted."
+
+        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, file_name)
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    async for line in export_lines:
+                        await f.write(line + "\n")
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
+            if not graph_name:
+                graph_name = ctx.graph_name
+            lines = await self.dependencies.graph_manager.export_graph(graph_name)
+            return write_result_to_file(lines, file_name)
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if args[0] == "list":
@@ -5206,14 +5224,21 @@ class GraphCommand(CLICommand):
             parser.add_argument("source", type=str, nargs="?", default=None)
             parser.add_argument("label", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(graph_snapshot, GraphName(parsed.source), parsed.label))
+            return CLISource.single(partial(graph_snapshot, parsed.source, parsed.label))
         elif args[0] == "delete":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("graph_name", type=str)
-            parser.add_argument("-y", action="store_true")
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(partial(graph_delete, GraphName(parsed.graph_name)))
+        elif args[0] == "export":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str, nargs="?", default=None)
+            parser.add_argument("file_name", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_export, parsed.graph_name, parsed.file_name), MediaType.FilePath)
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 

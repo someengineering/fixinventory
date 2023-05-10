@@ -1198,5 +1198,24 @@ async def test_graph(cli: CLI, graph_manager: GraphManager) -> None:
     graph_names = await graph_manager.list(None)
     assert set(graph_names) == {"ns", "graphtest", "graphtest3"}
 
+    async def check_file(res: Stream, check_content: Optional[str] = None) -> None:
+        async with res.stream() as streamer:
+            only_one = True
+            async for s in streamer:
+                assert isinstance(s, str)
+                p = Path(s)
+                assert p.exists() and p.is_file()
+                assert 1 < p.stat().st_size < 100000
+                assert p.name.startswith("graphtest.backup")
+                assert only_one
+                only_one = False
+                if check_content:
+                    with open(s, "r") as file:
+                        data = file.read()
+                        assert data == check_content
+
+    # result can be read as json
+    await cli.execute_cli_command("graph export graphtest graphtest.backup ", check_file)
+
     # clean up
     await graph_manager.delete(GraphName("graphtest3"))

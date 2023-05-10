@@ -203,27 +203,27 @@ class DbAccess(ABC):
 
             # sturcture of the export file:
             # 1. metadata
-            yield dumps(metadata) + "\n"
+            yield dumps(metadata)
 
             # 2. model collection
             cursor = AsyncCursor(await tx.all(model_collection), None)
             async for doc in cursor:
-                yield dumps(doc) + "\n"
+                yield dumps(doc)
 
             # 3. vertex collection
             cursor = AsyncCursor(await tx.all(vertex_collection), None)
             async for doc in cursor:
-                yield dumps(doc) + "\n"
+                yield dumps(doc)
 
             # 4. default edge collection
             cursor = AsyncCursor(await tx.all(default_edge_collection), None)
             async for doc in cursor:
-                yield dumps(doc) + "\n"
+                yield dumps(doc)
 
             # 5. delete edge collection
             cursor = AsyncCursor(await tx.all(delete_edge_collection), None)
             async for doc in cursor:
-                yield dumps(doc) + "\n"
+                yield dumps(doc)
 
     async def import_graph(self, graph_name: GraphName, data: AsyncIterator[str]) -> None:
         if await self.db.has_graph(graph_name):
