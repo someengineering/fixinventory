@@ -142,7 +142,6 @@ class AuthHandler:
         jwt_header = jwt.get_unverified_header(token)
         # in case of RS256, the public key is used to verify the signature
         secret = self.signing_key_certificate if jwt_header.get("alg") == "RS256" else self.psk
-        # try to authorize the request, even if it is one of the always allowed paths
         authorized = set_valid_jwt(secret) is not None
         return authorized
 
@@ -177,12 +176,13 @@ class AuthHandler:
                     raise web.HTTPForbidden()
 
             allowed = False
-            if always_allowed(request):
-                allowed = True
-            elif auth_head := (request.headers.get("Authorization") or request.cookies.get("resoto_authorization")):
+            # Note: order is important: Authorization header and code is checked even for always allowed paths
+            if auth_head := (request.headers.get("Authorization") or request.cookies.get("resoto_authorization")):
                 allowed = await self.validate_jwt(auth_head, request)
             elif code := request.query.get("code"):
                 allowed = await self.validate_code(code, request)
+            elif always_allowed(request):
+                allowed = True
             if allowed:
                 return await handler(request)
             else:

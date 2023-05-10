@@ -23,9 +23,7 @@ class AccessDeniedError(Exception):
     pass
 
 
-async def authorized_client(args: Namespace) -> ResotoClient:
-    config = ReshConfig(Path.home() / ".resoto" / "resh.ini")
-
+async def new_client(args: Namespace) -> ResotoClient:
     # if a PSK was defined on the command line, use it
     if args.psk:
         return ResotoClient(
@@ -41,6 +39,7 @@ async def authorized_client(args: Namespace) -> ResotoClient:
         # no authorization required
         return ResotoClient(url=resotocore.http_uri, custom_ca_cert_path=args.ca_cert, verify=args.verify_certs)
     except AccessDeniedError:
+        config = ReshConfig.default()
         if creds := config.valid_credentials(resotocore.http_uri):
             # Valid credentials found in config file
             method, auth_token = creds
@@ -60,15 +59,19 @@ async def authorized_client(args: Namespace) -> ResotoClient:
                     result = await fetch_auth_header(resotocore.http_uri, params={"code": srv.code})
                     assert result, "Authorization failed"
                     method, token = result
-                    config.set(resotocore.http_uri, "method", method)
-                    config.set(resotocore.http_uri, "token", token)
-                    config.write()
+                    config.update_auth(resotocore.http_uri, method, token)
                     return ResotoClient(
                         url=resotocore.http_uri,
                         custom_ca_cert_path=args.ca_cert,
                         verify=args.verify_certs,
                         additional_headers={"Authorization": f"{method} {token}"},
                     )
+
+
+async def update_auth_header(client: ResotoClient) -> None:
+    if auth := client.http_client.additional_headers.get("Authorization"):
+        method, token = auth.split(" ", maxsplit=1)
+        ReshConfig.default().update_auth(client.http_client.url, method, token)
 
 
 async def fetch_auth_header(resotocore_url: str, params: Optional[Dict[str, str]] = None) -> Optional[Tuple[str, str]]:
@@ -103,6 +106,11 @@ class ReshConfig:
         self.config.set(section, option, value)
         self.dirty = True
 
+    def update_auth(self, host: str, method: str, token: str) -> None:
+        self.set(host, "method", method)
+        self.set(host, "token", token)
+        self.write()
+
     def valid_credentials(self, host: str) -> Optional[tuple[str, str]]:
         jwt_token = self.get(host, "token")
         method = self.get(host, "method")
@@ -117,6 +125,10 @@ class ReshConfig:
         if self.dirty:
             with open(self.path, "w+", encoding="utf-8") as f:
                 self.config.write(f)
+
+    @staticmethod
+    def default() -> ReshConfig:
+        return ReshConfig(Path.home() / ".resoto" / "resh.ini")
 
 
 class AuthServer:

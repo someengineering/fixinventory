@@ -16,7 +16,7 @@ from resotolib.core import resotocore, add_args as core_add_args, wait_for_resot
 from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
-from resotoshell.authorized_client import authorized_client
+from resotoshell import authorized_client
 from resotoshell.promptsession import PromptSession, core_metadata
 from resotoshell.shell import Shell, ShutdownShellError
 
@@ -39,7 +39,7 @@ async def main_async() -> None:
         sys.exit(1)
     resotolib.proc.initializer()
 
-    client = await authorized_client(args)
+    client = await authorized_client.new_client(args)
 
     async def check_system_info() -> None:
         try:
@@ -61,6 +61,9 @@ async def main_async() -> None:
         cmds, kinds, props = await core_metadata(client)
         session = PromptSession(cmds=cmds, kinds=kinds, props=props)
         await repl(client, args, session)
+
+    # update the eventually changed auth token
+    await authorized_client.update_auth_header(client)
     await client.shutdown()
 
 
