@@ -96,6 +96,7 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
 
     # check model after import
     assert await db_access.db.count("test_graph_model") == await db_access.db.count("test_graph_import_model")
+    assert await collect_docs("test_graph_model") == await collect_docs("test_graph_import_model")
 
     # cleanup
     for graph in await graph_manager.list(".*"):
