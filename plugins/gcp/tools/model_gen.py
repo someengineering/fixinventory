@@ -114,7 +114,7 @@ class GcpModel:
         else:
             api = ""
         base_mapping = {
-            "id": 'S("id").or_else(S("name")).or_else(S("selfLink"))',
+            "id": 'S("name").or_else(S("id")).or_else(S("selfLink"))',
             "tags": 'S("labels", default={})',
             "name": 'S("name")',
             "ctime": 'S("creationTimestamp")',
@@ -494,6 +494,7 @@ known_api_parameters = {
     "container": {"parent": "projects/{project}/locations/-"},
     "sqladmin": {"project": "{project}", "instance": "{instance}"},
     "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
+    "storage": {"project": "{project}", "bucket": "{bucket}"},
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
@@ -503,6 +504,7 @@ apis = [
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
     # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
+    ("storage", "v1", "", [])
 ]
 
 

@@ -1,10 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
-from queue import Queue
 from typing import Type, List
 
-from resoto_plugin_gcp import GcpConfig, Credentials
-from resoto_plugin_gcp.resources import compute, container, billing, sqladmin
+from resoto_plugin_gcp.config import GcpConfig
+from resoto_plugin_gcp.utils import Credentials
+from resoto_plugin_gcp.resources import compute, container, billing, sqladmin, storage
 from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
@@ -12,7 +12,7 @@ from resotolib.graph import Graph
 
 log = logging.getLogger("resoto.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    compute.resources + container.resources + billing.resources + sqladmin.resources
+    compute.resources + container.resources + billing.resources + sqladmin.resources + storage.resources
 )
 
 
@@ -33,9 +33,17 @@ class GcpProjectCollector:
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.project.safe_name)
+            project_global_region = GcpRegion.fallback_global_region(self.project)
             global_builder = GraphBuilder(
-                self.graph, self.cloud, self.project, self.credentials, shared_queue, self.core_feedback
+                self.graph,
+                self.cloud,
+                self.project,
+                self.credentials,
+                shared_queue,
+                self.core_feedback,
+                project_global_region,
             )
+            global_builder.add_node(project_global_region, {})
 
             # fetch available regions and zones
             self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
@@ -47,11 +55,15 @@ class GcpProjectCollector:
 
             # fetch all project level resources
             for resource_class in all_resources:
+                if not self.config.should_collect(resource_class.kind):
+                    continue
                 if resource_class.api_spec and resource_class.api_spec.is_project_level:
                     global_builder.submit_work(resource_class.collect_resources, global_builder)
 
             # fetch all region level resources
             for region in global_builder.resources_of(GcpRegion):
+                if region.name == "global":
+                    continue
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
 
             global_builder.executor.wait_for_submitted_work()
@@ -78,32 +90,17 @@ class GcpProjectCollector:
             remove_nodes.clear()
 
         # nodes need to be removed in the correct order
-        rmnodes((compute.GcpMachineType, compute.GcpDiskType))
+        rmnodes((compute.GcpNodeType, compute.GcpMachineType, compute.GcpDiskType, compute.GcpAcceleratorType))
         rmnodes(billing.GcpSku)
         rmnodes(billing.GcpService)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources
         for resource_class in all_resources:
+            if not self.config.should_collect(resource_class.kind):
+                continue
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
                 log.info(
                     f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"
                 )
                 resource_class.collect_resources(regional_builder)
-
-
-if __name__ == "__main__":
-    # TODO: remove this only here for local testing
-    from google.oauth2.service_account import Credentials as OauthCredentials
-
-    cloud = Cloud(id="Gcp", name="Gcp")
-    project = GcpProject(id="vpc-host-nonprod-320811", name="vpc-host-nonprod-320811")
-    feedback = CoreFeedback("test", "test", "test", Queue())
-    Credentials._credentials[project.id] = OauthCredentials.from_service_account_file(
-        "/Users/anja/.gcp/vpc_host_nonprod.json"
-    )
-    Credentials._initialized = True
-    collector = GcpProjectCollector(GcpConfig(), cloud, project, feedback)
-    collector.collect()
-    for nd in collector.graph.nodes:
-        print(nd)

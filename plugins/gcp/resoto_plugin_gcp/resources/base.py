@@ -7,10 +7,10 @@ from threading import Lock
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
 
 from attr import define, field
-from google.auth.credentials import Credentials
+from google.auth.credentials import Credentials as GoogleAuthCredentials
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
-from resoto_plugin_gcp.utils import delete_resource, update_label
+from resoto_plugin_gcp.utils import Credentials
 from resotolib.baseresources import BaseResource, BaseAccount, Cloud, EdgeType, BaseRegion, BaseZone, BaseQuota
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -22,6 +22,16 @@ log = logging.getLogger("resoto.plugins.gcp")
 
 
 T = TypeVar("T")
+
+
+def get_client(resource: BaseResource) -> GcpClient:
+    project = resource.account()
+    assert isinstance(project, GcpProject)
+    return GcpClient(
+        Credentials.get(project.id),
+        project_id=project.id,
+        region=resource.region().name if resource.region() else None,
+    )
 
 
 class CancelOnFirstError(Exception):
@@ -92,9 +102,10 @@ class GraphBuilder:
         graph: Graph,
         cloud: Cloud,
         project: GcpProject,
-        credentials: Credentials,
+        credentials: GoogleAuthCredentials,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
+        fallback_global_region: GcpRegion,
         region: Optional[GcpRegion] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
@@ -109,6 +120,7 @@ class GraphBuilder:
         self.executor = executor
         self.name = f"GCP:{project.name}"
         self.core_feedback = core_feedback
+        self.fallback_global_region = fallback_global_region
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpZone] = {}
@@ -211,8 +223,8 @@ class GraphBuilder:
             self.add_edge(node, node=self.region, reverse=True)
             return
 
-        # Fallback to project, i.e. for non-regional resources
-        self.add_edge(node, node=self.project, reverse=True)
+        # Fallback to global region
+        self.add_edge(node, node=self.fallback_global_region, reverse=True)
         return
 
     def add_edge(
@@ -284,6 +296,7 @@ class GraphBuilder:
             self.client.credentials,
             self.executor,
             self.core_feedback,
+            self.fallback_global_region,
             region,
             self.graph_nodes_access,
             self.graph_edges_access,
@@ -302,13 +315,50 @@ class GcpResource(BaseResource):
     label_fingerprint: Optional[str] = None
 
     def delete(self, graph: Graph) -> bool:
-        return delete_resource(self)
+        if not self.api_spec:
+            return False
+        client = get_client(self)
+        client.delete(
+            self.api_spec.for_delete(),
+            zone=self.zone().name,
+            resource=self.name,
+        )
+        return True
 
-    def update_tag(self, key: str, value: str) -> bool:
-        return update_label(self, key, value)
+    def update_tag(self, key: str, value: Optional[str]) -> bool:
+        if not self.api_spec:
+            return False
+        client = get_client(self)
+
+        labels = dict(self.tags)
+        if value is None:
+            if key in labels:
+                del labels[key]
+            else:
+                return False
+        else:
+            labels.update({key: value})
+        try:
+            client.set_labels(
+                self.api_spec.for_set_labels(),
+                body={"labels": labels, "labelFingerprint": self.label_fingerprint},
+                zone=self.zone().name,
+                resource=self.name,
+            )
+        except AttributeError:
+            log.debug(f"resources of type {self.kind} cannot be labeled.")
+            return False
+        # Retrieve updated label fingerprint
+        result = client.get(
+            self.api_spec.for_get(),
+            zone=self.zone().name,
+            resource=self.name,
+        )
+        self.label_fingerprint = result.get("labelFingerprint")
+        return True
 
     def delete_tag(self, key: str) -> bool:
-        return update_label(self, key, None)
+        return self.update_tag(key, None)
 
     def adjust_from_api(self, graph_builder: GraphBuilder, source: Json) -> GcpResource:
         """
@@ -425,7 +475,7 @@ class GcpRegion(GcpResource, BaseRegion):
         response_path="items",
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -440,6 +490,10 @@ class GcpRegion(GcpResource, BaseRegion):
     status: Optional[str] = field(default=None)
     region_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     region_supports_pzs: Optional[bool] = field(default=None)
+
+    @classmethod
+    def fallback_global_region(cls: Type[GcpRegion], project: GcpProject) -> GcpRegion:
+        return cls(id="global", tags={}, name="global", account=project)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         for quota_js in source.get("quotas", []):
@@ -467,7 +521,7 @@ class GcpZone(GcpResource, BaseZone):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),

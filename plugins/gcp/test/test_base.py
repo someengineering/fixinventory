@@ -8,7 +8,7 @@ def test_node_by_filter(random_builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/machine_type.json") as f:
         GcpMachineType.collect(raw=json.load(f)["items"]["machineTypes"], builder=random_builder)
 
-    assert random_builder.node(clazz=GcpMachineType, id="804416")
+    assert random_builder.node(clazz=GcpMachineType, name="m2-ultramem-416")
 
     def filter_1(node: GcpMachineType) -> bool:
         return node.name is not None and node.name.startswith("m2-ultramem") and node.kind == "gcp_machine_type"
