@@ -52,8 +52,20 @@ class GraphManager(Service):
         await self.db_access.delete_graph(source)
         await self.db_access.delete_graph_model(source)
 
-    async def dump(self, source: GraphName) -> AsyncIterator[bytes]:
-        raise NotImplementedError()
+    async def export_graph(self, source: GraphName) -> AsyncIterator[str]:
+        if not await self.db_access.db.has_graph(source):
+            raise ValueError(f"Graph {source} does not exist")
+        return self.db_access.export_graph(source)
 
-    def load(self, stream: AsyncIterator[bytes]) -> None:
-        raise NotImplementedError()
+    async def import_graph(self, target: GraphName, stream: AsyncIterator[str], replace_existing: bool) -> None:
+        if not self.lock:
+            raise RuntimeError("GraphManager has not been started")
+
+        async with self.lock:
+            if await self.db_access.db.has_graph(target):
+                if replace_existing:
+                    await self.delete(target)
+                else:
+                    raise ValueError(f"Graph {target} already exists")
+
+            await self.db_access.import_graph(target, stream)
