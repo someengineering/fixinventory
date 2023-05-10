@@ -61,22 +61,25 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         )
         pool_args = {"max_workers": max_workers}
         if Config.gcp.fork_process:
-            pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor: Type[Executor] = futures.ProcessPoolExecutor
+            #     pool_args["mp_context"] = multiprocessing.get_context("spawn")
+            #     pool_args["initializer"] = resotolib.proc.initializer
+            #     pool_executor: Type[Executor] = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
                 "running_config": Config.running_config,
                 "credentials": credentials if all(v is None for v in credentials.values()) else None,
             }
+            collect_method = collect_in_process
         else:
-            pool_executor = futures.ThreadPoolExecutor
+            #     pool_executor = futures.ThreadPoolExecutor
             collect_args = {}
+            collect_method = self.collect_project
+        pool_executor = futures.ThreadPoolExecutor
 
-        with pool_executor(**pool_args) as executor:
+        with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
-                    self.collect_project,
+                    collect_method,
                     project_id,
                     self.core_feedback.with_context("gcp"),
                     cloud,
@@ -140,3 +143,19 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def add_config(config: Config) -> None:
         """Called by resoto upon startup to populate the Config store"""
         config.add_config(GcpConfig)
+
+
+def collect_project_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
+    resotolib.proc.initializer()
+    queue.put(GCPCollectorPlugin.collect_project(*args, **kwargs))
+
+
+def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
+    ctx = multiprocessing.get_context("spawn")
+    queue = ctx.Queue()
+    kwargs["queue"] = queue
+    process = ctx.Process(target=collect_project_proxy, args=args, kwargs=kwargs)
+    process.start()
+    graph = queue.get()
+    process.join()
+    return graph  # type: ignore
