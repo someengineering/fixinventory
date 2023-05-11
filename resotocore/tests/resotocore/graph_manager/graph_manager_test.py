@@ -100,4 +100,5 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
 
     # cleanup
     for graph in await graph_manager.list(".*"):
-        await graph_manager.delete(graph)
+        await db_access.delete_graph(graph)
+        await db_access.delete_graph_model(graph)
