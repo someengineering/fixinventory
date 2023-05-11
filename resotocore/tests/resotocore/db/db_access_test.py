@@ -7,6 +7,9 @@ from resotocore.analytics import NoEventSender
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import parse_args, empty_config
 from resotocore.model.adjust_node import NoAdjust
+from resotocore.ids import GraphName
+
+import pytest
 
 
 def test_already_existing(test_db: StandardDatabase) -> None:
@@ -43,3 +46,13 @@ def test_not_existing_and_default_root_account(
     changed_root = local_client.db(username="root", password="bombproof")
     # Rest the password to the default one, to reset the state before the test
     changed_root.replace_user("root", "", True)
+
+
+@pytest.mark.asyncio
+async def test_delete_graph(test_db: StandardDatabase) -> None:
+    db_access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
+    graph_name = GraphName("test_graph_delete")
+    await db_access.create_graph(graph_name)
+    assert db_access.graph_dbs.get(graph_name)
+    await db_access.delete_graph(graph_name)
+    assert db_access.graph_dbs.get(graph_name) is None
