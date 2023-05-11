@@ -17,8 +17,7 @@ def test_ca_certificate(cert_handler: CertificateHandler) -> None:
 
 
 def test_sign(cert_handler: CertificateHandler) -> None:
-    cert_bytes, fingerprint = cert_handler.sign(csr_to_bytes(gen_csr(gen_rsa_key())))
-    cert = load_cert_from_bytes(cert_bytes)
+    cert, fingerprint = cert_handler.sign(csr_to_bytes(gen_csr(gen_rsa_key())))
     assert cert_fingerprint(cert) == fingerprint
 
 

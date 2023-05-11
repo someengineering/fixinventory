@@ -144,6 +144,12 @@ class ApiConfig(ConfigObject):
     host_certificate: CertificateConfig = field(
         factory=CertificateConfig, metadata={"description": "The certificate configuration for this server."}
     )
+    access_token_expiration_seconds: int = field(
+        default=3600, metadata={"description": "The expiration time of the access token in seconds (default: 1h)"}
+    )
+
+    def access_token_expiration(self) -> timedelta:
+        return timedelta(seconds=self.access_token_expiration_seconds)
 
 
 # Define rules to validate this config

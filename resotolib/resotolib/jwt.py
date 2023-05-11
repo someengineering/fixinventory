@@ -3,8 +3,12 @@ import jwt
 import base64
 import hashlib
 import time
+
+from cryptography.hazmat.primitives import serialization
+from jwt.utils import base64url_encode
+
 from resotolib.args import ArgumentParser
-from resotolib.x509 import x5t_s256
+from resotolib.x509 import x5t_s256, x5t
 from typing import Any, Optional, Tuple, Dict, Mapping, Union, cast
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.x509.base import Certificate
@@ -154,6 +158,27 @@ def decode_jwt_from_header_value(
         return None
     encoded_jwt = authorization_header[len(scheme) + 1 :]
     return decode_jwt(encoded_jwt, psk_or_cert, options)
+
+
+def create_jwk_dict(cert: Certificate) -> Json:
+    pub_key = cert.public_key()
+    if not isinstance(pub_key, RSAPublicKey):
+        raise ValueError(f"Unsupported public key type: {type(pub_key)}")
+    pem_data = cert.public_bytes(serialization.Encoding.PEM)
+    pem_contents = pem_data.split(b"\n")[1:-2]  # Remove header and footer lines
+    x5t_256 = x5t_s256(cert)
+    pub_num = pub_key.public_numbers()
+    return {
+        "kty": "RSA",
+        "alg": cert.signature_algorithm_oid._name,
+        "n": base64url_encode(pub_num.n.to_bytes((pub_num.n.bit_length() + 7) // 8, "big")).decode("utf-8"),
+        "e": base64url_encode(pub_num.e.to_bytes((pub_num.e.bit_length() + 7) // 8, "big")).decode("utf-8"),
+        "use": "sig",
+        "kid": x5t_256,
+        "x5t": x5t(cert),
+        "x5t#S256": x5t_256,
+        "x5c": [b"".join(pem_contents).decode("utf-8")],
+    }
 
 
 def add_args(arg_parser: ArgumentParser) -> None:

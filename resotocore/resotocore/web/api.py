@@ -9,7 +9,7 @@ import uuid
 import zipfile
 from asyncio import Future, Queue
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from functools import partial
 from io import BytesIO
 from pathlib import Path
@@ -28,7 +28,10 @@ from typing import (
     Awaitable,
     Iterable,
 )
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
+import aiohttp_jinja2
+import jinja2
 import prometheus_client
 import yaml
 from aiohttp import (
@@ -43,7 +46,7 @@ from aiohttp import (
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
 from aiohttp.web import Request, StreamResponse, WebSocketResponse
-from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable
+from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotAcceptable, HTTPSeeOther
 from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
@@ -70,7 +73,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
-from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName
+from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -84,7 +87,8 @@ from resotocore.task.model import Subscription
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop
+from resotocore.user import UserManagement
+from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -103,9 +107,10 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotolib.asynchronous.web.auth import auth_handler, set_valid_jwt, raw_jwt_from_auth_message
+from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
+from resotolib.x509 import cert_to_bytes
 
 log = logging.getLogger(__name__)
 
@@ -118,9 +123,21 @@ def section_of(request: Request) -> Optional[str]:
 
 
 # No Authorization required for following paths
-AlwaysAllowed = {"/", "/metrics", "/api-doc.*", "/system/.*", "/ui.*", "/ca/cert", "/notebook.*"}
+AlwaysAllowed = {
+    "/",
+    "/.well-known/.*",
+    "/api-doc.*",
+    "/authenticate",
+    "/ca/cert",
+    "/create-first-user",
+    "/login",
+    "/metrics",
+    "/static/.*",
+    "/system/.*",
+    "/ui.*",
+}
 # Authorization is not required, but implemented as part of the request handler
-DeferredCheck = {"/events"}
+DeferredCheck = {"/events", "/work/queue"}
 
 
 class Api:
@@ -139,6 +156,7 @@ class Api:
         cli: CLI,
         query_parser: QueryParser,
         config: CoreConfig,
+        user_management: UserManagement,
         get_override: Callable[[ConfigId], Optional[Json]],
     ):
         self.db = db
@@ -154,14 +172,16 @@ class Api:
         self.cli = cli
         self.query_parser = query_parser
         self.config = config
+        self.user_management = user_management
         self.get_override = get_override
+        self.auth_handler = AuthHandler(db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck)
 
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
-                auth_handler(config.args.psk, AlwaysAllowed | DeferredCheck),
+                self.auth_handler.middleware(),
                 cors_handler,
                 error_handler(config, event_sender),
                 default_middleware(self),
@@ -174,6 +194,9 @@ class Api:
         path_part = config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
+        aiohttp_jinja2.setup(
+            self.app, loader=jinja2.FileSystemLoader(os.path.abspath(os.path.dirname(__file__) + "/../templates"))
+        )
 
     @property
     def session(self) -> ClientSession:
@@ -283,6 +306,13 @@ class Api:
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
+                # auth operations
+                web.get(prefix + "/.well-known/jwks.json", self.jwks),
+                web.get(prefix + "/login", self.login_page),
+                web.post(prefix + "/create-first-user", self.create_first_user),
+                web.post(prefix + "/authenticate", self.authenticate),
+                web.get(prefix + "/authorization/user", self.get_authorized_user),
+                web.get(prefix + "/authorization/renew", self.renew_authorization),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
                 web.static(f"{prefix}/ui/", ui_path),
@@ -295,9 +325,10 @@ class Api:
         )
 
     async def start(self) -> None:
-        pass
+        await self.auth_handler.start()
 
     async def stop(self) -> None:
+        await self.auth_handler.stop()
         if not self.in_shutdown:
             self.in_shutdown = True
             for ws_id in list(self.websocket_handler):
@@ -306,9 +337,16 @@ class Api:
                 await self.session.close()
 
     @staticmethod
+    async def login_with_redirect(request: Request) -> StreamResponse:
+        params = request.query.copy()
+        params["redirect"] = request.raw_path
+        return web.HTTPSeeOther("/login?" + urlencode(params))
+
+    @staticmethod
     def forward(to: str) -> Callable[[Request], Awaitable[StreamResponse]]:
-        async def forward_to(_: Request) -> StreamResponse:
-            return web.HTTPFound(to)
+        async def forward_to(request: Request) -> StreamResponse:
+            goto = to + "?" + urlencode(request.query) if request.query else to
+            return web.HTTPFound(goto)
 
         return forward_to
 
@@ -319,6 +357,83 @@ class Api:
     @staticmethod
     async def ready(_: Request) -> StreamResponse:
         return web.HTTPOk(text="ok")
+
+    async def jwks(self, _: Request) -> StreamResponse:
+        return web.json_response(self.auth_handler.signing_key_jwk)
+
+    async def login_page(self, request: Request) -> StreamResponse:
+        template = "login.html" if await self.user_management.has_users() else "create_first_user.html"
+        return aiohttp_jinja2.render_template(template, request, context=request.query)
+
+    async def create_first_user(self, request: Request) -> StreamResponse:
+        post_data = await request.post()
+        errors = []
+        try:
+            email = Email(str(post_data.get("email", "")).strip())
+            password = Password(str(post_data.get("password", "")))
+            password_repeat = str(post_data.get("password_repeat", ""))
+            company = str(post_data.get("company", "")).strip()
+            fullname = str(post_data.get("fullname", "")).strip()
+            if not email or email.startswith("@") or email.endswith("@") or email.count("@") != 1:
+                errors.append("Invalid email address")
+            if not password:
+                errors.append("Password is required")
+            if not company:
+                errors.append("Company name is required")
+            if not fullname:
+                errors.append("Full name is required")
+            if password != password_repeat:
+                errors.append("Passwords do not match")
+            if not errors:
+                await self.user_management.create_first_user(company, fullname, email, password)
+                return await self.authenticate(request)
+        except Exception as e:
+            errors.append(str(e))
+        error_string = ". ".join(errors)
+        return aiohttp_jinja2.render_template(
+            "create_first_user.html", request, context={**post_data, "error": error_string}
+        )
+
+    async def authenticate(self, request: Request) -> StreamResponse:
+        post_data = await request.post()
+        email = Email(str(post_data.get("email", "")))
+        password = Password(str(post_data.get("password", "")))
+        redirect = str(post_data.get("redirect", ""))
+        if email and password and (user := await self.user_management.login(email, password)):
+            params: Dict[str, List[str]] = {}
+            if self.config.args.psk:
+                code = await self.auth_handler.add_authorized_user(AuthorizedUser(email, user.roles, utc()))
+                params["code"] = [code]
+            if redirect:
+                if params:
+                    parsed = urlparse(redirect)
+                    query_params = parse_qs(parsed.query)
+                    query_params.update(params)
+                    parsed = parsed._replace(query=urlencode(query_params, doseq=True))
+                    redirect = urlunparse(parsed)
+                response: StreamResponse = HTTPSeeOther(redirect)
+            else:
+                response = HTTPOk(text=urlencode(params, doseq=True))
+            return response
+        return aiohttp_jinja2.render_template(
+            "login.html", request, context=dict(**post_data, error="Invalid username or password")
+        )
+
+    @staticmethod
+    async def get_authorized_user(request: Request) -> StreamResponse:
+        if jwt := request.get("jwt"):
+            return web.json_response(jwt)
+        else:
+            return web.HTTPNoContent()
+
+    async def renew_authorization(self, request: Request) -> StreamResponse:
+        if jwt_raw := request.get("jwt"):
+            exp = datetime.fromtimestamp(int(jwt_raw["exp"]), tz=timezone.utc)
+            user = AuthorizedUser(jwt_raw["email"], set(jwt_raw["roles"].split(",")), exp)
+            renewed, data = self.auth_handler.user_jwt(user)
+            return web.json_response(data, headers={"Authorization": f"Bearer {renewed}"})
+        else:
+            return HTTPNoContent()  # no psk, no renewal
 
     async def list_configs(self, request: Request) -> StreamResponse:
         return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
@@ -439,7 +554,7 @@ class Api:
         csr_bytes = await request.content.read()
         cert, fingerprint = self.cert_handler.sign(csr_bytes)
         headers = {"SHA256-Fingerprint": fingerprint}
-        return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
+        return HTTPOk(headers=headers, body=cert_to_bytes(cert), content_type="application/x-pem-file")
 
     @staticmethod
     async def metrics(_: Request) -> StreamResponse:
@@ -539,9 +654,6 @@ class Api:
         inspections = await self.inspector.list_failing_resources(graph, check_id, accounts)
         return await self.stream_response_from_gen(request, inspections)
 
-    async def redirect_to_api_doc(self, request: Request) -> StreamResponse:
-        raise web.HTTPFound("api-doc")
-
     async def handle_events(self, request: Request) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         return await self.listen_to_events(request, SubscriberId(str(uuid.uuid1())), show)
@@ -563,7 +675,7 @@ class Api:
 
         async def authorize_request(msg: str) -> None:
             nonlocal handler
-            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+            if (r := raw_jwt_from_auth_message(msg)) and await self.auth_handler.validate_jwt(r, request) is not None:
                 handler = handle_message
             else:
                 raise ValueError("No Authorization header provided and no valid auth message sent")
@@ -603,7 +715,7 @@ class Api:
 
         async def authorize_request(msg: str) -> None:
             nonlocal handler
-            if (r := raw_jwt_from_auth_message(msg)) and set_valid_jwt(request, r, self.config.args.psk) is not None:
+            if (r := raw_jwt_from_auth_message(msg)) and await self.auth_handler.validate_jwt(r, request) is not None:
                 handler = handle_connect
             else:
                 raise ValueError("No Authorization header provided and no valid auth message sent")

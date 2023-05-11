@@ -2,6 +2,8 @@ from attrs import define
 from datetime import datetime
 from enum import Enum
 
+from resotocore.types import Json
+
 
 @define
 class SystemData:
@@ -30,3 +32,10 @@ class EstimatedSearchCost:
     full_collection_scan: bool
     # The rating of this query
     rating: EstimatedQueryCostRating
+
+
+def drop_arango_props(json: Json) -> Json:
+    json.pop("_rev", None)
+    json.pop("_id", None)
+    json.pop("_key", None)
+    return json

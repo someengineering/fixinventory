@@ -13,8 +13,8 @@ from aiohttp import ClientTimeout
 from aiohttp.web import Request
 from aiostream import stream
 from aiostream.core import Stream
-from pytest import fixture
 from attrs import evolve
+from pytest import fixture
 
 from resotocore import version
 from resotocore.cli import is_node
@@ -26,6 +26,9 @@ from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
+from resotocore.ids import InfraAppName
+from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.runtime import Runtime
 from resotocore.model.model import Model
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
@@ -34,11 +37,9 @@ from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
+from resotocore.user import UsersConfigId
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
-from resotocore.ids import InfraAppName
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.infra_apps.runtime import Runtime
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1137,3 +1138,50 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     await execute("apps uninstall cleanup-untagged", str)
     result = await execute("apps list", str)
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_user(cli: CLI) -> None:
+    async def execute(cmd: str) -> List[JsonElement]:
+        all_results = await cli.execute_cli_command(cmd, stream.list)
+        return all_results[0]  # type: ignore
+
+    # remove all existing users
+    await cli.dependencies.config_handler.delete_config(UsersConfigId)
+
+    # create new user
+    result = await execute('user add john@test.de --fullname "John Doe" --password test --role test')
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+
+    # get user
+    result = await execute("user show john@test.de")
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+
+    # add role to user
+    result = await execute("user role add john@test.de test2")
+    roles = set(result[0]["roles"])  # type: ignore
+    assert roles == {"test", "test2"}
+
+    # remove role from user
+    result = await execute("user role delete john@test.de test2")
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+
+    # Change password
+    result = await execute("user password john@test.de bombproof")
+    assert result == ["Password for john@test.de updated"]
+
+    # create another user
+    result = await execute('user add jane@test.de --fullname "Jane Doe" --password test --role admin')
+    assert result == [{"email": "jane@test.de", "fullname": "Jane Doe", "roles": ["admin"]}]
+
+    # list users
+    result = await execute("user list")
+    assert result == ["john@test.de", "jane@test.de"]
+
+    # delete user
+    result = await execute("user delete john@test.de")
+    assert result == ["User john@test.de deleted"]
+
+    # list users
+    result = await execute("user list")
+    assert result == ["jane@test.de"]

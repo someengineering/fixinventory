@@ -34,6 +34,8 @@ tags:
     description: Endpoints to debug the system.
   - name: tsdb
     description: Endpoints to access the time series database.
+  - name: authorization
+    description: Endpoints to authorize access.
 
 paths:
 
@@ -2982,6 +2984,154 @@ paths:
                 type: string
                 example: "1.1 node1"
           description: "The response from the tsdb."
+
+  # endregion
+
+  # region authorization
+
+  /.well-known/jwks.json:
+    description: "This endpoint is used by the authorization server to get the public keys of the configured JWT issuer."
+    get:
+      summary: "Get the public keys of the configured JWT issuer."
+      tags:
+        - authorization
+      responses:
+        "200":
+          description: "The public keys of the configured JWT issuer."
+          content:
+            application/json:
+              example: |
+                {
+                  "keys": [
+                    {
+                      "alg": "sha256WithRSAEncryption",
+                      "e": "AQAB",
+                      "kid": "fDKvq05HG0...",
+                      "kty": "RSA",
+                      "n": "u7cp95GkUOj...",
+                      "use": "sig",
+                      "x5c": [ "MIIDoTCCAomgAw..." ],
+                      "x5t": "DMpDIyR...",
+                      "x5t#S256": "fDKvq05HG0Oz...."
+                    }
+                  ]
+                }
+
+
+
+
+  /login:
+    get:
+      summary: "This endpoint is used to login the user."
+      tags:
+        - authorization
+      description: "Authenticate the user. This endpoint needs to be accessed from a browser! It is possible that the user is redirected to another authentication server."
+      responses:
+        "200":
+          description: "The login page."
+  /create-first-user:
+    post:
+      summary: "This endpoint is used to create the first user."
+      tags:
+          - authorization
+      description: "Create the first user from the create first user login form."
+      requestBody:
+        content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+                properties:
+                  company:
+                    type: string
+                    description: The company name.
+                  fullname:
+                    type: string
+                    description: The full name of the user.
+                  email:
+                    type: string
+                    description: The email of the user.
+                  password:
+                    type: string
+                    description: The password of the user.
+                  password_repeat:
+                    type: string
+                    description: The repeated password of the user.
+                  redirect:
+                    type: string
+                    description: The redirect url after the user is created.
+      responses:
+        "303":
+          description: "The redirect to the specified url in the form."
+
+  /authenticate:
+    summary: "This endpoint is used to authenticate the user."
+    post:
+      summary: "This endpoint is used to authenticate the user."
+      description: "Authenticate the user. This endpoint needs to be accessed from a browser! It is possible that the user is redirected to another authentication server."
+      tags:
+        - authorization
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: The email of the user.
+                password:
+                  type: string
+                  description: The password of the user.
+                redirect:
+                  type: string
+                  description: The redirect url after the user is created.
+      responses:
+        "303":
+          description: "The redirect to the specified url in the form with a code parameter added."
+
+
+  /authorization/user:
+    get:
+      summary: "This endpoint is used to get the user information."
+      tags:
+        - authorization
+      description: "Get the user information."
+      responses:
+        "200":
+          description: "The user information."
+          content:
+            application/json:
+              example: |
+                {
+                  "email": "test@test.de",
+                  "exp": 1683660989,
+                  "roles": "admin"
+                }
+  /authorization/renew:
+    get:
+      summary: "This endpoint is used to renew a JWT that is about to expire."
+      tags:
+          - authorization
+      description: "Get the user information."
+      responses:
+        "200":
+          description: "The user information."
+          headers:
+            Authorization:
+              description: The authorization header with the renewed JWT.
+              schema:
+                type: string
+          content:
+            application/json:
+              example: |
+                {
+                  "email": "test@test.de",
+                  "exp": 1683665359,
+                  "roles": "admin"
+                }
+
+
+
 
   # endregion
 

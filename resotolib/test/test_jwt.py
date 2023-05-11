@@ -6,6 +6,7 @@ from resotolib.jwt import (
     encode_jwt,
     decode_jwt,
     encode_jwt_to_headers,
+    create_jwk_dict,
 )
 from jwt import (
     InvalidSignatureError,
@@ -75,3 +76,20 @@ def test_jwt_pki():
     jwt = encode_jwt(payload, cert_key, cert=cert_crt)
     assert decode_jwt(jwt, cert_crt).get("Hello") == "World"
     assert get_unverified_header(jwt).get("x5t#S256") == x5t_s256(cert_crt)
+
+
+def test_jwk() -> None:
+    ca_key, ca_cert = bootstrap_ca()
+    cert_key = gen_rsa_key()
+    cert_crt = sign_csr(gen_csr(cert_key), ca_key, ca_cert)
+    cert_cwk = create_jwk_dict(cert_crt)
+    # has 9 entries
+    assert len(cert_cwk) == 9
+    # creating the jwk from the same cert, creates the same key data
+    assert cert_cwk == create_jwk_dict(cert_crt)
+    # check on specific values
+    assert cert_cwk["alg"] == "sha256WithRSAEncryption"
+    assert cert_cwk["kty"] == "RSA"
+    assert cert_cwk["use"] == "sig"
+    assert cert_cwk["x5t#S256"] == x5t_s256(cert_crt)
+    assert cert_cwk["kid"] == cert_cwk["x5t#S256"]
