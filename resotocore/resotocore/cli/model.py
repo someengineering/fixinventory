@@ -34,6 +34,7 @@ from resotocore.report import Inspector
 from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
+from resotocore.user import UserManagement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -231,6 +232,10 @@ class CLIDependencies:
     @property
     def infra_apps_package_manager(self) -> PackageManager:
         return self.lookup["infra_apps_package_manager"]  # type:ignore
+
+    @property
+    def user_management(self) -> UserManagement:
+        return self.lookup["user_management"]  # type:ignore
 
     @property
     def graph_manager(self) -> GraphManager:

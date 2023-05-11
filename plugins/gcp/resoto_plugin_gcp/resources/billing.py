@@ -27,7 +27,7 @@ class GcpBillingAccount(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -63,7 +63,7 @@ class GcpProjectBillingInfo(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -73,11 +73,11 @@ class GcpProjectBillingInfo(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "billing_account_name": S("billingAccountName"),
         "billing_enabled": S("billingEnabled"),
-        "project_id": S("projectId"),
+        "project_billing_info_project_id": S("projectId"),
     }
     billing_account_name: Optional[str] = field(default=None)
     billing_enabled: Optional[bool] = field(default=None)
-    project_id: Optional[str] = field(default=None)
+    project_billing_info_project_id: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -257,21 +257,21 @@ class GcpSku(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "category": S("category", default={}) >> Bend(GcpCategory.mapping),
         "geo_taxonomy": S("geoTaxonomy", default={}) >> Bend(GcpGeoTaxonomy.mapping),
-        "pricing_info": S("pricingInfo", default=[]) >> ForallBend(GcpPricingInfo.mapping),
+        "sku_pricing_info": S("pricingInfo", default=[]) >> ForallBend(GcpPricingInfo.mapping),
         "service_provider_name": S("serviceProviderName"),
         "service_regions": S("serviceRegions", default=[]),
         "sku_id": S("skuId"),
     }
     category: Optional[GcpCategory] = field(default=None)
     geo_taxonomy: Optional[GcpGeoTaxonomy] = field(default=None)
-    pricing_info: List[GcpPricingInfo] = field(factory=list)
+    sku_pricing_info: List[GcpPricingInfo] = field(factory=list)
     service_provider_name: Optional[str] = field(default=None)
     service_regions: List[str] = field(factory=list)
     usage_unit_nanos: Optional[int] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if len(self.pricing_info) > 0:
-            if not (pricing_expression := self.pricing_info[0].pricing_expression):
+        if len(self.sku_pricing_info) > 0:
+            if not (pricing_expression := self.sku_pricing_info[0].pricing_expression):
                 return
 
             tiered_rates = pricing_expression.tiered_rates

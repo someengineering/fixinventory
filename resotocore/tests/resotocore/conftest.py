@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from asyncio import Queue
 from collections import defaultdict
+from contextlib import suppress
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -41,18 +42,19 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     RunConfig,
 )
-from resotocore.db import runningtaskdb
+from resotocore.db import runningtaskdb, SystemData
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
-from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
+from resotocore.db.runningtaskdb import RunningTaskDb
+from resotocore.db.system_data_db import SystemDataDb
 from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.dependencies import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
-from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
+from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.message_bus import (
     MessageBus,
     Message,
@@ -65,6 +67,7 @@ from resotocore.model.graph_access import EdgeTypes, Section
 from resotocore.model.model import Model, Kind, ComplexKind, Property, SyntheticProperty, StringKind
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.resolve_in_graph import NodePath
+from resotocore.model.typed_model import to_js
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
@@ -88,7 +91,9 @@ from resotocore.task.task_description import (
 )
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
-from resotocore.util import value_in_path
+from resotocore.user import UserManagement
+from resotocore.user.user_management import UserManagementService
+from resotocore.util import value_in_path, uuid_str, utc
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTask, WorkerTaskName
 from resotolib.x509 import bootstrap_ca
@@ -485,6 +490,7 @@ async def cli_deps(
     expander: TemplateExpander,
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
+    user_management: UserManagement,
 ) -> AsyncIterator[CLIDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
@@ -500,6 +506,7 @@ async def cli_deps(
         forked_tasks=Queue(),
         config_handler=config_handler,
         cert_handler=cert_handler,
+        user_management=user_management,
     )
     await db_access.start()
     yield deps
@@ -747,3 +754,24 @@ async def merge_handler(
 def console_renderer() -> ConsoleRenderer:
     tty_columns, tty_rows = shutil.get_terminal_size(fallback=(80, 25))
     return ConsoleRenderer(tty_columns, tty_rows, ConsoleColorSystem.from_name(Console().color_system or "standard"))
+
+
+@fixture
+async def user_management(
+    db_access: DbAccess, config_handler: ConfigHandler, event_sender: AnalyticsEventSender
+) -> UserManagementService:
+    return UserManagementService(db_access, config_handler, event_sender)
+
+
+@fixture
+async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataDb]:
+    with suppress(Exception):
+        system = SystemData(uuid_str(), utc(), 1)
+        test_db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=False)
+    with suppress(Exception):
+        test_db.insert_document(
+            "system_data", {"_key": "ca", "key": "private_key", "certificate": "some cert"}, overwrite=False
+        )
+    async_db = AsyncArangoDB(test_db)
+    yield SystemDataDb(async_db)
+    test_db.collection("system_data").delete({"_key": "ca"})

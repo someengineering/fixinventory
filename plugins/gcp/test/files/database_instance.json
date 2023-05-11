@@ -1,0 +1,87 @@
+{
+  "items": [
+    {
+      "kind": "sql#instance",
+      "state": "RUNNABLE",
+      "databaseVersion": "MYSQL_8_0_26",
+      "settings": {
+        "authorizedGaeApplications": [],
+        "tier": "db-custom-2-8192",
+        "kind": "sql#settings",
+        "availabilityType": "ZONAL",
+        "pricingPlan": "PER_USE",
+        "replicationType": "SYNCHRONOUS",
+        "activationPolicy": "ALWAYS",
+        "ipConfiguration": {
+          "authorizedNetworks": [],
+          "ipv4Enabled": true,
+          "requireSsl": false
+        },
+        "locationPreference": {
+          "zone": "us-central1-b",
+          "kind": "sql#locationPreference"
+        },
+        "databaseFlags": [
+          {
+            "name": "flush_time",
+            "value": "3600"
+          }
+        ],
+        "dataDiskType": "PD_SSD",
+        "maintenanceWindow": {
+          "kind": "sql#maintenanceWindow",
+          "hour": 0,
+          "day": 0
+        },
+        "backupConfiguration": {
+          "startTime": "13:00",
+          "kind": "sql#backupConfiguration",
+          "location": "us",
+          "backupRetentionSettings": {
+            "retentionUnit": "COUNT",
+            "retainedBackups": 7
+          },
+          "enabled": true,
+          "binaryLogEnabled": true,
+          "transactionLogRetentionDays": 7
+        },
+        "insightsConfig": {},
+        "connectorEnforcement": "NOT_REQUIRED",
+        "settingsVersion": "2",
+        "storageAutoResizeLimit": "0",
+        "storageAutoResize": true,
+        "dataDiskSizeGb": "100",
+        "deletionProtectionEnabled": true
+      },
+      "etag": "123abc",
+      "ipAddresses": [
+        {
+          "type": "PRIMARY",
+          "ipAddress": "34.28.70.36"
+        }
+      ],
+      "serverCaCert": {
+        "kind": "sql#sslCert",
+        "certSerialNumber": "0",
+        "cert": "some string",
+        "commonName": "some common name",
+        "sha1Fingerprint": "1234",
+        "instance": "testdb",
+        "createTime": "2023-04-25T11:17:42.766Z",
+        "expirationTime": "2033-04-22T11:18:42.766Z"
+      },
+      "instanceType": "CLOUD_SQL_INSTANCE",
+      "project": "inbound-axon-320811",
+      "serviceAccountEmailAddress": "foo",
+      "backendType": "SECOND_GEN",
+      "selfLink": "https://content-sqladmin.googleapis.com/v1/projects/inbound-axon-320811/instances/testdb",
+      "connectionName": "inbound-axon-320811:us-central1:testdb",
+      "name": "testdb",
+      "region": "us-central1",
+      "gceZone": "us-central1-b",
+      "databaseInstalledVersion": "MYSQL_8_0_26",
+      "maintenanceVersion": "MYSQL_8_0_26.R20230314.03_02",
+      "createTime": "2023-04-25T11:16:57.136Z"
+    }
+  ]
+}

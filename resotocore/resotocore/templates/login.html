@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}
+Login to Resoto
+{% endblock %}
+
+{% block content %}
+
+<main class="form-signin w-100 m-auto">
+    <div class="d-flex flex-column min-vh-100 justify-content-center align-items-center text-center">
+        <img src="/static/resoto_logo_and_text.svg" width="400" class="mb-3" alt="Resoto"/>
+        <form action="/authenticate" method="post" enctype="multipart/form-data">
+            <h1 class="h3 mb-3 fw-normal">Sign In</h1>
+            {% if error %}
+            <div class="alert alert-danger fade show">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="form-floating">
+                <input id="email" name="email" type="email" class="form-control" placeholder="name@example.com" value="{{ email }}">
+                <label for="email">Email Address</label>
+            </div>
+            <div class="form-floating">
+                <input id="password" name="password" type="password" class="form-control"  placeholder="Password" value="{{ password }}">
+                <label for="password">Password</label>
+            </div>
+            <input name="redirect" type="hidden" value="{{ redirect }}">
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+        </form>
+    </div>
+</main>
+{% endblock %}
+

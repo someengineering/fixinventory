@@ -1,4 +1,5 @@
 from asyncio import Future
+from datetime import timedelta
 from functools import partial
 from typing import Any, Dict, Tuple, Callable, Awaitable
 from uuid import uuid1
@@ -24,7 +25,7 @@ class Api:
         self.handler = handler
         self.app = web.Application(
             # note on order: the middleware is passed in the order provided.
-            middlewares=[auth_handler(config.args.psk, AlwaysAllowed), error_handler()]
+            middlewares=[auth_handler(config.args.psk, timedelta(minutes=5), AlwaysAllowed), error_handler()]
         )
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}

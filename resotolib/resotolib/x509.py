@@ -130,7 +130,9 @@ def sign_csr(
     days_valid: int = 365,
     server_auth: bool = True,
     client_auth: bool = True,
+    key_usages: Optional[Dict[str, bool]] = None,
 ) -> Certificate:
+    usage = key_usages or {}
     crt_build = (
         x509.CertificateBuilder()
         .subject_name(csr.subject)
@@ -141,15 +143,15 @@ def sign_csr(
         .not_valid_after(datetime.now(tz=timezone.utc) + timedelta(days=days_valid))
         .add_extension(
             x509.KeyUsage(
-                digital_signature=True,  # Server/client certs are allowed for
-                key_encipherment=True,  # signatures and encrypting traffic.
-                key_cert_sign=False,
-                key_agreement=False,
-                content_commitment=False,
-                data_encipherment=False,
-                crl_sign=False,
-                encipher_only=False,
-                decipher_only=False,
+                digital_signature=usage.get("digital_signature", True),  # Server/client certs are allowed for
+                key_encipherment=usage.get("key_encipherment", True),  # signatures and encrypting traffic.
+                key_cert_sign=usage.get("key_cert_sign", False),
+                key_agreement=usage.get("key_agreement", False),
+                content_commitment=usage.get("content_commitment", False),
+                data_encipherment=usage.get("data_encipherment", False),
+                crl_sign=usage.get("crl_sign", False),
+                encipher_only=usage.get("encipher_only", False),
+                decipher_only=usage.get("decipher_only", False),
             ),
             critical=True,
         )

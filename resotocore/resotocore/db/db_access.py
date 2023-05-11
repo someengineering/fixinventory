@@ -26,6 +26,7 @@ from resotocore.db.modeldb import ModelDb, model_db
 from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
+from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
 from resotocore.db.packagedb import app_package_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
@@ -64,6 +65,7 @@ class DbAccess(ABC):
         self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
         self.graph_model_dbs: Dict[GraphName, ModelDb] = {}
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
+        self.system_data_db = SystemDataDb(self.db)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.pending_deferred_edge_db = pending_deferred_edge_db(self.db, deferred_edge_name)
         self.job_db = job_db(self.db, job_name)

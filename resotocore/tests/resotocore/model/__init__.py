@@ -15,7 +15,7 @@ class ModelHandlerStatic(ModelHandler):
 
     async def uml_image(
         self,
-        graph: GraphName,
+        graph_name: GraphName,
         output: str = "svg",
         *,
         show_packages: Optional[List[str]] = None,

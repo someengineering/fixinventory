@@ -1,19 +1,23 @@
 import multiprocessing
 from resotolib.args import Namespace
 from concurrent import futures
-from concurrent.futures import Executor
-from typing import Optional, Type, Dict, Any
+from typing import Optional, Dict, Any
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from .collector import GCPProjectCollector
+
+# from .collector import GCPProjectCollector
+from .project_collector import GcpProjectCollector
 from .config import GcpConfig
-from .gcp_resources import GCPProject
+
+# from .gcp_resources import GCPProject
+from .resources.base import GcpProject
 from .utils import Credentials
 
 
@@ -40,6 +44,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: GCP collecting resources")
         assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
+        cloud = Cloud(id=self.cloud, name="Gcp")
+
         credentials = Credentials.all()
         if len(Config.gcp.project) > 0:
             for project in list(credentials.keys()):
@@ -52,27 +58,27 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         max_workers = (
             len(credentials) if len(credentials) < Config.gcp.project_pool_size else Config.gcp.project_pool_size
         )
+        collect_args = {}
         pool_args = {"max_workers": max_workers}
+        pool_executor = futures.ThreadPoolExecutor
         if Config.gcp.fork_process:
-            pool_args["mp_context"] = multiprocessing.get_context("spawn")
-            pool_args["initializer"] = resotolib.proc.initializer
-            pool_executor: Type[Executor] = futures.ProcessPoolExecutor
             collect_args = {
                 "args": ArgumentParser.args,
                 "running_config": Config.running_config,
                 "credentials": credentials if all(v is None for v in credentials.values()) else None,
             }
+            collect_method = collect_in_process
         else:
-            pool_executor = futures.ThreadPoolExecutor
-            collect_args = {}
+            collect_method = self.collect_project
 
         with pool_executor(**pool_args) as executor:
             wait_for = [
                 executor.submit(
-                    self.collect_project,
+                    collect_method,
                     project_id,
                     self.core_feedback.with_context("gcp"),
-                    **collect_args,  # type: ignore
+                    cloud,
+                    **collect_args,
                 )
                 for project_id in credentials.keys()
             ]
@@ -87,6 +93,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def collect_project(
         project_id: str,
         core_feedback: CoreFeedback,
+        cloud: Cloud,
         args: Optional[Namespace] = None,
         running_config: Optional[RunningConfig] = None,
         credentials: Optional[Dict[str, Any]] = None,
@@ -100,8 +107,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         descriptors we are passing the already parsed `args` Namespace() to this
         method.
         """
-        project = GCPProject(id=project_id, tags={})
-        collector_name = f"gcp_{project.id}"
+        project = GcpProject(id=project_id, name=project_id)
+        collector_name = f"gcp_{project_id}"
         resotolib.proc.set_thread_name(collector_name)
 
         if args is not None:
@@ -118,7 +125,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         try:
             core_feedback.progress_done(project_id, 0, 1)
-            gpc = GCPProjectCollector(project)
+            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback)
             gpc.collect()
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
@@ -131,3 +138,19 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
     def add_config(config: Config) -> None:
         """Called by resoto upon startup to populate the Config store"""
         config.add_config(GcpConfig)
+
+
+def collect_project_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
+    resotolib.proc.initializer()
+    queue.put(GCPCollectorPlugin.collect_project(*args, **kwargs))
+
+
+def collect_in_process(*args, **kwargs) -> Optional[Graph]:  # type: ignore
+    ctx = multiprocessing.get_context("spawn")
+    queue = ctx.Queue()
+    kwargs["queue"] = queue
+    process = ctx.Process(target=collect_project_proxy, args=args, kwargs=kwargs)
+    process.start()
+    graph = queue.get()
+    process.join()
+    return graph  # type: ignore

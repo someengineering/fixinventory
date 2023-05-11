@@ -1,3 +1,5 @@
+from __future__ import annotations
+from copy import deepcopy
 from typing import Optional, List, Dict, Any, Set
 
 from attr import define
@@ -27,6 +29,43 @@ class GcpApiSpec:
     request_parameter_in: Set[str]
     response_path: str
     response_regional_sub_path: Optional[str] = None
+    set_label_identifier: str = "resource"
+    get_identifier: Optional[str] = None
+    delete_identifier: Optional[str] = None
+
+    def for_delete(self) -> GcpApiSpec:
+        api_spec = deepcopy(self)
+        api_spec.action = "delete"
+        api_spec.request_parameter[self._delete_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
+    def for_get(self) -> GcpApiSpec:
+        api_spec = deepcopy(self)
+        api_spec.action = "get"
+        api_spec.request_parameter[self._get_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
+    def for_set_labels(self) -> GcpApiSpec:
+        api_spec = deepcopy(self)
+        api_spec.action = "setLabels"
+        api_spec.request_parameter[self.set_label_identifier] = "{resource}"
+        if self.is_zone_specific:
+            api_spec.request_parameter["zone"] = "{zone}"
+        return api_spec
+
+    @property
+    def _get_identifier(self) -> str:
+        return (
+            self.get_identifier or self.accessors[-1][:-1]
+        )  # Poor persons `singularize(), i.e. ["vpnTunnels"] -> "vpnTunnel"`
+
+    @property
+    def _delete_identifier(self) -> str:
+        return self.delete_identifier or self._get_identifier
 
     @property
     def next_action(self) -> str:
@@ -56,7 +95,16 @@ class GcpClient:
         self.region = region
         self.core_feedback = core_feedback
 
+    def delete(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
+        return self.call_single(api_spec, None, **kwargs)
+
     def get(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
+        return self.call_single(api_spec, None, **kwargs)
+
+    def set_labels(self, api_spec: GcpApiSpec, body: Dict[str, Any], **kwargs: Any) -> Json:
+        return self.call_single(api_spec, body, **kwargs)
+
+    def call_single(self, api_spec: GcpApiSpec, body: Optional[Any] = None, **kwargs: Any) -> Json:
         client = _discovery_function(
             api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
         )
@@ -65,6 +113,8 @@ class GcpClient:
             executor = getattr(executor, accessor)()
         params_map = {**{"project": self.project_id, "region": self.region}, **kwargs}
         params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
+        if body:
+            params.update({"body": body})
         request = getattr(executor, api_spec.action)(**params)
         result: Json = request.execute()
         return result

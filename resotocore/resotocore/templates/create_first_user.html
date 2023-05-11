@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}
+Create User
+{% endblock %}
+
+{% block content %}
+
+<main class="form-group w-100 m-auto">
+    <div class="d-flex flex-column min-vh-100 justify-content-center align-items-center">
+        <img src="/static/resoto_logo_and_text.svg" width="400" class="mb-3" alt="Resoto"/>
+        <form action="/create-first-user" method="post" enctype="multipart/form-data">
+            <h1 class="h3 mb-3 fw-normal">Create Account</h1>
+            {% if error %}
+            <div class="alert alert-danger fade show">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="form-group row mb-4">
+                <label for="company" class="col-sm-2 col-form-label">Company</label>
+                <div class="col-sm-10">
+                    <input id="company" name="company" type="text" class="form-control" placeholder="Some Corporation Inc." value="{{ company }}" required>
+                </div>
+                <small class="form-text text-muted">Company Name this instance is registered. Visible in the UI for all users.</small>
+            </div>
+            <div class="form-group row mb-4">
+                <label for="fullname" class="col-sm-2 col-form-label">Full Name</label>
+                <div class="col-sm-10">
+                    <input id="fullname" name="fullname" type="text" class="form-control" placeholder="Jane Doe" value="{{ fullname }}" required>
+                </div>
+                <small class="form-text text-muted">Name associated with this user. Will be shown in the UI.</small>
+            </div>
+            <div class="form-group row mb-4">
+                <label for="email" class="col-sm-2 col-form-label">Work Email</label>
+                <div class="col-sm-10">
+                    <input id="email" name="email" type="email" class="form-control" placeholder="name@somecorp.com" value="{{ email }}" required>
+                </div>
+                <small class="form-text text-muted">This will be your login name.</small>
+            </div>
+            <div class="form-group row mb-4">
+                <label for="password" class="col-sm-2 col-form-label">Password</label>
+                <div class="col-sm-10">
+                    <input id="password" name="password" type="password" class="form-control" value="{{ password }}" placeholder="Your password" required>
+                </div>
+                <label for="password_repeat" class="col-sm-2 col-form-label">Repeat</label>
+                <div class="col-sm-10">
+                    <input id="password_repeat" name="password_repeat" type="password" class="form-control" value="{{ password_repeat }}" placeholder="Your password again" required>
+                </div>
+                <small class="form-text text-muted">Your password to access your Resoto installation.</small>
+            </div>
+            <div class="form-group row mb-4">
+                <small class="form-text text-center">By submitting this form you accept <a href="https://resoto.com/terms">Terms and Conditions</a>.</small>
+            </div>
+            <input name="redirect" type="hidden" value="{{ redirect }}">
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Create User</button>
+        </form>
+    </div>
+</main>
+{% endblock %}
+

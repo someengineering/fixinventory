@@ -47,6 +47,11 @@ from aiostream.core import Stream
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -86,11 +91,11 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
-from resotocore.infra_apps.package_manager import Failure
-from resotocore.infra_apps.manifest import AppManifest
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName
+from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
+from resotocore.infra_apps.manifest import AppManifest
+from resotocore.infra_apps.package_manager import Failure
 from resotocore.model.graph_access import Section, EdgeTypes
 from resotocore.model.model import (
     Model,
@@ -121,6 +126,7 @@ from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
 from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
+from resotocore.user import ResotoUser, ValidRoles
 from resotocore.util import (
     uuid_str,
     utc,
@@ -155,10 +161,6 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
 
 log = logging.getLogger(__name__)
 
@@ -3547,7 +3549,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
     @staticmethod
     async def show_system_info() -> AsyncIterator[Json]:
         info = to_js(system_info())
-        yield {**{"name": "resotocore"}, **info}
+        yield {"name": "resotocore", **info}
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parts = re.split(r"\s+", arg if arg else "")
@@ -5092,6 +5094,196 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class UserCommand(CLICommand):
+    """
+    ```shell
+    user add <email> --fullname <name> --password <secret> --role <role> --role <role>
+    user delete <email>
+    user role add <email> <role>
+    user role delete <email> <role>
+    user password <email> <password>
+    user list
+    user show <email>
+    ```
+
+    Manage the database of users.
+
+    Note: the user database is stored as configuration item in the configuration store.
+    The password of the user is stored as hash using pbkdf2_hmac with sha512 and 210000 iterations.
+    It is stored in /etc/shadow format.
+    It is possible to maintain the user database externally by using config overrides.
+
+    Every user uses the email address as unique identifier.
+    Email + password is used for authentication.
+    The allowed actions of a user are defined by the roles assigned to the user.
+
+    ## Parameters
+    - `<email>`: The email address of the user.
+    - `--fullname` - Full name of the user
+    - `--password` - Password of the user
+    - `--role` - Role of the user. Can be repeated multiple times.
+
+    ## Examples
+    ```shell
+    # Add a user with a given name and read-only role. The password will be stored as hash.
+    > users add matthias@some.engineering --fullname "Matthias Veit" --role read-only --password changeme
+    email: matthias@some.engineering
+    fullname: Matthias Veit
+    roles:
+    - read-only
+
+    # List all users of the system.
+    > user list
+    admin@some.engineering
+    matthias@some.engineering
+    test@test.de
+
+    # Show a specific user.
+    > users show matthias@some.engineering
+    email: matthias@some.engineering
+    fullname: Matthias Veit
+    roles:
+    - read-only
+
+    # Add a role to a user.
+    > user role add matthias@some.engineering admin
+    email: matthias@some.engineering
+    fullname: Matthias Veit
+    roles:
+    - read-only
+    - admin
+
+    # Remove a role from a user.
+    > user role delete matthias@some.engineering admin
+    email: matthias@some.engineering
+    fullname: Matthias Veit
+    roles:
+    - read-only
+
+    # Change the password of a user.
+    > user password matthias@some.engineering bombproof
+    Password for matthias@some.engineering updated
+
+    # Delete a user.
+    > user delete matthias@some.engineering
+    User matthias@some.engineering deleted
+    """
+
+    @property
+    def name(self) -> str:
+        return "user"
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "add": [
+                ArgInfo(None, True, help_text="<email>"),
+                ArgInfo("--fullname", True, help_text="<name>"),
+                ArgInfo("--password", True, help_text="<secret>"),
+                ArgInfo(
+                    "--role",
+                    True,
+                    help_text="<role>",
+                    possible_values=list(ValidRoles),
+                    can_occur_multiple_times=True,
+                ),
+            ],
+            "delete": [
+                ArgInfo(None, True, help_text="<email>"),
+            ],
+            "role": {
+                "add": [
+                    ArgInfo(None, True, help_text="<email>"),
+                    ArgInfo(None, True, help_text="<role>"),
+                ],
+                "delete": [
+                    ArgInfo(None, True, help_text="<email>"),
+                    ArgInfo(None, True, help_text="<role>"),
+                ],
+            },
+            "password": [ArgInfo(None, True, help_text="<email>"), ArgInfo(None, True, help_text="<password>")],
+            "list": [ArgInfo(None, False)],
+            "show": [ArgInfo(None, True, help_text="<email>")],
+        }
+
+    def info(self) -> str:
+        return "Manage users"
+
+    @staticmethod
+    def user_to_json(email: Email, user: ResotoUser) -> JsonElement:
+        return {
+            "email": email,
+            "fullname": user.fullname,
+            "roles": list(user.roles),
+        }
+
+    async def add_user(
+        self, email: Email, fullname: str, password: Password, roles: List[str]
+    ) -> AsyncIterator[JsonElement]:
+        user = await self.dependencies.user_management.create_user(email, fullname, password, roles)
+        yield self.user_to_json(email, user)
+
+    async def delete_user(self, email: Email) -> AsyncIterator[JsonElement]:
+        await self.dependencies.user_management.delete_user(email)
+        yield f"User {email} deleted"
+
+    async def add_roles(self, email: Email, role: str) -> AsyncIterator[JsonElement]:
+        if user := await self.dependencies.user_management.user(email):
+            updated = user.roles.union({role})
+            user = await self.dependencies.user_management.update_user(email, roles=list(updated))
+            yield self.user_to_json(email, user)
+        else:
+            raise AttributeError(f"User {email} not found")
+
+    async def delete_role(self, email: Email, role: str) -> AsyncIterator[JsonElement]:
+        if user := await self.dependencies.user_management.user(email):
+            updated = user.roles.difference({role})
+            user = await self.dependencies.user_management.update_user(email, roles=list(updated))
+            yield self.user_to_json(email, user)
+        else:
+            raise AttributeError(f"User {email} not found")
+
+    async def change_password(self, email: Email, password: Password) -> AsyncIterator[JsonElement]:
+        await self.dependencies.user_management.update_user(email, password=password)
+        yield f"Password for {email} updated"
+
+    async def list_users(self) -> AsyncIterator[JsonElement]:
+        for email in await self.dependencies.user_management.users():
+            yield email
+
+    async def show_user(self, email: Email) -> AsyncIterator[JsonElement]:
+        if user := await self.dependencies.user_management.user(email):
+            yield self.user_to_json(email, user)
+        else:
+            raise AttributeError(f"User {email} not found")
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        args = args_parts_unquoted_parser.parse(arg.strip()) if arg else []
+        if len(args) >= 2 and args[0] == "add":
+            parser = NoExitArgumentParser()
+            parser.add_argument("email", type=str)
+            parser.add_argument("--fullname", type=str, required=True)
+            parser.add_argument("--password", type=str, required=True)
+            parser.add_argument("--role", type=str, action="append", required=True)
+            parsed = parser.parse_args(args[1:])
+            return CLISource.single(
+                partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role)
+            )
+        elif len(args) == 2 and args[0].startswith("del"):
+            return CLISource.single(partial(self.delete_user, Email(args[1])))
+        elif len(args) > 3 and args[0] == "role" and args[1] == "add":
+            return CLISource.single(partial(self.add_roles, Email(args[2]), args[3]))
+        elif len(args) > 3 and args[0] == "role" and args[1].startswith("del"):
+            return CLISource.single(partial(self.delete_role, Email(args[2]), args[3]))
+        elif len(args) >= 3 and args[0] in ("passwd", "password"):
+            return CLISource.single(partial(self.change_password, Email(args[1]), Password(args[2])))
+        elif len(args) == 1 and args[0] == "list":
+            return CLISource.no_count(self.list_users)
+        elif len(args) == 2 and args[0] == "show":
+            return CLISource.no_count(partial(self.show_user, args[1]))
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 class GraphCommand(CLICommand):
     """
     ```shell
@@ -5317,6 +5509,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TagCommand(d, "action"),
         TailCommand(d, "misc"),
         UniqCommand(d, "misc"),
+        UserCommand(d, "setup", allowed_in_source_position=True),
         WorkflowsCommand(d, "action", allowed_in_source_position=True),
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
@@ -5355,4 +5548,5 @@ def alias_names() -> Dict[str, str]:
         "workflow": "workflows",
         "app": "apps",
         "man": "help",
+        "users": "user",
     }

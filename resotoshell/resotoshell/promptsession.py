@@ -593,7 +593,7 @@ class ArgsCompleter(Completer):
                 )
 
             # if we come here: this is a valid completion
-            return False if already_defined or another_value_defined or option_group_defined else True
+            return not (already_defined or another_value_defined or option_group_defined)
 
         # either there is no option or an option has been started
         if adapted_stripped == "" or start_arg:

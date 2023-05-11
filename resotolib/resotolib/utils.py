@@ -6,6 +6,7 @@ import socket
 import string
 import time
 from argparse import ArgumentParser
+from contextlib import closing
 from copy import deepcopy
 from datetime import date, datetime, timezone, timedelta
 from functools import wraps, cached_property
@@ -612,3 +613,10 @@ def drop_deleted_attributes(to_be_cleaned: JsonElement, reference: JsonElement) 
 
     # should never happen if mypy is happy
     raise ValueError(f"Unexpected type {type(to_be_cleaned)}")
+
+
+def get_free_port() -> int:
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as tcp:
+        tcp.bind(("", 0))
+        tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return tcp.getsockname()[1]  # type: ignore

@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import os
-from attrs import evolve, frozen
+from attrs import evolve
 from pytest import fixture
 
 from resotocore import core_config
@@ -175,6 +175,7 @@ def config_json() -> Json:
     return {
         "resotocore": {
             "api": {
+                "access_token_expiration_seconds": 3600,
                 "web_hosts": ["1.2.3.4"],
                 "web_port": 1234,
                 "web_path": "/",

@@ -8,7 +8,7 @@ from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from resoto_plugin_gcp.resources.compute import GcpSslCertificate
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
@@ -38,7 +38,7 @@ class GcpSqlBackupRun(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -51,7 +51,7 @@ class GcpSqlBackupRun(GcpResource):
         "disk_encryption_status": S("diskEncryptionStatus", "kmsKeyVersionName"),
         "end_time": S("endTime"),
         "enqueued_time": S("enqueuedTime"),
-        "error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
+        "sql_operation_error": S("error", default={}) >> Bend(GcpSqlOperationError.mapping),
         "instance": S("instance"),
         "location": S("location"),
         "start_time": S("startTime"),
@@ -65,7 +65,7 @@ class GcpSqlBackupRun(GcpResource):
     disk_encryption_status: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
     enqueued_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpSqlOperationError] = field(default=None)
+    sql_operation_error: Optional[GcpSqlOperationError] = field(default=None)
     instance: Optional[str] = field(default=None)
     location: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
@@ -105,7 +105,7 @@ class GcpSqlDatabase(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -131,47 +131,6 @@ class GcpSqlDatabase(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance, name=self.instance)
-
-
-@define(eq=False, slots=False)
-class GcpSqlFlag(GcpResource):
-    kind: ClassVar[str] = "gcp_sql_flag"
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
-        version="v1",
-        accessors=["flags"],
-        action="list",
-        request_parameter={},
-        request_parameter_in=set(),
-        response_path="items",
-        response_regional_sub_path=None,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
-        "tags": S("labels", default={}),
-        "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
-        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "allowed_int_values": S("allowedIntValues", default=[]),
-        "allowed_string_values": S("allowedStringValues", default=[]),
-        "applies_to": S("appliesTo", default=[]),
-        "in_beta": S("inBeta"),
-        "max_value": S("maxValue"),
-        "min_value": S("minValue"),
-        "requires_restart": S("requiresRestart"),
-        "type": S("type"),
-    }
-    allowed_int_values: Optional[List[str]] = field(default=None)
-    allowed_string_values: Optional[List[str]] = field(default=None)
-    applies_to: Optional[List[str]] = field(default=None)
-    in_beta: Optional[bool] = field(default=None)
-    max_value: Optional[str] = field(default=None)
-    min_value: Optional[str] = field(default=None)
-    requires_restart: Optional[bool] = field(default=None)
-    type: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -548,7 +507,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("createTime"),
@@ -587,7 +546,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "server_ca_cert": S("serverCaCert", default={}) >> Bend(GcpSqlSslCert.mapping),
         "service_account_email_address": S("serviceAccountEmailAddress"),
         "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
-        "state": S("state"),
+        "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
@@ -620,7 +579,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
     service_account_email_address: Optional[str] = field(default=None)
     settings: Optional[GcpSqlSettings] = field(default=None)
-    state: Optional[str] = field(default=None)
+    sql_database_instance_state: Optional[str] = field(default=None)
     suspension_reason: Optional[List[str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -634,15 +593,6 @@ class GcpSqlDatabaseInstance(GcpResource):
             if spec := cls.api_spec:
                 items = graph_builder.client.list(spec, instance=self.name, project=self.project)
                 cls.collect(items, graph_builder)
-
-
-@define(eq=False, slots=False)
-class GcpSqlOperationErrors:
-    kind: ClassVar[str] = "gcp_sql_operation_errors"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "errors": S("errors", default=[]) >> ForallBend(GcpSqlOperationError.mapping)
-    }
-    errors: Optional[List[GcpSqlOperationError]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -776,7 +726,7 @@ class GcpSqlOperation(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
@@ -786,7 +736,7 @@ class GcpSqlOperation(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "backup_context": S("backupContext", "backupId"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpSqlOperationErrors.mapping),
+        "sql_operation_errors": S("error", "errors", default=[]) >> ForallBend(GcpSqlOperationError.mapping),
         "export_context": S("exportContext", default={}) >> Bend(GcpSqlExportContext.mapping),
         "import_context": S("importContext", default={}) >> Bend(GcpSqlImportContext.mapping),
         "insert_time": S("insertTime"),
@@ -800,7 +750,7 @@ class GcpSqlOperation(GcpResource):
     }
     backup_context: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpSqlOperationErrors] = field(default=None)
+    sql_operation_errors: List[GcpSqlOperationError] = field(factory=list)
     export_context: Optional[GcpSqlExportContext] = field(default=None)
     import_context: Optional[GcpSqlImportContext] = field(default=None)
     insert_time: Optional[datetime] = field(default=None)
@@ -868,9 +818,9 @@ class GcpSqlUser(GcpResource):
         response_regional_sub_path=None,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id").or_else(S("name")).or_else(S("selfLink")),
+        "id": S("name").or_else(K("(anonymous)@") + S("host", default="localhost")),
         "tags": S("labels", default={}),
-        "name": S("name"),
+        "name": S("name", default="(anonymous)"),
         "ctime": S("creationTimestamp"),
         "description": S("description"),
         "link": S("selfLink"),
@@ -878,7 +828,7 @@ class GcpSqlUser(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "dual_password_type": S("dualPasswordType"),
         "etag": S("etag"),
-        "host": S("host"),
+        "host": S("host", default="localhost"),
         "instance": S("instance"),
         "password": S("password"),
         "password_policy": S("passwordPolicy", default={}) >> Bend(GcpSqlUserPasswordValidationPolicy.mapping),
@@ -901,4 +851,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-resources = [GcpSqlFlag, GcpSqlDatabaseInstance]
+resources = [GcpSqlDatabaseInstance]
