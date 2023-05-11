@@ -123,7 +123,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         *dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),
         *dynamic_import("resoto_plugin_dockerhub.resources.DockerHubResource"),
         *dynamic_import("resoto_plugin_example_collector.ExampleResource"),
-        *dynamic_import("resoto_plugin_gcp.gcp_resources.GCPResource"),
+        *dynamic_import("resoto_plugin_gcp.resources.base.GcpResource"),
         *dynamic_import("resoto_plugin_github.resources.GithubResource"),
         *dynamic_import("resoto_plugin_k8s.resources.KubernetesResource"),
         *dynamic_import("resoto_plugin_onelogin.OneLoginResource"),

@@ -8,7 +8,7 @@ from pytest import fixture
 
 from resoto_plugin_gcp import gcp_client
 from resoto_plugin_gcp.config import GcpConfig
-from resoto_plugin_gcp.resources.base import ExecutorQueue, GraphBuilder, GcpProject
+from resoto_plugin_gcp.resources.base import ExecutorQueue, GcpRegion, GraphBuilder, GcpProject
 from resotolib.baseresources import Cloud
 from resotolib.config import Config
 from resotolib.core.actions import CoreFeedback
@@ -33,7 +33,12 @@ def random_builder() -> Iterator[GraphBuilder]:
     gcp_client._discovery_function = build_random_data_client
     queue = ExecutorQueue(DummyExecutor(), "dummy")
     feedback = CoreFeedback("test", "test", "test", Queue())
-    builder = GraphBuilder(Graph(), Cloud(id="gcp"), GcpProject(id="test"), AnonymousCredentials(), queue, feedback)
+    project = GcpProject(id="test")
+    project_global_region = GcpRegion.fallback_global_region(project)
+    builder = GraphBuilder(
+        Graph(), Cloud(id="gcp"), project, AnonymousCredentials(), queue, feedback, project_global_region
+    )
+    builder.add_node(project_global_region, {})
     # add predefined regions and zones
     for predefined in random_predefined:
         builder.add_node(predefined)

@@ -213,12 +213,14 @@ class Api:
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
         self.app.add_routes(
             [
-                # Model operations
+                # Model operations (backwards compatible)
                 web.get(prefix + "/model", self.get_model),
-                web.get(prefix + "/model/{graph_id}", self.get_model),
-                web.get(prefix + "/model/{graph_id}/uml", self.model_uml),
                 web.patch(prefix + "/model", self.update_model),
-                web.patch(prefix + "/model/{graph_id}", self.update_model),
+                web.get(prefix + "/model/uml", self.model_uml),
+                # Graph based model operations
+                web.get(prefix + "/graph/{graph_id}/model", self.get_model),
+                web.patch(prefix + "/graph/{graph_id}/model", self.update_model),
+                web.get(prefix + "/graph/{graph_id}/model/uml", self.model_uml),
                 # CRUD Graph operations
                 web.get(prefix + "/graph", self.list_graphs),
                 web.get(prefix + "/graph/{graph_id}", self.get_node),
@@ -774,7 +776,7 @@ class Api:
 
     async def model_uml(self, request: Request) -> StreamResponse:
         output = request.query.get("output", "svg")
-        graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
+        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         show = request.query["show"].split(",") if "show" in request.query else None
         hide = request.query["hide"].split(",") if "hide" in request.query else None
         with_inheritance = request.query.get("with_inheritance", "true") != "false"
@@ -787,7 +789,7 @@ class Api:
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         result = await self.model_handler.uml_image(
-            graph_name=graph_name,
+            graph_name=graph_id,
             output=output,
             show_packages=show,
             hide_packages=hide,
