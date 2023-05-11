@@ -73,7 +73,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
-from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email
+from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
@@ -368,7 +368,7 @@ class Api:
         errors = []
         try:
             email = Email(str(post_data.get("email", "")).strip())
-            password = str(post_data.get("password", ""))
+            password = Password(str(post_data.get("password", "")))
             password_repeat = str(post_data.get("password_repeat", ""))
             company = str(post_data.get("company", "")).strip()
             fullname = str(post_data.get("fullname", "")).strip()
@@ -395,7 +395,7 @@ class Api:
     async def authenticate(self, request: Request) -> StreamResponse:
         post_data = await request.post()
         email = Email(str(post_data.get("email", "")))
-        password = str(post_data.get("password", ""))
+        password = Password(str(post_data.get("password", "")))
         redirect = str(post_data.get("redirect", ""))
         if email and password and (user := await self.user_management.login(email, password)):
             params: Dict[str, List[str]] = {}

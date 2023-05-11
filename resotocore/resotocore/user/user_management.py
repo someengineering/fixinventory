@@ -6,7 +6,7 @@ from typing import Optional, Dict, List, Callable, TypeVar, Awaitable
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.db.db_access import DbAccess
-from resotocore.ids import Email
+from resotocore.ids import Email, Password
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 from resotocore.user import UserManagement, UsersConfigId, ResotoUser, UsersConfigRoot
@@ -26,7 +26,7 @@ class UserManagementService(UserManagement):
         self.event_sender = event_sender
 
     @staticmethod
-    def hash_password(password: str, salt: Optional[str] = None) -> str:
+    def hash_password(password: Password, salt: Optional[str] = None) -> str:
         if salt is None:
             salt = secrets.token_hex(16)
         pw_hash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt.encode("utf-8"), ITERATIONS)
@@ -34,7 +34,7 @@ class UserManagementService(UserManagement):
         return f"{DELIMITER}{ALGORITHM}{DELIMITER}{salt}{DELIMITER}{b64_hash}"
 
     @staticmethod
-    def verify_password(password: str, password_hash: str) -> bool:
+    def verify_password(password: Password, password_hash: str) -> bool:
         if (password_hash or "").count(DELIMITER) != 3:
             return False
         _, algorithm, salt, _ = password_hash.split(DELIMITER)
@@ -46,7 +46,7 @@ class UserManagementService(UserManagement):
         user_config = await self.config_handler.get_config(UsersConfigId)
         return bool(value_in_path(user_config.config, [UsersConfigRoot, "users"])) if user_config else False
 
-    async def create_first_user(self, company: str, fullname: str, email: Email, password: str) -> ResotoUser:
+    async def create_first_user(self, company: str, fullname: str, email: Email, password: Password) -> ResotoUser:
         assert not await self.has_users()  # only allowed if no users exist
         await self.db_access.system_data_db.update_info(company=company)
         hashed = self.hash_password(password)
@@ -59,7 +59,7 @@ class UserManagementService(UserManagement):
         )
         return user
 
-    async def login(self, email: Email, password: str) -> Optional[ResotoUser]:
+    async def login(self, email: Email, password: Password) -> Optional[ResotoUser]:
         user_config = await self.config_handler.get_config(UsersConfigId)
         if user_config:
             users: Dict[Email, Json] = value_in_path_get(user_config.config, [UsersConfigRoot, "users"], {})
@@ -67,7 +67,7 @@ class UserManagementService(UserManagement):
                 return from_js(user, ResotoUser)
         return None
 
-    async def create_user(self, email: Email, fullname: str, password: str, roles: List[str]) -> ResotoUser:
+    async def create_user(self, email: Email, fullname: str, password: Password, roles: List[str]) -> ResotoUser:
         async def fn(users: Dict[Email, ResotoUser]) -> ResotoUser:
             if email in users:
                 raise ValueError(f"User with email {email} already exists")
@@ -88,7 +88,7 @@ class UserManagementService(UserManagement):
         return await self.__change_users(fn)
 
     async def update_user(
-        self, email: Email, *, password: Optional[str] = None, roles: Optional[List[str]] = None
+        self, email: Email, *, password: Optional[Password] = None, roles: Optional[List[str]] = None
     ) -> ResotoUser:
         async def fn(users: Dict[Email, ResotoUser]) -> ResotoUser:
             if email not in users:

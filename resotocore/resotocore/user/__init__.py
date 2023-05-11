@@ -3,7 +3,7 @@ from typing import Dict, List, ClassVar, Optional, Type, Set, Any
 
 from attr import define, field
 
-from resotocore.ids import ConfigId, Email
+from resotocore.ids import ConfigId, Email, Password
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from resotocore.web.service import Service
@@ -41,7 +41,7 @@ class UserManagement(Service, ABC):
         """
 
     @abstractmethod
-    async def create_first_user(self, company: str, fullname: str, email: Email, password: str) -> ResotoUser:
+    async def create_first_user(self, company: str, fullname: str, email: Email, password: Password) -> ResotoUser:
         """
         Create the first user in the system.
         Precondition: has_users() == False
@@ -54,7 +54,7 @@ class UserManagement(Service, ABC):
         """
 
     @abstractmethod
-    async def login(self, email: Email, password: str) -> Optional[ResotoUser]:
+    async def login(self, email: Email, password: Password) -> Optional[ResotoUser]:
         """
         Login with the given credentials.
         :param email: the email address of the user
@@ -63,7 +63,7 @@ class UserManagement(Service, ABC):
         """
 
     @abstractmethod
-    async def create_user(self, email: Email, fullname: str, password: str, roles: List[str]) -> ResotoUser:
+    async def create_user(self, email: Email, fullname: str, password: Password, roles: List[str]) -> ResotoUser:
         """
         Create a new user.
         :param email: the email address of the user
@@ -75,7 +75,7 @@ class UserManagement(Service, ABC):
 
     @abstractmethod
     async def update_user(
-        self, email: Email, *, password: Optional[str] = None, roles: Optional[List[str]] = None
+        self, email: Email, *, password: Optional[Password] = None, roles: Optional[List[str]] = None
     ) -> ResotoUser:
         """
         Update an existing user.

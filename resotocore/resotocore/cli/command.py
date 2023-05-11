@@ -93,7 +93,7 @@ from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
-from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email
+from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.infra_apps.package_manager import Failure
 from resotocore.model.graph_access import Section, EdgeTypes
@@ -5217,7 +5217,7 @@ class UserCommand(CLICommand):
         }
 
     async def add_user(
-        self, email: Email, fullname: str, password: str, roles: List[str]
+        self, email: Email, fullname: str, password: Password, roles: List[str]
     ) -> AsyncIterator[JsonElement]:
         user = await self.dependencies.user_management.create_user(email, fullname, password, roles)
         yield self.user_to_json(email, user)
@@ -5242,7 +5242,7 @@ class UserCommand(CLICommand):
         else:
             raise AttributeError(f"User {email} not found")
 
-    async def change_password(self, email: Email, password: str) -> AsyncIterator[JsonElement]:
+    async def change_password(self, email: Email, password: Password) -> AsyncIterator[JsonElement]:
         await self.dependencies.user_management.update_user(email, password=password)
         yield f"Password for {email} updated"
 
@@ -5266,7 +5266,7 @@ class UserCommand(CLICommand):
             parser.add_argument("--role", type=str, action="append", required=True)
             parsed = parser.parse_args(args[1:])
             return CLISource.single(
-                partial(self.add_user, Email(parsed.email), parsed.fullname, parsed.password, parsed.role)
+                partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role)
             )
         elif len(args) == 2 and args[0].startswith("del"):
             return CLISource.single(partial(self.delete_user, Email(args[1])))
@@ -5275,7 +5275,7 @@ class UserCommand(CLICommand):
         elif len(args) > 3 and args[0] == "role" and args[1].startswith("del"):
             return CLISource.single(partial(self.delete_role, Email(args[2]), args[3]))
         elif len(args) >= 3 and args[0] in ("passwd", "password"):
-            return CLISource.single(partial(self.change_password, Email(args[1]), args[2]))
+            return CLISource.single(partial(self.change_password, Email(args[1]), Password(args[2])))
         elif len(args) == 1 and args[0] == "list":
             return CLISource.no_count(self.list_users)
         elif len(args) == 2 and args[0] == "show":
