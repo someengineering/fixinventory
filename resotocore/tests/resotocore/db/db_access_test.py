@@ -52,7 +52,10 @@ def test_not_existing_and_default_root_account(
 async def test_delete_graph(test_db: StandardDatabase) -> None:
     db_access = DbAccess(test_db, NoEventSender(), NoAdjust(), empty_config())
     graph_name = GraphName("test_graph_delete")
-    await db_access.create_graph(graph_name)
+    await db_access.create_graph(
+        graph_name,
+        validate_name=False,
+    )
     assert db_access.graph_dbs.get(graph_name)
     await db_access.delete_graph(graph_name)
     assert db_access.graph_dbs.get(graph_name) is None

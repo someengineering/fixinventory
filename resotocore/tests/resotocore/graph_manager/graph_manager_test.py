@@ -13,7 +13,7 @@ import re
 @pytest.mark.asyncio
 async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
     graph_name = GraphName("test_graph")
-    graph_db = await db_access.create_graph(graph_name)
+    graph_db = await db_access.create_graph(graph_name, validate_name=False)
     await graph_db.wipe()
 
     # populate some data in the graphes
@@ -28,7 +28,7 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
     assert GraphName("test_graph") in await graph_manager.list(".*")
 
     # copy
-    await graph_manager.copy(GraphName("test_graph"), GraphName("test_graph_copy"), False)
+    await graph_manager.copy(GraphName("test_graph"), GraphName("test_graph_copy"), False, False)
     assert set(await graph_manager.list(".*")).issuperset(["test_graph", "test_graph_copy"])
 
     # snapshot
