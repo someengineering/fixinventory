@@ -47,6 +47,8 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
 
     # test export and import
     dump = []
+    test_graph_model = await db_access.get_graph_model_db(GraphName("test_graph"))
+    await test_graph_model.update_many(list(foo_model.kinds.values()))
     async for string in graph_manager.export_graph(GraphName("test_graph")):
         dump.append(string)
 
