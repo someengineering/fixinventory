@@ -5198,7 +5198,7 @@ class GraphCommand(CLICommand):
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
                 graph_name = ctx.graph_name
-            lines = await self.dependencies.graph_manager.export_graph(graph_name)
+            lines = self.dependencies.graph_manager.export_graph(graph_name)
             return write_result_to_file(lines, file_name)
 
         async def graph_import(
