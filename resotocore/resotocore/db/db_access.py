@@ -13,6 +13,7 @@ from requests.exceptions import RequestException
 
 
 from resotocore.analytics import AnalyticsEventSender
+from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
@@ -31,9 +32,10 @@ from resotocore.db.packagedb import app_package_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
+from resotocore.model.graph_access import EdgeTypes
 from resotocore.types import Json
 from resotocore.ids import GraphName
-from resotocore.util import Periodic, utc, shutdown_process, uuid_str
+from resotocore.util import Periodic, utc, shutdown_process, uuid_str, check_graph_name
 
 log = logging.getLogger(__name__)
 
@@ -88,30 +90,52 @@ class DbAccess(ABC):
         await self.pending_deferred_edge_db.create_update_schema()
         await self.package_entity_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
-            log.info(f'Found graph: {graph["name"]}')
-            db = self.get_graph_db(graph["name"])
+            graph_name = GraphName(graph["name"])
+            log.info(f"Found graph: {graph_name}")
+            db = self.get_graph_db(graph_name)
             await db.create_update_schema()
+            await self.get_graph_model_db(graph_name)
         await self.cleaner.start()
 
     async def stop(self) -> None:
         await self.cleaner.stop()
 
-    async def create_graph(self, name: GraphName) -> GraphDB:
+    def graph_model_name(self, graph_name: GraphName) -> str:
+        return f"{graph_name}_model"
+
+    async def create_graph(self, name: GraphName, validate_name: bool = True) -> GraphDB:
+        if validate_name:
+            check_graph_name(name)
+
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
         return db
 
     async def delete_graph(self, name: GraphName) -> None:
-        db = self.database
-        if db.has_graph(name):
-            db.delete_graph(name, drop_collections=True, ignore_missing=True)
-            db.delete_collection(f"{name}_in_progress", ignore_missing=True)
-            db.delete_view(f"search_{name}", ignore_missing=True)
-            # remove all temp collection names
-            for coll in cast(List[Json], db.collections()):
-                if coll["name"].startswith(f"{name}_temp_"):
-                    db.delete_collection(coll["name"])
-            self.graph_dbs.pop(name, None)
+        def delete(name: GraphName) -> None:
+            db = self.database
+            if db.has_graph(name):
+                # delete arrangodb graph
+                db.delete_graph(name, drop_collections=True, ignore_missing=True)
+                # delete vertex collections just in case
+                db.delete_collection(name, ignore_missing=True)
+                # delete edge collections
+                for edge_type in EdgeTypes.all:
+                    db.delete_collection(f"{name}_{edge_type}", ignore_missing=True)
+                # delete the rest
+                db.delete_collection(f"{name}_in_progress", ignore_missing=True)
+                db.delete_view(f"search_{name}", ignore_missing=True)
+                # remove all temp collection names
+                for coll in cast(List[Json], db.collections()):
+                    if coll["name"].startswith(f"{name}_temp_"):
+                        db.delete_collection(coll["name"], ignore_missing=True)
+                self.graph_dbs.pop(name, None)
+
+        return await run_async(delete, name)
+
+    async def delete_graph_model(self, graph_name: GraphName) -> None:
+        await self.db.delete_collection(self.graph_model_name(graph_name), ignore_missing=True)
+        self.graph_model_dbs.pop(graph_name, None)
 
     async def list_graphs(self) -> List[GraphName]:
         return [a["name"] for a in cast(List[Json], self.database.graphs()) if not a["name"].endswith("_hs")]
@@ -134,7 +158,7 @@ class DbAccess(ABC):
         if db := self.graph_model_dbs.get(graph_name):
             return db
         else:
-            model_name = f"model_{graph_name}"
+            model_name = self.graph_model_name(graph_name)
             db = EventEntityDb(model_db(self.db, model_name), self.event_sender, model_name)
             await db.create_update_schema()
             self.graph_model_dbs[graph_name] = db

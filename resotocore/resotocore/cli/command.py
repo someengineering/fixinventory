@@ -5284,6 +5284,190 @@ class UserCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class GraphCommand(CLICommand):
+    """
+    ```shell
+    graph list [pattern]
+    graph copy [-force] [from_graph_namae] <to_graph_name>
+    graph snapshot [from_graph_name] <snapshot_label>
+    graph delete <graph_name>
+    graph export [--force] [graph_name] <file_name>
+    graph import [--force] [graph_name] <file_name>
+    ```
+
+    - `graph list [pattern]`: Lists all graphs. Supports filtering by pattern.
+    - `graph copy [--force] [from_graph_name] <to_graph_name>`: Copies the graph.
+       If the target graph alearly exists, and a --force flag is provided, the graph will be overwritten.
+    - `graph snapshot [from_graph_name] <snapshot_label>`: Make a graph snapshot.
+    - `graph delete <graph_name>`: Delete a graph.
+    - `graph export [--force] [graph_name] <file_name>`: Export the graph into a file. If the file already exists,
+       and a --force flag is provided, the file will be overwritten.
+    - `graph import [--force] [graph_name] <file_name>`: Impor the graph from a file. If the graph already exists,
+       and a --force flag is provided, the graph will be overwritten.
+
+    ## Parameters
+    - `pattern` [optional]: Pattern for searching for graps. Supports regex.
+    - `from_graph_name` [required]: The name of the graph to make a copy or snapshot from.
+    - `to_graph_name` [optional]: The name of the target graph to make a copy.
+       If not specified, the name of the current graph is used.
+    - `file_name` [required]: The name of the file to save the graph to.
+
+    ## Options
+    - `--force`: Overwrite the target graph or file if it already exists.
+    """
+
+    @property
+    def name(self) -> str:
+        return "graph"
+
+    def info(self) -> str:
+        return "Operations on graphs."
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "list": [
+                ArgInfo(None, True, help_text="<pattern>"),
+            ],
+            "copy": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("--force", False),
+            ],
+            "snapshot": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+            ],
+            "delete": [
+                ArgInfo(None, True, help_text="<graph_name>"),
+            ],
+            "export": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("--force", False),
+            ],
+            "import": [
+                ArgInfo(None, True, help_text="<from_graph_name>"),
+                ArgInfo(None, True, help_text="<to_graph_name>"),
+                ArgInfo("--force", False),
+            ],
+        }
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def graph_list(pattern: Optional[str]) -> AsyncIterator[JsonElement]:
+            graphs = await self.dependencies.graph_manager.list(pattern)
+            for graph in graphs:
+                yield graph
+
+        async def graph_copy(
+            source: Optional[GraphName], destination: GraphName, force: bool
+        ) -> AsyncIterator[JsonElement]:
+            if not source:
+                source = ctx.graph_name
+            await self.dependencies.graph_manager.copy(source, destination, replace_existing=force)
+            yield f"Graph {source} copied to {destination}."
+
+        async def graph_snapshot(source: Optional[GraphName], label: str) -> AsyncIterator[JsonElement]:
+            if not source:
+                source = ctx.graph_name
+            snapshot_name = await self.dependencies.graph_manager.snapshot(source, label)
+            yield f"Graph {source} snapshoted to {snapshot_name}."
+
+        async def graph_delete(graph_name: GraphName) -> AsyncIterator[JsonElement]:
+            await self.dependencies.graph_manager.delete(graph_name)
+            yield f"Graph {graph_name} deleted."
+
+        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
+            temp_dir: str = tempfile.mkdtemp()
+            path = os.path.join(temp_dir, file_name)
+            try:
+                async with aiofiles.open(path, "w") as f:
+                    async for line in export_lines:
+                        await f.write(line + "\n")
+                yield path
+            finally:
+                shutil.rmtree(temp_dir)
+
+        async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
+            if not graph_name:
+                graph_name = ctx.graph_name
+            lines = self.dependencies.graph_manager.export_graph(graph_name)
+            return write_result_to_file(lines, file_name)
+
+        async def graph_import(
+            graph_name: Optional[GraphName], file_name: str, force: bool
+        ) -> AsyncIterator[JsonElement]:
+            if not graph_name:
+                graph_name = ctx.graph_name
+
+            path = ctx.uploaded_files.get("dump")
+            if not path:
+                raise ValueError(f"File {file_name} was not uploaded.")
+
+            async with aiofiles.open(path, "r") as f:
+
+                async def lines_iterator() -> AsyncIterator[str]:
+                    async for line in f:
+                        yield line.strip()
+
+                await self.dependencies.graph_manager.import_graph(graph_name, lines_iterator(), replace_existing=force)
+            yield f"Graph {graph_name} imported from {file_name}."
+
+        args = re.split("\\s+", arg, maxsplit=2) if arg else []
+        if args[0] == "list":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("pattern", type=str, nargs="?", default=None)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_list, parsed.pattern))
+        elif args[0] == "copy":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("source", type=str, nargs="?", default=None)
+            parser.add_argument("destination", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(
+                partial(graph_copy, GraphName(parsed.source), GraphName(parsed.destination), parsed.force)
+            )
+        elif args[0] == "snapshot":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("source", type=str, nargs="?", default=None)
+            parser.add_argument("label", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_snapshot, parsed.source, parsed.label))
+        elif args[0] == "delete":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str)
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_delete, GraphName(parsed.graph_name)))
+        elif args[0] == "export":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str, nargs="?", default=None)
+            parser.add_argument("file_name", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            return CLISource.single(partial(graph_export, parsed.graph_name, parsed.file_name), MediaType.FilePath)
+        elif args[0] == "import":
+            parser = NoExitArgumentParser()
+            parser.add_argument("command", type=str)
+            parser.add_argument("graph_name", type=str, nargs="?", default=None)
+            parser.add_argument("file_name", type=str)
+            parser.add_argument("--force", action="store_true")
+            parsed = parser.parse_args(strip_quotes(arg or "").split())
+
+            return CLISource.single(
+                partial(graph_import, parsed.graph_name, parsed.file_name, parsed.force),
+                MediaType.Json,
+                [CLIFileRequirement("dump", parsed.file_name)],
+            )
+
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -5331,6 +5515,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
         InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
+        GraphCommand(d, "graph", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:

@@ -40,6 +40,10 @@ from resotocore.types import JsonElement, Json
 from resotocore.user import UsersConfigId
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
+from resotocore.ids import InfraAppName, GraphName
+from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.runtime import Runtime
+from resotocore.graph_manager.graph_manager import GraphManager
 from tests.resotocore.util_test import not_in_path
 
 
@@ -1185,3 +1189,83 @@ async def test_user(cli: CLI) -> None:
     # list users
     result = await execute("user list")
     assert result == ["jane@test.de"]
+
+
+@pytest.mark.asyncio
+async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) -> None:
+    T = TypeVar("T")
+
+    await graph_manager.delete(GraphName("graphtest2"))
+    await graph_manager.delete(GraphName("graphtest_import"))
+
+    async def execute(cmd: str, _: Type[T]) -> List[T]:
+        result = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[T], result[0])
+
+    # cleanup everything
+    for graph in await graph_manager.list(None):
+        await graph_manager.delete(graph)
+
+    # create a graph
+    await graph_manager.db_access.create_graph(GraphName("graphtest"))
+    await graph_manager.db_access.create_graph(GraphName("ns"))
+
+    # list all graphs
+    graphs = await execute("graph list", str)
+    assert set(graphs) == {"graphtest", "ns"}
+
+    # list via regex
+    graphs = await execute("graph list .*apht.*", str)
+    assert set(graphs) == {"graphtest"}
+
+    # copy a graph
+    await execute("graph copy graphtest graphtest2", str)
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2"}
+
+    # copy to the existing graph without --force
+    with pytest.raises(Exception):
+        await execute("graph copy graphtest graphtest2", str)
+
+    # copy to the existing graph with --force
+    await execute("graph copy graphtest graphtest2 --force", str)
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2"}
+
+    # implicitly copy the current graph to the new one
+    await execute("graph copy graphtest3", str)
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest2", "graphtest3"}
+
+    # make a snapshot
+    await execute("graph snapshot graphtest foo", str)
+    snapshots = await graph_manager.list("snapshot.*")
+    assert len(snapshots) == 1
+    assert snapshots[0].startswith("snapshot")
+    for snapshot in snapshots:
+        await graph_manager.delete(GraphName(snapshot))
+
+    # delete a graph
+    await execute("graph delete graphtest2", str)
+    graph_names = await graph_manager.list(None)
+    assert set(graph_names) == {"ns", "graphtest", "graphtest3"}
+
+    dump = os.path.join(tmp_directory, "dump")
+
+    async def move_dump(res: Stream) -> None:
+        async with res.stream() as streamer:
+            async for s in streamer:
+                os.rename(s, dump)
+
+    # graph export works
+    await cli.execute_cli_command("graph export graphtest dump", move_dump)
+
+    ctx = CLIContext(uploaded_files={"dump": dump})
+
+    # graph import works too
+    await cli.execute_cli_command("graph import graphtest_import graphtest.backup", stream.list, ctx)
+    assert await graph_manager.list(GraphName("graphtest_import")) == [GraphName("graphtest_import")]
+
+    # clean up
+    await graph_manager.delete(GraphName("graphtest3"))
+    await graph_manager.delete(GraphName("graphtest_import"))

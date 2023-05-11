@@ -28,6 +28,7 @@ from typing import (
     Union,
     Sequence,
 )
+import re
 
 from dateutil.parser import isoparse, parse as parse_date
 from resotolib.asynchronous import periodic
@@ -449,3 +450,8 @@ class AccessJson(Dict[Any, Any]):
     ) -> AccessJson:
         # only here for a typed result
         return AccessJson.wrap(obj, not_existent, simple_formatter)  # type: ignore
+
+
+def check_graph_name(name: str) -> None:
+    if not re.match(r"^[a-zA-Z0-9]+$", name):
+        raise ValueError(f"Graph name {name} contains invalid characters, only alphanumeric characters are allowed.")

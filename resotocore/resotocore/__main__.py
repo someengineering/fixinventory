@@ -57,6 +57,7 @@ from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.asynchronous.web import runner
 
 log = logging.getLogger("resotocore")
@@ -186,6 +187,8 @@ def with_config(
     cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
     infra_apps_package_manager = PackageManager(db.package_entity_db, config_handler)
     cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
+    graph_manager = GraphManager(db)
+    cli_deps.extend(graph_manager=graph_manager)
     api = Api(
         db,
         model,
@@ -227,6 +230,7 @@ def with_config(
         await log_ship.start()
         await api.start()
         await infra_apps_package_manager.start()
+        await graph_manager.start()
         if created:
             docker = inside_docker()
             kubernetes = inside_kubernetes()
@@ -256,6 +260,7 @@ def with_config(
 
     async def on_stop() -> None:
         duration = utc() - info.started_at
+        await graph_manager.stop()
         await infra_apps_package_manager.stop()
         await api.stop()
         await log_ship.stop()
