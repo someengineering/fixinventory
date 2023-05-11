@@ -6,6 +6,7 @@ from typing import Optional, Dict, List, Callable, TypeVar, Awaitable
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.db.db_access import DbAccess
+from resotocore.ids import Email
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json
 from resotocore.user import UserManagement, UsersConfigId, ResotoUser, UsersConfigRoot
@@ -45,7 +46,7 @@ class UserManagementService(UserManagement):
         user_config = await self.config_handler.get_config(UsersConfigId)
         return bool(value_in_path(user_config.config, [UsersConfigRoot, "users"])) if user_config else False
 
-    async def create_first_user(self, company: str, fullname: str, email: str, password: str) -> ResotoUser:
+    async def create_first_user(self, company: str, fullname: str, email: Email, password: str) -> ResotoUser:
         assert not await self.has_users()  # only allowed if no users exist
         await self.db_access.system_data_db.update_info(company=company)
         hashed = self.hash_password(password)
@@ -58,16 +59,16 @@ class UserManagementService(UserManagement):
         )
         return user
 
-    async def login(self, email: str, password: str) -> Optional[ResotoUser]:
+    async def login(self, email: Email, password: str) -> Optional[ResotoUser]:
         user_config = await self.config_handler.get_config(UsersConfigId)
         if user_config:
-            users: Dict[str, Json] = value_in_path_get(user_config.config, [UsersConfigRoot, "users"], {})
+            users: Dict[Email, Json] = value_in_path_get(user_config.config, [UsersConfigRoot, "users"], {})
             if (user := users.get(email)) and self.verify_password(password, user.get("password_hash", "")):
                 return from_js(user, ResotoUser)
         return None
 
-    async def create_user(self, email: str, fullname: str, password: str, roles: List[str]) -> ResotoUser:
-        async def fn(users: Dict[str, ResotoUser]) -> ResotoUser:
+    async def create_user(self, email: Email, fullname: str, password: str, roles: List[str]) -> ResotoUser:
+        async def fn(users: Dict[Email, ResotoUser]) -> ResotoUser:
             if email in users:
                 raise ValueError(f"User with email {email} already exists")
             if not email or email.startswith("@") or email.endswith("@") or email.count("@") != 1:
@@ -80,16 +81,16 @@ class UserManagementService(UserManagement):
 
         return await self.__change_users(fn)
 
-    async def delete_user(self, email: str) -> Optional[ResotoUser]:
-        async def fn(users: Dict[str, ResotoUser]) -> Optional[ResotoUser]:
+    async def delete_user(self, email: Email) -> Optional[ResotoUser]:
+        async def fn(users: Dict[Email, ResotoUser]) -> Optional[ResotoUser]:
             return users.pop(email, None)
 
         return await self.__change_users(fn)
 
     async def update_user(
-        self, email: str, *, password: Optional[str] = None, roles: Optional[List[str]] = None
+        self, email: Email, *, password: Optional[str] = None, roles: Optional[List[str]] = None
     ) -> ResotoUser:
-        async def fn(users: Dict[str, ResotoUser]) -> ResotoUser:
+        async def fn(users: Dict[Email, ResotoUser]) -> ResotoUser:
             if email not in users:
                 raise ValueError(f"User with email {email} does not exist")
             user = users[email]
@@ -102,18 +103,18 @@ class UserManagementService(UserManagement):
 
         return await self.__change_users(fn)
 
-    async def __change_users(self, fn: Callable[[Dict[str, ResotoUser]], Awaitable[T]]) -> T:
+    async def __change_users(self, fn: Callable[[Dict[Email, ResotoUser]], Awaitable[T]]) -> T:
         users = await self.users()
         result = await fn(users)
         users_raw = {email: to_js(user) for email, user in users.items()}
         await self.config_handler.put_config(ConfigEntity(UsersConfigId, {UsersConfigRoot: {"users": users_raw}}))
         return result
 
-    async def user(self, email: str) -> Optional[ResotoUser]:
+    async def user(self, email: Email) -> Optional[ResotoUser]:
         users = await self.users()
         return users.get(email)
 
-    async def users(self) -> Dict[str, ResotoUser]:
+    async def users(self) -> Dict[Email, ResotoUser]:
         user_config = await self.config_handler.get_config(UsersConfigId)
         users_raw: Json = value_in_path_get(user_config.config, [UsersConfigRoot, "users"], {}) if user_config else {}
-        return {email: from_js(data, ResotoUser) for email, data in users_raw.items()}
+        return {Email(email): from_js(data, ResotoUser) for email, data in users_raw.items()}
