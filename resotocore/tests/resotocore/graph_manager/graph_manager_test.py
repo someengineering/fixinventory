@@ -47,7 +47,7 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
 
     # test export and import
     dump = []
-    async for string in graph_manager.db_access.export_graph(GraphName("test_graph")):
+    async for string in await graph_manager.export_graph(GraphName("test_graph")):
         dump.append(string)
 
     async def dump_iter() -> AsyncIterator[str]:
