@@ -5114,7 +5114,7 @@ class GraphCommand(CLICommand):
        and a --force flag is provided, the graph will be overwritten.
 
     ## Parameters
-    - `pattern` [optional]: Pattern for searching for apps. Supports regex.
+    - `pattern` [optional]: Pattern for searching for graps. Supports regex.
     - `from_graph_name` [required]: The name of the graph to make a copy or snapshot from.
     - `to_graph_name` [optional]: The name of the target graph to make a copy.
        If not specified, the name of the current graph is used.
@@ -5213,11 +5213,11 @@ class GraphCommand(CLICommand):
 
             async with aiofiles.open(path, "r") as f:
 
-                async def iterator() -> AsyncIterator[str]:
+                async def lines_iterator() -> AsyncIterator[str]:
                     async for line in f:
                         yield line.strip()
 
-                await self.dependencies.graph_manager.import_graph(graph_name, iterator(), replace_existing=force)
+                await self.dependencies.graph_manager.import_graph(graph_name, lines_iterator(), replace_existing=force)
             yield f"Graph {graph_name} imported from {file_name}."
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []

@@ -256,6 +256,7 @@ def with_config(
 
     async def on_stop() -> None:
         duration = utc() - info.started_at
+        await graph_manager.stop()
         await infra_apps_package_manager.stop()
         await api.stop()
         await log_ship.stop()
