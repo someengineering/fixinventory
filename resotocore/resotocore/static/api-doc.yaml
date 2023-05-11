@@ -40,7 +40,9 @@ paths:
   # region model
   /model:
     get:
-      summary: "Get the currently defined model."
+      summary: "[Deprecated] Get the currently defined model."
+      description: "Use /graph/{graph_id}/model instead."
+      deprecated: true
       tags:
         - model
       parameters:
@@ -58,7 +60,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Kind"
     patch:
-      summary: "Add or update the current defined model."
+      summary: "[Deprecated] Add or update the current defined model."
+      description: "Use /graph/{graph_id}/model instead."
+      deprecated: true
       tags:
         - model
       requestBody:
@@ -82,7 +86,9 @@ paths:
                 type: string
   /model/uml:
     get:
-      summary: "Get the currently defined model as svg uml image."
+      summary: "[Deprecated] Get the currently defined model as svg uml image."
+      description: "Use /graph/{graph_id}/model/uml instead."
+      deprecated: true
       tags:
         - model
       parameters:
