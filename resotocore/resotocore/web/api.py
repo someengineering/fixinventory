@@ -135,7 +135,6 @@ AlwaysAllowed = {
     "/static/.*",
     "/system/.*",
     "/ui.*",
-    "/debug/ui/.*",
 }
 # Authorization is not required, but implemented as part of the request handler
 DeferredCheck = {"/events", "/work/queue"}
