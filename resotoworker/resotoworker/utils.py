@@ -8,6 +8,7 @@ from resotoworker.config import HomeDirectoryFile
 def write_utf8_file(path: Path, content: str) -> None:
     """Write a UTF-8 encoded file to disk"""
     try:
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
         with path.open("w", encoding="utf-8") as f:
             f.write(content)
