@@ -1,3 +1,5 @@
+import sys
+import select
 import hashlib
 import os
 import random
@@ -620,3 +622,9 @@ def get_free_port() -> int:
         tcp.bind(("", 0))
         tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return tcp.getsockname()[1]  # type: ignore
+
+
+def stdin_generator() -> Iterator[str]:
+    if select.select([sys.stdin], [], [], 0.0)[0]:
+        for line in iter(sys.stdin.readline, ""):
+            yield line.rstrip("\r\n")
