@@ -67,8 +67,19 @@ async def test_config(config_handler: ConfigHandler) -> None:
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == ["test"]
 
+    # copy the config
+    copied = await config_handler.copy_config(config_id, ConfigId("test2"))
+    # non-existing config is not copied
+    assert await config_handler.copy_config(ConfigId("test3"), ConfigId("test4")) is None
+    # copying to existing config is not allowed and raises an exception
+    with pytest.raises(Exception):
+        await config_handler.copy_config(ConfigId("test"), ConfigId("test"))
+    assert copied == ConfigEntity(ConfigId("test2"), {"test": True, "rest": False})
+    assert {a async for a in config_handler.list_config_ids()} == set(["test", "test2"])
+
     # delete the config
     await config_handler.delete_config(config_id)
+    await config_handler.delete_config(ConfigId("test2"))
 
     # list all configs
     assert [a async for a in config_handler.list_config_ids()] == []

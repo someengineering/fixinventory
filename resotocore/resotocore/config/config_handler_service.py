@@ -151,6 +151,19 @@ class ConfigHandlerService(ConfigHandler):
         await self.message_bus.emit_event(CoreMessage.ConfigDeleted, dict(id=cfg_id))
         await self.event_sender.core_event(CoreEvent.SystemConfigurationDeleted)
 
+    async def copy_config(self, from_cfg_id: ConfigId, to_cfg_id: ConfigId) -> Optional[ConfigEntity]:
+        old = await self.cfg_db.get(from_cfg_id)
+        if old is None:
+            return None
+        if await self.cfg_db.get(to_cfg_id) is not None:
+            raise ValueError(f"Config with id {to_cfg_id} already exists")
+        result = await self.cfg_db.update(ConfigEntity(to_cfg_id, old.config, old.revision))
+        await self.message_bus.emit_event(
+            CoreMessage.ConfigUpdated, dict(old=old.id, new=result.id, revision=result.revision)
+        )
+        await self.event_sender.core_event(CoreEvent.SystemConfigurationChanged, result.analytics())
+        return result
+
     def list_config_validation_ids(self) -> AsyncIterator[str]:
         return self.validation_db.keys()
 

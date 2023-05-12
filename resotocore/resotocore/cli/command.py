@@ -4268,6 +4268,7 @@ class ConfigsCommand(CLICommand):
     configs show <cfg_id>
     configs set <cfg_id> <prop>=<value> [, <prop>=<value>]
     configs edit <cfg_id>
+    configs copy <cfg_id> <new_cfg_id>
     configs update <cfg_id> <path>
     configs delete <cfg_id>
     ```
@@ -4276,6 +4277,8 @@ class ConfigsCommand(CLICommand):
     - `configs show <cfg_id>`: show the configuration with provided identifier.
     - `configs set <cfg_id> <prop>=<value>`: set one or more property values in the configuration with provided id.
     - `configs edit <cfg_id>`: edit the complete configuration with provided id as file
+    - `configs copy <cfg_id> <new_cfg_id>`: copy the configuration with provided id
+       to a new configuration with the provided new id.
     - `configs update <cfg_id> <path>`: update or create the configuration with provided id with content of given file.
     - `configs delete <cfg_id>`: delete the configuration with given identifier.
 
@@ -4316,6 +4319,9 @@ class ConfigsCommand(CLICommand):
     # Update the configuration test by loading the provided config file.
     > config update test /path/to/my/local/config.yaml
 
+    # Copy the configuration test to a new configuration test2.
+    > config copy test test2
+
     # Get the list of all configuration keys.
     > config list
     config_test
@@ -4343,6 +4349,7 @@ class ConfigsCommand(CLICommand):
             "set": [ArgInfo(None, expects_value=True, help_text="<config_id> <key>=<value>")],
             "show": [ArgInfo(None, expects_value=True, help_text="<config_id> e.g. resoto.core")],
             "edit": [ArgInfo(None, expects_value=True, help_text="<config_id>")],
+            "copy": [ArgInfo(None, expects_value=True, help_text="<config_id> <new_config_id>")],
             "update": [
                 ArgInfo(None, expects_value=True, help_text="<config_id> /path/to/config.yaml", value_hint="file")
             ],
@@ -4385,6 +4392,13 @@ class ConfigsCommand(CLICommand):
                 raise AttributeError(f"No config with this id: {cfg_id}")
             return send_file(yml)
 
+        async def copy_config(from_cfg_id: ConfigId, to_cfg_id: ConfigId) -> AsyncIterator[str]:
+            cfg = await self.dependencies.config_handler.get_config(from_cfg_id)
+            if not cfg:
+                raise AttributeError(f"No config with this id: {from_cfg_id}")
+            await self.dependencies.config_handler.copy_config(from_cfg_id, to_cfg_id)
+            yield f"Config {from_cfg_id} has been copied to {to_cfg_id}."
+
         async def update_config(cfg_id: ConfigId) -> AsyncIterator[str]:
             # Usually invoked by resh automatically via edit_config, but can also be triggered manually.
             # A config with given id is changed by the content of uploaded file "config"
@@ -4424,6 +4438,8 @@ class ConfigsCommand(CLICommand):
                 produces=MediaType.FilePath,
                 envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
             )
+        elif arg and len(args) == 3 and args[0] == "copy":
+            return CLISource.single(partial(copy_config, args[1], args[2]))
         elif arg and len(args) == 3 and args[0] == "update":
             config_id = args[1]
             return CLISource.single(

@@ -111,6 +111,10 @@ class ConfigHandler(ABC):
         pass
 
     @abstractmethod
+    async def copy_config(self, from_cfg_id: ConfigId, to_cfg_id: ConfigId) -> Optional[ConfigEntity]:
+        pass
+
+    @abstractmethod
     async def delete_config(self, cfg_id: ConfigId) -> None:
         pass
 
