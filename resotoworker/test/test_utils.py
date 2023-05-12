@@ -7,11 +7,9 @@ from typing import Optional, List, Any
 
 def test_write_utf8_file() -> None:
     with TemporaryDirectory() as tmpdir:
-        f = Path(tmpdir) / "test.txt"
-
-        write_utf8_file(f, "foo")
-
-        assert f.read_text(encoding="utf-8") == "foo"
+        f = Path(tmpdir) / "foo" / "test.txt"
+        write_utf8_file(f, "bar")
+        assert f.read_text(encoding="utf-8") == "bar"
 
 
 class InMemoryFile:
