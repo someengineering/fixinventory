@@ -23,6 +23,7 @@ class CoreMessage:
     Connected = "message-listener-connected"
     Disconnected = "message-listener-disconnected"
     ConfigUpdated = "config-updated"
+    ConfigCopied = "config-copied"
     ConfigDeleted = "config-deleted"
     ErrorMessage = "error"
     ProgressMessage = "progress"

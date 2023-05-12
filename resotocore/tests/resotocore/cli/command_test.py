@@ -708,6 +708,12 @@ async def test_configs_command(cli: CLI, tmp_directory: str) -> None:
     # list all configs: only one is defined
     list_result = await cli.execute_cli_command("configs list", stream.list)
     assert list_result[0] == ["test_config"]
+
+    # copy the config
+    await cli.execute_cli_command("configs copy test_config test_config_copy", stream.list)
+    list_result = await cli.execute_cli_command("configs list", stream.list)
+    assert list_result[0] == ["test_config", "test_config_copy"]
+
     # edit the config: will make the config available as file
     await cli.execute_cli_command("configs edit test_config", check_file_is_yaml)
     # update the config
