@@ -21,9 +21,13 @@ from resotolib.utils import (
     drop_deleted_attributes,
 )
 from resotolib.baseresources import BaseResource
+from resotolib.utils import stdin_generator
 from attrs import define
 from typing import ClassVar
 import pytest
+import sys
+import tempfile
+from contextlib import contextmanager
 
 
 class Writer(threading.Thread):
@@ -431,3 +435,30 @@ def test_drop_deleted_attributes():
             "foo": "foo",
         },
     }
+
+
+@contextmanager
+def replace_stdin(input_data: str):
+    with tempfile.TemporaryFile(mode="w+t") as temp_file:
+        temp_file.write(input_data)
+        temp_file.seek(0)
+        original_stdin = sys.stdin
+        sys.stdin = temp_file
+        try:
+            yield
+        finally:
+            sys.stdin = original_stdin
+
+
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
+        ("line1\nline2\nline3", ["line1", "line2", "line3"]),
+        ("line1\r\nline2\r\nline3", ["line1", "line2", "line3"]),
+        ("", []),
+    ],
+)
+def test_sync_stdin_generator(input_data, expected_output):
+    with replace_stdin(input_data):
+        output = list(stdin_generator())
+    assert output == expected_output
