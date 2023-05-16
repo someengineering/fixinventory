@@ -849,8 +849,8 @@ class GcpDiskParams:
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_disk_type"], "delete": ["gcp_instance"]},
-        "successors": {"default": ["gcp_instance"]},
+        "predecessors": {"default": ["gcp_disk_type", "gcp_instance"]},
+        "successors": {"delete": ["gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -950,7 +950,7 @@ class GcpDisk(GcpResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for user in source.get("users", []):
-            builder.dependant_node(self, clazz=GcpInstance, link=user)
+            builder.dependant_node(self, clazz=GcpInstance, link=user, reverse=True, delete_same_as_default=False)
         builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
 
 
