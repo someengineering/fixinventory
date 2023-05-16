@@ -1,3 +1,4 @@
+import os
 from typing import List, Callable
 from pathlib import Path
 
@@ -9,9 +10,9 @@ def write_utf8_file(path: Path, content: str) -> None:
     """Write a UTF-8 encoded file to disk"""
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()
-        with path.open("w", encoding="utf-8") as f:
-            f.write(content)
+        with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
+            f.write(content.encode("utf-8"))
+
     except Exception as e:
         log.warning(f"Failed to write file {path}: {e}")
         return
