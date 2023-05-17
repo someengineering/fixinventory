@@ -4,6 +4,7 @@ import csv
 import subprocess
 import sys
 from collections import namedtuple, defaultdict
+from datetime import datetime
 from typing import Dict, List
 
 import re
@@ -81,7 +82,7 @@ def show_log(from_tag: str, to_tag: str):
         [parse_commit(row) for row in csv.reader(git_commits(from_tag, to_tag), delimiter="§")],
     )
 
-    print("---\ntags: [release notes]\n---")
+    print(f"---\ndate: {datetime.now().strftime('%Y-%m-%d')}\n---")
 
     print(f"\n# {to_tag}")
 

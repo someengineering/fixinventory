@@ -154,14 +154,12 @@ jobs:
           version_major=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})
           prev_release=$(echo $(gh api repos/someengineering/resoto/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
           [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
-          year=$(date +'%Y')
-          date=$(date +'%m-%d')
-          dir="resoto.com/news/${year}/${date}-${{ steps.release.outputs.tag }}"
+          dir="resoto.com/releases/${{ steps.release.outputs.tag }}"
           mkdir -p $dir
           file="${dir}/index.md"
           python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
-          link="/news/$(date +'%Y/%m/%d')/${{ steps.release.outputs.tag }}"
-          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"].version="${{ steps.release.outputs.tag }}" | .["${{ steps.release.outputs.docsVersion }}"].link="'"$link"'"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+          link="/releases/${{ steps.release.outputs.tag }}"
+          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"]="${{ steps.release.outputs.tag }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
           echo "tag=${{ steps.release.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "file=$file" >> $GITHUB_OUTPUT
           echo "link=$link" >> $GITHUB_OUTPUT
