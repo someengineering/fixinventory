@@ -41,7 +41,7 @@ class GraphManager(Service):
         self.task_handler = task_handler
         self.default_snapshots_config = default_snapshots_config
         self.config_handler = config_handler
-        self.snapshot_cleanup_worker: Optional[Task] = None
+        self.snapshot_cleanup_worker: Optional[Task[None]] = None
 
     async def __setup_cleanup_old_snapshots_worker(self, snapshots_config: SnapshotsScheduleConfig) -> None:
         if self.snapshot_cleanup_worker:
@@ -104,7 +104,7 @@ class GraphManager(Service):
         await self._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(self.default_snapshots_config))
         # subscribe to config updates to update the snapshot schedule
         self.config_handler.add_callback(self._on_config_updated)
-        self.snapshot_cleanup_worker = await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
+        await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
