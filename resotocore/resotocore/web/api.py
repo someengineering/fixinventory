@@ -135,6 +135,8 @@ AlwaysAllowed = {
     "/static/.*",
     "/system/.*",
     "/ui.*",
+    "/notebook/.*",
+    "/debug/.*",
 }
 # Authorization is not required, but implemented as part of the request handler
 DeferredCheck = {"/events", "/work/queue"}
@@ -305,7 +307,6 @@ class Api:
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
                 web.get(prefix + "/ui", self.forward("/ui/index.html")),
                 web.get(prefix + "/ui/", self.forward("/ui/index.html")),
-                web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui),
                 # auth operations
                 web.get(prefix + "/.well-known/jwks.json", self.jwks),
                 web.get(prefix + "/login", self.login_page),
@@ -318,6 +319,8 @@ class Api:
                 web.static(f"{prefix}/ui/", ui_path),
             ]
         )
+        if self.config.runtime.debug:
+            self.app.add_routes([web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui)])
         SwaggerFile(
             self.app,
             spec_file=f"{static_path}/api-doc.yaml",
