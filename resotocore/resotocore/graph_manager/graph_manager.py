@@ -71,7 +71,7 @@ class GraphManager(Service):
                 await self.delete(snapshot)
 
     async def _on_config_updated(self, config_id: str, data: Json) -> None:
-        if config_id == ResotoCoreSnapshotsConfigId and data:
+        if config_id == ResotoCoreSnapshotsConfigId:
             # get the new config or use the default
             snapshots_config = SnapshotsScheduleConfig()
             try:

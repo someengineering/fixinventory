@@ -66,14 +66,14 @@ async def test_graph_manager(
     assert GraphName("test_graph_copy") not in set(await graph_manager.list(".*"))
 
     # periodic snapshot callback
-    # no scheduled started because the snapshot config is empty
-    assert len(await task_handler.list_jobs()) == 0
-    # let's schedule something
-    custom_snapshot_config = SnapshotsScheduleConfig(snapshots={"foobar-weekly": SnapshotSchedule("0 1 2 3 4", 42)})
-    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(custom_snapshot_config))
+    for job in await task_handler.list_jobs():
+        await task_handler.delete_job(job.id)
     jobs = await task_handler.list_jobs()
-    assert len(jobs) == 1
-    assert jobs[0].name == "snapshot-foobar-weekly"
+    # let's schedule something
+    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, {})
+    jobs = await task_handler.list_jobs()
+    assert len(jobs) == 5
+    assert jobs[0].name == "snapshot-hourly"
 
     # test export and import
     dump = []
