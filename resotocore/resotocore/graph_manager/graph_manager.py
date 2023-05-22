@@ -1,30 +1,77 @@
 from typing import List, Optional, AsyncIterator, cast
 from asyncio import Lock
 
+import logging
+
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import EventGraphDB
 from resotocore.util import utc_str
-from resotocore.ids import GraphName
+from resotocore.ids import GraphName, TaskDescriptorId
 from resotocore.web.service import Service
 from resotocore.util import check_graph_name
 from resotocore.types import Json
 from resotocore.model.model import Kind
-from resotocore.model.typed_model import from_js, to_js_str
+from resotocore.model.typed_model import from_js, to_js, to_js_str
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.db.async_arangodb import AsyncCursor
+from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.core_config import SnapshotsScheduleConfig, ResotoCoreSnapshotsConfigId
+from resotocore.task import TaskHandler
+from resotocore.task.task_description import Job, ExecuteCommand, TimeTrigger
 from json import loads, dumps
-from datetime import datetime
+from datetime import datetime, timedelta
 from attrs import frozen
 import re
 
 
+log = logging.getLogger(__name__)
+
+
 class GraphManager(Service):
-    def __init__(self, db_access: DbAccess) -> None:
+    def __init__(
+        self,
+        db_access: DbAccess,
+        default_snapshots_config: SnapshotsScheduleConfig,
+        config_handler: CoreConfigHandler,
+        task_handler: TaskHandler,
+    ) -> None:
         self.db_access = db_access
         self.lock: Optional[Lock] = None
+        self.task_handler = task_handler
+        self.default_snapshots_config = default_snapshots_config
+        self.config_handler = config_handler
+
+    async def _on_config_updated(self, config_id: str, data: Json) -> None:
+        if config_id == ResotoCoreSnapshotsConfigId and data:
+            # get the new config or use the default
+            snapshots_config = SnapshotsScheduleConfig()
+            try:
+                snapshots_config = from_js(data, SnapshotsScheduleConfig)
+            except Exception as e:
+                log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
+
+            # cancel all existing snapshot jobs
+            existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith("snapshot-")]
+            for job in existing_jobs:
+                await self.task_handler.delete_job(job.id)
+
+            # schedule new snapshot jobs for the current graph
+            for label, schedule in snapshots_config.snapshots.items():
+                job = Job(
+                    uid=TaskDescriptorId(f"snapshot-{label}"),
+                    command=ExecuteCommand(f"graph snapshot {label}"),
+                    timeout=timedelta(minutes=5),
+                    trigger=TimeTrigger(schedule.schedule),
+                )
+
+                await self.task_handler.add_job(job)
 
     async def start(self) -> None:
         self.lock = Lock()
+        # initialize the snapshot schedule
+        await self._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(self.default_snapshots_config))
+        # subscribe to config updates to update the snapshot schedule
+        self.config_handler.add_callback(self._on_config_updated)
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]

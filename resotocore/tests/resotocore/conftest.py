@@ -539,8 +539,10 @@ async def package_manager(
 
 
 @fixture
-async def graph_manager(cli: CLIService, db_access: DbAccess) -> GraphManager:
-    async with GraphManager(db_access) as service:
+async def graph_manager(
+    cli: CLIService, db_access: DbAccess, core_config_handler: CoreConfigHandler, task_handler: TaskHandlerService
+) -> GraphManager:
+    async with GraphManager(db_access, SnapshotsScheduleConfig({}), core_config_handler, task_handler) as service:
         cli.dependencies.lookup["graph_manager"] = service
         return service
 

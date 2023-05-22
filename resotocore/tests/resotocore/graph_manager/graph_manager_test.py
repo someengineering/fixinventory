@@ -4,14 +4,23 @@ from resotocore.ids import GraphName
 from resotocore.db.db_access import DbAccess
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model
+from resotocore.model.typed_model import to_js
 from resotocore.types import Json
+from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.core_config import SnapshotsScheduleConfig, SnapshotSchedule, ResotoCoreSnapshotsConfigId
+from resotocore.task import TaskHandler
 import pytest
 from tests.resotocore.db.graphdb_test import create_multi_collector_graph
 import re
 
 
 @pytest.mark.asyncio
-async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
+async def test_graph_manager(
+    foo_model: Model,
+    db_access: DbAccess,
+    core_config_handler: CoreConfigHandler,
+    task_handler: TaskHandler,
+) -> None:
     graph_name = GraphName("test_graph")
     graph_db = await db_access.create_graph(graph_name, validate_name=False)
     await graph_db.wipe()
@@ -21,7 +30,7 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
 
-    graph_manager = GraphManager(db_access)
+    graph_manager = GraphManager(db_access, SnapshotsScheduleConfig(snapshots={}), core_config_handler, task_handler)
     await graph_manager.start()
 
     # list
@@ -44,6 +53,16 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
     # delete
     await graph_manager.delete(GraphName("test_graph_copy"))
     assert GraphName("test_graph_copy") not in set(await graph_manager.list(".*"))
+
+    # periodic snapshot callback
+    # no scheduled started because the snapshot config is empty
+    assert len(await task_handler.list_jobs()) == 0
+    # let's schedule something
+    custom_snapshot_config = SnapshotsScheduleConfig(snapshots={"foobar-weekly": SnapshotSchedule("0 1 2 3 4", 42)})
+    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(custom_snapshot_config))
+    jobs = await task_handler.list_jobs()
+    assert len(jobs) == 1
+    assert jobs[0].name == "snapshot-foobar-weekly"
 
     # test export and import
     dump = []
