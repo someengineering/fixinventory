@@ -526,6 +526,9 @@ class SnapshotsScheduleConfig(ConfigObject):
         },
     )
 
+    def json(self) -> Json:
+        return to_js(self, strip_attr="kind")
+
 
 @define()
 class GraphUpdateConfig(ConfigObject):

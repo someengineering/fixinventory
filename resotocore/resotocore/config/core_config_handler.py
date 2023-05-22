@@ -4,6 +4,7 @@ from asyncio import Task
 from contextlib import suppress
 from functools import partial
 from typing import Optional, List, Callable, Awaitable
+from apscheduler.triggers.cron import CronTrigger
 
 import yaml
 
@@ -16,6 +17,9 @@ from resotocore.core_config import (
     ResotoCoreRoot,
     ResotoCoreCommandsConfigId,
     ResotoCoreCommandsRoot,
+    ResotoCoreSnapshotsConfigId,
+    ResotoCoreSnapshotsRoot,
+    SnapshotsScheduleConfig,
     CustomCommandsConfig,
     migrate_core_config,
     config_model as core_config_model,
@@ -77,6 +81,20 @@ class CoreConfigHandler:
             else:
                 return {"error": "Expected a json object"}
 
+        def validate_snapshot_schedule() -> Optional[Json]:
+            config = value_in_path(task_data, ["config", ResotoCoreSnapshotsRoot])
+            if isinstance(config, dict):
+                # try to read editable config, throws if there are errors
+                read = from_js(config, SnapshotsScheduleConfig)
+                # validate cron expressions
+                try:
+                    for schedule in read.snapshots.values():
+                        CronTrigger.from_crontab(schedule.schedule)
+                except Exception as ex:
+                    return {"error": f"Invalid cron expression: {ex}"}
+            else:
+                return {"error": "Expected a json object"}
+
         holder = value_in_path(task_data, ["config"])
         if not isinstance(holder, dict):
             return {"error": "Expected a json object in config"}
@@ -88,6 +106,8 @@ class CoreConfigHandler:
             return await self.inspector.validate_check_collection_config(task_data["config"])
         elif BenchmarkConfigRoot in holder:
             return await self.inspector.validate_benchmark_config(task_data["config"])
+        elif ResotoCoreSnapshotsRoot in holder:
+            return validate_snapshot_schedule()
         else:
             return {"error": "No known configuration found"}
 
@@ -98,7 +118,15 @@ class CoreConfigHandler:
         worker_id = WorkerId("resotocore.config.validate")
         description = WorkerTaskDescription(
             WorkerTaskName.validate_config,
-            {"config_id": [ResotoCoreConfigId, ResotoCoreCommandsConfigId, ResotoReportBenchmark, ResotoReportCheck]},
+            {
+                "config_id": [
+                    ResotoCoreConfigId,
+                    ResotoCoreCommandsConfigId,
+                    ResotoReportBenchmark,
+                    ResotoReportCheck,
+                    ResotoCoreSnapshotsConfigId,
+                ]
+            },
         )
         async with self.worker_task_queue.attach(worker_id, [description]) as tasks:
             while True:
@@ -182,6 +210,20 @@ class CoreConfigHandler:
         except Exception as ex:
             log.error(f"Could not update resoto users configuration: {ex}", exc_info=ex)
 
+        # make sure there is a default snapshots configuration
+        try:
+            existing_snapshots = await self.config_handler.get_config(ResotoCoreSnapshotsConfigId)
+            snapshot_update: Optional[Json] = None
+            if existing_snapshots is None:
+                snapshot_update = SnapshotsScheduleConfig().json()
+            if snapshot_update is not None:
+                await self.config_handler.put_config(
+                    ConfigEntity(ResotoCoreSnapshotsConfigId, snapshot_update), validate=False
+                )
+                log.info("Default resoto snapshots config updated.")
+        except Exception as ex:
+            log.error(f"Could not update resoto snapshots configuration: {ex}", exc_info=ex)
+
     async def __update_model(self) -> None:
         try:
             models = core_config_model() + report_config_model() + user_config_model()
@@ -195,6 +237,9 @@ class CoreConfigHandler:
             )
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoCoreCommandsConfigId, external_validation=True)
+            )
+            await self.config_handler.put_config_validation(
+                ConfigValidation(ResotoCoreSnapshotsConfigId, external_validation=True)
             )
             await self.config_handler.put_config_validation(
                 ConfigValidation(ResotoReportBenchmark, external_validation=True)

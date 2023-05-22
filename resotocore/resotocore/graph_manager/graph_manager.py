@@ -75,7 +75,9 @@ class GraphManager(Service):
             # get the new config or use the default
             snapshots_config = SnapshotsScheduleConfig()
             try:
-                snapshots_config = from_js(data, SnapshotsScheduleConfig)
+                new_config = await self.config_handler.config_handler.get_config(ResotoCoreSnapshotsConfigId)
+                if new_config:
+                    snapshots_config = from_js(new_config.config, SnapshotsScheduleConfig)
             except Exception as e:
                 log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
 
