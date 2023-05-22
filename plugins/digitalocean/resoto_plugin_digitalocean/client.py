@@ -7,6 +7,7 @@ import boto3
 import requests
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
+from urllib.parse import urljoin
 
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error
@@ -106,6 +107,7 @@ class StreamingWrapper:
             url = json_response.get("links", {}).get("pages", {}).get("next", "")
             if url == "":
                 break
+            url = urljoin(self.do_api_endpoint, url)
             log.debug(f"fetching {url}")
             json_response = validate_status(requests.get(url, headers=self.headers, allow_redirects=True)).json()
             payload = json_response.get(payload_object_name, [])
