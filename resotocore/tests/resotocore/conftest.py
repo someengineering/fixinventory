@@ -40,6 +40,7 @@ from resotocore.core_config import (
     DatabaseConfig,
     RuntimeConfig,
     CustomCommandsConfig,
+    SnapshotsScheduleConfig,
     RunConfig,
 )
 from resotocore.db import runningtaskdb, SystemData
@@ -115,6 +116,7 @@ def default_config() -> CoreConfig:
         runtime=RuntimeConfig(usage_metrics=False),
         workflows=ed.workflows,
         custom_commands=CustomCommandsConfig(),
+        snapshots=SnapshotsScheduleConfig(),
         args=parse_args(["--analytics-opt-out"]),
         run=RunConfig(),
     )
