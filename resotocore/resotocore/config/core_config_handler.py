@@ -3,7 +3,7 @@ import logging
 from asyncio import Task
 from contextlib import suppress
 from functools import partial
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Awaitable
 
 import yaml
 
@@ -22,7 +22,7 @@ from resotocore.core_config import (
     migrate_command_config,
 )
 from resotocore.dependencies import empty_config
-from resotocore.ids import SubscriberId, WorkerId
+from resotocore.ids import SubscriberId, WorkerId, ConfigId
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
@@ -56,6 +56,7 @@ class CoreConfigHandler:
         self.event_sender = event_sender
         self.inspector = inspector
         self.exit_fn = exit_fn
+        self.config_updated_callbacks: List[Callable[[ConfigId, Json], Awaitable[None]]] = []
 
     async def validate_config_entry(self, task_data: Json) -> Optional[Json]:
         def validate_core_config() -> Optional[Json]:
@@ -90,6 +91,9 @@ class CoreConfigHandler:
         else:
             return {"error": "No known configuration found"}
 
+    def add_callback(self, callback: Callable[[ConfigId, Json], Awaitable[None]]) -> None:
+        self.config_updated_callbacks.append(callback)
+
     async def __validate_config(self) -> None:
         worker_id = WorkerId("resotocore.config.validate")
         description = WorkerTaskDescription(
@@ -123,6 +127,13 @@ class CoreConfigHandler:
             while True:
                 event = await events.get()
                 event_id = event.data.get("id")
+                if event_id:
+                    for callback in self.config_updated_callbacks:
+                        try:
+                            await callback(event_id, event.data)
+                        except Exception as ex:
+                            log.warning("Error in config update callback", exc_info=ex)
+
                 if event_id in (ResotoCoreConfigId, ResotoCoreCommandsConfigId):
                     log.info(f"Core config was updated: {event_id} Restart to take effect.")
                     await self.__detect_usage_metrics_turned_off()

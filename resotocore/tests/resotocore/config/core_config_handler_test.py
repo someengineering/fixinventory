@@ -10,6 +10,8 @@ from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import ResotoCoreConfigId, ResotoCoreRoot, ResotoCoreCommandsRoot, CustomCommandsConfig
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
+from resotocore.ids import ConfigId
+from resotocore.types import Json
 
 
 @mark.asyncio
@@ -36,12 +38,20 @@ async def test_config_ingested_on_start(core_config_handler: CoreConfigHandler, 
 async def test_exit_on_updated_config(
     core_config_handler: CoreConfigHandler, message_bus: MessageBus, core_config_handler_exits: List[bool]
 ) -> None:
+    callback_result = []
+
+    async def callback(config_id: ConfigId, data: Json) -> None:
+        callback_result.append(data)
+
     try:
         await core_config_handler.start()
+        core_config_handler.add_callback(callback)
         await asyncio.sleep(0.1)
         await message_bus.emit_event(CoreMessage.ConfigUpdated, {"id": ResotoCoreConfigId})
         await asyncio.sleep(0.1)
         assert len(core_config_handler_exits) == 1
+        assert len(callback_result) == 1
+        assert callback_result[0] == {"id": ResotoCoreConfigId}
     finally:
         await core_config_handler.stop()
 
