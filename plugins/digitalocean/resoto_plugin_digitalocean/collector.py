@@ -581,7 +581,7 @@ class DigitalOceanTeamCollector:
                 ],
                 "__tags": [
                     "urn",
-                    lambda v: list(map(lambda tag: tag_id(tag), v.get("tags", []))),
+                    lambda v: list(map(lambda tag: tag_id(tag), v.get("tags", []) or [])),
                 ],
             },
             predecessors={EdgeType.default: ["__users", "__tags"]},
