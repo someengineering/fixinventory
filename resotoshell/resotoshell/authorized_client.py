@@ -52,7 +52,7 @@ async def new_client(args: Namespace) -> ResotoClient:
         else:
             # No valid credentials found in config file. Start authorization flow
             done_condition = Condition()
-            async with AuthServer(get_free_port(), "https://localhost:8900", done_condition) as srv:
+            async with AuthServer(get_free_port(), resotocore.http_uri, done_condition) as srv:
                 async with done_condition:
                     await done_condition.wait()
                     assert srv.code, "Authorization code not received"
@@ -77,7 +77,9 @@ async def update_auth_header(client: ResotoClient) -> None:
 async def fetch_auth_header(resotocore_url: str, params: Optional[Dict[str, str]] = None) -> Optional[Tuple[str, str]]:
     async with ClientSession() as session:
         # Call will return data about the user - we are only interested in the Authorization header
-        async with session.get(resotocore_url + "/authorization/user", params=params, allow_redirects=False) as resp:
+        async with session.get(
+            resotocore_url + "/authorization/user", params=params, allow_redirects=False, ssl=False
+        ) as resp:
             if resp.status < 300:
                 if auth := resp.headers.get("Authorization"):
                     log.debug(f"Received user information:  {await resp.text()}")
