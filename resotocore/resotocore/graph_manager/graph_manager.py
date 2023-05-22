@@ -1,5 +1,6 @@
-from typing import List, Optional, AsyncIterator, cast
-from asyncio import Lock
+from typing import List, Optional, AsyncIterator, cast, Tuple
+import asyncio
+from asyncio import Lock, Task
 
 import logging
 
@@ -40,6 +41,34 @@ class GraphManager(Service):
         self.task_handler = task_handler
         self.default_snapshots_config = default_snapshots_config
         self.config_handler = config_handler
+        self.snapshot_cleanup_worker: Optional[Task] = None
+
+    async def __setup_cleanup_old_snapshots_worker(self, snapshots_config: SnapshotsScheduleConfig) -> None:
+        if self.snapshot_cleanup_worker:
+            self.snapshot_cleanup_worker.cancel()
+
+        async def worker(snapshots_config: SnapshotsScheduleConfig) -> None:
+            while True:
+                await asyncio.sleep(60)
+                await self._clean_outdated_snapshots(snapshots_config)
+
+        self.snapshot_cleanup_worker = asyncio.create_task(worker(snapshots_config))
+
+    async def _clean_outdated_snapshots(self, snapshots_config: SnapshotsScheduleConfig) -> None:
+        # get all existing snapshots
+        existing_snapshots = await self.list("snapshot-.*")
+
+        snapshots_to_keep: List[Tuple[str, int]] = []
+        for label, schedule in snapshots_config.snapshots.items():
+            regex = rf"snapshot-\w+-{label}-.*"
+            snapshots_to_keep.append((regex, schedule.retain))
+
+        # delete all snapshots that are outdated
+        for regex, retain in snapshots_to_keep:
+            snapshots = [snapshot for snapshot in existing_snapshots if re.match(regex, snapshot)]
+            snapshots.sort(reverse=True)
+            for snapshot in snapshots[retain:]:
+                await self.delete(snapshot)
 
     async def _on_config_updated(self, config_id: str, data: Json) -> None:
         if config_id == ResotoCoreSnapshotsConfigId and data:
@@ -49,6 +78,9 @@ class GraphManager(Service):
                 snapshots_config = from_js(data, SnapshotsScheduleConfig)
             except Exception as e:
                 log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
+
+            # recreate the cleanup worker according to the new schedule
+            await self.__setup_cleanup_old_snapshots_worker(snapshots_config)
 
             # cancel all existing snapshot jobs
             existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith("snapshot-")]
@@ -72,6 +104,7 @@ class GraphManager(Service):
         await self._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(self.default_snapshots_config))
         # subscribe to config updates to update the snapshot schedule
         self.config_handler.add_callback(self._on_config_updated)
+        self.snapshot_cleanup_worker = await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]

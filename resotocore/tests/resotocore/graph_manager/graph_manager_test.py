@@ -21,9 +21,11 @@ async def test_graph_manager(
     core_config_handler: CoreConfigHandler,
     task_handler: TaskHandler,
 ) -> None:
+    # test setup
     graph_name = GraphName("test_graph")
     graph_db = await db_access.create_graph(graph_name, validate_name=False)
     await graph_db.wipe()
+    await db_access.delete_graph(GraphName("test_graph_copy"))
 
     # populate some data in the graphes
     nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
@@ -49,6 +51,15 @@ async def test_graph_manager(
                 break
         else:
             raise AssertionError(f"Could not find graph with name {name} in {graphs}")
+
+    # test snapshot cleanup
+    await graph_manager._clean_outdated_snapshots(
+        SnapshotsScheduleConfig(snapshots={"label": SnapshotSchedule("0 1 2 3 4", 0)})
+    )
+    graphs = await graph_manager.list(".*")
+    for graph in graphs:
+        if re.match("snapshot-test_graph-label-.*", graph):
+            raise AssertionError(f"Found outdated snapshot {graph} in {graphs}")
 
     # delete
     await graph_manager.delete(GraphName("test_graph_copy"))
