@@ -6,13 +6,16 @@ import webbrowser
 from argparse import Namespace
 from asyncio import Task, Condition
 from configparser import ConfigParser
+from datetime import timedelta
 from pathlib import Path
+from ssl import SSLContext
 from typing import Any, Optional, Tuple, Dict, MutableMapping
 from urllib.parse import urlencode
 
 import jwt
 from aiohttp import web, hdrs, ClientSession
 from resotoclient.async_client import ResotoClient
+from resotoclient.ca import CertificatesHolder
 
 from resotolib.core import resotocore
 from resotolib.logger import log
@@ -33,9 +36,11 @@ async def new_client(args: Namespace) -> ResotoClient:
             verify=args.verify_certs,
         )
 
+    # fetch ssl certificate
+    ssl = await CertificatesHolder(resotocore.http_uri, args.psk, args.ca_cert, timedelta(days=1)).ssl_context()
     # No PSK defined. Do we need to authorize?
     try:
-        await fetch_auth_header(resotocore.http_uri)
+        await fetch_auth_header(resotocore.http_uri, ssl=ssl)
         # no authorization required
         return ResotoClient(url=resotocore.http_uri, custom_ca_cert_path=args.ca_cert, verify=args.verify_certs)
     except AccessDeniedError:
@@ -56,7 +61,7 @@ async def new_client(args: Namespace) -> ResotoClient:
                 async with done_condition:
                     await done_condition.wait()
                     assert srv.code, "Authorization code not received"
-                    result = await fetch_auth_header(resotocore.http_uri, params={"code": srv.code})
+                    result = await fetch_auth_header(resotocore.http_uri, ssl=ssl, params={"code": srv.code})
                     assert result, "Authorization failed"
                     method, token = result
                     config.update_auth(resotocore.http_uri, method, token)
@@ -74,11 +79,13 @@ async def update_auth_header(client: ResotoClient) -> None:
         ReshConfig.default().update_auth(client.http_client.url, method, token)
 
 
-async def fetch_auth_header(resotocore_url: str, params: Optional[Dict[str, str]] = None) -> Optional[Tuple[str, str]]:
+async def fetch_auth_header(
+    resotocore_url: str, ssl: SSLContext, params: Optional[Dict[str, str]] = None
+) -> Optional[Tuple[str, str]]:
     async with ClientSession() as session:
         # Call will return data about the user - we are only interested in the Authorization header
         async with session.get(
-            resotocore_url + "/authorization/user", params=params, allow_redirects=False, ssl=False
+            resotocore_url + "/authorization/user", params=params, allow_redirects=False, ssl=ssl
         ) as resp:
             if resp.status < 300:
                 if auth := resp.headers.get("Authorization"):
