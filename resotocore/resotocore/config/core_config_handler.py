@@ -90,6 +90,7 @@ class CoreConfigHandler:
                 try:
                     for schedule in read.snapshots.values():
                         CronTrigger.from_crontab(schedule.schedule)
+                    return None
                 except Exception as ex:
                     return {"error": f"Invalid cron expression: {ex}"}
             else:
