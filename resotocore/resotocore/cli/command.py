@@ -4783,7 +4783,7 @@ class ReportCommand(CLICommand):
         async def show_benchmark(bid: str) -> AsyncIterator[Optional[str]]:
             yield await self.dependencies.config_handler.config_yaml(ConfigId(BenchmarkConfigPrefix + bid))
 
-        async def show_check(cid: str) -> AsyncIterator[Json]:
+        async def show_check(cid: str) -> AsyncIterator[str]:
             model = await self.dependencies.config_handler.get_configs_model()
             kind = model.get("resoto_core_report_check")
             for check in await self.dependencies.inspector.list_checks(check_ids=[cid]):
