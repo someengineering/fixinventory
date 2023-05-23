@@ -226,7 +226,9 @@ class GraphManager(Service):
                 EventGraphDB, await self.db_access.create_graph(GraphName(graph_name + "-temp"), validate_name=False)
             ).real
 
-            metadata = from_js(loads(await stream.__anext__()), ExportMetadata)
+            metadata = from_js(
+                loads(await stream.__anext__()), ExportMetadata  # pylint: disable=unnecessary-dunder-call
+            )
             # check the serializer version, in the future we might need to support multiple versions
             if metadata.serializer_version != "0.1.0":
                 raise ValueError(f"Unsupported dump version {metadata.serializer_version}")
