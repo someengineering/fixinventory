@@ -1123,7 +1123,7 @@ class ArangoGraphDB(GraphDB):
     # return: the complete document
     def query_node_by_id(self) -> str:
         return f"""
-      FOR resource in {self.vertex_name}
+      FOR resource in `{self.vertex_name}`
       FILTER resource._key==@rid
       LIMIT 1
       RETURN resource
@@ -1131,7 +1131,7 @@ class ArangoGraphDB(GraphDB):
 
     def query_update_nodes(self, merge_node_kind: str) -> str:
         return f"""
-        FOR a IN {self.vertex_name}
+        FOR a IN `{self.vertex_name}`
         FILTER a.refs.{merge_node_kind}_id==@update_id
         RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
@@ -1139,14 +1139,14 @@ class ArangoGraphDB(GraphDB):
     def query_update_edges(self, edge_type: EdgeType, merge_node_kind: str) -> str:
         collection = self.edge_collection(edge_type)
         return f"""
-        FOR a IN {collection}
+        FOR a IN `{collection}`
         FILTER a.refs.{merge_node_kind}_id==@update_id
         RETURN {{_key: a._key, _from: a._from, _to: a._to}}
         """
 
     def query_update_nodes_by_ids(self) -> str:
         return f"""
-        FOR a IN {self.vertex_name}
+        FOR a IN `{self.vertex_name}`
         FILTER a._key IN @ids
         RETURN {{_key: a._key, hash:a.hash, created:a.created}}
         """
@@ -1154,59 +1154,59 @@ class ArangoGraphDB(GraphDB):
     def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
         collection = self.edge_collection(edge_type)
         return f"""
-        FOR a IN {collection}
+        FOR a IN `{collection}`
         FILTER a._key in @ids
         RETURN {{_key: a._key, _from: a._from, _to: a._to}}
         """
 
     def query_update_parent_linked(self) -> str:
         return f"""
-        FOR a IN {self.edge_collection(EdgeTypes.default)}
+        FOR a IN `{self.edge_collection(EdgeTypes.default)}`
         FILTER a._from==@from and a._to==@to
         RETURN true
         """
 
     def query_update_desired_metadata_many(self, section: str) -> str:
         return f"""
-        FOR a IN {self.vertex_name}
+        FOR a IN `{self.vertex_name}`
         FILTER a._key in @node_ids
-        UPDATE a with {{ "{section}": @patch }} IN {self.vertex_name}
+        UPDATE a with {{ "{section}": @patch }} IN `{self.vertex_name}`
         RETURN NEW
         """
 
     def query_delete_desired_metadata_many(self, section: str) -> str:
         return f"""
-        FOR a IN {self.vertex_name}
+        FOR a IN `{self.vertex_name}`
         FILTER a._key in @node_ids
-        REPLACE a with UNSET(a, "{section}") IN {self.vertex_name}
+        REPLACE a with UNSET(a, "{section}") IN `{self.vertex_name}`
         RETURN NEW
         """
 
     def query_count_direct_children(self) -> str:
         return f"""
-        FOR pn in {self.vertex_name} FILTER pn._key==@rid LIMIT 1
+        FOR pn in `{self.vertex_name}` FILTER pn._key==@rid LIMIT 1
         FOR c IN 1..1 OUTBOUND pn {self.edge_collection(EdgeTypes.default)} COLLECT WITH COUNT INTO length
         RETURN length
         """
 
     def query_active_updates(self) -> str:
         return f"""
-        FOR c IN {self.in_progress}
+        FOR c IN `{self.in_progress}`
         RETURN {{id: c.change, created: c.created, affected_nodes: c.root_node_ids, is_batch: c.is_batch}}
         """
 
     def query_active_change(self) -> str:
         return f"""
-        FOR change IN {self.in_progress}
+        FOR change IN `{self.in_progress}`
         FILTER @root_node_ids any in change.parent_node_ids OR @root_node_ids any in change.root_node_ids
         RETURN change
         """
 
     def update_active_change(self) -> str:
         return f"""
-        FOR d in {self.in_progress}
+        FOR d in `{self.in_progress}`
         FILTER d.change == @change
-        UPDATE d WITH {{created: DATE_ISO8601(DATE_NOW())}} in {self.in_progress}
+        UPDATE d WITH {{created: DATE_ISO8601(DATE_NOW())}} in `{self.in_progress}`
         """
 
 
