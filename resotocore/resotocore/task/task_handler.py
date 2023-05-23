@@ -52,6 +52,7 @@ from resotocore.task.task_description import (
     Trigger,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
+import re
 
 log = logging.getLogger(__name__)
 
@@ -312,7 +313,14 @@ class TaskHandlerService(TaskHandler):
     async def list_workflows(self) -> List[Workflow]:
         return [td for td in self.task_descriptions if isinstance(td, Workflow)]
 
-    async def add_job(self, job: Job) -> None:
+    def __validate_job_name(self, name: str) -> None:
+        # : is not allowed in job names
+        if re.match(r"^[^:]+$", name) is None:
+            raise AttributeError(f"Job name must not contain a colon: {name}")
+
+    async def add_job(self, job: Job, validate_name: bool = True) -> None:
+        if validate_name:
+            self.__validate_job_name(job.name)
         descriptions = list(self.task_descriptions)
         existing = first(lambda td: td.id == job.id, descriptions)
         if existing:

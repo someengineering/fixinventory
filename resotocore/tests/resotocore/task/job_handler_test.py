@@ -17,7 +17,11 @@ class InMemJobHandler(TaskHandler):
     async def list_workflows(self) -> List[Workflow]:
         return []
 
-    async def add_job(self, job: Job) -> None:
+    async def add_job(
+        self,
+        job: Job,
+        validate_name: bool = True,
+    ) -> None:
         self.jobs.append(job)
 
     async def delete_job(self, job_id: str) -> Optional[Job]:

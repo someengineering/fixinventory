@@ -23,8 +23,13 @@ class TaskHandler(ABC):
         pass
 
     @abstractmethod
-    async def add_job(self, job: Job) -> None:
-        pass
+    async def add_job(self, job: Job, validate_name: bool = True) -> None:
+        """
+        Add a job to the task handler. If validate_name is True, the name of the job will be validated and exception
+        will be thrown in case the job name contains invalid characters.
+
+        Make sure to always validate the name if the job is added by the user.
+        """
 
     @abstractmethod
     async def delete_job(self, job_id: str) -> Optional[Job]:

@@ -73,7 +73,7 @@ async def test_graph_manager(
     await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, {})
     jobs = await task_handler.list_jobs()
     assert len(jobs) == 5
-    assert jobs[0].name == "snapshot-hourly"
+    assert jobs[0].name == "resoto:snapshots:hourly"
 
     # test export and import
     dump = []

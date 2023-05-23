@@ -72,6 +72,7 @@ class GraphManager(Service):
 
     async def _on_config_updated(self, config_id: str, data: Json) -> None:
         if config_id == ResotoCoreSnapshotsConfigId:
+            job_prefix = "resoto:snapshots:"
             # get the new config or use the default
             snapshots_config = SnapshotsScheduleConfig()
             try:
@@ -85,20 +86,20 @@ class GraphManager(Service):
             await self.__setup_cleanup_old_snapshots_worker(snapshots_config)
 
             # cancel all existing snapshot jobs
-            existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith("snapshot-")]
+            existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith(job_prefix)]
             for job in existing_jobs:
                 await self.task_handler.delete_job(job.id)
 
             # schedule new snapshot jobs for the current graph
             for label, schedule in snapshots_config.snapshots.items():
                 job = Job(
-                    uid=TaskDescriptorId(f"snapshot-{label}"),
+                    uid=TaskDescriptorId(f"{job_prefix}{label}"),
                     command=ExecuteCommand(f"graph snapshot {label}"),
                     timeout=timedelta(minutes=5),
                     trigger=TimeTrigger(schedule.schedule),
                 )
 
-                await self.task_handler.add_job(job)
+                await self.task_handler.add_job(job, validate_name=False)
 
     async def start(self) -> None:
         self.lock = Lock()
@@ -107,6 +108,11 @@ class GraphManager(Service):
         # subscribe to config updates to update the snapshot schedule
         self.config_handler.add_callback(self._on_config_updated)
         await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
+
+    async def stop(self) -> None:
+        if self.snapshot_cleanup_worker:
+            self.snapshot_cleanup_worker.cancel()
+            self.snapshot_cleanup_worker = None
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
