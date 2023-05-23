@@ -95,7 +95,7 @@ def test_with_query_with_limit(foo_model: Model, graph_db: GraphDB) -> None:
     query = "is(foo) with(empty, -->) limit 2"
     query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
     # make sure, there is no limit in the filter statement
-    assert "LET filter0 = (FOR m0 in ns FILTER @b0 IN m0.kinds  RETURN m0)" in query_str
+    assert "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0)" in query_str
     # make sure the limit is applied to the with statement
     assert "FILTER counter1==1  LIMIT 0, 2 RETURN l0_l0_res" in query_str
 
@@ -105,7 +105,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
     aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     # query unfolds all nested loops
     assert aql == (
-        "LET filter0 = (LET nested_distinct0 = (FOR m0 in ns  FOR pre0 IN TO_ARRAY(m0.reported.inner) "
+        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  FOR pre0 IN TO_ARRAY(m0.reported.inner) "
         "FOR pre1 IN TO_ARRAY(pre0.inner)  "
         "FOR pre2 IN TO_ARRAY(m0.reported.parents) "
         "FILTER ((@b0 IN m0.kinds) and ((pre0.name == @b1) and (pre1.name == @b2))) and (pre2.some_int == @b3) "
@@ -121,7 +121,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
     query = "is(foo) and inner[1].{name=true and inner[0].name==true}"
     aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     assert aql == (
-        "LET filter0 = (FOR m0 in ns FILTER (@b0 IN m0.kinds) and "
+        "LET filter0 = (FOR m0 in `ns` FILTER (@b0 IN m0.kinds) and "
         "((m0.reported.inner[1].name == @b1) and (m0.reported.inner[1].inner[0].name == @b2))  RETURN m0) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])'
     )

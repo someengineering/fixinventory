@@ -246,7 +246,7 @@ async def test_graph_api(core_client: ResotoClient) -> None:
     # create the raw search
     raw = await core_client.search_graph_raw('id("3")', g)
     assert raw == {
-        "query": "LET filter0 = (FOR m0 in graphtest FILTER m0._key == @b0  RETURN m0) "
+        "query": "LET filter0 = (FOR m0 in `graphtest` FILTER m0._key == @b0  RETURN m0) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])',
         "bind_vars": {"b0": "3"},
     }
