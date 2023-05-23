@@ -84,6 +84,7 @@ class CoreConfigHandler:
         def validate_snapshot_schedule() -> Optional[Json]:
             config = value_in_path(task_data, ["config", ResotoCoreSnapshotsRoot])
             if isinstance(config, dict):
+                config = {"snapshots": config}  # wrap in snapshots objects to match the dataclass
                 # try to read editable config, throws if there are errors
                 read = from_js(config, SnapshotsScheduleConfig)
                 # validate cron expressions

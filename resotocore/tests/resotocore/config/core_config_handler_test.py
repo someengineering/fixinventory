@@ -7,7 +7,13 @@ from pytest import mark, raises
 from resotocore.analytics import AnalyticsEvent, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import ResotoCoreConfigId, ResotoCoreRoot, ResotoCoreCommandsRoot, CustomCommandsConfig
+from resotocore.core_config import (
+    ResotoCoreConfigId,
+    ResotoCoreRoot,
+    ResotoCoreCommandsRoot,
+    CustomCommandsConfig,
+    ResotoCoreSnapshotsRoot,
+)
 from resotocore.dependencies import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.ids import ConfigId
@@ -76,6 +82,18 @@ async def test_validation(core_config_handler: CoreConfigHandler) -> None:
         await validate({"config": {ResotoCoreCommandsRoot: {"commands": 23}}})
     # valid entry can be read
     assert await validate({"config": {ResotoCoreCommandsRoot: CustomCommandsConfig().json()}}) is None
+
+    # cron expression is valid
+    assert (
+        await validate({"config": {ResotoCoreSnapshotsRoot: {"foo-label": {"schedule": "0 0 * * *", "retain": 42}}}})
+        is None
+    )
+
+    # cron expression is invalid
+    assert (
+        await validate({"config": {ResotoCoreSnapshotsRoot: {"foo-label": {"schedule": "foo bar", "retain": 42}}}})
+        is not None
+    )
 
 
 @mark.asyncio
