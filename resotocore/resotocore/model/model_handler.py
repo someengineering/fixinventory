@@ -136,6 +136,7 @@ class ModelHandlerDB(ModelHandler):
         graph = model.graph()
         show = [re.compile(s) for s in show_packages] if show_packages else None
         hide = [re.compile(s) for s in hide_packages] if hide_packages else None
+        visited_complex: Set[str] = set()
 
         def not_hidden(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
@@ -181,6 +182,9 @@ class ModelHandlerDB(ModelHandler):
             )
 
         def complex_property_kinds(cpx: ComplexKind) -> Set[str]:
+            if cpx.fqn in visited_complex:
+                return set()
+            visited_complex.add(cpx.fqn)
             result: Set[str] = set()
             for _, k in cpx.property_with_kinds():
                 for cpl in k.nested_complex_kinds():
@@ -206,8 +210,8 @@ class ModelHandlerDB(ModelHandler):
         if with_properties:
             add_visible(complex_property_kinds)
 
-        visible_nodes = [(nid, node) for nid, node in graph.nodes(data=True) if nid in visible]
-        nodes = "\n".join([class_node(node["data"]) for nid, node in sorted(visible_nodes, key=lambda n: n[0])])
+        visible_nodes = (node["data"] for nid, node in graph.nodes(data=True) if nid in visible)
+        nodes = "\n".join(class_node(node) for node in sorted(visible_nodes, key=lambda n: n.fqn))  # type: ignore
         edges = ""
         for fr, to, data in sorted(graph.edges(data=True), key=lambda e: (e[0], e[1])):
             if fr in visible and to in visible:
