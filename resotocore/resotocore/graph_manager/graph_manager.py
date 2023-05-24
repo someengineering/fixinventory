@@ -1,6 +1,5 @@
 from typing import List, Optional, AsyncIterator, cast, Tuple
-import asyncio
-from asyncio import Lock, Task
+from asyncio import Lock
 
 import logging
 
@@ -9,7 +8,7 @@ from resotocore.db.graphdb import EventGraphDB
 from resotocore.util import utc_str
 from resotocore.ids import GraphName, TaskDescriptorId
 from resotocore.web.service import Service
-from resotocore.util import check_graph_name
+from resotocore.util import check_graph_name, Periodic
 from resotocore.types import Json
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js, to_js, to_js_str
@@ -41,18 +40,16 @@ class GraphManager(Service):
         self.task_handler = task_handler
         self.default_snapshots_config = default_snapshots_config
         self.config_handler = config_handler
-        self.snapshot_cleanup_worker: Optional[Task[None]] = None
+        self.snapshot_cleanup_worker: Optional[Periodic] = None
 
     async def __setup_cleanup_old_snapshots_worker(self, snapshots_config: SnapshotsScheduleConfig) -> None:
         if self.snapshot_cleanup_worker:
-            self.snapshot_cleanup_worker.cancel()
+            await self.snapshot_cleanup_worker.stop()
 
-        async def worker(snapshots_config: SnapshotsScheduleConfig) -> None:
-            while True:
-                await asyncio.sleep(60)
-                await self._clean_outdated_snapshots(snapshots_config)
-
-        self.snapshot_cleanup_worker = asyncio.create_task(worker(snapshots_config))
+        self.snapshot_cleanup_worker = Periodic(
+            "snapshot_cleanup_worker", lambda: self._clean_outdated_snapshots(snapshots_config), timedelta(seconds=60)
+        )
+        await self.snapshot_cleanup_worker.start()
 
     async def _clean_outdated_snapshots(self, snapshots_config: SnapshotsScheduleConfig) -> None:
         # get all existing snapshots
@@ -111,7 +108,7 @@ class GraphManager(Service):
 
     async def stop(self) -> None:
         if self.snapshot_cleanup_worker:
-            self.snapshot_cleanup_worker.cancel()
+            await self.snapshot_cleanup_worker.stop()
             self.snapshot_cleanup_worker = None
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
