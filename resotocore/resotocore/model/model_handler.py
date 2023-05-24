@@ -2,7 +2,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from functools import reduce
-from typing import Optional, List, Set, Callable, Dict
+from typing import Optional, List, Set, Callable, Dict, Iterator
 
 from plantuml import PlantUML
 
@@ -210,8 +210,8 @@ class ModelHandlerDB(ModelHandler):
         if with_properties:
             add_visible(complex_property_kinds)
 
-        visible_nodes = (node["data"] for nid, node in graph.nodes(data=True) if nid in visible)
-        nodes = "\n".join(class_node(node) for node in sorted(visible_nodes, key=lambda n: n.fqn))  # type: ignore
+        visible_nodes: Iterator[ComplexKind] = (node["data"] for nid, node in graph.nodes(data=True) if nid in visible)
+        nodes = "\n".join(class_node(node) for node in sorted(visible_nodes, key=lambda n: n.fqn))
         edges = ""
         for fr, to, data in sorted(graph.edges(data=True), key=lambda e: (e[0], e[1])):
             if fr in visible and to in visible:
