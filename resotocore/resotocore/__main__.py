@@ -40,7 +40,7 @@ from resotocore.core_config import (
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging, event_stream
+from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
 from resotocore.model.model_handler import ModelHandlerDB
@@ -156,7 +156,6 @@ def with_config(
         config,
         config_override_service,
     )
-    log_ship = event_stream(config, cert_handler.client_context)
     user_management = UserManagementService(db, config_handler, event_sender)
     cli_deps = CLIDependencies(
         message_bus=message_bus,
@@ -227,7 +226,6 @@ def with_config(
         await core_config_handler.start()
         await merge_outer_edges_handler.start()
         await cert_handler.start()
-        await log_ship.start()
         await api.start()
         await infra_apps_package_manager.start()
         await graph_manager.start()
@@ -263,7 +261,6 @@ def with_config(
         await graph_manager.stop()
         await infra_apps_package_manager.stop()
         await api.stop()
-        await log_ship.stop()
         await cert_handler.stop()
         await config_override_service.stop()
         await core_config_handler.stop()
