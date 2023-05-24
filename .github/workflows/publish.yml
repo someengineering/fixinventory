@@ -6,7 +6,7 @@ on:
       - "*.*.*"
     branches:
       - main
-  workflow_dispatch: # edge resource data models are only updated when this workflow is triggered manually
+  workflow_dispatch:
 
 jobs:
   edge:
@@ -62,14 +62,33 @@ jobs:
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/edge/ResotoMutate.json
 
-      - name: Update resource data models
+      - name: Wait for Docker images to build
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.2.0
+        with:
+          ref: ${{ github.ref }}
+          check-name: "Build split Docker images"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Modify Docker Compose YAML
+        shell: bash
+        run: |
+          yq -i '(.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
+
+      - name: Clean existing resource data model images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
         run: |
+          cd ${{ github.workspace }}/resoto.com/static/img/kroki
+          find . -type f -name "*.svg" -prune -exec rm {} \;
+
+      - name: Update resource data models
+        continue-on-error: true
+        shell: bash
+        run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/docs/reference/data-models
-          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          cd ${{ github.workspace }}/resoto.com/docs/reference/data-models
+          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
       - name: Optimize & format
         working-directory: ./resoto.com
@@ -220,9 +239,10 @@ jobs:
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
-          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          cd ${{ github.workspace }}/resoto.com/static/img/kroki
+          find . -type f -name "*.svg" -prune -exec rm {} \;
+          cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
+          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
       - name: Optimize & format
         if: steps.release.outputs.prerelease == 'false'
