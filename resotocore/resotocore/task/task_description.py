@@ -141,7 +141,7 @@ class SendMessage(TaskCommand):
 class ExecuteOnCLI(TaskCommand):
     command: str
     # noinspection PyUnresolvedReferences
-    env: frozendict
+    env: frozendict[str, str]
 
 
 # endregion
