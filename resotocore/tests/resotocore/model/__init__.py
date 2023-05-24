@@ -29,6 +29,7 @@ class ModelHandlerStatic(ModelHandler):
         with_properties: bool = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
+        sort_props: bool = True,
     ) -> bytes:
         raise NotImplementedError
 

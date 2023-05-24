@@ -2,7 +2,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from functools import reduce
-from typing import Optional, List, Set, Callable, Dict
+from typing import Optional, List, Set, Callable, Dict, Iterator
 
 from plantuml import PlantUML
 
@@ -38,6 +38,7 @@ class ModelHandler(ABC):
         with_properties: bool = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
+        sort_props: bool = True,
     ) -> bytes:
         """
         Generate a PlantUML image of the model.
@@ -55,6 +56,7 @@ class ModelHandler(ABC):
         :param with_properties: include properties for all matching classes to show in the diagram
         :param link_classes: add anchor links to all classes
         :param only_aggregate_roots: if the list of classes should be filtered for aggregate roots
+        :param sort_props: if the properties should be sorted by name
         :return: the generated image
         """
 
@@ -126,6 +128,7 @@ class ModelHandlerDB(ModelHandler):
         with_properties: bool = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
+        sort_props: bool = True,
     ) -> bytes:
         allowed_edge_types: Set[EdgeType] = dependency_edges or set()
         assert output in ("svg", "png", "puml"), "Only svg, png and puml is supported!"
@@ -133,6 +136,7 @@ class ModelHandlerDB(ModelHandler):
         graph = model.graph()
         show = [re.compile(s) for s in show_packages] if show_packages else None
         hide = [re.compile(s) for s in hide_packages] if hide_packages else None
+        visited_complex: Set[str] = set()
 
         def not_hidden(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
@@ -154,7 +158,8 @@ class ModelHandlerDB(ModelHandler):
             def kind_name(p: Property) -> str:
                 return (sth[p.name].simple_kind.runtime_kind if p.name in sth else p.kind) if p.synthetic else p.kind
 
-            props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx.properties]) if with_properties else ""
+            cpx_props = sorted(cpx.properties, key=lambda p: p.name) if sort_props else cpx.properties
+            props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx_props]) if with_properties else ""
             link = f" [[#{cpx.fqn}]]" if link_classes else ""
             return f"class {cpx.fqn}{link} {{\n{props}\n}}"
 
@@ -177,6 +182,9 @@ class ModelHandlerDB(ModelHandler):
             )
 
         def complex_property_kinds(cpx: ComplexKind) -> Set[str]:
+            if cpx.fqn in visited_complex:
+                return set()
+            visited_complex.add(cpx.fqn)
             result: Set[str] = set()
             for _, k in cpx.property_with_kinds():
                 for cpl in k.nested_complex_kinds():
@@ -202,9 +210,10 @@ class ModelHandlerDB(ModelHandler):
         if with_properties:
             add_visible(complex_property_kinds)
 
-        nodes = "\n".join([class_node(node["data"]) for nid, node in graph.nodes(data=True) if nid in visible])
+        visible_nodes: Iterator[ComplexKind] = (node["data"] for nid, node in graph.nodes(data=True) if nid in visible)
+        nodes = "\n".join(class_node(node) for node in sorted(visible_nodes, key=lambda n: n.fqn))
         edges = ""
-        for fr, to, data in graph.edges(data=True):
+        for fr, to, data in sorted(graph.edges(data=True), key=lambda e: (e[0], e[1])):
             if fr in visible and to in visible:
                 if with_inheritance and data["type"] == "inheritance":
                     edges += f"{to} <|--- {fr}\n"
