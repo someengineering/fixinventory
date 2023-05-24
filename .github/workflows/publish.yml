@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           cd ${{ github.workspace }}/resoto.com/static/img/kroki
-          find . -type f -name "*.svg" -prune -exec rm {} \;
+          find . -type f -name "*.svg" -prune -exec rm {} \+
 
       - name: Update resource data models
         continue-on-error: true
@@ -242,7 +242,7 @@ jobs:
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
           cd ${{ github.workspace }}/resoto.com/static/img/kroki
-          find . -type f -name "*.svg" -prune -exec rm {} \;
+          find . -type f -name "*.svg" -prune -exec rm {} \+
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
