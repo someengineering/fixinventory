@@ -173,6 +173,18 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: aggregate_roots
+          description: Show aggregate roots.
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: sort_props
+          description: Sort properties by name.
+          in: query
+          schema:
+            type: boolean
+            default: true
       responses:
         "200":
           description: "Returns the model as uml diagram in svg format"
@@ -325,6 +337,18 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: aggregate_roots
+          description: Show aggregate roots.
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: sort_props
+          description: Sort properties by name.
+          in: query
+          schema:
+            type: boolean
+            default: true
       responses:
         "200":
           description: "Returns the model as uml diagram in svg format"

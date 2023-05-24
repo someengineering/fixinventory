@@ -791,6 +791,7 @@ class Api:
         with_properties = request.query.get("with_properties", "true") != "false"
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
+        sort_props = request.query.get("sort_props", "true") != "false"
         result = await self.model_handler.uml_image(
             graph_name=graph_id,
             output=output,
@@ -805,6 +806,7 @@ class Api:
             with_properties=with_properties,
             link_classes=link_classes,
             only_aggregate_roots=aggregate_roots,
+            sort_props=sort_props,
         )
         response = web.StreamResponse()
         mt = {"svg": "image/svg+xml", "png": "image/png", "puml": "text/plain"}
