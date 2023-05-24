@@ -186,7 +186,7 @@ def with_config(
     cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
     infra_apps_package_manager = PackageManager(db.package_entity_db, config_handler)
     cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
-    graph_manager = GraphManager(db)
+    graph_manager = GraphManager(db, config.snapshots, core_config_handler, task_handler)
     cli_deps.extend(graph_manager=graph_manager)
     api = Api(
         db,

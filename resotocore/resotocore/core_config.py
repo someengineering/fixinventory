@@ -26,10 +26,12 @@ log = logging.getLogger(__name__)
 # ids used in the config store
 ResotoCoreConfigId = ConfigId("resoto.core")
 ResotoCoreCommandsConfigId = ConfigId("resoto.core.commands")
+ResotoCoreSnapshotsConfigId = ConfigId("resoto.core.snapshots")
 
 # root note of the configuration value
 ResotoCoreRoot = "resotocore"
 ResotoCoreCommandsRoot = "custom_commands"
+ResotoCoreSnapshotsRoot = "snapshots"
 
 ResotoCoreRootRE = re.compile(r"^resotocore[.]")
 
@@ -485,6 +487,49 @@ class CustomCommandsConfig(ConfigObject):
 schema_registry.add(schema_name(CustomCommandsConfig), {})
 
 
+SnapshotLabel = str
+
+
+@define
+class SnapshotSchedule(ConfigObject):
+    kind: ClassVar[str] = f"{ResotoCoreSnapshotsRoot}_schedule"
+    schedule: str = field(
+        metadata={
+            "description": "The schedule in cron format.\n"
+            "Example: `0 0 * * *` will create a snapshot every day at midnight.\n"
+            "See https://en.wikipedia.org/wiki/Cron for more information.",
+        }
+    )
+    retain: int = field(
+        metadata={
+            "description": "How many snapshots should be retained.\n"
+            "If the number of snapshots exceeds this value, the oldest snapshots will be deleted.\n"
+        }
+    )
+
+
+@define()
+class SnapshotsScheduleConfig(ConfigObject):
+    kind: ClassVar[str] = ResotoCoreSnapshotsRoot
+    snapshots: Dict[SnapshotLabel, SnapshotSchedule] = field(
+        default={
+            "hourly": SnapshotSchedule(schedule="0 * * * *", retain=24),
+            "daily": SnapshotSchedule(schedule="0 0 * * *", retain=7),
+            "weekly": SnapshotSchedule(schedule="0 0 * * 0", retain=4),
+            "monthly": SnapshotSchedule(schedule="0 0 1 * *", retain=12),
+            "yearly": SnapshotSchedule(schedule="0 0 1 1 *", retain=10),
+        },
+        metadata={
+            "description": "Here you can define all snapshot schedules.\n"
+            "The key is the label of the snapshot schedule.\n"
+            "The value is the schedule configuration.",
+        },
+    )
+
+    def json(self) -> Json:
+        return to_js(self, strip_attr="kind")
+
+
 @define()
 class GraphUpdateConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_graph_update_config"
@@ -576,6 +621,7 @@ class CoreConfig(ConfigObject):
     db: DatabaseConfig
     workflows: Dict[str, WorkflowConfig]
     custom_commands: CustomCommandsConfig
+    snapshots: SnapshotsScheduleConfig
     args: Namespace
     run: RunConfig
 
@@ -643,6 +689,7 @@ def parse_config(
     core_config: Json,
     get_core_overrides: Callable[[], Optional[Json]],
     command_templates: Optional[Json] = None,
+    snapshot_schedule: Optional[Json] = None,
 ) -> CoreConfig:
     db = DatabaseConfig(
         server=args.graphdb_server,
@@ -707,11 +754,19 @@ def parse_config(
         except Exception as e:
             log.error(f"Can not parse command templates. Fall back to defaults. Reason: {e}", exc_info=e)
 
+    snapshots_config = SnapshotsScheduleConfig()
+    if snapshot_schedule:
+        try:
+            snapshots_config = from_js(snapshot_schedule.get(ResotoCoreSnapshotsRoot), SnapshotsScheduleConfig)
+        except Exception as e:
+            log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
+
     return CoreConfig(
         api=ed.api,
         args=args,
         cli=ed.cli,
         custom_commands=commands_config,
+        snapshots=snapshots_config,
         db=db,
         graph_update=ed.graph_update,
         runtime=ed.runtime,
@@ -762,5 +817,9 @@ def config_from_db(
             if config := config_entity.get("config"):
                 command_config_entity = cast(Optional[Json], configs.get(ResotoCoreCommandsConfigId))
                 command_config = command_config_entity.get("config") if command_config_entity else None
-                return parse_config(args, config, get_core_overrides, command_config)
+
+                snapshots_config_entity = cast(Optional[Json], configs.get(ResotoCoreSnapshotsConfigId))
+                snapshots_config = snapshots_config_entity.get("config") if snapshots_config_entity else None
+
+                return parse_config(args, config, get_core_overrides, command_config, snapshots_config)
     return parse_config(args, {}, get_core_overrides)

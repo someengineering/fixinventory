@@ -1,27 +1,50 @@
 from typing import AsyncIterator, List, cast
-from resotocore.graph_manager.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager, _compress_timestamps
 from resotocore.ids import GraphName
 from resotocore.db.db_access import DbAccess
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model
 from resotocore.types import Json
+from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.core_config import SnapshotsScheduleConfig, SnapshotSchedule, ResotoCoreSnapshotsConfigId
+from resotocore.task import TaskHandler
 import pytest
 from tests.resotocore.db.graphdb_test import create_multi_collector_graph
 import re
 
 
 @pytest.mark.asyncio
-async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
+async def test_graph_manager(
+    foo_model: Model,
+    db_access: DbAccess,
+    core_config_handler: CoreConfigHandler,
+    task_handler: TaskHandler,
+) -> None:
+    # test setup
     graph_name = GraphName("test_graph")
     graph_db = await db_access.create_graph(graph_name, validate_name=False)
     await graph_db.wipe()
+    await db_access.delete_graph(GraphName("test_graph_copy"))
+
+    # test timestamp compression:
+    assert _compress_timestamps("test_graph") == "test_graph"
+    assert _compress_timestamps("foo123") == "foo123"
+    assert _compress_timestamps("foo_2023-05-24T14:06:50+0000") == "foo_20230524T140650Z"
+    assert _compress_timestamps("2023-05-24T14:06:50+0000_foo") == "20230524T140650Z_foo"
+    assert (
+        _compress_timestamps("foo_2023-05-24T14:06:50+0000_bar_2023-05-24T14:06:50+0000")
+        == "foo_20230524T140650Z_bar_20230524T140650Z"
+    )
+    assert (
+        _compress_timestamps("foo-bar-graph-label-2023-05-24T14:06:50+0000") == "foo-bar-graph-label-20230524T140650Z"
+    )
 
     # populate some data in the graphes
     nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
 
-    graph_manager = GraphManager(db_access)
+    graph_manager = GraphManager(db_access, SnapshotsScheduleConfig(snapshots={}), core_config_handler, task_handler)
     await graph_manager.start()
 
     # list
@@ -41,9 +64,28 @@ async def test_graph_manager(foo_model: Model, db_access: DbAccess) -> None:
         else:
             raise AssertionError(f"Could not find graph with name {name} in {graphs}")
 
+    # test snapshot cleanup
+    await graph_manager._clean_outdated_snapshots(
+        SnapshotsScheduleConfig(snapshots={"label": SnapshotSchedule("0 1 2 3 4", 0)})
+    )
+    graphs = await graph_manager.list(".*")
+    for graph in graphs:
+        if re.match("snapshot-test_graph-label-.*", graph):
+            raise AssertionError(f"Found outdated snapshot {graph} in {graphs}")
+
     # delete
     await graph_manager.delete(GraphName("test_graph_copy"))
     assert GraphName("test_graph_copy") not in set(await graph_manager.list(".*"))
+
+    # periodic snapshot callback
+    for job in await task_handler.list_jobs():
+        await task_handler.delete_job(job.id, force=True)
+    jobs = await task_handler.list_jobs()
+    # let's schedule something
+    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId)
+    jobs = await task_handler.list_jobs()
+    assert len(jobs) == 5
+    assert jobs[0].name == "resoto:snapshots:hourly"
 
     # test export and import
     dump = []

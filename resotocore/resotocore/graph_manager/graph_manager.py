@@ -1,30 +1,116 @@
-from typing import List, Optional, AsyncIterator, cast
+from typing import List, Optional, AsyncIterator, cast, Tuple
 from asyncio import Lock
+
+import logging
 
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import EventGraphDB
-from resotocore.util import utc_str
-from resotocore.ids import GraphName
+from resotocore.util import utc_str, UTC_Date_Format_short
+from resotocore.ids import GraphName, TaskDescriptorId
 from resotocore.web.service import Service
-from resotocore.util import check_graph_name
+from resotocore.util import check_graph_name, Periodic
 from resotocore.types import Json
 from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js, to_js_str
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.db.async_arangodb import AsyncCursor
+from resotocore.config.core_config_handler import CoreConfigHandler
+from resotocore.core_config import SnapshotsScheduleConfig, ResotoCoreSnapshotsConfigId
+from resotocore.task import TaskHandler
+from resotocore.task.task_description import Job, ExecuteCommand, TimeTrigger
 from json import loads, dumps
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.parser import parse
 from attrs import frozen
 import re
 
 
+log = logging.getLogger(__name__)
+
+
 class GraphManager(Service):
-    def __init__(self, db_access: DbAccess) -> None:
+    def __init__(
+        self,
+        db_access: DbAccess,
+        default_snapshots_config: SnapshotsScheduleConfig,
+        config_handler: CoreConfigHandler,
+        task_handler: TaskHandler,
+    ) -> None:
         self.db_access = db_access
         self.lock: Optional[Lock] = None
+        self.task_handler = task_handler
+        self.default_snapshots_config = default_snapshots_config
+        self.config_handler = config_handler
+        self.snapshot_cleanup_worker: Optional[Periodic] = None
+
+    async def __setup_cleanup_old_snapshots_worker(self, snapshots_config: SnapshotsScheduleConfig) -> None:
+        if self.snapshot_cleanup_worker:
+            await self.snapshot_cleanup_worker.stop()
+
+        self.snapshot_cleanup_worker = Periodic(
+            "snapshot_cleanup_worker", lambda: self._clean_outdated_snapshots(snapshots_config), timedelta(seconds=60)
+        )
+        await self.snapshot_cleanup_worker.start()
+
+    async def _clean_outdated_snapshots(self, snapshots_config: SnapshotsScheduleConfig) -> None:
+        # get all existing snapshots
+        existing_snapshots = await self.list("snapshot-.*")
+
+        snapshots_to_keep: List[Tuple[str, int]] = []
+        for label, schedule in snapshots_config.snapshots.items():
+            regex = rf"snapshot-\w+-{label}-.*"
+            snapshots_to_keep.append((regex, schedule.retain))
+
+        # delete all snapshots that are outdated
+        for regex, retain in snapshots_to_keep:
+            snapshots = [snapshot for snapshot in existing_snapshots if re.match(regex, snapshot)]
+            snapshots.sort(reverse=True)
+            for snapshot in snapshots[retain:]:
+                await self.delete(snapshot)
+
+    async def _on_config_updated(self, config_id: str) -> None:
+        if config_id == ResotoCoreSnapshotsConfigId:
+            job_prefix = "resoto:snapshots:"
+            # get the new config or use the default
+            snapshots_config = SnapshotsScheduleConfig()
+            try:
+                new_config = await self.config_handler.config_handler.get_config(ResotoCoreSnapshotsConfigId)
+                if new_config:
+                    snapshots_config = from_js(new_config.config, SnapshotsScheduleConfig)
+            except Exception as e:
+                log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
+
+            # recreate the cleanup worker according to the new schedule
+            await self.__setup_cleanup_old_snapshots_worker(snapshots_config)
+
+            # cancel all existing snapshot jobs
+            existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith(job_prefix)]
+            for job in existing_jobs:
+                await self.task_handler.delete_job(job.id, force=True)
+
+            # schedule new snapshot jobs for the current graph
+            for label, schedule in snapshots_config.snapshots.items():
+                job = Job(
+                    uid=TaskDescriptorId(f"{job_prefix}{label}"),
+                    command=ExecuteCommand(f"graph snapshot {label}"),
+                    timeout=timedelta(minutes=5),
+                    trigger=TimeTrigger(schedule.schedule),
+                )
+
+                await self.task_handler.add_job(job, force=True)
 
     async def start(self) -> None:
         self.lock = Lock()
+        # initialize the snapshot schedule
+        await self._on_config_updated(ResotoCoreSnapshotsConfigId)
+        # subscribe to config updates to update the snapshot schedule
+        self.config_handler.add_callback(self._on_config_updated)
+        await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
+
+    async def stop(self) -> None:
+        if self.snapshot_cleanup_worker:
+            await self.snapshot_cleanup_worker.stop()
+            self.snapshot_cleanup_worker = None
 
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
@@ -47,6 +133,8 @@ class GraphManager(Service):
             return await self._copy_graph(source, destination, validate_name)
 
     async def _copy_graph(self, source: GraphName, destination: GraphName, validate_name: bool = True) -> GraphName:
+        destination = GraphName(_compress_timestamps(destination))
+
         if validate_name:
             check_graph_name(destination)
 
@@ -66,7 +154,7 @@ class GraphManager(Service):
         return destination
 
     async def snapshot(self, source: GraphName, label: str) -> GraphName:
-        time = utc_str().replace(":", "_")
+        time = utc_str(date_format=UTC_Date_Format_short)
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
         return await self.copy(source, snapshot_name, replace_existing=False, validate_name=False)
@@ -216,3 +304,36 @@ class ExportMetadata:
     vertex_collection_size: int
     default_edge_collection_size: int
     delete_edge_collection_size: int
+
+
+def _compress_timestamps(value: str) -> str:
+    # support for negative years was removed in order to not parse the dashes in front
+    iso8601 = re.compile(
+        r"([\+]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?"  # noqa: E501
+    )
+
+    # result string to be built
+    result = ""
+    # position in the source string
+    source_pos = 0
+
+    # find all timestamps in the source string
+    for match in iso8601.finditer(value):
+        # if there is a gap between the previous match and this one, copy the source string
+        if match.start() > source_pos:
+            result += value[source_pos : match.start()]
+
+        # compact the timestamp
+        timestamp = match.group(0)
+        dt = parse(timestamp)
+        compact_ts = utc_str(dt, UTC_Date_Format_short)
+        result += compact_ts
+
+        # update the pointer
+        source_pos = match.end()
+
+    # copy the rest of the source string
+    if source_pos < len(value):
+        result += value[source_pos:]
+
+    return result

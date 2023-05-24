@@ -159,3 +159,28 @@ async def test_default_workflow_triggers() -> None:
         EventTrigger("start_collect_and_cleanup_workflow"),
         TimeTrigger("0 * * * *"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_validate_add_delete_job(task_handler: TaskHandlerService) -> None:
+    # add a job with a invalid name: should fail if the name contains invalid characters
+    with pytest.raises(AttributeError):
+        await task_handler.add_job(Job(TaskDescriptorId("foo:bar"), ExecuteCommand("echo foo"), timedelta(hours=4)))
+
+    # add a job with a valid name: should succeed if the validation disabled
+    await task_handler.add_job(
+        Job(TaskDescriptorId("foo:bar"), ExecuteCommand("echo foo"), timedelta(hours=4)), force=True
+    )
+
+    # valid job name should not throw an exception
+    await task_handler.add_job(Job(TaskDescriptorId("foobar"), ExecuteCommand("echo foo"), timedelta(hours=4)))
+
+    # delete a job with a invalid name: should fail if the name contains invalid characters
+    with pytest.raises(AttributeError):
+        await task_handler.delete_job("foo:bar")
+
+    # delete a job with a valid name: should succeed if the validation disabled
+    await task_handler.delete_job("foobar", force=True)
+
+    # force delete a job should not throw an exception
+    await task_handler.delete_job("foo:bar", force=True)

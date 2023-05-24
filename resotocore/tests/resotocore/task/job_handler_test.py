@@ -17,10 +17,14 @@ class InMemJobHandler(TaskHandler):
     async def list_workflows(self) -> List[Workflow]:
         return []
 
-    async def add_job(self, job: Job) -> None:
+    async def add_job(
+        self,
+        job: Job,
+        force: bool = False,
+    ) -> None:
         self.jobs.append(job)
 
-    async def delete_job(self, job_id: str) -> Optional[Job]:
+    async def delete_job(self, job_id: str, force: bool = False) -> Optional[Job]:
         job: Optional[Job] = first(lambda j: j.id == job_id, self.jobs)
         if job:
             self.jobs.remove(job)

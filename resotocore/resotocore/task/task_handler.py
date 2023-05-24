@@ -52,6 +52,7 @@ from resotocore.task.task_description import (
     Trigger,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
+import re
 
 log = logging.getLogger(__name__)
 
@@ -312,7 +313,14 @@ class TaskHandlerService(TaskHandler):
     async def list_workflows(self) -> List[Workflow]:
         return [td for td in self.task_descriptions if isinstance(td, Workflow)]
 
-    async def add_job(self, job: Job) -> None:
+    def __check_system_job(self, name: str) -> None:
+        # : is not allowed in job names
+        if re.match(r"^[^:]+$", name) is None:
+            raise AttributeError(f"System jobs can't be modified: {name}")
+
+    async def add_job(self, job: Job, force: bool = False) -> None:
+        if not force:
+            self.__check_system_job(job.name)
         descriptions = list(self.task_descriptions)
         existing = first(lambda td: td.id == job.id, descriptions)
         if existing:
@@ -349,7 +357,9 @@ class TaskHandlerService(TaskHandler):
         task.end()
         await self.mark_done_in_database(task)
 
-    async def delete_job(self, job_id: str) -> Optional[Job]:
+    async def delete_job(self, job_id: str, force: bool = False) -> Optional[Job]:
+        if not force:
+            self.__check_system_job(job_id)
         job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
         if job:
             if not job.mutable:

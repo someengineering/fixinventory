@@ -1247,6 +1247,10 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     await execute("graph snapshot graphtest foo", str)
     snapshots = await graph_manager.list("snapshot.*")
     assert len(snapshots) == 1
+    # implicitly use the current graph as a source
+    await execute("graph snapshot foobar", str)
+    snapshots = await graph_manager.list("snapshot.*")
+    assert len(snapshots) == 2
     assert snapshots[0].startswith("snapshot")
     for snapshot in snapshots:
         await graph_manager.delete(GraphName(snapshot))

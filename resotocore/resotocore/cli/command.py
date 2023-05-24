@@ -5379,8 +5379,8 @@ class GraphCommand(CLICommand):
         ) -> AsyncIterator[JsonElement]:
             if not source:
                 source = ctx.graph_name
-            await self.dependencies.graph_manager.copy(source, destination, replace_existing=force)
-            yield f"Graph {source} copied to {destination}."
+            result_name = await self.dependencies.graph_manager.copy(source, destination, replace_existing=force)
+            yield f"Graph {source} copied to {result_name}."
 
         async def graph_snapshot(source: Optional[GraphName], label: str) -> AsyncIterator[JsonElement]:
             if not source:
