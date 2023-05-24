@@ -58,7 +58,7 @@ def encode_jwt_pki(
     headers.update({"alg": "RS256"})
     if cert is not None:
         headers.update({"x5t#S256": x5t_s256(cert)})
-    return jwt.encode(payload, private_key, algorithm="RS256", headers=headers)  # type: ignore
+    return jwt.encode(payload, private_key, algorithm="RS256", headers=headers)
 
 
 def encode_jwt_psk(
@@ -72,7 +72,7 @@ def encode_jwt_psk(
     key, salt = key_from_psk(psk)
     salt_encoded = base64.standard_b64encode(salt).decode("utf-8")
     headers.update({"alg": "HS256", "salt": salt_encoded})
-    return jwt.encode(payload, key, algorithm="HS256", headers=headers)  # type: ignore
+    return jwt.encode(payload, key, algorithm="HS256", headers=headers)
 
 
 def decode_jwt(

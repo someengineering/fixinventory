@@ -381,7 +381,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
 
 @lru_cache(maxsize=4096)  # Only resolve types once per type
 def resolve_type(clazz: Type[Any]) -> None:
-    resolve_types(clazz)
+    resolve_types(clazz)  # type: ignore
 
 
 def validate_dataclass(node: BaseResource) -> None:

@@ -1,6 +1,5 @@
 import pint
-
-from pint import Unit, Quantity
+from pint.facets.plain import PlainUnit, PlainQuantity
 
 reg = pint.UnitRegistry()
 
@@ -15,8 +14,8 @@ reg.define("KB = 1000 B")  # type: ignore
 
 # globally define or register units
 
-bytes_u: Unit = reg.byte
+bytes_u: PlainUnit = reg.byte
 
 
-def parse(s: str) -> Quantity:
-    return reg(s)
+def parse(s: str) -> PlainQuantity[PlainUnit]:
+    return reg.parse_expression(s)

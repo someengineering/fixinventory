@@ -11,7 +11,7 @@ from functools import wraps, cached_property
 from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
 
 import jsons
-from attrs import define, field, resolve_types, Factory
+from attrs import define, field, Factory
 from prometheus_client import Counter, Summary
 
 from resotolib.json import from_json as _from_json, to_json as _to_json
@@ -1217,6 +1217,3 @@ class UnknownLocation(BaseResource):
 
     def delete(self, graph: Any) -> bool:
         return False
-
-
-resolve_types(BaseResource)
