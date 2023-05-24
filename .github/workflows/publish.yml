@@ -90,11 +90,13 @@ jobs:
           cd ${{ github.workspace }}/resoto.com/docs/reference/data-models
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
-      - name: Optimize & format
+      - name: Optimize, format, and build
+        continue-on-error: true
         working-directory: ./resoto.com
         run: |
           yarn optimize
           yarn format
+          yarn build
 
       - name: Create someengineering/resoto.com pull request
         uses: peter-evans/create-pull-request@v4
@@ -244,12 +246,14 @@ jobs:
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
-      - name: Optimize & format
+      - name: Optimize, format, and build
         if: steps.release.outputs.prerelease == 'false'
+        continue-on-error: true
         working-directory: ./resoto.com
         run: |
           yarn optimize
           yarn format
+          yarn build
 
       - name: Create someengineering/resoto.com pull request
         if: steps.release.outputs.prerelease == 'false'
