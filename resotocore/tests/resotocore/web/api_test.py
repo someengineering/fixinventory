@@ -149,7 +149,7 @@ async def test_system_api(core_client: ResotoClient, client_session: ClientSessi
 
 
 @pytest.mark.asyncio
-async def test_model_api(core_client: ResotoClient) -> None:
+async def test_model_api(core_client: ResotoClient, client_session: ClientSession) -> None:
     # GET /model
     assert len((await core_client.model()).kinds) >= len(predefined_kinds)
 
@@ -165,6 +165,14 @@ async def test_model_api(core_client: ResotoClient) -> None:
     update = await core_client.update_model([string_kind, complex_kind])
     none_kind = rc.Kind(fqn="none", runtime_kind=None, properties=None, bases=None)
     assert (update.kinds.get("only_three") or none_kind).runtime_kind == "string"
+
+    # GET /model/uml
+    async with client_session.get(core_client.resotocore_url + "/model/uml", params={"output": "puml"}) as r:
+        assert r.status == 200
+        assert r.headers["content-type"] == "text/plain"
+        puml = await r.text()
+        assert puml.startswith("@startuml")
+        assert puml.endswith("@enduml")
 
 
 @pytest.mark.asyncio
