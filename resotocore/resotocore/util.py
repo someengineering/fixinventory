@@ -456,5 +456,5 @@ class AccessJson(Dict[Any, Any]):
 
 
 def check_graph_name(name: str) -> None:
-    if not re.match(r"^[a-zA-Z0-9]+$", name):
+    if not re.match(r"^[a-zA-Z0-9_]+$", name):
         raise ValueError(f"Graph name {name} contains invalid characters, only alphanumeric characters are allowed.")

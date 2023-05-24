@@ -1,5 +1,5 @@
 from typing import AsyncIterator, List, cast
-from resotocore.graph_manager.graph_manager import GraphManager
+from resotocore.graph_manager.graph_manager import GraphManager, _compress_timestamps
 from resotocore.ids import GraphName
 from resotocore.db.db_access import DbAccess
 from resotocore.db.model import GraphUpdate
@@ -25,6 +25,19 @@ async def test_graph_manager(
     graph_db = await db_access.create_graph(graph_name, validate_name=False)
     await graph_db.wipe()
     await db_access.delete_graph(GraphName("test_graph_copy"))
+
+    # test timestamp compression:
+    assert _compress_timestamps("test_graph") == "test_graph"
+    assert _compress_timestamps("foo123") == "foo123"
+    assert _compress_timestamps("foo_2023-05-24T14:06:50+0000") == "foo_20230524T140650Z"
+    assert _compress_timestamps("2023-05-24T14:06:50+0000_foo") == "20230524T140650Z_foo"
+    assert (
+        _compress_timestamps("foo_2023-05-24T14:06:50+0000_bar_2023-05-24T14:06:50+0000")
+        == "foo_20230524T140650Z_bar_20230524T140650Z"
+    )
+    assert (
+        _compress_timestamps("foo-bar-graph-label-2023-05-24T14:06:50+0000") == "foo-bar-graph-label-20230524T140650Z"
+    )
 
     # populate some data in the graphes
     nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)

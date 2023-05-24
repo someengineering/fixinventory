@@ -20,6 +20,7 @@ from resotocore.task import TaskHandler
 from resotocore.task.task_description import Job, ExecuteCommand, TimeTrigger
 from json import loads, dumps
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 from attrs import frozen
 import re
 
@@ -132,6 +133,8 @@ class GraphManager(Service):
             return await self._copy_graph(source, destination, validate_name)
 
     async def _copy_graph(self, source: GraphName, destination: GraphName, validate_name: bool = True) -> GraphName:
+        destination = GraphName(_compress_timestamps(destination))
+
         if validate_name:
             check_graph_name(destination)
 
@@ -301,3 +304,36 @@ class ExportMetadata:
     vertex_collection_size: int
     default_edge_collection_size: int
     delete_edge_collection_size: int
+
+
+def _compress_timestamps(value: str) -> str:
+    # support for negative years was removed in order to not parse the dashes in front
+    iso8601 = re.compile(
+        r"([\+]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?"  # noqa: E501
+    )
+
+    # result string to be built
+    result = ""
+    # position in the source string
+    source_pos = 0
+
+    # find all timestamps in the source string
+    for match in iso8601.finditer(value):
+        # if there is a gap between the previous match and this one, copy the source string
+        if match.start() > source_pos:
+            result += value[source_pos : match.start()]
+
+        # compact the timestamp
+        timestamp = match.group(0)
+        dt = parse(timestamp)
+        compact_ts = utc_str(dt, UTC_Date_Format_short)
+        result += compact_ts
+
+        # update the pointer
+        source_pos = match.end()
+
+    # copy the rest of the source string
+    if source_pos < len(value):
+        result += value[source_pos:]
+
+    return result
