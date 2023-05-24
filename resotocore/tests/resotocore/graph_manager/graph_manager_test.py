@@ -4,7 +4,6 @@ from resotocore.ids import GraphName
 from resotocore.db.db_access import DbAccess
 from resotocore.db.model import GraphUpdate
 from resotocore.model.model import Model
-from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import SnapshotsScheduleConfig, SnapshotSchedule, ResotoCoreSnapshotsConfigId
@@ -67,7 +66,7 @@ async def test_graph_manager(
 
     # periodic snapshot callback
     for job in await task_handler.list_jobs():
-        await task_handler.delete_job(job.id)
+        await task_handler.delete_job(job.id, force=True)
     jobs = await task_handler.list_jobs()
     # let's schedule something
     await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, {})

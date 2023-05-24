@@ -23,17 +23,23 @@ class TaskHandler(ABC):
         pass
 
     @abstractmethod
-    async def add_job(self, job: Job, validate_name: bool = True) -> None:
+    async def add_job(self, job: Job, force: bool = False) -> None:
         """
-        Add a job to the task handler. If validate_name is True, the name of the job will be validated and exception
-        will be thrown in case the job name contains invalid characters.
+        Add a job to the task handler. If force is True, the job name validations and other checks will be ignored.
+        Used for system jobs that are added by resoto itself.
 
-        Make sure to always validate the name if the job is added by the user.
+        Make sure to never use the force parameter if the job is added by the user.
         """
 
     @abstractmethod
-    async def delete_job(self, job_id: str) -> Optional[Job]:
-        pass
+    async def delete_job(self, job_id: str, force: bool = False) -> Optional[Job]:
+        """
+        Delete a job from the task handler. If force is True, the job name validations
+        and other checks will be ignored.
+        Used for system jobs that are added by resoto itself.
+
+        Make sure to never use the force parameter if the job is added by the user.
+        """
 
     @abstractmethod
     async def start_task_by_descriptor_id(self, uid: TaskDescriptorId) -> Optional[RunningTaskInfo]:

@@ -88,7 +88,7 @@ class GraphManager(Service):
             # cancel all existing snapshot jobs
             existing_jobs = [job for job in await self.task_handler.list_jobs() if job.id.startswith(job_prefix)]
             for job in existing_jobs:
-                await self.task_handler.delete_job(job.id)
+                await self.task_handler.delete_job(job.id, force=True)
 
             # schedule new snapshot jobs for the current graph
             for label, schedule in snapshots_config.snapshots.items():
@@ -99,7 +99,7 @@ class GraphManager(Service):
                     trigger=TimeTrigger(schedule.schedule),
                 )
 
-                await self.task_handler.add_job(job, validate_name=False)
+                await self.task_handler.add_job(job, force=True)
 
     async def start(self) -> None:
         self.lock = Lock()

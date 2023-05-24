@@ -313,14 +313,14 @@ class TaskHandlerService(TaskHandler):
     async def list_workflows(self) -> List[Workflow]:
         return [td for td in self.task_descriptions if isinstance(td, Workflow)]
 
-    def __validate_job_name(self, name: str) -> None:
+    def __check_system_job(self, name: str) -> None:
         # : is not allowed in job names
         if re.match(r"^[^:]+$", name) is None:
-            raise AttributeError(f"Job name must not contain a colon: {name}")
+            raise AttributeError(f"System jobs can't be modified: {name}")
 
-    async def add_job(self, job: Job, validate_name: bool = True) -> None:
-        if validate_name:
-            self.__validate_job_name(job.name)
+    async def add_job(self, job: Job, force: bool = False) -> None:
+        if not force:
+            self.__check_system_job(job.name)
         descriptions = list(self.task_descriptions)
         existing = first(lambda td: td.id == job.id, descriptions)
         if existing:
@@ -357,7 +357,9 @@ class TaskHandlerService(TaskHandler):
         task.end()
         await self.mark_done_in_database(task)
 
-    async def delete_job(self, job_id: str) -> Optional[Job]:
+    async def delete_job(self, job_id: str, force: bool = False) -> Optional[Job]:
+        if not force:
+            self.__check_system_job(job_id)
         job: Job = first(lambda td: td.id == job_id and isinstance(td, Job), self.task_descriptions)  # type: ignore
         if job:
             if not job.mutable:

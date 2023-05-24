@@ -20,11 +20,11 @@ class InMemJobHandler(TaskHandler):
     async def add_job(
         self,
         job: Job,
-        validate_name: bool = True,
+        force: bool = False,
     ) -> None:
         self.jobs.append(job)
 
-    async def delete_job(self, job_id: str) -> Optional[Job]:
+    async def delete_job(self, job_id: str, force: bool = False) -> Optional[Job]:
         job: Optional[Job] = first(lambda j: j.id == job_id, self.jobs)
         if job:
             self.jobs.remove(job)
