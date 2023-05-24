@@ -6,7 +6,6 @@ import sys
 from argparse import Namespace
 from collections import namedtuple
 from pathlib import Path
-from ssl import SSLContext
 from typing import Optional, List, Callable, Tuple
 
 import psutil
@@ -22,13 +21,6 @@ from resotocore.types import JsonElement
 from resotocore.util import utc
 from resotolib.args import ArgumentParser
 from resotolib.jwt import add_args as jwt_add_args
-from resotolib.log.logstream import (
-    EventStreamer,
-    EventStreamAsync,
-    LogStreamHandler,
-    EventStreamAsyncService,
-    NoEventStreamAsync,
-)
 from resotolib.logger import setup_logger
 from resotolib.parse_util import make_parser, variable_p, equals_p, comma_p, json_value_dp
 from resotolib.utils import iec_size_format, get_local_tzinfo
@@ -213,9 +205,6 @@ resoto.worker:
     )
     parser.add_argument("--ui-path", help=argparse.SUPPRESS)  # no effect any longer, only here to not break anything
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument(
-        "--resotoeventlog-uri", dest="resotoeventlog_uri", default=None, help="URI to the resotoeventlog server."
-    )
 
     parsed: Namespace = parser.parse_args(args if args else [])
 
@@ -277,15 +266,6 @@ def configure_logging(log_level: str, verbose: bool) -> None:
         # apscheduler uses the term Job when it triggers, which confuses people.
         logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
         logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
-
-
-def event_stream(config: CoreConfig, ctx: SSLContext) -> EventStreamAsync:
-    if url := config.args.resotoeventlog_uri:
-        streamer = EventStreamer(f"{url}/ingest", ssl=ctx)
-        log_handler = LogStreamHandler("resotocore", streamer)
-        return EventStreamAsyncService(streamer, log_handler)
-    else:
-        return NoEventStreamAsync()
 
 
 def reset_process_start_method() -> None:

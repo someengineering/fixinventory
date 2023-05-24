@@ -1,9 +1,0 @@
-# dev dependencies
-mypy==1.2.0
-wheel==0.40.0
-flake8==6.0.0
-pep8-naming==0.13.3
-tox==4.4.12
-coverage==7.2.3
-black==23.3.0
-build==0.10.0
