@@ -157,7 +157,7 @@ class ModelHandlerDB(ModelHandler):
             def kind_name(p: Property) -> str:
                 return (sth[p.name].simple_kind.runtime_kind if p.name in sth else p.kind) if p.synthetic else p.kind
 
-            cpx_props = sorted(cpx.properties) if sort_props else cpx.properties
+            cpx_props = sorted(cpx.properties, key=lambda p: p.name) if sort_props else cpx.properties
             props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx_props]) if with_properties else ""
             link = f" [[#{cpx.fqn}]]" if link_classes else ""
             return f"class {cpx.fqn}{link} {{\n{props}\n}}"
@@ -206,7 +206,8 @@ class ModelHandlerDB(ModelHandler):
         if with_properties:
             add_visible(complex_property_kinds)
 
-        nodes = "\n".join([class_node(node["data"]) for nid, node in sorted(graph.nodes(data=True)) if nid in visible])
+        visible_nodes = [(nid, node) for nid, node in graph.nodes(data=True) if nid in visible]
+        nodes = "\n".join([class_node(node["data"]) for nid, node in sorted(visible_nodes, key=lambda n: n[0])])
         edges = ""
         for fr, to, data in sorted(graph.edges(data=True), key=lambda e: (e[0], e[1])):
             if fr in visible and to in visible:
