@@ -5,7 +5,7 @@ import logging
 
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import EventGraphDB
-from resotocore.util import utc_str
+from resotocore.util import utc_str, UTC_Date_Format_short
 from resotocore.ids import GraphName, TaskDescriptorId
 from resotocore.web.service import Service
 from resotocore.util import check_graph_name, Periodic
@@ -151,7 +151,7 @@ class GraphManager(Service):
         return destination
 
     async def snapshot(self, source: GraphName, label: str) -> GraphName:
-        time = utc_str().replace(":", "_")
+        time = utc_str(date_format=UTC_Date_Format_short)
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
         return await self.copy(source, snapshot_name, replace_existing=False, validate_name=False)

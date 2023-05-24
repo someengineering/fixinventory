@@ -74,6 +74,9 @@ def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:
 
 UTC_Date_Format = "%Y-%m-%dT%H:%M:%SZ"
 
+# short iso 8601 format, e.g. 20230504T080910Z
+UTC_Date_Format_short = "%Y%m%dT%H%M%SZ"
+
 
 def rnd_str(str_len: int = 10) -> str:
     return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(str_len))
@@ -83,12 +86,12 @@ def utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def utc_str(dt: datetime = utc()) -> str:
+def utc_str(dt: datetime = utc(), date_format: str = UTC_Date_Format) -> str:
     if dt.tzinfo is not None and dt.tzname() != "UTC":
         offset = dt.tzinfo.utcoffset(dt)
         if offset is not None and offset.total_seconds() != 0:
             dt = (dt - offset).replace(tzinfo=timezone.utc)
-    return dt.strftime(UTC_Date_Format)
+    return dt.strftime(date_format)
 
 
 def from_utc(date_string: str) -> datetime:
