@@ -11,7 +11,7 @@ from resotocore.web.service import Service
 from resotocore.util import check_graph_name, Periodic
 from resotocore.types import Json
 from resotocore.model.model import Kind
-from resotocore.model.typed_model import from_js, to_js, to_js_str
+from resotocore.model.typed_model import from_js, to_js_str
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -67,7 +67,7 @@ class GraphManager(Service):
             for snapshot in snapshots[retain:]:
                 await self.delete(snapshot)
 
-    async def _on_config_updated(self, config_id: str, data: Json) -> None:
+    async def _on_config_updated(self, config_id: str) -> None:
         if config_id == ResotoCoreSnapshotsConfigId:
             job_prefix = "resoto:snapshots:"
             # get the new config or use the default
@@ -101,7 +101,7 @@ class GraphManager(Service):
     async def start(self) -> None:
         self.lock = Lock()
         # initialize the snapshot schedule
-        await self._on_config_updated(ResotoCoreSnapshotsConfigId, to_js(self.default_snapshots_config))
+        await self._on_config_updated(ResotoCoreSnapshotsConfigId)
         # subscribe to config updates to update the snapshot schedule
         self.config_handler.add_callback(self._on_config_updated)
         await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)

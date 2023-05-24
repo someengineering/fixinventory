@@ -60,7 +60,7 @@ class CoreConfigHandler:
         self.event_sender = event_sender
         self.inspector = inspector
         self.exit_fn = exit_fn
-        self.config_updated_callbacks: List[Callable[[ConfigId, Json], Awaitable[None]]] = []
+        self.config_updated_callbacks: List[Callable[[ConfigId], Awaitable[None]]] = []
 
     async def validate_config_entry(self, task_data: Json) -> Optional[Json]:
         def validate_core_config() -> Optional[Json]:
@@ -112,7 +112,7 @@ class CoreConfigHandler:
         else:
             return {"error": "No known configuration found"}
 
-    def add_callback(self, callback: Callable[[ConfigId, Json], Awaitable[None]]) -> None:
+    def add_callback(self, callback: Callable[[ConfigId], Awaitable[None]]) -> None:
         self.config_updated_callbacks.append(callback)
 
     async def __validate_config(self) -> None:
@@ -159,7 +159,7 @@ class CoreConfigHandler:
                 if event_id:
                     for callback in self.config_updated_callbacks:
                         try:
-                            await callback(event_id, event.data)
+                            await callback(event_id)
                         except Exception as ex:
                             log.warning("Error in config update callback", exc_info=ex)
 

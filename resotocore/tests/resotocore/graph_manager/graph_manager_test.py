@@ -69,7 +69,7 @@ async def test_graph_manager(
         await task_handler.delete_job(job.id, force=True)
     jobs = await task_handler.list_jobs()
     # let's schedule something
-    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId, {})
+    await graph_manager._on_config_updated(ResotoCoreSnapshotsConfigId)
     jobs = await task_handler.list_jobs()
     assert len(jobs) == 5
     assert jobs[0].name == "resoto:snapshots:hourly"

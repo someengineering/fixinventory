@@ -46,8 +46,8 @@ async def test_exit_on_updated_config(
 ) -> None:
     callback_result = []
 
-    async def callback(config_id: ConfigId, data: Json) -> None:
-        callback_result.append(data)
+    async def callback(config_id: ConfigId) -> None:
+        callback_result.append(config_id)
 
     try:
         await core_config_handler.start()
@@ -57,7 +57,7 @@ async def test_exit_on_updated_config(
         await asyncio.sleep(0.1)
         assert len(core_config_handler_exits) == 1
         assert len(callback_result) == 1
-        assert callback_result[0] == {"id": ResotoCoreConfigId}
+        assert callback_result[0] == ResotoCoreConfigId
     finally:
         await core_config_handler.stop()
 
