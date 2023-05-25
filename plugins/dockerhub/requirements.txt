@@ -1,2 +1,2 @@
 resotolib==3.4.3
-requests>=2.28
+requests>=2.31

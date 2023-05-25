@@ -1,4 +1,6 @@
 build==0.10.0
-jupyterlab==3.6.3
+jupyterlab==4.0.0
 jupyterlite==0.1.0
 plotly==5.14.1
+ypy-websocket>=0.9.0 # transitive dependency of jupyter - we need the latest version. Can be removed once jupyter is updated as well.
+
