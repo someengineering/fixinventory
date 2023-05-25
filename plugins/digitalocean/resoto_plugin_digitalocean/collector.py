@@ -740,6 +740,10 @@ class DigitalOceanTeamCollector:
         def get_region(snapshot: Json) -> str:
             resource_id = get_resource_id(snapshot)
             resource = self.graph.search_first("urn", resource_id)
+            if resource is None:
+                # we can't find the instance for the snapshot,
+                # se we use the first region in the list returned by the API
+                return next(iter(snapshot.get("regions", [])), "unknown")
             region = region_id(resource.region().id)
             return region
 
