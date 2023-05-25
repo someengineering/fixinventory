@@ -20,44 +20,22 @@ RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
 # Prepare whl build env
 RUN mkdir -p /build /build-python
 
-# Build resotolib
+# Build Resoto
 COPY resotolib /usr/src/resotolib
-WORKDIR /usr/src/resotolib
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-
-# Build resotocore
 COPY resotocore /usr/src/resotocore
+COPY resotoworker /usr/src/resotoworker
+COPY resotometrics /usr/src/resotometrics
+COPY resotoshell /usr/src/resotoshell
+COPY plugins /usr/src/plugins
+
 WORKDIR /usr/src/resotocore
-#RUN if [ "X${TESTS:-false}" = Xtrue ]; then nohup bash -c "/usr/local/db/bin/arangod --database.directory /tmp --server.endpoint tcp://127.0.0.1:8529 --database.password root &"; sleep 5; tox; fi
 RUN /usr/local/python/bin/python3 -m venv /build/jupyterlite-venv-python3
 RUN . /build/jupyterlite-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
 RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build --config jupyter_lite_config.json
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
 
-# Build resotoworker
-COPY resotoworker /usr/src/resotoworker
-WORKDIR /usr/src/resotoworker
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-
-# Build resotometrics
-COPY resotometrics /usr/src/resotometrics
-WORKDIR /usr/src/resotometrics
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-
-# Build resotoshell
-COPY resotoshell /usr/src/resotoshell
-WORKDIR /usr/src/resotoshell
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && tox; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip wheel -w /build-python -f /build-python .
-
-# Build resoto plugins
-COPY plugins /usr/src/plugins
+# Build binary wheels
 WORKDIR /usr/src
-RUN if [ "X${TESTS:-false}" = Xtrue ]; then . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -name tox.ini | while read toxini; do cd $(dirname "$toxini") && tox && cd - || exit 1; done; fi
-RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python
+RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python ./resotolib ./resotocore ./resotoworker ./resotometrics ./resotoshell
 
 # Install all wheels
 RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
