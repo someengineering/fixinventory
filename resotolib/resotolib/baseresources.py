@@ -395,7 +395,7 @@ class BaseResource(ABC):
             raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
 
         if self.cleaned:
-            log.debug(f"Resource {self.rtdname} has already been cleaned up")
+            log.info(f"Resource {self.rtdname} has already been cleaned up")
             return True
 
         self._changes.add("cleaned")
@@ -409,7 +409,7 @@ class BaseResource(ABC):
 
         log_suffix = f" in account {account.dname} region {region.name}"
         self.log("Trying to clean up")
-        log.debug(f"Trying to clean up {self.rtdname}{log_suffix}")
+        log.info(f"Trying to clean up {self.rtdname}{log_suffix}")
         try:
             if deleted := self.delete(graph):
                 self._cleaned = True

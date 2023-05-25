@@ -46,7 +46,6 @@ class GcpProjectCollector:
             global_builder.add_node(project_global_region, {})
 
             # fetch available regions and zones
-            self.core_feedback.progress_done(self.project.dname, 0, 1, context=[self.cloud.id])
             log.info(f"[Gcp:{self.project.id}] Collecting project wide resources.")
             GcpRegion.collect_resources(global_builder)
             global_builder.prepare_region_zone_lookup()
@@ -71,8 +70,6 @@ class GcpProjectCollector:
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
                     node.connect_in_graph(global_builder, data.get("source", {}))
-
-            self.core_feedback.progress_done(self.project.dname, 1, 1, context=[self.cloud.id])
 
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
             self.remove_unconnected_nodes()
