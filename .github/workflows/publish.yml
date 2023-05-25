@@ -6,7 +6,7 @@ on:
       - "*.*.*"
     branches:
       - main
-  workflow_dispatch: # edge resource data models are only updated when this workflow is triggered manually
+  workflow_dispatch:
 
 jobs:
   edge:
@@ -62,18 +62,39 @@ jobs:
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/edge/ResotoMutate.json
 
-      - name: Update resource data models
+      - name: Modify Docker Compose YAML
+        shell: bash
+        run: |
+          yq -i '(.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
+
+      - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
         run: |
-          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/docs/reference/data-models
-          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          cd ${{ github.workspace }}/resoto.com/static/img/kroki
+          find . -type f -name "*.svg" -prune -exec rm {} \+
 
-      - name: Optimize & format
-        working-directory: ./resoto.com
+      - name: Wait for Docker images to build
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.2.0
+        with:
+          ref: ${{ github.ref }}
+          check-name: "Build split Docker images"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update resource data models
+        continue-on-error: true
+        shell: bash
         run: |
+          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
+          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
+
+      - name: Build, optimize, and format
+        continue-on-error: true
+        working-directory: ./resoto.com
+        run: | # build first to generate Kroki images
+          yarn build
           yarn optimize
           yarn format
 
@@ -156,7 +177,7 @@ jobs:
           [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           dir="resoto.com/releases/${{ steps.release.outputs.tag }}"
           mkdir -p $dir
-          file="${dir}/index.md"
+          file="${dir}/index.mdx"
           python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
           link="/releases/${{ steps.release.outputs.tag }}"
           echo $(jq '.["${{ steps.release.outputs.docsVersion }}"]="${{ steps.release.outputs.tag }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
@@ -200,6 +221,19 @@ jobs:
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoCollect.json
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoMutate.json
 
+      - name: Modify Docker Compose YAML
+        if: steps.release.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}")) | (.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
+
+      - name: Clean existing Kroki images
+        if: steps.release.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/resoto.com/static/img/kroki
+          find . -type f -name "*.svg" -prune -exec rm {} \+
+
       - name: Wait for Docker images to build
         if: steps.release.outputs.prerelease == 'false'
         uses: lewagon/wait-on-check-action@v1.2.0
@@ -208,26 +242,21 @@ jobs:
           check-name: "Build split Docker images"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate versioned Docker Compose YAML
-        if: steps.release.outputs.prerelease == 'false'
-        shell: bash
-        run: |
-          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}")) | (.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
-
       - name: Update resource data models
         if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true
         shell: bash
         run: |
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
-          cd resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/data-models
-          find . -mindepth 2 -type d -name img -prune -exec rm -rf {} \;
-          python3 ${{ github.workspace }}/resoto.com/tools/export_model_images.py
+          cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
+          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
-      - name: Optimize & format
+      - name: Build, optimize, and format
         if: steps.release.outputs.prerelease == 'false'
+        continue-on-error: true
         working-directory: ./resoto.com
-        run: |
+        run: | # build first to generate Kroki images
+          yarn build
           yarn optimize
           yarn format
 
