@@ -177,7 +177,7 @@ jobs:
           [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
           dir="resoto.com/releases/${{ steps.release.outputs.tag }}"
           mkdir -p $dir
-          file="${dir}/index.md"
+          file="${dir}/index.mdx"
           python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
           link="/releases/${{ steps.release.outputs.tag }}"
           echo $(jq '.["${{ steps.release.outputs.docsVersion }}"]="${{ steps.release.outputs.tag }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
