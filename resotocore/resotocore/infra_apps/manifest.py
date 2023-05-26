@@ -7,10 +7,6 @@ from yaml import safe_load
 from jsons import loads as jsons_loads
 
 
-class NoArgProvided:
-    pass
-
-
 ArgName = str
 
 
