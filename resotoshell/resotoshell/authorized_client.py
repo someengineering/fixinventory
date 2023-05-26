@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 import webbrowser
 from argparse import Namespace
@@ -132,7 +133,8 @@ class ReshConfig:
 
     def write(self) -> None:
         if self.dirty:
-            with open(self.path, "w+", encoding="utf-8") as f:
+            self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with open(os.open(self.path, os.O_CREAT | os.O_WRONLY, 0o600), "w+") as f:
                 self.config.write(f)
 
     @staticmethod
