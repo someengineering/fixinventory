@@ -1,10 +1,11 @@
-from typing import cast, Awaitable
+from typing import cast, Awaitable, Optional
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.ids import InfraAppName
+from resotocore.ids import InfraAppName, ConfigId
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.config import ConfigHandler
+from resotocore.config import ConfigHandler, ConfigEntity
+from resotocore.core_config import ResotoCoreCommandsConfigId
 from arango.database import StandardDatabase
 from types import SimpleNamespace
 import pytest
@@ -29,10 +30,24 @@ def async_none() -> Awaitable[None]:
     return future
 
 
+config_handler_store = {}
+
+
+async def patch_config(config_entity: ConfigEntity, validate: bool, dry_run: bool) -> None:
+    config_handler_store[config_entity.id] = config_entity
+    return None
+
+
+async def get_config(cfg_id: ConfigId) -> Optional[ConfigEntity]:
+    return config_handler_store.get(cfg_id)
+
+
 config_handler = cast(
     ConfigHandler,
     SimpleNamespace(
+        get_config=get_config,
         put_config=lambda config_entity, validate: async_none(),
+        patch_config=patch_config,
         delete_config=lambda config_id: async_none(),
         update_configs_model=lambda models: async_none(),
         put_config_validation=lambda config_validation: async_none(),
@@ -58,6 +73,17 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     assert installed_app is not None
     assert installed_app.name == name
 
+    # check that the alias is created
+    command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
+    assert command_config_entity is not None
+    command_config = (
+        cast(ConfigEntity, command_config_entity).config.get("custom_commands", {}).get("commands", [None])[0]
+    )
+    assert command_config is not None
+    assert command_config.get("name") == manifest.name
+    assert command_config.get("template") == f"apps run {manifest.name}"
+    assert command_config.get("info") == manifest.description
+
     # update is possible
     updated_manifest = await package_manager.update(name)
     assert updated_manifest is not None
@@ -74,6 +100,13 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     # check that it is not installed anymore
     installed_apps_after_deletion = [name async for name in package_manager.list()]
     assert installed_apps_after_deletion == []
+
+    # check that the alias is deleted
+    command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
+    assert command_config_entity is not None
+    commands = cast(ConfigEntity, command_config_entity).config.get("custom_commands", {}).get("commands", [{}])
+    command_config = [command for command in commands if command.get("name") == manifest.name]
+    assert len(command_config) == 0
 
 
 @pytest.mark.asyncio

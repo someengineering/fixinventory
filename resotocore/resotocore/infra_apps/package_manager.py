@@ -17,6 +17,7 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
+from resotocore.core_config import AliasTemplateConfig, CustomCommandsConfig, ResotoCoreCommandsConfigId
 from logging import getLogger
 from resotocore.web.service import Service
 
@@ -208,6 +209,17 @@ class PackageManager(Service):
     async def _delete(self, name: InfraAppName) -> None:
         await self.entity_db.delete(name)
         await self.config_handler.delete_config(config_id(name))
+        # clean up the aliases
+        current_aliases = await self.config_handler.get_config(ResotoCoreCommandsConfigId)
+        if current_aliases is None:
+            return
+        custom_commands_conf = from_js(current_aliases.config, CustomCommandsConfig)
+
+        custom_commands_conf.commands = [c for c in custom_commands_conf.commands if c.name != name]
+
+        await self.config_handler.patch_config(
+            ConfigEntity(ResotoCoreCommandsConfigId, custom_commands_conf.json()), validate=False, dry_run=False
+        )
 
     # user-facing method, errors are thrown as exceptions
     async def install(self, name: InfraAppName, url: Optional[str]) -> AppManifest:
@@ -236,6 +248,21 @@ class PackageManager(Service):
         try:
             await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
             stored = await self.entity_db.update(InfraAppPackage(manifest, url))
+
+            alias_template = AliasTemplateConfig(
+                name=manifest.name,
+                info=manifest.description,
+                template=f"apps run {manifest.name}",
+                description=manifest.readme,
+                allowed_in_source_position=True,
+            )
+
+            custom_commands_conf = CustomCommandsConfig(commands=[alias_template])
+
+            await self.config_handler.patch_config(
+                ConfigEntity(ResotoCoreCommandsConfigId, custom_commands_conf.json()), validate=False, dry_run=False
+            )
+
             return stored.manifest
         except Exception as e:
             logger.error(f"Failed to install {manifest.name} from {url}", exc_info=e)
