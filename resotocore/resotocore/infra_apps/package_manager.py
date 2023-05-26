@@ -105,6 +105,7 @@ class PackageManager(Service):
                 template=f"apps run {manifest.name}" + r" {{args}}",
                 description=manifest.readme,
                 allowed_in_source_position=True,
+                infra_app_parameters=manifest.args_schema,
             )
             self.add_command_alias(alias_template)
 
