@@ -20,7 +20,8 @@ from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand
-from resotocore.cli.model import CLIDependencies, CLIContext, WorkerCustomCommand, CLI
+from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB

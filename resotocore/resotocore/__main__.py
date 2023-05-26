@@ -25,7 +25,7 @@ from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
-from resotocore.cli.model import CLIDependencies
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -184,7 +184,9 @@ def with_config(
     cli_deps.extend(task_handler=task_handler, inspector=inspector)
     infra_apps_runtime = LocalResotocoreAppRuntime(cli)
     cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
-    infra_apps_package_manager = PackageManager(db.package_entity_db, config_handler)
+    infra_apps_package_manager = PackageManager(
+        db.package_entity_db, config_handler, cli.register_alias_template, cli.unregister_alias_template
+    )
     cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
     graph_manager = GraphManager(db, config.snapshots, core_config_handler, task_handler)
     cli_deps.extend(graph_manager=graph_manager)

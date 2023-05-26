@@ -28,7 +28,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.cli.model import CLIDependencies
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -533,7 +533,7 @@ async def inspector_service(cli: CLIService) -> InspectorService:
 async def package_manager(
     cli: CLIService, config_handler: ConfigHandler, package_entity_db: PackageEntityDb
 ) -> PackageManager:
-    async with PackageManager(package_entity_db, config_handler) as service:
+    async with PackageManager(package_entity_db, config_handler, lambda at: None, lambda s: None) as service:
         cli.dependencies.lookup["infra_apps_package_manager"] = service
         return service
 

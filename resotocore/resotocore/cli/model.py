@@ -4,7 +4,7 @@ import calendar
 import inspect
 import json
 from abc import ABC, abstractmethod
-from asyncio import Queue, Task, iscoroutine
+from asyncio import iscoroutine
 from datetime import timedelta
 from enum import Enum
 from functools import reduce
@@ -12,35 +12,21 @@ from operator import attrgetter
 from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
-from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
 from attrs import define, field
 from parsy import test_char, string
 from rich.jupyter import JupyterMixin
 
-from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
-from resotocore.config import ConfigHandler
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
-from resotocore.core_config import CoreConfig, AliasTemplateConfig, AliasTemplateParameterConfig
-from resotocore.db.db_access import DbAccess
+from resotocore.core_config import AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.error import CLIParseError
-from resotocore.message_bus import MessageBus
-from resotocore.model.model_handler import ModelHandler
+from resotocore.query.template_expander import render_template
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
-from resotocore.query.template_expander import TemplateExpander, render_template
-from resotocore.report import Inspector
-from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
-from resotocore.user import UserManagement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
-from resotocore.web.certificate_handler import CertificateHandler
-from resotocore.worker_task_queue import WorkerTaskQueue
-from resotocore.infra_apps.runtime import Runtime
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
 
@@ -163,96 +149,6 @@ class CLIEngine(ABC):
         self, cli_input: str, context: CLIContext = EmptyContext, replace_place_holder: bool = True
     ) -> List[ParsedCommandLine]:
         pass
-
-
-class CLIDependencies:
-    def __init__(self, **deps: Any) -> None:
-        self.lookup: Dict[str, Any] = deps
-
-    def extend(self, **deps: Any) -> CLIDependencies:
-        self.lookup = {**self.lookup, **deps}
-        return self
-
-    @property
-    def config(self) -> CoreConfig:
-        return self.lookup["config"]  # type: ignore
-
-    @property
-    def message_bus(self) -> MessageBus:
-        return self.lookup["message_bus"]  # type:ignore
-
-    @property
-    def event_sender(self) -> AnalyticsEventSender:
-        return self.lookup["event_sender"]  # type:ignore
-
-    @property
-    def db_access(self) -> DbAccess:
-        return self.lookup["db_access"]  # type:ignore
-
-    @property
-    def model_handler(self) -> ModelHandler:
-        return self.lookup["model_handler"]  # type:ignore
-
-    @property
-    def task_handler(self) -> TaskHandler:
-        return self.lookup["task_handler"]  # type:ignore
-
-    @property
-    def worker_task_queue(self) -> WorkerTaskQueue:
-        return self.lookup["worker_task_queue"]  # type:ignore
-
-    @property
-    def template_expander(self) -> TemplateExpander:
-        return self.lookup["template_expander"]  # type:ignore
-
-    @property
-    def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
-        return self.lookup["forked_tasks"]  # type:ignore
-
-    @property
-    def cli(self) -> CLIEngine:
-        return self.lookup["cli"]  # type:ignore
-
-    @property
-    def config_handler(self) -> ConfigHandler:
-        return self.lookup["config_handler"]  # type:ignore
-
-    @property
-    def cert_handler(self) -> CertificateHandler:
-        return self.lookup["cert_handler"]  # type:ignore
-
-    @property
-    def inspector(self) -> Inspector:
-        return self.lookup["inspector"]  # type:ignore
-
-    @property
-    def infra_apps_runtime(self) -> Runtime:
-        return self.lookup["infra_apps_runtime"]  # type:ignore
-
-    @property
-    def infra_apps_package_manager(self) -> PackageManager:
-        return self.lookup["infra_apps_package_manager"]  # type:ignore
-
-    @property
-    def user_management(self) -> UserManagement:
-        return self.lookup["user_management"]  # type:ignore
-
-    @property
-    def graph_manager(self) -> GraphManager:
-        return self.lookup["graph_manager"]  # type:ignore
-
-    @property
-    def http_session(self) -> ClientSession:
-        session: Optional[ClientSession] = self.lookup.get("http_session")
-        if not session:
-            connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
-            session = ClientSession(connector=connector)
-            self.lookup["http_session"] = session
-        return session
-
-    async def stop(self) -> None:
-        if "http_session" in self.lookup:
-            await self.http_session.close()
 
 
 @define
@@ -395,9 +291,7 @@ class CLICommand(ABC):
     Sink: takes a stream of objects and creates a result
     """
 
-    def __init__(
-        self, dependencies: CLIDependencies, category: str = "misc", allowed_in_source_position: bool = False
-    ) -> None:
+    def __init__(self, dependencies: Any, category: str = "misc", allowed_in_source_position: bool = False) -> None:
         self.dependencies = dependencies
         self.category = category
         self.allowed_in_source_position = allowed_in_source_position
@@ -682,10 +576,15 @@ class CLI(ABC):
         pass
 
     @abstractmethod
-    def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
+    def register_alias_template(self, template: AliasTemplate) -> None:
         """
-        Called when a worker connects that introduces a custom command.
-        The registered templated will always override any existing template.
+        Called when something introduces a custom command.
+        """
+
+    @abstractmethod
+    def unregister_alias_template(self, name: str) -> None:
+        """
+        Called when something removes a custom command.
         """
 
     @property
@@ -710,7 +609,7 @@ class CLI(ABC):
 
     @property
     @abstractmethod
-    def dependencies(self) -> CLIDependencies:
+    def dependencies(self) -> Any:  # CliDependencies, but we can't import it here
         pass
 
     @property

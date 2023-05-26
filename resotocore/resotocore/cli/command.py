@@ -79,12 +79,12 @@ from resotocore.cli.model import (
     PreserveOutputFormat,
     MediaType,
     CLIFileRequirement,
-    CLIDependencies,
     ParsedCommand,
     NoTerminalOutput,
     ArgsInfo,
     ArgInfo,
 )
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
@@ -3151,7 +3151,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
 
             # dependencies are not resolved directly (no async function is allowed here)
             async def load_model() -> Model:
-                return await self.dependencies.model_handler.load_model(ctx.graph_name)
+                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
 
             dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
@@ -3274,7 +3274,7 @@ class TagCommand(SendWorkerTaskCommand):
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             async def load_model() -> Model:
-                return await self.dependencies.model_handler.load_model(ctx.graph_name)
+                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(load_model)
@@ -3921,7 +3921,7 @@ class HttpCommand(CLICommand):
             authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
-                async with self.dependencies.http_session.request(
+                async with cast(CLIDependencies, self.dependencies).http_session.request(
                     template.method,
                     template.url,
                     headers=template.headers,
@@ -4990,7 +4990,7 @@ class InfrastructureAppsCommand(CLICommand):
         async def app_run(
             in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
         ) -> AsyncIterator[JsonElement]:
-            runtime = self.dependencies.infra_apps_runtime
+            runtime = cast(CLIDependencies, self.dependencies).infra_apps_runtime
             manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
             if not manifest:
                 raise ValueError(f"App {app_name} is not installed.")

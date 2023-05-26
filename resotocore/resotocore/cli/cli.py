@@ -45,21 +45,20 @@ from resotocore.cli.model import (
     ExecutableCommand,
     ParsedCommandLine,
     CLICommand,
-    CLIDependencies,
     InternalPart,
     CLIContext,
     CLI,
     EmptyContext,
     CLISource,
     NoTerminalOutput,
+    OutputTransformer,
+    PreserveOutputFormat,
     AliasTemplate,
     ArgsInfo,
     ArgInfo,
     AliasTemplateParameter,
-    WorkerCustomCommand,
-    OutputTransformer,
-    PreserveOutputFormat,
 )
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
@@ -258,14 +257,20 @@ class CLIService(CLI):
     def alias_templates(self) -> Dict[str, AliasTemplate]:
         return self.__alias_templates
 
-    def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
+    def register_alias_template(self, template: AliasTemplate) -> None:
         """
-        Called when a worker connects that introduces a custom command.
+        Called when something introduces a custom command.
         The registered templated will always override any existing template.
         """
-        if command.name not in self.direct_commands and command.name not in self.alias_commands:
-            template = command.to_template()
+        if template.name not in self.direct_commands and template.name not in self.alias_commands:
             self.alias_templates[template.name] = template
+
+    def unregister_alias_template(self, name: str) -> None:
+        """
+        Called when something removes a custom command.
+        """
+        if name in self.alias_templates:
+            del self.alias_templates[name]
 
     async def start(self) -> None:
         self.reaper = asyncio.create_task(self.reap_tasks())
@@ -523,7 +528,7 @@ class CLIService(CLI):
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
                 available: Dict[str, AliasTemplateParameter] = {p.name: p for p in alias.parameters}
                 props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
-                props["args"] = alias_cmd.args
+                props["args"] = alias_cmd.args or ""
                 for p in alias.parameters:
                     props[p.name] = p.default
                 # only parse properties, if there are any declared

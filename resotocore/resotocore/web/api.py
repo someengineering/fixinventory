@@ -62,9 +62,9 @@ from resotocore.cli.model import (
     CLIContext,
     CLICommand,
     InternalPart,
-    AliasTemplate,
     WorkerCustomCommand,
     CLI,
+    AliasTemplate,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -731,7 +731,7 @@ class Api:
             worker_descriptions.set_result(description)
             # register the descriptions as custom command on the CLI
             for cmd in cmds:
-                self.cli.register_worker_custom_command(cmd)
+                self.cli.register_alias_template(cmd.to_template())
             # the connect process is done, define the final handler
             handler = handle_message
 

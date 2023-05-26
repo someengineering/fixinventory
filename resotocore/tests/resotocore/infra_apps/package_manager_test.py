@@ -1,11 +1,13 @@
-from typing import cast, Awaitable
+from typing import cast, Awaitable, Dict
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.config import ConfigHandler
+from resotocore.cli.model import AliasTemplate
 from arango.database import StandardDatabase
+from collections import defaultdict
 from types import SimpleNamespace
 import pytest
 from asyncio import Future
@@ -43,7 +45,20 @@ config_handler = cast(
 @pytest.mark.asyncio
 async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(package_entity_db, config_handler)
+    enabled_aliases: Dict[str, AliasTemplate] = {}
+
+    def enable_alias(ta: AliasTemplate) -> None:
+        enabled_aliases[ta.name] = ta
+
+    def disable_alias(name: str) -> None:
+        enabled_aliases.pop(name)
+
+    package_manager = PackageManager(
+        package_entity_db,
+        config_handler,
+        enable_alias,
+        disable_alias,
+    )
     await package_manager.start()
 
     manifest = await package_manager.install(name, None)
@@ -57,6 +72,13 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     installed_app = await package_manager.get_manifest(name)
     assert installed_app is not None
     assert installed_app.name == name
+
+    # check that the alias is created
+    alias_template = enabled_aliases.get(name)
+    assert alias_template is not None
+    assert alias_template.name == manifest.name
+    assert alias_template.template == f"apps run {manifest.name}" + r" {{args}}"
+    assert alias_template.info == manifest.description
 
     # update is possible
     updated_manifest = await package_manager.update(name)
@@ -75,11 +97,15 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     installed_apps_after_deletion = [name async for name in package_manager.list()]
     assert installed_apps_after_deletion == []
 
+    # check that the alias is deleted
+    alias_template = enabled_aliases.get(name)
+    assert alias_template is None
+
 
 @pytest.mark.asyncio
 async def test_local_install(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(package_entity_db, config_handler)
+    package_manager = PackageManager(package_entity_db, config_handler, lambda at: None, lambda s: None)
     await package_manager.start()
 
     # check that the app is not installed
