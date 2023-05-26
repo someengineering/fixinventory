@@ -118,6 +118,7 @@ class CheckCollectionConfig:
 class BenchmarkConfig(CheckCollectionConfig):
     kind: ClassVar[str] = BenchmarkConfigRoot
 
+    id: str = field(metadata={"description": "Unique ID of the benchmark."})
     framework: str = field(metadata={"description": "Framework the benchmark is based on."})
     version: str = field(metadata={"description": "Version of the benchmark."})
     clouds: Optional[List[str]] = field(
