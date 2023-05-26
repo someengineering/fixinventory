@@ -4,7 +4,6 @@ from resotocore.types import JsonElement, Json
 from resotocore.ids import GraphName
 from attrs import frozen
 from abc import ABC, abstractmethod
-from argparse import Namespace
 
 
 @frozen
@@ -32,7 +31,7 @@ class Runtime(ABC):
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],
-        kwargs: Namespace,
+        argv: List[str],
         ctx: Any,  # CLIContext, but here we use Any to avoid circular dependency
     ) -> AsyncIterator[JsonElement]:
         """
@@ -46,7 +45,7 @@ class Runtime(ABC):
         manifest: AppManifest,
         config: Json,
         stdin: AsyncIterator[JsonElement],
-        kwargs: Namespace,
+        argv: List[str],
     ) -> AsyncIterator[str]:
         """
         Generates the template for the infrastructure app. Does not execute any commands

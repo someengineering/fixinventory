@@ -34,6 +34,7 @@ def async_none() -> Awaitable[None]:
 config_handler = cast(
     ConfigHandler,
     SimpleNamespace(
+        get_config=lambda config_id: async_none(),
         put_config=lambda config_entity, validate: async_none(),
         delete_config=lambda config_id: async_none(),
         update_configs_model=lambda models: async_none(),

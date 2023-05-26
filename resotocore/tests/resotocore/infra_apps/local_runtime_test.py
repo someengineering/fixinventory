@@ -51,14 +51,14 @@ async def test_template_generation(cli: CLI) -> None:
         categories=[],
         default_config=None,
         config_schema=None,
-        args_schema=[],
+        args_schema={},
         source=cleanup_untagged,
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
     g = cli.env["graph"]
 
-    lines = [line async for line in runtime.generate_template(g, manifest, config, stdin(), namespace)]
+    lines = [line async for line in runtime.generate_template(g, manifest, config, stdin(), [])]
     assert lines == [
         (
             "search /metadata.protected == false and /metadata.phantom == false and /metadata.cleaned == false "
@@ -83,15 +83,14 @@ async def test_execute(cli: CLI) -> None:
         categories=[],
         default_config=None,
         config_schema=None,
-        args_schema=[],
+        args_schema={},
         source=source,
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
     g = cli.env["graph"]
     output = [
-        js_elem
-        async for js_elem in runtime.execute(g, manifest, config={}, kwargs=namespace, stdin=stdin(), ctx=EmptyContext)
+        js_elem async for js_elem in runtime.execute(g, manifest, config={}, argv=[], stdin=stdin(), ctx=EmptyContext)
     ]
     assert output == ["foo", "bar", "a", "b", "c"]
 
@@ -115,14 +114,14 @@ async def test_search(cli: CLI) -> None:
         categories=[],
         default_config=None,
         config_schema=None,
-        args_schema=[],
+        args_schema={},
         source=source,
     )
 
     runtime = LocalResotocoreAppRuntime(cli)
 
     g = cli.env["graph"]
-    lines = [line async for line in runtime.generate_template(g, manifest, {}, stdin(), namespace)]
+    lines = [line async for line in runtime.generate_template(g, manifest, {}, stdin(), [])]
 
     assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
