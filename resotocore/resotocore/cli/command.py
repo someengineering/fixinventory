@@ -40,7 +40,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 import yaml
-from aiohttp import ClientTimeout, JsonPayload, BasicAuth, ClientSession
+from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
@@ -94,7 +94,6 @@ from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
-from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.infra_apps.package_manager import Failure
 from resotocore.model.graph_access import Section, EdgeTypes
@@ -108,7 +107,6 @@ from resotocore.model.model import (
     ArrayKind,
     PropertyPath,
 )
-from resotocore.model.model_handler import ModelHandler
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js, from_js
 from resotocore.query.model import (
@@ -3153,7 +3151,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
 
             # dependencies are not resolved directly (no async function is allowed here)
             async def load_model() -> Model:
-                return await cast(ModelHandler, self.dependencies.model_handler).load_model(ctx.graph_name)
+                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
 
             dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
@@ -3276,7 +3274,7 @@ class TagCommand(SendWorkerTaskCommand):
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             async def load_model() -> Model:
-                return await cast(ModelHandler, self.dependencies.model_handler).load_model(ctx.graph_name)
+                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(load_model)
@@ -3923,7 +3921,7 @@ class HttpCommand(CLICommand):
             authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
-                async with cast(ClientSession, self.dependencies.http_session).request(
+                async with cast(CLIDependencies, self.dependencies).http_session.request(
                     template.method,
                     template.url,
                     headers=template.headers,
@@ -4992,7 +4990,7 @@ class InfrastructureAppsCommand(CLICommand):
         async def app_run(
             in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
         ) -> AsyncIterator[JsonElement]:
-            runtime = cast(Runtime, self.dependencies.infra_apps_runtime)
+            runtime = cast(CLIDependencies, self.dependencies).infra_apps_runtime
             manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
             if not manifest:
                 raise ValueError(f"App {app_name} is not installed.")

@@ -226,7 +226,7 @@ class PackageManager(Service):
             await self._delete(name)
 
     async def _delete(self, name: InfraAppName) -> None:
-        if self.entity_db.get(name) is None:
+        if await self.entity_db.get(name) is None:
             return
         await self.entity_db.delete(name)
         await self.config_handler.delete_config(config_id(name))
