@@ -16,7 +16,7 @@
             "Encrypted": false,
             "Size": 300,
             "SnapshotId": "snap-123",
-            "State": "in-use",
+            "State": "available",
             "VolumeId": "vol-123",
             "Iops": 900,
             "Tags": [
