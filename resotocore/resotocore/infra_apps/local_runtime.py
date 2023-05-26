@@ -110,7 +110,7 @@ class LocalResotocoreAppRuntime(Runtime):
             parser.add_argument(
                 f"--{arg_name}",
                 **kwargs,
-            )
+            )  # type: ignore
 
         return parser.parse_args(argv)
 
