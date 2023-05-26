@@ -109,7 +109,7 @@ class LocalResotocoreAppRuntime(Runtime):
                         kwargs[flag] = arg_info[flag]
             parser.add_argument(
                 f"--{arg_name}",
-                kwargs=kwargs,
+                **kwargs,
             )
 
         return parser.parse_args(argv)
