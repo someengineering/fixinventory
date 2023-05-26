@@ -1,4 +1,4 @@
-from typing import Literal, List, Union, Optional, Any
+from typing import List, Optional, Dict
 from attrs import frozen
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
@@ -7,31 +7,7 @@ from yaml import safe_load
 from jsons import loads as jsons_loads
 
 
-@frozen
-class AppArgs:
-    """
-    A command line argument that can be passed to the app. Must be compatible with the Python argparse library.
-
-    @param name: The name of the argument. Must be a valid Python variable name.
-    @param help: A short human-readable description of the argument.
-    @param action: The action to be taken when the argument is encountered at the command line.
-    See https://docs.python.org/3/library/argparse.html#action for more information.
-    @param type: The type of the argument. See https://docs.python.org/3/library/argparse.html#type
-    for more information.
-    @param nargs: The number of command-line arguments that should be consumed.
-    See https://docs.python.org/3/library/argparse.html#nargs for more information.
-    @param default: The default value of the argument.
-    See https://docs.python.org/3/library/argparse.html#default for more information.
-    """
-
-    name: str
-    help: str
-    action: Literal[
-        "store", "store_const", "store_true", "append", "append_const", "count", "help", "version"
-    ] = "store"
-    type: Literal["str", "int", "float", "bool"] = "str"
-    nargs: Union[None, int, Literal["?", "*", "+"]] = None
-    default: Optional[Any] = None
+ArgName = str
 
 
 @frozen
@@ -66,7 +42,7 @@ class AppManifest:
     categories: List[str]
     config_schema: Optional[List[Json]]
     default_config: Optional[Json]
-    args_schema: Optional[List[AppArgs]]
+    args_schema: Optional[Dict[ArgName, Json]]
     source: str
 
     # Object creation methods. Use these instead of the __init__ method.
@@ -88,33 +64,3 @@ class AppManifest:
     @staticmethod
     def from_yaml_str(yaml_str: str) -> "AppManifest":
         return AppManifest.from_json(safe_load(yaml_str))
-
-    @staticmethod
-    def new(
-        name: InfraAppName,
-        description: str,
-        version: str,
-        readme: str,
-        language: Literal["jinja2"],
-        url: str,
-        icon: str,
-        categories: List[str],
-        config_schema: Optional[List[Json]],
-        default_config: Optional[Json],
-        args_schema: List[AppArgs],
-        source: str,
-    ) -> "AppManifest":
-        return AppManifest(
-            name=name,
-            description=description,
-            version=version,
-            readme=readme,
-            language=language,
-            url=url,
-            icon=icon,
-            categories=categories,
-            config_schema=config_schema,
-            default_config=default_config,
-            args_schema=args_schema,
-            source=source,
-        )

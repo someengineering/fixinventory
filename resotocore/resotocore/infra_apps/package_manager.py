@@ -229,7 +229,6 @@ class PackageManager(Service):
         if await self.entity_db.get(name) is None:
             return
         await self.entity_db.delete(name)
-        await self.config_handler.delete_config(config_id(name))
         # clean up the aliases
         self.remove_command_alias(name)
 
@@ -258,7 +257,8 @@ class PackageManager(Service):
             await self.config_handler.update_configs_model(kinds)
         config_entity = ConfigEntity(conf_id, manifest.default_config or {}, None)
         try:
-            await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
+            if await self.config_handler.get_config(conf_id) is None:
+                await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
             stored = await self.entity_db.update(InfraAppPackage(manifest, url))
 
             # add the custom command alias

@@ -4988,21 +4988,19 @@ class InfrastructureAppsCommand(CLICommand):
                 yield app
 
         async def app_run(
-            in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str]
+            in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str], argv: List[str]
         ) -> AsyncIterator[JsonElement]:
             runtime = cast(CLIDependencies, self.dependencies).infra_apps_runtime
             manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
             if not manifest:
                 raise ValueError(f"App {app_name} is not installed.")
             app_config = None
-            if config:
-                ce = await self.dependencies.config_handler.get_config(ConfigId(config))
-                if ce:
-                    app_config = ce.config
-                else:
-                    raise ValueError(f"Config {config} not found.")
+            config = config or f"resoto.apps.{app_name}"
+            ce = await self.dependencies.config_handler.get_config(ConfigId(config))
+            if ce:
+                app_config = ce.config
             else:
-                app_config = manifest.default_config or {}
+                raise ValueError(f"Config {config} not found.")
 
             stdin: AsyncIterator[JsonElement] = (
                 stream.iterate(in_stream) if isinstance(in_stream, Stream) else in_stream
@@ -5014,11 +5012,11 @@ class InfrastructureAppsCommand(CLICommand):
                     manifest=manifest,
                     config=app_config,
                     stdin=stdin,
-                    kwargs=Namespace(),
+                    argv=argv,
                 )
             else:
                 return runtime.execute(
-                    graph=ctx.graph_name, manifest=manifest, config=app_config, stdin=stdin, kwargs=Namespace(), ctx=ctx
+                    graph=ctx.graph_name, manifest=manifest, config=app_config, stdin=stdin, argv=argv, ctx=ctx
                 )
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
@@ -5086,7 +5084,7 @@ class InfrastructureAppsCommand(CLICommand):
             parser.add_argument("app_name", type=str)
             parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
             parser.add_argument("--config", dest="config", type=str, default=None)
-            parsed = parser.parse_args(strip_quotes(arg or "").split())
+            parsed, argv = parser.parse_known_args(args_parts_parser.parse(arg))
 
             in_source_position = kwargs.get("position") == 0
 
@@ -5098,12 +5096,17 @@ class InfrastructureAppsCommand(CLICommand):
                         app_name=InfraAppName(parsed.app_name),
                         dry_run=parsed.dry_run,
                         config=parsed.config,
+                        argv=argv,
                     )
                 )
             else:
                 return CLIFlow(
                     partial(
-                        app_run, app_name=InfraAppName(parsed.app_name), dry_run=parsed.dry_run, config=parsed.config
+                        app_run,
+                        app_name=InfraAppName(parsed.app_name),
+                        dry_run=parsed.dry_run,
+                        config=parsed.config,
+                        argv=argv,
                     )
                 )
         else:
