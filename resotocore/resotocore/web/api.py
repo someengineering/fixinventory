@@ -64,8 +64,8 @@ from resotocore.cli.model import (
     InternalPart,
     WorkerCustomCommand,
     CLI,
+    AliasTemplate,
 )
-from resotocore.cli.alias_template import AliasTemplate
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.core_config import CoreConfig

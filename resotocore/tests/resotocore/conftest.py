@@ -28,7 +28,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.cli.model import CLIDependencies
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler

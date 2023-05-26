@@ -45,7 +45,6 @@ from resotocore.cli.model import (
     ExecutableCommand,
     ParsedCommandLine,
     CLICommand,
-    CLIDependencies,
     InternalPart,
     CLIContext,
     CLI,
@@ -54,8 +53,12 @@ from resotocore.cli.model import (
     NoTerminalOutput,
     OutputTransformer,
     PreserveOutputFormat,
+    AliasTemplate,
+    ArgsInfo,
+    ArgInfo,
+    AliasTemplateParameter,
 )
-from resotocore.cli.alias_template import ArgInfo, ArgsInfo, AliasTemplate, AliasTemplateParameter
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
@@ -190,7 +193,7 @@ class HelpCommand(CLICommand):
                 explain = f"{arg} is an alias for {alias}\n\n"
                 result = explain + self.all_parts[alias].rendered_help(ctx)
             elif arg in self.alias_templates:
-                result = ctx.render_console(self.alias_templates[arg].help())
+                result = self.alias_templates[arg].rendered_help(ctx)
             else:
                 result = f"No command found with this name: {arg}"
 

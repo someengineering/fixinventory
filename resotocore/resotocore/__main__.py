@@ -25,7 +25,7 @@ from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
-from resotocore.cli.model import CLIDependencies
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler

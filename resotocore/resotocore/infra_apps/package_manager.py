@@ -17,7 +17,7 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
-from resotocore.cli.alias_template import AliasTemplate
+from resotocore.cli.model import AliasTemplate
 from logging import getLogger
 from resotocore.web.service import Service
 

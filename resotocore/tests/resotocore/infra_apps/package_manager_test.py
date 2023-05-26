@@ -5,7 +5,7 @@ from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.config import ConfigHandler
-from resotocore.cli.alias_template import AliasTemplate
+from resotocore.cli.model import AliasTemplate
 from arango.database import StandardDatabase
 from collections import defaultdict
 from types import SimpleNamespace

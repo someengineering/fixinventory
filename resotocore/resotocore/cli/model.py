@@ -4,42 +4,29 @@ import calendar
 import inspect
 import json
 from abc import ABC, abstractmethod
-from asyncio import Queue, Task, iscoroutine
+from asyncio import iscoroutine
 from datetime import timedelta
 from enum import Enum
 from functools import reduce
+from operator import attrgetter
+from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
-from aiohttp import ClientSession, TCPConnector
 from aiostream import stream
 from aiostream.core import Stream
 from attrs import define, field
 from parsy import test_char, string
 from rich.jupyter import JupyterMixin
 
-from resotocore.analytics import AnalyticsEventSender
 from resotocore.cli import JsGen, T, Sink
-from resotocore.cli.alias_template import ArgsInfo, AliasTemplate
-from resotocore.config import ConfigHandler
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
-from resotocore.core_config import CoreConfig
-from resotocore.db.db_access import DbAccess
+from resotocore.core_config import AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.error import CLIParseError
-from resotocore.message_bus import MessageBus
-from resotocore.model.model_handler import ModelHandler
+from resotocore.query.template_expander import render_template
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
-from resotocore.query.template_expander import TemplateExpander
-from resotocore.report import Inspector
-from resotocore.task import TaskHandler
 from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
-from resotocore.user import UserManagement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
-from resotocore.web.certificate_handler import CertificateHandler
-from resotocore.worker_task_queue import WorkerTaskQueue
-from resotocore.infra_apps.runtime import Runtime
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
 
@@ -164,96 +151,6 @@ class CLIEngine(ABC):
         pass
 
 
-class CLIDependencies:
-    def __init__(self, **deps: Any) -> None:
-        self.lookup: Dict[str, Any] = deps
-
-    def extend(self, **deps: Any) -> CLIDependencies:
-        self.lookup = {**self.lookup, **deps}
-        return self
-
-    @property
-    def config(self) -> CoreConfig:
-        return self.lookup["config"]  # type: ignore
-
-    @property
-    def message_bus(self) -> MessageBus:
-        return self.lookup["message_bus"]  # type:ignore
-
-    @property
-    def event_sender(self) -> AnalyticsEventSender:
-        return self.lookup["event_sender"]  # type:ignore
-
-    @property
-    def db_access(self) -> DbAccess:
-        return self.lookup["db_access"]  # type:ignore
-
-    @property
-    def model_handler(self) -> ModelHandler:
-        return self.lookup["model_handler"]  # type:ignore
-
-    @property
-    def task_handler(self) -> TaskHandler:
-        return self.lookup["task_handler"]  # type:ignore
-
-    @property
-    def worker_task_queue(self) -> WorkerTaskQueue:
-        return self.lookup["worker_task_queue"]  # type:ignore
-
-    @property
-    def template_expander(self) -> TemplateExpander:
-        return self.lookup["template_expander"]  # type:ignore
-
-    @property
-    def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
-        return self.lookup["forked_tasks"]  # type:ignore
-
-    @property
-    def cli(self) -> CLIEngine:
-        return self.lookup["cli"]  # type:ignore
-
-    @property
-    def config_handler(self) -> ConfigHandler:
-        return self.lookup["config_handler"]  # type:ignore
-
-    @property
-    def cert_handler(self) -> CertificateHandler:
-        return self.lookup["cert_handler"]  # type:ignore
-
-    @property
-    def inspector(self) -> Inspector:
-        return self.lookup["inspector"]  # type:ignore
-
-    @property
-    def infra_apps_runtime(self) -> Runtime:
-        return self.lookup["infra_apps_runtime"]  # type:ignore
-
-    @property
-    def infra_apps_package_manager(self) -> PackageManager:
-        return self.lookup["infra_apps_package_manager"]  # type:ignore
-
-    @property
-    def user_management(self) -> UserManagement:
-        return self.lookup["user_management"]  # type:ignore
-
-    @property
-    def graph_manager(self) -> GraphManager:
-        return self.lookup["graph_manager"]  # type:ignore
-
-    @property
-    def http_session(self) -> ClientSession:
-        session: Optional[ClientSession] = self.lookup.get("http_session")
-        if not session:
-            connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
-            session = ClientSession(connector=connector)
-            self.lookup["http_session"] = session
-        return session
-
-    async def stop(self) -> None:
-        if "http_session" in self.lookup:
-            await self.http_session.close()
-
-
 @define
 class CLICommandRequirement:
     name: str
@@ -347,6 +244,45 @@ class CLIFlow(CLIAction):
         return self.make_stream(await gen if iscoroutine(gen) else gen)
 
 
+@define
+class ArgInfo:
+    # If the argument has a name. It is quite common that arguments do not have a name
+    # but are expected at some position.
+    # Example: `count <kind>`: kind is the argument at position 1 without a name
+    name: Optional[str] = None
+    # Defines if this argument expects a value.
+    # Some arguments are only flags, while others expect a value.
+    # Example: `--compress` is a flag without value
+    # Example: `--count <kind>` is an argument with value
+    expects_value: bool = False
+    # If the value has to be picked from a list of values (enumeration).
+    # Example: `--format svg|png|jpg`
+    possible_values: List[str] = field(factory=list)
+    # If this argument is allowed to be specified multiple times
+    can_occur_multiple_times: bool = False
+    # Give a type hint for the argument value.
+    # Allowed values are:
+    # - `file`: the argument expects a file path
+    # - `kind`: the argument expects a kind in the model
+    # - `property`: the argument expects a property in the model
+    # - `command`: the argument expects a command on the cli
+    # - `event`: the event handled or emitted by the task handler
+    # - `search`: the argument expects a search string
+    value_hint: Optional[str] = None
+    # Help text of the argument option.
+    help_text: Optional[str] = None
+    # If multiple options share the same group, only one of them can be selected.
+    # Use groups if you have multiple options, where only one is allowed to be selected.s
+    option_group: Optional[str] = None
+
+
+# mypy does not support recursive type aliases: define 3 levels as maximum here
+ArgsInfo = Union[
+    Dict[str, Union[Dict[str, Union[Dict[str, Union[Any, List[ArgInfo]]], List[ArgInfo]]], List[ArgInfo]]],
+    List[ArgInfo],
+]
+
+
 class CLICommand(ABC):
     """
     The CLIPart is the base for all participants of the cli execution.
@@ -355,9 +291,7 @@ class CLICommand(ABC):
     Sink: takes a stream of objects and creates a result
     """
 
-    def __init__(
-        self, dependencies: CLIDependencies, category: str = "misc", allowed_in_source_position: bool = False
-    ) -> None:
+    def __init__(self, dependencies: Any, category: str = "misc", allowed_in_source_position: bool = False) -> None:
         self.dependencies = dependencies
         self.category = category
         self.allowed_in_source_position = allowed_in_source_position
@@ -387,6 +321,120 @@ class CLICommand(ABC):
     @abstractmethod
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
+
+
+@define(order=True, hash=True, frozen=True)
+class AliasTemplateParameter:
+    name: str
+    description: str
+    default: Optional[JsonElement] = None
+
+    def example_value(self) -> JsonElement:
+        return self.default if self.default else f"test_{self.name}"
+
+    @property
+    def arg_name(self) -> str:
+        return "--" + self.name.replace("_", "-")
+
+
+# pylint: disable=not-an-iterable
+@define(order=True, hash=True, frozen=True)
+class AliasTemplate:
+    name: str
+    info: str
+    template: str
+    parameters: List[AliasTemplateParameter] = field(factory=list)
+    description: Optional[str] = None
+    # only use args_description if the template does not use explicit parameters
+    args_description: Dict[str, str] = field(factory=dict)
+    allowed_in_source_position: bool = False
+
+    def render(self, props: Json) -> str:
+        return render_template(self.template, props)
+
+    def args_info(self) -> ArgsInfo:
+        args_desc = [ArgInfo(name, expects_value=True, help_text=desc) for name, desc in self.args_description.items()]
+        param = [
+            ArgInfo(
+                p.arg_name,
+                expects_value=True,
+                help_text=f"[{'required' if p.default is None else 'optional'}] {p.description}",
+            )
+            for p in sorted(self.parameters, key=lambda p: p.default is not None)  # required parameters first
+        ]
+        return args_desc + param
+
+    def help_with_params(self) -> str:
+        args = " ".join(f"{arg.arg_name} <value>" for arg in self.parameters)
+
+        def param_info(p: AliasTemplateParameter) -> str:
+            default = f" [default: {p.default}]" if p.default else ""
+            return f"- `{p.name}`{default}: {p.description}"
+
+        indent = "            "
+        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
+        minimal = " ".join(f'{p.arg_name} "{p.example_value()}"' for p in self.parameters if p.default is None)
+        desc = ""
+        if self.description:
+            for line in self.description.splitlines():
+                desc += f"\n{indent}{line}"
+        return dedent(
+            f"""
+            {self.name}: {self.info}
+            ```shell
+            {self.name} {args}
+            ```
+            {desc}
+            ## Parameters
+            {arg_info}
+
+            ## Template
+            ```shell
+            > {self.template}
+            ```
+
+            ## Example
+            ```shell
+            # Executing this alias template
+            > {self.name} {minimal}
+            # Will expand to this command
+            > {self.render({p.name: p.example_value() for p in self.parameters})}
+            ```
+            """
+        )
+
+    def help_no_params_args(self) -> str:
+        args = ""
+        args_info = ""
+        for arg_name, arg_description in self.args_description.items():
+            args += f" [{arg_name}]"
+            args_info += f"\n- `{arg_name}`: {arg_description}"
+
+        args_info = args_info or ("<args>" if "{args}" in self.template else "")
+        return (
+            f"{self.name}: {self.info}\n```shell\n{self.name} {args}\n```\n\n"
+            f"## Parameters\n{args_info}\n\n{self.description}\n\n"
+        )
+
+    def help(self) -> str:
+        return self.help_with_params() if self.parameters else self.help_no_params_args()
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        return ctx.render_console(self.help())
+
+    @staticmethod
+    def from_config(cfg: AliasTemplateConfig) -> AliasTemplate:
+        def arg(p: AliasTemplateParameterConfig) -> AliasTemplateParameter:
+            return AliasTemplateParameter(p.name, p.description, p.default)
+
+        return AliasTemplate(
+            name=cfg.name,
+            info=cfg.info,
+            template=cfg.template,
+            parameters=[arg(a) for a in cfg.parameters],
+            description=cfg.description,
+            allowed_in_source_position=cfg.allowed_in_source_position or False,
+        )
 
 
 @define
@@ -561,7 +609,7 @@ class CLI(ABC):
 
     @property
     @abstractmethod
-    def dependencies(self) -> CLIDependencies:
+    def dependencies(self) -> Any:  # CliDependencies, but we can't import it here
         pass
 
     @property

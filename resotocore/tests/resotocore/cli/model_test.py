@@ -1,7 +1,6 @@
 from textwrap import dedent
 
-from resotocore.cli.model import CLIContext
-from resotocore.cli.alias_template import AliasTemplate, AliasTemplateParameter
+from resotocore.cli.model import CLIContext, AliasTemplate, AliasTemplateParameter
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 
 
