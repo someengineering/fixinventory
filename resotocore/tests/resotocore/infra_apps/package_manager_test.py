@@ -76,9 +76,7 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     # check that the alias is created
     command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
     assert command_config_entity is not None
-    command_config = (
-        cast(ConfigEntity, command_config_entity).config.get("custom_commands", {}).get("commands", [None])[0]
-    )
+    command_config = command_config_entity.config.get("custom_commands", {}).get("commands", [None])[0]
     assert command_config is not None
     assert command_config.get("name") == manifest.name
     assert command_config.get("template") == f"apps run {manifest.name}"
@@ -104,7 +102,7 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     # check that the alias is deleted
     command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
     assert command_config_entity is not None
-    commands = cast(ConfigEntity, command_config_entity).config.get("custom_commands", {}).get("commands", [{}])
+    commands = command_config_entity.config.get("custom_commands", {}).get("commands", [{}])
     command_config = [command for command in commands if command.get("name") == manifest.name]
     assert len(command_config) == 0
 
