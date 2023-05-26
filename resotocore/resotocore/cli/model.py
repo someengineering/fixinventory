@@ -348,6 +348,7 @@ class AliasTemplate:
     # only use args_description if the template does not use explicit parameters
     args_description: Dict[str, str] = field(factory=dict)
     allowed_in_source_position: bool = False
+    infra_app_parameters: Optional[Dict[str, Any]] = None  # todo: remove this abomination
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
@@ -378,6 +379,28 @@ class AliasTemplate:
         if self.description:
             for line in self.description.splitlines():
                 desc += f"\n{indent}{line}"
+
+        if self.infra_app_parameters:
+
+            def param_info_infra_apps(name: str, arg_info: Dict[str, Any]) -> str:
+                default = f" [default: {arg_info.get('default')}]" if arg_info.get("default") else ""
+                return f"- `{name}`{default}: {arg_info.get('help')}"
+
+            arg_info = f"\n{indent}".join(
+                param_info_infra_apps(name, arg) for name, arg in self.infra_app_parameters.items()
+            )
+            result = dedent(
+                f"""
+            {self.name}: {self.info}
+            ```shell
+            {self.name} {args}
+            ```
+            {desc}
+            ## Parameters
+            {arg_info}"""
+            )
+            return result
+
         return dedent(
             f"""
             {self.name}: {self.info}
@@ -395,7 +418,7 @@ class AliasTemplate:
 
             ## Example
             ```shell
-            # Executing this alias template
+            # Executing this command
             > {self.name} {minimal}
             # Will expand to this command
             > {self.render({p.name: p.example_value() for p in self.parameters})}
@@ -417,6 +440,8 @@ class AliasTemplate:
         )
 
     def help(self) -> str:
+        if self.infra_app_parameters:  # todo: remove this abomination
+            return self.help_with_params()
         return self.help_with_params() if self.parameters else self.help_no_params_args()
 
     def rendered_help(self, ctx: CLIContext) -> str:

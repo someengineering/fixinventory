@@ -50,7 +50,7 @@ def test_alias_template() -> None:
 
         ## Example
         ```shell
-        # Executing this alias template
+        # Executing this command
         > foo --a "test_a"
         # Will expand to this command
         > test_a | bv
