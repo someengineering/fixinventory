@@ -3,27 +3,24 @@ from __future__ import annotations
 import logging
 import uuid
 from abc import ABC
+from asyncio import Task
 from contextlib import suppress
 from datetime import timedelta, datetime
 from enum import Enum
 from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union
 
-from attrs import define
-
-from asyncio import Task
-
 from apscheduler.triggers.cron import CronTrigger
+from attrs import define
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
-from resotocore.ids import TaskId
-from resotocore.task.model import Subscriber
+from resotocore.ids import SubscriberId, TaskDescriptorId, TaskId
 from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError, ActionInfo, ActionProgress
 from resotocore.model.typed_model import to_json, from_js, to_js
+from resotocore.task.model import Subscriber
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
-from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotolib.core.progress import ProgressTree, Progress, ProgressDone
 
 log = logging.getLogger(__name__)
@@ -140,8 +137,7 @@ class SendMessage(TaskCommand):
 @define(order=True, hash=True, frozen=True)
 class ExecuteOnCLI(TaskCommand):
     command: str
-    # noinspection PyUnresolvedReferences
-    env: frozendict[str, str]
+    env: frozendict  # type: ignore # jsons can not handle frozendict type parameters
 
 
 # endregion
