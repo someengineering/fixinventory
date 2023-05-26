@@ -525,7 +525,7 @@ class CLIService(CLI):
                 alias: AliasTemplate = self.alias_templates[alias_cmd.cmd]
                 available: Dict[str, AliasTemplateParameter] = {p.name: p for p in alias.parameters}
                 props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
-                props["args"] = alias_cmd.args
+                props["args"] = alias_cmd.args or ""
                 for p in alias.parameters:
                     props[p.name] = p.default
                 # only parse properties, if there are any declared
