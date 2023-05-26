@@ -90,11 +90,15 @@ jobs:
           cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
-      - name: Build, optimize, and format
+      - name: Build
         continue-on-error: true
         working-directory: ./resoto.com
-        run: | # build first to generate Kroki images
+        run: |
           yarn build
+
+      - name: Optimize and format
+        working-directory: ./resoto.com
+        run: |
           yarn optimize
           yarn format
 
@@ -251,12 +255,17 @@ jobs:
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
-      - name: Build, optimize, and format
+      - name: Build
         if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true
         working-directory: ./resoto.com
-        run: | # build first to generate Kroki images
+        run: |
           yarn build
+
+      - name: Optimize and format
+        if: steps.release.outputs.prerelease == 'false'
+        working-directory: ./resoto.com
+        run: |
           yarn optimize
           yarn format
 
