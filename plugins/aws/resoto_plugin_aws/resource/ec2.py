@@ -461,13 +461,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                             vol.atime = at
                         elif metric.label == "VolumeWriteOps":
                             vol.mtime = at
-                        lookup.pop(query.ref_id, None)
-            # all volumes in this list do not have value in cloudwatch
-            # fall back to either ctime or start time whatever is more recent.
+            # fall back to either ctime or start time whatever is more recent for all volumes cloudwatch did not return
             for v in lookup.values():
                 t = max(v.ctime or start, start)
-                v.atime = t
-                v.mtime = t
+                if v.atime is None:
+                    v.atime = t
+                if v.mtime is None:
+                    v.mtime = t
 
         for js in json:
             instance = builder.add_node(AwsEc2Volume.from_api(js), js)
