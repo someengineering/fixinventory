@@ -17,7 +17,11 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
-from resotocore.core_config import AliasTemplateConfig, CustomCommandsConfig, ResotoCoreCommandsConfigId
+from resotocore.core_config import (
+    AliasTemplateConfig,
+    CustomCommandsConfig,
+    ResotoCoreCommandsConfigId,
+)
 from logging import getLogger
 from resotocore.web.service import Service
 
@@ -252,7 +256,7 @@ class PackageManager(Service):
             alias_template = AliasTemplateConfig(
                 name=manifest.name,
                 info=manifest.description,
-                template=f"apps run {manifest.name}",
+                template=f"apps run {manifest.name}" + r" {{args}}",
                 description=manifest.readme,
                 allowed_in_source_position=True,
             )

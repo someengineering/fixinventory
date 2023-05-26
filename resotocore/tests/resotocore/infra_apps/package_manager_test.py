@@ -79,7 +79,7 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     command_config = command_config_entity.config.get("custom_commands", {}).get("commands", [None])[0]
     assert command_config is not None
     assert command_config.get("name") == manifest.name
-    assert command_config.get("template") == f"apps run {manifest.name}"
+    assert command_config.get("template") == f"apps run {manifest.name}" + r" {{args}}"
     assert command_config.get("info") == manifest.description
 
     # update is possible
