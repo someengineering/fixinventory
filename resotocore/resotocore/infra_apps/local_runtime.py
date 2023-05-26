@@ -43,15 +43,10 @@ class LocalResotocoreAppRuntime(Runtime):
         """
         Runtime implementation that runs the app locally.
         """
-        try:
-            async for line in self.generate_template(graph, manifest, config, stdin, argv):
-                async with (await self._interpret_line(line, ctx)).stream() as streamer:
-                    async for item in streamer:
-                        yield item
-
-        except Exception as e:
-            msg = f"Error running infrastructure app: {e}"
-            log.exception(msg)
+        async for line in self.generate_template(graph, manifest, config, stdin, argv):
+            async with (await self._interpret_line(line, ctx)).stream() as streamer:
+                async for item in streamer:
+                    yield item
 
     async def generate_template(
         self,

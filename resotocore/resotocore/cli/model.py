@@ -388,14 +388,14 @@ class AliasTemplate:
             ## Parameters
             {arg_info}
 
-            ## Template
+            ## Template (only applicable if it is a custom command)
             ```shell
             > {self.template}
             ```
 
             ## Example
             ```shell
-            # Executing this alias template
+            # Executing this command
             > {self.name} {minimal}
             # Will expand to this command
             > {self.render({p.name: p.example_value() for p in self.parameters})}
