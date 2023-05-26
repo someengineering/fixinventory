@@ -1,6 +1,7 @@
 from textwrap import dedent
 
-from resotocore.cli.model import CLIContext, AliasTemplate, AliasTemplateParameter
+from resotocore.cli.model import CLIContext
+from resotocore.cli.alias_template import AliasTemplate, AliasTemplateParameter
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 
 
@@ -32,7 +33,7 @@ def test_alias_template() -> None:
     params = [AliasTemplateParameter("a", "some a"), AliasTemplateParameter("b", "some b", "bv")]
     tpl = AliasTemplate("foo", "does foes", "{{a}} | {{b}}", params)
     assert tpl.render({"a": "test", "b": "bla"}) == "test | bla"
-    assert tpl.rendered_help(CLIContext()) == dedent(
+    assert CLIContext().render_console(tpl.help()) == dedent(
         """
         foo: does foes
         ```shell
@@ -67,7 +68,7 @@ def test_alias_template() -> None:
     )
     assert tpl_no_args.render({"args": "something"}) == "bla something"
     assert (
-        tpl_no_args.rendered_help(CLIContext()).strip()
+        CLIContext().render_console(tpl_no_args.help()).strip()
         == dedent(
             """
             bla: does blas

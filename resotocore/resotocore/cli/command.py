@@ -82,9 +82,8 @@ from resotocore.cli.model import (
     CLIDependencies,
     ParsedCommand,
     NoTerminalOutput,
-    ArgsInfo,
-    ArgInfo,
 )
+from resotocore.cli.alias_template import ArgInfo, ArgsInfo
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor

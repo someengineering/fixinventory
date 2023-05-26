@@ -1,12 +1,13 @@
-from typing import cast, Awaitable, Optional
+from typing import cast, Awaitable, Dict
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.manifest import AppManifest
-from resotocore.ids import InfraAppName, ConfigId
+from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.config import ConfigHandler, ConfigEntity
-from resotocore.core_config import ResotoCoreCommandsConfigId
+from resotocore.config import ConfigHandler
+from resotocore.cli.alias_template import AliasTemplate
 from arango.database import StandardDatabase
+from collections import defaultdict
 from types import SimpleNamespace
 import pytest
 from asyncio import Future
@@ -30,24 +31,10 @@ def async_none() -> Awaitable[None]:
     return future
 
 
-config_handler_store = {}
-
-
-async def patch_config(config_entity: ConfigEntity, validate: bool, dry_run: bool) -> None:
-    config_handler_store[config_entity.id] = config_entity
-    return None
-
-
-async def get_config(cfg_id: ConfigId) -> Optional[ConfigEntity]:
-    return config_handler_store.get(cfg_id)
-
-
 config_handler = cast(
     ConfigHandler,
     SimpleNamespace(
-        get_config=get_config,
         put_config=lambda config_entity, validate: async_none(),
-        patch_config=patch_config,
         delete_config=lambda config_id: async_none(),
         update_configs_model=lambda models: async_none(),
         put_config_validation=lambda config_validation: async_none(),
@@ -58,7 +45,20 @@ config_handler = cast(
 @pytest.mark.asyncio
 async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(package_entity_db, config_handler)
+    enabled_aliases: Dict[str, AliasTemplate] = {}
+
+    def enable_alias(ta: AliasTemplate) -> None:
+        enabled_aliases[ta.name] = ta
+
+    def disable_alias(name: str) -> None:
+        enabled_aliases.pop(name)
+
+    package_manager = PackageManager(
+        package_entity_db,
+        config_handler,
+        enable_alias,
+        disable_alias,
+    )
     await package_manager.start()
 
     manifest = await package_manager.install(name, None)
@@ -74,13 +74,11 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     assert installed_app.name == name
 
     # check that the alias is created
-    command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
-    assert command_config_entity is not None
-    command_config = command_config_entity.config.get("custom_commands", {}).get("commands", [None])[0]
-    assert command_config is not None
-    assert command_config.get("name") == manifest.name
-    assert command_config.get("template") == f"apps run {manifest.name}" + r" {{args}}"
-    assert command_config.get("info") == manifest.description
+    alias_template = enabled_aliases.get(name)
+    assert alias_template is not None
+    assert alias_template.name == manifest.name
+    assert alias_template.template == f"apps run {manifest.name}" + r" {{args}}"
+    assert alias_template.info == manifest.description
 
     # update is possible
     updated_manifest = await package_manager.update(name)
@@ -100,17 +98,14 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     assert installed_apps_after_deletion == []
 
     # check that the alias is deleted
-    command_config_entity = config_handler_store.get(ResotoCoreCommandsConfigId)
-    assert command_config_entity is not None
-    commands = command_config_entity.config.get("custom_commands", {}).get("commands", [{}])
-    command_config = [command for command in commands if command.get("name") == manifest.name]
-    assert len(command_config) == 0
+    alias_template = enabled_aliases.get(name)
+    assert alias_template is None
 
 
 @pytest.mark.asyncio
 async def test_local_install(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    package_manager = PackageManager(package_entity_db, config_handler)
+    package_manager = PackageManager(package_entity_db, config_handler, lambda at: None, lambda s: None)
     await package_manager.start()
 
     # check that the app is not installed

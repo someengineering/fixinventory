@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Optional, List, Dict, Union, Tuple
+from typing import AsyncIterator, Optional, List, Dict, Union, Tuple, Callable
 import asyncio
 from asyncio import Lock
 from pathlib import Path
@@ -17,11 +17,7 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
-from resotocore.core_config import (
-    AliasTemplateConfig,
-    CustomCommandsConfig,
-    ResotoCoreCommandsConfigId,
-)
+from resotocore.cli.alias_template import AliasTemplate
 from logging import getLogger
 from resotocore.web.service import Service
 
@@ -71,6 +67,8 @@ class PackageManager(Service):
         self,
         entity_db: PackageEntityDb,
         config_handler: ConfigHandler,
+        add_command_alias: Callable[[AliasTemplate], None],
+        remove_command_alias: Callable[[str], None],
         repos_cache_directory: Path = Path.home() / ".cache" / "resoto-infra-apps",
     ) -> None:
         """
@@ -88,10 +86,27 @@ class PackageManager(Service):
         self.repos_cache_directory: Path = repos_cache_directory
         self.cleanup_task: Optional[asyncio.Task[None]] = None
         self.cdn_url = "https://cdn.some.engineering/resoto/apps/index.json"
+        self.add_command_alias = add_command_alias
+        self.remove_command_alias = remove_command_alias
 
     async def start(self) -> None:
         self.update_lock = asyncio.Lock()
         self.repos_cache_directory.mkdir(parents=True, exist_ok=True)
+
+        # set up custom commands
+        manifests = [await self.get_manifest(name) async for name in self.list()]
+        self._setup_custom_commands([m for m in manifests if m is not None])
+
+    def _setup_custom_commands(self, manifests: List[AppManifest]) -> None:
+        for manifest in manifests:
+            alias_template = AliasTemplate(
+                name=manifest.name,
+                info=manifest.description,
+                template=f"apps run {manifest.name}" + r" {{args}}",
+                description=manifest.readme,
+                allowed_in_source_position=True,
+            )
+            self.add_command_alias(alias_template)
 
     async def stop(self) -> None:
         if self.cleanup_task:
@@ -211,19 +226,12 @@ class PackageManager(Service):
             await self._delete(name)
 
     async def _delete(self, name: InfraAppName) -> None:
+        if self.entity_db.get(name) is None:
+            return
         await self.entity_db.delete(name)
         await self.config_handler.delete_config(config_id(name))
         # clean up the aliases
-        current_aliases = await self.config_handler.get_config(ResotoCoreCommandsConfigId)
-        if current_aliases is None:
-            return
-        custom_commands_conf = from_js(current_aliases.config, CustomCommandsConfig)
-
-        custom_commands_conf.commands = [c for c in custom_commands_conf.commands if c.name != name]
-
-        await self.config_handler.patch_config(
-            ConfigEntity(ResotoCoreCommandsConfigId, custom_commands_conf.json()), validate=False, dry_run=False
-        )
+        self.remove_command_alias(name)
 
     # user-facing method, errors are thrown as exceptions
     async def install(self, name: InfraAppName, url: Optional[str]) -> AppManifest:
@@ -253,19 +261,8 @@ class PackageManager(Service):
             await self.config_handler.put_config(config_entity, validate=manifest.config_schema is not None)
             stored = await self.entity_db.update(InfraAppPackage(manifest, url))
 
-            alias_template = AliasTemplateConfig(
-                name=manifest.name,
-                info=manifest.description,
-                template=f"apps run {manifest.name}" + r" {{args}}",
-                description=manifest.readme,
-                allowed_in_source_position=True,
-            )
-
-            custom_commands_conf = CustomCommandsConfig(commands=[alias_template])
-
-            await self.config_handler.patch_config(
-                ConfigEntity(ResotoCoreCommandsConfigId, custom_commands_conf.json()), validate=False, dry_run=False
-            )
+            # add the custom command alias
+            self._setup_custom_commands([manifest])
 
             return stored.manifest
         except Exception as e:

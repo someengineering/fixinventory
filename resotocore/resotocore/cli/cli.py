@@ -52,14 +52,10 @@ from resotocore.cli.model import (
     EmptyContext,
     CLISource,
     NoTerminalOutput,
-    AliasTemplate,
-    ArgsInfo,
-    ArgInfo,
-    AliasTemplateParameter,
-    WorkerCustomCommand,
     OutputTransformer,
     PreserveOutputFormat,
 )
+from resotocore.cli.alias_template import ArgInfo, ArgsInfo, AliasTemplate, AliasTemplateParameter
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
@@ -194,7 +190,7 @@ class HelpCommand(CLICommand):
                 explain = f"{arg} is an alias for {alias}\n\n"
                 result = explain + self.all_parts[alias].rendered_help(ctx)
             elif arg in self.alias_templates:
-                result = self.alias_templates[arg].rendered_help(ctx)
+                result = ctx.render_console(self.alias_templates[arg].help())
             else:
                 result = f"No command found with this name: {arg}"
 
@@ -258,14 +254,20 @@ class CLIService(CLI):
     def alias_templates(self) -> Dict[str, AliasTemplate]:
         return self.__alias_templates
 
-    def register_worker_custom_command(self, command: WorkerCustomCommand) -> None:
+    def register_alias_template(self, template: AliasTemplate) -> None:
         """
-        Called when a worker connects that introduces a custom command.
+        Called when something introduces a custom command.
         The registered templated will always override any existing template.
         """
-        if command.name not in self.direct_commands and command.name not in self.alias_commands:
-            template = command.to_template()
+        if template.name not in self.direct_commands and template.name not in self.alias_commands:
             self.alias_templates[template.name] = template
+
+    def unregister_alias_template(self, name: str) -> None:
+        """
+        Called when something removes a custom command.
+        """
+        if name in self.alias_templates:
+            del self.alias_templates[name]
 
     async def start(self) -> None:
         self.reaper = asyncio.create_task(self.reap_tasks())
