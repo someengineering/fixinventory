@@ -45,6 +45,8 @@ dev = [
     "coverage",
     "pylint",
     "black",
+    "toml",
+    "pip-tools",
 ]
 test = [
     "pytest",

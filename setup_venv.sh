@@ -27,9 +27,6 @@ declare branch=main
 main() {
     echo "resoto bootstrapper"
 
-    # until this is fixed: https://github.com/pypa/setuptools/issues/3518
-    SETUPTOOLS_ENABLE_FEATURES="legacy-editable"
-
     if [ -f .git/config -a -d resotocore ]; then
         install_path="$PWD"
     fi
@@ -162,15 +159,10 @@ ensure_pip() {
 
 install_dev() {
     echo "Installing development dependencies"
-    if [ -f "requirements-dev.txt" ]; then
-        pip install -q -r "requirements-dev.txt"
+    if [ -f "requirements-all.txt" ]; then
+        pip install -q -r "requirements-all.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-dev.txt"
-    fi
-    if [ -f "requirements-test.txt" ]; then
-        pip install -q -r "requirements-test.txt"
-    else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-test.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-all.txt"
     fi
 }
 
@@ -215,7 +207,8 @@ pip_install() {
     local relative_path="${path_prefix}${package}/"
     if [ -d "$relative_path" ] && [ "$git_install" = false ]; then
         echo "Installing $package_name editable from local path $relative_path"
-        pip install -q --editable "$relative_path"
+        # until this is fixed: https://github.com/pypa/setuptools/issues/3518
+        pip install -q --editable "$relative_path" --config-settings editable_mode=compat
     else
         ensure_git
         local git_repo="git+https://github.com/someengineering/resoto.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"

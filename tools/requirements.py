@@ -39,13 +39,18 @@ class ProjectDefinition:
 
 def all_project_definitions() -> Iterator[ProjectDefinition]:
     for root, _, files in os.walk("."):
-        if "site-packages" in root:
+        if "site-packages" in root or ".git" in root:
             continue
         for file in files:
             if file == "pyproject.toml":
+                print(f"Found pyproject.toml in {root}")
                 file_path = os.path.join(root, file)
-                with open(file_path) as f:
-                    yield ProjectDefinition(toml.load(f))
+                try:
+                    with open(file_path) as f:
+                        yield ProjectDefinition(toml.load(f))
+                except Exception as e:
+                    print(f"Failed to parse {file_path}: {e}")
+                    raise
 
 
 filter_out = ["resotolib", "resoto-plugin-aws"]

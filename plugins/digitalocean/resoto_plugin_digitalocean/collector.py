@@ -320,10 +320,10 @@ class DigitalOceanTeamCollector:
                     search_results[map_to].append(search_result)
             if map_to not in kwargs and map_to in search_results and not str(map_to).startswith("__"):
                 search_result = search_results[map_to]
-                if len(search_result) == 1:
-                    kwargs[map_to] = search_result[0]
+                if len(search_result) == 1:  # type: ignore
+                    kwargs[map_to] = search_result[0]  # type: ignore
                 else:
-                    kwargs[map_to] = list(search_result)
+                    kwargs[map_to] = list(search_result)  # type: ignore
 
         # If the resource was referencing a zone but not a region we look up its
         # region based on the zone information we found.
@@ -423,7 +423,7 @@ class DigitalOceanTeamCollector:
                             else:
                                 log.error(f"Key {search_result_name} is missing in search_map")
 
-    @metrics_collect_droplets.time()  # type: ignore
+    @metrics_collect_droplets.time()
     def collect_droplets(self) -> None:
         instances = self.client.list_droplets()
 
@@ -534,7 +534,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_regions.time()  # type: ignore
+    @metrics_collect_regions.time()
     def collect_regions(self) -> None:
         regions = self.client.list_regions()
         self.collect_resource(
@@ -551,7 +551,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_volumes.time()  # type: ignore
+    @metrics_collect_volumes.time()
     def collect_volumes(self) -> None:
         # taken from https://www.digitalocean.com/pricing/volumes
         DO_VOLUME_COST_GB_PER_HOUR = 0.000149
@@ -588,7 +588,7 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.delete: ["__users"]},
         )
 
-    @metrics_collect_databases.time()  # type: ignore
+    @metrics_collect_databases.time()
     def collect_databases(self) -> None:
         # this mapping was taken from the digitalocean web console.
         dbtype_to_size = {
@@ -642,7 +642,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_vpcs.time()  # type: ignore
+    @metrics_collect_vpcs.time()
     def collect_vpcs(self) -> None:
         vpcs = self.client.list_vpcs()
         self.collect_resource(
@@ -660,7 +660,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_projects.time()  # type: ignore
+    @metrics_collect_projects.time()
     def collect_projects(self) -> None:
         def get_resource_id(resource: Json) -> str:
             return cast(str, resource["urn"])
@@ -693,7 +693,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_k8s_clusters.time()  # type: ignore
+    @metrics_collect_k8s_clusters.time()
     def collect_k8s_clusters(self) -> None:
         clusters = self.client.list_kubernetes_clusters()
         self.collect_resource(
@@ -729,7 +729,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
 
-    @metrics_collect_snapshots.time()  # type: ignore
+    @metrics_collect_snapshots.time()
     def collect_snapshots(self) -> None:
         def get_resource_id(snapshot: Json) -> str:
             if snapshot["resource_type"] == "droplet":
@@ -774,7 +774,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__resource", "__tags", "__available_regions"]},
         )
 
-    @metrics_collect_load_balancers.time()  # type: ignore
+    @metrics_collect_load_balancers.time()
     def collect_load_balancers(self) -> None:
         loadbalancers = self.client.list_load_balancers()
 
@@ -815,7 +815,7 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.default: ["__droplets"]},
         )
 
-    @metrics_collect_floating_ips.time()  # type: ignore
+    @metrics_collect_floating_ips.time()
     def collect_floating_ips(self) -> None:
         floating_ips = self.client.list_floating_ips()
         self.collect_resource(
@@ -838,7 +838,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__droplet"]},
         )
 
-    @metrics_collect_spaces.time()  # type: ignore
+    @metrics_collect_spaces.time()
     def collect_spaces(self, region: DigitalOceanRegion) -> None:
         spaces = self.client.list_spaces(region.do_region_slug or "")
         self.collect_resource(
@@ -858,7 +858,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_apps.time()  # type: ignore
+    @metrics_collect_apps.time()
     def collect_apps(self) -> None:
         apps = self.client.list_apps()
 
@@ -892,7 +892,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__databases"]},
         )
 
-    @metrics_collect_cdn_endpoints.time()  # type: ignore
+    @metrics_collect_cdn_endpoints.time()
     def collect_cdn_endpoints(self) -> None:
         endpoints = self.client.list_cdn_endpoints()
         self.collect_resource(
@@ -909,7 +909,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_certificates.time()  # type: ignore
+    @metrics_collect_certificates.time()
     def collect_certificates(self) -> None:
         certificates = self.client.list_certificates()
         self.collect_resource(
@@ -926,7 +926,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_container_registry.time()  # type: ignore
+    @metrics_collect_container_registry.time()
     def collect_container_registry(self) -> None:
         registries = self.client.get_registry_info()
         for registry in registries:
@@ -998,7 +998,7 @@ class DigitalOceanTeamCollector:
                 predecessors={EdgeType.default: ["__repository", "__registry"]},
             )
 
-    @metrics_collect_ssh_keys.time()  # type: ignore
+    @metrics_collect_ssh_keys.time()
     def collect_ssh_keys(self) -> None:
         ssh_keys = self.client.list_ssh_keys()
         self.collect_resource(
@@ -1012,7 +1012,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_tags.time()  # type: ignore
+    @metrics_collect_tags.time()
     def collect_tags(self) -> None:
         tags = self.client.list_tags()
         self.collect_resource(
@@ -1024,7 +1024,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_domains.time()  # type: ignore
+    @metrics_collect_domains.time()
     def collect_domains(self) -> None:
         domains = self.client.list_domains()
         self.collect_resource(
@@ -1070,7 +1070,7 @@ class DigitalOceanTeamCollector:
             predecessors={EdgeType.default: ["__domain"]},
         )
 
-    @metrics_collect_firewalls.time()  # type: ignore
+    @metrics_collect_firewalls.time()
     def collect_firewalls(self) -> None:
         firewalls = self.client.list_firewalls()
         self.collect_resource(
@@ -1099,7 +1099,7 @@ class DigitalOceanTeamCollector:
             },
         )
 
-    @metrics_collect_alert_policies.time()  # type: ignore
+    @metrics_collect_alert_policies.time()
     def collect_alert_policies(self) -> None:
         alert_policies = self.client.list_alert_policies()
         self.collect_resource(
