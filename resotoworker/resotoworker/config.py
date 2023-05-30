@@ -5,8 +5,7 @@ from resotolib.proc import num_default_threads
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.logger import log
 from attrs import define, field, frozen
-from typing import ClassVar, Optional, List, Type
-
+from typing import ClassVar, Optional, List, Type, Dict
 
 _default_collectors: List[str] = []
 
@@ -106,11 +105,27 @@ class ResotoWorkerConfig:
     write_files_to_home_dir: List[HomeDirectoryFile] = field(
         factory=list,
         metadata={
+            "description": "Deprecated. Use files_in_home_dir instead.",
+            "restart_required": True,
+        },
+    )
+    # optional for backwards compatibility
+    files_in_home_dir: Optional[Dict[str, str]] = field(
+        factory=dict,
+        metadata={
             "description": (
-                "All entries that are defined in this section are created as files on demand. "
+                "All entries that are defined in this section are created as files on demand.\n"
                 "Use this option to define .aws/credentials, .kube/config file or other "
-                "credential files that should be passed to the worker as file."
+                "credential files that should be passed to the worker as file.\n"
+                "The key is the path to the file, the value is the content of the file."
             ),
             "restart_required": True,
         },
     )
+
+    def all_files_in_home_dir(self) -> List[HomeDirectoryFile]:
+        files = self.write_files_to_home_dir.copy()
+        if self.files_in_home_dir is not None:
+            for path, content in self.files_in_home_dir.items():
+                files.append(HomeDirectoryFile(path=path, content=content))
+        return files
