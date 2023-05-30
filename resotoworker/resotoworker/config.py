@@ -110,7 +110,7 @@ class ResotoWorkerConfig:
         },
     )
     # optional for backwards compatibility
-    files_in_home_dir: Optional[Dict[str, str]] = field(
+    files_in_home_dir: Optional[Dict[str, str]] = field(  # type: ignore
         factory=dict,
         metadata={
             "description": (
