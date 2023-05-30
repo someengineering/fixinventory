@@ -65,6 +65,7 @@ from .fixtures import (
 
 class ClientMock(StreamingWrapper, object):
     def __init__(self, responses: Dict[str, Any]) -> None:
+        super().__init__("none", None, None, None)
         self.responses = responses
 
     def with_feedback(self, core_feedback: CoreFeedback) -> StreamingWrapper:
@@ -265,7 +266,7 @@ def test_collect_database() -> None:
         delete=True,
     )
     check_edges(graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
-    database: DigitalOceanDatabase = graph.search_first("urn", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")  # type: ignore
+    database: DigitalOceanDatabase = graph.search_first("urn", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")  # type: ignore # noqa: E501
     assert database.urn == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
     assert database.db_type == "pg"
@@ -304,7 +305,7 @@ def test_collect_k8s_clusters() -> None:
         "do:droplet:290075243",
     )
 
-    cluster: DigitalOceanKubernetesCluster = graph.search_first("urn", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")  # type: ignore
+    cluster: DigitalOceanKubernetesCluster = graph.search_first("urn", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")  # type: ignore # noqa: E501
     assert cluster.urn == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
     assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
     assert cluster.k8s_version == "1.22.7-do.0"
@@ -368,7 +369,7 @@ def test_collect_loadbalancers() -> None:
         "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d",
         "do:droplet:289110074",
     )
-    lb: DigitalOceanLoadBalancer = graph.search_first("urn", "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d")  # type: ignore
+    lb: DigitalOceanLoadBalancer = graph.search_first("urn", "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d")  # type: ignore # noqa: E501
     assert lb.urn == "do:loadbalancer:9625f517-75f0-4af8-a336-62374e68dc0d"
     assert lb.name == "fra1-load-balancer-01"
     assert lb.public_ip_address == "127.0.0.1"
@@ -444,7 +445,7 @@ def test_collect_projects() -> None:
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
         "do:space:api-test-space.resoto",
     )
-    project: DigitalOceanProject = graph.search_first("urn", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7")  # type: ignore
+    project: DigitalOceanProject = graph.search_first("urn", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7")  # type: ignore # noqa: E501
     assert project.owner_uuid == "d63ae7cb6500140c46fdb3585b0c1a874e195760"
     assert project.owner_id == "10225075"
     assert project.name == "Resoto DO plugin test project"
@@ -506,7 +507,7 @@ def test_cdn_endpoints() -> None:
         "do:team:test_team",
         "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c",
     )
-    endpoint: DigitalOceanCdnEndpoint = graph.search_first("urn", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")  # type: ignore
+    endpoint: DigitalOceanCdnEndpoint = graph.search_first("urn", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")  # type: ignore # noqa: E501
     assert endpoint.urn == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
     assert endpoint.origin == "resoto_test.ams3.digitaloceanspaces.com"
     assert endpoint.endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
@@ -524,7 +525,7 @@ def test_collect_certificates() -> None:
         "do:team:test_team",
         "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c",
     )
-    cert: DigitalOceanCertificate = graph.search_first("urn", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")  # type: ignore
+    cert: DigitalOceanCertificate = graph.search_first("urn", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")  # type: ignore # noqa: E501
     assert cert.urn == "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
     assert cert.name == "cdn.resoto.test"
     assert cert.sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
@@ -544,14 +545,14 @@ def test_collect_container_registries() -> None:
     )
     graph = prepare_graph(do_client)
     check_edges(graph, "do:region:fra1", "do:cr:resoto-do-plugin-test")
-    container_registry: DigitalOceanContainerRegistry = graph.search_first("urn", "do:cr:resoto-do-plugin-test")  # type: ignore
+    container_registry: DigitalOceanContainerRegistry = graph.search_first("urn", "do:cr:resoto-do-plugin-test")  # type: ignore # noqa: E501
     assert container_registry.urn == "do:cr:resoto-do-plugin-test"
     assert container_registry.name == "resoto-do-plugin-test"
     assert container_registry.storage_usage_bytes == 6144
     assert container_registry.is_read_only is False
 
     check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crr:resoto-do-plugin-test/hw")
-    container_registry_repository: DigitalOceanContainerRegistryRepository = graph.search_first("urn", "do:crr:resoto-do-plugin-test/hw")  # type: ignore
+    container_registry_repository: DigitalOceanContainerRegistryRepository = graph.search_first("urn", "do:crr:resoto-do-plugin-test/hw")  # type: ignore # noqa: E501
     assert container_registry_repository.urn == "do:crr:resoto-do-plugin-test/hw"
     assert container_registry_repository.name == "hw"
     assert container_registry_repository.tag_count == 1
@@ -650,7 +651,7 @@ def test_collect_firewalls() -> None:
         "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711",
         "do:droplet:289110074",
     )
-    firewall: DigitalOceanFirewall = graph.search_first("urn", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")  # type: ignore
+    firewall: DigitalOceanFirewall = graph.search_first("urn", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")  # type: ignore # noqa: E501
     assert firewall.firewall_status == "succeeded"
     assert firewall.ctime == datetime.datetime(2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc)
 
@@ -668,7 +669,7 @@ def test_alert_policies() -> None:
         "do:team:test_team",
         "do:alert:d916cb34-6ee3-48c0-bca5-3f3cc08db5d3",
     )
-    alert_policy: DigitalOceanAlertPolicy = graph.search_first("urn", "do:alert:d916cb34-6ee3-48c0-bca5-3f3cc08db5d3")  # type: ignore
+    alert_policy: DigitalOceanAlertPolicy = graph.search_first("urn", "do:alert:d916cb34-6ee3-48c0-bca5-3f3cc08db5d3")  # type: ignore # noqa: E501
     assert alert_policy.policy_type == "v1/insights/droplet/cpu"
     assert alert_policy.description == "CPU is running high"
     assert alert_policy.is_enabled is True
