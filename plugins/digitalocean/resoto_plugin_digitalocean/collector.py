@@ -798,6 +798,7 @@ class DigitalOceanTeamCollector:
                 "public_ip_address": "ip",
                 "nr_nodes": get_nr_nodes,
                 "loadbalancer_status": "status",
+                "backends": lambda lb: [droplet_id(id) for id in (lb.get("droplet_ids", []) or [])],
                 "redirect_http_to_https": "redirect_http_to_https",
                 "enable_proxy_protocol": "enable_proxy_protocol",
                 "enable_backend_keepalive": "enable_backend_keepalive",
