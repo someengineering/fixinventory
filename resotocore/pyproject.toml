@@ -1,0 +1,65 @@
+[project]
+name = "resotocore"
+version = "3.5.0"
+authors = [{name="Some Engineering Inc."}]
+description = "Keeps all the things."
+license = {file="LICENSE"}
+urls = {"Homepage" = "https://resoto.com"}
+requires-python = ">=3.9"
+classifiers = [ "Programming Language :: Python :: 3" ]
+readme = {file="README.md", content-type="text/markdown"}
+
+dependencies = [
+    "APScheduler",
+    "Cerberus",
+    "Jinja2",
+    "aiofiles",
+    "aiohttp-jinja2",
+    "aiohttp-swagger3",
+    "aiohttp[speedups]",
+    "aiostream",
+    "cryptography",
+    "deepdiff",
+    "frozendict",
+    "jq",
+    "jsons",
+    "parsy",
+    "plantuml",
+    "posthog",
+    "python-arango",
+    "python-dateutil",
+    "resotoui",
+    "rich",
+    "toolz",
+    "transitions",
+    "tzlocal",
+    "ustache",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "flake8",
+    "pep8-naming",
+    "tox",
+    "coverage",
+    "pylint",
+    "black",
+    "toml",
+    "pip-tools",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-asyncio",
+    "hypothesis",
+    "resotoclient",
+]
+
+[project.scripts]
+resotocore = "resotocore.__main__:main"
+
+[build-system]
+requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]
+build-backend = "setuptools.build_meta"
+

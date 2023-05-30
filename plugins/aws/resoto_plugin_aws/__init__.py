@@ -68,7 +68,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             log.debug(f"plugin: AWS auto discovery failed: {e}")
         return False
 
-    @metrics_collect.time()  # type: ignore
+    @metrics_collect.time()
     def collect(self) -> None:
         try:
             self.collect_aws()

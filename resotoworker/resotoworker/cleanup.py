@@ -50,7 +50,7 @@ class Cleaner:
         self.graph = graph
         self.feedback = feedback
 
-    @metrics_cleanup.time()  # type: ignore
+    @metrics_cleanup.time()
     def cleanup(self, config: Config, plugins: Dict[str, Type[BaseCollectorPlugin]]) -> None:
         if not Config.resotoworker.cleanup:
             log.debug("Cleanup called but resotoworker.cleanup not configured" " - ignoring call")

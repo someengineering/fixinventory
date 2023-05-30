@@ -1,2 +1,0 @@
-resotolib==3.5.0
-resoto-plugin-aws==3.5.0

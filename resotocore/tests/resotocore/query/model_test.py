@@ -317,6 +317,6 @@ def test_merge_term_combination() -> None:
 
 
 @given(query)
-@settings(max_examples=30, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=HealthCheck.all())
 def test_generated_query(q: Query) -> None:
     assert q.structure()

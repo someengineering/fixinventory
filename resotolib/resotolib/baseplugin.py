@@ -236,7 +236,7 @@ class BaseCollectorPlugin(BasePlugin):
 
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
-        return resource.cleanup(graph)  # type: ignore
+        return resource.cleanup(graph)
 
     def go(self) -> None:
         self.collect()

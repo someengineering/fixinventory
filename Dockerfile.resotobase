@@ -21,6 +21,7 @@ RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
 RUN mkdir -p /build /build-python
 
 # Build Resoto
+COPY requirements.txt /usr/src/requirements.txt
 COPY resotolib /usr/src/resotolib
 COPY resotocore /usr/src/resotocore
 COPY resotoworker /usr/src/resotoworker
@@ -35,10 +36,8 @@ RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite bui
 
 # Build binary wheels
 WORKDIR /usr/src
-RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip wheel -w /build-python -f /build-python ./resotolib ./resotocore ./resotoworker ./resotometrics ./resotoshell
-
-# Install all wheels
-RUN . /usr/local/resoto-venv-python3/bin/activate && python -m pip install -f /build-python /build-python/*.whl
+RUN . /usr/local/resoto-venv-python3/bin/activate && pip install -r requirements.txt
+RUN . /usr/local/resoto-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./resotolib ./resotocore ./resotoworker ./resotometrics ./resotoshell
 
 # Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
 WORKDIR /tmp/arangodb

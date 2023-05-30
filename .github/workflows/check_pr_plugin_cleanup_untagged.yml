@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{runner.os}}-pip-${{hashFiles('./plugins/cleanup_untagged/requirements.txt')}}
+          key: ${{runner.os}}-pip-${{hashFiles('./plugins/cleanup_untagged/pyproject.toml')}}
           restore-keys: |
             ${{runner.os}}-pip-
 

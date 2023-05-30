@@ -38,7 +38,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{hashFiles('./resotolib/requirements.txt')}}-${{hashFiles('./resotolib/requirements-test.txt')}}-${{hashFiles('./plugins/**/requirements.txt')}}
+          key: ${{ runner.os }}-pip-${{hashFiles('./resotolib/pyproject.toml')}}-${{hashFiles('./resotolib/requirements-test.txt')}}-${{hashFiles('./plugins/**/pyproject.toml')}}
 
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -46,22 +46,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
-          pip install --upgrade --editable plugins/aws/
-          pip install --upgrade --editable plugins/digitalocean/
-          pip install --upgrade --editable plugins/dockerhub/
-          pip install --upgrade --editable plugins/example_collector/
-          pip install --upgrade --editable plugins/gcp/
-          pip install --upgrade --editable plugins/github/
-          pip install --upgrade --editable plugins/k8s/
-          pip install --upgrade --editable plugins/onelogin/
-          pip install --upgrade --editable plugins/onprem/
-          pip install --upgrade --editable plugins/posthog/
-          pip install --upgrade --editable plugins/random/
-          pip install --upgrade --editable plugins/scarf/
-          pip install --upgrade --editable plugins/slack/
-          pip install --upgrade --editable plugins/vsphere/
-          pip install pytest
+          python -m pip install -r requirements-test.txt
+          pip install resotolib/ plugins/aws/ plugins/digitalocean/ plugins/dockerhub/ plugins/example_collector/ plugins/gcp/ plugins/github/ plugins/k8s/ plugins/onelogin/ plugins/onprem/ plugins/posthog/ plugins/random/ plugins/scarf/ plugins/slack/ plugins/vsphere/
 
       - name: Run tests
         working-directory: ./resotolib

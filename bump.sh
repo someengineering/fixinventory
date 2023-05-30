@@ -12,7 +12,7 @@ bump_to=$2
 git ls-files | grep \
     -e setup.py \
     -e __init__.py \
-    -e requirements.txt \
+    -e pyproject.toml \
 | xargs grep "$bump_from" \
 | cut -d : -f 1 \
 | xargs sed -i -e "s/$bump_from/$bump_to/g"
