@@ -27,6 +27,9 @@ declare branch=main
 main() {
     echo "resoto bootstrapper"
 
+    # until this is fixed: https://github.com/pypa/setuptools/issues/3518
+    SETUPTOOLS_ENABLE_FEATURES="legacy-editable"
+
     if [ -f .git/config -a -d resotocore ]; then
         install_path="$PWD"
     fi
@@ -159,23 +162,25 @@ ensure_pip() {
 
 install_dev() {
     echo "Installing development dependencies"
-    if [ -f "resotocore/requirements-dev.txt" ]; then
-        pip install -q -r "resotocore/requirements-dev.txt"
+    if [ -f "requirements-dev.txt" ]; then
+        pip install -q -r "requirements-dev.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-dev.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-dev.txt"
     fi
-    if [ -f "resotocore/requirements-test.txt" ]; then
-        pip install -q -r "resotocore/requirements-test.txt"
+    if [ -f "requirements-test.txt" ]; then
+        pip install -q -r "requirements-test.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/resotocore/requirements-test.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-test.txt"
     fi
-    # Install required types (first run is required to detect required packages)
-    (cd resotocore; mypy --python-version 3.9 resotocore tests > /dev/null 2>&1 || true; mypy --python-version 3.9 --install-types --non-interactive resotocore tests > /dev/null 2>&1 || true)
-
 }
 
 install_resoto() {
     echo "Installing resoto"
+    if [ -f "requirements.txt" ]; then
+        pip install -q -r "requirements.txt"
+    else
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements.txt"
+    fi
     local resoto_components=(resotolib resotocore resotoshell resotoworker resotometrics)
     for component in "${resoto_components[@]}"; do
         pip_install "$component"

@@ -1,6 +1,0 @@
-prompt-toolkit==3.0.38
-rich==13.3.5
-resotolib==3.5.0
-resotoclient==1.4.1
-aiohttp[speedups]==3.8.4
-

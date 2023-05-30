@@ -38,7 +38,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{runner.os}}-pip-${{hashFiles('@directory@/requirements.txt')}}
+          key: ${{runner.os}}-pip-${{hashFiles('@directory@/pyproject.toml')}}
           restore-keys: |
             ${{runner.os}}-pip-
 

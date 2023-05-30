@@ -1,5 +1,0 @@
-resotolib==3.5.0
-boto3>=1
-requests>=2.31.0
-botocore>=1
-retrying>=1.3

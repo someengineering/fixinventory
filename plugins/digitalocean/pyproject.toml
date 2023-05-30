@@ -1,0 +1,54 @@
+[project]
+name = "resoto-plugin-digitalocean"
+description = "Resoto DigitalOcean Collector Plugin"
+version = "3.5.0"
+authors = [{name="Some Engineering Inc."}]
+license = {file="LICENSE"}
+requires-python = ">=3.9"
+classifiers = [
+    # Current project status
+    "Development Status :: 4 - Beta",
+    # Audience
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    # License information
+    "License :: OSI Approved :: Apache Software License",
+    # Supported python versions
+    "Programming Language :: Python :: 3.9",
+    # Supported OS's
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    # Extra metadata
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Utilities",
+]
+readme = {file="README.md", content-type="text/markdown"}
+
+dependencies = [
+    "resotolib==3.5.0",
+    "boto3",
+    "requests",
+    "botocore",
+    "retrying"
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "tzlocal",
+]
+
+[project.entry-points."resoto.plugins"]
+digitalocean_collector = "resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
+
+[project.urls]
+Documentation = "https://resoto.com"
+Source = "https://github.com/someengineering/resoto/tree/main/plugins/digitalocean"
+
+[build-system]
+requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]
+build-backend = "setuptools.build_meta"
+
+

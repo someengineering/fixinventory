@@ -1,7 +1,4 @@
 include README.md
-include requirements-dev.txt
-include requirements-test.txt
-include requirements.txt
 recursive-include resotocore/static *
 recursive-include resotocore/templates *
 recursive-include resotocore/jupyterlite *

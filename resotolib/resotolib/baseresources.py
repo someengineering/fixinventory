@@ -388,7 +388,7 @@ class BaseResource(ABC):
 
     # deprecated. future collectors plugins should be responsible for running pre_cleanup
     # and calling delete_resource on resources
-    @metrics_resource_cleanup.time()  # type: ignore
+    @metrics_resource_cleanup.time()
     @unless_protected
     def cleanup(self, graph: Optional[Any] = None) -> bool:
         if self.phantom:
