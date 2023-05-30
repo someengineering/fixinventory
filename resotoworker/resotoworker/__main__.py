@@ -98,7 +98,7 @@ def main() -> None:
     plugin_loader.add_plugin_config(config)
     config.load_config()
 
-    write_files_to_home_dir(config.resotoworker.write_files_to_home_dir, write_utf8_file)
+    write_files_to_home_dir(config.resotoworker.all_files_in_home_dir(), write_utf8_file)
 
     def send_request(request: requests.Request) -> requests.Response:
         prepared = request.prepare()
