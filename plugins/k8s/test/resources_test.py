@@ -5,7 +5,7 @@ import pytest
 from resotolib.types import Json
 
 # noinspection PyUnresolvedReferences
-from typing import Type, Tuple, TypeVar, List
+from typing import Type, Tuple, TypeVar, List, cast
 import pytest
 
 # noinspection PyUnresolvedReferences
@@ -91,7 +91,8 @@ def test_endpoints(json_file: Json) -> None:
 
 @pytest.mark.json_file("apis_networking.k8s.io_v1_ingresses.json")
 def test_Ingress(json_file: Json) -> None:
-    round_trip(KubernetesIngress, json_file)
+    result, _ = round_trip(KubernetesIngress, json_file)
+    assert result[0][0].backends == ["grafana.some.engineering"]
 
 
 # @pytest.mark.json_file("apis_networking.k8s.io_v1_ingressclasses.json")
