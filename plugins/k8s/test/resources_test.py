@@ -5,7 +5,7 @@ import pytest
 from resotolib.types import Json
 
 # noinspection PyUnresolvedReferences
-from typing import Type, Tuple, TypeVar, List, cast
+from typing import Type, Tuple, TypeVar, List
 import pytest
 
 # noinspection PyUnresolvedReferences
