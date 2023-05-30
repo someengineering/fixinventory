@@ -2237,6 +2237,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
         "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
         # take the public ip of the first load balancer
         "ingress_spec": S("spec") >> Bend(KubernetesIngressSpec.mapping),
+        "backends": S("spec") >> S("rules", default=[]) >> ForallBend(S("host")),
     }
     ingress_status: Optional[KubernetesIngressStatus] = field(default=None)
     ingress_spec: Optional[KubernetesIngressSpec] = field(default=None)

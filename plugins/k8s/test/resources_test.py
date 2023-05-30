@@ -89,9 +89,9 @@ def test_endpoints(json_file: Json) -> None:
     round_trip(KubernetesEndpoints, json_file)
 
 
-# @pytest.mark.json_file("apis_networking.k8s.io_v1_ingresses.json")
-# def test_Ingress(json_file: Json) -> None:
-#     round_trip(KubernetesIngress, json_file)
+@pytest.mark.json_file("apis_networking.k8s.io_v1_ingresses.json")
+def test_Ingress(json_file: Json) -> None:
+    round_trip(KubernetesIngress, json_file)
 
 
 # @pytest.mark.json_file("apis_networking.k8s.io_v1_ingressclasses.json")
