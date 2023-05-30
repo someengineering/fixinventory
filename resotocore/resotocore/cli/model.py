@@ -348,7 +348,9 @@ class AliasTemplate:
     # only use args_description if the template does not use explicit parameters
     args_description: Dict[str, str] = field(factory=dict)
     allowed_in_source_position: bool = False
-    infra_app_parameters: Optional[Dict[str, Any]] = None  # todo: remove this abomination
+    # only used when showing the help for the infra app.
+    # changes the help output to show the template as a parameter
+    infra_app_parameters: Optional[Dict[str, Any]] = None
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
@@ -379,27 +381,6 @@ class AliasTemplate:
         if self.description:
             for line in self.description.splitlines():
                 desc += f"\n{indent}{line}"
-
-        if self.infra_app_parameters:
-
-            def param_info_infra_apps(name: str, arg_info: Dict[str, Any]) -> str:
-                default = f" [default: {arg_info.get('default')}]" if arg_info.get("default") else ""
-                return f"- `{name}`{default}: {arg_info.get('help')}"
-
-            arg_info = f"\n{indent}".join(
-                param_info_infra_apps(name, arg) for name, arg in self.infra_app_parameters.items()
-            )
-            result = dedent(
-                f"""
-            {self.name}: {self.info}
-            ```shell
-            {self.name} {args}
-            ```
-            {desc}
-            ## Parameters
-            {arg_info}"""
-            )
-            return result
 
         return dedent(
             f"""
@@ -440,8 +421,9 @@ class AliasTemplate:
         )
 
     def help(self) -> str:
-        if self.infra_app_parameters:  # todo: remove this abomination
-            return self.help_with_params()
+        if self.infra_app_parameters:
+            # special case for an infra app, unlike a typical custom command
+            return infra_app_help(self)
         return self.help_with_params() if self.parameters else self.help_no_params_args()
 
     def rendered_help(self, ctx: CLIContext) -> str:
@@ -460,6 +442,40 @@ class AliasTemplate:
             description=cfg.description,
             allowed_in_source_position=cfg.allowed_in_source_position or False,
         )
+
+
+def infra_app_help(template: AliasTemplate) -> str:
+    args = " ".join(f"{arg.arg_name} <value>" for arg in template.parameters)
+
+    def param_info(p: AliasTemplateParameter) -> str:
+        default = f" [default: {p.default}]" if p.default else ""
+        return f"- `{p.name}`{default}: {p.description}"
+
+    indent = "            "
+    arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(template.parameters, key=attrgetter("name")))
+    desc = ""
+    if template.description:
+        for line in template.description.splitlines():
+            desc += f"\n{indent}{line}"
+
+    def param_info_infra_apps(name: str, arg_info: Dict[str, Any]) -> str:
+        default = f" [default: {arg_info.get('default')}]" if arg_info.get("default") else ""
+        return f"- `{name}`{default}: {arg_info.get('help')}"
+
+    arg_info = f"\n{indent}".join(
+        param_info_infra_apps(name, arg) for name, arg in (template.infra_app_parameters or {}).items()
+    )
+    result = dedent(
+        f"""
+    {template.name}: {template.info}
+    ```shell
+    {template.name} {args}
+    ```
+    {desc}
+    ## Parameters
+    {arg_info}"""
+    )
+    return result
 
 
 @define
