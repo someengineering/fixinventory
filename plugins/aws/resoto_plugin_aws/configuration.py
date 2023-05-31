@@ -34,12 +34,15 @@ class AwsSessionHolder:
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __direct_session(self, profile: Optional[str]) -> BotoSession:
+    def __direct_session(self, profile: Optional[str], partition: str) -> BotoSession:
+        global_region = global_region_by_partition(partition)
         if profile:
-            return self.session_class_factory(profile_name=profile)
+            return self.session_class_factory(profile_name=profile, region_name=global_region)
         else:
             return self.session_class_factory(
-                aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key
+                aws_access_key_id=self.access_key_id,
+                aws_secret_access_key=self.secret_access_key,
+                region_name=global_region,
             )
 
     # noinspection PyUnusedLocal
@@ -68,6 +71,7 @@ class AwsSessionHolder:
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
+            region_name=global_region,
         )
 
     def _session(
@@ -82,7 +86,7 @@ class AwsSessionHolder:
         Consider using the client() and resource() methods instead.
         """
         if aws_role is None:
-            return self.__direct_session(aws_profile)
+            return self.__direct_session(aws_profile, aws_partition)
         else:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)

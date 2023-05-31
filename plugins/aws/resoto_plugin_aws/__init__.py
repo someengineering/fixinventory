@@ -45,6 +45,8 @@ metrics_unhandled_account_exceptions = Counter(
     ["account"],
 )
 
+GLOBAL_REGIONS = ("us-east-1", "us-gov-west-1", "cn-north-1")
+
 
 class AWSCollectorPlugin(BaseCollectorPlugin):
     cloud = "aws"
@@ -60,7 +62,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def auto_enableable() -> bool:
-        for region in ("us-east-1", "us-gov-west-1", "cn-north-1"):
+        for region in GLOBAL_REGIONS:
             try:
                 account_id = (
                     boto3.session.Session(region_name=region).client("sts").get_caller_identity().get("Account")
@@ -139,7 +141,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def regions(self, profile: Optional[str] = None, partition: str = "aws") -> List[str]:
         if len(self.__regions) == 0:
             if not Config.aws.region or (isinstance(Config.aws.region, list) and len(Config.aws.region) == 0):
-                log.debug("AWS region not specified, assuming all regions")
+                add_log_str = ""
+                if profile:
+                    add_log_str += f" profile {profile}"
+                if partition:
+                    add_log_str += f" partition {partition}"
+                log.debug(f"AWS region not specified, assuming all regions{add_log_str}")
                 self.__regions = all_regions(profile=profile, partition=partition)
             else:
                 self.__regions = list(Config.aws.region)
@@ -410,11 +417,22 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
 def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
     try:
-        log.debug(f"AWS testing credentials for {account.rtdname}")
+        add_log_str = ""
+        if account.role:
+            add_log_str += f" role {account.role}"
+        if account.profile:
+            add_log_str += f" profile {account.profile}"
+        if account.partition:
+            add_log_str += f" partition {account.partition}"
+        log.debug(f"AWS testing credentials for {account.rtdname}{add_log_str}")
         session = aws_session(
             account=account.id, role=account.role, profile=account.profile, partition=account.partition
         )
-        _ = session.client("sts").get_caller_identity().get("Account")
+        _ = (
+            session.client("sts", region_name=global_region_by_partition(account.partition))
+            .get_caller_identity()
+            .get("Account")
+        )
     except botocore.exceptions.NoCredentialsError:
         core_feedback.error(f"No AWS credentials found for {account.rtdname}", log)
     except botocore.exceptions.ClientError as e:
@@ -441,7 +459,13 @@ def current_account_id(profile: Optional[str] = None) -> str:
 
 def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str, str]:
     interesting_exception = None
-    for region in ("us-east-1", "us-gov-west-1", "cn-north-1"):
+    add_log_str = ""
+    if profile:
+        add_log_str = f" with profile {profile}"
+    log.debug(f"Trying to determine current account id and partition{add_log_str}")
+    for region in GLOBAL_REGIONS:
+        partition = arn_partition_by_region(region)
+        log.debug(f"Probing region {region}")
         try:
             if profile:
                 account_id = (
@@ -461,11 +485,14 @@ def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str
                     .get_caller_identity()
                     .get("Account")
                 )
-            return account_id, arn_partition_by_region(region)
+            log.debug(f"Determined partition for account {account_id} to be {partition}")
+            return account_id, partition
         except botocore.exceptions.ClientError as e:
+            log.debug(f"Got an exception when probing partition {partition}: {e}")
             if e.response["Error"]["Code"] != "InvalidClientTokenId":
                 interesting_exception = e
         except Exception as e:
+            log.debug(f"Got an exception when probing partition {partition}: {e}")
             interesting_exception = e
     if interesting_exception:
         raise interesting_exception

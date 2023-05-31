@@ -63,16 +63,19 @@ def aws_session(
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
+            region_name=global_region,
         )
     else:
         if profile:
             return BotoSession(
                 profile_name=profile,
+                region_name=global_region,
             )
         else:
             return BotoSession(
                 aws_access_key_id=Config.aws.access_key_id,
                 aws_secret_access_key=Config.aws.secret_access_key,
+                region_name=global_region,
             )
 
 
