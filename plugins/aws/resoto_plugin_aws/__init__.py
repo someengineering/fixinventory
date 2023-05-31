@@ -463,7 +463,7 @@ def probe_partition(account: Optional[str] = None, role: Optional[str] = None, p
         try:
             session = aws_session(account=account, role=role, profile=profile, partition=partition)
             _ = session.client("sts", region_name=region).get_caller_identity().get("Account")
-        except Exception as e:
+        except Exception:
             pass
         else:
             return partition
