@@ -143,7 +143,14 @@ class AwsClient:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
     def service_model(self, aws_service: str) -> ServiceModel:
-        client = self.config.sessions().client(self.account_id, self.role, self.profile, aws_service, self.region)
+        client = self.config.sessions().client(
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            aws_partition=self.partition,
+        )
         model = client.meta.service_model
         client.close()
         return model
@@ -157,7 +164,14 @@ class AwsClient:
         :param fn: loan pattern: the function is handed the resource and the result is returned.
         :return: the result of the function.
         """
-        resource = self.config.sessions().resource(self.account_id, self.role, self.profile, aws_service, self.region)
+        resource = self.config.sessions().resource(
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            aws_partition=self.partition,
+        )
         try:
             return fn(resource)
         except ClientError as e:
@@ -181,8 +195,15 @@ class AwsClient:
         # adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": max_attempts, "mode": "adaptive"})
         client = self.config.sessions().client(
-            self.account_id, self.role, self.profile, aws_service, self.region, config
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            config=config,
+            aws_partition=self.partition,
         )
+
         try:
             if client.can_paginate(py_action):
                 paginator = client.get_paginator(py_action)
