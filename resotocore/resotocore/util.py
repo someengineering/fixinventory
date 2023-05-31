@@ -86,7 +86,9 @@ def utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def utc_str(dt: datetime = utc(), date_format: str = UTC_Date_Format) -> str:
+def utc_str(dt: Optional[datetime] = None, date_format: str = UTC_Date_Format) -> str:
+    if dt is None:
+        dt = utc()
     if dt.tzinfo is not None and dt.tzname() != "UTC":
         offset = dt.tzinfo.utcoffset(dt)
         if offset is not None and offset.total_seconds() != 0:
