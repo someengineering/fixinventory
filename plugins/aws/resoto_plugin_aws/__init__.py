@@ -434,12 +434,12 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
     return True
 
 
-def current_account_id(profile: Optional[str] = None) -> Optional[str]:
+def current_account_id(profile: Optional[str] = None) -> str:
     account_id, _ = current_account_id_and_partition(profile)
     return account_id
 
 
-def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str, str]:
     interesting_exception = None
     for region in ("us-east-1", "us-gov-west-1", "cn-north-1"):
         try:
