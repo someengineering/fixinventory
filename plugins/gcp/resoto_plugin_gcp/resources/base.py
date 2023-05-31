@@ -11,7 +11,16 @@ from google.auth.credentials import Credentials as GoogleAuthCredentials
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
 from resoto_plugin_gcp.utils import Credentials
-from resotolib.baseresources import BaseResource, BaseAccount, Cloud, EdgeType, BaseRegion, BaseZone, BaseQuota
+from resotolib.baseresources import (
+    BaseResource,
+    BaseAccount,
+    Cloud,
+    EdgeType,
+    BaseRegion,
+    BaseZone,
+    BaseQuota,
+    ModelReference,
+)
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js, to_json as to_js
@@ -486,6 +495,7 @@ class GcpRegion(GcpResource, BaseRegion):
         "region_deprecated": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "region_supports_pzs": S("supportsPzs"),
     }
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_zone"]}}
     description: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
     region_deprecated: Optional[GcpDeprecationStatus] = field(default=None)

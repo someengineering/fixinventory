@@ -753,6 +753,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         response_path="items",
         response_regional_sub_path="diskTypes",
     )
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sku"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -3307,6 +3308,10 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         response_path="items",
         response_regional_sub_path="machineTypes",
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_sku"]},
+        "successors": {"default": ["gcp_accelerator_type"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -3382,7 +3387,11 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         return True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        """Adds edges from machine type to SKUs and determines ondemand pricing"""
+        # Add edge from machine type to accelerator type
+        for at in self.accelerators or []:
+            # The accelerator type resource name, not a full URL, e.g. nvidia-tesla-t4.
+            builder.add_edge(self, clazz=GcpAcceleratorType, id=at.guest_accelerator_type)
+        # Adds edges from machine type to SKUs and determines ondemand pricing
         if not self.name:
             return
 
@@ -3537,7 +3546,7 @@ class GcpNetwork(GcpResource):
         "auto_create_subnetworks": S("autoCreateSubnetworks"),
         "enable_ula_internal_ipv6": S("enableUlaInternalIpv6"),
         "firewall_policy": S("firewallPolicy"),
-        "gateway_i_pv4": S("gatewayIPv4"),
+        "gateway_ipv4": S("gatewayIPv4"),
         "internal_ipv6_range": S("internalIpv6Range"),
         "mtu": S("mtu"),
         "network_firewall_policy_enforcement_order": S("networkFirewallPolicyEnforcementOrder"),
@@ -3550,7 +3559,7 @@ class GcpNetwork(GcpResource):
     auto_create_subnetworks: Optional[bool] = field(default=None)
     enable_ula_internal_ipv6: Optional[bool] = field(default=None)
     firewall_policy: Optional[str] = field(default=None)
-    gateway_i_pv4: Optional[str] = field(default=None)
+    gateway_ipv4: Optional[str] = field(default=None)
     internal_ipv6_range: Optional[str] = field(default=None)
     mtu: Optional[int] = field(default=None)
     network_firewall_policy_enforcement_order: Optional[str] = field(default=None)
