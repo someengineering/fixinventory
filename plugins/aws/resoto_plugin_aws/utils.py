@@ -85,9 +85,9 @@ def aws_client(resource: BaseResource, service: str, graph: Optional[Graph] = No
 
 def aws_resource(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:
     ac = resource.account(graph)
-    return aws_session(account=ac.id, role=ac.role, profile=ac.profile, partition=ac.partition).resource(  # type: ignore
+    return aws_session(account=ac.id, role=ac.role, profile=ac.profile, partition=ac.partition).resource(
         service, region_name=resource.region(graph).id
-    )
+    )  # type: ignore
 
 
 def paginate(method: Callable[[], List[Any]], **kwargs: Any) -> Iterable[Any]:
