@@ -7,29 +7,29 @@ from collections import defaultdict, deque
 from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache, reduce
-from threading import Lock, Event
-from typing import ClassVar, Dict, Optional, List, Type, Any, TypeVar, Callable, Iterator, Deque, Tuple
+from threading import Event, Lock
+from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
 
 from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
-
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
+
 from resotolib.baseresources import (
-    BaseResource,
-    EdgeType,
-    Cloud,
     BaseAccount,
     BaseRegion,
+    BaseResource,
     BaseVolumeType,
+    Cloud,
+    EdgeType,
     ModelReference,
 )
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph, EdgeKey, ByNodeId, BySearchCriteria, NodeSelector
+from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
 from resotolib.json_bender import Bender, bend
 from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
@@ -201,6 +201,7 @@ class AwsAccount(BaseAccount, AwsResource):
     account_alias: Optional[str] = ""
     role: Optional[str] = None
     profile: Optional[str] = None
+    partition: str = "aws"
     users: Optional[int] = 0
     groups: Optional[int] = 0
     account_mfa_enabled: Optional[int] = 0

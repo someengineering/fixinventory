@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import timedelta
 from functools import lru_cache
-from typing import List, ClassVar, Optional, Type, Any, Dict, Callable
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Type
 
 from attrs import define, field, fields_dict
 from boto3.session import Session as BotoSession
@@ -15,6 +15,8 @@ from resotolib.durations import parse_duration
 from resotolib.json import from_json as from_js
 from resotolib.proc import num_default_threads
 from resotolib.types import Json
+
+from .utils import global_region_by_partition
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -42,19 +44,22 @@ class AwsSessionHolder:
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __sts_session(self, aws_account: str, aws_role: str, profile: Optional[str], cache_key: int) -> BotoSession:
+    def __sts_session(
+        self, aws_account: str, aws_role: str, profile: Optional[str], partition: str, cache_key: int
+    ) -> BotoSession:
+        global_region = global_region_by_partition(partition)
         role = self.role if self.role_override else aws_role
-        role_arn = f"arn:aws:iam::{aws_account}:role/{role}"
+        role_arn = f"arn:{partition}:iam::{aws_account}:role/{role}"
         if profile:
             session = self.session_class_factory(
                 profile_name=profile,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         else:
             session = self.session_class_factory(
                 aws_access_key_id=self.access_key_id,
                 aws_secret_access_key=self.secret_access_key,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         sts = session.client("sts")
         token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
@@ -66,7 +71,11 @@ class AwsSessionHolder:
         )
 
     def _session(
-        self, aws_account: str, aws_role: Optional[str] = None, aws_profile: Optional[str] = None
+        self,
+        aws_account: str,
+        aws_role: Optional[str] = None,
+        aws_profile: Optional[str] = None,
+        aws_partition: str = "aws",
     ) -> BotoSession:
         """
         Note: the session is not thread safe - caller needs to synchronize access.
@@ -78,7 +87,7 @@ class AwsSessionHolder:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)
             # let's renew the session after 10 minutes
-            return self.__sts_session(aws_account, aws_role, aws_profile, int(time.time() / 600))
+            return self.__sts_session(aws_account, aws_role, aws_profile, aws_partition, int(time.time() / 600))
 
     def client(
         self,
@@ -88,9 +97,10 @@ class AwsSessionHolder:
         aws_service: str,
         region_name: Optional[str] = None,
         config: Optional[BotoConfig] = None,
+        aws_partition: str = "aws",
     ) -> BaseClient:
         with self.session_lock:
-            session = self._session(aws_account, aws_role, aws_profile)
+            session = self._session(aws_account, aws_role, aws_profile, aws_partition)
             return session.client(aws_service, region_name=region_name, config=config)
 
     def resource(
@@ -101,9 +111,10 @@ class AwsSessionHolder:
         aws_service: str,
         region_name: Optional[str] = None,
         config: Optional[BotoConfig] = None,
+        aws_partition: str = "aws",
     ) -> Any:
         with self.session_lock:
-            session = self._session(aws_account, aws_role, aws_profile)
+            session = self._session(aws_account, aws_role, aws_profile, aws_partition)
             return session.resource(aws_service, region_name=region_name, config=config)
 
     def purge_caches(self) -> None:

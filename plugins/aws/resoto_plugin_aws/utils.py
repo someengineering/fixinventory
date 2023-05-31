@@ -1,5 +1,5 @@
 import uuid
-from typing import Iterable, List, Dict, Optional, Any, Callable
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from boto3.session import Session as BotoSession
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
@@ -11,7 +11,6 @@ from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender
 from resotolib.types import Json
-
 
 metrics_session_exceptions = Counter(
     "resoto_plugin_aws_session_exceptions_total",
@@ -33,22 +32,29 @@ def retry_on_session_error(e: Exception) -> bool:
     retry_on_exception=retry_on_session_error,
 )
 def aws_session(
-    account: Optional[str] = None, role: Optional[str] = None, profile: Optional[str] = None
+    account: Optional[str] = None,
+    role: Optional[str] = None,
+    profile: Optional[str] = None,
+    partition: Optional[str] = None,
 ) -> BotoSession:
+    if partition is None:
+        partition = "aws"
+    global_region = global_region_by_partition(partition)
+
     if Config.aws.role_override:
         role = Config.aws.role
     if role and account:
-        role_arn = f"arn:aws:iam::{account}:role/{role}"
+        role_arn = f"arn:{partition}:iam::{account}:role/{role}"
         if profile:
             session = BotoSession(
                 profile_name=profile,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         else:
             session = BotoSession(
                 aws_access_key_id=Config.aws.access_key_id,
                 aws_secret_access_key=Config.aws.secret_access_key,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         sts = session.client("sts")
         token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{account}-{str(uuid.uuid4())}")
@@ -72,14 +78,14 @@ def aws_session(
 
 def aws_client(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:
     ac = resource.account(graph)
-    return aws_session(ac.id, ac.role, ac.profile).client(  # type: ignore
+    return aws_session(ac.id, ac.role, ac.profile, ac.partition).client(  # type: ignore
         service, region_name=resource.region(graph).id
     )
 
 
 def aws_resource(resource: BaseResource, service: str, graph: Optional[Graph] = None) -> BotoSession:
     ac = resource.account(graph)
-    return aws_session(ac.id, ac.role, ac.profile).resource(  # type: ignore
+    return aws_session(ac.id, ac.role, ac.profile, ac.partition).resource(  # type: ignore
         service, region_name=resource.region(graph).id
     )
 
@@ -101,12 +107,45 @@ def paginate(method: Callable[[], List[Any]], **kwargs: Any) -> Iterable[Any]:
 
 
 def arn_partition(region: BaseRegion) -> str:
+    return arn_partition_by_region(region.id)
+
+
+def arn_partition_by_region(region: str) -> str:
     arn_partition = "aws"
-    if region.id.startswith("cn-"):
+    if region.startswith("cn-"):
         arn_partition = "aws-cn"
-    elif region.id.startswith("us-gov-"):
+    elif region.startswith("us-gov-"):
         arn_partition = "aws-us-gov"
     return arn_partition
+
+
+def global_region_by_arn(arn: str) -> str:
+    if arn.startswith("arn:aws-us-gov:"):
+        return "us-gov-west-1"
+    elif arn.startswith("arn:aws-cn:"):
+        return "cn-north-1"
+    else:
+        return "us-east-1"
+
+
+def global_region_by_partition(partition: str) -> str:
+    if partition == "aws":
+        return "us-east-1"
+    elif partition == "aws-us-gov":
+        return "us-gov-west-1"
+    elif partition == "aws-cn":
+        return "cn-north-1"
+    else:
+        return "us-east-1"
+
+
+def global_region_by_region(region: str) -> str:
+    if region.startswith("us-gov-"):
+        return "us-gov-west-1"
+    elif region.startswith("cn-"):
+        return "cn-north-1"
+    else:
+        return "us-east-1"
 
 
 def tags_as_dict(tags: List[Json]) -> Dict[str, Optional[str]]:

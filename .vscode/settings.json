@@ -12,8 +12,5 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.formatting.provider": "black",
-    "editor.codeActionsOnSave": {
-        "source.organizeImports": true
-    }
+    "python.formatting.provider": "black"
 }
