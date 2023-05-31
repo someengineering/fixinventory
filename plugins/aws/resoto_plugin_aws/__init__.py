@@ -426,6 +426,8 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
             core_feedback.error(f"Security token included in the request is expired for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "AccessDenied":
             core_feedback.error(f"Access Denied to {account.rtdname}: {e}", log)
+        elif e.response["Error"]["Code"] == "SignatureDoesNotMatch":
+            core_feedback.error(f"Token signature does not match {account.rtdname}: {e}", log)
         else:
             raise
         return False
@@ -438,6 +440,7 @@ def current_account_id(profile: Optional[str] = None) -> Optional[str]:
 
 
 def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+    interesting_exception = None
     for region in ("us-east-1", "us-gov-west-1", "cn-north-1"):
         try:
             if profile:
@@ -459,9 +462,15 @@ def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[Opt
                     .get("Account")
                 )
             return account_id, arn_partition_by_region(region)
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "InvalidClientTokenId":
+                interesting_exception = e
         except Exception as e:
-            pass
-    return None, None
+            interesting_exception = e
+    if interesting_exception:
+        raise interesting_exception
+    else:
+        raise botocore.exceptions.NoCredentialsError()
 
 
 def set_account_names(accounts: List[AwsAccount]) -> None:
@@ -554,6 +563,8 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
                 core_feedback.error(f"AWS security token included in the request is expired for {profile}", log)
             elif e.response["Error"]["Code"] == "AccessDenied":
                 core_feedback.error(f"Access denied for profile {profile}", log)
+            elif e.response["Error"]["Code"] == "SignatureDoesNotMatch":
+                core_feedback.error(f"Token signature does not match for {profile}", log)
             else:
                 core_feedback.error(f"AWS client error for profile {profile}: {e}", log)
                 raise
