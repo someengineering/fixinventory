@@ -201,7 +201,7 @@ class AwsAccount(BaseAccount, AwsResource):
     account_alias: Optional[str] = ""
     role: Optional[str] = None
     profile: Optional[str] = None
-    partition: Optional[str] = None
+    partition: str = "aws"
     users: Optional[int] = 0
     groups: Optional[int] = 0
     account_mfa_enabled: Optional[int] = 0
