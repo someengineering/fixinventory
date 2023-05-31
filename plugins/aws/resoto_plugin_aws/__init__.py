@@ -457,6 +457,19 @@ def current_account_id(profile: Optional[str] = None) -> str:
     return account_id
 
 
+def probe_partition(account: Optional[str] = None, role: Optional[str] = None, profile: Optional[str] = None) -> str:
+    for region in GLOBAL_REGIONS:
+        partition = arn_partition_by_region(region)
+        try:
+            session = aws_session(account=account, role=role, profile=profile, partition=partition)
+            _ = session.client("sts", region_name=region).get_caller_identity().get("Account")
+        except Exception as e:
+            pass
+        else:
+            return partition
+    return "aws"
+
+
 def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str, str]:
     interesting_exception = None
     add_log_str = ""
@@ -570,12 +583,11 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
                     accounts.append(AwsAccount(id=account_id, partition=partition))
             elif Config.aws.role and Config.aws.account:
                 log.debug("Both, role and list of accounts specified")
-                accounts.extend(
-                    [
-                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
-                        for aws_account_id in Config.aws.account
-                    ]
-                )
+                for aws_account_id in Config.aws.account:
+                    partition = probe_partition(aws_account_id, profile=profile)
+                    accounts.append(
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile, partition=partition)
+                    )
             else:
                 account_id, partition = current_account_id_and_partition(profile=profile)
                 accounts.extend([AwsAccount(id=account_id, profile=profile, partition=partition)])
