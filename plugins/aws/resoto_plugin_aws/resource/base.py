@@ -7,6 +7,7 @@ from collections import defaultdict, deque
 from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache, reduce
+from json import dumps as json_dumps
 from threading import Event, Lock
 from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
 
@@ -130,8 +131,12 @@ class AwsResource(BaseResource, ABC):
 
     @classmethod
     def from_api(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
-        mapped = bend(cls.mapping, json)
-        return cls.from_json(mapped)
+        try:
+            mapped = bend(cls.mapping, json)
+            return cls.from_json(mapped)
+        except Exception as e:
+            log.error(f"Error while mapping {cls.__name__}: {e}. Json: {json_dumps(json)}")
+            raise
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
