@@ -10,6 +10,7 @@ from resoto_plugin_aws.aws_client import AwsClient
 from resotolib.json import from_json
 from resotolib.json_bender import Bend, Bender, F, ForallBend, MapDict, S, bend
 from resotolib.types import Json
+from resoto_plugin_aws.utils import arn_partition_by_region
 
 service_name = "pricing"
 
@@ -24,9 +25,30 @@ EBS_TO_PRICING_NAMES = {
 
 
 @lru_cache(maxsize=None)
+def partition_index() -> dict[str, int]:
+    """Return a mapping from partition name to partition index."""
+    index_map = {}
+    try:
+        endpoints = Loader().load_data("endpoints")
+    except Exception:
+        pass
+    else:
+        for idx, partition in enumerate(endpoints.get("partitions", [])):
+            regions = partition.get("regions", {}).keys()
+            if "us-east-1" in regions:
+                index_map["aws"] = idx
+            elif "us-gov-west-1" in regions:
+                index_map["aws-us-gov"] = idx
+            elif "cn-north-1" in regions:
+                index_map["aws-cn"] = idx
+    return index_map
+
+
+@lru_cache(maxsize=None)
 def pricing_region(region: str) -> str:
+    idx = partition_index().get(arn_partition_by_region(region), 0)
     endpoints = Loader().load_data("endpoints")
-    name: Optional[str] = bend(S("partitions")[0] >> S("regions", region, "description"), endpoints)
+    name: Optional[str] = bend(S("partitions")[idx] >> S("regions", region, "description"), endpoints)
     if name is None:
         raise ValueError(f"Unknown pricing region: {region}")
     return name.replace("Europe", "EU")  # note: Europe is named differently in the price list
