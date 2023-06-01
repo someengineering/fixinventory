@@ -25,7 +25,7 @@ EBS_TO_PRICING_NAMES = {
 
 
 @lru_cache(maxsize=None)
-def partition_index() -> dict[str, int]:
+def partition_index() -> Dict[str, int]:
     """Return a mapping from partition name to partition index."""
     index_map = {}
     try:
