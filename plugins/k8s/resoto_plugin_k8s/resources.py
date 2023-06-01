@@ -3,7 +3,8 @@ from threading import Lock
 
 from attrs import define, field
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple
+from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple, Set
+from collections import defaultdict
 
 from jsons import set_deserializer
 from resoto_plugin_k8s.base import KubernetesResource, SortTransitionTime
@@ -20,7 +21,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, S, K, bend, ForallBend, Bender, MapEnum
+from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, F, S, K, bend, ForallBend, Bender, MapEnum
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -1021,6 +1022,7 @@ class KubernetesServiceSpec:
         "publish_not_ready_addresses": S("publishNotReadyAddresses"),
         "session_affinity": S("sessionAffinity"),
         "type": S("type"),
+        "selector": S("selector", default={}),
     }
     allocate_load_balancer_node_ports: Optional[bool] = field(default=None)
     cluster_ip: Optional[str] = field(default=None)
@@ -1039,6 +1041,7 @@ class KubernetesServiceSpec:
     publish_not_ready_addresses: Optional[bool] = field(default=None)
     session_affinity: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
+    selector: Optional[Dict[str, str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -2229,6 +2232,29 @@ class KubernetesIngressSpec:
     tls: List[KubernetesIngressTLS] = field(factory=list)
 
 
+def get_backend_service_names(json: Json) -> List[str]:
+    default_services: Optional[str] = bend(
+        S(
+            "spec",
+            "defaultBackend",
+            "service",
+            "name",
+        ),
+        json,
+    )
+    services_from_rules: List[str] = bend(
+        S("spec", "rules", default=[])
+        >> ForallBend(S("http", "paths", default=[]) >> ForallBend(S("backend", "service", "name")))
+        >> F(lambda outer: [elem for inner in outer for elem in inner if elem]),
+        json,
+    )
+
+    if default_services:
+        services_from_rules.append(default_services)
+
+    return services_from_rules
+
+
 @define(eq=False, slots=False)
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
@@ -2237,10 +2263,43 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
         "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
         # take the public ip of the first load balancer
         "ingress_spec": S("spec") >> Bend(KubernetesIngressSpec.mapping),
-        "backends": S("spec") >> S("rules", default=[]) >> ForallBend(S("host")),
+        # temporary values, they will be replaced in connect_in_graph call with pod ids
+        "backends": F(get_backend_service_names),
     }
     ingress_status: Optional[KubernetesIngressStatus] = field(default=None)
     ingress_spec: Optional[KubernetesIngressSpec] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+
+        pods = [
+            ((key, val), pod)
+            for pod in builder.graph.nodes
+            if isinstance(pod, KubernetesPod)
+            for key, val in pod.labels.items()
+        ]
+        pods_by_labels = defaultdict(list)
+        for (key, val), pod in pods:
+            pods_by_labels[(key, val)].append(pod)
+
+        resolved_backends: Set[str] = set()
+
+        for backend in self.backends:
+            for service in builder.graph.searchall({"kind": KubernetesService.kind, "name": backend}):
+                if not isinstance(service, KubernetesService):
+                    continue
+
+                builder.add_edge(service, edge_type=EdgeType.default, node=self)
+
+                selector = service.service_spec.selector if service.service_spec else {}
+                if not selector:
+                    continue
+
+                for key, value in selector.items():
+                    for pod in pods_by_labels.get((key, value), []):
+                        resolved_backends.add(pod.id)
+
+        self.backends = list(resolved_backends)
 
 
 @define(eq=False, slots=False)

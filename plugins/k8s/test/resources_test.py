@@ -92,7 +92,8 @@ def test_endpoints(json_file: Json) -> None:
 @pytest.mark.json_file("apis_networking.k8s.io_v1_ingresses.json")
 def test_Ingress(json_file: Json) -> None:
     result, _ = round_trip(KubernetesIngress, json_file)
-    assert result[0][0].backends == ["grafana.some.engineering"]
+    for ingress, _ in result:
+        assert ingress.backends == []  # all ingress backends shold be resolved to no pods
 
 
 # @pytest.mark.json_file("apis_networking.k8s.io_v1_ingressclasses.json")
