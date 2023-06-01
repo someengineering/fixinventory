@@ -7,6 +7,23 @@ from urllib.parse import urlparse, ParseResult
 from typing import Optional
 
 
+class CLIEnvelope:
+    """
+    Envelope fields that are used by the CLI.
+    Those fields are encoded as HTTP Headers into the HTTP response.
+    """
+
+    # Defines the action that should be performed.
+    # Use cases:
+    # - "edit": A file that is returned from the core should be opened in an editor.
+    #           The result of the edit should be sent back to the core, identified by the "command" envelope field.
+    action = "Resoto-Shell-Action"
+    # Defines the command that should be executed after the edit was performed.
+    command = "Resoto-Shell-Command"
+    # Do not add this command to the shell history.
+    no_history = "Resoto-Shell-No-History"
+
+
 def add_args(arg_parser: ArgumentParser) -> None:
     arg_parser.add_argument(
         "--resotocore-uri",

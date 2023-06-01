@@ -1,15 +1,16 @@
+from __future__ import annotations
 import pathlib
 import re
+import shutil
 from abc import ABC
-
-from attr import evolve
-from attrs import define, field
 from re import Pattern
-from math import floor
 from shutil import get_terminal_size
 from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable, Any
 
 import jsons
+from attr import evolve
+from attrs import define, field
+from math import floor
 from prompt_toolkit import PromptSession as PTSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import (
@@ -23,7 +24,7 @@ from prompt_toolkit.completion import (
     FuzzyCompleter,
 )
 from prompt_toolkit.document import Document
-from prompt_toolkit.history import FileHistory
+from prompt_toolkit.history import FileHistory, History
 from prompt_toolkit.styles import Style
 from resotoclient.async_client import ResotoClient
 from resotoclient.models import Property
@@ -725,6 +726,35 @@ class SafeCompleter(Completer):
             return []
 
 
+class ResotoHistory(History):
+    def __init__(self, history_file: str) -> None:
+        super().__init__()
+        self.file_history = FileHistory(history_file)
+
+    def load_history_strings(self) -> Iterable[str]:
+        return self.file_history.load_history_strings()
+
+    def store_string(self, string: str) -> None:
+        # called by prompt_toolkit - ignore this call.
+        # we store the string in the store_command method which is called from Shell
+        pass
+
+    def store_command(self, string: str) -> None:
+        self.file_history.store_string(string)
+
+    @staticmethod
+    def default() -> ResotoHistory:
+        # this path existed until 3.5.0
+        old_path = pathlib.Path.home() / ".resotoshell_history"
+        path = pathlib.Path.home() / ".resoto" / "shell_history"
+        # make sure the directory exists
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        # move the old history file to the new location
+        if old_path.exists() and not path.exists():
+            shutil.move(str(old_path), str(path))
+        return ResotoHistory(str(path))
+
+
 class PromptSession:
     style = Style.from_dict(
         {
@@ -736,14 +766,7 @@ class PromptSession:
 
     prompt_message = [("class:prompt", "> ")]
 
-    def __init__(
-        self,
-        cmds: List[CommandInfo],
-        kinds: List[str],
-        props: List[str],
-        history_file: str = str(pathlib.Path.home() / ".resotoshell_history"),
-    ):
-        history = FileHistory(history_file)
+    def __init__(self, cmds: List[CommandInfo], kinds: List[str], props: List[str], history: History):
         _, tty_rows = get_terminal_size(fallback=(80, 25))
         reserved_row_ratio = 1 / 4
         min_reserved_rows = 4

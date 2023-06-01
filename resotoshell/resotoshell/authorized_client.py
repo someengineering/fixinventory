@@ -134,7 +134,7 @@ class ReshConfig:
     def write(self) -> None:
         if self.dirty:
             self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-            with open(os.open(self.path, os.O_CREAT | os.O_WRONLY, 0o600), "w+") as f:
+            with open(os.open(self.path, os.O_CREAT | os.O_WRONLY, 0o600), "w+", encoding="utf-8") as f:
                 self.config.write(f)
 
     @staticmethod
