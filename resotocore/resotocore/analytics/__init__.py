@@ -39,6 +39,7 @@ class CoreEvent:
     TaskCompleted = "task-handler.task-completed"
     ClientError = "error.client"
     ServerError = "error.server"
+    ActionError = "error.action"
     UsageMetricsTurnedOff = "usage-metrics.turned-off"
     BenchmarkPerformed = "report.benchmark"
     FirstUserCreated = "user.created.first"

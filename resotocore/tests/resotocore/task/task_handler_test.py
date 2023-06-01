@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import timedelta
 from typing import List
@@ -5,13 +6,14 @@ from typing import List
 import pytest
 from pytest import LogCaptureFixture
 
-from resotocore.analytics import AnalyticsEventSender
+from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.cli.cli import CLIService
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
 from resotocore.ids import SubscriberId, TaskDescriptorId
-from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action
+from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError
+from resotocore.task import RunningTaskInfo
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
@@ -147,6 +149,23 @@ async def test_handle_failing_task_command(task_handler: TaskHandlerService, cap
     # One warning has been emitted
     assert len(caplog.records) == 1
     assert "Command non_existing_command failed with error" in caplog.records[0].message
+
+
+@pytest.mark.asyncio
+async def test_handle_failing_actor(
+    task_handler: TaskHandlerService, test_workflow: Workflow, event_sender: InMemoryEventSender
+) -> None:
+    sub = await task_handler.subscription_handler.add_subscription(
+        SubscriberId("sub_1"), "collect", True, timedelta(seconds=30)
+    )
+    info = await task_handler.start_task(test_workflow, "test")
+    assert info is not None
+    await asyncio.sleep(0.1)
+    task = info.running_task
+    await task_handler.handle_action_info(ActionInfo("collect", task.id, "act", sub.id, "error", "wrong!"))
+    assert [e.kind for e in event_sender.events] == ["task-handler.task-started", "error.action"]
+    await task_handler.handle_action_error(ActionError("collect", task.id, "act", sub.id, "wrong!"))
+    assert [e.kind for e in event_sender.events] == ["task-handler.task-started", "error.action", "error.action"]
 
 
 @pytest.mark.asyncio
