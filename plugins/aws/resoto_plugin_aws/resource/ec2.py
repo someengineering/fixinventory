@@ -1,11 +1,12 @@
+import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
@@ -29,6 +30,7 @@ from resotolib.baseresources import (
     BaseRoutingTable,
     ModelReference,
 )
+from resotolib.config import current_config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from resotolib.types import Json
@@ -37,6 +39,7 @@ from resotolib.types import Json
 # region InstanceType
 from resotolib.utils import utc
 
+log = logging.getLogger("resoto.plugins.aws")
 service_name = "ec2"
 
 
@@ -1441,6 +1444,21 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     nic_deny_all_igw_traffic: Optional[bool] = field(default=None)
     nic_ipv6_native: Optional[bool] = field(default=None)
     nic_ipv6_address: Optional[str] = field(default=None)
+
+    def pre_cleanup(self, graph: Optional[Any] = None) -> bool:
+        client = get_client(current_config(), self)
+        if (attachment := self.nic_attachment) and (aid := attachment.attachment_id):
+            try:
+                client.call(
+                    aws_service=self.api_spec.service,
+                    action="detach-network-interface",
+                    AttachmentId=aid,
+                    Force=True,
+                )
+            except Exception as e:
+                log.warning(f"Failed to detach network interface {self.id}: {e}")
+                return False
+        return True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
