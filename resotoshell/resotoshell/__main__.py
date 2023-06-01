@@ -17,7 +17,7 @@ from resotolib.core.ca import TLSData
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotoshell import authorized_client
-from resotoshell.promptsession import PromptSession, core_metadata
+from resotoshell.promptsession import PromptSession, core_metadata, ResotoHistory
 from resotoshell.shell import Shell, ShutdownShellError
 
 
@@ -59,25 +59,25 @@ async def main_async() -> None:
         await handle_from_stdin(client)
     else:
         cmds, kinds, props = await core_metadata(client)
-        session = PromptSession(cmds=cmds, kinds=kinds, props=props)
-        await repl(client, args, session)
+        history = ResotoHistory.default()
+        session = PromptSession(cmds=cmds, kinds=kinds, props=props, history=history)
+        shell = Shell(client, True, detect_color_system(args), history=history)
+        await repl(shell, session, args)
 
     # update the eventually changed auth token
     await authorized_client.update_auth_header(client)
     await client.shutdown()
 
 
-async def repl(client: ResotoClient, args: Namespace, session: PromptSession) -> None:
+async def repl(shell: Shell, session: PromptSession, args: Namespace) -> None:
     shutdown_event = Event()
-    shell = Shell(client, True, detect_color_system(args))
+
     log.debug("Starting interactive session")
 
     # send the welcome command to the core
-    await shell.handle_command("welcome")
+    await shell.handle_command("welcome", no_history=True)
 
-    event_listener = (
-        None if args.no_events else asyncio.create_task(attach_to_event_stream(client, shell, shutdown_event))
-    )
+    event_listener = None if args.no_events else asyncio.create_task(attach_to_event_stream(shell, shutdown_event))
     try:
         while not shutdown_event.is_set():
             try:
@@ -102,10 +102,10 @@ async def repl(client: ResotoClient, args: Namespace, session: PromptSession) ->
             event_listener.cancel()
 
 
-async def attach_to_event_stream(client: ResotoClient, shell: Shell, shutdown_event: Event) -> None:
+async def attach_to_event_stream(shell: Shell, shutdown_event: Event) -> None:
     while not shutdown_event.is_set():
         try:
-            async for event in client.events({"error"}):
+            async for event in shell.client.events({"error"}):
                 data = event.get("data", {})
                 message = data.get("message")
                 context = ",".join([f"{k}={v}" for k, v in data.items() if k != "message"])

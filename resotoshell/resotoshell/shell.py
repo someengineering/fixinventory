@@ -17,8 +17,10 @@ from resotoclient.async_client import ResotoClient
 from rich.markdown import Markdown
 
 from resotolib.args import ArgumentParser
+from resotolib.core import CLIEnvelope
 from resotolib.logger import log
 from resotolib.utils import sha256sum
+from resotoshell.promptsession import ResotoHistory
 from resotoshell.protected_files import validate_paths
 
 color_system_to_color_depth = {
@@ -40,10 +42,13 @@ class Shell:
         client: ResotoClient,
         tty: bool,
         color_system: str,
+        *,
         graph: Optional[str] = None,
         section: Optional[str] = None,
+        history: Optional[ResotoHistory] = None,
     ):
         self.client = client
+        self.history = history
         self.tty = tty
         self.color_system = color_system
         self.color_depth = color_system_to_color_depth.get(color_system) or ColorDepth.DEPTH_8_BIT
@@ -55,6 +60,7 @@ class Shell:
         command: str,
         additional_headers: Optional[Dict[str, str]] = None,
         files: Optional[Dict[str, str]] = None,
+        no_history: bool = False,
     ) -> None:
         headers: Dict[str, str] = {}
         headers.update({"Accept": "text/plain"})
@@ -77,6 +83,9 @@ class Shell:
             if maybe is not None:
                 with maybe as response:
                     if response.status_code == 200:
+                        # only store history if the command was successful, and no no_history flag was set
+                        if self.history and not no_history and CLIEnvelope.no_history not in response.headers:
+                            self.history.store_command(command)
                         await self.handle_result(response)
                     elif response.status_code == 424 and not upload:
                         js_data = await response.json()
@@ -141,8 +150,8 @@ class Shell:
             return filename, filepath
 
         content_type = response.headers.get("Content-Type", "text/plain")
-        action = response.headers.get("Resoto-Shell-Action")
-        command = response.headers.get("Resoto-Shell-Command")
+        action = response.headers.get(CLIEnvelope.action)
+        command = response.headers.get(CLIEnvelope.command)
         line_delimiter = "---"
 
         # If we get a plain text result, we simply print it to the console.
