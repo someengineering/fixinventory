@@ -3,6 +3,8 @@ import sys
 from datetime import timedelta, datetime, date, timezone
 from typing import TypeVar, Any, Type, Optional, Union, List, get_args, Literal, get_origin, Callable, Iterable
 
+from dateutil.parser import isoparse
+
 if sys.version_info >= (3, 10):
     from types import UnionType, NoneType
 else:
@@ -17,7 +19,7 @@ from cattrs.gen import make_dict_unstructure_fn
 from resotolib.durations import parse_duration, duration_str
 from resotolib.logger import log
 from resotolib.types import Json, JsonElement
-from resotolib.utils import utc_str, parse_utc, str2timezone
+from resotolib.utils import utc_str, str2timezone
 
 AnyT = TypeVar("AnyT")
 
@@ -38,7 +40,7 @@ def is_primitive_or_primitive_union(t: Any) -> bool:
 converter = cattrs.Converter()
 
 # structure hooks
-converter.register_structure_hook(datetime, lambda x, _: parse_utc(x))
+converter.register_structure_hook(datetime, lambda x, _: isoparse(x))
 converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj))
 converter.register_structure_hook(timedelta, lambda obj, typ: parse_duration(obj))
 converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
@@ -84,7 +86,7 @@ def to_json(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip
             result[k] = v
         return result
 
-    unstructured = converter.unstructure(node)
+    unstructured: Json = converter.unstructure(node)
     if strip_attr:
         remove_keys = {strip_attr} if isinstance(strip_attr, str) else set(strip_attr)
         unstructured = walk_js_object(unstructured, lambda k, v: k not in remove_keys)
@@ -103,7 +105,7 @@ def from_json(json: JsonElement, clazz: Type[AnyT]) -> AnyT:
     :return: the loaded python object.
     """
     try:
-        return converter.structure(json, clazz) if clazz != dict else json
+        return converter.structure(json, clazz)
     except Exception as e:
         log.debug(f"Can not deserialize json into class {clazz.__name__}: {json}. Error: {e}")
         raise
