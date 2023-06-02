@@ -3,13 +3,14 @@ import os
 from functools import cached_property
 from typing import Type, Optional, List, Tuple, Dict, Any
 
-import jsons
 import pytest
 from _pytest.fixtures import SubRequest
 from kubernetes.client import Configuration
+
 from resoto_plugin_k8s.base import K8sApiResource, K8sClient
 from resoto_plugin_k8s.base import KubernetesResourceType
 from resotolib.core.actions import CoreFeedback
+from resotolib.json import from_json
 from resotolib.types import Json
 
 
@@ -77,7 +78,7 @@ class StaticFileClient(K8sClient):
     @cached_property
     def apis(self) -> List[K8sApiResource]:
         js = self.get("apis")
-        return self.filter_apis(jsons.load(js, List[K8sApiResource]))
+        return self.filter_apis(from_json(js, List[K8sApiResource]))
 
     def list_resources(
         self, resource: K8sApiResource, clazz: Type[KubernetesResourceType], path: Optional[str] = None

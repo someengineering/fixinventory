@@ -1,5 +1,5 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
@@ -16,7 +16,7 @@ from resotolib.baseresources import (
     BaseInstance,
     InstanceStatus,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapValue, F
+from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, F, MapEnum
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
@@ -903,16 +903,16 @@ class GcpDisk(GcpResource, BaseVolume):
         "type": S("type"),
         "users": S("users", default=[]),
         "volume_status": S("status")
-        >> MapValue(
+        >> MapEnum(
             {
-                "CREATING": VolumeStatus.BUSY.name,
-                "RESTORING": VolumeStatus.BUSY.name,
-                "FAILED": VolumeStatus.ERROR.name,
-                "READY": VolumeStatus.IN_USE.name,
-                "AVAILABLE": VolumeStatus.AVAILABLE.name,
-                "DELETING": VolumeStatus.BUSY.name,
+                "CREATING": VolumeStatus.BUSY,
+                "RESTORING": VolumeStatus.BUSY,
+                "FAILED": VolumeStatus.ERROR,
+                "READY": VolumeStatus.IN_USE,
+                "AVAILABLE": VolumeStatus.AVAILABLE,
+                "DELETING": VolumeStatus.BUSY,
             },
-            default=VolumeStatus.UNKNOWN.name,
+            default=VolumeStatus.UNKNOWN,
         ),
         "volume_size": S("sizeGb") >> F(float),
         "volume_type": S("type"),
@@ -2729,17 +2729,18 @@ class GcpInstance(GcpResource, BaseInstance):
         "status": S("status"),
         "status_message": S("statusMessage"),
         "instance_status": S("status")
-        >> MapValue(
+        >> MapEnum(
             {
-                "PROVISIONING": InstanceStatus.BUSY.name,
-                "STAGING": InstanceStatus.BUSY.name,
-                "RUNNING": InstanceStatus.RUNNING.name,
-                "STOPPING": InstanceStatus.BUSY.name,
-                "SUSPENDING": InstanceStatus.BUSY.name,
-                "SUSPENDED": InstanceStatus.STOPPED.name,
-                "REPAIRING": InstanceStatus.BUSY.name,
-                "TERMINATED": InstanceStatus.TERMINATED.name,
-            }
+                "PROVISIONING": InstanceStatus.BUSY,
+                "STAGING": InstanceStatus.BUSY,
+                "RUNNING": InstanceStatus.RUNNING,
+                "STOPPING": InstanceStatus.BUSY,
+                "SUSPENDING": InstanceStatus.BUSY,
+                "SUSPENDED": InstanceStatus.STOPPED,
+                "REPAIRING": InstanceStatus.BUSY,
+                "TERMINATED": InstanceStatus.TERMINATED,
+            },
+            default=InstanceStatus.UNKNOWN,
         ),
         "instance_tags": S("tags", default={}) >> Bend(GcpTags.mapping),
     }

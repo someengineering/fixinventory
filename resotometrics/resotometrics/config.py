@@ -2,10 +2,10 @@ import os
 from attrs import define, field
 from typing import Dict, ClassVar
 
-import jsons
 from yaml import load
 from enum import Enum
 
+from resotolib.json import from_json
 
 try:
     from yaml import CLoader as Loader
@@ -33,7 +33,7 @@ def _load_default_metrics() -> Dict[str, Metric]:
         raise RuntimeError(f"Could not find default metrics file {default_metrics_file}")
     with open(default_metrics_file, "r") as f:
         default_metrics = load(f, Loader=Loader)
-    return {metric_name: jsons.load(metric_data, Metric) for metric_name, metric_data in default_metrics.items()}
+    return {metric_name: from_json(metric_data, Metric) for metric_name, metric_data in default_metrics.items()}
 
 
 @define

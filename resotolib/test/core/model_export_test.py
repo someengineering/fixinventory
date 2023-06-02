@@ -1,8 +1,10 @@
-from attrs import define, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Dict, Union, ClassVar, Literal
+from typing import List, Optional, Dict, Union, ClassVar
 
+from attrs import define, field
+
+from resotolib.baseresources import ModelReference
 from resotolib.core.model_export import (
     is_collection,
     type_arg,
@@ -12,9 +14,7 @@ from resotolib.core.model_export import (
     dataclasses_to_resotocore_model,
     model_name,
     dynamic_object_to_resotocore_model,
-    is_primitive_or_primitive_union,
 )
-from resotolib.baseresources import ModelReference
 
 
 class ExampleEnum(Enum):
@@ -203,23 +203,3 @@ def test_config_export():
     # All global config properties are defined
     config = {a["name"] for a in result_dict["config"]["properties"]}
     assert config == {"aws", "gcp"}
-
-
-def test_primitive_union() -> None:
-    # simple types
-    assert is_primitive_or_primitive_union(str) is True
-    assert is_primitive_or_primitive_union(int) is True
-    assert is_primitive_or_primitive_union(bool) is True
-    assert is_primitive_or_primitive_union(int) is True
-    assert is_primitive_or_primitive_union(float) is True
-    assert is_primitive_or_primitive_union(type(None)) is True
-    assert is_primitive_or_primitive_union(GcpTestConfigConfig) is False
-    # literal types
-    assert is_primitive_or_primitive_union(Literal["test"]) is True
-    # union types
-    assert is_primitive_or_primitive_union(Union[str, int, None]) is True
-    assert is_primitive_or_primitive_union(Union[str, int, GcpTestConfigConfig]) is False
-    assert is_primitive_or_primitive_union(Union[float]) is True
-    assert is_primitive_or_primitive_union(Optional[str]) is True
-    assert is_primitive_or_primitive_union(Optional[int]) is True
-    assert is_primitive_or_primitive_union(Optional[GcpTestConfigConfig]) is False

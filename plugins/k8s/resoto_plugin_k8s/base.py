@@ -1,8 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-
-import yaml
-from attrs import define, field
 from functools import cached_property
 from tempfile import TemporaryDirectory
 from textwrap import dedent
@@ -10,17 +7,19 @@ from threading import RLock
 from typing import ClassVar, TypeVar, Any, Callable
 from typing import List, Type, Optional, Tuple, Dict
 
-from resotolib.core.actions import CoreFeedback
-from resotolib.json import to_json as to_js, from_json as from_js
+import yaml
+from attrs import define, field
 from kubernetes.client import ApiClient, Configuration, ApiException
 from kubernetes.config import load_kube_config, list_kube_config_contexts
 
 from resotolib.baseresources import BaseResource, EdgeType
 from resotolib.config import Config
+from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
+from resotolib.json import from_json as from_js
 from resotolib.json_bender import S, bend, Bender, Sort, AsDate
-from resotolib.types import Json
 from resotolib.proc import num_default_threads
+from resotolib.types import Json
 from resotolib.utils import rnd_str
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -46,43 +45,6 @@ class KubernetesResource(BaseResource):
     resource_version: Optional[str] = None
     namespace: Optional[str] = None
     labels: Dict[str, str] = field(factory=dict)
-
-    def to_json(self) -> Json:
-        return to_js(
-            self,
-            strip_attr=(
-                "k8s_name",
-                "mapping",
-                "phantom",
-                "reference_kinds",
-                "parent_resource",
-                "usage_percentage",
-                "dname",
-                "kdname",
-                "rtdname",
-                "changes",
-                "event_log",
-                "str_event_log",
-                "chksum",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "graph",
-                "max_graph_depth",
-                "resource_type",
-                "age",
-                "last_access",
-                "last_update",
-                "clean",
-                "cleaned",
-                "protected",
-                "uuid",
-                "kind",
-            ),
-        )
 
     @classmethod
     def from_json(cls: Type["KubernetesResource"], json: Json) -> "KubernetesResource":

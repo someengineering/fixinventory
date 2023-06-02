@@ -23,7 +23,7 @@ from resotolib.baseresources import (
 )
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
-from resotolib.json import from_json as from_js, to_json as to_js
+from resotolib.json import from_json as from_js
 from resotolib.json_bender import bend, Bender, S, Bend
 from resotolib.types import Json
 
@@ -389,9 +389,6 @@ class GcpResource(BaseResource):
         Connect the resource to other resources in the graph.
         """
         pass
-
-    def to_json(self) -> Json:
-        return to_js(self)
 
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
