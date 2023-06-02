@@ -152,7 +152,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
         ]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

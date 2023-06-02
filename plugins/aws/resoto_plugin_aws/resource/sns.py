@@ -210,7 +210,7 @@ class AwsSnsEndpoint(AwsResource):
         return [AwsApiSpec(service_name, "delete-endpoint")]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

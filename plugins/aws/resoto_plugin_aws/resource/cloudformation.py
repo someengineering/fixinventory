@@ -328,7 +328,7 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     stack_instance_last_operation_id: Optional[str] = field(default=None)
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

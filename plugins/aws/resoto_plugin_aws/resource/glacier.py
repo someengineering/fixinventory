@@ -162,7 +162,7 @@ class AwsGlacierJob(AwsResource):
             builder.add_edge(self, clazz=AwsSnsTopic, arn=self.glacier_job_sns_topic)
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

@@ -50,7 +50,7 @@ class AwsCognitoGroup(AwsResource):
         return True
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -93,7 +93,7 @@ class AwsCognitoUser(AwsResource, BaseUser):
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

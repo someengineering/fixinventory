@@ -57,7 +57,7 @@ class ApiGatewayTaggable:
         ]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -200,7 +200,7 @@ class AwsApiGatewayResource(AwsResource):
         return [AwsApiSpec(service_name, "delete-resource", override_iam_permission="apigateway:DELETE")]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -264,7 +264,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
         return [AwsApiSpec(service_name, "delete-authorizer", override_iam_permission="apigateway:DELETE")]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -373,7 +373,7 @@ class AwsApiGatewayDeployment(AwsResource):
         ]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

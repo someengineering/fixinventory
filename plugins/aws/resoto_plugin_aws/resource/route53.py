@@ -185,7 +185,7 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     }
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -244,7 +244,7 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
         )
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 

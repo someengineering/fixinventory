@@ -174,7 +174,7 @@ class AwsIamRole(AwsResource):
         return True
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
     @classmethod
@@ -330,7 +330,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         ]
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
 
@@ -354,7 +354,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
     group_policies: List[AwsIamPolicyDetail] = field(factory=list)
 
     @classmethod
-    def service_name(cls) -> Optional[str]:
+    def service_name(cls) -> str:
         return service_name
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
