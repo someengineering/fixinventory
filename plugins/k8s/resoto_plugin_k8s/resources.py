@@ -2297,7 +2297,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
 
                 for key, value in selector.items():
                     for pod in pods_by_labels.get((key, value), []):
-                        resolved_backends.add(pod.name)
+                        resolved_backends.add(pod.name or pod.id)
 
         self.backends = list(resolved_backends)
 
