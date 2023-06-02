@@ -2289,7 +2289,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
                 if not isinstance(service, KubernetesService):
                     continue
 
-                builder.add_edge(service, edge_type=EdgeType.default, node=self)
+                builder.add_edge(self, edge_type=EdgeType.default, node=service)
 
                 selector = service.service_spec.selector if service.service_spec else {}
                 if not selector:
@@ -2297,7 +2297,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
 
                 for key, value in selector.items():
                     for pod in pods_by_labels.get((key, value), []):
-                        resolved_backends.add(pod.id)
+                        resolved_backends.add(pod.name)
 
         self.backends = list(resolved_backends)
 
