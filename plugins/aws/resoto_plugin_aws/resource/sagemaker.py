@@ -829,7 +829,7 @@ class AwsSagemakerApp(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for app in json:
             # Don't collect Apps that are deleted
-            if app["AppStatus"] == "Deleted":
+            if app.get("AppStatus") == "Deleted":
                 continue
             elif app["UserProfileName"]:
                 app_description = builder.client.get(
