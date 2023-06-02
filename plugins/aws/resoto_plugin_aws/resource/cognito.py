@@ -49,6 +49,10 @@ class AwsCognitoGroup(AwsResource):
         )
         return True
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsCognitoAttributeType:
@@ -87,6 +91,10 @@ class AwsCognitoUser(AwsResource, BaseUser):
     enabled: Optional[bool] = field(default=None)
     user_status: Optional[str] = field(default=None)
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 @define(eq=False, slots=False)

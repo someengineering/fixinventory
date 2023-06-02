@@ -327,6 +327,10 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     stack_instance_last_drift_check_timestamp: Optional[datetime] = field(default=None)
     stack_instance_last_operation_id: Optional[str] = field(default=None)
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 resources: List[Type[AwsResource]] = [
     AwsCloudFormationStack,

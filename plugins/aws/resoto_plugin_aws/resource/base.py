@@ -105,6 +105,14 @@ class AwsResource(BaseResource, ABC):
     def delete(self, graph: Graph) -> bool:
         return self.delete_resource(get_client(current_config(), self), graph)
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        """
+        By default, every resource has an api_spec and the service name is derived from it.
+        For resources with custom handling, you need to override this method and define the service name explicitly.
+        """
+        return cls.api_spec.service if cls.api_spec else None
+
     def set_arn(
         self,
         builder: GraphBuilder,

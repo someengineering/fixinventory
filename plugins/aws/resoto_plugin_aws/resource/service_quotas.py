@@ -151,6 +151,10 @@ class AwsServiceQuota(AwsResource, BaseQuota):
             AwsApiSpec(service_name, "untag-resource", override_iam_permission="servicequotas:UntagResource"),
         ]
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define
 class QuotaMatcher:

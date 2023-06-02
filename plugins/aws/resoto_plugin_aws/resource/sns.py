@@ -209,6 +209,10 @@ class AwsSnsEndpoint(AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec(service_name, "delete-endpoint")]
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsSnsPlatformApplication(AwsResource):

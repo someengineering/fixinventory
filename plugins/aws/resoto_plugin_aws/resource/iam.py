@@ -174,6 +174,10 @@ class AwsIamRole(AwsResource):
         return True
 
     @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [
             AwsApiSpec(service_name, "tag-role"),
@@ -325,6 +329,10 @@ class AwsIamPolicy(AwsResource, BasePolicy):
             AwsApiSpec(service_name, "delete-policy"),
         ]
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
@@ -344,6 +352,10 @@ class AwsIamGroup(AwsResource, BaseGroup):
     }
     path: Optional[str] = field(default=None)
     group_policies: List[AwsIamPolicyDetail] = field(factory=list)
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for policy in bend(S("AttachedManagedPolicies", default=[]), source):
@@ -520,6 +532,7 @@ class CredentialReportLine:
 
     @staticmethod
     def from_str(lines: str) -> Dict[str, "CredentialReportLine"]:
+        # noinspection PyTypeChecker
         return {i["user"]: CredentialReportLine(i) for i in csv.DictReader(lines.splitlines(), delimiter=",")}
 
 

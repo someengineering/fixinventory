@@ -184,6 +184,10 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
         }
     }
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
@@ -238,6 +242,10 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
             self.record_type,
             self.record_set_identifier,
         )
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 resources: List[Type[AwsResource]] = [AwsRoute53Zone, AwsRoute53ResourceRecord, AwsRoute53ResourceRecordSet]

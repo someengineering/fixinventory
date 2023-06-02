@@ -56,6 +56,10 @@ class ApiGatewayTaggable:
             AwsApiSpec(service_name, "untag-resource", override_iam_permission="apigateway:DELETE"),
         ]
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsApiGatewayMethodResponse:
@@ -195,6 +199,10 @@ class AwsApiGatewayResource(AwsResource):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec(service_name, "delete-resource", override_iam_permission="apigateway:DELETE")]
 
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsApiGatewayAuthorizer(AwsResource):
@@ -254,6 +262,10 @@ class AwsApiGatewayAuthorizer(AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec(service_name, "delete-authorizer", override_iam_permission="apigateway:DELETE")]
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 @define(eq=False, slots=False)
@@ -359,6 +371,10 @@ class AwsApiGatewayDeployment(AwsResource):
         return super().called_mutator_apis() + [
             AwsApiSpec(service_name, "delete-deployment", override_iam_permission="apigateway:DELETE")
         ]
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 @define(eq=False, slots=False)
