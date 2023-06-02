@@ -33,7 +33,7 @@ def test_should_collect() -> None:
     assert not simple.should_collect("s3")
     assert not simple.should_collect("not_defined")
 
-    glob = AwsConfig(collect=["*sagemaker*"], no_collect=["*ec*"])
+    glob = AwsConfig(collect=["*sagemaker*"], no_collect=["ec?"])
     assert not glob.should_collect("ec2")
     assert not glob.should_collect("electronic")
     assert glob.should_collect("aws_sagemaker_artifact")
