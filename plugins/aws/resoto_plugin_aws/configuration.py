@@ -3,6 +3,7 @@ import threading
 import time
 import uuid
 from datetime import timedelta
+from fnmatch import fnmatch
 from functools import lru_cache
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Type
 
@@ -198,11 +199,21 @@ class AwsConfig:
     )
     collect: List[str] = field(
         factory=list,
-        metadata={"description": "List of AWS services to collect (default: all)"},
+        metadata={
+            "description": (
+                "List of AWS services to collect (default: all).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
     )
     no_collect: List[str] = field(
         factory=list,
-        metadata={"description": "List of AWS services to exclude (default: none)"},
+        metadata={
+            "description": (
+                "List of AWS services to exclude (default: none).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
     )
     cloudwatch_metrics_for_atime_mtime_period: str = field(
         default="60d",
@@ -238,10 +249,11 @@ class AwsConfig:
         return parse_duration(self.cloudwatch_metrics_for_atime_mtime_granularity)
 
     def should_collect(self, name: str) -> bool:
-        if self.collect:
-            return name in self.collect
-        if self.no_collect:
-            return name not in self.no_collect
+        # no_collect has precedence over collect
+        if self.no_collect and any(fnmatch(name, p) for p in self.no_collect):
+            return False
+        if self.collect and any(fnmatch(name, p) for p in self.collect):
+            return True
         return True
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:

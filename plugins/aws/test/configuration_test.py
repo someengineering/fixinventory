@@ -24,6 +24,17 @@ def test_default_config() -> None:
     assert len(Config.aws.no_collect) == 0
 
 
+def test_should_collect() -> None:
+    simple = AwsConfig(collect=["ec2", "s3"], no_collect=["s3"])
+    assert simple.should_collect("ec2")
+    assert not simple.should_collect("s3")
+
+    glob = AwsConfig(collect=["*sagemaker*"], no_collect=["*ec*"])
+    assert not glob.should_collect("ec2")
+    assert not glob.should_collect("electronic")
+    assert simple.should_collect("aws_sagemaker_artifact")
+
+
 def test_session() -> None:
     config = AwsConfig("test", "test", "test")
     # direct session
