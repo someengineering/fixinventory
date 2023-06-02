@@ -171,13 +171,13 @@ class AwsAccountCollector:
 
             # all global resources
             log.info(f"[Aws:{self.account.id}] Collect global resources.")
-            self.collect_resources(global_resources, global_builder, shared_queue)
+            self.collect_resources(global_resources, global_builder)
 
             # regions are collected with the configured parallelism
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
             for region in self.regions:
-                self.collect_resources(regional_resources, global_builder.for_region(region), shared_queue)
+                self.collect_resources(regional_resources, global_builder.for_region(region))
             shared_queue.wait_for_submitted_work()
 
             # connect nodes
@@ -203,12 +203,7 @@ class AwsAccountCollector:
 
             log.info(f"[Aws:{self.account.id}] Collecting resources done.")
 
-    def collect_resources(
-        self,
-        resources: List[Type[AwsResource]],
-        builder: GraphBuilder,
-        resource_queue: ExecutorQueue,
-    ) -> Future[None]:
+    def collect_resources(self, resources: List[Type[AwsResource]], builder: GraphBuilder) -> Future[None]:
         region = builder.region
 
         def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
@@ -228,8 +223,8 @@ class AwsAccountCollector:
         builder.add_node(region)
         for res in resources:
             if self.config.should_collect(res.kind):
-                key = region.id + ":" + res.api_spec.service if res.api_spec else "global"
-                region_futures.append(resource_queue.submit_work(key, collect_resource, res, builder))
+                service_name = res.service_name() or "global"
+                region_futures.append(builder.submit_work(service_name, collect_resource, res, builder))
 
         def work_done(_: Future[None]) -> None:
             builder.core_feedback.progress_done(region.safe_name, 1, 1)

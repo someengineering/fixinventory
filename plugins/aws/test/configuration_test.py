@@ -63,7 +63,7 @@ def test_shared_tasks_per_key() -> None:
     config = AwsConfig(
         "test", "test", "test", resource_pool_tasks_per_service_default=20, resource_pool_tasks_per_service={"test": 3}
     )
-    config.resource_pool_tasks_per_service["sagemaker"] = 6  # predefined
+    config.resource_pool_tasks_per_service["sagemaker"] = 6  # type: ignore # predefined
     tpk = config.shared_tasks_per_key(["eu-central-1"])
     assert tpk("eu-central-1:foo") == 20  # default
     assert tpk("eu-central-1:sagemaker") == 6  # predefined

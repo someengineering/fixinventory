@@ -72,3 +72,8 @@ def test_all_called_apis() -> None:
 
     mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
     print("\n\n", mutate_statement, "\n\n")
+
+
+def test_service_name_is_defined_in_all_resources() -> None:
+    for rt in all_resources:
+        assert rt.service_name() is not None, rt.__name__ + " has no service_name"

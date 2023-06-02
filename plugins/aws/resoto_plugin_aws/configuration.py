@@ -189,7 +189,7 @@ class AwsConfig:
             "A value greater than the resource_pool_size does not have any effect."
         },
     )
-    resource_pool_tasks_per_service: Dict[str, int] = field(
+    resource_pool_tasks_per_service: Optional[Dict[str, int]] = field(
         factory=lambda: {"sagemaker": 6, "elb": 6},
         metadata={
             "description": "Define the number of collector threads allowed for an individual service.\n"
