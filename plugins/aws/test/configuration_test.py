@@ -25,14 +25,19 @@ def test_default_config() -> None:
 
 
 def test_should_collect() -> None:
+    no_filter = AwsConfig()
+    assert no_filter.should_collect("not_defined")  # no filter defined, so everything is collected
+
     simple = AwsConfig(collect=["ec2", "s3"], no_collect=["s3"])
     assert simple.should_collect("ec2")
     assert not simple.should_collect("s3")
+    assert not simple.should_collect("not_defined")
 
     glob = AwsConfig(collect=["*sagemaker*"], no_collect=["*ec*"])
     assert not glob.should_collect("ec2")
     assert not glob.should_collect("electronic")
-    assert simple.should_collect("aws_sagemaker_artifact")
+    assert glob.should_collect("aws_sagemaker_artifact")
+    assert not glob.should_collect("not_defined")
 
 
 def test_session() -> None:

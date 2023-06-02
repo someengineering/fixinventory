@@ -252,8 +252,8 @@ class AwsConfig:
         # no_collect has precedence over collect
         if self.no_collect and any(fnmatch(name, p) for p in self.no_collect):
             return False
-        if self.collect and any(fnmatch(name, p) for p in self.collect):
-            return True
+        if self.collect:
+            return any(fnmatch(name, p) for p in self.collect)
         return True
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:
