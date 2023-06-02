@@ -1,0 +1,25 @@
+{
+    "ArtifactArn": "arn:aws:sagemaker:us-east-1:test:artifact/2",
+    "Source": {
+        "SourceUri": "s3://my_account_alias-sagemaker/sagemaker/prediction/train/linear_train.data",
+        "SourceTypes": []
+    },
+    "ArtifactType": "DataSet",
+    "Properties": {},
+    "CreationTime": "2021-08-07T13:44:46Z",
+    "CreatedBy": {},
+    "LastModifiedTime": "2021-08-07T13:44:46Z",
+    "LastModifiedBy": {},
+    "LineageGroupArn": "arn:aws-cn:sagemaker:us-east-1:test:lineage-group/sagemaker-default-lineage-group",
+    "ResponseMetadata": {
+        "RequestId": "8340bd3f-0bf6-40e9-a93e-1940de09ce2c",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+            "x-amzn-requestid": "8340bd3f-0bf6-40e9-a93e-1940de09ce2c",
+            "content-type": "application/x-amz-json-1.1",
+            "content-length": "487",
+            "date": "Thu, 01 Jun 2023 17:28:46 GMT"
+        },
+        "RetryAttempts": 0
+    }
+}

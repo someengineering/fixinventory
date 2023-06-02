@@ -827,9 +827,11 @@ class AwsSagemakerApp(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        # TODO don't collect Apps with status "deleted"
         for app in json:
-            if app["UserProfileName"]:
+            # Don't collect Apps that are deleted
+            if app["AppStatus"] == "Deleted":
+                continue
+            elif app["UserProfileName"]:
                 app_description = builder.client.get(
                     service_name,
                     "describe-app",
@@ -1922,7 +1924,7 @@ class AwsSagemakerArtifact(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-artifacts", "ArtifactSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ArtifactName"),
+        "id": S("ArtifactArn"),
         "name": S("ArtifactName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastModifiedTime"),
