@@ -33,11 +33,23 @@ def test_should_collect() -> None:
     assert not simple.should_collect("s3")
     assert not simple.should_collect("not_defined")
 
-    glob = AwsConfig(collect=["*sagemaker*"], no_collect=["ec?"])
-    assert not glob.should_collect("ec2")
-    assert not glob.should_collect("electronic")
-    assert glob.should_collect("aws_sagemaker_artifact")
-    assert not glob.should_collect("not_defined")
+    glob_collect = AwsConfig(collect=["*sagemaker*"])
+    assert not glob_collect.should_collect("ec2")
+    assert glob_collect.should_collect("aws_sagemaker_artifact")
+    assert not glob_collect.should_collect("not_defined")
+
+    glob_no_collect = AwsConfig(no_collect=["ec?"])
+    assert not glob_no_collect.should_collect("ec2")
+    assert not glob_no_collect.should_collect("ec3")
+    assert glob_no_collect.should_collect("aws_sagemaker_artifact")
+    assert glob_no_collect.should_collect("not_defined")
+
+    glob_combined = AwsConfig(collect=["*ec*"], no_collect=["ec?"])
+    assert glob_combined.should_collect("electronics")
+    assert glob_combined.should_collect("ec")
+    assert not glob_combined.should_collect("ec2")
+    assert not glob_combined.should_collect("ec3")
+    assert not glob_combined.should_collect("not_defined")
 
 
 def test_session() -> None:
