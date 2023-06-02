@@ -21,14 +21,9 @@ RUN apt-get install -y apt-transport-https
 RUN apt-get update
 RUN apt-get install -y arangodb3-client
 
-COPY resotocore/requirements*.txt /tmp/resoto-requirements/resotocore/
-COPY resotolib/requirements*.txt /tmp/resoto-requirements/resotolib/
-COPY resotometrics/requirements*.txt /tmp/resoto-requirements/resotometrics/
-COPY resotoshell/requirements*.txt /tmp/resoto-requirements/resotoshell/
-COPY resotoworker/requirements*.txt /tmp/resoto-requirements/resotoworker/
+COPY requirements-all.txt /tmp/resoto-requirements.txt
 
 # Install infrequently changing requirements
-RUN grep -r -h -v resoto /tmp/resoto-requirements/ >> /tmp/resoto-requirements.txt \
-    && su vscode -c 'pip3 install --no-warn-script-location -U pip wheel poetry' \
+RUN su vscode -c 'pip3 install --no-warn-script-location -U pip wheel poetry' \
     && su vscode -c 'pip3 --disable-pip-version-check --no-cache-dir install --no-warn-script-location -U -r /tmp/resoto-requirements.txt' \
-    && rm -rf /tmp/resoto-requirements.txt /tmp/resoto-requirements
+    && rm -rf /tmp/resoto-requirements.txt
