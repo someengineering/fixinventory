@@ -25,6 +25,27 @@ def test_call() -> None:
     assert len(instances) == 3
 
 
+def test_retry_for() -> None:
+    config = AwsConfig(access_key_id="foo", secret_access_key="bar")
+    config.sessions().session_class_factory = BotoFileBasedSession
+    aws_cn = AwsClient(config, "test", partition="aws-cn")
+    aws = AwsClient(config, "test", partition="aws")
+    throttled = "ThrottlingException"
+    timeout = "RequestTimeout"
+
+    # ec2 is not fully covered in aws-cn, but is in aws
+    assert aws_cn.retry_for("ec2", throttled) is False
+    assert aws.retry_for("ec2", throttled) is True
+
+    # timeout errors are retryable everywhere
+    assert aws_cn.retry_for("ec2", timeout) is True
+    assert aws.retry_for("ec2", timeout) is True
+
+    # s3 is fully covered everywhere
+    assert aws_cn.retry_for("s3", throttled) is True
+    assert aws.retry_for("s3", throttled) is True
+
+
 def test_error_handling() -> None:
     def with_error(code: str, message: str) -> Tuple[AwsClient, ErrorAccumulator]:
         config = AwsConfig()
