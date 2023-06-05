@@ -499,11 +499,16 @@ class CLIService(CLI):
             parts = list(takewhile(lambda x: isinstance(x.command, SearchCLIPart), commands))
             if parts:
                 query, options, query_parts = await self.create_query(parts, ctx)
-                ctx_wq = evolve(ctx, query=query, query_options=options)
-                # re-evaluate remaining commands - to take the adapted context into account
-                remaining = [self.command(c.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
-                return ctx_wq, [*query_parts, *remaining]
-            return ctx, commands
+                ctx_wq = evolve(ctx, query=query, query_options=options, commands=commands)
+                remaining = [
+                    self.command(c.name, c.arg, ctx_wq, position=pos) for pos, c in enumerate(commands[len(parts) :])
+                ]  # noqa: E203
+                rewritten_parts = [*query_parts, *remaining]
+            else:
+                ctx_wq = evolve(ctx, commands=commands)
+                rewritten_parts = [self.command(c.name, c.arg, ctx_wq, position=pos) for pos, c in enumerate(commands)]
+            # re-evaluate remaining commands - to take the adapted context into account
+            return ctx_wq, rewritten_parts
 
         def rewrite_command_line(cmds: List[ExecutableCommand], ctx: CLIContext) -> List[ExecutableCommand]:
             """
@@ -554,13 +559,12 @@ class CLIService(CLI):
 
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             ctx = adjust_context(parsed)
-            ctx, commands = await combine_query_parts(
-                [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)], ctx
-            )
-            rewritten = rewrite_command_line(commands, ctx)
-            not_met = [r for cmd in rewritten for r in cmd.action.required if r.name not in context.uploaded_files]
-            envelope = {k: v for cmd in rewritten for k, v in cmd.action.envelope.items()}
-            return ParsedCommandLine(ctx, parsed, rewritten, not_met, envelope)
+            executable = [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)]
+            rewritten = rewrite_command_line(executable, ctx)
+            ctx, commands = await combine_query_parts(rewritten, ctx)
+            not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]
+            envelope = {k: v for cmd in commands for k, v in cmd.action.envelope.items()}
+            return ParsedCommandLine(ctx, parsed, commands, not_met, envelope)
 
         def expand_aliases(line: ParsedCommands) -> ParsedCommands:
             def expand_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:

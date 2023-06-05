@@ -67,6 +67,7 @@ from resotocore.cli import (
     parse_time_or_delta,
     strip_quotes,
 )
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -83,8 +84,8 @@ from resotocore.cli.model import (
     NoTerminalOutput,
     ArgsInfo,
     ArgInfo,
+    EntityProvider,
 )
-from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
@@ -170,7 +171,7 @@ log = logging.getLogger(__name__)
 # Such a part is not executed, but builds a search, which is executed.
 # Therefore, the parse method is implemented in a dummy fashion here.
 # The real interpretation happens in CLI.create_query.
-class SearchCLIPart(CLICommand, ABC):
+class SearchCLIPart(CLICommand, EntityProvider, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         return CLISource.empty()
 
@@ -1309,7 +1310,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
         return CLIFlow(to_count)
 
 
-class ExecuteSearchCommand(CLICommand, InternalPart):
+class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
     """
     ```shell
     execute_search [--with-edges] [--explain] <search-statement>
@@ -1891,7 +1892,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
         return CLISource(source)
 
 
-class SetDesiredStateBase(CLICommand, ABC):
+class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
     @abstractmethod
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
@@ -2027,7 +2028,7 @@ class CleanCommand(SetDesiredStateBase):
             yield elem
 
 
-class SetMetadataStateBase(CLICommand, ABC):
+class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
     @abstractmethod
     def patch(self, arg: Optional[str], ctx: CLIContext) -> Json:
         # deriving classes need to define how to patch
@@ -4656,7 +4657,7 @@ class CertificateCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-class ReportCommand(CLICommand):
+class ReportCommand(CLICommand, EntityProvider):
     """
     ```shell
     report benchmarks list
@@ -4737,6 +4738,7 @@ class ReportCommand(CLICommand):
                 possible_values=[s.value for s in ReportSeverity],
             ),
             ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
+            ArgInfo("--only-check-results", False, help_text="Only dump results."),
         ]
         return {
             "benchmark": {
@@ -4803,7 +4805,7 @@ class ReportCommand(CLICommand):
                 only_failing=parsed_args.only_failing,
             )
             if not result.is_empty():
-                for node in result.to_graph():
+                for node in result.to_graph(parsed_args.only_check_results):
                     yield node
 
         async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
@@ -4815,7 +4817,7 @@ class ReportCommand(CLICommand):
                 only_failing=parsed_args.only_failing,
             )
             if not parsed_args.only_failing or result.has_failed():
-                for node in result.to_graph():
+                for node in result.to_graph(parsed_args.only_check_results):
                     yield node
 
         async def show_help() -> AsyncIterator[str]:
@@ -4826,6 +4828,7 @@ class ReportCommand(CLICommand):
         run_parser.add_argument("--accounts", nargs="+")
         run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
         run_parser.add_argument("--only-failing", action="store_true", default=False)
+        run_parser.add_argument("--only-check-results", action="store_true", default=False)
 
         action = self.action_from_arg(arg)
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
