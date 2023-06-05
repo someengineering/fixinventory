@@ -6,7 +6,6 @@ import time
 from typing import Callable, Dict, Optional, List, Any
 from urllib.parse import urlunsplit, urlsplit
 
-import jsons
 import websocket
 from attrs import define, field
 from resotolib.args import ArgumentParser
@@ -15,6 +14,7 @@ from resotolib.config import current_config
 from resotolib.core.ca import TLSData
 from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
+from resotolib.json import to_json_str
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
 from resotolib.core.custom_command import CommandDefinition
@@ -154,7 +154,7 @@ class CoreTasks(threading.Thread):
                     except Exception as ex:
                         log.exception(f"Something went wrong while processing {message}")
                         if task_id := message.get("task_id") and self.ws:
-                            self.ws.send(jsons.dumps(CoreTaskResult(task_id, error=str(ex)).to_json()))
+                            self.ws.send(to_json_str(CoreTaskResult(task_id, error=str(ex)).to_json()))
                     break
             self.queue.task_done()
 

@@ -11,7 +11,6 @@ from functools import lru_cache
 from time import time
 from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type, TypeVar
 
-import jsons
 import networkx
 from attr import resolve_types
 from attrs import define, fields
@@ -31,6 +30,7 @@ from resotolib.core.model_export import (
     dataclasses_to_resotocore_model,
     node_to_dict,
 )
+from resotolib.json import to_json_str
 from resotolib.logger import log
 from resotolib.types import Json
 from resotolib.utils import get_resource_attributes, unset_cached_properties, utc_str
@@ -573,7 +573,7 @@ class GraphExportIterator:
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["exported_at"] = utc_str()
-                node_json = jsons.dumps(node_dict) + "\n"
+                node_json = to_json_str(node_dict) + "\n"
                 self.tempfile.write(node_json.encode())
                 self.total_lines += 1
             elapsed_nodes = time() - start_time

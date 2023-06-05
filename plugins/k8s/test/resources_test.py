@@ -1,6 +1,8 @@
 # noinspection PyUnresolvedReferences
 import pytest
 
+from resotolib.json import from_json
+
 # noinspection PyUnresolvedReferences
 from resotolib.types import Json
 
@@ -251,7 +253,7 @@ def round_trip(
         resource: KubernetesResourceType = resource_class.from_json(js)  # type: ignore
         result.append((resource, js))
         js = resource.to_json()
-        again = jsons.load(js, type(resource))
+        again = from_json(js, type(resource))
         js_again = again.to_json()
         assert js == js_again
     graph = connect_in_graph(result)

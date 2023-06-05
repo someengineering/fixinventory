@@ -6,11 +6,10 @@ import weakref
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
-from enum import Enum
+from enum import Enum, unique
 from functools import wraps, cached_property
 from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
 
-import jsons
 from attr import resolve_types
 from attrs import define, field, Factory
 from prometheus_client import Counter, Summary
@@ -222,36 +221,7 @@ class BaseResource(ABC):
         return _from_json(json, cls)
 
     def to_json(self) -> Json:
-        return _to_json(
-            self,
-            strip_attr=(
-                "_graph",
-                "age",
-                "api_spec",
-                "changes",
-                "chksum",
-                "clean",
-                "cleaned",
-                "dname",
-                "event_log",
-                "graph",
-                "kdname",
-                "kind",
-                "last_access",
-                "last_update",
-                "mapping",
-                "max_graph_depth",
-                "parent_resource",
-                "phantom",
-                "protected",
-                "reference_kinds",
-                "resource_type",
-                "rtdname",
-                "str_event_log",
-                "usage_percentage",
-                "uuid",
-            ),
-        )
+        return _to_json(self, strip_nulls=True)
 
     def log(self, msg: str, data: Optional[Any] = None, exception: Optional[Exception] = None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -763,13 +733,6 @@ class InstanceStatus(Enum):
     UNKNOWN = "unknown"
 
 
-def serialize_enum(obj: Enum, **kwargs: Any) -> Any:
-    return obj.value
-
-
-jsons.set_serializer(serialize_enum, InstanceStatus)
-
-
 @define(eq=False, slots=False)
 class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
@@ -792,6 +755,7 @@ class BaseVolumeType(BaseType):
         self.volume_type = self.id
 
 
+@unique
 class VolumeStatus(Enum):
     IN_USE = "in-use"
     AVAILABLE = "available"
@@ -799,9 +763,6 @@ class VolumeStatus(Enum):
     ERROR = "error"
     DELETED = "deleted"
     UNKNOWN = "unknown"
-
-
-jsons.set_serializer(serialize_enum, VolumeStatus)
 
 
 @define(eq=False, slots=False)

@@ -1,27 +1,20 @@
 import re
-import sys
 from collections import defaultdict
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from enum import Enum
 from functools import lru_cache, reduce
 from pydoc import locate
-from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional, Literal
+from typing import List, MutableSet, Union, Tuple, Dict, Set, Any, TypeVar, Type, Optional
 from typing import get_args, get_origin
 
 import attrs
-import cattrs
 from attr import resolve_types
 from attrs import Attribute
 
 from resotolib.baseresources import BaseResource
+from resotolib.json import from_json
 from resotolib.types import Json
-from resotolib.utils import type_str, str2timedelta, str2timezone
-
-if sys.version_info >= (3, 10):
-    from types import UnionType, NoneType
-else:
-    UnionType = Union
-    NoneType = type(None)
+from resotolib.utils import type_str
 
 property_metadata_to_strip = ["restart_required", "description", "required", "kind"]
 
@@ -346,37 +339,6 @@ def locate_python_type(python_type: str) -> Any:
     return cls
 
 
-converter = cattrs.Converter()
-
-
-def convert_datetime(value: datetime) -> datetime:
-    datetime_str = str(value)
-    if datetime_str.endswith("Z"):
-        datetime_str = datetime_str[:-1] + "+00:00"
-    return datetime.fromisoformat(datetime_str)
-
-
-def is_primitive_or_primitive_union(t: Any) -> bool:
-    if t in (str, bytes, int, float, bool, NoneType):
-        return True
-    origin = get_origin(t)
-    if origin is Literal:
-        return True
-    if (basetype := cattrs._compat.get_newtype_base(t)) is not None:
-        return is_primitive_or_primitive_union(basetype)
-    if origin in (UnionType, Union):
-        return all(is_primitive_or_primitive_union(ty) for ty in get_args(t))
-    return False
-
-
-converter.register_structure_hook(datetime, lambda obj, typ: convert_datetime(obj))
-converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj))
-converter.register_structure_hook(timedelta, lambda obj, typ: str2timedelta(obj))
-converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
-# work around until this is solved: https://github.com/python-attrs/cattrs/issues/278
-converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)  # type: ignore
-
-
 def node_from_dict(node_data: Json, include_select_ancestors: bool = False) -> BaseResource:
     """Create a resource from resotocore graph node data
 
@@ -427,7 +389,7 @@ def node_from_dict(node_data: Json, include_select_ancestors: bool = False) -> B
         }
     )
 
-    node: BaseResource = converter.structure_attrs_fromdict(new_node_data, node_type)
+    node: BaseResource = from_json(new_node_data, node_type)
     for field_name, value in ancestors.items():
         setattr(node, field_name, value)
     node._raise_tags_exceptions = True
