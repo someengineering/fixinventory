@@ -22,17 +22,19 @@ from .utils import global_region_by_partition
 
 log = logging.getLogger("resoto.plugins.aws")
 
-RetryableErrors = {
+ThrottlingErrors = {
     "EC2ThrottledException",
-    "LimitExceededException",
-    "RequestLimitExceeded",
     "RequestThrottled",
     "RequestThrottledException",
-    "RequestTimeout",
-    "RequestTimeoutException",
     "ThrottledException",
     "Throttling",
     "ThrottlingException",
+}
+RetryableErrors = ThrottlingErrors | {
+    "LimitExceededException",
+    "RequestLimitExceeded",
+    "RequestTimeout",
+    "RequestTimeoutException",
     "TooManyRequestsException",
 }
 T = TypeVar("T")
@@ -337,6 +339,12 @@ class AwsClient:
                 f" is not authorized! Giving up: {e}"
             )
             accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
+        elif code in RetryableErrors and not self.retry_for(aws_service, code):
+            log.info(
+                f"Call to {aws_service} action {action} failed and is interpreted as unavailable "
+                f"in region {self.region}."
+            )
+            accumulate("RetryableUnavailable", "AWS API is considered unavailable.")
         elif code in RetryableErrors:
             log.warning(f"Call to {aws_service} action {action} failed and will be retried eventually. Error: {e}")
             accumulate("FailedAndRetried", f"Retryable call has failed: {code}.")
@@ -347,6 +355,32 @@ class AwsClient:
                 f"account {self.account_id} region {self.region} - skipping resources: {e}"
             )
             accumulate(code, f"An AWS API error occurred during resource collection: {code}. Skipping resources.")
+
+    def retry_for(self, aws_service: str, code: str) -> bool:
+        """
+        This method is called for retryable errors to determine whether we should retry the call or not, based on
+        the partition, region, account and service name.
+
+        This is required, since AWS decided to respond with a ThrottlingError for services in the China partition,
+        that are not available.
+        Since we can not distinguish, whether the service is unavailable or the call was throttled, we have a hard
+        coded list of services, that are partially not available in the China partition (API is not covered 100%).
+        This list needs to be maintained!
+        """
+        if self.partition == "aws-cn" and code in ThrottlingErrors:
+            # See https://www.amazonaws.cn/en/about-aws/regional-product-services/
+            return aws_service not in [
+                "cloudfront",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/cloudfront.html
+                "cloudtrail",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/cloudtrail.html
+                "cognito-idp",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/cognito.html
+                "ec2",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/ec2.html
+                "iam",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/iam.html
+                "kms",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/kms.html
+                "lambda",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/lambda.html
+                "route53",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/route53.html
+                "sagemaker",  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/sagemaker.html
+            ]
+        return True
 
     @cached_property
     def global_region(self) -> AwsClient:
