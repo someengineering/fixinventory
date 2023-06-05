@@ -1,6 +1,6 @@
 import json
 import sys
-from datetime import timedelta, datetime, date, timezone
+from datetime import timedelta, datetime, date
 from typing import TypeVar, Any, Type, Optional, Union, List, get_args, Literal, get_origin, Callable, Iterable
 
 from dateutil.parser import isoparse
@@ -19,11 +19,23 @@ from cattrs.gen import make_dict_unstructure_fn
 from resotolib.durations import parse_duration, duration_str
 from resotolib.logger import log
 from resotolib.types import Json, JsonElement
-from resotolib.utils import utc_str, str2timezone
+from resotolib.utils import utc_str
 
 AnyT = TypeVar("AnyT")
 
+# the global converter instance
+__converter = cattrs.Converter()
 
+# ignore all private attributes
+__converter.register_unstructure_hook_factory(
+    attrs.has,
+    lambda cls: make_dict_unstructure_fn(
+        cls, __converter, **{a.name: override(omit=True) for a in attrs.fields(cls) if a.name.startswith("_")}
+    ),
+)
+
+
+# work around until this is solved: https://github.com/python-attrs/cattrs/issues/278
 def is_primitive_or_primitive_union(t: Any) -> bool:
     if t in (str, bytes, int, float, bool, NoneType):
         return True
@@ -37,27 +49,41 @@ def is_primitive_or_primitive_union(t: Any) -> bool:
     return False
 
 
-converter = cattrs.Converter()
+# allow timedelta either as number of seconds or as duration string
+def timedelta_from_json(js: Any) -> timedelta:
+    if isinstance(js, str):
+        return parse_duration(js)
+    elif isinstance(js, (int, float)):
+        return timedelta(seconds=js)
+    else:
+        raise ValueError(f"Cannot convert {js} to timedelta")
 
-# structure hooks
-converter.register_structure_hook(datetime, lambda x, _: isoparse(x))
-converter.register_structure_hook(date, lambda obj, typ: date.fromisoformat(obj))
-converter.register_structure_hook(timedelta, lambda obj, typ: parse_duration(obj))
-converter.register_structure_hook(timezone, lambda obj, typ: str2timezone(obj))
-# work around until this is solved: https://github.com/python-attrs/cattrs/issues/278
-converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)  # type: ignore
 
-# unstructure hooks
-converter.register_unstructure_hook(datetime, utc_str)
-converter.register_unstructure_hook(date, lambda obj: obj.isoformat())
-converter.register_unstructure_hook(timedelta, lambda obj: duration_str(obj))
-converter.register_unstructure_hook(timezone, lambda obj: str(obj))
-converter.register_unstructure_hook_factory(
-    attrs.has,
-    lambda cls: make_dict_unstructure_fn(
-        cls, converter, **{a.name: override(omit=True) for a in attrs.fields(cls) if a.name.startswith("_")}
-    ),
-)
+__converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)  # type: ignore
+
+
+def register_json(
+    cls: Type[AnyT],
+    to_json_fn: Optional[Callable[[AnyT], JsonElement]] = None,
+    from_json_fn: Optional[Callable[[JsonElement], AnyT]] = None,
+) -> None:
+    """
+    Register a json marshaller/unmarshaller for the given class.
+    :param cls: the class to register
+    :param to_json_fn: the function to convert the class to json
+    :param from_json_fn: the function to convert json to the class
+    """
+    log.debug("Register json structure hooks for class %s", cls.__name__)
+    if from_json_fn is not None:
+        __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))
+    if to_json_fn is not None:
+        __converter.register_unstructure_hook(cls, to_json_fn)
+
+
+# Register some default types not covered in cattrs
+register_json(datetime, utc_str, isoparse)
+register_json(date, lambda obj: obj.isoformat(), date.fromisoformat)
+register_json(timedelta, duration_str, timedelta_from_json)
 
 
 def to_json_str(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip_nulls: bool = False) -> str:
@@ -86,7 +112,7 @@ def to_json(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip
             result[k] = v
         return result
 
-    unstructured: Json = converter.unstructure(node)
+    unstructured: Json = __converter.unstructure(node)
     if strip_attr:
         remove_keys = {strip_attr} if isinstance(strip_attr, str) else set(strip_attr)
         unstructured = walk_js_object(unstructured, lambda k, v: k not in remove_keys)
@@ -97,17 +123,17 @@ def to_json(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip
     return unstructured
 
 
-def from_json(json: JsonElement, clazz: Type[AnyT]) -> AnyT:
+def from_json(js: JsonElement, clazz: Type[AnyT]) -> AnyT:
     """
     Loads a json object into a python object.
-    :param json: the json object to load.
+    :param js: the json object to load.
     :param clazz: the type of the python object.
     :return: the loaded python object.
     """
     try:
-        return converter.structure(json, clazz)
+        return __converter.structure(js, clazz)
     except Exception as e:
-        log.debug(f"Can not deserialize json into class {clazz.__name__}: {json}. Error: {e}")
+        log.debug(f"Can not deserialize json into class {clazz.__name__}: {js}. Error: {e}")
         raise
 
 
@@ -148,16 +174,6 @@ def set_value_in_path(element: JsonElement, path_or_name: Union[List[str], str],
     js = js if js is not None else {}
     at_idx(js, 0)
     return js
-
-
-# allow timedelta either as number of seconds or as duration string
-def timedelta_from_json(js: Any, _: type = object, **__: Any) -> timedelta:
-    if isinstance(js, str):
-        return parse_duration(js)
-    elif isinstance(js, (int, float)):
-        return timedelta(seconds=js)
-    else:
-        raise ValueError(f"Cannot convert {js} to timedelta")
 
 
 def is_empty(js: JsonElement) -> bool:

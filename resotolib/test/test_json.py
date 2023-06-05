@@ -1,7 +1,10 @@
+from datetime import timedelta
+from typing import Optional, ClassVar, Union, Literal, Any
+
 from attrs import define
-from typing import Optional, ClassVar, Union, Literal
 
 from resotolib.json import to_json, from_json, is_primitive_or_primitive_union
+from resotolib.utils import utc
 
 
 @define
@@ -19,7 +22,7 @@ class Foo:
         return "foo"
 
 
-def test_roundtrip() -> None:
+def test_complex() -> None:
     foo = Foo("foo", 42, "bar")
     assert to_json(foo) == {"a": "foo", "b": 42, "c": "bar", "d": "test", "inner": None}
     json = to_json(foo)
@@ -32,6 +35,17 @@ def test_roundtrip() -> None:
     assert to_json(foo, strip_attr=["a", "b", "c"]) == {"d": "test", "inner": None}
     # do not strip nulls
     assert to_json(foo, strip_nulls=True) == {"a": "foo", "b": 42, "c": "bar", "d": "test"}
+
+
+def test_predefined() -> None:
+    def roundtrip(value: Any) -> Any:
+        again = from_json(to_json(value), type(value))
+        assert to_json(again) == to_json(value)
+
+    roundtrip(utc())
+    roundtrip(utc().date())
+    roundtrip(timedelta(seconds=42))
+    roundtrip(Foo("foo", 42, "bar"))
 
 
 def test_primitive_union() -> None:

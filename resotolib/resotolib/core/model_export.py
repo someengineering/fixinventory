@@ -12,7 +12,7 @@ from attr import resolve_types
 from attrs import Attribute
 
 from resotolib.baseresources import BaseResource
-from resotolib.json import converter
+from resotolib.json import from_json
 from resotolib.types import Json
 from resotolib.utils import type_str
 
@@ -389,7 +389,7 @@ def node_from_dict(node_data: Json, include_select_ancestors: bool = False) -> B
         }
     )
 
-    node: BaseResource = converter.structure_attrs_fromdict(new_node_data, node_type)
+    node: BaseResource = from_json(new_node_data, node_type)
     for field_name, value in ancestors.items():
         setattr(node, field_name, value)
     node._raise_tags_exceptions = True
