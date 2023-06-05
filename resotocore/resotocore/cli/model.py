@@ -77,7 +77,7 @@ class CLIContext:
         # if there is no entity provider, always assume the root section
         section = (
             self.env.get("section")
-            if self.commands and isinstance(self.commands[0].command, EntityProvider)
+            if self.query or self.commands and isinstance(self.commands[0].command, EntityProvider)
             else PathRoot
         )
         return variable_to_absolute(section, variable)
