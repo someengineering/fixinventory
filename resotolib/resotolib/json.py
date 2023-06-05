@@ -65,7 +65,7 @@ __converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda
 def register_json(
     cls: Type[AnyT],
     to_json_fn: Optional[Callable[[AnyT], JsonElement]] = None,
-    from_json_fn: Optional[Callable[[JsonElement], AnyT]] = None,
+    from_json_fn: Optional[Callable[[Any], AnyT]] = None,
 ) -> None:
     """
     Register a json marshaller/unmarshaller for the given class.
@@ -75,7 +75,7 @@ def register_json(
     """
     log.debug("Register json structure hooks for class %s", cls.__name__)
     if from_json_fn is not None:
-        __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))
+        __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))  # type: ignore
     if to_json_fn is not None:
         __converter.register_unstructure_hook(cls, to_json_fn)
 
