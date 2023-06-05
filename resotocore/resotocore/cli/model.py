@@ -65,6 +65,7 @@ class CLIContext:
     uploaded_files: Dict[str, str] = field(factory=dict)  # id -> path
     query: Optional[Query] = None
     query_options: Dict[str, Any] = field(factory=dict)
+    commands: List[ExecutableCommand] = field(factory=list)
     console_renderer: Optional[ConsoleRenderer] = None
     source: Optional[str] = None  # who is calling
 
@@ -73,8 +74,12 @@ class CLIContext:
         return GraphName(self.env["graph"])
 
     def variable_in_section(self, variable: str) -> str:
-        # if there is no query, always assume the root section
-        section = self.env.get("section") if self.query else PathRoot
+        # if there is no entity provider, always assume the root section
+        section = (
+            self.env.get("section")
+            if self.commands and isinstance(self.commands[0].command, EntityProvider)
+            else PathRoot
+        )
         return variable_to_absolute(section, variable)
 
     def render_console(self, element: Union[str, JupyterMixin]) -> str:
@@ -494,6 +499,12 @@ class InternalPart(ABC):
     """
     Internal parts can be executed but are not shown via help.
     They usually get injected by the CLI Interpreter to ease usability.
+    """
+
+
+class EntityProvider(ABC):
+    """
+    Mark this command as a provider of entities with: id, reported, desired, metadata.
     """
 
 

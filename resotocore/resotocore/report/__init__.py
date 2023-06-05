@@ -284,17 +284,24 @@ class BenchmarkResult(CheckCollectionResult):
             severity=if_set(reported.get("severity"), ReportSeverity),
         )
 
-    def to_graph(self) -> List[Json]:
+    def to_graph(self, only_checks: bool = False) -> List[Json]:
         result = []
 
         def visit_check_collection(collection: CheckCollectionResult) -> None:
-            result.append(collection.to_node())
+            if not only_checks:
+                result.append(collection.to_node())
             for check in collection.checks:
                 result.append(check.to_node())
-                result.append({"from": collection.node_id, "to": check.node_id, "type": "edge", "edge_type": "default"})
+                if not only_checks:
+                    result.append(
+                        {"from": collection.node_id, "to": check.node_id, "type": "edge", "edge_type": "default"}
+                    )
             for child in collection.children:
                 visit_check_collection(child)
-                result.append({"from": collection.node_id, "to": child.node_id, "type": "edge", "edge_type": "default"})
+                if not only_checks:
+                    result.append(
+                        {"from": collection.node_id, "to": child.node_id, "type": "edge", "edge_type": "default"}
+                    )
 
         visit_check_collection(self)
         return result

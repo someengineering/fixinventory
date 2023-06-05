@@ -16,3 +16,9 @@ async def test_benchmark_renderer(inspector_service: InspectorService, test_benc
         render_result[0]
         == "# Report for account sub_root\n\nTitle: test\n\nVersion: 1.5\n\nSummary: all 2 checks failed\n\n## Failed Checks \n\n- ❌ medium: Test\n- ❌ medium: Test\n\n\n## Section 1 (all checks ❌)\n\nTest section.\n\n- ❌ **medium**: Test\n\n  - Risk: Some risk\n\n  - There are 11 `foo` resources failing this check.\n\n  - Remediation: Some remediation text. See [Link](https://example.com) for more details.\n\n## Section 2 (all checks ❌)\n\nTest section.\n\n- ❌ **medium**: Test\n\n  - Risk: Some risk\n\n  - There are 11 `foo` resources failing this check.\n\n  - Remediation: Some remediation text. See [Link](https://example.com) for more details.\n\n"  # noqa: E501
     )
+
+    # only render checks
+    check_result = bench_result.to_graph(True)
+    assert len(check_result) == 2
+    for c in check_result:
+        assert c["kind"] == "report_check_result"
