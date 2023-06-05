@@ -7,7 +7,6 @@ from re import Pattern
 from shutil import get_terminal_size
 from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable, Any
 
-import jsons
 from attr import evolve
 from attrs import define, field
 from math import floor
@@ -29,6 +28,7 @@ from prompt_toolkit.styles import Style
 from resotoclient.async_client import ResotoClient
 from resotoclient.models import Property
 
+from resotolib.json import from_json
 from resotolib.logger import log
 
 
@@ -812,7 +812,7 @@ async def core_metadata(
 
         known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
         info = await client.cli_info()
-        cmds = [jsons.load(cmd, CommandInfo) for cmd in (info.get("commands", []) + info.get("alias_templates", []))]
+        cmds = [from_json(cmd, CommandInfo) for cmd in (info.get("commands", []) + info.get("alias_templates", []))]
         lookup = {cmd.name: cmd for cmd in cmds}
         for alias, cmd in info.get("alias_names", {}).items():
             if cmd in lookup and alias not in lookup:

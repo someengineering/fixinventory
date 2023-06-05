@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple, Set
 from collections import defaultdict
 
-from jsons import set_deserializer
 from resoto_plugin_k8s.base import KubernetesResource, SortTransitionTime
 from resotolib.baseresources import (
     BaseAccount,
@@ -2278,7 +2277,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
             if isinstance(pod, KubernetesPod)
             for key, val in pod.labels.items()
         ]
-        pods_by_labels = defaultdict(list)
+        pods_by_labels: Dict[Tuple[str, str], List[KubernetesPod]] = defaultdict(list)
         for (key, val), pod in pods:
             pods_by_labels[(key, val)].append(pod)
 
@@ -2601,12 +2600,3 @@ all_k8s_resources: List[Type[KubernetesResource]] = (
 
 all_k8s_resources_by_k8s_name: Dict[str, Type[KubernetesResource]] = {a.k8s_name(): a for a in all_k8s_resources}
 all_k8s_resources_by_resoto_name: Dict[str, Type[KubernetesResource]] = {a.kind: a for a in all_k8s_resources}
-
-
-# Work around jsons: it tries to deserialize class vars - it should ignore them.
-def no_json(js: Json, tp: type = object, **kwargs: object) -> None:
-    return None
-
-
-# noinspection PyTypeChecker
-set_deserializer(no_json, ClassVar)

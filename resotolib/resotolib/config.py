@@ -1,8 +1,7 @@
-import jsons
 import threading
 import os
 
-from resotolib.json import from_json
+from resotolib.json import from_json, to_json
 from resotolib.logger import log
 from resotolib.args import ArgumentParser, convert
 from resotolib.core.ca import TLSData
@@ -208,16 +207,8 @@ class Config(metaclass=MetaConfig):
 
         # json with resolved env vars, defaults and dropped deleted attributes
         # this is the config that we will use to cleanup the raw_with_new_defaults
-        reference_config_json = cast(
-            Json,
-            jsons.dump(
-                Config.read_config(
-                    raw_with_resolved_env_vars, reason="making reference config for cleanup"
-                ),  # attrs class with dropped deleted attributes
-                strip_attr="kind",
-                strip_properties=True,
-                strip_privates=True,
-            ),
+        reference_config_json = to_json(
+            Config.read_config(raw_with_resolved_env_vars, reason="making reference config for cleanup"),
         )
 
         result = cast(Json, drop_deleted_attributes(raw_with_new_defaults, reference_config_json))
@@ -345,7 +336,7 @@ class Config(metaclass=MetaConfig):
 
     @staticmethod
     def dict() -> Json:
-        return jsons.dump(Config.running_config.data, strip_attr="kind", strip_properties=True, strip_privates=True)  # type: ignore # noqa: E501
+        return to_json(Config.running_config.data)
 
     def save_config(self) -> None:
         update_config_model(self.model, resotocore_uri=self.resotocore_uri, verify=self.verify)
