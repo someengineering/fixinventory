@@ -278,11 +278,19 @@ class CLIService(CLI):
     def infra_app_aliases(self) -> Dict[str, InfraAppAlias]:
         return self.__infra_app_aliases
 
+    def _no_name_conflict(self, name: str) -> bool:
+        return (
+            name not in self.direct_commands
+            and name not in self.alias_commands
+            and name not in self.alias_templates
+            and name not in self.infra_app_aliases
+        )
+
     def register_infra_app_alias(self, alias: InfraAppAlias) -> None:
         """
         Called when an infra app is registered.
         """
-        if alias.name not in self.direct_commands and alias.name not in self.alias_commands:
+        if self._no_name_conflict(alias.name):
             self.__infra_app_aliases[alias.name] = alias
 
     def unregister_infra_app_alias(self, name: str) -> None:
@@ -293,7 +301,7 @@ class CLIService(CLI):
         Called when something introduces a custom command.
         The registered templated will always override any existing template.
         """
-        if template.name not in self.direct_commands and template.name not in self.alias_commands:
+        if self._no_name_conflict(template.name):
             self.alias_templates[template.name] = template
 
     def unregister_alias_template(self, name: str) -> None:

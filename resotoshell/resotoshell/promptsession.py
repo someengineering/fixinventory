@@ -812,7 +812,10 @@ async def core_metadata(
 
         known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
         info = await client.cli_info()
-        cmds = [from_json(cmd, CommandInfo) for cmd in (info.get("commands", []) + info.get("alias_templates", []))]
+        cmds = [
+            from_json(cmd, CommandInfo)
+            for cmd in (info.get("commands", []) + info.get("alias_templates", []) + info.get("infra_app_aliases", []))
+        ]
         lookup = {cmd.name: cmd for cmd in cmds}
         for alias, cmd in info.get("alias_names", {}).items():
             if cmd in lookup and alias not in lookup:
