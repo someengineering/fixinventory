@@ -15,7 +15,7 @@ from resotocore.cli.command import (
     PredecessorsPart,
     DumpCommand,
 )
-from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext, CLI
+from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext, CLI, InfraAppAlias
 from resotocore.error import CLIParseError
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.util import utc
@@ -127,6 +127,11 @@ async def test_help(cli: CLI) -> None:
 
     # help for alias template
     result = await cli.execute_cli_command("help discord", stream.list)
+    assert len(result[0]) == 1
+
+    # help for infra app alias
+    cli.register_infra_app_alias(InfraAppAlias("testcommand", "this is a test alias", "this is a readme", []))
+    result = await cli.execute_cli_command("help testcommand", stream.list)
     assert len(result[0]) == 1
 
 

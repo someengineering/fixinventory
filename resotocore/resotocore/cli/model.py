@@ -632,6 +632,14 @@ class CLI(ABC):
         pass
 
     @abstractmethod
+    def register_infra_app_alias(self, alias: InfraAppAlias) -> None:
+        pass
+
+    @abstractmethod
+    def unregister_infra_app_alias(self, name: str) -> None:
+        pass
+
+    @abstractmethod
     def register_alias_template(self, template: AliasTemplate) -> None:
         """
         Called when something introduces a custom command.
