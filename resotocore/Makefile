@@ -74,14 +74,6 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-venv-pypy:
-	pypy3.9 -m venv venv-pypy
-	. ./venv-pypy/bin/activate && python3 -m pip install --upgrade pip
-	. ./venv-pypy/bin/activate && pip install --upgrade --editable ../resotolib
-	. ./venv-pypy/bin/activate && pip install -r requirements-test.txt
-	. ./venv-pypy/bin/activate && pip install -r requirements.txt
-
-
 setup: clean clean-env venv-pypy
 
 list-outdated:

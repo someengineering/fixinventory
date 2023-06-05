@@ -1168,7 +1168,7 @@ class Api:
                 gen = await force_gen(streamer)
                 if first_result.produces.text:
                     text_gen = ctx.text_generator(first_result, gen)
-                    return await self.stream_response_from_gen(request, text_gen, count)
+                    return await self.stream_response_from_gen(request, text_gen, count, first_result.envelope)
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(first_result, gen, boundary, mp_response)

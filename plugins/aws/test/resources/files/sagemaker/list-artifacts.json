@@ -15,6 +15,16 @@
             "ArtifactType": "string",
             "CreationTime": "2015-01-01T00:00:00Z",
             "LastModifiedTime": "2015-01-01T00:00:00Z"
+        },
+        {
+            "ArtifactArn": "arn:aws:sagemaker:us-east-1:test:artifact/2",
+            "Source": {
+                "SourceUri": "s3://my_account_alias-sagemaker/sagemaker/prediction/train/linear_train.data",
+                "SourceTypes": []
+            },
+            "ArtifactType": "DataSet",
+            "CreationTime": "2021-08-07T13:44:46Z",
+            "LastModifiedTime": "2021-08-07T13:44:46Z"
         }
     ],
     "NextToken": "string"

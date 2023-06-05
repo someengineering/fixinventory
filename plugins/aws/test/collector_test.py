@@ -31,8 +31,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
-    assert count_kind(AwsResource) == 204
-    assert len(account_collector.graph.edges) == 476
+    assert count_kind(AwsResource) == 205
+    assert len(account_collector.graph.edges) == 477
     assert len(account_collector.graph.deferred_edges) == 2
 
 
@@ -72,3 +72,8 @@ def test_all_called_apis() -> None:
 
     mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
     print("\n\n", mutate_statement, "\n\n")
+
+
+def test_service_name_is_defined_in_all_resources() -> None:
+    for rt in all_resources:
+        assert rt.service_name() is not None, rt.__name__ + " has no service_name"

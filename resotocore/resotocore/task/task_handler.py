@@ -427,17 +427,21 @@ class TaskHandlerService(TaskHandler):
         if rt := self.tasks.get(err.task_id):
             await self.handle_action_result(err, lambda wi: wi.handle_error(err))
             rt.info_messages.append(err)
+            name = rt.descriptor.name
+            await self.event_sender.core_event(CoreEvent.ActionError, {"workflow": name, "message": err.error})
             await self.message_bus.emit_event(
-                CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": err.error}
+                CoreMessage.ErrorMessage, {"workflow": name, "task": rt.id, "message": err.error}
             )
 
     async def handle_action_info(self, info: ActionInfo) -> None:
         if rt := self.tasks.get(info.task_id):
             rt.handle_info(info)
+            name = rt.descriptor.name
             await self.running_task_db.update_state(rt, info)
+            await self.event_sender.core_event(CoreEvent.ActionError, {"workflow": name, "message": info.message})
             if info.level == "error":
                 await self.message_bus.emit_event(
-                    CoreMessage.ErrorMessage, {"workflow": rt.descriptor.name, "task": rt.id, "message": info.message}
+                    CoreMessage.ErrorMessage, {"workflow": name, "task": rt.id, "message": info.message}
                 )
 
     async def handle_action_progress(self, info: ActionProgress) -> None:

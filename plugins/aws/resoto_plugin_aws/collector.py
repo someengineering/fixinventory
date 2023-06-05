@@ -1,5 +1,5 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import List, Type
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
@@ -8,19 +8,19 @@ from resoto_plugin_aws.resource import (
     apigateway,
     athena,
     autoscaling,
-    config,
     cloudformation,
     cloudfront,
     cloudtrail,
     cloudwatch,
     cognito,
+    config,
     dynamodb,
     ec2,
     ecs,
     efs,
     eks,
-    elasticbeanstalk,
     elasticache,
+    elasticbeanstalk,
     elb,
     elbv2,
     glacier,
@@ -29,28 +29,31 @@ from resoto_plugin_aws.resource import (
     kms,
     lambda_,
     rds,
+    redshift,
     route53,
     s3,
     sagemaker,
     service_quotas,
     sns,
     sqs,
-    redshift,
 )
 from resoto_plugin_aws.resource.base import (
-    AwsRegion,
     AwsAccount,
-    AwsResource,
-    GraphBuilder,
-    ExecutorQueue,
     AwsApiSpec,
+    AwsRegion,
+    AwsResource,
+    ExecutorQueue,
     GatherFutures,
+    GraphBuilder,
 )
+
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
-from resotolib.core.progress import ProgressTree, ProgressDone
+from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
+
+from .utils import global_region_by_partition
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -130,7 +133,9 @@ class AwsAccountCollector:
         self.cloud = cloud
         self.account = account
         self.core_feedback = core_feedback
-        self.global_region = AwsRegion(id="us-east-1", tags={}, name="global", account=account)
+        self.global_region = AwsRegion(
+            id=global_region_by_partition(account.partition), tags={}, name="global", account=account
+        )
         self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
         self.graph = Graph(root=self.account)
         self.error_accumulator = ErrorAccumulator()
@@ -140,6 +145,7 @@ class AwsAccountCollector:
             role=account.role,
             profile=account.profile,
             region=self.global_region.id,
+            partition=account.partition,
             error_accumulator=self.error_accumulator,
         )
 
@@ -165,13 +171,13 @@ class AwsAccountCollector:
 
             # all global resources
             log.info(f"[Aws:{self.account.id}] Collect global resources.")
-            self.collect_resources(global_resources, global_builder, shared_queue)
+            self.collect_resources(global_resources, global_builder)
 
             # regions are collected with the configured parallelism
             # note: when the thread pool context is left, all submitted work is done (or an exception has been thrown)
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
             for region in self.regions:
-                self.collect_resources(regional_resources, global_builder.for_region(region), shared_queue)
+                self.collect_resources(regional_resources, global_builder.for_region(region))
             shared_queue.wait_for_submitted_work()
 
             # connect nodes
@@ -197,12 +203,7 @@ class AwsAccountCollector:
 
             log.info(f"[Aws:{self.account.id}] Collecting resources done.")
 
-    def collect_resources(
-        self,
-        resources: List[Type[AwsResource]],
-        builder: GraphBuilder,
-        resource_queue: ExecutorQueue,
-    ) -> Future[None]:
+    def collect_resources(self, resources: List[Type[AwsResource]], builder: GraphBuilder) -> Future[None]:
         region = builder.region
 
         def collect_resource(resource: Type[AwsResource], rb: GraphBuilder) -> None:
@@ -222,8 +223,8 @@ class AwsAccountCollector:
         builder.add_node(region)
         for res in resources:
             if self.config.should_collect(res.kind):
-                key = region.id + ":" + res.api_spec.service if res.api_spec else "global"
-                region_futures.append(resource_queue.submit_work(key, collect_resource, res, builder))
+                service_name = res.service_name() or "global"
+                region_futures.append(builder.submit_work(service_name, collect_resource, res, builder))
 
         def work_done(_: Future[None]) -> None:
             builder.core_feedback.progress_done(region.safe_name, 1, 1)

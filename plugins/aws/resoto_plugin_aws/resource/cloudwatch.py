@@ -260,10 +260,10 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-log-group")]
+        return super().called_mutator_apis() + [AwsApiSpec("logs", "delete-log-group")]
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-        client.call(aws_service=self.api_spec.service, action="delete-log-group", logGroupName=self.name)
+        client.call(aws_service="logs", action="delete-log-group", logGroupName=self.name)
         return True
 
 

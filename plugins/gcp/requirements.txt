@@ -1,5 +1,0 @@
-resotolib==3.5.0
-google-api-python-client==2.86.0
-oauth2client==4.1.3
-retrying==1.3.4
-tenacity==8.2.2

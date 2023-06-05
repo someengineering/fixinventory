@@ -3,8 +3,9 @@ import threading
 import time
 import uuid
 from datetime import timedelta
+from fnmatch import fnmatch
 from functools import lru_cache
-from typing import List, ClassVar, Optional, Type, Any, Dict, Callable
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Type
 
 from attrs import define, field, fields_dict
 from boto3.session import Session as BotoSession
@@ -15,6 +16,8 @@ from resotolib.durations import parse_duration
 from resotolib.json import from_json as from_js
 from resotolib.proc import num_default_threads
 from resotolib.types import Json
+
+from .utils import global_region_by_partition
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -32,29 +35,35 @@ class AwsSessionHolder:
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __direct_session(self, profile: Optional[str]) -> BotoSession:
+    def __direct_session(self, profile: Optional[str], partition: str) -> BotoSession:
+        global_region = global_region_by_partition(partition)
         if profile:
-            return self.session_class_factory(profile_name=profile)
+            return self.session_class_factory(profile_name=profile, region_name=global_region)
         else:
             return self.session_class_factory(
-                aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key
+                aws_access_key_id=self.access_key_id,
+                aws_secret_access_key=self.secret_access_key,
+                region_name=global_region,
             )
 
     # noinspection PyUnusedLocal
     @lru_cache(maxsize=128)
-    def __sts_session(self, aws_account: str, aws_role: str, profile: Optional[str], cache_key: int) -> BotoSession:
+    def __sts_session(
+        self, aws_account: str, aws_role: str, profile: Optional[str], partition: str, cache_key: int
+    ) -> BotoSession:
+        global_region = global_region_by_partition(partition)
         role = self.role if self.role_override else aws_role
-        role_arn = f"arn:aws:iam::{aws_account}:role/{role}"
+        role_arn = f"arn:{partition}:iam::{aws_account}:role/{role}"
         if profile:
             session = self.session_class_factory(
                 profile_name=profile,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         else:
             session = self.session_class_factory(
                 aws_access_key_id=self.access_key_id,
                 aws_secret_access_key=self.secret_access_key,
-                region_name="us-east-1",
+                region_name=global_region,
             )
         sts = session.client("sts")
         token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
@@ -63,22 +72,27 @@ class AwsSessionHolder:
             aws_access_key_id=credentials["AccessKeyId"],
             aws_secret_access_key=credentials["SecretAccessKey"],
             aws_session_token=credentials["SessionToken"],
+            region_name=global_region,
         )
 
     def _session(
-        self, aws_account: str, aws_role: Optional[str] = None, aws_profile: Optional[str] = None
+        self,
+        aws_account: str,
+        aws_role: Optional[str] = None,
+        aws_profile: Optional[str] = None,
+        aws_partition: str = "aws",
     ) -> BotoSession:
         """
         Note: the session is not thread safe - caller needs to synchronize access.
         Consider using the client() and resource() methods instead.
         """
         if aws_role is None:
-            return self.__direct_session(aws_profile)
+            return self.__direct_session(aws_profile, aws_partition)
         else:
             # Use sts to create a temporary token for the given account and role
             # Sts session is at least valid for 900 seconds (default 1 hour)
             # let's renew the session after 10 minutes
-            return self.__sts_session(aws_account, aws_role, aws_profile, int(time.time() / 600))
+            return self.__sts_session(aws_account, aws_role, aws_profile, aws_partition, int(time.time() / 600))
 
     def client(
         self,
@@ -88,9 +102,10 @@ class AwsSessionHolder:
         aws_service: str,
         region_name: Optional[str] = None,
         config: Optional[BotoConfig] = None,
+        aws_partition: str = "aws",
     ) -> BaseClient:
         with self.session_lock:
-            session = self._session(aws_account, aws_role, aws_profile)
+            session = self._session(aws_account, aws_role, aws_profile, aws_partition)
             return session.client(aws_service, region_name=region_name, config=config)
 
     def resource(
@@ -101,9 +116,10 @@ class AwsSessionHolder:
         aws_service: str,
         region_name: Optional[str] = None,
         config: Optional[BotoConfig] = None,
+        aws_partition: str = "aws",
     ) -> Any:
         with self.session_lock:
-            session = self._session(aws_account, aws_role, aws_profile)
+            session = self._session(aws_account, aws_role, aws_profile, aws_partition)
             return session.resource(aws_service, region_name=region_name, config=config)
 
     def purge_caches(self) -> None:
@@ -173,7 +189,7 @@ class AwsConfig:
             "A value greater than the resource_pool_size does not have any effect."
         },
     )
-    resource_pool_tasks_per_service: Dict[str, int] = field(
+    resource_pool_tasks_per_service: Optional[Dict[str, int]] = field(
         factory=lambda: {"sagemaker": 6, "elb": 6},
         metadata={
             "description": "Define the number of collector threads allowed for an individual service.\n"
@@ -183,11 +199,21 @@ class AwsConfig:
     )
     collect: List[str] = field(
         factory=list,
-        metadata={"description": "List of AWS services to collect (default: all)"},
+        metadata={
+            "description": (
+                "List of AWS services to collect (default: all).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
     )
     no_collect: List[str] = field(
         factory=list,
-        metadata={"description": "List of AWS services to exclude (default: none)"},
+        metadata={
+            "description": (
+                "List of AWS services to exclude (default: none).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
     )
     cloudwatch_metrics_for_atime_mtime_period: str = field(
         default="60d",
@@ -223,10 +249,11 @@ class AwsConfig:
         return parse_duration(self.cloudwatch_metrics_for_atime_mtime_granularity)
 
     def should_collect(self, name: str) -> bool:
+        # no_collect has precedence over collect
+        if self.no_collect and any(fnmatch(name, p) for p in self.no_collect):
+            return False
         if self.collect:
-            return name in self.collect
-        if self.no_collect:
-            return name not in self.no_collect
+            return any(fnmatch(name, p) for p in self.collect)
         return True
 
     def shared_tasks_per_key(self, regions: List[str]) -> Callable[[str], int]:

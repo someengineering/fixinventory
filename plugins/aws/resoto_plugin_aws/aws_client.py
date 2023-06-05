@@ -4,19 +4,21 @@ import logging
 from datetime import datetime
 from functools import cached_property
 from itertools import islice
-from typing import Optional, Any, List, TypeVar, Callable, Dict, Set
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar
 
 from attr import define, field
 from botocore.config import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.model import ServiceModel
+from resoto_plugin_aws.configuration import AwsConfig
 from retrying import retry
 
-from resoto_plugin_aws.configuration import AwsConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.json import value_in_path
 from resotolib.types import Json, JsonElement
-from resotolib.utils import utc_str, log_runtime
+from resotolib.utils import log_runtime, utc_str
+
+from .utils import global_region_by_partition
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -113,6 +115,7 @@ class AwsClient:
         role: Optional[str] = None,
         profile: Optional[str] = None,
         region: Optional[str] = None,
+        partition: Optional[str] = None,
         error_accumulator: Optional[ErrorAccumulator] = None,
     ) -> None:
         self.config = config
@@ -120,6 +123,9 @@ class AwsClient:
         self.role = role
         self.profile = profile
         self.region = region
+        if partition is None:
+            partition = "aws"
+        self.partition = partition
         self.error_accumulator = error_accumulator
 
     def __to_json(self, node: Any, **kwargs: Any) -> JsonElement:
@@ -137,7 +143,14 @@ class AwsClient:
             raise AttributeError(f"Unsupported type: {type(node)}")
 
     def service_model(self, aws_service: str) -> ServiceModel:
-        client = self.config.sessions().client(self.account_id, self.role, self.profile, aws_service, self.region)
+        client = self.config.sessions().client(
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            aws_partition=self.partition,
+        )
         model = client.meta.service_model
         client.close()
         return model
@@ -151,7 +164,14 @@ class AwsClient:
         :param fn: loan pattern: the function is handed the resource and the result is returned.
         :return: the result of the function.
         """
-        resource = self.config.sessions().resource(self.account_id, self.role, self.profile, aws_service, self.region)
+        resource = self.config.sessions().resource(
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            aws_partition=self.partition,
+        )
         try:
             return fn(resource)
         except ClientError as e:
@@ -175,8 +195,15 @@ class AwsClient:
         # adaptive mode allows automated client-side throttling
         config = Config(retries={"max_attempts": max_attempts, "mode": "adaptive"})
         client = self.config.sessions().client(
-            self.account_id, self.role, self.profile, aws_service, self.region, config
+            aws_account=self.account_id,
+            aws_role=self.role,
+            aws_profile=self.profile,
+            aws_service=aws_service,
+            region_name=self.region,
+            config=config,
+            aws_partition=self.partition,
         )
+
         try:
             if client.can_paginate(py_action):
                 paginator = client.get_paginator(py_action)
@@ -283,6 +310,7 @@ class AwsClient:
             role=self.role,
             profile=self.profile,
             region=region,
+            partition=self.partition,
             error_accumulator=self.error_accumulator,
         )
 
@@ -323,7 +351,6 @@ class AwsClient:
     @cached_property
     def global_region(self) -> AwsClient:
         """
-        AWS serves some APIs only from one region: us-east-1.
-        We call it the global region in this collector.
+        AWS serves some APIs only from a global region.
         """
-        return self.for_region("us-east-1")
+        return self.for_region(global_region_by_partition(self.partition))

@@ -277,7 +277,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
                 return [edge[2] for edge in networkx.algorithms.cycles.find_cycle(typed_graph)]
         return None
 
-    @metrics_graph_search.time()  # type: ignore
+    @metrics_graph_search.time()
     def search(self, attr: str, value: Any, regex_search: bool = False) -> Iterator[BaseResource]:
         """Search for graph nodes by their attribute value"""
         if value is None:
@@ -296,20 +296,20 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
             ):
                 yield node
 
-    @metrics_graph_searchre.time()  # type: ignore
+    @metrics_graph_searchre.time()
     def searchre(self, attr: str, regex: str) -> Iterator[BaseResource]:
         """Regex search for graph nodes by their attribute value"""
         log.debug(f"Regex searching graph for nodes with attribute values {attr}: {regex}")
         yield from self.search(attr, regex, regex_search=True)
 
-    @metrics_graph_searchall.time()  # type: ignore
+    @metrics_graph_searchall.time()
     def searchall(self, match: Dict[str, Any]) -> Iterator[BaseResource]:
         """Search for graph nodes by multiple attributes and values"""
         for node in self.nodes():
             if all(getattr(node, attr, None) == value for attr, value in match.items()):
                 yield node
 
-    @metrics_graph_search_first.time()  # type: ignore
+    @metrics_graph_search_first.time()
     def search_first(self, attr: str, value: Any) -> Optional[BaseResource]:
         """Return the first graph node that matches a certain attribute value"""
         node = next(iter(self.search(attr, value)), None)
@@ -317,9 +317,9 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
             log.debug(f"Found node {node} with {attr}: {value}")
         else:
             log.debug(f"Found no node with {attr}: {value}")
-        return node  # type: ignore
+        return node  # type
 
-    @metrics_graph_search_first_all.time()  # type: ignore
+    @metrics_graph_search_first_all.time()
     def search_first_all(self, match: Dict[str, Any]) -> Optional[BaseResource]:
         """Return the first graph node that matches multiple attributes and values"""
         node = next(iter(self.searchall(match)), None)
@@ -327,9 +327,9 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
             log.debug(f"Found node {node} with {match}")
         else:
             log.debug(f"Found no node with {match}")
-        return node  # type: ignore
+        return node
 
-    @metrics_graph_search_first_parent_class.time()  # type: ignore
+    @metrics_graph_search_first_parent_class.time()
     def search_first_parent_class(self, node: BaseResource, cls: Type[T]) -> Optional[T]:
         """Return the first parent node matching a certain class
 
@@ -348,7 +348,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
                     queue.append(n)
         return None
 
-    @metrics_graph_resolve_deferred_connections.time()  # type: ignore
+    @metrics_graph_resolve_deferred_connections.time()
     def resolve_deferred_connections(self) -> None:
         log.debug("Resolving deferred graph connections")
         for node in self.nodes:

@@ -1,15 +1,16 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import ClassVar, Dict, Optional, List, Any
+from typing import Any, ClassVar, Dict, List, Optional
 
 from attr import field, frozen
 from botocore.loaders import Loader
-
 from resoto_plugin_aws.aws_client import AwsClient
+
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend, MapDict, F, ForallBend, bend
+from resotolib.json_bender import Bend, Bender, F, ForallBend, MapDict, S, bend
 from resotolib.types import Json
+from resoto_plugin_aws.utils import arn_partition_by_region
 
 service_name = "pricing"
 
@@ -24,9 +25,30 @@ EBS_TO_PRICING_NAMES = {
 
 
 @lru_cache(maxsize=None)
+def partition_index() -> Dict[str, int]:
+    """Return a mapping from partition name to partition index."""
+    index_map = {}
+    try:
+        endpoints = Loader().load_data("endpoints")
+    except Exception:
+        pass
+    else:
+        for idx, partition in enumerate(endpoints.get("partitions", [])):
+            regions = partition.get("regions", {}).keys()
+            if "us-east-1" in regions:
+                index_map["aws"] = idx
+            elif "us-gov-west-1" in regions:
+                index_map["aws-us-gov"] = idx
+            elif "cn-north-1" in regions:
+                index_map["aws-cn"] = idx
+    return index_map
+
+
+@lru_cache(maxsize=None)
 def pricing_region(region: str) -> str:
+    idx = partition_index().get(arn_partition_by_region(region), 0)
     endpoints = Loader().load_data("endpoints")
-    name: Optional[str] = bend(S("partitions")[0] >> S("regions", region, "description"), endpoints)
+    name: Optional[str] = bend(S("partitions")[idx] >> S("regions", region, "description"), endpoints)
     if name is None:
         raise ValueError(f"Unknown pricing region: {region}")
     return name.replace("Europe", "EU")  # note: Europe is named differently in the price list
@@ -112,7 +134,7 @@ class AwsPricingPrice:
     def single_price_for(
         cls, client: AwsClient, service_code: str, search_filter: List[Json]
     ) -> "Optional[AwsPricingPrice]":
-        # Prices are only available in us-east-1
+        # Prices are only available in the global region
         prices = client.global_region.list(
             service_name, "get-products", "PriceList", ServiceCode=service_code, Filters=search_filter, MaxResults=1
         )

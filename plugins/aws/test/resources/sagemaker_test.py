@@ -110,7 +110,7 @@ def test_image() -> None:
 
 def test_artifact() -> None:
     first, builder = round_trip_for(AwsSagemakerArtifact)
-    assert len(builder.resources_of(AwsSagemakerArtifact)) == 1
+    assert len(builder.resources_of(AwsSagemakerArtifact)) == 2
 
 
 def test_user_profile() -> None:

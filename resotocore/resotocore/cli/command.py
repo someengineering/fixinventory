@@ -148,6 +148,7 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
+from resotolib.core import CLIEnvelope
 from resotolib.parse_util import (
     double_quoted_or_simple_string_dp,
     space_dp,
@@ -4436,7 +4437,7 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(
                 partial(edit_config, config_id),
                 produces=MediaType.FilePath,
-                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
+                envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"configs update {config_id}"},
             )
         elif arg and len(args) == 3 and args[0] == "copy":
             return CLISource.single(partial(copy_config, args[1], args[2]))
@@ -4445,7 +4446,7 @@ class ConfigsCommand(CLICommand):
             return CLISource.single(
                 partial(update_config, config_id),
                 produces=MediaType.FilePath,
-                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"configs update {config_id}"},
+                envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"configs update {config_id}"},
                 requires=[CLIFileRequirement("config.yaml", args[2])],
             )
         elif arg and len(args) == 1 and args[0] == "list":
@@ -5060,14 +5061,14 @@ class InfrastructureAppsCommand(CLICommand):
             return CLISource.single(
                 partial(edit_app, app_name),
                 produces=MediaType.FilePath,
-                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+                envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"apps update {app_name}"},
             )
         elif arg and len(args) == 3 and args[0] == "update":
             app_name = InfraAppName(args[1])
             return CLISource.single(
                 partial(update_app, app_name),
                 produces=MediaType.FilePath,
-                envelope={"Resoto-Shell-Action": "edit", "Resoto-Shell-Command": f"apps update {app_name}"},
+                envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"apps update {app_name}"},
                 requires=[CLIFileRequirement("manifest.yaml", args[2])],
             )
         elif len(args) == 2 and args[0] == "uninstall":
@@ -5285,7 +5286,8 @@ class UserCommand(CLICommand):
             parser.add_argument("--role", type=str, action="append", required=True)
             parsed = parser.parse_args(args[1:])
             return CLISource.single(
-                partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role)
+                partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role),
+                envelope={CLIEnvelope.no_history: "yes"},
             )
         elif len(args) == 2 and args[0].startswith("del"):
             return CLISource.single(partial(self.delete_user, Email(args[1])))
@@ -5294,7 +5296,10 @@ class UserCommand(CLICommand):
         elif len(args) > 3 and args[0] == "role" and args[1].startswith("del"):
             return CLISource.single(partial(self.delete_role, Email(args[2]), args[3]))
         elif len(args) >= 3 and args[0] in ("passwd", "password"):
-            return CLISource.single(partial(self.change_password, Email(args[1]), Password(args[2])))
+            return CLISource.single(
+                partial(self.change_password, Email(args[1]), Password(args[2])),
+                envelope={CLIEnvelope.no_history: "yes"},
+            )
         elif len(args) == 1 and args[0] == "list":
             return CLISource.no_count(self.list_users)
         elif len(args) == 2 and args[0] == "show":

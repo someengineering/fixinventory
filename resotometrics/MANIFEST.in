@@ -1,3 +1,2 @@
 include README.md
-include requirements.txt
 include resotometrics/default_metrics.yaml

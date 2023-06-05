@@ -161,6 +161,10 @@ class AwsGlacierJob(AwsResource):
         if self.glacier_job_sns_topic:
             builder.add_edge(self, clazz=AwsSnsTopic, arn=self.glacier_job_sns_topic)
 
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsGlacierVault(AwsResource):

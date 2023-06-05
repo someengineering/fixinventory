@@ -1,40 +1,40 @@
 import logging
 import multiprocessing
 from concurrent import futures
-from typing import List, Optional, Union, Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import boto3
 import botocore.exceptions
-from botocore.model import OperationModel, Shape, StringShape, ListShape, StructureShape
+from botocore.model import ListShape, OperationModel, Shape, StringShape, StructureShape
 from jsons import pascalcase
-from prometheus_client import Summary, Counter
+from prometheus_client import Counter, Summary
+from resoto_plugin_aws.aws_client import AwsClient
 
 import resotolib.logger
 import resotolib.proc
-from resoto_plugin_aws.aws_client import AwsClient
-from resotolib.args import ArgumentParser
-from resotolib.args import Namespace
+from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import (
-    BaseResource,
-    metrics_resource_cleanup_exceptions,
     BaseAccount,
     BaseRegion,
+    BaseResource,
+    Cloud,
+    metrics_resource_cleanup_exceptions,
     metrics_resource_pre_cleanup_exceptions,
 )
-from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
-from resotolib.core.progress import ProgressTree, ProgressDone
+from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
-from resotolib.utils import log_runtime, NoExitArgumentParser
+from resotolib.utils import NoExitArgumentParser, log_runtime
+
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
-from .utils import aws_session
+from .utils import arn_partition_by_region, aws_session, global_region_by_partition
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
@@ -44,6 +44,8 @@ metrics_unhandled_account_exceptions = Counter(
     "Unhandled AWS Plugin Account Exceptions",
     ["account"],
 )
+
+GLOBAL_REGIONS = ("us-east-1", "us-gov-west-1", "cn-north-1")
 
 
 class AWSCollectorPlugin(BaseCollectorPlugin):
@@ -60,15 +62,18 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
     @staticmethod
     def auto_enableable() -> bool:
-        try:
-            account_id = boto3.session.Session().client("sts").get_caller_identity().get("Account")
-            log.debug(f"plugin: AWS auto discovery succeeded, running in account {account_id}.")
-            return True
-        except Exception as e:
-            log.debug(f"plugin: AWS auto discovery failed: {e}")
+        for region in GLOBAL_REGIONS:
+            try:
+                account_id = (
+                    boto3.session.Session(region_name=region).client("sts").get_caller_identity().get("Account")
+                )
+                log.debug(f"plugin: AWS auto discovery succeeded in {region}, running in account {account_id}.")
+                return True
+            except Exception as e:
+                log.debug(f"plugin: AWS auto discovery failed in {region}: {e}")
         return False
 
-    @metrics_collect.time()  # type: ignore
+    @metrics_collect.time()
     def collect(self) -> None:
         try:
             self.collect_aws()
@@ -94,7 +99,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         for account in accounts:
             # Even if the account is collected later, mark it as expected progress
             progress.add_progress(ProgressDone(account.dname, 0, 1))
-            add_str = ""
+            add_str = f" partition {account.partition}"
             if account.role:
                 add_str += f" role {account.role}"
             if account.profile:
@@ -104,13 +109,6 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
         max_workers = len(accounts) if len(accounts) < aws_config.account_pool_size else aws_config.account_pool_size
         pool_args = {"max_workers": max_workers}
-        # TODO: revert this when memory leak in AWS collector is fixed
-        # if Config.aws.fork_process:
-        #     pool_args["mp_context"] = multiprocessing.get_context("spawn")
-        #     pool_args["initializer"] = resotolib.proc.initializer
-        #     pool_executor = futures.ProcessPoolExecutor
-        # else:
-        #     pool_executor = futures.ThreadPoolExecutor  # type: ignore
         pool_executor = futures.ThreadPoolExecutor
         if aws_config.fork_process:
             collect_method = collect_in_process
@@ -122,7 +120,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 executor.submit(
                     collect_method,
                     account,
-                    self.regions(profile=account.profile),
+                    self.regions(profile=account.profile, partition=account.partition),
                     ArgumentParser.args,
                     Config.running_config,
                     self.core_feedback.with_context(cloud.id, account.dname),
@@ -140,11 +138,16 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         # collect done, purge all session caches
         aws_config.sessions().purge_caches()
 
-    def regions(self, profile: Optional[str] = None) -> List[str]:
+    def regions(self, profile: Optional[str] = None, partition: str = "aws") -> List[str]:
         if len(self.__regions) == 0:
             if not Config.aws.region or (isinstance(Config.aws.region, list) and len(Config.aws.region) == 0):
-                log.debug("AWS region not specified, assuming all regions")
-                self.__regions = all_regions(profile=profile)
+                add_log_str = ""
+                if profile:
+                    add_log_str += f" profile {profile}"
+                if partition:
+                    add_log_str += f" partition {partition}"
+                log.debug(f"AWS region not specified, assuming all regions{add_log_str}")
+                self.__regions = all_regions(profile=profile, partition=partition)
             else:
                 self.__regions = list(Config.aws.region)
         return self.__regions
@@ -414,9 +417,22 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
 def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
     try:
-        log.debug(f"AWS testing credentials for {account.rtdname}")
-        session = aws_session(account.id, account.role, account.profile)
-        _ = session.client("sts").get_caller_identity().get("Account")
+        add_log_str = ""
+        if account.role:
+            add_log_str += f" role {account.role}"
+        if account.profile:
+            add_log_str += f" profile {account.profile}"
+        if account.partition:
+            add_log_str += f" partition {account.partition}"
+        log.debug(f"AWS testing credentials for {account.rtdname}{add_log_str}")
+        session = aws_session(
+            account=account.id, role=account.role, profile=account.profile, partition=account.partition
+        )
+        _ = (
+            session.client("sts", region_name=global_region_by_partition(account.partition))
+            .get_caller_identity()
+            .get("Account")
+        )
     except botocore.exceptions.NoCredentialsError:
         core_feedback.error(f"No AWS credentials found for {account.rtdname}", log)
     except botocore.exceptions.ClientError as e:
@@ -428,6 +444,8 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
             core_feedback.error(f"Security token included in the request is expired for {account.rtdname}", log)
         elif e.response["Error"]["Code"] == "AccessDenied":
             core_feedback.error(f"Access Denied to {account.rtdname}: {e}", log)
+        elif e.response["Error"]["Code"] == "SignatureDoesNotMatch":
+            core_feedback.error(f"Token signature does not match {account.rtdname}: {e}", log)
         else:
             raise
         return False
@@ -435,15 +453,71 @@ def authenticated(account: AwsAccount, core_feedback: CoreFeedback) -> bool:
 
 
 def current_account_id(profile: Optional[str] = None) -> str:
-    session = aws_session(profile=profile)
-    return session.client("sts").get_caller_identity().get("Account")  # type: ignore
+    account_id, _ = current_account_id_and_partition(profile)
+    return account_id
+
+
+def probe_partition(account: Optional[str] = None, role: Optional[str] = None, profile: Optional[str] = None) -> str:
+    for region in GLOBAL_REGIONS:
+        partition = arn_partition_by_region(region)
+        try:
+            session = aws_session(account=account, role=role, profile=profile, partition=partition)
+            _ = session.client("sts", region_name=region).get_caller_identity().get("Account")
+        except Exception:
+            pass
+        else:
+            return partition
+    return "aws"
+
+
+def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str, str]:
+    interesting_exception = None
+    add_log_str = ""
+    if profile:
+        add_log_str = f" with profile {profile}"
+    log.debug(f"Trying to determine current account id and partition{add_log_str}")
+    for region in GLOBAL_REGIONS:
+        partition = arn_partition_by_region(region)
+        log.debug(f"Probing region {region}")
+        try:
+            if profile:
+                account_id = (
+                    boto3.session.Session(region_name=region, profile_name=profile)
+                    .client("sts")
+                    .get_caller_identity()
+                    .get("Account")
+                )
+            else:
+                account_id = (
+                    boto3.session.Session(
+                        region_name=region,
+                        aws_access_key_id=Config.aws.access_key_id,
+                        aws_secret_access_key=Config.aws.secret_access_key,
+                    )
+                    .client("sts")
+                    .get_caller_identity()
+                    .get("Account")
+                )
+            log.debug(f"Determined partition for account {account_id} to be {partition}")
+            return account_id, partition
+        except botocore.exceptions.ClientError as e:
+            log.debug(f"Got an exception when probing partition {partition}: {e}")
+            if e.response["Error"]["Code"] != "InvalidClientTokenId":
+                interesting_exception = e
+        except Exception as e:
+            log.debug(f"Got an exception when probing partition {partition}: {e}")
+            interesting_exception = e
+    if interesting_exception:
+        raise interesting_exception
+    else:
+        raise botocore.exceptions.NoCredentialsError()
 
 
 def set_account_names(accounts: List[AwsAccount]) -> None:
     def set_account_name(account: AwsAccount) -> None:
         try:
             account_aliases = (
-                aws_session(account.id, account.role, account.profile)
+                aws_session(account=account.id, role=account.role, profile=account.profile, partition=account.partition)
                 .client("iam")
                 .list_account_aliases()
                 .get("AccountAliases", [])
@@ -492,29 +566,31 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         try:
             if Config.aws.role and Config.aws.scrape_org:
                 log.debug("Role and scrape_org are both set")
+                account_id, partition = current_account_id_and_partition(profile=profile)
                 accounts.extend(
                     [
-                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile, partition=partition)
                         for aws_account_id in get_org_accounts(
                             filter_current_account=not Config.aws.assume_current,
                             profile=profile,
                             core_feedback=core_feedback,
+                            partition=partition,
                         )
                         if aws_account_id not in Config.aws.scrape_exclude_account
                     ]
                 )
                 if not Config.aws.do_not_scrape_current:
-                    accounts.append(AwsAccount(id=current_account_id(profile=profile)))
+                    accounts.append(AwsAccount(id=account_id, partition=partition))
             elif Config.aws.role and Config.aws.account:
                 log.debug("Both, role and list of accounts specified")
-                accounts.extend(
-                    [
-                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile)
-                        for aws_account_id in Config.aws.account
-                    ]
-                )
+                for aws_account_id in Config.aws.account:
+                    partition = probe_partition(aws_account_id, profile=profile)
+                    accounts.append(
+                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile, partition=partition)
+                    )
             else:
-                accounts.extend([AwsAccount(id=current_account_id(profile=profile), profile=profile)])
+                account_id, partition = current_account_id_and_partition(profile=profile)
+                accounts.extend([AwsAccount(id=account_id, profile=profile, partition=partition)])
         except botocore.exceptions.NoCredentialsError:
             core_feedback.error(f"No AWS credentials found for {profile}", log)
         except botocore.exceptions.ClientError as e:
@@ -526,6 +602,8 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
                 core_feedback.error(f"AWS security token included in the request is expired for {profile}", log)
             elif e.response["Error"]["Code"] == "AccessDenied":
                 core_feedback.error(f"Access denied for profile {profile}", log)
+            elif e.response["Error"]["Code"] == "SignatureDoesNotMatch":
+                core_feedback.error(f"Token signature does not match for {profile}", log)
             else:
                 core_feedback.error(f"AWS client error for profile {profile}: {e}", log)
                 raise
@@ -536,8 +614,10 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     return accounts
 
 
-def get_org_accounts(filter_current_account: bool, profile: Optional[str], core_feedback: CoreFeedback) -> List[str]:
-    session = aws_session(profile=profile)
+def get_org_accounts(
+    filter_current_account: bool, profile: Optional[str], core_feedback: CoreFeedback, partition: Optional[str] = None
+) -> List[str]:
+    session = aws_session(profile=profile, partition=partition)
     client = session.client("organizations")
     accounts = []
     try:
@@ -559,9 +639,9 @@ def get_org_accounts(filter_current_account: bool, profile: Optional[str], core_
     return accounts
 
 
-def all_regions(profile: Optional[str] = None) -> List[str]:
-    session = aws_session(profile=profile)
-    ec2 = session.client("ec2", region_name="us-east-1")
+def all_regions(profile: Optional[str] = None, partition: str = "aws") -> List[str]:
+    session = aws_session(profile=profile, partition=partition)
+    ec2 = session.client("ec2", region_name=global_region_by_partition(partition))
     regions = ec2.describe_regions()
     return [r["RegionName"] for r in regions["Regions"]]
 

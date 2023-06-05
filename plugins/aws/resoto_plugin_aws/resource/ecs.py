@@ -51,6 +51,10 @@ class EcsTaggable:
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
 
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsEcsManagedScaling:

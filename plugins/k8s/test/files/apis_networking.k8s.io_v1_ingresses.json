@@ -1,0 +1,342 @@
+{
+    "kind": "IngressList",
+    "apiVersion": "networking.k8s.io/v1",
+    "metadata": {
+        "resourceVersion": "119715021"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "grafana",
+                "namespace": "default",
+                "uid": "d89990ee-5d0f-4c12-82e6-54bde4704b32",
+                "resourceVersion": "15806042",
+                "generation": 4,
+                "creationTimestamp": "2022-10-08T04:06:51Z",
+                "labels": {
+                    "app.kubernetes.io/instance": "grafana",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "grafana",
+                    "app.kubernetes.io/version": "9.1.7",
+                    "helm.sh/chart": "grafana-6.40.3"
+                },
+                "annotations": {
+                    "cert-manager.io/issuer": "letsencrypt-prod",
+                    "kubernetes.io/ingress.class": "nginx",
+                    "meta.helm.sh/release-name": "grafana",
+                    "meta.helm.sh/release-namespace": "default"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-08T04:06:51Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:rules": {}
+                            }
+                        }
+                    },
+                    {
+                        "manager": "nginx-ingress-controller",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-08T04:16:19Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:loadBalancer": {
+                                    "f:ingress": {}
+                                }
+                            }
+                        },
+                        "subresource": "status"
+                    },
+                    {
+                        "manager": "kubectl-edit",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-08T04:36:07Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    "f:cert-manager.io/issuer": {},
+                                    "f:kubernetes.io/ingress.class": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:tls": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "tls": [
+                    {
+                        "hosts": [
+                            "grafana.some.engineering"
+                        ],
+                        "secretName": "grafana-some-engineering-tls"
+                    }
+                ],
+                "rules": [
+                    {
+                        "host": "grafana.some.engineering",
+                        "http": {
+                            "paths": [
+                                {
+                                    "path": "/",
+                                    "pathType": "Prefix",
+                                    "backend": {
+                                        "service": {
+                                            "name": "grafana",
+                                            "port": {
+                                                "number": 80
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {
+                    "ingress": [
+                        {
+                            "ip": "134.209.139.68"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "metadata": {
+                "name": "resoto",
+                "namespace": "default",
+                "uid": "025691cb-38ee-420a-bb16-10cdd9c87999",
+                "resourceVersion": "21244348",
+                "generation": 1,
+                "creationTimestamp": "2022-10-20T14:02:34Z",
+                "labels": {
+                    "app.kubernetes.io/instance": "resoto-resotocore",
+                    "app.kubernetes.io/name": "resoto-resotocore"
+                },
+                "annotations": {
+                    "cert-manager.io/issuer": "letsencrypt-prod",
+                    "kubernetes.io/ingress.class": "nginx",
+                    "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS"
+                },
+                "managedFields": [
+                    {
+                        "manager": "kubectl-client-side-apply",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-20T14:02:34Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:cert-manager.io/issuer": {},
+                                    "f:kubectl.kubernetes.io/last-applied-configuration": {},
+                                    "f:kubernetes.io/ingress.class": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/name": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:rules": {},
+                                "f:tls": {}
+                            }
+                        }
+                    },
+                    {
+                        "manager": "nginx-ingress-controller",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-20T14:02:58Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:loadBalancer": {
+                                    "f:ingress": {}
+                                }
+                            }
+                        },
+                        "subresource": "status"
+                    },
+                    {
+                        "manager": "kubectl-edit",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2022-10-20T14:10:48Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    "f:nginx.ingress.kubernetes.io/backend-protocol": {}
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "tls": [
+                    {
+                        "hosts": [
+                            "resoto.some.engineering"
+                        ],
+                        "secretName": "resoto-some-engineering-tls"
+                    }
+                ],
+                "rules": [
+                    {
+                        "host": "resoto.some.engineering",
+                        "http": {
+                            "paths": [
+                                {
+                                    "path": "/",
+                                    "pathType": "Prefix",
+                                    "backend": {
+                                        "service": {
+                                            "name": "resoto-resotocore",
+                                            "port": {
+                                                "number": 8900
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {
+                    "ingress": [
+                        {
+                            "ip": "134.209.139.68"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "metadata": {
+                "name": "resoto-web-installer",
+                "namespace": "default",
+                "uid": "3f4fb6fc-3bcd-4614-a7e0-7d0913360356",
+                "resourceVersion": "67461592",
+                "generation": 1,
+                "creationTimestamp": "2023-02-02T16:30:15Z",
+                "annotations": {
+                    "cert-manager.io/issuer": "letsencrypt-prod",
+                    "kubernetes.io/ingress.class": "nginx"
+                },
+                "managedFields": [
+                    {
+                        "manager": "kubectl-client-side-apply",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2023-02-02T16:30:15Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:cert-manager.io/issuer": {},
+                                    "f:kubectl.kubernetes.io/last-applied-configuration": {},
+                                    "f:kubernetes.io/ingress.class": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:rules": {},
+                                "f:tls": {}
+                            }
+                        }
+                    },
+                    {
+                        "manager": "nginx-ingress-controller",
+                        "operation": "Update",
+                        "apiVersion": "networking.k8s.io/v1",
+                        "time": "2023-02-02T16:31:08Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:loadBalancer": {
+                                    "f:ingress": {}
+                                }
+                            }
+                        },
+                        "subresource": "status"
+                    }
+                ]
+            },
+            "spec": {
+                "tls": [
+                    {
+                        "hosts": [
+                            "install.resoto.com"
+                        ],
+                        "secretName": "install-resoto-com-tls"
+                    }
+                ],
+                "rules": [
+                    {
+                        "host": "install.resoto.com",
+                        "http": {
+                            "paths": [
+                                {
+                                    "path": "/",
+                                    "pathType": "Prefix",
+                                    "backend": {
+                                        "service": {
+                                            "name": "resoto-web-installer",
+                                            "port": {
+                                                "number": 5000
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {
+                    "ingress": [
+                        {
+                            "ip": "134.209.139.68"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

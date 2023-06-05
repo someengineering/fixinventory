@@ -104,6 +104,7 @@ class GcpSqlDatabase(GcpResource):
         response_path="items",
         response_regional_sub_path=None,
     )
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -817,6 +818,7 @@ class GcpSqlUser(GcpResource):
         response_path="items",
         response_regional_sub_path=None,
     )
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(K("(anonymous)@") + S("host", default="localhost")),
         "tags": S("labels", default={}),

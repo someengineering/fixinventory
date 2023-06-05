@@ -24,6 +24,34 @@ def test_default_config() -> None:
     assert len(Config.aws.no_collect) == 0
 
 
+def test_should_collect() -> None:
+    no_filter = AwsConfig()
+    assert no_filter.should_collect("not_defined")  # no filter defined, so everything is collected
+
+    simple = AwsConfig(collect=["ec2", "s3"], no_collect=["s3"])
+    assert simple.should_collect("ec2")
+    assert not simple.should_collect("s3")
+    assert not simple.should_collect("not_defined")
+
+    glob_collect = AwsConfig(collect=["*sagemaker*"])
+    assert not glob_collect.should_collect("ec2")
+    assert glob_collect.should_collect("aws_sagemaker_artifact")
+    assert not glob_collect.should_collect("not_defined")
+
+    glob_no_collect = AwsConfig(no_collect=["ec?"])
+    assert not glob_no_collect.should_collect("ec2")
+    assert not glob_no_collect.should_collect("ec3")
+    assert glob_no_collect.should_collect("aws_sagemaker_artifact")
+    assert glob_no_collect.should_collect("not_defined")
+
+    glob_combined = AwsConfig(collect=["*ec*"], no_collect=["ec?"])
+    assert glob_combined.should_collect("electronics")
+    assert glob_combined.should_collect("ec")
+    assert not glob_combined.should_collect("ec2")
+    assert not glob_combined.should_collect("ec3")
+    assert not glob_combined.should_collect("not_defined")
+
+
 def test_session() -> None:
     config = AwsConfig("test", "test", "test")
     # direct session
@@ -35,7 +63,7 @@ def test_shared_tasks_per_key() -> None:
     config = AwsConfig(
         "test", "test", "test", resource_pool_tasks_per_service_default=20, resource_pool_tasks_per_service={"test": 3}
     )
-    config.resource_pool_tasks_per_service["sagemaker"] = 6  # predefined
+    config.resource_pool_tasks_per_service["sagemaker"] = 6  # type: ignore # predefined
     tpk = config.shared_tasks_per_key(["eu-central-1"])
     assert tpk("eu-central-1:foo") == 20  # default
     assert tpk("eu-central-1:sagemaker") == 6  # predefined
