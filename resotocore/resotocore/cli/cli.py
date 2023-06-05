@@ -461,11 +461,13 @@ class CLIService(CLI):
             if parts:
                 query, options, query_parts = await self.create_query(parts, ctx)
                 ctx_wq = evolve(ctx, query=query, query_options=options, commands=commands)
-                remaining = [self.command(c.name, c.arg, ctx_wq) for c in commands[len(parts) :]]  # noqa: E203
+                remaining = [
+                    self.command(c.name, c.arg, ctx_wq, position=pos) for pos, c in enumerate(commands[len(parts) :])
+                ]  # noqa: E203
                 rewritten_parts = [*query_parts, *remaining]
             else:
                 ctx_wq = evolve(ctx, commands=commands)
-                rewritten_parts = [self.command(c.name, c.arg, ctx_wq) for c in commands]
+                rewritten_parts = [self.command(c.name, c.arg, ctx_wq, position=pos) for pos, c in enumerate(commands)]
             # re-evaluate remaining commands - to take the adapted context into account
             return ctx_wq, rewritten_parts
 
