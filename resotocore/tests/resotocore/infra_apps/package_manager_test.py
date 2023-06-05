@@ -5,9 +5,8 @@ from resotocore.infra_apps.manifest import AppManifest
 from resotocore.ids import InfraAppName
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.config import ConfigHandler
-from resotocore.cli.model import AliasTemplate
+from resotocore.cli.model import InfraAppAlias
 from arango.database import StandardDatabase
-from collections import defaultdict
 from types import SimpleNamespace
 import pytest
 from asyncio import Future
@@ -46,10 +45,10 @@ config_handler = cast(
 @pytest.mark.asyncio
 async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     name = InfraAppName("cleanup-untagged")
-    enabled_aliases: Dict[str, AliasTemplate] = {}
+    enabled_aliases: Dict[str, InfraAppAlias] = {}
 
-    def enable_alias(ta: AliasTemplate) -> None:
-        enabled_aliases[ta.name] = ta
+    def enable_alias(alias: InfraAppAlias) -> None:
+        enabled_aliases[alias.name] = alias
 
     def disable_alias(name: str) -> None:
         enabled_aliases.pop(name)
@@ -78,8 +77,9 @@ async def test_install_delete(package_entity_db: PackageEntityDb) -> None:
     alias_template = enabled_aliases.get(name)
     assert alias_template is not None
     assert alias_template.name == manifest.name
-    assert alias_template.template == f"apps run {manifest.name}" + r" {{args}}"
-    assert alias_template.info == manifest.description
+    assert alias_template.template() == f"apps run {manifest.name}" + r" {{args}}"
+    assert alias_template.description == manifest.description
+    assert alias_template.readme == manifest.readme
 
     # update is possible
     updated_manifest = await package_manager.update(name)

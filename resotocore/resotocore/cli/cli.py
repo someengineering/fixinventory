@@ -54,6 +54,7 @@ from resotocore.cli.model import (
     OutputTransformer,
     PreserveOutputFormat,
     AliasTemplate,
+    InfraAppAlias,
     ArgsInfo,
     ArgInfo,
     AliasTemplateParameter,
@@ -120,6 +121,7 @@ class HelpCommand(CLICommand):
         parts: List[CLICommand],
         alias_names: Dict[str, str],
         alias_templates: Dict[str, AliasTemplate],
+        infra_app_aliases: Dict[str, InfraAppAlias],
     ):
         super().__init__(dependencies, "misc", True)
         self.all_parts = {p.name: p for p in parts + [self]}
@@ -129,6 +131,7 @@ class HelpCommand(CLICommand):
             k: [e[0] for e in v] for k, v in group_by(lambda a: a[1], self.alias_names.items()).items()
         }
         self.alias_templates = alias_templates
+        self.infra_app_aliases = infra_app_aliases
 
     @property
     def name(self) -> str:
@@ -150,7 +153,11 @@ class HelpCommand(CLICommand):
             parts = [p for p in all_parts if isinstance(p, CLICommand)]
             templates = list(sorted(self.alias_templates.values(), key=attrgetter("name")))
             alias_templates = "\n".join(f"- `{a.name}` - {a.info}" for a in templates)
-            result = f"## Custom Commands \n{alias_templates}\n"
+
+            sorted_infra_app_aliases = list(sorted(self.infra_app_aliases.values(), key=attrgetter("name")))
+            infra_app_aliases = "\n".join(f"- `{a.name}` - {a.description}" for a in sorted_infra_app_aliases)
+
+            result = f"## Custom Commands \n{alias_templates}\n ## Infrastucture Apps \n{infra_app_aliases}\n"
             for category in ["search", "format", "action", "setup", "misc"]:
                 result += f"\n\n## {category.capitalize()} Commands\n"
                 for part in parts:
@@ -194,6 +201,8 @@ class HelpCommand(CLICommand):
                 result = explain + self.all_parts[alias].rendered_help(ctx)
             elif arg in self.alias_templates:
                 result = self.alias_templates[arg].rendered_help(ctx)
+            elif arg in self.infra_app_aliases:
+                result = self.infra_app_aliases[arg].rendered_help(ctx)
             else:
                 result = f"No command found with this name: {arg}"
 
@@ -221,7 +230,14 @@ class CLIService(CLI):
         dependencies.extend(cli=self)
         alias_templates_list = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
         alias_templates = {a.name: a for a in alias_templates_list}
-        help_cmd = HelpCommand(dependencies, parts, alias_names, alias_templates)
+        infra_app_aliases: Dict[str, InfraAppAlias] = {}
+        help_cmd = HelpCommand(
+            dependencies,
+            parts,
+            alias_names,
+            alias_templates,
+            infra_app_aliases,
+        )
         cmds = {p.name: p for p in parts + [help_cmd]}
         alias_cmds = {alias: cmds[name] for alias, name in alias_names.items() if name in cmds and alias not in cmds}
         self.cli_env = env
@@ -231,6 +247,7 @@ class CLIService(CLI):
         self.__commands: Dict[str, CLICommand] = {**cmds, **alias_cmds}
         self.__dependencies = dependencies
         self.__alias_templates = alias_templates
+        self.__infra_app_aliases = infra_app_aliases
         self.reaper: Optional[Task[None]] = None
 
     @property
@@ -256,6 +273,20 @@ class CLIService(CLI):
     @property
     def alias_templates(self) -> Dict[str, AliasTemplate]:
         return self.__alias_templates
+
+    @property
+    def infra_app_aliases(self) -> Dict[str, InfraAppAlias]:
+        return self.__infra_app_aliases
+
+    def register_infra_app_alias(self, alias: InfraAppAlias) -> None:
+        """
+        Called when an infra app is registered.
+        """
+        if alias.name not in self.direct_commands and alias.name not in self.alias_commands:
+            self.__infra_app_aliases[alias.name] = alias
+
+    def unregister_infra_app_alias(self, name: str) -> None:
+        del self.__infra_app_aliases[name]
 
     def register_alias_template(self, template: AliasTemplate) -> None:
         """
@@ -547,10 +578,20 @@ class CLIService(CLI):
                 log.debug(f"The rendered alias template is: {rendered}")
                 return single_commands.parse(rendered)  # type: ignore
 
+            def expand_infra_app_alias(alias_cmd: ParsedCommand) -> List[ParsedCommand]:
+                alias: InfraAppAlias = self.infra_app_aliases[alias_cmd.cmd]
+                props: Dict[str, JsonElement] = self.replacements(**{**self.cli_env, **context.env})  # type: ignore
+                props["args"] = alias_cmd.args or ""
+                rendered = alias.render(props)
+                log.debug(f"The rendered infra app alias template is: {rendered}")
+                return single_commands.parse(rendered)  # type: ignore
+
             result: List[ParsedCommand] = []
             for cmd in line.commands:
                 if cmd.cmd in self.alias_templates:
                     result.extend(expand_alias(cmd))
+                elif cmd.cmd in self.infra_app_aliases:
+                    result.extend(expand_infra_app_alias(cmd))
                 else:
                     result.append(cmd)
 
@@ -559,12 +600,16 @@ class CLIService(CLI):
         async def send_analytics(parsed: List[ParsedCommands], raw: List[ParsedCommands]) -> None:
             command_names = [cmd.cmd for line in parsed for cmd in line.commands]
             used_aliases = [cmd.cmd for line in raw for cmd in line.commands if cmd.cmd in self.alias_templates]
+            used_infra_app_aliases = [
+                cmd.cmd for line in raw for cmd in line.commands if cmd.cmd in self.infra_app_aliases
+            ]
             resoto_session_id = context.env.get("resoto_session_id")
             await self.dependencies.event_sender.core_event(
                 CoreEvent.CLICommand,
                 {
                     "command_names": command_names,
                     "used_aliases": used_aliases,
+                    "used_infra_app_aliases": used_infra_app_aliases,
                     "session_id": resoto_session_id,
                     "source": context.source or "unknown",
                 },

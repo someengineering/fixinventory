@@ -1,6 +1,12 @@
 from textwrap import dedent
 
-from resotocore.cli.model import CLIContext, AliasTemplate, AliasTemplateParameter
+from resotocore.cli.model import (
+    CLIContext,
+    AliasTemplate,
+    AliasTemplateParameter,
+    InfraAppAlias,
+    InfraAppAliasParameter,
+)
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 
 
@@ -83,4 +89,33 @@ def test_alias_template() -> None:
             This is doing bla
             """
         ).strip()
+    )
+
+
+def test_infra_app_alias() -> None:
+    params = [
+        InfraAppAliasParameter(
+            name="param_a",
+            help="some a",
+            default=None,
+        ),
+        InfraAppAliasParameter(
+            name="param_b",
+            help="some b",
+            default="default_b",
+        ),
+    ]
+    alias = InfraAppAlias("foo", "does foes", "readme", params)
+    assert alias.render({"args": "args_go_here"}) == "apps run foo args_go_here"
+    assert alias.rendered_help(CLIContext()) == dedent(
+        """
+        foo: does foes
+        ```shell
+        foo --param-a <value> --param-b <value>
+        ```
+
+        readme
+        ## Parameters
+        - `param_a`: some a
+        - `param_b` [default: default_b]: some b"""
     )
