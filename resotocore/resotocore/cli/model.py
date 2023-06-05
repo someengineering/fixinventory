@@ -337,6 +337,61 @@ class AliasTemplateParameter:
         return "--" + self.name.replace("_", "-")
 
 
+@define(order=True, hash=True, frozen=True)
+class InfraAppAliasParameter:
+    name: str
+    help: str
+    default: Optional[JsonElement]
+
+    @property
+    def arg_name(self) -> str:
+        return "--" + self.name.replace("_", "-")
+
+
+# pylint: disable=not-an-iterable
+@define(order=True, hash=True, frozen=True)
+class InfraAppAlias:
+    name: str
+    description: str
+    readme: str
+    parameters: List[InfraAppAliasParameter]
+
+    def template(self) -> str:
+        return f"apps run {self.name}" + r" {{args}}"
+
+    def render(self, props: Json) -> str:
+        return render_template(self.template(), props)
+
+    def help(self) -> str:
+        args = " ".join(f"{arg.arg_name} <value>" for arg in self.parameters)
+
+        indent = "        "
+        desc = ""
+        if self.readme:
+            for line in self.readme.splitlines():
+                desc += f"\n{indent}{line}"
+
+        def param_info_infra_apps(param: InfraAppAliasParameter) -> str:
+            default = f" [default: {param.default}]" if param.default else ""
+            return f"- `{param.name}`{default}: {param.help}"
+
+        arg_info = f"\n{indent}".join(param_info_infra_apps(param) for param in (self.parameters or []))
+        result = dedent(
+            f"""
+        {self.name}: {self.description}
+        ```shell
+        {self.name} {args}
+        ```
+        {desc}
+        ## Parameters
+        {arg_info}"""
+        )
+        return result
+
+    def rendered_help(self, ctx: CLIContext) -> str:
+        return ctx.render_console(self.help())
+
+
 # pylint: disable=not-an-iterable
 @define(order=True, hash=True, frozen=True)
 class AliasTemplate:
@@ -348,7 +403,6 @@ class AliasTemplate:
     # only use args_description if the template does not use explicit parameters
     args_description: Dict[str, str] = field(factory=dict)
     allowed_in_source_position: bool = False
-    infra_app_parameters: Optional[Dict[str, Any]] = None  # todo: remove this abomination
 
     def render(self, props: Json) -> str:
         return render_template(self.template, props)
@@ -379,27 +433,6 @@ class AliasTemplate:
         if self.description:
             for line in self.description.splitlines():
                 desc += f"\n{indent}{line}"
-
-        if self.infra_app_parameters:
-
-            def param_info_infra_apps(name: str, arg_info: Dict[str, Any]) -> str:
-                default = f" [default: {arg_info.get('default')}]" if arg_info.get("default") else ""
-                return f"- `{name}`{default}: {arg_info.get('help')}"
-
-            arg_info = f"\n{indent}".join(
-                param_info_infra_apps(name, arg) for name, arg in self.infra_app_parameters.items()
-            )
-            result = dedent(
-                f"""
-            {self.name}: {self.info}
-            ```shell
-            {self.name} {args}
-            ```
-            {desc}
-            ## Parameters
-            {arg_info}"""
-            )
-            return result
 
         return dedent(
             f"""
@@ -440,8 +473,6 @@ class AliasTemplate:
         )
 
     def help(self) -> str:
-        if self.infra_app_parameters:  # todo: remove this abomination
-            return self.help_with_params()
         return self.help_with_params() if self.parameters else self.help_no_params_args()
 
     def rendered_help(self, ctx: CLIContext) -> str:
@@ -601,6 +632,14 @@ class CLI(ABC):
         pass
 
     @abstractmethod
+    def register_infra_app_alias(self, alias: InfraAppAlias) -> None:
+        pass
+
+    @abstractmethod
+    def unregister_infra_app_alias(self, name: str) -> None:
+        pass
+
+    @abstractmethod
     def register_alias_template(self, template: AliasTemplate) -> None:
         """
         Called when something introduces a custom command.
@@ -640,6 +679,11 @@ class CLI(ABC):
     @property
     @abstractmethod
     def alias_templates(self) -> Dict[str, AliasTemplate]:
+        pass
+
+    @property
+    @abstractmethod
+    def infra_app_aliases(self) -> Dict[str, InfraAppAlias]:
         pass
 
     @staticmethod

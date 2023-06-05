@@ -17,7 +17,7 @@ from resotocore.ids import InfraAppName, ConfigId
 from resotocore.model.model import Kind, ComplexKind
 from resotocore.types import Json
 from resotocore.model.typed_model import from_js
-from resotocore.cli.model import AliasTemplate
+from resotocore.cli.model import InfraAppAlias, InfraAppAliasParameter
 from logging import getLogger
 from resotocore.web.service import Service
 
@@ -67,7 +67,7 @@ class PackageManager(Service):
         self,
         entity_db: PackageEntityDb,
         config_handler: ConfigHandler,
-        add_command_alias: Callable[[AliasTemplate], None],
+        add_command_alias: Callable[[InfraAppAlias], None],
         remove_command_alias: Callable[[str], None],
         repos_cache_directory: Path = Path.home() / ".cache" / "resoto-infra-apps",
     ) -> None:
@@ -95,17 +95,25 @@ class PackageManager(Service):
 
         # set up custom commands
         manifests = [await self.get_manifest(name) async for name in self.list()]
-        self._setup_custom_commands([m for m in manifests if m is not None])
+        self._setup_command_aliases([m for m in manifests if m is not None])
 
-    def _setup_custom_commands(self, manifests: List[AppManifest]) -> None:
+    def _setup_command_aliases(self, manifests: List[AppManifest]) -> None:
         for manifest in manifests:
-            alias_template = AliasTemplate(
+
+            def to_param(arg: Tuple[str, Json]) -> InfraAppAliasParameter:
+                name, arg_schema = arg
+                return InfraAppAliasParameter(
+                    name=name,
+                    help=arg_schema.get("help", ""),
+                    default=arg_schema.get("default", None),
+                )
+
+            parameters = [to_param(arg) for arg in (manifest.args_schema or {}).items()]
+            alias_template = InfraAppAlias(
                 name=manifest.name,
-                info=manifest.description,
-                template=f"apps run {manifest.name}" + r" {{args}}",
-                description=manifest.readme,
-                allowed_in_source_position=True,
-                infra_app_parameters=manifest.args_schema,
+                description=manifest.description,
+                readme=manifest.readme,
+                parameters=parameters,
             )
             self.add_command_alias(alias_template)
 
@@ -263,7 +271,7 @@ class PackageManager(Service):
             stored = await self.entity_db.update(InfraAppPackage(manifest, url))
 
             # add the custom command alias
-            self._setup_custom_commands([manifest])
+            self._setup_command_aliases([manifest])
 
             return stored.manifest
         except Exception as e:

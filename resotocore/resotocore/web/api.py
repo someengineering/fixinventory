@@ -65,6 +65,7 @@ from resotocore.cli.model import (
     WorkerCustomCommand,
     CLI,
     AliasTemplate,
+    InfraAppAlias,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -1063,6 +1064,15 @@ class Api:
                 "source": cmd.allowed_in_source_position,
             }
 
+        def infra_app_alias_json(cmd: InfraAppAlias) -> Json:
+            return {
+                "name": cmd.name,
+                "info": cmd.description,
+                "help": cmd.readme,
+                "args": to_js(cmd.parameters, force_dict=True),
+                "source": True,
+            }
+
         commands = [cmd_json(cmd) for cmd in self.cli.direct_commands.values() if not isinstance(cmd, InternalPart)]
         replacements = self.cli.replacements()
         return web.json_response(
@@ -1071,6 +1081,7 @@ class Api:
                 "replacements": replacements,
                 "alias_names": alias_names(),
                 "alias_templates": [alias_json(alias) for alias in self.cli.alias_templates.values()],
+                "infra_app_aliases": [infra_app_alias_json(alias) for alias in self.cli.infra_app_aliases.values()],
             }
         )
 
