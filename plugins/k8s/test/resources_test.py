@@ -105,7 +105,8 @@ def test_Ingress(json_file: Json) -> None:
 
 @pytest.mark.json_file("api_v1_services.json")
 def test_service(json_file: Json) -> None:
-    round_trip(KubernetesService, json_file)
+    service, _ = round_trip(KubernetesService, json_file)
+    assert service[0][0].backends == []
 
 
 @pytest.mark.json_file("apis_storage.k8s.io_v1_csidrivers.json")
