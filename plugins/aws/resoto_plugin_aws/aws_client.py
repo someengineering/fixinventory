@@ -340,9 +340,11 @@ class AwsClient:
             )
             accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
         elif code in RetryableErrors and not self.retry_for(aws_service, code):
-            log.info(f"Call to {aws_service} action {action} failed and is interpreted as unavailable.")
-            accumulate("RetryableButUnavailable", "AWS API is considered unavailable.")
-            accumulate("FailedAndRetried", f"Retryable call has failed: {code}.")
+            log.info(
+                f"Call to {aws_service} action {action} failed and is interpreted as unavailable "
+                f"in region {self.region}."
+            )
+            accumulate("RetryableUnavailable", "AWS API is considered unavailable.")
         elif code in RetryableErrors:
             log.warning(f"Call to {aws_service} action {action} failed and will be retried eventually. Error: {e}")
             accumulate("FailedAndRetried", f"Retryable call has failed: {code}.")
