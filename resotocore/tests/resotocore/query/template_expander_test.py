@@ -116,6 +116,25 @@ def test_render_list() -> None:
     assert res == "query is(alb) or is(elb)"
 
 
+def test_render_as_list() -> None:
+    # dictionary as list: every item will be available as [{key: ..., value: ...}]
+    attrs: Json = {"props": {"foo": 1, "bla": 2, "bar": 3}}
+    res = render_template(
+        "query {{#props.as_list.with_index}}{{key}}=={{value}}{{^last}}, {{/last}}{{/props.as_list.with_index}}", attrs
+    )
+    assert res == "query foo==1, bla==2, bar==3"
+    # if the input is already a list, the items will be available as is
+    attrs = {"props": [{"key": "foo", "value": 1}, {"key": "bla", "value": 2}, {"key": "bar", "value": 3}]}
+    res = render_template(
+        "query {{#props.as_list.with_index}}{{key}}=={{value}}{{^last}}, {{/last}}{{/props.as_list.with_index}}", attrs
+    )
+    assert res == "query foo==1, bla==2, bar==3"
+    # if the input is neither dict or list, it will be wrapped in a single element list
+    attrs = {"props": "test"}
+    res = render_template("query {{#props.as_list.with_index}}{{value}}=={{index}}{{/props.as_list.with_index}}", attrs)
+    assert res == "query test==0"
+
+
 def test_from_now() -> None:
     res = render_template("{{delta.from_now}}", {"delta": "4h"})
     in_4_hours = utc() + timedelta(hours=4)

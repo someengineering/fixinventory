@@ -176,6 +176,15 @@ class VirtualFunctions:
     def ago(result: str) -> str:
         return utc_str(utc() - duration(result))
 
+    @staticmethod
+    def as_list(result: Any) -> List[Any]:
+        if isinstance(result, list):
+            return result
+        elif isinstance(result, dict):
+            return [{"key": k, "value": v} for k, v in result.items()]
+        else:
+            return [result]
+
 
 # noinspection PyTypeChecker
 getter: PropertyGetter = functools.partial(
@@ -186,6 +195,7 @@ getter: PropertyGetter = functools.partial(
         "parens": VirtualFunctions.parens,
         "from_now": VirtualFunctions.from_now,
         "ago": VirtualFunctions.ago,
+        "as_list": VirtualFunctions.as_list,
     },
 )
 
