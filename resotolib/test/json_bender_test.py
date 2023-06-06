@@ -86,4 +86,4 @@ def test_array_traversal() -> None:
     src = [{"a": 1}]
 
     assert bend(S(0, "a"), src) == 1
-    assert bend(S(42, "a"), src) == None
+    assert bend(S(42, "a"), src) is None
