@@ -104,7 +104,7 @@ class S(Bender):
             for key in self._path:
                 source = source[key]
             return source
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, IndexError):
             return self._default
 
 

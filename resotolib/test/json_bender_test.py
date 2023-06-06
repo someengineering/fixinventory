@@ -80,3 +80,10 @@ def test_map_dict() -> None:
     assert bend(MapDict(value_bender=F(lambda x: x + 1)), src) == {"a": 2, "b": 3}
     assert bend(MapDict(key_bender=F(lambda x: x + "b")), src) == {"ab": 1, "bb": 2}
     assert bend(MapDict(key_bender=F(lambda x: x + "b"), value_bender=F(lambda x: x + 1)), src) == {"ab": 2, "bb": 3}
+
+
+def test_array_traversal() -> None:
+    src = [{"a": 1}]
+
+    assert bend(S(0, "a"), src) == 1
+    assert bend(S(42, "a"), src) == None
