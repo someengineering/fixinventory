@@ -1049,6 +1049,7 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
+        "public_ip_address": S("spec", "externalIPs", 0),
     }
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
