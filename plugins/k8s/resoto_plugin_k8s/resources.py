@@ -1044,11 +1044,12 @@ class KubernetesServiceSpec:
 
 
 @define(eq=False, slots=False)
-class KubernetesService(KubernetesResource):
+class KubernetesService(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_service"
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
+        "public_ip_address": S("spec", "externalIPs", 0),
     }
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1061,9 +1062,27 @@ class KubernetesService(KubernetesResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
+        resolved_backends = set()
+
+        pods = [
+            ((key, val), pod)
+            for pod in builder.graph.nodes
+            if isinstance(pod, KubernetesPod)
+            for key, val in pod.labels.items()
+        ]
+        pods_by_labels = defaultdict(list)
+        for (key, val), pod in pods:
+            pods_by_labels[(key, val)].append(pod)
+
         selector = bend(S("spec", "selector"), source)
         if selector:
             builder.add_edges_from_selector(self, EdgeType.default, selector, KubernetesPod)
+
+            for key, value in selector.items():
+                for pod in pods_by_labels.get((key, value), []):
+                    resolved_backends.add(pod.name or pod.id)
+
+        self.backends = list(resolved_backends)
 
 
 # endregion

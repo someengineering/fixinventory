@@ -93,7 +93,7 @@ class S(Bender):
     Retrieve a value from a JSON object under given path.
     """
 
-    def __init__(self, *path: str, default: Optional[Any] = None):
+    def __init__(self, *path: Union[str, int], default: Optional[Any] = None):
         if not path:
             raise ValueError("No path given")
         self._path = path
@@ -104,7 +104,7 @@ class S(Bender):
             for key in self._path:
                 source = source[key]
             return source
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, IndexError):
             return self._default
 
 
