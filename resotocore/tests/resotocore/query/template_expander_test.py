@@ -118,7 +118,7 @@ def test_render_list() -> None:
 
 def test_render_as_list() -> None:
     # dictionary as list: every item will be available as [{key: ..., value: ...}]
-    attrs = {"props": {"foo": 1, "bla": 2, "bar": 3}}
+    attrs: Json = {"props": {"foo": 1, "bla": 2, "bar": 3}}
     res = render_template(
         "query {{#props.as_list.with_index}}{{key}}=={{value}}{{^last}}, {{/last}}{{/props.as_list.with_index}}", attrs
     )
