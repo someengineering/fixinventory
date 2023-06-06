@@ -387,10 +387,13 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 # {"aws": {"account1": {"region1": {"id1": {"id": "xxx", "name": "yyy", "kind": "zzz" }}}}}
                 # note: Pagerduty is able to render JSON objects in their webUI, but not arrays.
                 "head 100 | chunk 100 | jq --no-rewrite '"
+                "{{#group_resources}}"
                 '[group_by(.ancestors.cloud.reported.name) | .[] | {(.[0].ancestors.cloud.reported.name // "no-cloud"): '  # noqa: E501
                 '[group_by(.ancestors.account.reported.name) | .[] | {(.[0].ancestors.account.reported.name // "no-account"): '  # noqa: E501
                 '[group_by(.ancestors.region.reported.name) | .[] | {(.[0].ancestors.region.reported.name // "no-region"): '  # noqa: E501
-                "[.[] | {(.id): {id: .reported.id, name: .reported.name, kind: .reported.kind}}] | add }] | add }] | add }] | add'"  # noqa: E501
+                "{{/group_resources}}"
+                "[.[] | {({{resource_id}}): { {{#resource_properties.as_list.with_index}}{{key}}: {{value}}{{^last}},{{/last}}{{/resource_properties.as_list.with_index}} }}] | add "  # noqa: E501
+                "{{#group_resources}}}] | add }] | add }] | add {{/group_resources}}'"
                 "| jq --no-rewrite '{payload: "
                 '{summary: "{{summary}}", '
                 'timestamp: "@utc@", '
@@ -444,6 +447,21 @@ def alias_templates() -> List[AliasTemplateConfig]:
                     "webhook_url",
                     "The complete url of the pagerduty events API.",
                     "https://events.pagerduty.com/v2/enqueue",
+                ),
+                AliasTemplateParameterConfig(
+                    "group_resources",
+                    "Group Resource by cloud, account, and region.",
+                    True,
+                ),
+                AliasTemplateParameterConfig(
+                    "resource_id",
+                    "Property to show as resource identifier.",
+                    ".id",
+                ),
+                AliasTemplateParameterConfig(
+                    "resource_properties",
+                    "Dictionary of properties to show.",
+                    dict(id=".reported.id", name=".reported.name", kind=".reported.kind"),
                 ),
             ],
             allowed_in_source_position=False,

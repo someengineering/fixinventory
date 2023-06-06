@@ -116,6 +116,14 @@ def test_render_list() -> None:
     assert res == "query is(alb) or is(elb)"
 
 
+def test_render_dict_as_list() -> None:
+    attrs = {"props": {"foo": 1, "bla": 2, "bar": 3}}
+    res = render_template(
+        "query {{#props.as_list.with_index}}{{key}}=={{value}}{{^last}}, {{/last}}{{/props.as_list.with_index}}", attrs
+    )
+    assert res == "query foo==1, bla==2, bar==3"
+
+
 def test_from_now() -> None:
     res = render_template("{{delta.from_now}}", {"delta": "4h"})
     in_4_hours = utc() + timedelta(hours=4)
