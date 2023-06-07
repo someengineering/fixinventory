@@ -19,15 +19,16 @@ from pytest import fixture
 from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLIService
-from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand
-from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI
+from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
 from resotocore.cli.dependencies import CLIDependencies
+from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.error import CLIParseError
-from resotocore.ids import InfraAppName
+from resotocore.graph_manager.graph_manager import GraphManager
+from resotocore.ids import InfraAppName, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.model.model import Model
@@ -41,10 +42,6 @@ from resotocore.types import JsonElement, Json
 from resotocore.user import UsersConfigId
 from resotocore.util import AccessJson, utc_str, utc
 from resotocore.worker_task_queue import WorkerTask
-from resotocore.ids import InfraAppName, GraphName
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.infra_apps.runtime import Runtime
-from resotocore.graph_manager.graph_manager import GraphManager
 from tests.resotocore.util_test import not_in_path
 
 
@@ -52,6 +49,12 @@ from tests.resotocore.util_test import not_in_path
 def json_source() -> str:
     nums = ",".join([f'{{ "num": {a}, "inner": {{"num": {a%10}}}}}' for a in range(0, 100)])
     return "json [" + nums + "," + nums + "]"
+
+
+def test_known_category(cli_deps: CLIDependencies) -> None:
+    allowed_categories = {"search", "format", "action", "setup", "misc"}
+    for cmd in all_commands(cli_deps):
+        assert cmd.category in allowed_categories, f"Unknown category {cmd.category} for command {cmd.name}"
 
 
 @pytest.mark.asyncio
