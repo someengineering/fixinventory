@@ -376,8 +376,8 @@ class InfraAppAlias:
                 desc += f"\n{indent}{line}"
 
         def param_info_infra_apps(param: InfraAppAliasParameter) -> str:
-            default = f" [default: {param.default}]" if param.default else ""
-            return f"- `{param.name}`{default}: {param.help}"
+            default = f" [default: {param.default}]" if param.default else " [required]"
+            return f"- `{param.arg_name}`{default}: {param.help}"
 
         arg_info = f"\n{indent}".join(param_info_infra_apps(param) for param in (self.parameters or []))
         result = dedent(

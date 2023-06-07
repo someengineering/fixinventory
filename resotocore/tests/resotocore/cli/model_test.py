@@ -116,6 +116,6 @@ def test_infra_app_alias() -> None:
 
         readme
         ## Parameters
-        - `param_a`: some a
-        - `param_b` [default: default_b]: some b"""
+        - `--param-a` [required]: some a
+        - `--param-b` [default: default_b]: some b"""
     )
