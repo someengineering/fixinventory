@@ -145,9 +145,11 @@ def should_export(field: Attribute) -> bool:  # type: ignore
 
 def dataclasses_to_resotocore_model(
     classes: Set[Type[Any]],
+    *,
     allow_unknown_props: bool = False,
     aggregate_root: Optional[Type[Any]] = None,
     walk_subclasses: bool = True,
+    use_optional_as_required: bool = False,
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -159,6 +161,7 @@ def dataclasses_to_resotocore_model(
     :param allow_unknown_props: allow properties in json that are not defined in the model.
     :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
     :param walk_subclasses: if true, all subclasses of the given classes will be analyzed as well.
+    :param use_optional_as_required: if true, all non-optional fields will be considered required.
     :return: the model definition in the resotocore json format.
     """
 
@@ -171,7 +174,7 @@ def dataclasses_to_resotocore_model(
         meta = field.metadata.copy()
         kind = meta.pop("type_hint", model_name(field.type))
         desc = meta.pop("description", "")
-        required = meta.pop("required", False)
+        required = meta.pop("required", use_optional_as_required and not is_optional(field.type))
         synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
         for ps in property_metadata_to_strip:
@@ -197,7 +200,6 @@ def dataclasses_to_resotocore_model(
             for synth_prop, synth_trafo in synthetic.items()
         ]
 
-        # required = not is_optional(field.type)
         return [json(name, kind, required, desc, meta)] + synthetics
 
     for cls in classes:

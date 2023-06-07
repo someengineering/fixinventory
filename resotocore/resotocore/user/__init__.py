@@ -112,4 +112,4 @@ class UserManagement(Service, ABC):
 
 def config_model() -> List[Json]:
     config_classes: Set[Type[Any]] = {ResotoUsersConfig}
-    return dataclasses_to_resotocore_model(config_classes, allow_unknown_props=False)
+    return dataclasses_to_resotocore_model(config_classes, use_optional_as_required=True)
