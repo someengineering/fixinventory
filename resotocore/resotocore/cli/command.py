@@ -16,7 +16,7 @@ from asyncio import Future, Task
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
-from datetime import timedelta
+from datetime import timedelta, datetime
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from tempfile import TemporaryDirectory
@@ -89,7 +89,7 @@ from resotocore.cli.model import (
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
-from resotocore.db.graphdb import HistoryChange
+from resotocore.db.graphdb import HistoryChange, GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.dependencies import system_info
@@ -189,6 +189,7 @@ class SearchPart(SearchCLIPart):
 
     - `--with-edges`: Return edges in addition to nodes.
     - `--explain`: Instead of executing the search, analyze its cost.
+    - `--at <time>`: Perform search on the snapshot of a graph just before the given time.
 
     ## Parameters
 
@@ -356,6 +357,9 @@ class SearchPart(SearchCLIPart):
     estimated_nr_items: 8
     full_collection_scan: false
     rating: simple
+
+    # Search all volumes on a snapshot from the past
+    > search --at 2023-05-07T12:34:56Z is(volume)
     ```
 
     ## Environment Variables
@@ -382,6 +386,7 @@ class SearchPart(SearchCLIPart):
         return [
             ArgInfo(expects_value=True, value_hint="search"),
             ArgInfo("--with-edges", help_text="include edges in result"),
+            ArgInfo("--at", help_text="timestamp to search at"),
         ]
 
 
@@ -1350,6 +1355,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         parser.add_argument("--after", dest="after", default=None)
         parser.add_argument("--before", dest="before", default=None)
         parser.add_argument("--change", dest="change", default=None)
+        parser.add_argument("--at", dest="at", type=date_parser.parse, default=None)
         try:
             # try to parse as many arguments as possible
             args, remaining = args_parts_parser.parse_partial(arg)
@@ -1375,7 +1381,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         # db name is coming from the env
-        graph_name = ctx.graph_name
+        current_graph_name = ctx.graph_name
         if not arg:
             raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
@@ -1384,24 +1390,41 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         with_edges: bool = parsed.get("with-edges", False)
         explain: bool = parsed.get("explain", False)
         history: bool = parsed.get("history", False)
+        at: Optional[datetime] = parsed.get("at", None)
 
         # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(rest, **ctx.env)
-        db = self.dependencies.db_access.get_graph_db(graph_name)
 
-        async def load_query_model() -> QueryModel:
+        async def get_db(at: Optional[datetime], graph_name: GraphName) -> Tuple[GraphDB, GraphName]:
+            # if we search at some specific time: find a snapshot at that time
+            db_access = cast(CLIDependencies, self.dependencies).db_access
+            if at:
+                snapshot_name = await cast(CLIDependencies, self.dependencies).graph_manager.snapshot_at(
+                    time=at, graph_name=graph_name
+                )
+                if not snapshot_name:
+                    raise CLIParseError(f"No graph snapshot at {at} found.")
+
+                return db_access.get_graph_db(snapshot_name), snapshot_name
+
+            return db_access.get_graph_db(graph_name), graph_name
+
+        async def load_query_model(db: GraphDB, graph_name: GraphName) -> QueryModel:
             model = await self.dependencies.model_handler.load_model(graph_name)
             query_model = QueryModel(query, model)
             await db.to_query(query_model)  # only here to validate the query itself (can throw)
             return query_model
 
         async def explain_search() -> AsyncIterator[Json]:
-            query_model = await load_query_model()
+            db, graph_name = await get_db(at, current_graph_name)
+            query_model = await load_query_model(db, graph_name)
             explanation = await db.explain(query_model, with_edges)
             yield to_js(explanation)
 
         async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
-            query_model = await load_query_model()
+            db, graph_name = await get_db(at, current_graph_name)
+
+            query_model = await load_query_model(db, graph_name)
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             if history:
@@ -1907,7 +1930,7 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
         self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
-        db = self.dependencies.db_access.get_graph_db(graph_name)
+        db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
             if "id" in item:
@@ -2041,7 +2064,7 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
-        db = self.dependencies.db_access.get_graph_db(graph_name)
+        db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
             if "id" in item:
@@ -3019,7 +3042,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             try:
                 result = await future_result
                 if is_node(result):
-                    db = self.dependencies.db_access.get_graph_db(GraphName(env["graph"]))
+                    db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(GraphName(env["graph"]))
                     try:
                         updated: Json = await db.update_node(model, result["id"], result, True, None)
                         return updated
@@ -3433,7 +3456,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         temp_dir: str = tempfile.mkdtemp()
         maybe_proc: Optional[Process] = None
         try:
-            db_config = self.dependencies.config.db
+            db_config = cast(CLIDependencies, self.dependencies).config.db
             if not shutil.which("arangodump"):
                 raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
             # fmt: off
@@ -3497,7 +3520,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
             # fmt: off
-            db_conf = self.dependencies.config.db
+            db_conf = cast(CLIDependencies, self.dependencies).config.db
             process = await asyncio.create_subprocess_exec(
                 "arangorestore",
                 "--progress", "false",  # do not show progress
@@ -3721,7 +3744,9 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
         async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
             # try to render_console the template with dummy values and see if the search can be parsed
             try:
-                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
+                rendered_query = cast(CLIDependencies, self.dependencies).template_expander.render(
+                    template_query, defaultdict(lambda: True)
+                )
                 parse_query(rendered_query, **ctx.env)
             except Exception as ex:
                 raise CLIParseError(f"Given template does not define a valid search: {template_query}") from ex
@@ -4627,7 +4652,7 @@ class CertificateCommand(CLICommand):
         async def create_certificate(
             common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
         ) -> AsyncIterator[str]:
-            key, cert = self.dependencies.cert_handler.create_key_and_cert(
+            key, cert = cast(CLIDependencies, self.dependencies).cert_handler.create_key_and_cert(
                 common_name, dns_names, ip_addresses, days_valid
             )
             with TemporaryDirectory() as tmpdir:
@@ -5417,7 +5442,7 @@ class GraphCommand(CLICommand):
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
                 graph_name = ctx.graph_name
-            lines = self.dependencies.graph_manager.export_graph(graph_name)
+            lines = cast(CLIDependencies, self.dependencies).graph_manager.export_graph(graph_name)
             return write_result_to_file(lines, file_name)
 
         async def graph_import(

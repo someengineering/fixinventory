@@ -15,6 +15,7 @@ from aiostream import stream
 from aiostream.core import Stream
 from attrs import evolve
 from pytest import fixture
+import asyncio
 
 from resotocore import version
 from resotocore.cli import is_node
@@ -1253,8 +1254,16 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     snapshots = await graph_manager.list("snapshot.*")
     assert len(snapshots) == 2
     assert snapshots[0].startswith("snapshot")
+    await asyncio.sleep(1.1)
+
+    # search using a timestamp
+    at_timestamp = await execute(f"search is(graph_root) --at {utc_str()}", str)
+    assert at_timestamp == ["kind=graph_root, name=root"]
     for snapshot in snapshots:
         await graph_manager.delete(GraphName(snapshot))
+
+    with pytest.raises(Exception):
+        await execute(f"search is(graph_root) --at {utc_str()}", str)
 
     # delete a graph
     await execute("graph delete graphtest2", str)

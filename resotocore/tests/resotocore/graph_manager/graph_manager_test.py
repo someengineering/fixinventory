@@ -11,6 +11,8 @@ from resotocore.task import TaskHandler
 import pytest
 from tests.resotocore.db.graphdb_test import create_multi_collector_graph
 import re
+from resotolib.utils import utc
+import asyncio
 
 
 @pytest.mark.asyncio
@@ -63,6 +65,17 @@ async def test_graph_manager(
                 break
         else:
             raise AssertionError(f"Could not find graph with name {name} in {graphs}")
+
+    # snapshots at specific time
+    await asyncio.sleep(1.1)
+    await graph_manager.snapshot(GraphName("test_graph"), "label")
+    await asyncio.sleep(1.1)
+    now = utc()
+    await graph_manager.snapshot(GraphName("test_graph"), "label")
+    await asyncio.sleep(1.1)
+    await graph_manager.snapshot(GraphName("test_graph"), "label")
+    found = await graph_manager.snapshot_at(time=now, graph_name=GraphName("test_graph"))
+    assert found is not None
 
     # test snapshot cleanup
     await graph_manager._clean_outdated_snapshots(

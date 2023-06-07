@@ -115,6 +115,24 @@ class GraphManager(Service):
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
 
+    async def snapshot_at(self, *, time: datetime, graph_name: GraphName) -> Optional[GraphName]:
+        regex = rf"snapshot-{graph_name}-.*-(.+)"
+        graphs = await self.list(regex)
+        graphs.sort(reverse=True)
+        graphs_with_time = []
+        for graph in graphs:
+            match = re.match(regex, graph)
+            if match:
+                graphs_with_time.append((parse(match.group(1)), graph))
+
+        # take the first graph that is older than the given time
+        for graph_time, graph in graphs_with_time:
+            if graph_time <= time:
+                return graph
+
+        # nothing found
+        return None
+
     async def copy(
         self, source: GraphName, destination: GraphName, replace_existing: bool, validate_name: bool = True
     ) -> GraphName:
