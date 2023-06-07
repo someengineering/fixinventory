@@ -9,6 +9,7 @@ from prompt_toolkit.completion import (
 )
 from prompt_toolkit.document import Document
 
+from resotolib.json import from_json
 from resotoshell.promptsession import (
     CommandLineCompleter,
     SearchCompleter,
@@ -120,6 +121,95 @@ def complete(part: str, completer: Completer, return_meta: bool = False) -> Set[
         a.display_meta_text if return_meta else a.text
         for a in completer.get_completions(Document(part, len(part)), CompleteEvent())
     }
+
+
+def test_parse_command_info() -> None:
+    cmd = {
+        "args": {
+            "activate": [
+                {
+                    "can_occur_multiple_times": False,
+                    "expects_value": False,
+                    "help_text": "<job-id>",
+                    "name": None,
+                    "option_group": None,
+                    "possible_values": [],
+                    "value_hint": None,
+                }
+            ],
+            "add": [
+                {
+                    "can_occur_multiple_times": False,
+                    "expects_value": True,
+                    "help_text": None,
+                    "name": "--id",
+                    "option_group": None,
+                    "possible_values": [],
+                    "value_hint": None,
+                }
+            ],
+            "deactivate": [
+                {
+                    "can_occur_multiple_times": False,
+                    "expects_value": False,
+                    "help_text": "<job-id>",
+                    "name": None,
+                    "option_group": None,
+                    "possible_values": [],
+                    "value_hint": None,
+                }
+            ],
+            "delete": [
+                {
+                    "can_occur_multiple_times": False,
+                    "expects_value": False,
+                    "help_text": "<job-id>",
+                    "name": None,
+                    "option_group": None,
+                    "possible_values": [],
+                    "value_hint": None,
+                }
+            ],
+            "list": [],
+            "run": [
+                {
+                    "can_occur_multiple_times": False,
+                    "expects_value": False,
+                    "help_text": "<job-id>",
+                    "name": None,
+                    "option_group": None,
+                    "possible_values": [],
+                    "value_hint": None,
+                }
+            ],
+        },
+        "help": "some help",
+        "info": "Manage all jobs.",
+        "name": "jobs",
+        "source": True,
+    }
+    app = {"args": [], "help": "", "info": "Tag Validator app for Resoto.", "name": "tagvalidator", "source": True}
+    template = {
+        "args": [
+            {
+                "can_occur_multiple_times": False,
+                "expects_value": True,
+                "help_text": "[required] Alert title",
+                "name": "--title",
+                "option_group": None,
+                "possible_values": [],
+                "value_hint": None,
+            }
+        ],
+        "help": "some help",
+        "info": "Send the result of a search to Discord",
+        "name": "discord",
+        "source": False,
+    }
+
+    assert from_json(cmd, CommandInfo) is not None
+    assert from_json(app, CommandInfo) is not None
+    assert from_json(template, CommandInfo) is not None
 
 
 def test_doc_ext() -> None:

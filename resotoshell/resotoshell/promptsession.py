@@ -28,8 +28,9 @@ from prompt_toolkit.styles import Style
 from resotoclient.async_client import ResotoClient
 from resotoclient.models import Property
 
-from resotolib.json import from_json
+from resotolib.json import from_json, register_json
 from resotolib.logger import log
+from resotolib.types import JsonElement
 
 
 def cut_document_remaining(document: Document, span: Tuple[int, int]) -> Document:
@@ -827,3 +828,16 @@ async def core_metadata(
             exc_info=ex,
         )
         return [], [], []
+
+
+# cattrs needs help with parsing the args
+def parse_args(js: JsonElement) -> ArgsInfo:
+    if isinstance(js, list):
+        return [from_json(v, ArgInfo) for v in js]
+    elif isinstance(js, dict):
+        return {k: parse_args(v) for k, v in js.items()}
+    else:
+        raise ValueError(f"Expected list or dict, got {js}")
+
+
+register_json(ArgsInfo, from_json_fn=parse_args)  # type: ignore
