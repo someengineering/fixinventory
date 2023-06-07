@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from attrs import define
-from typing import Any, Dict, Optional, AsyncIterator, List, cast, Callable, Awaitable
+from typing import Any, Dict, Optional, AsyncIterator, List, Callable, Awaitable
 
+from attrs import define
 from jsons import set_deserializer, set_serializer
 
+from resotocore.ids import ConfigId
 from resotocore.model.model import Model, Kind
 from resotocore.types import Json
-from resotocore.ids import ConfigId
 from resotocore.util import value_in_path, value_in_path_get
 
 
@@ -25,7 +25,7 @@ class ConfigEntity:
 
         # provider information
         collectors: List[str] = []
-        collectors.extend(cast(List[str], value_in_path(self.config, ["resotoworker", "collector"])))
+        collectors.extend(value_in_path_get(self.config, ["resotoworker", "collector"], []))
         if "example" in collectors:
             collectors.remove("example")
         analytics["how_many_providers"] = len(collectors)

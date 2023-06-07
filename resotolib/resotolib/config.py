@@ -373,7 +373,7 @@ class Config(metaclass=MetaConfig):
     def model(self) -> List[Json]:
         """Return the config dataclass model in resotocore format"""
         classes = set(_config.classes.values())
-        return dataclasses_to_resotocore_model(classes)
+        return dataclasses_to_resotocore_model(classes, use_optional_as_required=True)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:
