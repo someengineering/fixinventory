@@ -174,7 +174,7 @@ def dataclasses_to_resotocore_model(
         meta = field.metadata.copy()
         kind = meta.pop("type_hint", model_name(field.type))
         desc = meta.pop("description", "")
-        required = meta.pop("required", use_optional_as_required and not is_optional(field.type))
+        required = meta.pop("required", use_optional_as_required and not is_optional(field.type))  # type: ignore
         synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
         for ps in property_metadata_to_strip:
