@@ -8,7 +8,6 @@ from asyncio import iscoroutine
 from datetime import timedelta
 from enum import Enum
 from functools import reduce
-from operator import attrgetter
 from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
@@ -335,7 +334,7 @@ class AliasTemplateParameter:
     default: Optional[JsonElement] = None
 
     def example_value(self) -> JsonElement:
-        return self.default if self.default else f"test_{self.name}"
+        return self.default if self.default else f"test-{self.name.replace('_', '-')}"
 
     @property
     def arg_name(self) -> str:
@@ -428,11 +427,14 @@ class AliasTemplate:
         args = " ".join(f"{arg.arg_name} <value>" for arg in self.parameters)
 
         def param_info(p: AliasTemplateParameter) -> str:
-            default = f" [default: {p.default}]" if p.default else ""
-            return f"- `{p.name}`{default}: {p.description}"
+            default = f" [default: {p.default}]" if p.default else " [required]"
+            return f"- `{p.arg_name}`{default}: {p.description}"
+
+        def sort_required_name(p: AliasTemplateParameter) -> Any:
+            return p.default is not None, p.name
 
         indent = "            "
-        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=attrgetter("name")))
+        arg_info = f"\n{indent}".join(param_info(arg) for arg in sorted(self.parameters, key=sort_required_name))
         minimal = " ".join(f'{p.arg_name} "{p.example_value()}"' for p in self.parameters if p.default is None)
         desc = ""
         if self.description:

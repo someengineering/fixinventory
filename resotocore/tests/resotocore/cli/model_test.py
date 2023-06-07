@@ -46,8 +46,8 @@ def test_alias_template() -> None:
         ```
 
         ## Parameters
-        - `a`: some a
-        - `b` [default: bv]: some b
+        - `--a` [required]: some a
+        - `--b` [default: bv]: some b
 
         ## Template
         ```shell
@@ -57,9 +57,9 @@ def test_alias_template() -> None:
         ## Example
         ```shell
         # Executing this command
-        > foo --a "test_a"
+        > foo --a "test-a"
         # Will expand to this command
-        > test_a | bv
+        > test-a | bv
         ```
         """
     )
