@@ -4850,7 +4850,7 @@ class ReportCommand(CLICommand, EntityProvider):
             return CLISource.single(show_help)
 
 
-class InfrastructureAppsCommand(CLICommand):
+class AppsCommand(CLICommand):
     """
     ```shell
     apps search [pattern] [--index-url https://cdn.some.engineering/resoto/apps/index.json]
@@ -5513,7 +5513,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         ExecuteSearchCommand(d, "search", allowed_in_source_position=True),
         FlattenCommand(d, "misc"),
         FormatCommand(d, "format"),
-        HeadCommand(d, "misc"),
+        HeadCommand(d, "search"),
         HistoryPart(d, "search", allowed_in_source_position=True),
         HttpCommand(d, "action"),
         JobsCommand(d, "action", allowed_in_source_position=True),
@@ -5534,15 +5534,15 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         SuccessorsPart(d, "search"),
         SystemCommand(d, "setup", allowed_in_source_position=True),
         TagCommand(d, "action"),
-        TailCommand(d, "misc"),
+        TailCommand(d, "search"),
         UniqCommand(d, "misc"),
         UserCommand(d, "setup", allowed_in_source_position=True),
         WorkflowsCommand(d, "action", allowed_in_source_position=True),
         WelcomeCommand(d, "misc", allowed_in_source_position=True),
         TipOfTheDayCommand(d, "misc", allowed_in_source_position=True),
         WriteCommand(d, "misc"),
-        InfrastructureAppsCommand(d, "apps", allowed_in_source_position=True),
-        GraphCommand(d, "graph", allowed_in_source_position=True),
+        AppsCommand(d, "misc", allowed_in_source_position=True),
+        GraphCommand(d, "setup", allowed_in_source_position=True),
     ]
     # commands that are only available when the system is started in debug mode
     if d.config.runtime.debug:
