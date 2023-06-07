@@ -118,13 +118,13 @@ class GraphManager(Service):
     async def snapshot_at(self, *, time: datetime, graph_name: GraphName) -> Optional[GraphName]:
         regex = rf"snapshot-{graph_name}-.*-(.+)"
         graphs = await self.list(regex)
-        graphs.sort(reverse=True)
         graphs_with_time = []
         for graph in graphs:
             match = re.match(regex, graph)
             if match:
                 graphs_with_time.append((parse(match.group(1)), graph))
 
+        graphs_with_time.sort(reverse=True, key=lambda x: x[0])
         # take the first graph that is older than the given time
         for graph_time, graph in graphs_with_time:
             if graph_time <= time:
