@@ -189,7 +189,7 @@ class SearchPart(SearchCLIPart):
 
     - `--with-edges`: Return edges in addition to nodes.
     - `--explain`: Instead of executing the search, analyze its cost.
-    - `--at <time>`: Perform search on the snapshot of a graph just before the given time.
+    - `--at <time|delta>`: Perform search on the snapshot of a graph just before the given time.
 
     ## Parameters
 
@@ -360,6 +360,7 @@ class SearchPart(SearchCLIPart):
 
     # Search all volumes on a snapshot from the past
     > search --at 2023-05-07T12:34:56Z is(volume)
+    > search --at 1w is(volume)
     ```
 
     ## Environment Variables
@@ -386,7 +387,7 @@ class SearchPart(SearchCLIPart):
         return [
             ArgInfo(expects_value=True, value_hint="search"),
             ArgInfo("--with-edges", help_text="include edges in result"),
-            ArgInfo("--at", help_text="timestamp to search at"),
+            ArgInfo("--at", help_text="timestamp | timedelta"),
         ]
 
 
@@ -1355,7 +1356,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         parser.add_argument("--after", dest="after", default=None)
         parser.add_argument("--before", dest="before", default=None)
         parser.add_argument("--change", dest="change", default=None)
-        parser.add_argument("--at", dest="at", type=date_parser.parse, default=None)
+        parser.add_argument("--at", dest="at", type=lambda x: parse_time_or_delta(strip_quotes(x)), default=None)
         try:
             # try to parse as many arguments as possible
             args, remaining = args_parts_parser.parse_partial(arg)

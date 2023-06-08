@@ -1259,6 +1259,9 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     # search using a timestamp
     at_timestamp = await execute(f"search is(graph_root) --at {utc_str()}", str)
     assert at_timestamp == ["kind=graph_root, name=root"]
+    # search using timedelta
+    assert await execute("search is(graph_root) --at 0s", str) == ["kind=graph_root, name=root"]
+
     for snapshot in snapshots:
         await graph_manager.delete(GraphName(snapshot))
 
