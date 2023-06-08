@@ -4662,10 +4662,18 @@ class ReportCommand(CLICommand, EntityProvider):
     ```shell
     report benchmarks list
     report benchmark show <benchmark-id>
-    report benchmark run <benchmark-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    report benchmark run <benchmark-id>
+                         [--accounts <account-id>]
+                         [--severity <level>]
+                         [--only-failing]
+                         [--only-check-results]
     report checks list
     report checks show <check-id>
-    report checks run <check-id> [--accounts <account-id>] [--severity <level>] [--only-failing]
+    report checks run <check-id>
+                      [--accounts <account-id>]
+                      [--severity <level>]
+                      [--only-failing]
+                      [--only-check-results]
     ```
 
     List and run benchmarks as well as specific benchmark checks.
@@ -4683,6 +4691,8 @@ class ReportCommand(CLICommand, EntityProvider):
 
     ## Options
     - `--only-failing` [optional]: Only include checks that are failing in the report.
+    - `--only-check-results` [optional]: Only include the check result, not the benchmark structure in the report.
+                                         This is useful, if you want to process the result with other action commands.
 
     ## Examples
 
