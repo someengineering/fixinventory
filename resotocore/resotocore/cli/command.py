@@ -1396,9 +1396,9 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         query = parse_query(rest, **ctx.env)
 
         async def get_db(at: Optional[datetime], graph_name: GraphName) -> Tuple[GraphDB, GraphName]:
-            # if we search at some specific time: find a snapshot at that time
             db_access = cast(CLIDependencies, self.dependencies).db_access
             if at:
+                # if we search at some specific time: find a snapshot at that time
                 snapshot_name = await cast(CLIDependencies, self.dependencies).graph_manager.snapshot_at(
                     time=at, graph_name=graph_name
                 )
