@@ -1412,7 +1412,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
                     time=at, graph_name=graph_name
                 )
                 if not snapshot_name:
-                    raise CLIParseError(f"No graph snapshot at {at} found.")
+                    raise CLIParseError(f"No graph snapshot at {at} found for graph {graph_name}.")
 
                 return db_access.get_graph_db(snapshot_name), snapshot_name
 
