@@ -438,7 +438,7 @@ def query_string(
                 filter_clause = f"({term_string})"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                 filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
-                edge_type_traversals = f", {direction} ".join(db.edge_collection(et) for et in nav.edge_types)
+                edge_type_traversals = f", {direction} ".join(f"`{db.edge_collection(et)}`" for et in nav.edge_types)
                 return (
                     f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
@@ -500,7 +500,7 @@ def query_string(
             query_part += (
                 f"LET {out} =({outer_for}"
                 f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor} "
-                f"{db.edge_collection(edge_type)} OPTIONS {{ bfs: true, {unique} }} "
+                f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }} "
                 f"RETURN DISTINCT {inout_result}) "
             )
             return out

@@ -54,6 +54,7 @@ from aiostream import stream
 from attrs import evolve
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
+from dateutil import parser as date_parser
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.cli.command import alias_names
@@ -74,6 +75,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
+from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.model.db_updater import merge_graph_process
@@ -143,7 +145,7 @@ AlwaysAllowed = {
 DeferredCheck = {"/events", "/work/queue"}
 
 
-class Api:
+class Api:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         db: DbAccess,
@@ -161,6 +163,7 @@ class Api:
         config: CoreConfig,
         user_management: UserManagement,
         get_override: Callable[[ConfigId], Optional[Json]],
+        graph_manager: GraphManager,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -178,6 +181,7 @@ class Api:
         self.user_management = user_management
         self.get_override = get_override
         self.auth_handler = AuthHandler(db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck)
+        self.graph_manager = graph_manager
 
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
@@ -957,6 +961,21 @@ class Api:
         section = section_of(request)
         query_string = await request.text()
         graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
+        raw_at = request.query.get("at")
+        try:
+            at = date_parser.parse(raw_at) if raw_at else None
+        except Exception:
+            at = None
+
+        snapshot_name = None
+
+        if at:
+            snapshot_name = await self.graph_manager.snapshot_at(time=at, graph_name=graph_name)
+            if not snapshot_name:
+                raise ValueError(f"No snapshot found for {graph_name} at {at}")
+
+        graph_name = snapshot_name or graph_name
+
         graph_db = self.db.get_graph_db(graph_name)
         q = await self.query_parser.parse_query(query_string, section, **request.query)
         m = await self.model_handler.load_model(graph_name)
