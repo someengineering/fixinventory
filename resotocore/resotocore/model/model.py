@@ -963,11 +963,13 @@ class ComplexKind(Kind):
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0, overrides: Optional[Json] = None) -> str:
         def safe_string(s: str, indent: int, default_style: Optional[str] = None) -> str:
-            return remove_suffix(
-                # 2 spaces per indent
-                yaml.dump(s, indent=indent * 2, allow_unicode=True, width=sys.maxsize, default_style=default_style),
-                "\n...\n",
-            ).strip()
+            # 2 spaces per indent
+            yml = yaml.dump(s, indent=indent * 2, allow_unicode=True, width=sys.maxsize, default_style=default_style)
+            # Fix for this pyyaml issue: https://github.com/yaml/pyyaml/issues/717
+            if default_style == "|" and len(yml) > 1 and yml[1].isdigit():
+                yml = re.sub("^\\|\\d+", "|", yml)
+            # pyyaml might add an object delimiter
+            return remove_suffix(yml, "\n...\n").strip()
 
         def override_note(overrides: Optional[Json], prop_name: str) -> Optional[str]:
             if overrides:
