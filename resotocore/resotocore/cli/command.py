@@ -1356,7 +1356,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         parser.add_argument("--after", dest="after", default=None)
         parser.add_argument("--before", dest="before", default=None)
         parser.add_argument("--change", dest="change", default=None)
-        parser.add_argument("--at", dest="at", type=lambda x: parse_time_or_delta(strip_quotes(x)), default=None)
+        parser.add_argument("--at", dest="at", default=None)
         try:
             # try to parse as many arguments as possible
             args, remaining = args_parts_parser.parse_partial(arg)
@@ -1386,12 +1386,20 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         if not arg:
             raise CLIParseError("search command needs a search-statement to execute, but nothing was given!")
 
+        def parse_at(x: Optional[str]) -> Optional[datetime]:
+            if x is None:
+                return None
+            try:
+                return parse_time_or_delta(strip_quotes(x))
+            except Exception as ex:
+                raise CLIParseError(f"Could not parse {x} as timestamp or timedelta.") from ex
+
         # Read all argument flags / options
         parsed, rest = self.parse_known(arg)
         with_edges: bool = parsed.get("with-edges", False)
         explain: bool = parsed.get("explain", False)
         history: bool = parsed.get("history", False)
-        at: Optional[datetime] = parsed.get("at", None)
+        at: Optional[datetime] = parse_at(parsed.get("at", None))
 
         # all templates are expanded at this point, so we can call the parser directly.
         query = parse_query(rest, **ctx.env)
