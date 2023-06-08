@@ -483,6 +483,7 @@ def test_yaml(person_model: Model) -> None:
           city: |-
             gotham
             manor house
+
           number: 123
           float: 1.2345
         # The list of addresses.
@@ -494,6 +495,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
           - # The zip code.
@@ -503,6 +505,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
         # Other addresses.
@@ -515,6 +518,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
           work:
@@ -525,6 +529,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
         simple:
