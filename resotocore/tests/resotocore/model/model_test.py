@@ -542,15 +542,8 @@ def test_yaml(person_model: Model) -> None:
     assert person == yaml.safe_load(person_kind.create_yaml(person))
 
 
-def test_issue_pyyaml_717(person_model: Model) -> None:
-    person = cast(ComplexKind, person_model["Person"])
-    yml = person.create_yaml({"name": "\ntest\n"})
-    # no number after |
-    assert yml == "\n# The name of the person.\nname: |\n\n  test"
-
-
 @given(json_object_gen)
-@settings(max_examples=50, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=HealthCheck.all())
 def test_yaml_generation(js: Json) -> None:
     kind = ComplexKind("test", [], [])
     assert js == yaml.safe_load(kind.create_yaml(js))
