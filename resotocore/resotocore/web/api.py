@@ -145,7 +145,7 @@ AlwaysAllowed = {
 DeferredCheck = {"/events", "/work/queue"}
 
 
-class Api:  # pylint: disable=too-many-instance-attributes
+class Api:
     def __init__(
         self,
         db: DbAccess,

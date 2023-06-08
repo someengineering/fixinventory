@@ -78,7 +78,8 @@ disable=
     too-many-branches,
     use-dict-literal,
     too-many-return-statements,
-    not-an-iterable
+    not-an-iterable,
+    too-many-instance-attributes
 
 
 [REPORTS]
