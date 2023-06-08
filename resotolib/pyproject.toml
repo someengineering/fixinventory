@@ -41,6 +41,7 @@ dependencies = [
     "parsy",
     "prometheus-client",
     "psutil",
+    "python-dateutil",
     "requests",
     "typeguard",
     "tzdata",
