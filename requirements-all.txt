@@ -13,8 +13,8 @@ autocommand==2.2.2
 backoff==2.2.1
 bcrypt==4.0.1
 black==23.3.0
-boto3==1.26.145
-botocore==1.29.145
+boto3==1.26.149
+botocore==1.29.149
 brotli==1.0.9
 build==0.10.0
 cachetools==5.3.1
@@ -46,8 +46,9 @@ google-auth==2.19.1
 google-auth-httplib2==0.1.0
 googleapis-common-protos==1.59.0
 httplib2==0.22.0
-hypothesis==6.75.9
+hypothesis==6.76.0
 idna==3.4
+importlib-metadata==6.6.0
 inflect==6.0.4
 iniconfig==2.0.0
 isort==5.12.0
@@ -62,7 +63,7 @@ jsons==1.6.3
 kubernetes==26.1.0
 lazy-object-proxy==1.9.0
 markdown-it-py==2.2.0
-markupsafe==2.1.2
+markupsafe==2.1.3
 mccabe==0.7.0
 mdurl==0.1.2
 monotonic==1.6
@@ -97,7 +98,7 @@ pyasn1-modules==0.3.0
 pycares==4.3.0
 pycodestyle==2.10.0
 pycparser==2.21
-pydantic==1.10.8
+pydantic==1.10.9
 pyflakes==3.0.1
 pygithub==1.58.2
 pygments==2.15.1
@@ -111,7 +112,7 @@ pytest==7.3.1
 pytest-asyncio==0.21.0
 pytest-cov==4.1.0
 pytest-runner==6.0.0
-python-arango==7.5.7
+python-arango==7.5.8
 python-dateutil==2.8.2
 pytz==2023.3
 pyvmomi==8.0.1.0.1
@@ -135,7 +136,7 @@ tenacity==8.2.2
 toml==0.10.2
 tomlkit==0.11.8
 toolz==0.12.0
-tox==4.5.2
+tox==4.6.0
 transitions==0.9.0
 typeguard==4.0.0
 typing-extensions==4.6.3
@@ -152,3 +153,4 @@ wheel==0.40.0
 wrapt==1.15.0
 yarl==1.9.2
 zc-lockfile==3.0.post1
+zipp==3.15.0
