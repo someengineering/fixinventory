@@ -175,6 +175,9 @@ class GraphManager(Service):
         if not timestamp:
             timestamp = utc()
 
+        if source.startswith("snapshot-"):
+            raise ValueError("Can not snapshot a snapshot")
+
         time = utc_str(timestamp, date_format=UTC_Date_Format_short)
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
