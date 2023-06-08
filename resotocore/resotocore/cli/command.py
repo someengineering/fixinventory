@@ -5349,7 +5349,7 @@ class GraphCommand(CLICommand):
     """
     ```shell
     graph list [pattern]
-    graph copy [-force] [from_graph_namae] <to_graph_name>
+    graph copy [--force] [from_graph_namae] <to_graph_name>
     graph snapshot [from_graph_name] <snapshot_label>
     graph delete <graph_name>
     graph export [--force] [graph_name] <file_name>
