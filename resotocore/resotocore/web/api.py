@@ -962,10 +962,7 @@ class Api:
         query_string = await request.text()
         graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         raw_at = request.query.get("at")
-        try:
-            at = date_parser.parse(raw_at) if raw_at else None
-        except Exception:
-            at = None
+        at = date_parser.parse(raw_at) if raw_at else None
 
         snapshot_name = None
 
