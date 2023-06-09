@@ -1,8 +1,14 @@
 import json
 import os
+from pathlib import Path
 from queue import Queue
+from typing import List
+
+import yaml
+
 from resoto_plugin_gcp import GcpConfig
-from resoto_plugin_gcp.collector import GcpProjectCollector, all_resources
+from resoto_plugin_gcp.collector import GcpProjectCollector, all_resources, called_collect_apis, called_mutator_apis
+from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpProject, GraphBuilder
 from resoto_plugin_gcp.resources.billing import GcpSku
 from resoto_plugin_gcp.resources.compute import GcpMachineType
@@ -50,3 +56,21 @@ def test_remove_unconnected_nodes(random_builder: GraphBuilder) -> None:
 
     assert len(list(collector.graph.search("kind", "gcp_machine_type"))) < num_all_machine_types
     assert len(list(collector.graph.search("kind", "gcp_sku"))) < num_all_skus
+
+
+def test_role_creation() -> None:
+    def iam_role_for(name: str, description: str, calls: List[GcpApiSpec], file: bool = False) -> str:
+        permissions = sorted({p for api in calls for p in api.iam_permissions})
+        result = yaml.safe_dump(
+            {"title": name, "description": description, "stage": "GA", "includedPermissions": permissions},
+            sort_keys=False,
+        )
+        if file:
+            with open(Path.home() / f"{name}.yaml", "w") as f:
+                f.write(result)
+        return result
+
+    c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis(), False)
+    m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis(), False)
+    assert c is not None
+    assert m is not None

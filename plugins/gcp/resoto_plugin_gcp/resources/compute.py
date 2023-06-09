@@ -22,6 +22,10 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.gcp")
 
 
+# This service is called Compute Engine in the GCP API.
+# https://cloud.google.com/kubernetes-engine/docs
+
+
 def health_check_types() -> Tuple[Type[GcpResource], ...]:
     return GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck
 
@@ -38,6 +42,7 @@ class GcpAcceleratorType(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="acceleratorTypes",
+        mutate_iam_permissions=[],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -72,6 +77,7 @@ class GcpAddress(GcpResource):
         response_path="items",
         response_regional_sub_path="addresses",
         get_identifier="address",
+        mutate_iam_permissions=["compute.addresses.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -244,6 +250,7 @@ class GcpAutoscaler(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="autoscalers",
+        mutate_iam_permissions=["compute.autoscalers.update", "compute.autoscalers.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -339,6 +346,7 @@ class GcpBackendBucket(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.backendBuckets.update", "compute.backendBuckets.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id").or_else(S("bucketName")).or_else(S("selfLink")),
@@ -652,6 +660,7 @@ class GcpBackendService(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="backendServices",
+        mutate_iam_permissions=["compute.backendServices.update", "compute.backendServices.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -752,6 +761,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="diskTypes",
+        mutate_iam_permissions=[],  # can not be mutated
     )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sku"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1087,6 +1097,7 @@ class GcpFirewallPolicy(GcpResource):
         request_parameter_in=set(),
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.firewallPolicies.update", "compute.firewallPolicies.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1158,6 +1169,7 @@ class GcpFirewall(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.firewalls.update", "compute.firewalls.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1260,6 +1272,7 @@ class GcpForwardingRule(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="forwardingRules",
+        mutate_iam_permissions=["compute.forwardingRules.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1387,6 +1400,7 @@ class GcpNetworkEndpointGroup(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="networkEndpointGroups",
+        mutate_iam_permissions=["compute.networkEndpointGroups.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1536,6 +1550,7 @@ class GcpOperation(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="operations",
+        mutate_iam_permissions=["compute.globalOperations.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1618,6 +1633,7 @@ class GcpPublicDelegatedPrefix(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="publicDelegatedPrefixes",
+        mutate_iam_permissions=["compute.publicDelegatedPrefixes.update", "compute.publicDelegatedPrefixes.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1772,6 +1788,7 @@ class GcpHealthCheck(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="healthChecks",
+        mutate_iam_permissions=["compute.healthChecks.update", "compute.healthChecks.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1821,6 +1838,7 @@ class GcpHttpHealthCheck(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.httpHealthChecks.update", "compute.httpHealthChecks.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1860,6 +1878,7 @@ class GcpHttpsHealthCheck(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.httpsHealthChecks.update", "compute.httpsHealthChecks.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -2171,6 +2190,7 @@ class GcpInstanceGroupManager(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="instanceGroupManagers",
+        mutate_iam_permissions=["compute.instanceGroupManagers.update", "compute.instanceGroupManagers.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -2243,6 +2263,7 @@ class GcpInstanceGroup(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="instanceGroups",
+        mutate_iam_permissions=["compute.instanceGroups.update", "compute.instanceGroups.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -2632,6 +2653,7 @@ class GcpInstanceTemplate(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.instanceTemplates.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -2832,6 +2854,10 @@ class GcpInstance(GcpResource, BaseInstance):
 
         return result  # type: ignore # list is not covariant
 
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        return [cls.api_spec, GcpMachineType.collect_individual_api_spec]
+
 
 @define(eq=False, slots=False)
 class GcpInterconnectAttachmentPartnerMetadata:
@@ -2858,6 +2884,8 @@ class GcpInterconnectAttachment(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="interconnectAttachments",
+        required_iam_permissions=[],  # list is not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -2952,6 +2980,8 @@ class GcpInterconnectLocation(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # not production ready
+        mutate_iam_permissions=[],  # can not be mutated
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3033,6 +3063,8 @@ class GcpInterconnect(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3103,6 +3135,8 @@ class GcpLicense(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3239,6 +3273,7 @@ class GcpMachineImage(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.machineImages.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3308,6 +3343,16 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="machineTypes",
+        mutate_iam_permissions=[],  # can not be mutated
+    )
+    collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
+        service="compute",
+        version="v1",
+        accessors=["machineTypes"],
+        action="get",
+        response_path="",
+        request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
+        request_parameter_in={"project", "zone", "machineType"},
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_sku"]},
@@ -3341,17 +3386,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 
     @classmethod
     def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
-        api_spec: GcpApiSpec = GcpApiSpec(
-            service="compute",
-            version="v1",
-            accessors=["machineTypes"],
-            action="get",
-            response_path="",
-            request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
-            request_parameter_in={"project", "zone", "machineType"},
-        )
         result = builder.client.get(
-            api_spec,
+            GcpMachineType.collect_individual_api_spec,
             zone=zone,
             machineType=name,
         )
@@ -3471,6 +3507,10 @@ class GcpNetworkEdgeSecurityService(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="networkEdgeSecurityServices",
+        mutate_iam_permissions=[
+            "compute.networkEdgeSecurityServices.update",
+            "compute.networkEdgeSecurityServices.delete",
+        ],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3533,6 +3573,7 @@ class GcpNetwork(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.networks.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3621,6 +3662,7 @@ class GcpNodeGroup(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="nodeGroups",
+        mutate_iam_permissions=["compute.nodeGroups.update", "compute.nodeGroups.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3691,6 +3733,7 @@ class GcpNodeTemplate(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="nodeTemplates",
+        mutate_iam_permissions=["compute.nodeTemplates.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3740,6 +3783,7 @@ class GcpNodeType(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="nodeTypes",
+        mutate_iam_permissions=[],  # can not be mutated
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3834,6 +3878,7 @@ class GcpPacketMirroring(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="packetMirrorings",
+        mutate_iam_permissions=["compute.packetMirrorings.update", "compute.packetMirrorings.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -3897,6 +3942,7 @@ class GcpPublicAdvertisedPrefix(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.publicAdvertisedPrefixes.update", "compute.publicAdvertisedPrefixes.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4043,6 +4089,8 @@ class GcpCommitment(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="commitments",
+        required_iam_permissions=["compute.commitments.list"],
+        mutate_iam_permissions=["compute.commitments.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4094,6 +4142,7 @@ class GcpHealthCheckService(GcpResource):
         request_parameter_in={"project", "region"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.regionHealthCheckServices.update", "compute.regionHealthCheckServices.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4146,6 +4195,10 @@ class GcpNotificationEndpoint(GcpResource):
         request_parameter_in={"project", "region"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=[
+            "compute.regionNotificationEndpoints.update",
+            "compute.regionNotificationEndpoints.delete",
+        ],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4331,6 +4384,8 @@ class GcpSecurityPolicy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="securityPolicies",
+        required_iam_permissions=[],  # not production ready yet
+        mutate_iam_permissions=["compute.securityPolicies.setLabels"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4393,6 +4448,7 @@ class GcpSslCertificate(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="sslCertificates",
+        mutate_iam_permissions=["compute.sslCertificates.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4432,6 +4488,8 @@ class GcpSslPolicy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="sslPolicies",
+        required_iam_permissions=[],  # read is not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4473,6 +4531,7 @@ class GcpTargetHttpProxy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="targetHttpProxies",
+        mutate_iam_permissions=["compute.targetHttpProxies.delete", "compute.targetHttpProxies.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4512,6 +4571,7 @@ class GcpTargetHttpsProxy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="targetHttpsProxies",
+        mutate_iam_permissions=["compute.targetHttpsProxies.delete", "compute.targetHttpsProxies.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4568,6 +4628,7 @@ class GcpTargetTcpProxy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.targetTcpProxies.delete", "compute.targetTcpProxies.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -4934,6 +4995,8 @@ class GcpUrlMap(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="urlMaps",
+        required_iam_permissions=[],  # read is not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5130,6 +5193,7 @@ class GcpResourcePolicy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="resourcePolicies",
+        mutate_iam_permissions=["compute.resourcePolicies.update", "compute.resourcePolicies.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5374,6 +5438,7 @@ class GcpRouter(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="routers",
+        mutate_iam_permissions=["compute.routers.update", "compute.routers.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5432,6 +5497,7 @@ class GcpRoute(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.routes.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5524,6 +5590,7 @@ class GcpServiceAttachment(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="serviceAttachments",
+        mutate_iam_permissions=["compute.serviceAttachments.update", "compute.serviceAttachments.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5684,6 +5751,8 @@ class GcpSubnetwork(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="subnetworks",
+        required_iam_permissions=[],  # read is not production ready
+        mutate_iam_permissions=[],  # mutate is not production ready
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5753,6 +5822,7 @@ class GcpTargetGrpcProxy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.targetGrpcProxies.update", "compute.targetGrpcProxies.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5794,6 +5864,7 @@ class GcpTargetInstance(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="targetInstances",
+        mutate_iam_permissions=["compute.targetInstances.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5835,6 +5906,7 @@ class GcpTargetPool(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="targetPools",
+        mutate_iam_permissions=["compute.targetPools.delete", "compute.targetPools.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5882,6 +5954,7 @@ class GcpTargetSslProxy(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["compute.targetSslProxies.delete", "compute.targetSslProxies.update"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -5927,6 +6000,7 @@ class GcpTargetVpnGateway(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="targetVpnGateways",
+        mutate_iam_permissions=["compute.targetVpnGateways.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -6026,6 +6100,7 @@ class GcpVpnTunnel(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path="vpnTunnels",
+        mutate_iam_permissions=["compute.vpnTunnels.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
