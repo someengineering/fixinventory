@@ -880,6 +880,13 @@ paths:
               - reported
               - desired
               - metadata
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -928,6 +935,13 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -1138,6 +1152,13 @@ paths:
           schema:
             type: string
             example: "30s"
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -1333,6 +1354,13 @@ paths:
               - reported
               - desired
               - metadata
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The aggregation search to perform"
         content:
@@ -1376,6 +1404,13 @@ paths:
               - reported
               - desired
               - metadata
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -1506,6 +1541,13 @@ paths:
               - reported
               - desired
               - metadata
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -1578,6 +1620,13 @@ paths:
               - node_created
               - node_updated
               - node_deleted
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The search to perform"
         content:
@@ -1716,6 +1765,13 @@ paths:
               - node_created
               - node_updated
               - node_deleted
+        - name: at
+          in: query
+          description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
+          required: false
+          schema:
+            type: string
+            format: date-time
       requestBody:
         description: "The aggregation search to perform"
         content:
