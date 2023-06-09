@@ -1,4 +1,6 @@
 import multiprocessing
+from re import fullmatch
+
 from resotolib.args import Namespace
 from concurrent import futures
 from typing import Optional, Dict, Any
@@ -129,7 +131,9 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             gpc.collect()
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
-            core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)
+            # Report errors for any non GCP internal project (identified by sys-<26 digits> project id)
+            if fullmatch(r"sys-\d{26}", project_id) is None:
+                core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)
             return None
         else:
             return gpc.graph
