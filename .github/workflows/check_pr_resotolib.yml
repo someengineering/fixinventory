@@ -9,6 +9,7 @@ on:
     paths:
       - 'resotolib/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   resotolib:

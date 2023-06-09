@@ -18,6 +18,7 @@ on:
       - 'plugins/slack/**'
       - 'plugins/vsphere/**'
       - '.github/**'
+      - 'requirements-all.txt'
   workflow_dispatch:
 
 jobs:

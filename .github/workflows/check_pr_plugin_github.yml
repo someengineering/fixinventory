@@ -13,6 +13,7 @@ on:
       - 'resotolib/**'
       - 'plugins/github/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   github:
