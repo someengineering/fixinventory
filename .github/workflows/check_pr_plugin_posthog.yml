@@ -13,6 +13,7 @@ on:
       - 'resotolib/**'
       - 'plugins/posthog/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   posthog:

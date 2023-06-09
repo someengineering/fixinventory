@@ -19,6 +19,7 @@ on:
       - 'resotolib/**'
       - 'plugins/@name@/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   @name@:

@@ -2,7 +2,7 @@ import json
 import os
 from queue import Queue
 from resoto_plugin_gcp import GcpConfig
-from resoto_plugin_gcp.project_collector import GcpProjectCollector, all_resources
+from resoto_plugin_gcp.collector import GcpProjectCollector, all_resources
 from resoto_plugin_gcp.resources.base import GcpProject, GraphBuilder
 from resoto_plugin_gcp.resources.billing import GcpSku
 from resoto_plugin_gcp.resources.compute import GcpMachineType
@@ -14,7 +14,7 @@ from resotolib.graph import Graph
 
 def collector_with_graph(graph: Graph) -> GcpProjectCollector:
     collector = GcpProjectCollector(
-        config=None,
+        config=GcpConfig(),
         cloud=Cloud(id="gcp"),
         project=GcpProject(id="test"),
         core_feedback=CoreFeedback("test", "test", "test", Queue()),

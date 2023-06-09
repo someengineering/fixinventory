@@ -8,10 +8,12 @@ on:
     paths:
       - 'resotocore/**'
       - '.github/**'
+      - 'requirements-all.txt'
   pull_request:
     paths:
       - 'resotocore/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   resotocore-test-and-build:
