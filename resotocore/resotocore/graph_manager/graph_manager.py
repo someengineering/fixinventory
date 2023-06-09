@@ -5,7 +5,7 @@ import logging
 
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import EventGraphDB
-from resotocore.util import utc_str, UTC_Date_Format_short
+from resotocore.util import utc_str, UTC_Date_Format_short, utc
 from resotocore.ids import GraphName, TaskDescriptorId
 from resotocore.web.service import Service
 from resotocore.util import check_graph_name, Periodic
@@ -115,6 +115,24 @@ class GraphManager(Service):
     async def list(self, pattern: Optional[str]) -> List[GraphName]:
         return [key for key in await self.db_access.list_graphs() if pattern is None or re.match(pattern, key)]
 
+    async def snapshot_at(self, *, time: datetime, graph_name: GraphName) -> Optional[GraphName]:
+        regex = rf"snapshot-{graph_name}-.*-(.+)"
+        graphs = await self.list(regex)
+        graphs_with_time = []
+        for graph in graphs:
+            match = re.match(regex, graph)
+            if match:
+                graphs_with_time.append((parse(match.group(1)), graph))
+
+        graphs_with_time.sort(reverse=True, key=lambda x: x[0])
+        # take the first graph that is older than the given time
+        for graph_time, graph in graphs_with_time:
+            if graph_time <= time:
+                return graph
+
+        # nothing found
+        return None
+
     async def copy(
         self, source: GraphName, destination: GraphName, replace_existing: bool, validate_name: bool = True
     ) -> GraphName:
@@ -153,8 +171,14 @@ class GraphManager(Service):
 
         return destination
 
-    async def snapshot(self, source: GraphName, label: str) -> GraphName:
-        time = utc_str(date_format=UTC_Date_Format_short)
+    async def snapshot(self, source: GraphName, label: str, timestamp: Optional[datetime] = None) -> GraphName:
+        if not timestamp:
+            timestamp = utc()
+
+        if source.startswith("snapshot-"):
+            raise ValueError("Can not snapshot a snapshot")
+
+        time = utc_str(timestamp, date_format=UTC_Date_Format_short)
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
         return await self.copy(source, snapshot_name, replace_existing=False, validate_name=False)

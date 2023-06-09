@@ -10,6 +10,7 @@ import pytest
 from _pytest.fixtures import fixture
 from aiohttp import ClientSession, MultipartReader
 from networkx import MultiDiGraph
+from datetime import timedelta
 from resotoclient import models as rc
 from resotoclient.async_client import ResotoClient
 
@@ -20,8 +21,10 @@ from resotocore.analytics import AnalyticsEvent
 from resotocore.db.db_access import DbAccess
 from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
-from resotocore.util import rnd_str, AccessJson, utc
+from resotocore.util import rnd_str, AccessJson, utc, utc_str
 from resotocore.ids import GraphName
+from resotoclient.json_utils import json_loadb
+from resotoclient.models import JsObject
 
 
 def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
@@ -273,6 +276,36 @@ async def test_graph_api(core_client: ResotoClient) -> None:
     result_graph = [res async for res in core_client.search_graph('id("3") -[0:]->', graph=g)]
     assert len(result_graph) == 21  # 11 nodes + 10 edges
     assert result_list[0].get("id") == "3"  # first node is the parent node
+
+    # search graph at specific timestamp
+    async def search_graph_at(
+        search: str, section: Optional[str] = "reported", graph: str = "resoto", at: Optional[str] = None
+    ) -> AsyncIterator[JsObject]:
+        params = {}
+        if section:
+            params["section"] = section
+        if at:
+            params["at"] = at
+        response = await core_client._post(f"/graph/{graph}/search/graph", params=params, data=search, stream=True)
+        if response.status_code == 200:
+            async for line in response.async_iter_lines():
+                yield json_loadb(line)
+        else:
+            raise AttributeError(await response.text())
+
+    with pytest.raises(AttributeError):
+        # no snapshots 420 weeks ago
+        result = [
+            res
+            async for res in search_graph_at('id("3") -[0:]->', graph=g, at=(utc() - timedelta(weeks=420)).isoformat())
+        ]
+        assert len(result) == 0
+
+    # create a snapshot
+    [result async for result in core_client.cli_execute("graph snapshot graphtest test_label")]
+    # now we should see some snapshots
+    result_graph = [res async for res in search_graph_at('id("3") -[0:]->', graph=g, at=utc_str())]
+    assert len(result_graph) == 21  # 11 nodes + 10 edges
 
     # aggregate
     result_aggregate = core_client.search_aggregate("aggregate(kind as kind: sum(1) as count): all", graph=g)

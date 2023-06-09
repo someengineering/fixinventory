@@ -42,6 +42,7 @@ class Drawer:
         return self.draw(optional(st))
 
 
+any_ws_digits_string = text(alphabet=string.ascii_letters + string.whitespace + string.digits, min_size=0, max_size=10)
 any_string = text(alphabet=string.ascii_letters, min_size=3, max_size=10)
 kind_gen = sampled_from(["volume", "instance", "load_balancer", "volume_type"])
 
@@ -51,7 +52,7 @@ def json_element_gen(ud: UD) -> JsonElement:
     return cast(JsonElement, ud(json_object_gen | json_simple_element_gen | json_array_gen))
 
 
-json_simple_element_gen = any_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
+json_simple_element_gen = any_ws_digits_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
 json_object_gen = dictionaries(any_string, json_element_gen(), min_size=1, max_size=5)
 json_array_gen = lists(json_element_gen(), max_size=5)
 

@@ -11,6 +11,8 @@ from resotocore.task import TaskHandler
 import pytest
 from tests.resotocore.db.graphdb_test import create_multi_collector_graph
 import re
+from resotolib.utils import utc
+from datetime import timedelta
 
 
 @pytest.mark.asyncio
@@ -55,7 +57,8 @@ async def test_graph_manager(
     assert set(await graph_manager.list(".*")).issuperset(["test_graph", "test_graph_copy"])
 
     # snapshot
-    await graph_manager.snapshot(GraphName("test_graph"), "label")
+    now = utc()
+    await graph_manager.snapshot(GraphName("test_graph"), "label", timestamp=now)
     graphs = await graph_manager.list(".*")
     for name in ["test_graph", "test_graph_copy", "snapshot-test_graph-label-.*"]:
         for graph in graphs:
@@ -63,6 +66,17 @@ async def test_graph_manager(
                 break
         else:
             raise AssertionError(f"Could not find graph with name {name} in {graphs}")
+
+    # snapshots at specific time
+    now = now + timedelta(seconds=42)
+    await graph_manager.snapshot(GraphName("test_graph"), "label", timestamp=now)
+    somewhere_in_the_past = now
+    now = now + timedelta(seconds=42)
+    await graph_manager.snapshot(GraphName("test_graph"), "label", timestamp=now)
+    now = now + timedelta(seconds=42)
+    await graph_manager.snapshot(GraphName("test_graph"), "label", timestamp=now)
+    found = await graph_manager.snapshot_at(time=somewhere_in_the_past, graph_name=GraphName("test_graph"))
+    assert found is not None
 
     # test snapshot cleanup
     await graph_manager._clean_outdated_snapshots(
@@ -72,6 +86,9 @@ async def test_graph_manager(
     for graph in graphs:
         if re.match("snapshot-test_graph-label-.*", graph):
             raise AssertionError(f"Found outdated snapshot {graph} in {graphs}")
+
+    # no snapshots after the cleanup
+    assert await graph_manager.snapshot_at(time=somewhere_in_the_past, graph_name=GraphName("test_graph")) is None
 
     # delete
     await graph_manager.delete(GraphName("test_graph_copy"))

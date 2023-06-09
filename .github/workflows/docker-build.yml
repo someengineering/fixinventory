@@ -12,6 +12,7 @@ on:
       - "docker/**"
       - "dockerV2/**"
       - ".github/workflows/docker-build.yml"
+      - 'requirements-all.txt'
 
 jobs:
   split-build:

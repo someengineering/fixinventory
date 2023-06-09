@@ -1,24 +1,19 @@
 import multiprocessing
-from re import fullmatch
-
-from resotolib.args import Namespace
 from concurrent import futures
+from re import fullmatch
 from typing import Optional, Dict, Any
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
+from resotolib.args import Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import Cloud
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-
-# from .collector import GCPProjectCollector
-from .project_collector import GcpProjectCollector
+from .collector import GcpProjectCollector
 from .config import GcpConfig
-
-# from .gcp_resources import GCPProject
 from .resources.base import GcpProject
 from .utils import Credentials
 

@@ -10,6 +10,7 @@ on:
       - 'resotoshell/**'
       - 'resotolib/**'
       - '.github/**'
+      - 'requirements-all.txt'
 
 jobs:
   resotoshell:

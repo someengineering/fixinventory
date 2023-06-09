@@ -206,6 +206,7 @@ def with_config(
         config,
         user_management,
         config_override_service.get_override,
+        graph_manager,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
