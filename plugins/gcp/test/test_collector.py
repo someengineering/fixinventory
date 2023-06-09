@@ -1,7 +1,7 @@
 import json
 import os
 from queue import Queue
-from resoto_plugin_gcp import GcpConfig
+from resoto_plugin_gcp import GcpConfig, GCPCollectorPlugin
 from resoto_plugin_gcp.collector import GcpProjectCollector, all_resources
 from resoto_plugin_gcp.resources.base import GcpProject, GraphBuilder
 from resoto_plugin_gcp.resources.billing import GcpSku
@@ -50,3 +50,13 @@ def test_remove_unconnected_nodes(random_builder: GraphBuilder) -> None:
 
     assert len(list(collector.graph.search("kind", "gcp_machine_type"))) < num_all_machine_types
     assert len(list(collector.graph.search("kind", "gcp_sku"))) < num_all_skus
+
+
+def test_system_projects() -> None:
+    feedback = CoreFeedback("test", "test", "test", Queue())
+    # No error is reported for system projects
+    GCPCollectorPlugin.collect_project("sys-00000000000000000000000000", feedback, Cloud(id="GCP"))
+    assert not [msg for msg in feedback.core_messages.queue if msg["kind"] == "action_info"]
+    # Errors are reported for all other projects
+    GCPCollectorPlugin.collect_project("something else", feedback, Cloud(id="GCP"))
+    assert [msg for msg in feedback.core_messages.queue if msg["kind"] == "action_info"]
