@@ -71,6 +71,7 @@ class GcpProjectBillingInfo(GcpResource):
         request_parameter_in={"name"},
         response_path="projectBillingInfo",
         response_regional_sub_path=None,
+        # valid permission name according to documentation, but gcloud emits an error
         # required_iam_permissions=["billing.resourceAssociations.list"],
         required_iam_permissions=[],
         mutate_iam_permissions=["billing.resourceAssociations.delete"],

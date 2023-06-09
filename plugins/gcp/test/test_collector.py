@@ -70,7 +70,8 @@ def test_role_creation() -> None:
                 f.write(result)
         return result
 
-    c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis(), False)
-    m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis(), False)
+    write_files = False
+    c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis(), write_files)
+    m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis(), write_files)
     assert c is not None
     assert m is not None
