@@ -483,6 +483,7 @@ def test_yaml(person_model: Model) -> None:
           city: |-
             gotham
             manor house
+
           number: 123
           float: 1.2345
         # The list of addresses.
@@ -494,6 +495,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
           - # The zip code.
@@ -503,6 +505,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
         # Other addresses.
@@ -515,6 +518,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
           work:
@@ -525,6 +529,7 @@ def test_yaml(person_model: Model) -> None:
             city: |-
               gotham
               manor house
+
             number: 123
             float: 1.2345
         simple:
@@ -543,7 +548,7 @@ def test_yaml(person_model: Model) -> None:
 
 
 @given(json_object_gen)
-@settings(max_examples=50, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=HealthCheck.all())
 def test_yaml_generation(js: Json) -> None:
     kind = ComplexKind("test", [], [])
     assert js == yaml.safe_load(kind.create_yaml(js))

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import textwrap
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
@@ -963,11 +964,14 @@ class ComplexKind(Kind):
 
     def create_yaml(self, elem: JsonElement, initial_level: int = 0, overrides: Optional[Json] = None) -> str:
         def safe_string(s: str, indent: int, default_style: Optional[str] = None) -> str:
-            return remove_suffix(
-                # 2 spaces per indent
-                yaml.dump(s, indent=indent * 2, allow_unicode=True, width=sys.maxsize, default_style=default_style),
-                "\n...\n",
-            ).strip()
+            # 2 spaces per indent
+            yml = yaml.dump(s, indent=0, allow_unicode=True, width=sys.maxsize, default_style=default_style)
+            yml = remove_suffix(yml, "\n...\n")
+            if default_style == "|":
+                yml = textwrap.indent(yml, " " * (max(0, indent - 1) * 2)).lstrip()
+            else:
+                yml = yml.strip()
+            return yml
 
         def override_note(overrides: Optional[Json], prop_name: str) -> Optional[str]:
             if overrides:
@@ -1020,7 +1024,7 @@ class ComplexKind(Kind):
                     maybe_space = "" if str_value.startswith("\n") else " "
                     safe_prop = safe_string(prop, indent)
                     result += f"{prepend}{safe_prop}:{maybe_space}{str_value}\n"
-                return result.rstrip()
+                return remove_suffix(result, "\n")
             elif isinstance(e, list) and e:
                 prepend = "  " * indent + "-"
                 sub = kind.inner if isinstance(kind, ArrayKind) else kind
@@ -1028,7 +1032,7 @@ class ComplexKind(Kind):
                 for item in e:
                     item_str = walk_element(item, sub, indent + 1, False).lstrip()
                     result += f"{prepend} {item_str}\n"
-                return result.rstrip()
+                return remove_suffix(result, "\n")
             elif isinstance(e, list):
                 return "[]"
             elif is_env_var_string(e):
