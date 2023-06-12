@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import concurrent
 import logging
 from concurrent.futures import Executor, Future
@@ -559,7 +560,11 @@ class gcp_error_handler:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is HttpError:
+            try:
+                error_details = json.loads(exc_value.content.decode())
+            except Exception:
+                error_details = exc_value
             if exc_value.resp.status == 403:
-                self.core_feedback.error(f"Access denied{self.extra_info}: {exc_value.resp.reason}", log)
+                self.core_feedback.error(f"Access denied{self.extra_info}: {error_details}", log)
                 return True
         return False
