@@ -126,7 +126,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
             # Report errors for any non GCP internal project (identified by sys-<26 digits> project id)
-            if project_id.startswith("sys-") is False:
+            if not project_id.startswith("sys-"):
                 core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)
             return None
         else:
