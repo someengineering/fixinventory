@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import json
 import concurrent
 import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
+from types import TracebackType
 
 from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
+from googleapiclient.errors import HttpError
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
 from resoto_plugin_gcp.utils import Credentials
@@ -26,6 +29,8 @@ from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js
 from resotolib.json_bender import bend, Bender, S, Bend
 from resotolib.types import Json
+from resotolib.config import Config
+
 
 log = logging.getLogger("resoto.plugins.gcp")
 
@@ -395,8 +400,9 @@ class GcpResource(BaseResource):
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
-            items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder)
+            with GcpErrorHandler(builder.core_feedback, f" in {builder.project.id} kind {cls.kind}"):
+                items = builder.client.list(spec, **kwargs)
+                return cls.collect(items, builder)
         return []
 
     @classmethod
@@ -564,3 +570,42 @@ class GcpZone(GcpResource, BaseZone):
     zone_available_cpu_platforms: Optional[List[str]] = field(default=None)
     zone_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     zone_supports_pzs: Optional[bool] = field(default=None)
+
+
+class GcpErrorHandler:
+    def __init__(self, core_feedback: CoreFeedback, extra_info: str = "") -> None:
+        self.core_feedback = core_feedback
+        self.extra_info = extra_info
+
+    def __enter__(self) -> "GcpErrorHandler":
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[Exception]],
+        exc_value: Optional[Exception],
+        traceback: Optional[TracebackType],
+    ) -> Optional[bool]:
+        if exc_type is None:
+            return None
+
+        error_details = exc_value
+        if exc_type is HttpError and isinstance(exc_value, HttpError):
+            try:
+                exc_content: Json = json.loads(exc_value.content.decode())
+                error_details = exc_content.get("error", {}).get("message", exc_value)
+            except Exception:
+                pass
+
+        if not Config.gcp.discard_account_on_resource_error:
+            self.core_feedback.error(
+                f"Error while collecting{self.extra_info} ({exc_type.__name__}): {error_details}", log
+            )
+            return True
+
+        if exc_type is HttpError and isinstance(exc_value, HttpError):
+            if exc_value.resp.status == 403:
+                self.core_feedback.error(f"Access denied{self.extra_info}: {error_details}", log)
+                return True
+
+        return False
