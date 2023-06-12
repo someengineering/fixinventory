@@ -571,7 +571,7 @@ class GcpErrorHandler:
             return None
 
         error_details = exc_value
-        if exc_type is HttpError:
+        if exc_type is HttpError and isinstance(exc_value, HttpError):
             try:
                 error_details = json.loads(exc_value.content.decode())
                 error_details = error_details.get("error", {}).get("message", exc_value)
@@ -584,7 +584,7 @@ class GcpErrorHandler:
             )
             return True
 
-        if exc_type is HttpError:
+        if exc_type is HttpError and isinstance(exc_value, HttpError):
             if exc_value.resp.status == 403:
                 self.core_feedback.error(f"Access denied{self.extra_info}: {error_details}", log)
                 return True
