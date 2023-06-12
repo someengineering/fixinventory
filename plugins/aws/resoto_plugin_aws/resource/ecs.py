@@ -904,8 +904,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 task_definition = response["taskDefinition"]
                 tags = response["tags"]
                 task_definition["tags"] = tags
-                task_definition_instance = cls.from_api(task_definition)
-                builder.add_node(task_definition_instance, task_def_arn)
+                if task_definition_instance := cls.from_api(task_definition, builder):
+                    builder.add_node(task_definition_instance, task_def_arn)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
@@ -1589,70 +1589,70 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 clusters=[cluster_arn],
                 include=["ATTACHMENTS", "CONFIGURATIONS", "SETTINGS", "STATISTICS", "TAGS"],
             )
-            cluster_instance = AwsEcsCluster.from_api(cluster[0])
-            builder.add_node(cluster_instance, cluster_arn)
+            if cluster_instance := AwsEcsCluster.from_api(cluster[0], builder):
+                builder.add_node(cluster_instance, cluster_arn)
 
-            container_arns = builder.client.list(
-                service_name, "list-container-instances", "containerInstanceArns", cluster=cluster_arn
-            )
-            for chunk in chunks(container_arns, 100):
-                containers = builder.client.list(
-                    service_name,
-                    "describe-container-instances",
-                    "containerInstances",
-                    cluster=cluster_arn,
-                    containerInstances=chunk,
-                    include=["TAGS", "CONTAINER_INSTANCE_HEALTH"],
+                container_arns = builder.client.list(
+                    service_name, "list-container-instances", "containerInstanceArns", cluster=cluster_arn
                 )
-                for container in containers:
-                    container_instance = AwsEcsContainerInstance.from_api(container)
-                    container_instance.cluster_link = cluster_instance.arn
-                    builder.add_node(container_instance, container)
-                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
+                for chunk in chunks(container_arns, 100):
+                    containers = builder.client.list(
+                        service_name,
+                        "describe-container-instances",
+                        "containerInstances",
+                        cluster=cluster_arn,
+                        containerInstances=chunk,
+                        include=["TAGS", "CONTAINER_INSTANCE_HEALTH"],
+                    )
+                    for container in containers:
+                        if container_instance := AwsEcsContainerInstance.from_api(container, builder):
+                            container_instance.cluster_link = cluster_instance.arn
+                            builder.add_node(container_instance, container)
+                            builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
 
-            service_arns = builder.client.list(service_name, "list-services", "serviceArns", cluster=cluster_arn)
-            for chunk in chunks(service_arns, 10):
-                services = builder.client.list(
-                    service_name,
-                    "describe-services",
-                    "services",
-                    cluster=cluster_arn,
-                    services=chunk,
-                    include=["TAGS"],
-                )
-                for service in services:
-                    service_instance = AwsEcsService.from_api(service)
-                    builder.add_node(service_instance, service)
-                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
+                service_arns = builder.client.list(service_name, "list-services", "serviceArns", cluster=cluster_arn)
+                for chunk in chunks(service_arns, 10):
+                    services = builder.client.list(
+                        service_name,
+                        "describe-services",
+                        "services",
+                        cluster=cluster_arn,
+                        services=chunk,
+                        include=["TAGS"],
+                    )
+                    for service in services:
+                        if service_instance := AwsEcsService.from_api(service, builder):
+                            builder.add_node(service_instance, service)
+                            builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
 
-            task_arns = builder.client.list(service_name, "list-tasks", "taskArns", cluster=cluster_arn)
-            for chunk in chunks(task_arns, 100):
-                tasks = builder.client.list(
-                    service_name,
-                    "describe-tasks",
-                    "tasks",
-                    cluster=cluster_arn,
-                    tasks=chunk,
-                    include=["TAGS"],
-                )
-                for task in tasks:
-                    task_instance = AwsEcsTask.from_api(task)
-                    builder.add_node(task_instance, task)
-                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
+                task_arns = builder.client.list(service_name, "list-tasks", "taskArns", cluster=cluster_arn)
+                for chunk in chunks(task_arns, 100):
+                    tasks = builder.client.list(
+                        service_name,
+                        "describe-tasks",
+                        "tasks",
+                        cluster=cluster_arn,
+                        tasks=chunk,
+                        include=["TAGS"],
+                    )
+                    for task in tasks:
+                        if task_instance := AwsEcsTask.from_api(task, builder):
+                            builder.add_node(task_instance, task)
+                            builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
 
-            provider_names = cluster_instance.cluster_capacity_providers
-            for chunk in chunks(provider_names, 100):
-                providers = builder.client.list(
-                    service_name,
-                    "describe-capacity-providers",
-                    "capacityProviders",
-                    capacityProviders=chunk,
-                    include=["TAGS"],
-                )
-                for provider in providers:
-                    provider_instance = AwsEcsCapacityProvider.from_api(provider)
-                    builder.add_node(provider_instance, provider)
-                    builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
+                provider_names = cluster_instance.cluster_capacity_providers
+                for chunk in chunks(provider_names, 100):
+                    providers = builder.client.list(
+                        service_name,
+                        "describe-capacity-providers",
+                        "capacityProviders",
+                        capacityProviders=chunk,
+                        include=["TAGS"],
+                    )
+                    for provider in providers:
+                        if provider_instance := AwsEcsCapacityProvider.from_api(provider, builder):
+                            builder.add_node(provider_instance, provider)
+                            builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable

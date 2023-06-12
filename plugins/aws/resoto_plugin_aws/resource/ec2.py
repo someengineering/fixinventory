@@ -354,13 +354,13 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            it = AwsEc2InstanceType.from_api(js)
-            # only store this information in the builder, not directly in the graph
-            # reason: pricing is region-specific - this is enriched in the builder on demand
-            # Only "used" instance type will be stored in the graph
-            # note: not all instance types are returned in any region.
-            # we collect instance types in all regions and make the data unique in the builder
-            builder.global_instance_types[it.safe_name] = it
+            if it := AwsEc2InstanceType.from_api(js, builder):
+                # only store this information in the builder, not directly in the graph
+                # reason: pricing is region-specific - this is enriched in the builder on demand
+                # Only "used" instance type will be stored in the graph
+                # note: not all instance types are returned in any region.
+                # we collect instance types in all regions and make the data unique in the builder
+                builder.global_instance_types[it.safe_name] = it
 
 
 # endregion
@@ -473,10 +473,11 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     v.mtime = t
 
         for js in json:
-            instance = builder.add_node(AwsEc2Volume.from_api(js), js)
-            volumes.append(instance)
-            if vt := builder.volume_type(instance.volume_type):
-                builder.add_edge(vt, EdgeType.default, node=instance)
+            if volume := AwsEc2Volume.from_api(js, builder):
+                instance = builder.add_node(volume, js)
+                volumes.append(instance)
+                if vt := builder.volume_type(instance.volume_type):
+                    builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

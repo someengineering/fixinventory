@@ -294,9 +294,9 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
                 resource.tags = bend(ToDict(), tags)
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to outpost when applicable
@@ -482,9 +482,9 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
                 resource.tags = bend(ToDict(), tags)
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:

@@ -1,11 +1,10 @@
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
-from resoto_plugin_aws.aws_client import AwsClient
 
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
-
 from resotolib.baseresources import (
     BaseDNSZone,
     BaseDNSRecord,
@@ -82,27 +81,27 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                 zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
 
         for js in json:
-            zone: AwsRoute53Zone = cast(AwsRoute53Zone, cls.from_api(js))
-            builder.add_node(zone, js)
-            builder.submit_work(service_name, add_tags, zone)
-            for rs_js in builder.client.list(
-                service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
-            ):
-                record_set = AwsRoute53ResourceRecordSet.from_api(rs_js)
-                builder.add_node(record_set, rs_js)
-                builder.add_edge(zone, EdgeType.default, node=record_set)
-                for data in record_set.record_values:
-                    record = AwsRoute53ResourceRecord(
-                        id=record_set.id,
-                        name=record_set.name,
-                        record_type=record_set.record_type,
-                        record_ttl=record_set.record_ttl or 0,
-                        record_data=data,
-                        **rrdata_as_dict(record_set.record_type, data),
-                    )
-                    builder.add_node(record, js)
-                    builder.add_edge(record_set, EdgeType.default, node=record)
-                    builder.add_edge(record_set, EdgeType.delete, node=record)
+            if zone := AwsRoute53Zone.from_api(js, builder):
+                builder.add_node(zone, js)
+                builder.submit_work(service_name, add_tags, zone)
+                for rs_js in builder.client.list(
+                    service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
+                ):
+                    if record_set := AwsRoute53ResourceRecordSet.from_api(rs_js, builder):
+                        builder.add_node(record_set, rs_js)
+                        builder.add_edge(zone, EdgeType.default, node=record_set)
+                        for data in record_set.record_values:
+                            record = AwsRoute53ResourceRecord(
+                                id=record_set.id,
+                                name=record_set.name,
+                                record_type=record_set.record_type,
+                                record_ttl=record_set.record_ttl or 0,
+                                record_data=data,
+                                **rrdata_as_dict(record_set.record_type, data),
+                            )
+                            builder.add_node(record, js)
+                            builder.add_edge(record_set, EdgeType.default, node=record)
+                            builder.add_edge(record_set, EdgeType.delete, node=record)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

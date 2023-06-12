@@ -57,7 +57,7 @@ class CoreFeedback:
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
             logger.error(self.context_str + message)
-        self._info_message("error", message[0:250])  # truncate message to 250 characters
+        self._info_message("error", message)
 
     @property
     def context_str(self) -> str:
@@ -72,7 +72,7 @@ class CoreFeedback:
                     "task": self.task_id,
                     "step": self.step_name,
                     "level": level,
-                    "message": self.context_str + message,
+                    "message": self.context_str + message[0:500],  # truncate message to 500 characters
                 },
             }
         )

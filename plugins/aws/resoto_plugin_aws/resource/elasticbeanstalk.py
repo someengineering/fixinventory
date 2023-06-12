@@ -2,7 +2,7 @@ from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.resource.elbv2 import AwsAlb
 from resoto_plugin_aws.resource.sqs import AwsSqsQueue
@@ -11,7 +11,6 @@ from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
 from resotolib.types import Json
-from resotolib.json import from_json
 
 service_name = "elasticbeanstalk"
 
@@ -104,9 +103,9 @@ class AwsBeanstalkApplication(AwsResource):
                 app.tags = bend(ToDict(), tags)
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -296,16 +295,17 @@ class AwsBeanstalkEnvironment(AwsResource):
                 expected_errors=["InvalidParameterValue"],
             )
             if resources_description:
-                env.beanstalk_resources = from_json(
+                env.beanstalk_resources = parse_json(
                     bend(AwsBeanstalkEnvironmentResourcesDescription.mapping, resources_description),
                     AwsBeanstalkEnvironmentResourcesDescription,
+                    builder,
                 )
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
-            builder.submit_work(service_name, add_resources, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+                builder.submit_work(service_name, add_resources, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(

@@ -123,9 +123,9 @@ class AwsKinesisStream(AwsResource):
                 StreamName=stream_name,
             )
             if len(stream_descriptions) == 1:
-                stream = AwsKinesisStream.from_api(stream_descriptions[0])
-                builder.add_node(stream)
-                builder.submit_work(service_name, add_tags, stream)
+                if stream := AwsKinesisStream.from_api(stream_descriptions[0], builder):
+                    builder.add_node(stream)
+                    builder.submit_work(service_name, add_tags, stream)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

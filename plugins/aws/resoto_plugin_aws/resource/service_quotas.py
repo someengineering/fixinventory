@@ -92,10 +92,10 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     def collect_service(cls, service_code: str, matchers: List["QuotaMatcher"], builder: GraphBuilder) -> None:
         log.debug(f"Collecting Service quotas for {service_code} in region {builder.region.name}")
         for js in builder.client.list(service_name, "list-service-quotas", "Quotas", ServiceCode=service_code):
-            quota = AwsServiceQuota.from_api(js)
-            for matcher in matchers:
-                if matcher.match(quota):
-                    builder.add_node(quota, dict(source=js, matcher=evolve(matcher, region=builder.region)))
+            if quota := AwsServiceQuota.from_api(js, builder):
+                for matcher in matchers:
+                    if matcher.match(quota):
+                        builder.add_node(quota, dict(source=js, matcher=evolve(matcher, region=builder.region)))
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:

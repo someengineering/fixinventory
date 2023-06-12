@@ -1,4 +1,5 @@
 import json as json_p
+import logging
 import re
 from typing import ClassVar, Dict, Optional, List, Type
 
@@ -6,7 +7,7 @@ from attrs import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import (
@@ -14,9 +15,10 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from resotolib.types import Json
+
+log = logging.getLogger("resoto.plugins.aws")
 
 service_name = "lambda"
 
@@ -276,31 +278,31 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             ):
                 # policy is defined as string, but it is actually a json object
                 mapped = bend(AwsLambdaPolicy.mapping, json_p.loads(policy))  # type: ignore
-                policy_instance = from_json(mapped, AwsLambdaPolicy)
-                function.function_policy = policy_instance
-                for statement in policy_instance.statement or []:
-                    if (
-                        statement.principal
-                        and statement.condition
-                        and statement.principal["Service"] == "apigateway.amazonaws.com"
-                        and (arn_like := statement.condition.get("ArnLike")) is not None
-                        and (source := arn_like.get("AWS:SourceArn")) is not None
-                    ):
-                        source_arn = source.rsplit(":")[-1]
-                        rest_api_id = source_arn.split("/")[0]
-                        builder.dependant_node(
-                            function,
-                            reverse=True,
-                            clazz=AwsApiGatewayRestApi,
-                            id=rest_api_id,
-                        )
-                        builder.dependant_node(
-                            function,
-                            reverse=True,
-                            clazz=AwsApiGatewayResource,
-                            api_link=rest_api_id,
-                            resource_path="/" + source_arn.split("/")[-1],
-                        )
+                if policy_instance := parse_json(mapped, AwsLambdaPolicy, builder):
+                    function.function_policy = policy_instance
+                    for statement in policy_instance.statement or []:
+                        if (
+                            statement.principal
+                            and statement.condition
+                            and statement.principal["Service"] == "apigateway.amazonaws.com"
+                            and (arn_like := statement.condition.get("ArnLike")) is not None
+                            and (source := arn_like.get("AWS:SourceArn")) is not None
+                        ):
+                            source_arn = source.rsplit(":")[-1]
+                            rest_api_id = source_arn.split("/")[0]
+                            builder.dependant_node(
+                                function,
+                                reverse=True,
+                                clazz=AwsApiGatewayRestApi,
+                                id=rest_api_id,
+                            )
+                            builder.dependant_node(
+                                function,
+                                reverse=True,
+                                clazz=AwsApiGatewayResource,
+                                api_link=rest_api_id,
+                                resource_path="/" + source_arn.split("/")[-1],
+                            )
 
         def get_url_config(function: AwsLambdaFunction) -> None:
             if config := builder.client.get(
@@ -311,15 +313,15 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 FunctionName=function.name,
             ):
                 mapped = bend(AwsLambdaFunctionUrlConfig.mapping, config)
-                url_config = from_json(mapped, AwsLambdaFunctionUrlConfig)
+                url_config = parse_json(mapped, AwsLambdaFunctionUrlConfig, builder)
                 function.function_url_config = url_config
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
-            builder.submit_work(service_name, get_policy, instance)
-            builder.submit_work(service_name, get_url_config, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+                builder.submit_work(service_name, get_policy, instance)
+                builder.submit_work(service_name, get_url_config, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):

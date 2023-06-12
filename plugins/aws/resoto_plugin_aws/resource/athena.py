@@ -113,13 +113,14 @@ class AwsAthenaWorkGroup(AwsResource):
             if result is None:
                 return None
 
-            workgroup = AwsAthenaWorkGroup.from_api(result)
-            workgroup.set_arn(
-                builder=builder,
-                resource=f"workgroup/{workgroup.name}",
-            )
-
-            return workgroup
+            if workgroup := AwsAthenaWorkGroup.from_api(result, builder):
+                workgroup.set_arn(
+                    builder=builder,
+                    resource=f"workgroup/{workgroup.name}",
+                )
+                return workgroup
+            else:
+                return None
 
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
@@ -223,9 +224,10 @@ class AwsAthenaDataCatalog(AwsResource):
             )
             if result is None:
                 return None
-            catalog = AwsAthenaDataCatalog.from_api(result)
-            catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
-            return catalog
+            if catalog := AwsAthenaDataCatalog.from_api(result, builder):
+                catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
+                return catalog
+            return None
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
             tags = builder.client.list(

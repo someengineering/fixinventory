@@ -97,9 +97,9 @@ class AwsSqsQueue(AwsResource):
             if queue_attributes is not None:
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
-                instance = cls.from_api(queue_attributes)
-                builder.add_node(instance)
-                builder.submit_work(service_name, add_tags, instance)
+                if instance := cls.from_api(queue_attributes, builder):
+                    builder.add_node(instance)
+                    builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.get(service_name, "list-queue-tags", result_name="Tags", QueueUrl=queue.sqs_queue_url)

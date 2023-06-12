@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, Type, List
 from attr import define, field as attrs_field
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
+from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource, parse_json
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchLogGroup
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.kms import AwsKmsKey
@@ -14,7 +14,6 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.graph import Graph
 from resotolib.types import Json
 from resotolib.baseresources import ModelReference, EdgeType
-from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone, F
 
 service_name = "cloudtrail"
@@ -154,14 +153,14 @@ class AwsCloudTrail(AwsResource):
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def collect_trail(trail_arn: str) -> None:
             if trail_raw := builder.client.get(service_name, "get-trail", "Trail", Name=trail_arn):
-                instance = AwsCloudTrail.from_api(trail_raw)
-                builder.add_node(instance, js)
-                collect_status(instance)
-                collect_tags(instance)
-                if instance.trail_has_custom_event_selectors:
-                    collect_event_selectors(instance)
-                if instance.trail_has_insight_selectors:
-                    collect_insight_selectors(instance)
+                if instance := AwsCloudTrail.from_api(trail_raw, builder):
+                    builder.add_node(instance, js)
+                    collect_status(instance)
+                    collect_tags(instance)
+                    if instance.trail_has_custom_event_selectors:
+                        collect_event_selectors(instance)
+                    if instance.trail_has_insight_selectors:
+                        collect_insight_selectors(instance)
 
         def collect_event_selectors(trail: AwsCloudTrail) -> None:
             trail.trail_event_selectors = []
@@ -169,7 +168,8 @@ class AwsCloudTrail(AwsResource):
                 service_name, "get-event-selectors", "AdvancedEventSelectors", TrailName=trail.arn
             ):
                 mapped = bend(AwsCloudTrailEventSelector.mapping, item)
-                trail.trail_event_selectors.append(from_json(mapped, AwsCloudTrailEventSelector))
+                if es := parse_json(mapped, AwsCloudTrailEventSelector, builder):
+                    trail.trail_event_selectors.append(es)
 
         def collect_insight_selectors(trail: AwsCloudTrail) -> None:
             trail.trail_insight_selectors = []
@@ -185,10 +185,10 @@ class AwsCloudTrail(AwsResource):
         def collect_status(trail: AwsCloudTrail) -> None:
             status_raw = builder.client.get(service_name, "get-trail-status", Name=trail.arn)
             mapped = bend(AwsCloudTrailStatus.mapping, status_raw)
-            status = from_json(mapped, AwsCloudTrailStatus)
-            trail.trail_status = status
-            trail.ctime = status.start_logging_time
-            trail.mtime = status.latest_delivery_time
+            if status := parse_json(mapped, AwsCloudTrailStatus, builder):
+                trail.trail_status = status
+                trail.ctime = status.start_logging_time
+                trail.mtime = status.latest_delivery_time
 
         def collect_tags(trail: AwsCloudTrail) -> None:
             for tr in builder.client.list(
