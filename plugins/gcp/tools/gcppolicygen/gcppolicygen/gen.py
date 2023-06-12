@@ -1,30 +1,19 @@
-import os
-from yaml import safe_dump
+from typing import List, Dict, Any
 from resoto_plugin_gcp.collector import called_collect_apis, called_mutator_apis
-from resoto_plugin_gcp.resource.base import GcpApiSpec
+from resoto_plugin_gcp.gcp_client import GcpApiSpec
 
 
-def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = True, pricing_list: bool = False) -> list:
-    def iam_statement(name: str, apis: list[AwsApiSpec]) -> tuple[set[str], str]:
-        permissions = {api.iam_permission() for api in apis}
-        statement = {
-            "PolicyName": name,
-            "PolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": [{"Effect": "Allow", "Resource": "*", "Action": sorted(permissions)}],
-            },
-        }
-        return statement
+def get_policies(collect: bool = True, mutate: bool = True) -> None:
+    def iam_role_for(name: str, description: str, calls: List[GcpApiSpec]) -> Dict[str, Any]:
+        permissions = sorted({p for api in calls for p in api.iam_permissions})
+        result = {"title": name, "description": description, "stage": "GA", "includedPermissions": permissions}
+        return result
 
     policies = []
-    if org_list:
-        policies.append(org_list_policy)
-    if pricing_list:
-        policies.append(pricing_list_policy)
     if collect:
-        collect_policy = iam_statement("ResotoCollect", called_collect_apis())
-        policies.append(collect_policy)
+        c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis())
+        policies.append(c)
     if mutate:
-        mutate_policy = iam_statement("ResotoMutate", called_mutator_apis())
-        policies.append(mutate_policy)
+        m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis())
+        policies.append(m)
     return policies

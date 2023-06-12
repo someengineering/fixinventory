@@ -49,11 +49,11 @@ def upload_policies(args: Namespace) -> None:
         policies = get_policies()
         log.debug(f"Created temporary directory: {tmpdirname}")
         for policy in policies:
-            filename = f"{tmpdirname}/{policy['PolicyName']}.json"
+            filename = f"{tmpdirname}/{policy['title']}.json"
             with open(filename, "w") as f:
-                json.dump(policy["PolicyDocument"], f, indent=4)
+                json.dump(policy, f, indent=4)
 
-         # Upload the policies to the CDN
+        # Upload the policies to the CDN
         for destination in destinations:
             for filename in glob.iglob(tmpdirname + "**/**", recursive=True):
                 if not os.path.isfile(filename):
