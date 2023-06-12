@@ -553,7 +553,7 @@ class GcpZone(GcpResource, BaseZone):
 
 
 class gcp_error_handler:
-    def __init__(self, core_feedback: CoreFeedback, extra_info: Optional[str] = None):
+    def __init__(self, core_feedback: CoreFeedback, extra_info: str = ""):
         self.core_feedback = core_feedback
         self.extra_info = extra_info
 
@@ -561,7 +561,7 @@ class gcp_error_handler:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        error_details = exc_value
+        error_details = f"{exc_type}: {exc_value}"
         if exc_type is HttpError:
             try:
                 error_details = json.loads(exc_value.content.decode())
