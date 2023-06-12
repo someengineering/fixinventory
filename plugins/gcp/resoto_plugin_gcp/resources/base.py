@@ -28,6 +28,8 @@ from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js
 from resotolib.json_bender import bend, Bender, S, Bend
 from resotolib.types import Json
+from resotolib.config import Config
+
 
 log = logging.getLogger("resoto.plugins.gcp")
 
@@ -559,13 +561,21 @@ class gcp_error_handler:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        error_details = exc_value
         if exc_type is HttpError:
             try:
                 error_details = json.loads(exc_value.content.decode())
                 error_details = error_details.get("error", {}).get("message", exc_value)
             except Exception:
-                error_details = exc_value
+                pass
+
+        if not Config.gcp.discard_account_on_resource_error:
+            self.core_feedback.error(f"Error collecting {exc_type.__name__}{self.extra_info}: {error_details}", log)
+            return True
+
+        if exc_type is HttpError:
             if exc_value.resp.status == 403:
                 self.core_feedback.error(f"Access denied{self.extra_info}: {error_details}", log)
                 return True
+
         return False

@@ -24,6 +24,13 @@ class GcpConfig:
         default=True,
         metadata={"description": "Fork collector process instead of using threads"},
     )
+    discard_account_on_resource_error: bool = field(
+        default=False,
+        metadata={
+            "description": "Fail the whole account if collecting a resource fails. "
+            "If false, the error is logged and the resource is skipped."
+        },
+    )
 
     def should_collect(self, name: str) -> bool:
         if self.collect:
