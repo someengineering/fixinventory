@@ -85,7 +85,7 @@ gcp_policygen = """
           export API_TOKEN="${{ secrets.API_TOKEN }}"
           export SPACES_KEY="${{ secrets.SPACES_KEY }}"
           export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/gcp/
+          gcppolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/gcp/
 """
 
 step_run_test = """
