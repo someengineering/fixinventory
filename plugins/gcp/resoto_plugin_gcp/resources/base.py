@@ -573,8 +573,8 @@ class GcpErrorHandler:
         error_details = exc_value
         if exc_type is HttpError and isinstance(exc_value, HttpError):
             try:
-                error_details = json.loads(exc_value.content.decode())
-                error_details = error_details.get("error", {}).get("message", exc_value)
+                exc_content: Json = json.loads(exc_value.content.decode())
+                error_details = exc_content.get("error", {}).get("message", exc_value)
             except Exception:
                 pass
 
