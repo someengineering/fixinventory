@@ -9,6 +9,9 @@ from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
 from resotolib.types import Json
 
+# This service is called Google Kubernetes Engine in the docs
+# https://cloud.google.com/kubernetes-engine/docs
+
 
 @define(eq=False, slots=False)
 class GcpContainerCloudRunConfig:
@@ -782,6 +785,8 @@ class GcpContainerCluster(GcpResource):
         request_parameter_in={"project"},
         response_path="clusters",
         response_regional_sub_path=None,
+        required_iam_permissions=["container.clusters.list"],
+        mutate_iam_permissions=["container.clusters.update", "container.clusters.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -968,6 +973,8 @@ class GcpContainerOperation(GcpResource):
         request_parameter_in={"project"},
         response_path="operations",
         response_regional_sub_path=None,
+        required_iam_permissions=["container.operations.list"],
+        mutate_iam_permissions=[],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),

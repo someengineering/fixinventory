@@ -3,6 +3,7 @@ import logging
 from typing import Type, List
 
 from resoto_plugin_gcp.config import GcpConfig
+from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.utils import Credentials
 from resoto_plugin_gcp.resources import compute, container, billing, sqladmin, storage
 from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
@@ -14,6 +15,22 @@ log = logging.getLogger("resoto.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
     compute.resources + container.resources + billing.resources + sqladmin.resources + storage.resources
 )
+
+
+def called_collect_apis() -> List[GcpApiSpec]:
+    """
+    Return a list of all the APIs that are called by the collector during the collect cycle.
+    """
+    specs = [spec for r in all_resources for spec in r.called_collect_apis()]
+    return sorted(specs, key=lambda s: s.fqn)
+
+
+def called_mutator_apis() -> List[GcpApiSpec]:
+    """
+    Return a list of all the APIs that are called to mutate resources.
+    """
+    specs = [spec for r in all_resources for spec in r.called_mutator_apis()]
+    return sorted(specs, key=lambda s: s.fqn)
 
 
 class GcpProjectCollector:

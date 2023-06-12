@@ -257,6 +257,7 @@ class GcpBucket(GcpResource):
         # single_request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        mutate_iam_permissions=["storage.buckets.update", "storage.buckets.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),

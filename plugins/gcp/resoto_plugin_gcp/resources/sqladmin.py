@@ -36,6 +36,8 @@ class GcpSqlBackupRun(GcpResource):
         request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=["cloudsql.backupRuns.list"],
+        mutate_iam_permissions=["cloudsql.backupRuns.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -103,6 +105,8 @@ class GcpSqlDatabase(GcpResource):
         request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=["cloudsql.databases.list"],
+        mutate_iam_permissions=["cloudsql.databases.update", "cloudsql.databases.delete"],
     )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -506,6 +510,8 @@ class GcpSqlDatabaseInstance(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=["cloudsql.instances.list"],
+        mutate_iam_permissions=["cloudsql.instances.update", "cloudsql.instances.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -594,6 +600,16 @@ class GcpSqlDatabaseInstance(GcpResource):
             if spec := cls.api_spec:
                 items = graph_builder.client.list(spec, instance=self.name, project=self.project)
                 cls.collect(items, graph_builder)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        return [
+            cls.api_spec,
+            GcpSqlBackupRun.api_spec,
+            GcpSqlDatabase.api_spec,
+            GcpSqlUser.api_spec,
+            GcpSqlOperation.api_spec,
+        ]
 
 
 @define(eq=False, slots=False)
@@ -725,6 +741,8 @@ class GcpSqlOperation(GcpResource):
         request_parameter_in={"project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=["cloudsql.instances.get"],
+        mutate_iam_permissions=["cloudsql.instances.update", "cloudsql.instances.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -817,6 +835,8 @@ class GcpSqlUser(GcpResource):
         request_parameter_in={"instance", "project"},
         response_path="items",
         response_regional_sub_path=None,
+        required_iam_permissions=["cloudsql.users.list"],
+        mutate_iam_permissions=["cloudsql.users.update", "cloudsql.users.delete"],
     )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {

@@ -9,6 +9,10 @@ from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 
+# This service is called Cloud Billing in the documentation
+# https://cloud.google.com/billing/docs
+# API https://googleapis.github.io/google-api-python-client/docs/dyn/cloudbilling_v1.html
+
 
 @define(eq=False, slots=False)
 class GcpBillingAccount(GcpResource):
@@ -25,6 +29,8 @@ class GcpBillingAccount(GcpResource):
         request_parameter_in=set(),
         response_path="billingAccounts",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # does not require any permissions
+        mutate_iam_permissions=[],  # can not be deleted
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -48,6 +54,10 @@ class GcpBillingAccount(GcpResource):
         for info in GcpProjectBillingInfo.collect_resources(graph_builder, name=self.name):
             graph_builder.add_edge(self, node=info)
 
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        return [cls.api_spec, GcpProjectBillingInfo.api_spec]
+
 
 @define(eq=False, slots=False)
 class GcpProjectBillingInfo(GcpResource):
@@ -61,6 +71,10 @@ class GcpProjectBillingInfo(GcpResource):
         request_parameter_in={"name"},
         response_path="projectBillingInfo",
         response_regional_sub_path=None,
+        # valid permission name according to documentation, but gcloud emits an error
+        # required_iam_permissions=["billing.resourceAssociations.list"],
+        required_iam_permissions=[],
+        mutate_iam_permissions=["billing.resourceAssociations.delete"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -95,6 +109,8 @@ class GcpService(GcpResource):
         request_parameter_in=set(),
         response_path="services",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # does not require any permissions
+        mutate_iam_permissions=[],  # can not be deleted
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("serviceId"),
@@ -133,6 +149,10 @@ class GcpService(GcpResource):
             return isinstance(node, GcpSku) and node.name is not None and node.name.startswith(self.id)
 
         builder.add_edges(self, filter=filter)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        return [cls.api_spec, GcpSku.api_spec]
 
 
 @define(eq=False, slots=False)
@@ -245,6 +265,8 @@ class GcpSku(GcpResource):
         request_parameter_in={"parent"},
         response_path="skus",
         response_regional_sub_path=None,
+        required_iam_permissions=[],  # does not require any permissions
+        mutate_iam_permissions=[],  # can not be deleted
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("skuId"),

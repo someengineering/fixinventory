@@ -428,6 +428,25 @@ class GcpResource(BaseResource):
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
 
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        # The default implementation will return the defined api_spec if defined, otherwise an empty list.
+        # In case your resource needs more than this api call, please override this method and return the proper list.
+        if spec := cls.api_spec:
+            return [spec]
+        else:
+            return []
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[GcpApiSpec]:
+        # The default implementation will return the defined api_spec for delete, set_labels and get if defined.
+        # delete: spec.for_delete()
+        # update_tag/delete_tag: spec.for_set_labels(), spec.for_get()
+        if spec := cls.api_spec:
+            return [spec.for_delete(), spec.for_set_labels(), spec.for_get()]
+        else:
+            return []
+
 
 GcpResourceType = TypeVar("GcpResourceType", bound=GcpResource)
 

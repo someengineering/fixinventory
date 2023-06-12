@@ -1,8 +1,8 @@
 from __future__ import annotations
-from copy import deepcopy
+
 from typing import Optional, List, Dict, Any, Set
 
-from attr import define
+from attr import define, evolve
 from google.auth.credentials import Credentials
 from googleapiclient import discovery
 
@@ -32,30 +32,40 @@ class GcpApiSpec:
     set_label_identifier: str = "resource"
     get_identifier: Optional[str] = None
     delete_identifier: Optional[str] = None
+    required_iam_permissions: Optional[List[str]] = None
+    mutate_iam_permissions: Optional[List[str]] = None
 
     def for_delete(self) -> GcpApiSpec:
-        api_spec = deepcopy(self)
-        api_spec.action = "delete"
-        api_spec.request_parameter[self._delete_identifier] = "{resource}"
+        params = self.request_parameter.copy()
+        params[self._delete_identifier] = "{resource}"
         if self.is_zone_specific:
-            api_spec.request_parameter["zone"] = "{zone}"
-        return api_spec
+            params["zone"] = "{zone}"
+        return evolve(
+            self,
+            action="delete",
+            request_parameter=params,
+            required_iam_permissions=self.mutate_iam_permissions,
+        )
 
     def for_get(self) -> GcpApiSpec:
-        api_spec = deepcopy(self)
-        api_spec.action = "get"
-        api_spec.request_parameter[self._get_identifier] = "{resource}"
+        params = self.request_parameter.copy()
+        params[self._get_identifier] = "{resource}"
         if self.is_zone_specific:
-            api_spec.request_parameter["zone"] = "{zone}"
-        return api_spec
+            params["zone"] = "{zone}"
+        # a) can not be derived and b) will be defined in mutate_iam_permissions if required
+        return evolve(self, action="get", request_parameter=params, required_iam_permissions=[])
 
     def for_set_labels(self) -> GcpApiSpec:
-        api_spec = deepcopy(self)
-        api_spec.action = "setLabels"
-        api_spec.request_parameter[self.set_label_identifier] = "{resource}"
+        params = self.request_parameter.copy()
+        params[self.set_label_identifier] = "{resource}"
         if self.is_zone_specific:
-            api_spec.request_parameter["zone"] = "{zone}"
-        return api_spec
+            params["zone"] = "{zone}"
+        return evolve(
+            self,
+            action="setLabels",
+            request_parameter=params,
+            required_iam_permissions=self.mutate_iam_permissions,
+        )
 
     @property
     def _get_identifier(self) -> str:
@@ -79,6 +89,20 @@ class GcpApiSpec:
     def is_project_level(self) -> bool:
         # api spec is on project level, if no other param than project is required
         return not (self.request_parameter_in - {"project"})
+
+    @property
+    def fqn(self) -> str:
+        return f"{self.service}.{self.version}.{'.'.join(self.accessors)}.{self.action}"
+
+    @property
+    def iam_permissions(self) -> List[str]:
+        # See https://cloud.google.com/iam/docs/permissions-reference for permission names
+        # if permission name is defined, use it
+        if self.required_iam_permissions is not None:
+            return self.required_iam_permissions
+        # derive the permission name from the api spec
+        action = "list" if self.action == "aggregatedList" else self.action
+        return [self.service + "." + ".".join(self.accessors) + "." + action]
 
 
 class GcpClient:
