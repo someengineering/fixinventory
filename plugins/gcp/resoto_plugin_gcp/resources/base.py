@@ -6,6 +6,7 @@ import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
+from types import TracebackType
 
 from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
@@ -560,7 +561,12 @@ class GcpErrorHandler:
     def __enter__(self) -> "GcpErrorHandler":
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> Optional[bool]:
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> Optional[bool]:
         if exc_type is None:
             return None
 
