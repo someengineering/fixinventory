@@ -8,6 +8,7 @@ import time
 import mimetypes
 import magic
 import json
+import yaml
 import tempfile
 from botocore.client import BaseClient
 from functools import lru_cache
@@ -52,6 +53,10 @@ def upload_policies(args: Namespace) -> None:
             filename = f"{tmpdirname}/{policy['title']}.json"
             with open(filename, "w") as f:
                 json.dump(policy, f, indent=4)
+
+            filename = f"{tmpdirname}/{policy['title']}.yaml"
+            with open(filename, "w") as f:
+                yaml.safe_dump(policy, f, sort_keys=False)
 
         # Upload the policies to the CDN
         for destination in destinations:
