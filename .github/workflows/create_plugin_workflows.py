@@ -72,6 +72,22 @@ aws_policygen = """
           awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/aws/ --aws-s3-bucket resotopublic --aws-s3-bucket-path cf/
 """
 
+gcp_policygen = """
+      - name: Upload GCP policies
+        if: github.event_name != 'pull_request'
+        working-directory: ./plugins/gcp
+        run: |
+          pip install --upgrade --editable .
+          pip install --upgrade --editable ./tools/gcppolicygen
+          export GITHUB_REF="${{ github.ref }}"
+          export GITHUB_REF_TYPE="${{ github.ref_type }}"
+          export GITHUB_EVENT_NAME="${{ github.event_name }}"
+          export API_TOKEN="${{ secrets.API_TOKEN }}"
+          export SPACES_KEY="${{ secrets.SPACES_KEY }}"
+          export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
+          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/gcp/
+"""
+
 step_run_test = """
       - name: Run tests
         working-directory: @directory@
@@ -120,3 +136,5 @@ for plugin in os.listdir(plugins_path):
             )
             if plugin == "aws":
                 yml.write(aws_policygen)
+            elif plugin == "gcp":
+                yml.write(gcp_policygen)

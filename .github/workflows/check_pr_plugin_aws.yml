@@ -17,7 +17,7 @@ on:
 
 jobs:
   aws:
-    name: "aws" # Do not rename without updating workflow defined in publish.yml
+    name: "aws"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
