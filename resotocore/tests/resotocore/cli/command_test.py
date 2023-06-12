@@ -1103,6 +1103,8 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     manifest = await package_manager.get_manifest(InfraAppName("cleanup-untagged"))
     assert manifest is not None
     assert manifest.name == "cleanup-untagged"
+    # install discord app
+    assert "installed successfully" in (await execute("apps install discordapp", str))[0]
 
     # info about the app
     info_json = (await execute("apps info cleanup-untagged", Json))[0]
@@ -1115,6 +1117,11 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     # run the app with stdin
     result = await execute("echo foo | apps run cleanup-untagged --dry-run", str)
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
+
+    # run discord app with stdin
+    result = await execute("search is(graph_root) | apps run discordapp --title foo --dry-run", str)
+    assert "http POST https://discordapp.com" in result[0]
+    await execute("apps uninstall discordapp", str)
 
     # update the app
     assert (
