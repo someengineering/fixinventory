@@ -60,8 +60,8 @@ def parse_json(json: Json, clazz: Type[T], builder: GraphBuilder) -> Optional[T]
     try:
         return from_json(json, clazz)
     except Exception as e:
-        # report the error
-        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}")
+        # report and log the error
+        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
         # based on the strict flag, either raise the exception or return None
         if builder.config.discard_account_on_resource_error:
             raise
