@@ -17,7 +17,7 @@ on:
 
 jobs:
   aws:
-    name: "aws"
+    name: "aws" # Do not rename without also updating publish.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

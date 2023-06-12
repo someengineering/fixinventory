@@ -17,7 +17,7 @@ on:
 
 jobs:
   gcp:
-    name: "gcp"
+    name: "gcp" # Do not rename without also updating publish.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

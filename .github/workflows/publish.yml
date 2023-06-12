@@ -48,19 +48,34 @@ jobs:
 
       - name: Wait for AWS policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.2.0
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: "aws"
+          check-name: aws
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update AWS policy JSON
         shell: bash
-        working-directory: ./resoto.com/aws/edge
+        working-directory: ./resoto.com/iam/aws/edge
         run: |
           wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/edge/ResotoOrgList.json
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/edge/ResotoMutate.json
+
+      - name: Wait for GCP policies to be uploaded
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: gcp
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update GCP policy JSON
+        shell: bash
+        working-directory: ./resoto.com/iam/gcp/edge
+        run: |
+          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/edge/resoto_access.json
+          wget -qO resoto_mutate.json https://cdn.some.engineering/resoto/gcp/edge/resoto_mutate.json
 
       - name: Modify Docker Compose YAML
         shell: bash
@@ -76,10 +91,10 @@ jobs:
 
       - name: Wait for Docker images to build
         if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.2.0
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: "Build split Docker images"
+          check-name: Build split Docker images
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update resource data models
@@ -210,20 +225,36 @@ jobs:
 
       - name: Wait for AWS policies to be uploaded
         if: steps.release.outputs.prerelease == 'false'
-        uses: lewagon/wait-on-check-action@v1.2.0
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: "aws"
+          check-name: aws
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update AWS policy JSON
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
-        working-directory: ./resoto.com/aws/${{ steps.release.outputs.docsVersion }}
+        working-directory: ./resoto.com/iam/aws/${{ steps.release.outputs.docsVersion }}
         run: |
           wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoOrgList.json
           wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoCollect.json
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoMutate.json
+
+      - name: Wait for GCP policies to be uploaded
+        if: steps.release.outputs.prerelease == 'false'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: gcp
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update GCP policy JSON
+        if: steps.release.outputs.prerelease == 'false'
+        shell: bash
+        working-directory: ./resoto.com/iam/gcp/${{ steps.release.outputs.docsVersion }}
+        run: |
+          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/${{ steps.release.outputs.tag }}/resoto_access.json
+          wget -qO resoto_mutate.json https://cdn.some.engineering/resoto/gcp/${{ steps.release.outputs.tag }}/resoto_mutate.json
 
       - name: Modify Docker Compose YAML
         if: steps.release.outputs.prerelease == 'false'
@@ -240,10 +271,10 @@ jobs:
 
       - name: Wait for Docker images to build
         if: steps.release.outputs.prerelease == 'false'
-        uses: lewagon/wait-on-check-action@v1.2.0
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: "Build split Docker images"
+          check-name: Build split Docker images
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update resource data models
