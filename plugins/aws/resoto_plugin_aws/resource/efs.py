@@ -116,14 +116,14 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
             for mt_raw in builder.client.list(
                 service_name, "describe-mount-targets", "MountTargets", FileSystemId=fs.id
             ):
-                mt = AwsEfsMountTarget.from_api(mt_raw)
-                builder.add_node(mt, mt_raw)
-                builder.add_edge(fs, node=mt)
+                if mt := AwsEfsMountTarget.from_api(mt_raw, builder):
+                    builder.add_node(mt, mt_raw)
+                    builder.add_edge(fs, node=mt)
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, collect_mount_points, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, collect_mount_points, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):

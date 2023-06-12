@@ -136,8 +136,9 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
             notebook_description = builder.client.get(
                 service_name, "describe-notebook-instance", None, NotebookInstanceName=notebook["NotebookInstanceName"]
             )
-            if notebook_description:
-                notebook_instance = AwsSagemakerNotebook.from_api(notebook_description)
+            if notebook_description and (
+                notebook_instance := AwsSagemakerNotebook.from_api(notebook_description, builder)
+            ):
                 builder.add_node(notebook_instance, notebook_description)
                 builder.submit_work(service_name, SagemakerTaggable.add_tags, notebook_instance, builder)
 
@@ -624,8 +625,8 @@ class AwsSagemakerAlgorithm(AwsResource):
                 service_name, "describe-algorithm", None, AlgorithmName=algorithm["AlgorithmName"]
             )
             if algorithm_description:
-                algorithm_instance = AwsSagemakerAlgorithm.from_api(algorithm_description)
-                builder.add_node(algorithm_instance, algorithm_description)
+                if algorithm_instance := AwsSagemakerAlgorithm.from_api(algorithm_description, builder):
+                    builder.add_node(algorithm_instance, algorithm_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if validation_role := value_in_path(source, ["ValidationSpecification", "ValidationRole"]):
@@ -726,11 +727,12 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for model in json:
-            model_description = builder.client.get(service_name, "describe-model", None, ModelName=model["ModelName"])
-            if model_description:
-                model_instance = AwsSagemakerModel.from_api(model_description)
-                builder.add_node(model_instance, model_description)
-                builder.submit_work(service_name, SagemakerTaggable.add_tags, model_instance, builder)
+            if model_description := builder.client.get(
+                service_name, "describe-model", None, ModelName=model["ModelName"]
+            ):
+                if model_instance := AwsSagemakerModel.from_api(model_description, builder):
+                    builder.add_node(model_instance, model_description)
+                    builder.submit_work(service_name, SagemakerTaggable.add_tags, model_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         model_data_buckets = [container.model_data_url for container in self.model_containers]
@@ -854,8 +856,8 @@ class AwsSagemakerApp(AwsResource):
             else:
                 app_description = None
             if app_description:
-                app_instance = AwsSagemakerApp.from_api(app_description)
-                builder.add_node(app_instance, app_description)
+                if app_instance := AwsSagemakerApp.from_api(app_description, builder):
+                    builder.add_node(app_instance, app_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if domain := self.app_domain_id:
@@ -1126,8 +1128,8 @@ class AwsSagemakerDomain(AwsResource):
                 DomainId=domain["DomainId"],
             )
             if domain_description:
-                domain_instance = AwsSagemakerDomain.from_api(domain_description)
-                builder.add_node(domain_instance, domain_description)
+                if domain_instance := AwsSagemakerDomain.from_api(domain_description, builder):
+                    builder.add_node(domain_instance, domain_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dus := self.domain_default_user_settings:
@@ -1352,8 +1354,8 @@ class AwsSagemakerTrial(AwsResource):
                 TrialName=trial["TrialName"],
             )
             if trial_description:
-                trial_instance = AwsSagemakerTrial.from_api(trial_description)
-                builder.add_node(trial_instance, trial_description)
+                if trial_instance := AwsSagemakerTrial.from_api(trial_description, builder):
+                    builder.add_node(trial_instance, trial_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.trial_experiment_name:
@@ -1798,13 +1800,12 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for endpoint in json:
-            endpoint_description = builder.client.get(
+            if endpoint_description := builder.client.get(
                 service_name, "describe-endpoint", None, EndpointName=endpoint["EndpointName"]
-            )
-            if endpoint_description:
-                endpoint_instance = AwsSagemakerEndpoint.from_api(endpoint_description)
-                builder.add_node(endpoint_instance, endpoint_description)
-                builder.submit_work(service_name, SagemakerTaggable.add_tags, endpoint_instance, builder)
+            ):
+                if endpoint_instance := AwsSagemakerEndpoint.from_api(endpoint_description, builder):
+                    builder.add_node(endpoint_instance, endpoint_description)
+                    builder.submit_work(service_name, SagemakerTaggable.add_tags, endpoint_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dcc := self.endpoint_data_capture_config:
@@ -1874,8 +1875,8 @@ class AwsSagemakerImage(AwsResource):
         for image in json:
             image_description = builder.client.get(service_name, "describe-image", None, ImageName=image["ImageName"])
             if image_description:
-                image_instance = AwsSagemakerImage.from_api(image_description)
-                builder.add_node(image_instance, image_description)
+                if image_instance := AwsSagemakerImage.from_api(image_description, builder):
+                    builder.add_node(image_instance, image_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role := value_in_path(source, "RoleArn"):
@@ -1952,12 +1953,11 @@ class AwsSagemakerArtifact(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for artifact in json:
-            artifact_description = builder.client.get(
+            if artifact_description := builder.client.get(
                 service_name, "describe-artifact", None, ArtifactArn=artifact["ArtifactArn"]
-            )
-            if artifact_description:
-                artifact_instance = AwsSagemakerArtifact.from_api(artifact_description)
-                builder.add_node(artifact_instance, artifact_description)
+            ):
+                if artifact_instance := AwsSagemakerArtifact.from_api(artifact_description, builder):
+                    builder.add_node(artifact_instance, artifact_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if c := self.artifact_created_by:
@@ -2062,12 +2062,11 @@ class AwsSagemakerPipeline(AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for pipeline in json:
-            pipeline_description = builder.client.get(
+            if pipeline_description := builder.client.get(
                 service_name, "describe-pipeline", None, PipelineName=pipeline["PipelineName"]
-            )
-            if pipeline_description:
-                pipeline_instance = AwsSagemakerPipeline.from_api(pipeline_description)
-                builder.add_node(pipeline_instance, pipeline_description)
+            ):
+                if pipeline_instance := AwsSagemakerPipeline.from_api(pipeline_description, builder):
+                    builder.add_node(pipeline_instance, pipeline_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := value_in_path(source, "RoleArn"):
@@ -2164,9 +2163,9 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for workteam in json:
-            workteam_instance = AwsSagemakerWorkteam.from_api(workteam)
-            builder.add_node(workteam_instance, workteam)
-            builder.submit_work(service_name, SagemakerTaggable.add_tags, workteam_instance, builder)
+            if workteam_instance := AwsSagemakerWorkteam.from_api(workteam, builder):
+                builder.add_node(workteam_instance, workteam)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, workteam_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for member in self.workteam_member_definitions:
@@ -2490,8 +2489,8 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
                 service_name, "describe-auto-ml-job", None, AutoMLJobName=job["AutoMLJobName"]
             )
             if job_description:
-                job_instance = AwsSagemakerAutoMLJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
+                if job_instance := AwsSagemakerAutoMLJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for config in self.auto_ml_job_input_data_config:
@@ -2649,8 +2648,8 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
                 service_name, "describe-compilation-job", None, CompilationJobName=job["CompilationJobName"]
             )
             if job_description:
-                job_instance = AwsSagemakerCompilationJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
+                if job_instance := AwsSagemakerCompilationJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.compilation_job_model_artifacts:
@@ -2764,8 +2763,7 @@ class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
             job_description = builder.client.get(
                 service_name, "describe-edge-packaging-job", None, EdgePackagingJobName=job["EdgePackagingJobName"]
             )
-            if job_description:
-                job_instance = AwsSagemakerEdgePackagingJob.from_api(job_description)
+            if job_description and (job_instance := AwsSagemakerEdgePackagingJob.from_api(job_description, builder)):
                 builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -3142,9 +3140,9 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
                 HyperParameterTuningJobName=job["HyperParameterTuningJobName"],
             )
             if job_description:
-                job_instance = AwsSagemakerHyperParameterTuningJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
-                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+                if job_instance := AwsSagemakerHyperParameterTuningJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
+                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         job_definitions = []
@@ -3475,15 +3473,14 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
-            job_description = builder.client.get(
+            if job_description := builder.client.get(
                 service_name,
                 "describe-inference-recommendations-job",
                 None,
                 JobName=job["JobName"],
-            )
-            if job_description:
-                job_instance = AwsSagemakerInferenceRecommendationsJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
+            ):
+                if job_instance := AwsSagemakerInferenceRecommendationsJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := value_in_path(source, "RoleArn"):
@@ -3754,8 +3751,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
                 None,
                 LabelingJobName=job["LabelingJobName"],
             )
-            if job_description:
-                job_instance = AwsSagemakerLabelingJob.from_api(job_description)
+            if job_description and (job_instance := AwsSagemakerLabelingJob.from_api(job_description, builder)):
                 builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -4078,8 +4074,7 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
                 None,
                 ProcessingJobName=job["ProcessingJobName"],
             )
-            if job_description:
-                job_instance = AwsSagemakerProcessingJob.from_api(job_description)
+            if job_description and (job_instance := AwsSagemakerProcessingJob.from_api(job_description, builder)):
                 builder.add_node(job_instance, job_description)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -4447,9 +4442,9 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
                 TrainingJobName=job["TrainingJobName"],
             )
             if job_description:
-                job_instance = AwsSagemakerTrainingJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
-                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+                if job_instance := AwsSagemakerTrainingJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
+                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.training_job_labeling_job_arn:
@@ -4616,16 +4611,15 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for job in json:
-            job_description = builder.client.get(
+            if job_description := builder.client.get(
                 service_name,
                 "describe-transform-job",
                 None,
                 TransformJobName=job["TransformJobName"],
-            )
-            if job_description:
-                job_instance = AwsSagemakerTransformJob.from_api(job_description)
-                builder.add_node(job_instance, job_description)
-                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+            ):
+                if job_instance := AwsSagemakerTransformJob.from_api(job_description, builder):
+                    builder.add_node(job_instance, job_description)
+                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.transform_job_model_name:

@@ -316,9 +316,9 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
         def add_instance(table: str) -> None:
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
-                instance = cls.from_api(table_description)
-                builder.add_node(instance, table_description)
-                builder.submit_work(service_name, add_tags, instance)
+                if instance := cls.from_api(table_description, builder):
+                    builder.add_node(instance, table_description)
+                    builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
@@ -398,9 +398,9 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                 GlobalTableName=table["GlobalTableName"],
             )
             if table_description:
-                instance = cls.from_api(table_description)
-                builder.add_node(instance, table_description)
-                builder.submit_work(service_name, add_tags, instance)
+                if instance := cls.from_api(table_description, builder):
+                    builder.add_node(instance, table_description)
+                    builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(table: AwsDynamoDbGlobalTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)

@@ -27,10 +27,10 @@ class CloudFrontResource:
                 res.tags = bend(ToDict(), tags["Items"])
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            if instance.arn:
-                builder.submit_work(service_name, add_tags, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                if instance.arn:
+                    builder.submit_work(service_name, add_tags, instance)
 
     @staticmethod
     def delete_cloudfront_resource(client: AwsClient, resource: str, id: str) -> bool:

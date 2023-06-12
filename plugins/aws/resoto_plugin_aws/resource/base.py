@@ -7,18 +7,17 @@ from collections import defaultdict, deque
 from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache, reduce
-from json import dumps as json_dumps
 from threading import Event, Lock
 from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
 
 from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
+
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
-
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -31,6 +30,7 @@ from resotolib.baseresources import (
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
+from resotolib.json import from_json
 from resotolib.json_bender import Bender, bend
 from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
@@ -43,6 +43,29 @@ def get_client(config: Config, resource: BaseResource) -> AwsClient:
     account = resource.account()
     assert isinstance(account, AwsAccount)
     return AwsClient(config.aws, account.id, role=account.role, profile=account.profile, region=resource.region().id)
+
+
+T = TypeVar("T")
+
+
+def parse_json(json: Json, clazz: Type[T], builder: GraphBuilder) -> Optional[T]:
+    """
+    Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
+    Based on configuration, either the exception is raised or None is returned.
+    :param json: the json to parse.
+    :param clazz: the class to parse into.
+    :param builder:  the graph builder.
+    :return: The parsed object or None.
+    """
+    try:
+        return from_json(json, clazz)
+    except Exception as e:
+        # report the error
+        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}")
+        # based on the strict flag, either raise the exception or return None
+        if builder.config.discard_account_on_resource_error:
+            raise
+        return None
 
 
 @define
@@ -138,13 +161,9 @@ class AwsResource(BaseResource, ABC):
         return arn.rsplit(":")[-1]
 
     @classmethod
-    def from_api(cls: Type[AwsResourceType], json: Json) -> AwsResourceType:
-        try:
-            mapped = bend(cls.mapping, json)
-            return cls.from_json(mapped)
-        except Exception as e:
-            log.error(f"Error while mapping {cls.__name__}: {e}. Json: {json_dumps(json)}")
-            raise
+    def from_api(cls: Type[AwsResourceType], json: Json, builder: GraphBuilder) -> Optional[AwsResourceType]:
+        mapped = bend(cls.mapping, json)
+        return parse_json(mapped, cls, builder)
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
@@ -178,8 +197,8 @@ class AwsResource(BaseResource, ABC):
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -290,9 +309,6 @@ class AwsRegion(BaseRegion, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
-
-
-T = TypeVar("T")
 
 
 class CancelOnFirstError(Exception):

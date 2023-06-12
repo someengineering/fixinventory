@@ -362,15 +362,14 @@ class AwsEksCluster(EKSTaggable, AwsResource):
         for name in cast(List[str], json):
             cluster_json = builder.client.get(service_name, "describe-cluster", "cluster", name=name)
             if cluster_json is not None:
-                cluster = AwsEksCluster.from_api(cluster_json)
-                builder.add_node(cluster, cluster_json)
-                for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
-                    ng_json = builder.client.get(
-                        service_name, "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
-                    )
-                    if ng_json is not None:
-                        ng = AwsEksNodegroup.from_api(ng_json)
-                        builder.add_node(ng, ng_json)
+                if cluster := AwsEksCluster.from_api(cluster_json, builder):
+                    builder.add_node(cluster, cluster_json)
+                    for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
+                        ng_json = builder.client.get(
+                            service_name, "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
+                        )
+                        if ng_json is not None and (ng := AwsEksNodegroup.from_api(ng_json, builder)):
+                            builder.add_node(ng, ng_json)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(

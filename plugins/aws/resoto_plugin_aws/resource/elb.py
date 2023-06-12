@@ -221,9 +221,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 elb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
         for js in json:
-            instance = cls.from_api(js)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

@@ -447,10 +447,10 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 rds.mtime = t
 
         for js in json:
-            instance = AwsRdsInstance.from_api(js)
-            instances.append(instance)
-            builder.add_node(instance, js)
-            builder.submit_work(service_name, add_tags, instance)
+            if instance := AwsRdsInstance.from_api(js, builder):
+                instances.append(instance)
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

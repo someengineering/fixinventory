@@ -71,9 +71,9 @@ class AwsSnsTopic(AwsResource):
                 service_name, "get-topic-attributes", TopicArn=entry["TopicArn"], result_name="Attributes"
             )
             if topic:
-                topic_instance = cls.from_api(topic)
-                builder.add_node(topic_instance, topic)
-                builder.submit_work(service_name, add_tags, topic_instance)
+                if topic_instance := cls.from_api(topic, builder):
+                    builder.add_node(topic_instance, topic)
+                    builder.submit_work(service_name, add_tags, topic_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.topic_kms_master_key_id:
@@ -163,8 +163,8 @@ class AwsSnsSubscription(AwsResource):
                 expected_errors=["InvalidParameter"],
             )
             if subscription:
-                subscription_instance = cls.from_api(subscription)
-                builder.add_node(subscription_instance, subscription)
+                if subscription_instance := cls.from_api(subscription, builder):
+                    builder.add_node(subscription_instance, subscription)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.subscription_topic_arn:
@@ -264,21 +264,21 @@ class AwsSnsPlatformApplication(AwsResource):
             )
             if app:
                 app["Arn"] = app_arn
-                app_instance = cls.from_api(app)
-                builder.add_node(app_instance, app)
+                if app_instance := cls.from_api(app, builder):
+                    builder.add_node(app_instance, app)
 
-                endpoints = builder.client.list(
-                    service_name,
-                    "list-endpoints-by-platform-application",
-                    PlatformApplicationArn=app_arn,
-                    result_name="Endpoints",
-                )
-                for endpoint in endpoints:
-                    attributes = endpoint["Attributes"]
-                    attributes["Arn"] = endpoint["EndpointArn"]
-                    endpoint_instance = AwsSnsEndpoint.from_api(attributes)
-                    builder.add_node(endpoint_instance, attributes)
-                    builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
+                    endpoints = builder.client.list(
+                        service_name,
+                        "list-endpoints-by-platform-application",
+                        PlatformApplicationArn=app_arn,
+                        result_name="Endpoints",
+                    )
+                    for endpoint in endpoints:
+                        attributes = endpoint["Attributes"]
+                        attributes["Arn"] = endpoint["EndpointArn"]
+                        if endpoint_instance := AwsSnsEndpoint.from_api(attributes, builder):
+                            builder.add_node(endpoint_instance, attributes)
+                            builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for topic in [

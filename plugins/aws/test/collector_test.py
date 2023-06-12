@@ -1,5 +1,6 @@
 import json
 import threading
+from contextlib import suppress
 from typing import Type, List, Tuple, Set
 
 from networkx import DiGraph, is_directed_acyclic_graph
@@ -10,7 +11,8 @@ from resoto_plugin_aws.collector import (
     called_collect_apis,
     called_mutator_apis,
 )
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
@@ -77,3 +79,14 @@ def test_all_called_apis() -> None:
 def test_service_name_is_defined_in_all_resources() -> None:
     for rt in all_resources:
         assert rt.service_name() is not None, rt.__name__ + " has no service_name"
+
+
+def test_raise_error_if_configured(builder: GraphBuilder) -> None:
+    # make sure any mapping exception is raised
+    builder.config.discard_account_on_resource_error = True
+    with suppress(Exception):
+        AwsEc2Instance.from_api({"is": "wrong"}, builder)
+
+    # ignore any mapping exception
+    builder.config.discard_account_on_resource_error = False
+    assert AwsEc2Instance.from_api({"is": "wrong"}, builder) is None

@@ -4,11 +4,10 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, parse_json
 from resoto_plugin_aws.resource.base import AwsResource
 from resoto_plugin_aws.utils import ToDict
 from resotolib.graph import Graph
-from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
@@ -72,14 +71,15 @@ class AwsConfigRecorder(AwsResource):
         for r in builder.client.list(
             service_name, "describe-configuration-recorder-status", "ConfigurationRecordersStatus"
         ):
-            statuses[r["name"]] = from_json(bend(AwsConfigRecorderStatus.mapping, r), AwsConfigRecorderStatus)
+            if status := parse_json(bend(AwsConfigRecorderStatus.mapping, r), AwsConfigRecorderStatus, builder):
+                statuses[r["name"]] = status
 
         for js in json:
-            instance = AwsConfigRecorder.from_api(js)
-            if status := statuses.get(instance.id):
-                instance.recorder_status = status
-                instance.mtime = status.last_status_change_time
-            builder.add_node(instance, js)
+            if instance := AwsConfigRecorder.from_api(js, builder):
+                if status := statuses.get(instance.id):
+                    instance.recorder_status = status
+                    instance.mtime = status.last_status_change_time
+                builder.add_node(instance, js)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-configuration-recorder", self.name)

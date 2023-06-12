@@ -6,11 +6,11 @@ from attr import field
 from attrs import define
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from resoto_plugin_aws.utils import tags_as_dict
 from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
 from resotolib.graph import Graph
-from resotolib.json import from_json, is_empty
+from resotolib.json import is_empty
 from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
@@ -164,7 +164,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     expected_errors=["ServerSideEncryptionConfigurationNotFoundError", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
-                    bck.bucket_encryption_rules.append(from_json(mapped, AwsS3ServerSideEncryptionRule))
+                    if rule := parse_json(mapped, AwsS3ServerSideEncryptionRule, builder):
+                        bck.bucket_encryption_rules.append(rule)
 
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
@@ -198,8 +199,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     expected_errors=["NoSuchPublicAccessBlockConfiguration", "NoSuchBucket"],
                 ):
                     mapped = bend(AwsS3PublicAccessBlockConfiguration.mapping, raw_access)
-                    bck.bucket_public_access_block_configuration = from_json(
-                        mapped, AwsS3PublicAccessBlockConfiguration
+                    bck.bucket_public_access_block_configuration = parse_json(
+                        mapped, AwsS3PublicAccessBlockConfiguration, builder
                     )
 
         def add_acls(bck: AwsS3Bucket) -> None:
@@ -208,7 +209,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     service_name, "get-bucket-acl", Bucket=bck.name, expected_errors=["NoSuchBucket"]
                 ):
                     mapped = bend(AwsS3BucketAcl.mapping, raw)
-                    bck.bucket_acl = from_json(mapped, AwsS3BucketAcl)
+                    bck.bucket_acl = parse_json(mapped, AwsS3BucketAcl, builder)
 
         def add_bucket_logging(bck: AwsS3Bucket) -> None:
             with suppress(Exception):
@@ -222,19 +223,19 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     mapped = bend(AwsS3Logging.mapping, raw)
                     # do not set, if no property is set
                     if not is_empty(mapped):
-                        bck.bucket_logging = from_json(mapped, AwsS3Logging)
+                        bck.bucket_logging = parse_json(mapped, AwsS3Logging, builder)
 
         for js in json:
-            bucket = cls.from_api(js)
-            bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
-            builder.add_node(bucket, js)
-            builder.submit_work(service_name, add_tags, bucket)
-            builder.submit_work(service_name, add_bucket_encryption, bucket)
-            builder.submit_work(service_name, add_bucket_policy, bucket)
-            builder.submit_work(service_name, add_bucket_versioning, bucket)
-            builder.submit_work(service_name, add_public_access, bucket)
-            builder.submit_work(service_name, add_acls, bucket)
-            builder.submit_work(service_name, add_bucket_logging, bucket)
+            if bucket := cls.from_api(js, builder):
+                bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
+                builder.add_node(bucket, js)
+                builder.submit_work(service_name, add_tags, bucket)
+                builder.submit_work(service_name, add_bucket_encryption, bucket)
+                builder.submit_work(service_name, add_bucket_policy, bucket)
+                builder.submit_work(service_name, add_bucket_versioning, bucket)
+                builder.submit_work(service_name, add_public_access, bucket)
+                builder.submit_work(service_name, add_acls, bucket)
+                builder.submit_work(service_name, add_bucket_logging, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -339,7 +340,9 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
             expected_errors=["NoSuchPublicAccessBlockConfiguration"],
         ):
             mapped = bend(AwsS3PublicAccessBlockConfiguration.mapping, raw)
-            node.bucket_public_access_block_configuration = from_json(mapped, AwsS3PublicAccessBlockConfiguration)
+            node.bucket_public_access_block_configuration = parse_json(
+                mapped, AwsS3PublicAccessBlockConfiguration, builder
+            )
         builder.add_node(node)
         builder.add_edge(builder.account, node=node)
 

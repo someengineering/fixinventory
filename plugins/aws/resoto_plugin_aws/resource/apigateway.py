@@ -4,14 +4,13 @@ from typing import ClassVar, Dict, Optional, List, Type, Union
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from resoto_plugin_aws.resource.iam import AwsIamRole
 from resoto_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.graph import Graph
-from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend
 from resotolib.types import Json
 
@@ -449,46 +448,55 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            api_instance = cls.from_api(js)
-            api_instance.set_arn(
-                builder=builder,
-                account="",
-                resource=f"/restapis/{api_instance.id}",
-            )
-            builder.add_node(api_instance, js)
-            for deployment in builder.client.list(service_name, "get-deployments", "items", restApiId=api_instance.id):
-                deploy_instance = AwsApiGatewayDeployment.from_api(deployment)
-                deploy_instance.set_arn(
+            if api_instance := cls.from_api(js, builder):
+                api_instance.set_arn(
                     builder=builder,
                     account="",
-                    resource=f"/restapis/{api_instance.id}/deployments/{deploy_instance.id}",
+                    resource=f"/restapis/{api_instance.id}",
                 )
-                deploy_instance.api_link = api_instance.id
-                builder.add_node(deploy_instance, deployment)
-                builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
-                for stage in builder.client.list(
-                    service_name, "get-stages", "item", restApiId=api_instance.id, deploymentId=deploy_instance.id
+                builder.add_node(api_instance, js)
+                for deployment in builder.client.list(
+                    service_name, "get-deployments", "items", restApiId=api_instance.id
                 ):
-                    stage["syntheticId"] = f'{api_instance.id}_{stage["stageName"]}'  # create unique id
-                    stage_instance = AwsApiGatewayStage.from_api(stage)
-                    stage_instance.api_link = api_instance.id
-                    builder.add_node(stage_instance, stage)
-                    # reference kinds for this edge are maintained in AwsApiGatewayDeployment.reference_kinds
-                    builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
-            for authorizer in builder.client.list(service_name, "get-authorizers", "items", restApiId=api_instance.id):
-                auth_instance = AwsApiGatewayAuthorizer.from_api(authorizer)
-                auth_instance.api_link = api_instance.id
-                builder.add_node(auth_instance, authorizer)
-                builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
-            for resource in builder.client.list(service_name, "get-resources", "items", restApiId=api_instance.id):
-                resource_instance = AwsApiGatewayResource.from_api(resource)
-                resource_instance.api_link = api_instance.id
-                if resource_instance.resource_methods:
-                    for method in resource_instance.resource_methods:
-                        mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][method])
-                        resource_instance.resource_methods[method] = from_json(mapped, AwsApiGatewayMethod)
-                builder.add_node(resource_instance, resource)
-                builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
+                    if deploy_instance := AwsApiGatewayDeployment.from_api(deployment, builder):
+                        deploy_instance.set_arn(
+                            builder=builder,
+                            account="",
+                            resource=f"/restapis/{api_instance.id}/deployments/{deploy_instance.id}",
+                        )
+                        deploy_instance.api_link = api_instance.id
+                        builder.add_node(deploy_instance, deployment)
+                        builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
+                        for stage in builder.client.list(
+                            service_name,
+                            "get-stages",
+                            "item",
+                            restApiId=api_instance.id,
+                            deploymentId=deploy_instance.id,
+                        ):
+                            stage["syntheticId"] = f'{api_instance.id}_{stage["stageName"]}'  # create unique id
+                            if stage_instance := AwsApiGatewayStage.from_api(stage, builder):
+                                stage_instance.api_link = api_instance.id
+                                builder.add_node(stage_instance, stage)
+                                # reference kinds for this edge are maintained in AwsApiGatewayDeployment.reference_kinds # noqa: E501
+                                builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
+                for authorizer in builder.client.list(
+                    service_name, "get-authorizers", "items", restApiId=api_instance.id
+                ):
+                    if auth_instance := AwsApiGatewayAuthorizer.from_api(authorizer, builder):
+                        auth_instance.api_link = api_instance.id
+                        builder.add_node(auth_instance, authorizer)
+                        builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
+                for resource in builder.client.list(service_name, "get-resources", "items", restApiId=api_instance.id):
+                    if resource_instance := AwsApiGatewayResource.from_api(resource, builder):
+                        resource_instance.api_link = api_instance.id
+                        if resource_instance.resource_methods:
+                            for method in resource_instance.resource_methods:
+                                mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][method])
+                                if gm := parse_json(mapped, AwsApiGatewayMethod, builder):
+                                    resource_instance.resource_methods[method] = gm
+                        builder.add_node(resource_instance, resource)
+                        builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:

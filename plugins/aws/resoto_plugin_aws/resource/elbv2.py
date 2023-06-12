@@ -2,12 +2,11 @@ from typing import ClassVar, Dict, Optional, Type, List
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseLoadBalancer, ModelReference
 from resotolib.graph import Graph
-from resotolib.json import from_json
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from resotolib.types import Json
 from resoto_plugin_aws.aws_client import AwsClient
@@ -317,22 +316,23 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            lb = AwsAlb.from_api(js)
-            tags = builder.client.list(
-                service_name,
-                "describe-tags",
-                "TagDescriptions",
-                ResourceArns=[lb.arn],
-                expected_errors=["LoadBalancerNotFound"],
-            )
-            if tags:
-                lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
-            for listener in builder.client.list(
-                service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
-            ):
-                mapped = bend(AwsAlbListener.mapping, listener)
-                lb.alb_listener.append(from_json(mapped, AwsAlbListener))
-            builder.add_node(lb, js)
+            if lb := AwsAlb.from_api(js, builder):
+                tags = builder.client.list(
+                    service_name,
+                    "describe-tags",
+                    "TagDescriptions",
+                    ResourceArns=[lb.arn],
+                    expected_errors=["LoadBalancerNotFound"],
+                )
+                if tags:
+                    lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                for listener in builder.client.list(
+                    service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
+                ):
+                    mapped = bend(AwsAlbListener.mapping, listener)
+                    if listener := parse_json(mapped, AwsAlbListener, builder):
+                        lb.alb_listener.append(listener)
+                builder.add_node(lb, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
@@ -470,16 +470,17 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
-            tg = AwsAlbTargetGroup.from_api(js)
-            tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
-            if tags:
-                tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
-            for health in builder.client.list(
-                service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
-            ):
-                mapped = bend(AwsAlbTargetHealthDescription.mapping, health)
-                tg.alb_target_health.append(from_json(mapped, AwsAlbTargetHealthDescription))
-            builder.add_node(tg, js)
+            if tg := AwsAlbTargetGroup.from_api(js, builder):
+                tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
+                if tags:
+                    tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                for health in builder.client.list(
+                    service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
+                ):
+                    mapped = bend(AwsAlbTargetHealthDescription.mapping, health)
+                    if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
+                        tg.alb_target_health.append(tgh)
+                builder.add_node(tg, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):

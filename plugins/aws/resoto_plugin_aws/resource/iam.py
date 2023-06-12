@@ -6,7 +6,7 @@ from typing import ClassVar, Dict, Optional, Type, List, Any, Callable
 from attrs import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import (
@@ -20,7 +20,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-from resotolib.json import from_json, value_in_path
+from resotolib.json import value_in_path
 from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
 from resotolib.types import Json
 from resotolib.utils import parse_utc, utc
@@ -419,11 +419,6 @@ class AwsIamAccessKeyLastUsed:
     service_name: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
 
-    @staticmethod
-    def from_api(js: Json) -> "AwsIamAccessKeyLastUsed":
-        mapped = bend(AwsIamAccessKeyLastUsed.mapping, js)
-        return from_json(mapped, AwsIamAccessKeyLastUsed)
-
 
 @define(eq=False, slots=False)
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
@@ -617,46 +612,49 @@ class AwsIamUser(AwsResource, BaseUser):
 
         for json in json_list:
             for js in json.get("GroupDetailList", []):
-                builder.add_node(AwsIamGroup.from_api(js), js)
+                if gd := AwsIamGroup.from_api(js, builder):
+                    builder.add_node(gd, js)
 
             for js in json.get("RoleDetailList", []):
-                builder.add_node(AwsIamRole.from_api(js), js)
+                if rd := AwsIamRole.from_api(js, builder):
+                    builder.add_node(rd, js)
 
             for js in json.get("Policies", []):
-                builder.add_node(AwsIamPolicy.from_api(js), js)
+                if p := AwsIamPolicy.from_api(js, builder):
+                    builder.add_node(p, js)
 
             for js in json.get("UserDetailList", []):
-                user = AwsIamUser.from_api(js)
-                builder.add_node(user, js)
-                line = report.get(user.name or user.id)
-                line_keys: List[AwsIamAccessKey] = []
-                if line:
-                    user.password_enabled = line.password_enabled()
-                    user.password_last_used = line.password_last_used()
-                    user.atime = user.password_last_used
-                    user.password_last_changed = line.password_last_changed()
-                    user.password_next_rotation = line.password_next_rotation()
-                    user.mfa_active = line.mfa_active()
-                    line_keys = line.access_keys()
-                # add all iam access keys for this user
-                for idx, ak in enumerate(
-                    builder.client.list(service_name, "list-access-keys", "AccessKeyMetadata", UserName=user.name)
-                ):
-                    key = AwsIamAccessKey.from_api(ak)
-                    if line and idx < len(line_keys):
-                        key.access_key_last_used = line_keys[idx].access_key_last_used
-                    builder.add_node(key, ak)
-                    builder.dependant_node(user, node=key)
+                if user := AwsIamUser.from_api(js, builder):
+                    builder.add_node(user, js)
+                    line = report.get(user.name or user.id)
+                    line_keys: List[AwsIamAccessKey] = []
+                    if line:
+                        user.password_enabled = line.password_enabled()
+                        user.password_last_used = line.password_last_used()
+                        user.atime = user.password_last_used
+                        user.password_last_changed = line.password_last_changed()
+                        user.password_next_rotation = line.password_next_rotation()
+                        user.mfa_active = line.mfa_active()
+                        line_keys = line.access_keys()
+                    # add all iam access keys for this user
+                    for idx, ak in enumerate(
+                        builder.client.list(service_name, "list-access-keys", "AccessKeyMetadata", UserName=user.name)
+                    ):
+                        if key := AwsIamAccessKey.from_api(ak, builder):
+                            if line and idx < len(line_keys):
+                                key.access_key_last_used = line_keys[idx].access_key_last_used
+                            builder.add_node(key, ak)
+                            builder.dependant_node(user, node=key)
 
         def add_virtual_mfa_devices() -> None:
             for vjs in builder.client.list(service_name, "list-virtual-mfa-devices", "VirtualMFADevices"):
                 if arn := value_in_path(vjs, "User.Arn"):
                     if isinstance(usr := builder.node(arn=arn), (AwsIamUser, AwsRootUser)):
                         mapped = bend(AwsIamVirtualMfaDevice.mapping, vjs)
-                        node = from_json(mapped, AwsIamVirtualMfaDevice)
-                        if usr.user_virtual_mfa_devices is None:
-                            usr.user_virtual_mfa_devices = []
-                        usr.user_virtual_mfa_devices.append(node)
+                        if node := parse_json(mapped, AwsIamVirtualMfaDevice, builder):
+                            if usr.user_virtual_mfa_devices is None:
+                                usr.user_virtual_mfa_devices = []
+                            usr.user_virtual_mfa_devices.append(node)
 
         if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
             builder.submit_work(service_name, add_virtual_mfa_devices)

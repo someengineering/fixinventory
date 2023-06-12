@@ -233,6 +233,13 @@ class AwsConfig:
             "Defaults to 1 hour.",
         },
     )
+    discard_account_on_resource_error: bool = field(
+        default=False,
+        metadata={
+            "description": "Fail the whole account if collecting a resource fails. "
+            "If false, the error is logged and the resource is skipped."
+        },
+    )
 
     @staticmethod
     def from_json(json: Json) -> "AwsConfig":

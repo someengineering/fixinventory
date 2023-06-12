@@ -30,7 +30,7 @@ clean-test: ## remove test and coverage artifacts
 lint: ## static code analysis
 	black --line-length 120 --check resoto_plugin_aws test
 	flake8 resoto_plugin_aws
-	mypy --python-version 3.9 --strict resoto_plugin_aws test
+	mypy --python-version 3.9 --strict --install-types resoto_plugin_aws test
 
 test: ## run tests quickly with the default Python
 	pytest
