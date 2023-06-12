@@ -562,6 +562,7 @@ class gcp_error_handler:
         if exc_type is HttpError:
             try:
                 error_details = json.loads(exc_value.content.decode())
+                error_details = error_details.get("error", {}).get("message", exc_value)
             except Exception:
                 error_details = exc_value
             if exc_value.resp.status == 403:
