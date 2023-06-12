@@ -5050,8 +5050,13 @@ class AppsCommand(CLICommand):
             else:
                 raise ValueError(f"Config {config} not found.")
 
+            async def stream_to_iterator(in_stream: Stream) -> AsyncIterator[JsonElement]:
+                async with in_stream.stream() as streamer:
+                    async for item in streamer:
+                        yield item
+
             stdin: AsyncIterator[JsonElement] = (
-                stream.iterate(in_stream) if isinstance(in_stream, Stream) else in_stream
+                stream_to_iterator(in_stream) if isinstance(in_stream, Stream) else in_stream
             )
 
             if dry_run:
