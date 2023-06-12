@@ -573,7 +573,9 @@ class gcp_error_handler:
                 pass
 
         if not Config.gcp.discard_account_on_resource_error:
-            self.core_feedback.error(f"Error while collecting{self.extra_info} ({exc_type}): {error_details}", log)
+            self.core_feedback.error(
+                f"Error while collecting{self.extra_info} ({exc_type.__name__}): {error_details}", log
+            )
             return True
 
         if exc_type is HttpError:
