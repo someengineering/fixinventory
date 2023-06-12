@@ -8,6 +8,7 @@ from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
 
 from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
+from googleapiclient.errors import HttpError
 
 from resoto_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
 from resoto_plugin_gcp.utils import Credentials
@@ -395,8 +396,9 @@ class GcpResource(BaseResource):
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
-            items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder)
+            with gcp_error_handler(builder.core_feedback, f" in {builder.project.id} kind {cls.kind}"):
+                items = builder.client.list(spec, **kwargs)
+                return cls.collect(items, builder)
         return []
 
     @classmethod
@@ -545,3 +547,19 @@ class GcpZone(GcpResource, BaseZone):
     zone_available_cpu_platforms: Optional[List[str]] = field(default=None)
     zone_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     zone_supports_pzs: Optional[bool] = field(default=None)
+
+
+class gcp_error_handler:
+    def __init__(self, core_feedback: CoreFeedback, extra_info: Optional[str] = None):
+        self.core_feedback = core_feedback
+        self.extra_info = extra_info
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is HttpError:
+            if exc_value.resp.status == 403:
+                self.core_feedback.error(f"Access denied{self.extra_info}: {exc_value.resp.reason}", log)
+                return True
+        return False
