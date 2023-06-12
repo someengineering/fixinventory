@@ -67,8 +67,8 @@ async def test_text_simple_elements(elements: List[JsonElement]) -> None:
         result = ""
         async for elem in respond_text(streamer):
             result += elem + "\n"
-        # every element is rendered as single line
-        assert len(elements) + 1 == len(result.split("\n"))
+        # every element is rendered as one or more line (string with \n is rendered as multiple lines)
+        assert len(elements) + 1 <= len(result.split("\n"))
 
 
 @given(lists(node_gen(), min_size=1, max_size=10))
