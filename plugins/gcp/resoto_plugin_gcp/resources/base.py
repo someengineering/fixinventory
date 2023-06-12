@@ -553,15 +553,18 @@ class GcpZone(GcpResource, BaseZone):
 
 
 class gcp_error_handler:
-    def __init__(self, core_feedback: CoreFeedback, extra_info: str = ""):
+    def __init__(self, core_feedback: CoreFeedback, extra_info: str = "") -> None:
         self.core_feedback = core_feedback
         self.extra_info = extra_info
 
-    def __enter__(self):
+    def __enter__(self) -> "gcp_error_handler":
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        error_details = f"{exc_type}: {exc_value}"
+    def __exit__(self, exc_type, exc_value, traceback) -> Optional[bool]:
+        if exc_type is None:
+            return None
+
+        error_details = exc_value
         if exc_type is HttpError:
             try:
                 error_details = json.loads(exc_value.content.decode())
