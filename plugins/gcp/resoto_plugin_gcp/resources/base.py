@@ -399,7 +399,7 @@ class GcpResource(BaseResource):
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
-            with gcp_error_handler(builder.core_feedback, f" in {builder.project.id} kind {cls.kind}"):
+            with GcpErrorHandler(builder.core_feedback, f" in {builder.project.id} kind {cls.kind}"):
                 items = builder.client.list(spec, **kwargs)
                 return cls.collect(items, builder)
         return []
@@ -552,12 +552,12 @@ class GcpZone(GcpResource, BaseZone):
     zone_supports_pzs: Optional[bool] = field(default=None)
 
 
-class gcp_error_handler:
+class GcpErrorHandler:
     def __init__(self, core_feedback: CoreFeedback, extra_info: str = "") -> None:
         self.core_feedback = core_feedback
         self.extra_info = extra_info
 
-    def __enter__(self) -> "gcp_error_handler":
+    def __enter__(self) -> "GcpErrorHandler":
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> Optional[bool]:
