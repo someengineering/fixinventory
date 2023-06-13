@@ -105,7 +105,9 @@ def list_credential_projects(credentials) -> List:
             if ctime is not None:
                 ctime = iso2datetime(ctime)
             project_name = project.get("name")
-            project_id = project.get("projectId")
+            project_id = project.get("projectId", "")
+            if project_id.startswith("sys-"):
+                continue
             p = {
                 "id": project_id,
                 "name": project_name,
