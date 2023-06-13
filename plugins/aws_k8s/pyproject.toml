@@ -1,6 +1,6 @@
 [project]
 name = "resoto-plugin-aws-k8s"
-version = "3.5.2"
+version = "3.5.3"
 authors = [{name="Some Engineering Inc."}]
 description = "Resoto AWS-K8s Collector Plugin"
 license = {file="LICENSE"}
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 keywords = ["aws", "k8s"]
 
-dependencies = [ "resotolib==3.5.2" ]
+dependencies = [ "resotolib==3.5.3" ]
 
 [project.optional-dependencies]
 dev = [ "mypy" ]
