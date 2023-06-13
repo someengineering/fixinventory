@@ -224,7 +224,7 @@ class ResotoLogger(Logger):
 
 
 def get_resoto_logger(name: Optional[str] = None) -> ResotoLogger:
-    return logging.getLogger(name)  # type: ignore
+    return getLogger(name)  # type: ignore
 
 
 add_logging_level("DEBUG2", DEBUG2)
