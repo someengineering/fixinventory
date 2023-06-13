@@ -223,6 +223,10 @@ class ResotoLogger(Logger):
         ...
 
 
+def get_resoto_logger(name: Optional[str] = None) -> ResotoLogger:
+    return logging.getLogger(name)  # type: ignore
+
+
 add_logging_level("DEBUG2", DEBUG2)
 add_logging_level("DEBUG3", DEBUG3)
 add_logging_level("DEBUG4", DEBUG4)
@@ -231,4 +235,4 @@ add_logging_level("TRACE", TRACE)
 
 setLoggerClass(ResotoLogger)
 setup_logger("resoto", force=False)
-log = getLogger("resoto")
+log = get_resoto_logger("resoto")
