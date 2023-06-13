@@ -73,7 +73,7 @@ def register_json(
     :param to_json_fn: the function to convert the class to json
     :param from_json_fn: the function to convert json to the class
     """
-    log.debug("Register json structure hooks for class %s", cls.__name__)
+    log.trace("Register json structure hooks for class %s", cls.__name__)
     if from_json_fn is not None:
         __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))  # type: ignore
     if to_json_fn is not None:
