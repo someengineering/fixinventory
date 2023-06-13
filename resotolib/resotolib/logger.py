@@ -4,7 +4,20 @@ from typing import ClassVar, Optional, Dict, Mapping, Any
 import sys
 import os
 import logging
-from logging import basicConfig, getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL, StreamHandler, Formatter, LogRecord
+from logging import (
+    basicConfig,
+    getLogger,
+    setLoggerClass,
+    DEBUG,
+    INFO,
+    WARNING,
+    ERROR,
+    CRITICAL,
+    StreamHandler,
+    Formatter,
+    LogRecord,
+    Logger,
+)
 
 
 from resotolib.args import ArgumentParser
@@ -193,11 +206,29 @@ def add_logging_level(level_name: str, level_num: int, method_name: Optional[str
     setattr(logging, method_name, log_to_root)
 
 
+class ResotoLogger(Logger):
+    def debug2(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def debug3(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def debug4(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def debug5(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def trace(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        ...
+
+
 add_logging_level("DEBUG2", DEBUG2)
 add_logging_level("DEBUG3", DEBUG3)
 add_logging_level("DEBUG4", DEBUG4)
 add_logging_level("DEBUG5", DEBUG5)
 add_logging_level("TRACE", TRACE)
 
+setLoggerClass(ResotoLogger)
 setup_logger("resoto", force=False)
 log = getLogger("resoto")
