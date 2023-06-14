@@ -509,6 +509,7 @@ class DigitalOceanTeamCollector:
                 "urn": lambda d: droplet_id(d["id"]),
                 "instance_status": lambda d: instance_status_map.get(d["status"], InstanceStatus.UNKNOWN),
                 "instance_cores": "vcpus",
+                "instance_type": "size_slug",
                 "instance_memory": lambda d: d["memory"] / 1024.0,
                 "droplet_backup_ids": lambda d: list(map(str, d.get("backup_ids", []) or [])),
                 "is_locked": "locked",
