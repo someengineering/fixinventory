@@ -98,9 +98,9 @@ jobs:
         run: |
           yq -i '.services.resotoworker.environment = ["RESOTOWORKER_OVERRIDE=resotoworker.collector=example"] + .services.resotoworker.environment' docker-compose.yaml
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
           cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
-          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
 
       - name: Build
         continue-on-error: true
@@ -281,9 +281,9 @@ jobs:
         run: |
           yq -i '.services.resotoworker.environment = ["RESOTOWORKER_OVERRIDE=resotoworker.collector=example"] + .services.resotoworker.environment' docker-compose.yaml
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
+          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
-          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
 
       - name: Build
         if: steps.release.outputs.prerelease == 'false'
