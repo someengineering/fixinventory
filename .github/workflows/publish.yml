@@ -33,13 +33,7 @@ jobs:
       - name: Update resotocore API YAML
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-edge.yml
-
-      - name: Modify resotocore API YAML
-        uses: mikefarah/yq@master
-        with:
-          cmd: |
-            yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-edge.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resotocore/resotocore/static/api-doc.yaml > resoto.com/openapi/resotocore-edge.yml
 
       - name: Regenerate API docs
         working-directory: ./resoto.com
@@ -204,14 +198,7 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          cp resotocore/resotocore/static/api-doc.yaml resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
-
-      - name: Modify resotocore API YAML
-        if: steps.release.outputs.prerelease == 'false'
-        uses: mikefarah/yq@master
-        with:
-          cmd: |
-            yq e -i '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resotocore/resotocore/static/api-doc.yaml > resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
 
       - name: Regenerate API docs
         if: steps.release.outputs.prerelease == 'false'
@@ -347,9 +334,9 @@ jobs:
       - name: Get current chart version
         if: steps.release.outputs.prerelease == 'false'
         id: current_chart_version
-        uses: mikefarah/yq@master
-        with:
-          cmd: yq '.version' helm-charts/someengineering/resoto/Chart.yaml
+        shell: bash
+        run: |
+          yq '.version' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Get new chart version
         if: steps.release.outputs.prerelease == 'false'
@@ -360,9 +347,9 @@ jobs:
 
       - name: Update appVersion and bump chart version
         if: steps.release.outputs.prerelease == 'false'
-        uses: mikefarah/yq@master
-        with:
-          cmd: yq e -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
+        shell: bash
+        run: |
+          yq -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
 
       - name: Set up Helm
         if: steps.release.outputs.prerelease == 'false'
