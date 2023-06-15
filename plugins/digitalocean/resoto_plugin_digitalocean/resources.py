@@ -568,16 +568,6 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
 
 @define(eq=False, slots=False)
-class DigitalOceanTag(DigitalOceanResource, BaseResource):
-    """DigitalOcean tag"""
-
-    kind = "digitalocean_tag"
-
-    def delete_uri_path(self) -> Optional[str]:
-        return "/tags"
-
-
-@define(eq=False, slots=False)
 class DigitalOceanDomain(DigitalOceanResource, BaseDNSZone):
     """DigitalOcean domain"""
 

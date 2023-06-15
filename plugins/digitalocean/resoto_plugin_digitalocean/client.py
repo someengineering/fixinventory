@@ -114,6 +114,7 @@ class StreamingWrapper:
             result.extend(payload if isinstance(payload, list) else [payload])
 
         log.debug(f"DO request {path} returned {len(result)} items")
+        result = [item for item in result if item is not None]
         return result
 
     @retry
