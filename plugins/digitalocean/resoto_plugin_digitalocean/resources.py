@@ -108,7 +108,6 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
                 "digitalocean_snapshot",
                 "digitalocean_space",
                 "digitalocean_ssh_key",
-                "digitalocean_tag",
                 "digitalocean_volume",
             ],
             "delete": [],
