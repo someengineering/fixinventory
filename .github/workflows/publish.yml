@@ -77,11 +77,6 @@ jobs:
           wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/edge/resoto_access.json
           wget -qO resoto_mutate.json https://cdn.some.engineering/resoto/gcp/edge/resoto_mutate.json
 
-      - name: Modify Docker Compose YAML
-        shell: bash
-        run: |
-          yq -i '(.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
-
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
@@ -101,9 +96,11 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          yq -i '(.services.resotoworker.environment = ["RESOTOWORKER_OVERRIDE=resotoworker.collector=example"] + .services.resotoworker.environment)' docker-compose.yaml
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
           cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
+          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
 
       - name: Build
         continue-on-error: true
@@ -260,7 +257,7 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}")) | (.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
+          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}"))' docker-compose.yaml
 
       - name: Clean existing Kroki images
         if: steps.release.outputs.prerelease == 'false'
@@ -282,9 +279,11 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          yq -i '(.services.resotoworker.environment = ["RESOTOWORKER_OVERRIDE=resotoworker.collector=example"] + .services.resotoworker.environment)' docker-compose.yaml
           PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose up -d
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
+          yq -i 'del(.services.resotoworker.environment[0])' docker-compose.yaml
 
       - name: Build
         if: steps.release.outputs.prerelease == 'false'
