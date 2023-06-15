@@ -260,7 +260,7 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}")) | (.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example")' docker-compose.yaml
+          yq -i '(.services.[].image |= sub(":edge", ":${{ steps.release.outputs.tag }}"))' docker-compose.yaml
 
       - name: Clean existing Kroki images
         if: steps.release.outputs.prerelease == 'false'
