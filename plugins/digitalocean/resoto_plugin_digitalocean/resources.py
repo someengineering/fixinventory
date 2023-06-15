@@ -28,6 +28,9 @@ from resotolib.baseresources import (
 from resotolib.graph import Graph
 import time
 
+from resotolib.types import Json
+from resotolib.json import to_json as _to_json
+
 log = logging.getLogger("resoto." + __name__)
 
 
@@ -69,6 +72,9 @@ class DigitalOceanResource(BaseResource):
             return client.delete(delete_uri_path, self.id)
 
         raise NotImplementedError
+
+    def to_json(self) -> Json:
+        return _to_json(self, strip_nulls=True, keep_untouched=set(["tags"]))
 
 
 @define(eq=False, slots=False)

@@ -221,7 +221,7 @@ class BaseResource(ABC):
         return _from_json(json, cls)
 
     def to_json(self) -> Json:
-        return _to_json(self, strip_nulls=True, keep_untouched=["tags"])
+        return _to_json(self, strip_nulls=True)
 
     def log(self, msg: str, data: Optional[Any] = None, exception: Optional[Exception] = None) -> None:
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
