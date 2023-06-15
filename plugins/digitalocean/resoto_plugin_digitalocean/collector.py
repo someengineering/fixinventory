@@ -267,7 +267,8 @@ class DigitalOceanTeamCollector:
             raw_tags = result.get("tags", [])
             raw_tags = raw_tags if raw_tags else []
             tags = [parse_tag(tag) for tag in raw_tags if tag]
-            return dict(tags) if tags else {}
+            tags_ = [tag for tag in tags if tag]
+            return dict(tags_) if tags_ else {}
 
         kwargs = {
             "id": str(result.get("id")),

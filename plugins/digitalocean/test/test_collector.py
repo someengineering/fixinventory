@@ -25,7 +25,6 @@ from resoto_plugin_digitalocean.resources import (
     DigitalOceanContainerRegistryRepositoryTag,
     DigitalOceanContainerRegistryRepository,
     DigitalOceanSSHKey,
-    DigitalOceanTag,
     DigitalOceanDomain,
     DigitalOceanDomainRecord,
     DigitalOceanFirewall,
@@ -184,8 +183,6 @@ def test_collect_droplets() -> None:
     )
     check_edges(graph, "do:image:101111514", "do:droplet:289110074")
     check_edges(graph, "do:size:s-1vcpu-1gb", "do:droplet:289110074")
-    check_edges(graph, "do:tag:image_tag", "do:image:101111514")
-    check_edges(graph, "do:tag:droplet_tag", "do:droplet:289110074")
     image: DigitalOceanImage = graph.search_first("urn", "do:image:101111514")  # type: ignore
     assert image.urn == "do:image:101111514"
     assert image.name == "20.04 (LTS) x64"
@@ -208,6 +205,7 @@ def test_collect_droplets() -> None:
     droplet: DigitalOceanDroplet = graph.search_first("urn", "do:droplet:289110074")  # type: ignore
     assert droplet.urn == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
+    assert droplet.instance_type == "s-1vcpu-1gb"
     assert droplet.instance_memory == 1
     assert droplet.instance_cores == 1
     assert droplet.instance_status == InstanceStatus.RUNNING
@@ -231,7 +229,6 @@ def test_collect_volumes() -> None:
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:droplet:289110074", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
-    check_edges(graph, "do:tag:volume_tag", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197")
     volume = cast(DigitalOceanVolume, graph.search_first("urn", "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"))
     assert volume.urn == "do:volume:631f81d2-9fc1-11ec-800c-0a58ac14d197"
     assert volume.name == "volume-fra1-01"
@@ -241,6 +238,7 @@ def test_collect_volumes() -> None:
     assert volume.volume_size == 1
     assert volume.volume_status == VolumeStatus.IN_USE
     assert volume.ondemand_cost == 0.000149
+    assert volume.tags == {"volume_tag": None}
 
 
 def test_collect_database() -> None:
@@ -265,7 +263,6 @@ def test_collect_database() -> None:
         "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397",
         delete=True,
     )
-    check_edges(graph, "do:tag:database_tag", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")
     database: DigitalOceanDatabase = graph.search_first("urn", "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397")  # type: ignore # noqa: E501
     assert database.urn == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
@@ -275,6 +272,7 @@ def test_collect_database() -> None:
     assert database.db_endpoint == "host.b.db.ondigitalocean.com"
     assert database.region().urn == "do:region:fra1"  # type: ignore
     assert database.instance_type == "db-s-1vcpu-1gb"
+    assert database.tags == {"database_tag": None}
 
 
 def test_collect_k8s_clusters() -> None:
@@ -333,13 +331,13 @@ def test_collect_snapshots() -> None:
     graph = prepare_graph(do_client)
 
     check_edges(graph, "do:droplet:289110074", "do:snapshot:103198134")
-    check_edges(graph, "do:tag:snapshot_tag", "do:snapshot:103198134")
     snapshot: DigitalOceanSnapshot = graph.search_first("urn", "do:snapshot:103198134")  # type: ignore
     assert snapshot.urn == "do:snapshot:103198134"
     assert snapshot.volume_size == 25
     assert snapshot.snapshot_size_gigabytes == 2
     assert snapshot.resource_id == "289110074"
     assert snapshot.resource_type == "droplet"
+    assert snapshot.tags == {"snapshot_tag": None}
 
 
 def test_collect_loadbalancers() -> None:
@@ -591,18 +589,6 @@ def test_collect_ssh_keys() -> None:
     assert ssh_key.public_key == "ssh-rsa publickey keycomment"
 
 
-def test_collect_tags() -> None:
-    do_client = ClientMock(
-        {
-            "list_regions": regions,
-            "list_tags": tags,
-        }
-    )
-    graph = prepare_graph(do_client)
-    tag: DigitalOceanTag = graph.search_first("urn", "do:tag:droplet_tag")  # type: ignore
-    assert tag.urn == "do:tag:droplet_tag"
-
-
 def test_collect_domains() -> None:
     do_client = ClientMock(
         {
@@ -645,7 +631,6 @@ def test_collect_firewalls() -> None:
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:tag:firewall_tag", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")
     check_edges(
         graph,
         "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711",
@@ -654,6 +639,7 @@ def test_collect_firewalls() -> None:
     firewall: DigitalOceanFirewall = graph.search_first("urn", "do:firewall:fe2e76df-3e15-4895-800f-2d5b3b807711")  # type: ignore # noqa: E501
     assert firewall.firewall_status == "succeeded"
     assert firewall.ctime == datetime.datetime(2022, 3, 10, 13, 10, 50, 0, datetime.timezone.utc)
+    assert firewall.tags == {"firewall_tag": None}
 
 
 def test_alert_policies() -> None:
