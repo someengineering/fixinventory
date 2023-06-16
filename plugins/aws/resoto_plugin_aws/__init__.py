@@ -2,7 +2,6 @@ import logging
 import multiprocessing
 import os
 from concurrent import futures
-from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, Sequence
 
@@ -36,7 +35,7 @@ from resotolib.utils import NoExitArgumentParser, log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
-from .utils import arn_partition_by_region, aws_session, global_region_by_partition
+from .utils import arn_partition_by_region, aws_session, global_region_by_partition, get_aws_profiles_from_file
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
@@ -540,8 +539,9 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
 def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
     profiles: Sequence[Optional[str]] = [None]
+    config: AwsConfig = Config.aws
 
-    if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
+    if config.assume_current and not config.do_not_scrape_current:
         msg = (
             "You specified assume_current but not do_not_scrape_current! "
             "This will result in the same account being collected twice and is likely not what you want."
@@ -550,10 +550,10 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         raise ValueError(msg)
 
     credentials = Path(os.environ.get("AWS_SHARED_CREDENTIALS_FILE", os.path.expanduser("~/.aws/credentials")))
-    if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
+    if isinstance(config.profiles, list) and len(config.profiles) > 0:
         log.debug("Using specified AWS profiles")
-        profiles = Config.aws.profiles
-        if Config.aws.account and len(Config.aws.profiles) > 1:
+        profiles = config.profiles
+        if config.account and len(config.profiles) > 1:
             msg = (
                 "You specified both a list of accounts and more than one profile! "
                 "This will result in the attempt to collect the same accounts for "
@@ -561,12 +561,10 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             )
             core_feedback.error(msg, log)
             raise ValueError(msg)
-    elif not Config.aws.account and credentials.is_file():  # read profiles from credentials file
+    elif not config.account and not config.access_key_id and credentials.is_file():
         log.debug("Extracting AWS profiles from shared credentials file")
         try:
-            creds = ConfigParser()
-            creds.read(credentials)
-            profiles = creds.sections()
+            profiles = get_aws_profiles_from_file(credentials)
             log.debug("Discovered the following profiles: %s", profiles)
         except Exception:
             msg = "AWS Credentials file found but could not be parsed."
@@ -577,29 +575,29 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             log.debug(f"Finding accounts for profile {profile}")
 
         try:
-            if Config.aws.role and Config.aws.scrape_org:
+            if config.role and config.scrape_org:
                 log.debug("Role and scrape_org are both set")
                 account_id, partition = current_account_id_and_partition(profile=profile)
                 accounts.extend(
                     [
-                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile, partition=partition)
+                        AwsAccount(id=aws_account_id, role=config.role, profile=profile, partition=partition)
                         for aws_account_id in get_org_accounts(
-                            filter_current_account=not Config.aws.assume_current,
+                            filter_current_account=not config.assume_current,
                             profile=profile,
                             core_feedback=core_feedback,
                             partition=partition,
                         )
-                        if aws_account_id not in Config.aws.scrape_exclude_account
+                        if aws_account_id not in config.scrape_exclude_account
                     ]
                 )
-                if not Config.aws.do_not_scrape_current:
+                if not config.do_not_scrape_current:
                     accounts.append(AwsAccount(id=account_id, partition=partition))
-            elif Config.aws.role and Config.aws.account:
+            elif config.role and config.account:
                 log.debug("Both, role and list of accounts specified")
-                for aws_account_id in Config.aws.account:
+                for aws_account_id in config.account:
                     partition = probe_partition(aws_account_id, profile=profile)
                     accounts.append(
-                        AwsAccount(id=aws_account_id, role=Config.aws.role, profile=profile, partition=partition)
+                        AwsAccount(id=aws_account_id, role=config.role, profile=profile, partition=partition)
                     )
             else:
                 account_id, partition = current_account_id_and_partition(profile=profile)
