@@ -1,17 +1,20 @@
 import logging
 import multiprocessing
+import os
 from concurrent import futures
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from configparser import ConfigParser
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, Sequence
 
 import boto3
 import botocore.exceptions
 from botocore.model import ListShape, OperationModel, Shape, StringShape, StructureShape
 from jsons import pascalcase
 from prometheus_client import Counter, Summary
-from resoto_plugin_aws.aws_client import AwsClient
 
 import resotolib.logger
 import resotolib.proc
+from resoto_plugin_aws.aws_client import AwsClient
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import (
@@ -30,7 +33,6 @@ from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
 from resotolib.utils import NoExitArgumentParser, log_runtime
-
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
@@ -537,16 +539,17 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
 
 def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
-    profiles = [None]
+    profiles: Sequence[Optional[str]] = [None]
 
     if Config.aws.assume_current and not Config.aws.do_not_scrape_current:
         msg = (
             "You specified assume_current but not do_not_scrape_current! "
             "This will result in the same account being collected twice and is likely not what you want."
         )
-        core_feedback.error(msg)
+        core_feedback.error(msg, log)
         raise ValueError(msg)
 
+    credentials = Path(os.environ.get("AWS_SHARED_CREDENTIALS_FILE", os.path.expanduser("~/.aws/credentials")))
     if isinstance(Config.aws.profiles, list) and len(Config.aws.profiles) > 0:
         log.debug("Using specified AWS profiles")
         profiles = Config.aws.profiles
@@ -556,8 +559,18 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
                 "This will result in the attempt to collect the same accounts for "
                 "every profile and is likely not what you want."
             )
-            core_feedback.error(msg)
+            core_feedback.error(msg, log)
             raise ValueError(msg)
+    elif credentials.is_file():  # in case a credentials file is present, get the profiles from it
+        log.debug("Extracting AWS profiles from shared credentials file")
+        try:
+            creds = ConfigParser()
+            creds.read(credentials)
+            profiles = creds.sections()
+            log.debug("Discovered the following profiles: %s", profiles)
+        except Exception:
+            msg = "AWS Credentials file found but could not be parsed."
+            core_feedback.error(msg, log)
 
     for profile in profiles:
         if profile is not None:
