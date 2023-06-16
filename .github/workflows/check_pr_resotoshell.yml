@@ -11,6 +11,7 @@ on:
       - 'resotolib/**'
       - '.github/**'
       - 'requirements-all.txt'
+  workflow_dispatch:
 
 jobs:
   resotoshell:
@@ -66,3 +67,34 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_RESOTOSHELL }}
           packages_dir: ./resotoshell/dist/
+
+      - name: Install GitHub CLI
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        run: |
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+          sudo apt-add-repository https://cli.github.com/packages
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Authenticate with GitHub CLI
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        run: |
+          gh auth login --with-token <<< "${{ secrets.SOME_CI_PAT }}"
+
+      - name: Bump homebrew
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.SOME_CI_PAT }}
+        run: |
+          git config --global user.email "ci@some.engineering"
+          git config --global user.name "Some CI"
+          git clone "https://$GITHUB_TOKEN@github.com/someengineering/homebrew-tap.git"
+          cd homebrew-tap
+          TAG_NAME=${{ github.ref }}
+          TAG_NAME=${TAG_NAME#refs/tags/}
+          BRANCH_NAME="ci/bump-resotoshell-$TAG_NAME"
+          git checkout -b "$BRANCH_NAME"
+          make resotoshell
+          git commit -am "Bump resotoshell to $TAG_NAME"
+          git push origin "$BRANCH_NAME"
+          gh pr create --title "Bump resotoshell to $TAG_NAME" --body "" --base main --head "$BRANCH_NAME"
