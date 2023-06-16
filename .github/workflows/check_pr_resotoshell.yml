@@ -94,6 +94,7 @@ jobs:
           cd homebrew-tap
           TAG_NAME=${{ github.ref }}
           TAG_NAME=${TAG_NAME#refs/tags/}
+          TAG_NAME=${TAG_NAME#refs/heads/}
           BRANCH_NAME="ci/bump-resotoshell-$TAG_NAME"
           git checkout -b "$BRANCH_NAME"
           make resotoshell
