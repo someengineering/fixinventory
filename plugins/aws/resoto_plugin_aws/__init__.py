@@ -561,7 +561,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             )
             core_feedback.error(msg, log)
             raise ValueError(msg)
-    elif credentials.is_file():  # in case a credentials file is present, get the profiles from it
+    elif not Config.aws.account and credentials.is_file():  # read profiles from credentials file
         log.debug("Extracting AWS profiles from shared credentials file")
         try:
             creds = ConfigParser()
