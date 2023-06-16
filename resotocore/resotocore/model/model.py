@@ -10,7 +10,7 @@ from functools import lru_cache
 from attrs import define
 from datetime import datetime, timezone, date
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, Iterator
 
 import yaml
 from dateutil.parser import parse
@@ -205,6 +205,9 @@ class Kind(ABC):
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Kind) else False
+
+    def __hash__(self) -> int:
+        return hash(self.fqn)
 
     def coerce(self, value: JsonElement, **kwargs: bool) -> JsonElement:
         coerced = self.coerce_if_required(value, **kwargs)
@@ -826,6 +829,7 @@ class ComplexKind(Kind):
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
+        self.__resolved_bases: Dict[str, ComplexKind] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__property_by_path: List[ResolvedProperty] = []
@@ -852,6 +856,7 @@ class ComplexKind(Kind):
                     base: Kind = model[base_name]
                     base.resolve(model)
                     if isinstance(base, ComplexKind):
+                        self.__resolved_bases[base_name] = base
                         self.__resolved_kinds.update(base.__resolved_kinds)
                         self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
@@ -873,6 +878,9 @@ class ComplexKind(Kind):
             )
         else:
             return False
+
+    def __hash__(self) -> int:
+        return hash(self.fqn)
 
     def __contains__(self, name: str) -> bool:
         return name in self.__prop_by_name
@@ -899,11 +907,40 @@ class ComplexKind(Kind):
     def resolved_properties(self) -> List[ResolvedProperty]:
         return self.__property_by_path
 
+    def resolved_bases(self) -> Dict[str, ComplexKind]:
+        return self.__resolved_bases
+
     def all_props(self) -> List[Property]:
         return self.__all_props
 
     def synthetic_props(self) -> List[ResolvedProperty]:
         return self.__synthetic_props
+
+    def transitive_complex_types(self, with_bases: bool = True, with_properties: bool = True) -> List[ComplexKind]:
+        result: Dict[str, ComplexKind] = {}
+
+        def add_bases(ck: ComplexKind) -> None:
+            for fqn, base in ck.resolved_bases().items():
+                result[fqn] = base
+
+        def add_props(ck: ComplexKind) -> None:
+            for prop in ck.resolved_properties():
+                if isinstance(prop.kind, ComplexKind):
+                    result[prop.kind.fqn] = prop.kind
+                    add_props(prop.kind)
+
+        def in_hierarchy(ck: ComplexKind) -> None:
+            result[ck.fqn] = ck
+            if with_bases:
+                add_bases(ck)
+            if with_properties:
+                add_props(ck)
+            for base in ck.resolved_bases().values():
+                if not base.is_root():
+                    in_hierarchy(base)
+
+        in_hierarchy(self)
+        return list(result.values())
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
@@ -1190,6 +1227,9 @@ class Model:
                 for r in c.resolved_properties()
             }.values()
         )
+
+    def __iter__(self) -> Iterator[Kind]:
+        return iter(self.kinds.values())
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):

@@ -34,6 +34,7 @@ from typing import (
     cast,
     Set,
     FrozenSet,
+    Union,
 )
 from urllib.parse import urlparse, urlunparse
 
@@ -44,13 +45,18 @@ from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
+from attr import evolve
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
+from resotodatalink import EngineConfig
+from resotodatalink.batch_stream import BatchStream
+from resotodatalink.sql import sql_updater
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from sqlalchemy import create_engine
 
 from resotocore import version
 from resotocore.async_extensions import run_async
@@ -120,6 +126,7 @@ from resotocore.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
     Aggregate,
+    AggregateVariable,
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
@@ -138,6 +145,7 @@ from resotocore.util import (
     set_value_in_path,
     restart_service,
     combine_optional,
+    value_in_path,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -164,7 +172,14 @@ from resotolib.parse_util import (
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
 
+from resotodatalink.collect_plugins import update_sql
+from resotoclient.models import Model as RCModel, Kind as RCKind
+
 log = logging.getLogger(__name__)
+
+
+def deps(command: CLICommand) -> CLIDependencies:
+    return cast(CLIDependencies, command.dependencies)
 
 
 # A SearchCLIPart is a command that can be used on the command line.
@@ -5544,6 +5559,77 @@ class GraphCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class DataLinkCommand(CLICommand):
+    @property
+    def name(self) -> str:
+        return "datalink"
+
+    def args_info(self) -> ArgsInfo:
+        return {}
+
+    def info(self) -> str:
+        return "Synchronizes data to an SQL database."
+
+    async def list_kinds(self, ctx: CLIContext, model: Model) -> Set[ComplexKind]:
+        if ctx.query is None or ctx.query.aggregate:
+            return set()
+        else:
+            db = deps(self).db_access.get_graph_db(ctx.graph_name)
+            aggregate_by_kind = Aggregate(
+                [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
+                [AggregateFunction("sum", 1)],
+            )
+            query = evolve(ctx.query, aggregate=aggregate_by_kind)
+            async with await db.search_aggregation(QueryModel(query, model)) as cursor:
+                return {
+                    kind
+                    async for elem in cursor
+                    if (
+                        (kind_name := value_in_path(elem, ["group", "kind"]))
+                        and (kind := model.get(kind_name))
+                        and isinstance(kind, ComplexKind)
+                    )
+                }
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def datalink(in_stream: Stream) -> AsyncIterator[JsonElement]:
+            model = await deps(self).model_handler.load_model(ctx.graph_name)
+            kinds = await self.list_kinds(ctx, model)
+            kind_by_name = {k.fqn: k for k in kinds}
+            edges = {
+                (kind.fqn, succ)
+                for kind in kinds
+                for succ_lists in kind.successor_kinds.values()
+                for succ in succ_lists
+                if succ in kind_by_name
+            }
+            tct = [ck for kind in kinds for ck in kind.transitive_complex_types(with_bases=True, with_properties=True)]
+            sk = [kind for kind in model if isinstance(kind, SimpleKind)]
+
+            rcm = RCModel({ck.fqn: from_js(to_js(ck), RCKind) for ck in (tct + sk)})
+            engine_config = EngineConfig("sqlite:////tmp/resoto.db")
+            kind_by_id: Dict[str, str] = {}
+
+            def key_fn(node: Json) -> Union[str, Tuple[str, str]]:
+                if node["type"] == "edge":
+                    fr = node["from"]
+                    to = node["to"]
+                    return kind_by_id[fr], kind_by_id[to]
+                elif node["type"] == "node":
+                    kind_by_id[node["id"]] = node["reported"]["kind"]
+                    return cast(str, node["reported"]["kind"])
+                else:
+                    raise ValueError(f"Unknown node type {node['type']}")
+
+            async with in_stream.stream() as streamer:
+                batched = BatchStream(streamer, key_fn, 1000, 10000)
+                # TODO: move blocking sync code into a thread
+                await update_sql(engine_config, rcm, batched, edges, swap_temp_tables=True)
+            yield "Database synchronized."
+
+        return CLIFlow(datalink)
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -5554,6 +5640,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CleanCommand(d, "action"),
         ConfigsCommand(d, "setup", allowed_in_source_position=True),
         CountCommand(d, "search"),
+        DataLinkCommand(d, "action"),
         DescendantsPart(d, "search"),
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),
