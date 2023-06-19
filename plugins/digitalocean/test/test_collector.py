@@ -219,7 +219,9 @@ def test_collect_droplets() -> None:
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
 
-    neighborhood: DigitalOceanDropletNeighbourhood = graph.search_first("kind", DigitalOceanDropletNeighbourhood.kind)  # type: ignore
+    neighborhood: DigitalOceanDropletNeighbourhood = graph.search_first(
+        "kind", DigitalOceanDropletNeighbourhood.kind
+    )  # type: ignore
     assert neighborhood.droplets == ["289110074", "290075243"]
     check_edges(graph, neighborhood.urn, "do:droplet:289110074")
     check_edges(graph, neighborhood.urn, "do:droplet:290075243")
