@@ -525,9 +525,9 @@ class DigitalOceanTeamCollector:
             },
         )
 
-        all_neighbor_lists = self.client.list_droplets_neighbors_ids()
+        neighborhoods = self.client.list_droplets_neighbors_ids()
         neighbors_json = []
-        for neighbors in all_neighbor_lists:
+        for neighbors in neighborhoods:
             m = sha256()
             neighbors = sorted(neighbors)
             m.update(DigitalOceanDropletNeighborhood.kind.encode())
