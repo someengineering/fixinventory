@@ -83,7 +83,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             client = StreamingWrapper(
                 c.api_token,
                 c.spaces_keys.access_key if c.spaces_keys else None,
-                c.spaces_keys.access_key if c.spaces_keys else None,
+                c.spaces_keys.secret_key if c.spaces_keys else None,
             )
             team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
