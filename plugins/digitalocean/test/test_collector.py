@@ -29,7 +29,7 @@ from resoto_plugin_digitalocean.resources import (
     DigitalOceanDomainRecord,
     DigitalOceanFirewall,
     DigitalOceanAlertPolicy,
-    DigitalOceanDropletNeighbourhood,
+    DigitalOceanDropletNeighborhood,
 )
 from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.core.actions import CoreFeedback
@@ -219,8 +219,8 @@ def test_collect_droplets() -> None:
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
 
-    neighborhood: DigitalOceanDropletNeighbourhood = graph.search_first(
-        "kind", DigitalOceanDropletNeighbourhood.kind
+    neighborhood: DigitalOceanDropletNeighborhood = graph.search_first(
+        "kind", DigitalOceanDropletNeighborhood.kind
     )  # type: ignore
     assert neighborhood.droplets == ["289110074", "290075243"]
     check_edges(graph, neighborhood.urn, "do:droplet:289110074")

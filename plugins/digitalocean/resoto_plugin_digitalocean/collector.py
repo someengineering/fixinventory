@@ -13,7 +13,7 @@ from .client import StreamingWrapper
 from .resources import (
     DigitalOceanDroplet,
     DigitalOceanDropletSize,
-    DigitalOceanDropletNeighbourhood,
+    DigitalOceanDropletNeighborhood,
     DigitalOceanProject,
     DigitalOceanRegion,
     DigitalOceanTeam,
@@ -525,32 +525,33 @@ class DigitalOceanTeamCollector:
             },
         )
 
-        neighbours = self.client.list_droplets_neighbors_ids()
-        neighbours_json = []
-        for neighbour in neighbours:
+        all_neighbor_lists = self.client.list_droplets_neighbors_ids()
+        neighbors_json = []
+        for neighbors in all_neighbor_lists:
             m = sha256()
-            m.update(DigitalOceanDropletNeighbourhood.kind.encode())
-            for droplet in neighbour or []:
+            neighbors = sorted(neighbors)
+            m.update(DigitalOceanDropletNeighborhood.kind.encode())
+            for droplet in neighbors or []:
                 m.update(droplet.encode())
             id = m.hexdigest()[0:16]
-            neighbours_json.append(
+            neighbors_json.append(
                 {
-                    "droplets": neighbour,
+                    "droplets": neighbors,
                     "id": id,
                 }
             )
         instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in instances}
         self.collect_resource(
-            neighbours_json,
-            resource_class=DigitalOceanDropletNeighbourhood,
+            neighbors_json,
+            resource_class=DigitalOceanDropletNeighborhood,
             attr_map={
                 "id": "id",
                 "urn": lambda n: droplet_neighborhood_id(n["id"]),
                 "droplets": "droplets",
             },
             search_map={
-                "_region": ["urn", lambda neighbour: instances_to_region[neighbour["droplets"][0]]],
-                "__droplets": ["urn", lambda neighbour: [droplet_id(id) for id in neighbour["droplets"]]],
+                "_region": ["urn", lambda neighbor: instances_to_region[neighbor["droplets"][0]]],
+                "__droplets": ["urn", lambda neighbor: [droplet_id(id) for id in neighbor["droplets"]]],
             },
             successors={
                 EdgeType.default: ["__droplets"],
