@@ -1,5 +1,6 @@
 # flake8: noqa F401
 from .droplets import droplets as droplets
+from .neighbor_ids import neighbor_ids as neighbor_ids
 from .regions import regions as regions
 from .volumes import volumes as volumes
 from .vpcs import vpcs as vpcs

@@ -29,6 +29,7 @@ from resoto_plugin_digitalocean.resources import (
     DigitalOceanDomainRecord,
     DigitalOceanFirewall,
     DigitalOceanAlertPolicy,
+    DigitalOceanDropletNeighbourhood,
 )
 from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.core.actions import CoreFeedback
@@ -36,6 +37,7 @@ from resotolib.graph import Graph
 from resotolib.graph import sanitize
 from .fixtures import (
     droplets,
+    neighbor_ids,
     regions,
     volumes,
     vpcs,
@@ -169,6 +171,7 @@ def test_collect_droplets() -> None:
             "list_droplets": droplets,
             "list_vpcs": vpcs,
             "list_tags": tags,
+            "list_droplets_neighbors_ids": neighbor_ids,
         }
     )
     graph = prepare_graph(do_client)
@@ -215,6 +218,12 @@ def test_collect_droplets() -> None:
     assert droplet.is_locked is False
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
+
+    neighborhood: DigitalOceanDropletNeighbourhood = graph.search_first("kind", DigitalOceanDropletNeighbourhood.kind)  # type: ignore
+    assert neighborhood.droplets == ["289110074", "290075243"]
+    check_edges(graph, neighborhood.urn, "do:droplet:289110074")
+    check_edges(graph, neighborhood.urn, "do:droplet:290075243")
+    check_edges(graph, "do:region:fra1", neighborhood.urn)
 
 
 def test_collect_volumes() -> None:

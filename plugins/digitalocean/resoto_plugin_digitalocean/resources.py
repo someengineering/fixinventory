@@ -232,6 +232,18 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
 
 
 @define(eq=False, slots=False)
+class DigitalOceanDropletNeighbourhood(DigitalOceanResource):
+    """A DigitalOcean Droplet Neighbourhood Resource
+
+    Represents a physical hardware server where droplets can be placed.
+    """
+
+    kind: ClassVar[str] = "digitalocean_droplet_neighbourhood"
+    phantom: ClassVar[bool] = True
+    droplets: Optional[List[str]] = None
+
+
+@define(eq=False, slots=False)
 class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
     """DigitalOcean Kubernetes Cluster"""
 

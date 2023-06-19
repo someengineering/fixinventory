@@ -146,6 +146,10 @@ def alert_policy_id(value: str) -> str:
     return f"do:alert:{value}"
 
 
+def droplet_neighborhood_id(value: str) -> str:
+    return f"do:neighborhood:{value}"
+
+
 tag_value_sep: str = "--"
 
 

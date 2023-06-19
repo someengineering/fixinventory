@@ -8,10 +8,12 @@ from prometheus_client import Summary
 from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
+from hashlib import sha256
 from .client import StreamingWrapper
 from .resources import (
     DigitalOceanDroplet,
     DigitalOceanDropletSize,
+    DigitalOceanDropletNeighbourhood,
     DigitalOceanProject,
     DigitalOceanRegion,
     DigitalOceanTeam,
@@ -65,6 +67,7 @@ from .utils import (
     alert_policy_id,
     parse_tag,
     parse_tags,
+    droplet_neighborhood_id,
 )
 
 log = logging.getLogger("resoto." + __name__)
@@ -519,6 +522,38 @@ class DigitalOceanTeamCollector:
             predecessors={
                 EdgeType.default: ["__vpcs", "__images", "__sizes"],
                 EdgeType.delete: ["__vpcs"],
+            },
+        )
+
+        neighbours = self.client.list_droplets_neighbors_ids()
+        neighbours_json = []
+        for neighbour in neighbours:
+            m = sha256()
+            m.update(DigitalOceanDropletNeighbourhood.kind.encode())
+            for droplet in neighbour or []:
+                m.update(droplet.encode())
+            id = m.hexdigest()[0:16]
+            neighbours_json.append(
+                {
+                    "droplets": neighbour,
+                    "id": id,
+                }
+            )
+        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in instances}
+        self.collect_resource(
+            neighbours_json,
+            resource_class=DigitalOceanDropletNeighbourhood,
+            attr_map={
+                "id": "id",
+                "urn": lambda n: droplet_neighborhood_id(n["id"]),
+                "droplets": "droplets",
+            },
+            search_map={
+                "_region": ["urn", lambda neighbour: instances_to_region[neighbour["droplets"][0]]],
+                "__droplets": ["urn", lambda neighbour: [droplet_id(id) for id in neighbour["droplets"]]],
+            },
+            successors={
+                EdgeType.default: ["__droplets"],
             },
         )
 
