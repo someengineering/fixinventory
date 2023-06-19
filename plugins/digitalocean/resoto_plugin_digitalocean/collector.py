@@ -8,10 +8,12 @@ from prometheus_client import Summary
 from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
+from hashlib import sha256
 from .client import StreamingWrapper
 from .resources import (
     DigitalOceanDroplet,
     DigitalOceanDropletSize,
+    DigitalOceanDropletNeighborhood,
     DigitalOceanProject,
     DigitalOceanRegion,
     DigitalOceanTeam,
@@ -65,6 +67,7 @@ from .utils import (
     alert_policy_id,
     parse_tag,
     parse_tags,
+    droplet_neighborhood_id,
 )
 
 log = logging.getLogger("resoto." + __name__)
@@ -519,6 +522,39 @@ class DigitalOceanTeamCollector:
             predecessors={
                 EdgeType.default: ["__vpcs", "__images", "__sizes"],
                 EdgeType.delete: ["__vpcs"],
+            },
+        )
+
+        neighborhoods = self.client.list_droplets_neighbors_ids()
+        neighbors_json = []
+        for neighbors in neighborhoods:
+            m = sha256()
+            neighbors = sorted(neighbors)
+            m.update(DigitalOceanDropletNeighborhood.kind.encode())
+            for droplet in neighbors or []:
+                m.update(droplet.encode())
+            id = m.hexdigest()[0:16]
+            neighbors_json.append(
+                {
+                    "droplets": neighbors,
+                    "id": id,
+                }
+            )
+        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in instances}
+        self.collect_resource(
+            neighbors_json,
+            resource_class=DigitalOceanDropletNeighborhood,
+            attr_map={
+                "id": "id",
+                "urn": lambda n: droplet_neighborhood_id(n["id"]),
+                "droplets": "droplets",
+            },
+            search_map={
+                "_region": ["urn", lambda neighbor: instances_to_region[neighbor["droplets"][0]]],
+                "__droplets": ["urn", lambda neighbor: [droplet_id(id) for id in neighbor["droplets"]]],
+            },
+            successors={
+                EdgeType.default: ["__droplets"],
             },
         )
 

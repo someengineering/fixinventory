@@ -24,6 +24,7 @@ from resotolib.baseresources import (
     BaseDNSZone,
     BaseDNSRecord,
     ModelReference,
+    PhantomBaseResource,
 )
 from resotolib.graph import Graph
 import time
@@ -229,6 +230,17 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
 
     def tag_resource_name(self) -> Optional[str]:
         return "droplet"
+
+
+@define(eq=False, slots=False)
+class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource):
+    """A DigitalOcean Droplet Neighborhood Resource
+
+    Represents a physical hardware server where droplets can be placed.
+    """
+
+    kind: ClassVar[str] = "digitalocean_droplet_neighborhood"
+    droplets: Optional[List[str]] = None
 
 
 @define(eq=False, slots=False)
