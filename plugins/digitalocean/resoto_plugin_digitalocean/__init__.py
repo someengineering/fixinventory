@@ -1,9 +1,13 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, cast
 
 from resoto_plugin_digitalocean.client import StreamingWrapper, get_team_credentials
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
 from resoto_plugin_digitalocean.resources import DigitalOceanResource, DigitalOceanTeam
-from resoto_plugin_digitalocean.config import DigitalOceanCollectorConfig
+from resoto_plugin_digitalocean.config import (
+    DigitalOceanCollectorConfig,
+    DigitalOceanTeamCredentials,
+    DigitalOceanSpacesKeys,
+)
 from resoto_plugin_digitalocean.utils import dump_tag
 from resotolib.config import Config
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -30,35 +34,57 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         accounts. An account must always be followed by a region.
         A region can contain arbitrary resources.
         """
-        tokens = Config.digitalocean.api_tokens
-        spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
-        spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
+
         assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
 
-        def spaces_keys_valid(keys: List[str]) -> bool:
-            return all([len(key.split(":")) == 2 for key in keys])
+        def from_legacy_config() -> List[DigitalOceanTeamCredentials]:
+            tokens: List[str] = Config.digitalocean.api_tokens
+            spaces_access_keys: List[str] = Config.digitalocean.spaces_access_keys
+            spaces_keys: List[Tuple[Optional[str], Optional[str]]] = []
 
-        if not spaces_keys_valid(spaces_access_keys):
-            log.warn("DigitalOcean Spaces access keys must be provided in pairs of access_key:secret_key")
+            def spaces_keys_valid(keys: List[str]) -> bool:
+                return all([len(key.split(":")) == 2 for key in keys])
+
+            if not spaces_keys_valid(spaces_access_keys):
+                log.warning("DigitalOcean Spaces access keys must be provided in pairs of access_key:secret_key")
+            else:
+
+                def key_to_tuple(key: str) -> Tuple[str, str]:
+                    splitted = key.split(":")
+                    return splitted[0], splitted[1]
+
+                spaces_keys = [key_to_tuple(key) for key in spaces_access_keys]
+
+            if len(tokens) != len(spaces_access_keys):
+                log.warning(
+                    "The number of DigitalOcean API tokens and DigitalOcean Spaces access keys must be equal."
+                    + "Missing or extra spaces access keys will be ignored."
+                )
+                spaces_keys = spaces_keys[: len(tokens)]
+                spaces_keys.extend([(None, None)] * (len(tokens) - len(spaces_keys)))
+
+            result = []
+            for token, space_key_tuple in zip(tokens, spaces_keys):
+                if (access_key := space_key_tuple[0]) and (secret_key := space_key_tuple[1]):
+                    keys = DigitalOceanSpacesKeys(access_key=access_key, secret_key=secret_key)
+                else:
+                    keys = None
+                result.append(DigitalOceanTeamCredentials(api_token=token, spaces_keys=keys))
+
+            return result
+
+        if credentials_conf := Config.digitalocean.credentials:
+            credentials = cast(List[DigitalOceanTeamCredentials], credentials_conf)
         else:
+            credentials = from_legacy_config()
 
-            def key_to_tuple(key: str) -> Tuple[str, str]:
-                splitted = key.split(":")
-                return splitted[0], splitted[1]
-
-            spaces_keys = [key_to_tuple(key) for key in spaces_access_keys]
-
-        if len(tokens) != len(spaces_access_keys):
-            log.warn(
-                "The number of DigitalOcean API tokens and DigitalOcean Spaces access keys must be equal."
-                + "Missing or extra spaces access keys will be ignored."
+        log.info(f"plugin: collecting DigitalOcean resources for {len(credentials)} teams")
+        for c in credentials:
+            client = StreamingWrapper(
+                c.api_token,
+                c.spaces_keys.access_key if c.spaces_keys else None,
+                c.spaces_keys.access_key if c.spaces_keys else None,
             )
-            spaces_keys = spaces_keys[: len(tokens)]
-            spaces_keys.extend([(None, None)] * (len(tokens) - len(spaces_keys)))
-
-        log.info(f"plugin: collecting DigitalOcean resources for {len(tokens)} teams")
-        for token, space_key_tuple in zip(tokens, spaces_keys):
-            client = StreamingWrapper(token, space_key_tuple[0], space_key_tuple[1])
             team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
                 self.graph.merge(team_graph)
