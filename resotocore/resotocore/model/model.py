@@ -918,6 +918,7 @@ class ComplexKind(Kind):
 
     def transitive_complex_types(self, with_bases: bool = True, with_properties: bool = True) -> List[ComplexKind]:
         result: Dict[str, ComplexKind] = {}
+        visited: Set[str] = set()
 
         def add_bases(ck: ComplexKind) -> None:
             for fqn, base in ck.resolved_bases().items():
@@ -927,9 +928,12 @@ class ComplexKind(Kind):
             for prop in ck.resolved_properties():
                 if isinstance(prop.kind, ComplexKind):
                     result[prop.kind.fqn] = prop.kind
-                    add_props(prop.kind)
+                    in_hierarchy(prop.kind)
 
         def in_hierarchy(ck: ComplexKind) -> None:
+            if ck.fqn in visited:
+                return
+            visited.add(ck.fqn)
             result[ck.fqn] = ck
             if with_bases:
                 add_bases(ck)

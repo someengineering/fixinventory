@@ -49,14 +49,14 @@ from attr import evolve
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
+from resotoclient.models import Model as RCModel, Kind as RCKind
 from resotodatalink import EngineConfig
 from resotodatalink.batch_stream import BatchStream
-from resotodatalink.sql import sql_updater
+from resotodatalink.collect_plugins import update_sql
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from sqlalchemy import create_engine
 
 from resotocore import version
 from resotocore.async_extensions import run_async
@@ -72,6 +72,7 @@ from resotocore.cli import (
     key_values_parser,
     parse_time_or_delta,
     strip_quotes,
+    key_value_parser,
 )
 from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.model import (
@@ -127,6 +128,9 @@ from resotocore.query.model import (
     AggregateVariableCombined,
     Aggregate,
     AggregateVariable,
+    Part,
+    NavigateUntilLeaf,
+    IsTerm,
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
@@ -171,9 +175,6 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
-
-from resotodatalink.collect_plugins import update_sql
-from resotoclient.models import Model as RCModel, Kind as RCKind
 
 log = logging.getLogger(__name__)
 
@@ -5559,10 +5560,64 @@ class GraphCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-class DataLinkCommand(CLICommand):
+class DbCommand(CLICommand):
+    """
+    ```
+    db sync <db-engine> --host <host> --port <port> --user <user> --password <password> --database <database>
+                   --arg key=value --arg key2=value2
+                   --complete-schema --drop-existing-tables --batch-size <batch-size>
+    ```
+
+    Takes the result of a search expression and synchronizes the data to an SQL database.
+    All matching tables will be updated with the result of the search expression.
+
+    By default, the database tables will be updated only for the data that is returned by the search expression.
+    This behaviour can be overridden by using the `--complete-schema` flag, which will export the entire schema
+    always. This is useful when you want to have a consistent database scheme, no matter which data gets exported.
+
+    The `--drop-existing-tables` can come in handy, if you only want to export a subset of data from a graph and
+    make sure everything from the last export is cleaned up. This flag does not have any effect in combination with
+    `--complete-schema`.
+
+    ## Parameters
+
+    - `db-engine` - The database engine to use. The following engines are supported:
+        - postgresql
+        - mariadb
+        - mysql
+        - sqlite
+        - snowflake
+    - `--host` - The host of the database server.
+    - `--port` - The port of the database server.
+    - `--user` - The user to use for authentication.
+    - `--password` - The password to use for authentication.
+    - `--database` - The database to use.
+    - `--arg` - A key-value pair that will be passed to the connection driver.
+                This property can be used multiple times.
+    - `--batch-size` - The number of rows that will be inserted in a single batch.
+
+    ## Options
+
+    - `--complete-schema` - Export the entire schema, no matter which data gets exported.
+    - `--drop-existing-tables` - Drop all tables that are not part of the current export.
+
+    ## Examples
+
+    ```
+    # Sync the complete graph to a sqlite database
+    > db sync sqlite --database /data/resoto.db --drop-existing
+
+    # Sync the complete graph to a postgresql database
+    > db sync postgresql --host my.db --port 5432 --database resoto --user ci --password bombproof
+
+    # Select a subset of data and sync it to a sqlite database
+    > search --with-edges is(graph_root) -[0:2]-> | db sync sqlite --database /data/resoto.db
+    ```
+    """
+
     @property
     def name(self) -> str:
-        return "datalink"
+        return "db"
 
     def args_info(self) -> ArgsInfo:
         return {}
@@ -5570,18 +5625,20 @@ class DataLinkCommand(CLICommand):
     def info(self) -> str:
         return "Synchronizes data to an SQL database."
 
-    async def list_kinds(self, ctx: CLIContext, model: Model) -> Set[ComplexKind]:
-        if ctx.query is None or ctx.query.aggregate:
-            return set()
+    async def list_kinds_of_query(
+        self, query: Optional[Query], graph_name: GraphName, model: Model
+    ) -> List[ComplexKind]:
+        if query is None or query.aggregate:
+            return []
         else:
-            db = deps(self).db_access.get_graph_db(ctx.graph_name)
+            db = deps(self).db_access.get_graph_db(graph_name)
             aggregate_by_kind = Aggregate(
                 [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
                 [AggregateFunction("sum", 1)],
             )
-            query = evolve(ctx.query, aggregate=aggregate_by_kind)
+            query = evolve(query, aggregate=aggregate_by_kind)
             async with await db.search_aggregation(QueryModel(query, model)) as cursor:
-                return {
+                return [
                     kind
                     async for elem in cursor
                     if (
@@ -5589,25 +5646,56 @@ class DataLinkCommand(CLICommand):
                         and (kind := model.get(kind_name))
                         and isinstance(kind, ComplexKind)
                     )
-                }
+                ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
-        async def datalink(in_stream: Stream) -> AsyncIterator[JsonElement]:
-            model = await deps(self).model_handler.load_model(ctx.graph_name)
-            kinds = await self.list_kinds(ctx, model)
-            kind_by_name = {k.fqn: k for k in kinds}
+        in_source_position = kwargs.get("position") == 0
+
+        async def dump_database(sync: Callable[[Optional[Query], JsGen], JsGen]) -> JsGen:
+            resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+            query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
+            graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
+            async with await graph_db.search_graph_gen(
+                QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
+            ) as cursor:
+                async for elem in sync(query, stream.iterate(cursor)):
+                    yield elem
+
+        async def database_synchronize(
+            engine_config: EngineConfig,
+            complete_model: bool,
+            drop_existing_tables: bool,
+            query: Optional[Query],
+            in_stream: Stream,
+        ) -> AsyncIterator[JsonElement]:
+            resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+
+            if complete_model:
+                complex_kinds = resoto_model.complex_kinds()
+                kinds = list(resoto_model.kinds.values())
+            else:
+                # only export the kinds that are exported by this query
+                complex_kinds = await self.list_kinds_of_query(query, ctx.graph_name, resoto_model)
+                tct = [
+                    ck
+                    for kind in complex_kinds
+                    for ck in kind.transitive_complex_types(with_bases=True, with_properties=True)
+                ]
+                sk = [kind for kind in resoto_model if isinstance(kind, SimpleKind)]
+                kinds = [*tct, *sk]
+
+            kind_by_name = {k.fqn: from_js(to_js(k), RCKind) for k in kinds}
+            rcm = RCModel(kind_by_name)
+
             edges = {
                 (kind.fqn, succ)
-                for kind in kinds
+                for kind in complex_kinds
                 for succ_lists in kind.successor_kinds.values()
                 for succ in succ_lists
                 if succ in kind_by_name
             }
-            tct = [ck for kind in kinds for ck in kind.transitive_complex_types(with_bases=True, with_properties=True)]
-            sk = [kind for kind in model if isinstance(kind, SimpleKind)]
 
-            rcm = RCModel({ck.fqn: from_js(to_js(ck), RCKind) for ck in (tct + sk)})
-            engine_config = EngineConfig("sqlite:////tmp/resoto.db")
+            # lookup map for edges: id -> kind. Assumption: when an edge is created, the nodes already passed
             kind_by_id: Dict[str, str] = {}
 
             def key_fn(node: Json) -> Union[str, Tuple[str, str]]:
@@ -5622,12 +5710,50 @@ class DataLinkCommand(CLICommand):
                     raise ValueError(f"Unknown node type {node['type']}")
 
             async with in_stream.stream() as streamer:
-                batched = BatchStream(streamer, key_fn, 1000, 10000)
-                # TODO: move blocking sync code into a thread
-                await update_sql(engine_config, rcm, batched, edges, swap_temp_tables=True)
-            yield "Database synchronized."
+                batched = BatchStream(streamer, key_fn, db_config.batch_size, db_config.batch_size * 10)
+                await update_sql(
+                    engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
+                )
+                yield "Database synchronized."
 
-        return CLIFlow(datalink)
+        args = arg.split(maxsplit=1) if arg else []
+        if len(args) == 2 and args[0] == "sync":
+            parser = NoExitArgumentParser()
+            parser.add_argument("db", type=str)
+            parser.add_argument("--host", type=str)
+            parser.add_argument("--port", type=int)
+            parser.add_argument("--user", type=str)
+            parser.add_argument("--password", type=str)
+            parser.add_argument("--database", type=str)
+            parser.add_argument("--arg", type=key_value_parser.parse, nargs="+", action="append", default=[])
+            parser.add_argument("--complete-schema", action="store_true")
+            parser.add_argument("--drop-existing-tables", action="store_true")
+            parser.add_argument("--batch-size", type=int, default=5000)
+            p = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
+            db_string = f"{p.db}://"
+            if p.user:
+                db_string += p.user
+                if p.password:
+                    db_string += f":{p.password}"
+                db_string += "@"
+            if p.host:
+                db_string += p.host
+                if p.port:
+                    db_string += f":{p.port}"
+            if p.database:
+                db_string += f"/{p.database}"
+            db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
+            db_config = EngineConfig(db_string, p.batch_size)
+            if in_source_position:
+                # in this position we fall back to exporting the whole graph
+                sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
+                return CLISource.single(partial(dump_database, sync))
+            else:
+                return CLIFlow(
+                    partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
+                )
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
@@ -5640,7 +5766,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CleanCommand(d, "action"),
         ConfigsCommand(d, "setup", allowed_in_source_position=True),
         CountCommand(d, "search"),
-        DataLinkCommand(d, "action"),
+        DbCommand(d, "action", allowed_in_source_position=True),
         DescendantsPart(d, "search"),
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),

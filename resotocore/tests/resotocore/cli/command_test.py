@@ -1,6 +1,8 @@
+import asyncio
 import json
 import logging
 import os
+import sqlite3
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -15,7 +17,6 @@ from aiostream import stream
 from aiostream.core import Stream
 from attrs import evolve
 from pytest import fixture
-import asyncio
 
 from resotocore import version
 from resotocore.cli import is_node
@@ -1302,3 +1303,19 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     # clean up
     await graph_manager.delete(GraphName("graphtest3"))
     await graph_manager.delete(GraphName("graphtest_import"))
+
+
+@pytest.mark.asyncio
+async def test_db(cli: CLI, tmp_directory: str) -> None:
+    await cli.execute_cli_command(
+        f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {tmp_directory}/resoto.db",
+        stream.list,
+    )
+    # open sqlite database
+    conn = sqlite3.connect(f"{tmp_directory}/resoto.db")
+    c = conn.cursor()
+    tables = {row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()}
+    assert tables == {"bla", "foo", "link_foo_bla", "link_bla_bla"}
+    for table in tables:
+        if not table.startswith("link_"):  # link tables are created from the model no matter about the data
+            assert c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0, f"Table {table} is empty"
