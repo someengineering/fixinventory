@@ -84,6 +84,9 @@ class Config(metaclass=MetaConfig):
         else:
             raise ConfigNotFoundError(f"No such config {name}")
 
+    def connected(self) -> bool:
+        return self._ce.connected()
+
     def shutdown(self) -> None:
         self._ce.shutdown()
 
