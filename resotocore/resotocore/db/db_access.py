@@ -91,6 +91,12 @@ class DbAccess(ABC):
         await self.package_entity_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
             graph_name = GraphName(graph["name"])
+
+            # snapshot graphs do not need any schema migrations,
+            # we can skip them
+            if str(graph_name).startswith("snapshot"):
+                continue
+
             log.info(f"Found graph: {graph_name}")
             db = self.get_graph_db(graph_name)
             await db.create_update_schema()
