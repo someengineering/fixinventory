@@ -484,7 +484,7 @@ async def test_tag_command(
 @pytest.mark.asyncio
 async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     result = await cli.execute_cli_command("kind", stream.list)
-    for kind in ["account", "bla", "child", "cloud", "inner", "parent", "region", "some_complex"]:
+    for kind in ["account", "bla", "child", "cloud", "parent", "region", "some_complex"]:
         assert kind in result[0]
     result = await cli.execute_cli_command("kind foo", stream.list)
     assert result[0][0] == {

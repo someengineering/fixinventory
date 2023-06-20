@@ -5,28 +5,27 @@ import re
 import sys
 import textwrap
 from abc import ABC, abstractmethod
-from functools import lru_cache
-
-from attrs import define
 from datetime import datetime, timezone, date
+from functools import lru_cache
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, Iterator
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
 
 import yaml
+from attrs import define
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
 from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
-from resotolib.core.model_check import check_overlap_for
-from resotolib.durations import duration_parser, DurationRe
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
-from resotolib.utils import is_env_var_string
+from resotocore.compat import remove_suffix
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
-from resotocore.compat import remove_suffix
+from resotolib.core.model_check import check_overlap_for
+from resotolib.durations import duration_parser, DurationRe
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.utils import is_env_var_string
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -107,7 +106,7 @@ class Property:
         @make_parser
         def array_parser() -> Parser:
             inner = yield dictionary_parser | simple_kind_parser
-            brackets = yield bracket_parser.times(1, float("inf"))
+            brackets = yield bracket_parser.times(1, cast(int, float("inf")))
             return ArrayKind.mk_array(inner, len(brackets))
 
         @make_parser
@@ -1231,9 +1230,6 @@ class Model:
                 for r in c.resolved_properties()
             }.values()
         )
-
-    def __iter__(self) -> Iterator[Kind]:
-        return iter(self.kinds.values())
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):

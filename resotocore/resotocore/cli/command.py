@@ -5681,7 +5681,7 @@ class DbCommand(CLICommand):
                     for kind in complex_kinds
                     for ck in kind.transitive_complex_types(with_bases=True, with_properties=True)
                 ]
-                sk = [kind for kind in resoto_model if isinstance(kind, SimpleKind)]
+                sk = [kind for kind in resoto_model.kinds if isinstance(kind, SimpleKind)]
                 kinds = [*tct, *sk]
 
             kind_by_name = {k.fqn: from_js(to_js(k), RCKind) for k in kinds}

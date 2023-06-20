@@ -302,6 +302,7 @@ async def test_graph_api(core_client: ResotoClient) -> None:
         assert len(result) == 0
 
     # create a snapshot
+    # noinspection PyStatementEffect
     [result async for result in core_client.cli_execute("graph snapshot graphtest test_label")]
     # now we should see some snapshots
     result_graph = [res async for res in search_graph_at('id("3") -[0:]->', graph=g, at=utc_str())]
@@ -385,7 +386,7 @@ async def test_cli(core_client: ResotoClient) -> None:
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
-    assert len(info.commands) == 43
+    assert len(info.commands) == 44
 
 
 @pytest.mark.asyncio
