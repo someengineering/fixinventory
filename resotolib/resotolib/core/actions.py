@@ -108,6 +108,10 @@ class CoreActions(threading.Thread):
         self.shutdown_event = threading.Event()
         # one thread is taken by the queue listener
         self.executor = ThreadPoolExecutor(max_workers=max_concurrent_actions + 1, thread_name_prefix=self.identifier)
+        self.__connected = False
+
+    def connected(self) -> bool:
+        return self.__connected
 
     def run(self) -> None:
         def listen_on_queue(in_messages: Queue[Json]) -> None:
@@ -229,9 +233,11 @@ class CoreActions(threading.Thread):
         log.debug(f"{self.identifier} message bus error: {e!r}")
 
     def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+        self.__connected = False
         log.debug(f"{self.identifier} disconnected from resotocore message bus: {close_status_code}: {close_msg}")
 
     def on_open(self, _: websocket.WebSocketApp) -> None:
+        self.__connected = True
         log.debug(f"{self.identifier} connected to resotocore message bus")
 
     def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:

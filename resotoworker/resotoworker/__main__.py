@@ -7,7 +7,7 @@ import time
 from functools import partial
 from queue import Queue
 from signal import SIGTERM
-from typing import List, Dict, Type, Optional, Any
+from typing import List, Dict, Type, Optional, Any, Callable
 
 import requests
 
@@ -75,6 +75,9 @@ def main() -> None:
     # added their args to the arg parser
     arg_parser.parse_args()
 
+    # Register functions to detect system healthiness
+    health_conditions: Dict[str, Callable[[], bool]] = {}
+
     try:
         wait_for_resotocore(resotocore.http_uri)
     except TimeoutError as e:
@@ -93,6 +96,7 @@ def main() -> None:
         resotocore_uri=resotocore.http_uri,
         tls_data=tls_data,
     )
+    health_conditions["Config Listener"] = config.connected
 
     add_config(config, plugin_loader.all_collector_plugins())
     plugin_loader.add_plugin_config(config)
@@ -130,7 +134,11 @@ def main() -> None:
             "ssl_key": tls_data.key_path,
         }
     web_server = WebServer(
-        WorkerWebApp(mountpoint=Config.resotoworker.web_path, plugin_loader=plugin_loader),
+        WorkerWebApp(
+            mountpoint=Config.resotoworker.web_path,
+            plugin_loader=plugin_loader,
+            health_conditions=health_conditions,
+        ),
         web_host=Config.resotoworker.web_host,
         web_port=Config.resotoworker.web_port,
         **web_server_args,
@@ -156,6 +164,7 @@ def main() -> None:
         tls_data=tls_data,
         incoming_messages=core_messages,
     )
+    health_conditions["CoreActions"] = core_actions.connected
 
     # make tagging by collectors available out of the box
     collect_plugins: List[BaseCollectorPlugin] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
@@ -186,6 +195,7 @@ def main() -> None:
     )
     core_actions.start()
     core_tasks.start()
+    health_conditions["CoreTasks"] = core_tasks.connected
 
     for plugin_class in plugin_loader.plugins(PluginType.ACTION):
         assert issubclass(plugin_class, BaseActionPlugin)
