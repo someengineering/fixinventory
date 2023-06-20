@@ -10,7 +10,7 @@ def write_utf8_file(path: Path, content: str) -> None:
     """Write a UTF-8 encoded file to disk"""
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
+        with open(os.open(path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600), "wb") as f:
             f.write(content.encode("utf-8"))
 
     except Exception as e:
