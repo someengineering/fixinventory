@@ -9,6 +9,7 @@ from typing import Optional, List, Any
 def test_write_utf8_file() -> None:
     with TemporaryDirectory() as tmpdir:
         f = Path(tmpdir) / "foo" / "test.txt"
+        write_utf8_file(f, "extra long line that must be truncated first")
         write_utf8_file(f, "bar")
         assert f.read_text(encoding="utf-8") == "bar"
         assert f.stat().st_mode & 0o777 == 0o600
