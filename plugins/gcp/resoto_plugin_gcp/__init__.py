@@ -39,10 +39,11 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         """
         log.debug("plugin: GCP collecting resources")
         assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
+        feedback = self.core_feedback.with_context("gcp")
 
         cloud = Cloud(id=self.cloud, name="Gcp")
 
-        credentials = Credentials.all()
+        credentials = Credentials.all(feedback)
         if len(Config.gcp.project) > 0:
             for project in list(credentials.keys()):
                 if project not in Config.gcp.project:
@@ -68,14 +69,9 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             collect_method = self.collect_project
 
         with pool_executor(**pool_args) as executor:
+            # noinspection PyTypeChecker
             wait_for = [
-                executor.submit(
-                    collect_method,
-                    project_id,
-                    self.core_feedback.with_context("gcp"),
-                    cloud,
-                    **collect_args,
-                )
+                executor.submit(collect_method, project_id, feedback, cloud, **collect_args)
                 for project_id in credentials.keys()
             ]
             for future in futures.as_completed(wait_for):

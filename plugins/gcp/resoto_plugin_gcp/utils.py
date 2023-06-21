@@ -1,21 +1,21 @@
-import json
 import os
 import socket
-from resotolib.baseresources import BaseResource
-from resotolib.config import Config
-from resotolib.graph import Graph
-from resotolib.lock import RWLock
-import resotolib.logger
-from typing import Iterable, List, Union, Callable, Any, Dict
-from googleapiclient import discovery
-from googleapiclient.errors import HttpError as GoogleApiClientHttpError
-from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
-from google.oauth2 import service_account
 from datetime import datetime
+from typing import Iterable, List, Union, Callable, Any, Dict, Optional
+
+from google.oauth2 import service_account
+from googleapiclient import discovery
+from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
+from googleapiclient.errors import HttpError as GoogleApiClientHttpError
 from retrying import retry
 from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
-# from google.oauth2.credentials import UserAccessTokenCredentials
+import resotolib.logger
+from resotolib.baseresources import BaseResource
+from resotolib.config import Config
+from resotolib.core.actions import CoreFeedback
+from resotolib.graph import Graph
+from resotolib.lock import RWLock
 
 log = resotolib.logger.getLogger("resoto." + __name__)
 resotolib.logger.getLogger("googleapiclient").setLevel(resotolib.logger.ERROR)
@@ -47,13 +47,19 @@ class Credentials:
     _lock = RWLock()
 
     @staticmethod
-    def load():
+    def load(feedback: Optional[CoreFeedback] = None):
         with Credentials._lock.write_access:
             if not Credentials._initialized:
                 for sa_data in Config.gcp.service_account:
-                    credentials = load_credentials(sa_data)
-                    for project in list_credential_projects(credentials):
-                        Credentials._credentials[project["id"]] = credentials
+                    try:
+                        log.debug("Loading credentials from %s", sa_data)
+                        credentials = load_credentials(sa_data)
+                        for project in list_credential_projects(credentials):
+                            Credentials._credentials[project["id"]] = credentials
+                    except Exception as e:
+                        log.error("Unable to load credentials from %s", sa_data, exc_info=e)
+                        if feedback is not None:
+                            feedback.error(f"Unable to load credentials from {sa_data}: {e}")
                 Credentials._initialized = True
 
     @staticmethod
@@ -63,8 +69,8 @@ class Credentials:
             return Credentials._credentials.get(project_id)
 
     @staticmethod
-    def all() -> Dict:
-        Credentials.load()
+    def all(feedback: Optional[CoreFeedback] = None) -> Dict:
+        Credentials.load(feedback)
         with Credentials._lock.read_access:
             return dict(Credentials._credentials)
 
@@ -75,13 +81,14 @@ class Credentials:
         Credentials.load()
 
 
-def load_credentials(sa_data: str):
-    if len(sa_data) == 0:
+def load_credentials(path: str):
+    if len(path) == 0:
         return None
-    if os.path.isfile(sa_data):
-        return service_account.Credentials.from_service_account_file(sa_data, scopes=SCOPES)
+    file = os.path.expanduser(path)
+    if os.path.isfile(file):
+        return service_account.Credentials.from_service_account_file(file, scopes=SCOPES)
     else:
-        return service_account.Credentials.from_service_account_info(json.loads(sa_data), scopes=SCOPES)
+        raise ValueError(f"No credentials file found at {file}")
 
 
 @retry(
@@ -115,9 +122,7 @@ def list_credential_projects(credentials) -> List:
             }
             ret.append(p)
     except GoogleApiClientHttpError:
-        log.error(
-            ("Unable to load projects from cloudresourcemanager" " - falling back to local credentials information")
-        )
+        log.error("Unable to load projects from cloudresourcemanager - falling back to local credentials information")
         p = {
             "id": credentials.project_id,
             "name": credentials.project_id,
