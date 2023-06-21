@@ -304,7 +304,9 @@ def with_config(
         async_initializer(),
         api.stop,
         host=config.api.web_hosts,
-        port=config.api.web_port,
+        https_port=config.api.https_port,
+        http_port=config.api.http_port,
+        default_port=8900,
         ssl_context=cert_handler.host_context,
     )
 

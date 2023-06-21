@@ -250,10 +250,8 @@ def deep_merge(left: Json, right: Json) -> Json:
         left_value: JsonElement = left.get(key)
         right_value: JsonElement = right.get(key)
         if isinstance(right_value, dict):
-            left_value = left_value if isinstance(left_value, dict) else {}
-            # noinspection PyTypeChecker
-            return deep_merge(left_value, right_value)
-        elif right_value is not None:
+            return deep_merge(left_value if isinstance(left_value, dict) else {}, right_value)
+        elif key in right:
             return right_value
         else:
             return left_value

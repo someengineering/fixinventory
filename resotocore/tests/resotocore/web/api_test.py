@@ -62,7 +62,7 @@ async def create_core_client(
           The fixture ensures that the underlying process has entered the ready state.
           It also ensures to clean up the process, when the test is done.
     """
-    port = get_free_port()  # use a different port than the default one
+    http_port = get_free_port()  # use a different port than the default one
     additional_args = ["--psk", psk] if psk else []
 
     # wipe and cleanly import the test model
@@ -101,9 +101,9 @@ l1:
                 "test",
                 "--debug",
                 "--analytics-opt-out",
-                "--no-tls",
                 "--override",
-                f"resotocore.api.web_port={port}",
+                f"resotocore.api.https_port=null",
+                f"resotocore.api.http_port={http_port}",
                 "resotocore.api.web_hosts=0.0.0.0",
                 "--override-path",
                 str(config_path),
@@ -117,12 +117,12 @@ l1:
     while not ready:
         await sleep(0.5)
         with suppress(Exception):
-            async with client_session.get(f"http://localhost:{port}/system/ready"):
+            async with client_session.get(f"http://localhost:{http_port}/system/ready"):
                 ready = True
         count -= 1
         if count == 0:
             raise AssertionError("Process does not came up as expected")
-    async with ResotoClient(f"http://localhost:{port}", psk=psk) as client:
+    async with ResotoClient(f"http://localhost:{http_port}", psk=psk) as client:
         yield client
     # terminate the process
     process.terminate()
@@ -302,7 +302,8 @@ async def test_graph_api(core_client: ResotoClient) -> None:
         assert len(result) == 0
 
     # create a snapshot
-    [result async for result in core_client.cli_execute("graph snapshot graphtest test_label")]
+    async for _ in core_client.cli_execute("graph snapshot graphtest test_label"):
+        pass
     # now we should see some snapshots
     result_graph = [res async for res in search_graph_at('id("3") -[0:]->', graph=g, at=utc_str())]
     assert len(result_graph) == 21  # 11 nodes + 10 edges

@@ -128,7 +128,12 @@ class ApiConfig(ConfigObject):
     web_hosts: List[str] = field(
         factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
     )
-    web_port: int = field(default=8900, metadata={"description": "TCP port to bind on (default: 8900)"})
+    https_port: Optional[int] = field(
+        default=8900, metadata={"description": "TCP port to bind on for TLS encrypted connections (default: 8900)"}
+    )
+    http_port: Optional[int] = field(
+        default=8980, metadata={"description": "TCP port to bind on for plain HTTP connections (default: 8980)"}
+    )
     web_path: str = field(
         default="/",
         metadata={
@@ -158,6 +163,8 @@ class ApiConfig(ConfigObject):
 schema_registry.add(
     schema_name(ApiConfig),
     dict(
+        http_port={"type": "integer", "min": 1, "max": 65535, "nullable": True},
+        https_port={"type": "integer", "min": 1, "max": 65535, "nullable": True},
         tsdb_proxy_url={"type": "string", "nullable": True, "is_url": True},
         max_request_size={"type": "integer", "nullable": True, "min": 1024**2},
     ),
@@ -810,6 +817,12 @@ def migrate_core_config(config: Json) -> Json:
 
     # 3.0 -> 3.1: delete `api.ui_path`
     del_value_in_path(adapted, "api.ui_path")
+
+    # 3.5 -> 3.6: web_port -> https_port
+    if web_port := value_in_path(cfg, "api.web_port"):
+        set_value_in_path(web_port, "api.https_port", adapted)
+        del_value_in_path(adapted, "api.web_port")
+
     return {ResotoCoreRoot: adapted}
 
 
