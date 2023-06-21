@@ -336,7 +336,7 @@ jobs:
         id: current_chart_version
         shell: bash
         run: |
-          yq '.version' helm-charts/someengineering/resoto/Chart.yaml
+          echo "result=$(yq '.version' helm-charts/someengineering/resoto/Chart.yaml)" >> $GITHUB_OUTPUT
 
       - name: Get new chart version
         if: steps.release.outputs.prerelease == 'false'
