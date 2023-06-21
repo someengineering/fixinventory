@@ -35,24 +35,24 @@ def test_parse_broken(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
 
-    # adjust the config: rename web_hosts -> hosts, and web_port -> port
+    # adjust the config: rename web_hosts -> hosts, and https_port -> port
     hosts = cfg["resotocore"]["api"]["web_hosts"]
-    port = cfg["resotocore"]["api"]["web_port"]
+    port = cfg["resotocore"]["api"]["https_port"]
     cfg["resotocore"]["api"]["hosts"] = hosts
     cfg["resotocore"]["api"]["port"] = port
     del cfg["resotocore"]["api"]["web_hosts"]
-    del cfg["resotocore"]["api"]["web_port"]
+    del cfg["resotocore"]["api"]["https_port"]
 
     # parse this configuration
     parsed = parse_config(parse_args(["--analytics-opt-out"]), cfg, lambda: None)
     parsed_json = to_js(parsed.editable, strip_attr="kind")
 
-    # web_hosts and web_port were not available and are reverted to the default values
+    # web_hosts and https_port were not available and are reverted to the default values
     default = EditableConfig()
     assert parsed.api.web_hosts != hosts
     assert parsed.api.web_hosts == default.api.web_hosts
-    assert parsed.api.web_port != port
-    assert parsed.api.web_port == default.api.web_port
+    assert parsed.api.https_port != port
+    assert parsed.api.https_port == default.api.https_port
 
     # other config values are still unchanged
     assert parsed_json["cli"] == config_json["resotocore"]["cli"]
@@ -97,7 +97,7 @@ def test_config_override(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
 
-    overrides = {"resoto.core": {"resotocore": {"api": {"web_hosts": ["11.12.13.14"], "web_port": "$(WEB_PORT)"}}}}
+    overrides = {"resoto.core": {"resotocore": {"api": {"web_hosts": ["11.12.13.14"], "https_port": "$(WEB_PORT)"}}}}
 
     os.environ["WEB_PORT"] = "1337"
 
@@ -108,7 +108,7 @@ def test_config_override(config_json: Json) -> None:
         lambda: overrides.get(ResotoCoreConfigId),
     )
     assert parsed.api.web_hosts == ["11.12.13.14"]
-    assert parsed.api.web_port == 1337
+    assert parsed.api.https_port == 1337
 
 
 def test_model() -> None:
@@ -177,7 +177,8 @@ def config_json() -> Json:
             "api": {
                 "access_token_expiration_seconds": 3600,
                 "web_hosts": ["1.2.3.4"],
-                "web_port": 1234,
+                "https_port": 443,
+                "http_port": 80,
                 "web_path": "/",
                 "tsdb_proxy_url": "test",
                 "max_request_size": 5242880,

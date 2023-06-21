@@ -134,30 +134,24 @@ class CertificateHandler:
         return key, cert
 
     @staticmethod
-    def __create_host_context(
-        config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey
-    ) -> Optional[SSLContext]:
+    def __create_host_context(config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey) -> SSLContext:
         args = config.args
-        if args.no_tls:
-            log.info("TLS disabled.")
-            return None
+        # noinspection PyTypeChecker
+        ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
+        if config.args.cert:
+            log.info("Using TLS certificate from command line.")
+            # Use the certificate provided via cmd line flags
+            ctx.load_cert_chain(args.cert, args.cert_key, args.cert_key_pass)
         else:
-            # noinspection PyTypeChecker
-            ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
-            if config.args.cert:
-                log.info("Using TLS certificate from command line.")
-                # Use the certificate provided via cmd line flags
-                ctx.load_cert_chain(args.cert, args.cert_key, args.cert_key_pass)
-            else:
-                log.info("Using TLS certificate from data store.")
-                # ssl library wants to load cert/key from file: put it into a temp directory for loading
-                with TemporaryDirectory() as td:
-                    cert_file = Path(td, "cert")
-                    key_file = Path(td, "key")
-                    write_cert_to_file(host_cert, str(cert_file))
-                    write_key_to_file(host_key, str(key_file))
-                    ctx.load_cert_chain(str(cert_file), str(key_file), args.ca_cert_key_pass)
-            return ctx
+            log.info("Using TLS certificate from data store.")
+            # ssl library wants to load cert/key from file: put it into a temp directory for loading
+            with TemporaryDirectory() as td:
+                cert_file = Path(td, "cert")
+                key_file = Path(td, "key")
+                write_cert_to_file(host_cert, str(cert_file))
+                write_key_to_file(host_key, str(key_file))
+                ctx.load_cert_chain(str(cert_file), str(key_file), args.ca_cert_key_pass)
+        return ctx
 
     @staticmethod
     def __create_client_context(config: CoreConfig, ca_cert: Certificate) -> SSLContext:

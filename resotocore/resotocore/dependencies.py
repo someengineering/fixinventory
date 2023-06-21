@@ -123,7 +123,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         dest="graphdb_request_timeout",
         help="Request timeout in seconds (default: 900)",
     )
-    parser.add_argument("--no-tls", default=False, action="store_true", help="Disable TLS and use plain HTTP.")
+    parser.add_argument("--no-tls", default=False, action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--cert",
         type=is_file("can not parse --cert"),
@@ -175,7 +175,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
         "The existing configuration will be patched with the provided values. "
         "A value can be a simple value or a comma separated list of values if a list is required. "
         "Note: this argument allows multiple overrides separated by space. "
-        "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.web_port=12345",
+        "Example: --override resotocore.api.web_hosts=localhost,some.domain resotocore.api.https_port=12345",
     )
     parser.add_argument(
         "--override-path",
