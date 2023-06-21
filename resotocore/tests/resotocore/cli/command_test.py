@@ -6,7 +6,7 @@ import sqlite3
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast
+from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable
 
 import pytest
 import yaml
@@ -1307,15 +1307,30 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
 
 @pytest.mark.asyncio
 async def test_db(cli: CLI, tmp_directory: str) -> None:
-    await cli.execute_cli_command(
-        f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {tmp_directory}/resoto.db",
-        stream.list,
+    db_file = "test_db"
+
+    async def sync_and_check(cmd: str, expected: Callable[[str, int], bool]) -> None:
+        # delete file
+        if os.path.exists(f"{tmp_directory}/{db_file}"):
+            os.remove(f"{tmp_directory}/{db_file}")
+        await cli.execute_cli_command(cmd, stream.list)
+        # open sqlite database
+        conn = sqlite3.connect(f"{tmp_directory}/{db_file}")
+        c = conn.cursor()
+        tables = {row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()}
+        assert tables == {"bla", "foo", "link_foo_bla", "link_bla_bla"}
+        for table in tables:
+            count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            assert expected(table, count), f"Table {table} has {count} rows"
+
+    # search | db sync
+    await sync_and_check(
+        f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {tmp_directory}/{db_file}",
+        lambda table, count: count > 0 if not table.startswith("link_") else True,
     )
-    # open sqlite database
-    conn = sqlite3.connect(f"{tmp_directory}/resoto.db")
-    c = conn.cursor()
-    tables = {row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()}
-    assert tables == {"bla", "foo", "link_foo_bla", "link_bla_bla"}
-    for table in tables:
-        if not table.startswith("link_"):  # link tables are created from the model no matter about the data
-            assert c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0, f"Table {table} is empty"
+
+    # db sync
+    await sync_and_check(
+        f"db sync sqlite --database {tmp_directory}/{db_file}",
+        lambda table, count: count > 0 if not table.startswith("link_") else True,
+    )
