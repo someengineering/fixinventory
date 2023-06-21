@@ -5,7 +5,7 @@ import concurrent
 import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
-from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict
+from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set
 from types import TracebackType
 
 from attr import define, field
@@ -26,7 +26,7 @@ from resotolib.baseresources import (
 )
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
-from resotolib.json import from_json as from_js
+from resotolib.json import from_json as from_js, value_in_path
 from resotolib.json_bender import bend, Bender, S, Bend
 from resotolib.types import Json
 from resotolib.config import Config
@@ -400,7 +400,8 @@ class GcpResource(BaseResource):
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.info(f"[Gcp:{builder.project.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
-            with GcpErrorHandler(builder.core_feedback, f" in {builder.project.id} kind {cls.kind}"):
+            expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set())
+            with GcpErrorHandler(builder.core_feedback, expected_errors, f" in {builder.project.id} kind {cls.kind}"):
                 items = builder.client.list(spec, **kwargs)
                 return cls.collect(items, builder)
         return []
@@ -572,10 +573,16 @@ class GcpZone(GcpResource, BaseZone):
     zone_supports_pzs: Optional[bool] = field(default=None)
 
 
+GcpExpectedErrorCodes = {
+    "PERMISSION_DENIED:usageLimits:accessNotConfigured"  # resource not enabled - no resources to expect
+}
+
+
 class GcpErrorHandler:
-    def __init__(self, core_feedback: CoreFeedback, extra_info: str = "") -> None:
+    def __init__(self, core_feedback: CoreFeedback, expected_errors: Set[str], extra_info: str = "") -> None:
         self.core_feedback = core_feedback
         self.extra_info = extra_info
+        self.expected_errors = expected_errors
 
     def __enter__(self) -> "GcpErrorHandler":
         return self
@@ -589,23 +596,42 @@ class GcpErrorHandler:
         if exc_type is None:
             return None
 
-        error_details = exc_value
+        error_details = str(exc_value)
+        errors: Set[str] = set()
         if exc_type is HttpError and isinstance(exc_value, HttpError):
             try:
                 exc_content: Json = json.loads(exc_value.content.decode())
-                error_details = exc_content.get("error", {}).get("message", exc_value)
-            except Exception:
+                status = value_in_path(exc_content, ["error", "status"])
+                errors = {
+                    f'{status}:{error.get("domain", "none")}:{error.get("reason", "none")}'
+                    for error in (value_in_path(exc_content, ["error", "errors"]) or [])
+                }
+                error_details = str(exc_content.get("error", {}).get("message", exc_value))
+            except Exception as ex:
+                errors = {f"ParseError:unknown:{ex}"}
                 pass
+        error_summary = ", ".join(errors)
+
+        if errors and errors.issubset(self.expected_errors):
+            log.info(
+                f"Expected Exception while collecting{self.extra_info} ({exc_type.__name__}): "
+                f"{error_details} Error Codes: {error_summary}. Ignore."
+            )
+            return True
 
         if not Config.gcp.discard_account_on_resource_error:
             self.core_feedback.error(
-                f"Error while collecting{self.extra_info} ({exc_type.__name__}): {error_details}", log
+                f"Error while collecting{self.extra_info} ({exc_type.__name__}): "
+                f"{error_details} Error Codes: {error_summary}",
+                log,
             )
             return True
 
         if exc_type is HttpError and isinstance(exc_value, HttpError):
             if exc_value.resp.status == 403:
-                self.core_feedback.error(f"Access denied{self.extra_info}: {error_details}", log)
+                self.core_feedback.error(
+                    f"Access denied{self.extra_info}: {error_details} Error Codes: {error_summary}", log
+                )
                 return True
 
         return False
