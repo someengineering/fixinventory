@@ -153,6 +153,9 @@ def test_migration() -> None:
     cfg3 = migrate_core_config(dict(resotocore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
     assert value_in_path(cfg3, "resotocore.runtime.usage_metrics") is True
     assert value_in_path(cfg1, "resotocore.runtime.analytics_opt_out") is None
+    cfg4 = migrate_core_config(dict(resotocore=dict(api=dict(web_port=1234))))
+    assert value_in_path(cfg4, "resotocore.api.https_port") == 1234
+    assert value_in_path(cfg4, "resotocore.api.web_port") is None
 
 
 def test_migrate_commands() -> None:

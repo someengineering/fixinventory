@@ -44,7 +44,7 @@ class CertificateHandler:
         self._ca_cert_bytes = cert_to_bytes(ca_cert)
         self._ca_cert_fingerprint = cert_fingerprint(ca_cert)
         self._host_key, self._host_cert = self.__create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
-        self._host_context = self.__create_host_context(config, self._host_cert, self._host_key)
+        self._host_context = self._create_host_context(config, self._host_cert, self._host_key)
         self._client_context = self.__create_client_context(config, ca_cert)
         self._ca_bundle = temp_dir / "ca-bundle.crt"
         self.__recreate_ca_file()  # write the CA bundle to the temp dir
@@ -134,7 +134,7 @@ class CertificateHandler:
         return key, cert
 
     @staticmethod
-    def __create_host_context(config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey) -> SSLContext:
+    def _create_host_context(config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey) -> SSLContext:
         args = config.args
         # noinspection PyTypeChecker
         ctx = create_default_context(purpose=Purpose.CLIENT_AUTH)
