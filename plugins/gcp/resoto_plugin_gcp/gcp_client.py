@@ -34,6 +34,7 @@ class GcpApiSpec:
     delete_identifier: Optional[str] = None
     required_iam_permissions: Optional[List[str]] = None
     mutate_iam_permissions: Optional[List[str]] = None
+    expected_errors: Optional[Set[str]] = None
 
     def for_delete(self) -> GcpApiSpec:
         params = self.request_parameter.copy()
