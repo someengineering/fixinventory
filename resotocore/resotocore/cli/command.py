@@ -5699,6 +5699,10 @@ class DbCommand(CLICommand):
             kind_by_id: Dict[str, str] = {}
 
             def key_fn(node: Json) -> Union[str, Tuple[str, str]]:
+                assert isinstance(node, dict), (
+                    f"Expected a JSON object. Don't know how to handle >{node}<.\n"
+                    "Execute `help db` to get more information on how to use this command."
+                )
                 if node["type"] == "edge":
                     fr = node["from"]
                     to = node["to"]
