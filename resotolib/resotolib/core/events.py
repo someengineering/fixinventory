@@ -30,6 +30,10 @@ class CoreEvents(threading.Thread):
         self.tls_data = tls_data
         self.ws: Optional[websocket.WebSocketApp] = None
         self.shutdown_event = threading.Event()
+        self.__connected = False
+
+    def connected(self) -> bool:
+        return self.__connected
 
     def __del__(self) -> None:
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -88,9 +92,11 @@ class CoreEvents(threading.Thread):
         log.debug(f"Event bus error: {e!r}")
 
     def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+        self.__connected = False
         log.debug("Disconnected from resotocore event bus")
 
     def on_open(self, _: websocket.WebSocketApp) -> None:
+        self.__connected = True
         log.debug("Connected to resotocore event bus")
 
     def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:

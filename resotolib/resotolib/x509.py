@@ -215,7 +215,7 @@ def write_key_to_file(
     rename: bool = True,
 ) -> None:
     tmp_key_path = f"{key_path}.tmp" if rename else key_path
-    with open(os.open(tmp_key_path, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as f:
+    with open(os.open(tmp_key_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600), "wb") as f:
         f.write(key_to_bytes(key, passphrase))
     if rename:
         os.rename(tmp_key_path, key_path)

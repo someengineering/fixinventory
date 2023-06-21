@@ -114,6 +114,7 @@ class StreamingWrapper:
             result.extend(payload if isinstance(payload, list) else [payload])
 
         log.debug(f"DO request {path} returned {len(result)} items")
+        result = [item for item in result if item is not None]
         return result
 
     @retry
@@ -154,6 +155,11 @@ class StreamingWrapper:
 
     def list_droplets(self) -> List[Json]:
         return self._fetch("/droplets", "droplets")
+
+    def list_droplets_neighbors_ids(self) -> List[List[str]]:
+        json_obj = self._fetch("/reports/droplet_neighbors_ids", "neighbor_ids")
+        result = [[str(id) for id in droplet_ids] for droplet_ids in json_obj if isinstance(droplet_ids, list)]
+        return result
 
     def list_regions(self) -> List[Json]:
         return self._fetch("/regions", "regions")

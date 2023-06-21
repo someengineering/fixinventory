@@ -121,6 +121,10 @@ class CoreTasks(threading.Thread):
         self.ws: Optional[websocket.WebSocketApp] = None
         self.shutdown_event = threading.Event()
         self.queue: queue.Queue[Json] = queue.Queue()
+        self.__connected = False
+
+    def connected(self) -> bool:
+        return self.__connected
 
     def __del__(self) -> None:
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
@@ -202,9 +206,11 @@ class CoreTasks(threading.Thread):
         log.debug(f"{self.identifier} event bus error: {e!r}")
 
     def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+        self.__connected = False
         log.debug(f"{self.identifier} disconnected from resotocore task queue")
 
     def on_open(self, ws: websocket.WebSocketApp) -> None:
+        self.__connected = True
         log.debug(f"{self.identifier} connected to resotocore, register at task queue")
         # when we are connected, we register at the task queue
         # by sending all task handler definitions

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Union, Callable, Any, Dict, Optional, Tuple
+from typing import Union, Callable, Any, Dict, Optional, Tuple, List
 
 
 log = logging.getLogger("resoto." + __name__)
@@ -146,17 +146,30 @@ def alert_policy_id(value: str) -> str:
     return f"do:alert:{value}"
 
 
+def droplet_neighborhood_id(value: str) -> str:
+    return f"do:neighborhood:{value}"
+
+
 tag_value_sep: str = "--"
 
 
-def parse_tag(tag: str) -> Tuple[str, Optional[str]]:
-    if tag_value_sep in tag:
-        tag_parts = tag.split("--", 1)
-        key = tag_parts[0]
-        value = tag_parts[1] if len(tag_parts) > 1 else None
-        return (key, value)
-    else:
-        return (tag, None)
+def parse_tag(tag: str) -> Optional[Tuple[str, Optional[str]]]:
+    splitted = iter(tag.split(tag_value_sep, 1))
+    key = next(splitted, None)
+    if key is None:
+        return None
+    value = next(splitted, None)
+    return (key, value)
+
+
+def parse_tags(tags: List[str]) -> Dict[str, Optional[str]]:
+    parsed_tags = {}
+    for tag in tags:
+        if parsed_tag := parse_tag(tag):
+            key, value = parsed_tag
+            parsed_tags[key] = value
+
+    return parsed_tags
 
 
 def dump_tag(key: str, value: Optional[str]) -> str:

@@ -24,9 +24,13 @@ from resotolib.baseresources import (
     BaseDNSZone,
     BaseDNSRecord,
     ModelReference,
+    PhantomBaseResource,
 )
 from resotolib.graph import Graph
 import time
+
+from resotolib.types import Json
+from resotolib.json import to_json as _to_json
 
 log = logging.getLogger("resoto." + __name__)
 
@@ -70,6 +74,9 @@ class DigitalOceanResource(BaseResource):
 
         raise NotImplementedError
 
+    def to_json(self) -> Json:
+        return _to_json(self, strip_nulls=True, keep_untouched=set(["tags"]))
+
 
 @define(eq=False, slots=False)
 class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
@@ -102,7 +109,6 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
                 "digitalocean_snapshot",
                 "digitalocean_space",
                 "digitalocean_ssh_key",
-                "digitalocean_tag",
                 "digitalocean_volume",
             ],
             "delete": [],
@@ -224,6 +230,17 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
 
     def tag_resource_name(self) -> Optional[str]:
         return "droplet"
+
+
+@define(eq=False, slots=False)
+class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource):
+    """A DigitalOcean Droplet Neighborhood Resource
+
+    Represents a physical hardware server where droplets can be placed.
+    """
+
+    kind: ClassVar[str] = "digitalocean_droplet_neighborhood"
+    droplets: Optional[List[str]] = None
 
 
 @define(eq=False, slots=False)
@@ -565,16 +582,6 @@ class DigitalOceanSSHKey(DigitalOceanResource, BaseKeyPair):
 
     def delete_uri_path(self) -> Optional[str]:
         return "/account/keys"
-
-
-@define(eq=False, slots=False)
-class DigitalOceanTag(DigitalOceanResource, BaseResource):
-    """DigitalOcean tag"""
-
-    kind = "digitalocean_tag"
-
-    def delete_uri_path(self) -> Optional[str]:
-        return "/tags"
 
 
 @define(eq=False, slots=False)

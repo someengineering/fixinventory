@@ -1,7 +1,7 @@
 import json
 import sys
 from datetime import timedelta, datetime, date
-from typing import TypeVar, Any, Type, Optional, Union, List, get_args, Literal, get_origin, Callable, Iterable
+from typing import TypeVar, Any, Type, Optional, Union, List, get_args, Literal, get_origin, Callable, Iterable, Set
 
 from dateutil.parser import isoparse
 
@@ -94,7 +94,12 @@ def to_json_str(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, s
         raise
 
 
-def to_json(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip_nulls: bool = False) -> Json:
+def to_json(
+    node: Any,
+    strip_attr: Union[None, str, Iterable[str]] = None,
+    strip_nulls: bool = False,
+    keep_untouched: Optional[Set[str]] = None,
+) -> Json:
     """
     Use this method, if the given node is known as complex object,
     so the result will be a json object.
@@ -103,6 +108,9 @@ def to_json(node: Any, strip_attr: Union[None, str, Iterable[str]] = None, strip
     def walk_js_object(js: Json, filter_fn: Optional[Callable[[str, Any], bool]] = None) -> Json:
         result: Json = {}
         for k, v in js.items():
+            if keep_untouched and k in keep_untouched:
+                result[k] = v
+                continue
             if filter_fn and not filter_fn(k, v):
                 continue
             if isinstance(v, dict):
