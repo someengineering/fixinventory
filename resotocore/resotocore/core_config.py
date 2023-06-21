@@ -128,7 +128,7 @@ class ApiConfig(ConfigObject):
     web_hosts: List[str] = field(
         factory=default_hosts, metadata={"description": f"TCP host(s) to bind on (default: {default_hosts()})"}
     )
-    https_port: int = field(
+    https_port: Optional[int] = field(
         default=8900, metadata={"description": "TCP port to bind on for TLS encrypted connections (default: 8900)"}
     )
     http_port: Optional[int] = field(
@@ -164,7 +164,7 @@ schema_registry.add(
     schema_name(ApiConfig),
     dict(
         http_port={"type": "integer", "min": 1, "max": 65535, "nullable": True},
-        https_port={"type": "integer", "min": 1, "max": 65535, "nullable": False},
+        https_port={"type": "integer", "min": 1, "max": 65535, "nullable": True},
         tsdb_proxy_url={"type": "string", "nullable": True, "is_url": True},
         max_request_size={"type": "integer", "nullable": True, "min": 1024**2},
     ),

@@ -63,7 +63,6 @@ async def create_core_client(
           It also ensures to clean up the process, when the test is done.
     """
     http_port = get_free_port()  # use a different port than the default one
-    https_port = get_free_port()  # use a different port than the default one
     additional_args = ["--psk", psk] if psk else []
 
     # wipe and cleanly import the test model
@@ -103,7 +102,7 @@ l1:
                 "--debug",
                 "--analytics-opt-out",
                 "--override",
-                f"resotocore.api.https_port={https_port}",
+                f"resotocore.api.https_port=null",
                 f"resotocore.api.http_port={http_port}",
                 "resotocore.api.web_hosts=0.0.0.0",
                 "--override-path",

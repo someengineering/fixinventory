@@ -22,8 +22,9 @@ def run_app(
     app: Union[Application, Awaitable[Application]],
     on_shutdown: Callable[[], Awaitable[None]],
     host: Union[str, HostSequence],
-    https_port: int,
+    https_port: Optional[int],
     http_port: Optional[int],
+    default_port: int,
     *,
     shutdown_timeout: float = 60.0,
     keepalive_timeout: float = 75.0,
@@ -55,6 +56,7 @@ def run_app(
             host=host,
             https_port=https_port,
             http_port=http_port,
+            default_port=default_port,
             shutdown_timeout=shutdown_timeout,
             keepalive_timeout=keepalive_timeout,
             ssl_context=ssl_context,
@@ -85,8 +87,9 @@ def run_app(
 async def _run_app(
     app: Union[Application, Awaitable[Application]],
     host: Union[str, HostSequence],
-    https_port: int,
+    https_port: Optional[int],
     http_port: Optional[int],
+    default_port: int,
     *,
     shutdown_timeout: float = 60.0,
     keepalive_timeout: float = 75.0,
@@ -149,9 +152,12 @@ async def _run_app(
                 )
 
     try:
-        with_port(https_port, ssl_context)
-        if http_port is not None:
+        if https_port is not None:
+            with_port(https_port, ssl_context)
+        if http_port is not None and http_port != https_port:
             with_port(http_port)
+        if http_port is None and https_port is None:
+            with_port(default_port)
 
         for site in sites:
             await site.start()
