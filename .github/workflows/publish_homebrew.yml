@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  resotoshell:
-    name: "resotoshell"
+  resotoshell-hombrew:
+    name: "resotoshell-homebrew"
     runs-on: macos-latest
     steps:
       # TODO: wait for the release to be available on PyPI
