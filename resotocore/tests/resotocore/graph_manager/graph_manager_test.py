@@ -136,7 +136,7 @@ async def test_graph_manager(
                 vertex.pop("_to", None)
                 vertices.append(vertex)
 
-        return sorted(vertices, key=lambda doc: doc["_key"])  # type: ignore
+        return sorted(vertices, key=lambda doc: doc["_key"])
 
     # check vertices content after import
     original_vertices = await collect_docs("test_graph")

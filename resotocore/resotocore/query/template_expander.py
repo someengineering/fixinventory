@@ -1,7 +1,7 @@
 import functools
 import json
 from abc import abstractmethod
-from typing import Any, ByteString, Union, Iterable, Tuple, List, Optional, cast
+from typing import Any, Union, Iterable, Tuple, List, Optional, cast
 
 from parsy import string, Parser, regex, any_char
 from ustache import default_getter, default_virtuals, render, PropertyGetter, TagsTuple, default_tags
@@ -210,8 +210,8 @@ def render_template(template: str, props: Json, more_props: Iterable[Json] = (),
     :return: the rendered template string.
     """
 
-    def json_stringify(data: Any, text: bool = False) -> Union[bytes, ByteString]:
-        if isinstance(data, ByteString) and not text:
+    def json_stringify(data: Any, text: bool = False) -> Union[bytes, bytearray]:
+        if isinstance(data, (bytes, bytearray)) and not text:
             return data
         elif isinstance(data, str):
             return data.encode()
