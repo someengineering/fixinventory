@@ -13,6 +13,8 @@ import tempfile
 from abc import abstractmethod, ABC
 from argparse import Namespace
 from asyncio import Future, Task
+
+# noinspection PyProtectedMember
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
@@ -5651,15 +5653,20 @@ class DbCommand(CLICommand):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         in_source_position = kwargs.get("position") == 0
 
-        async def dump_database(sync: Callable[[Optional[Query], JsGen], JsGen]) -> JsGen:
+        async def sync_database_result(
+            file_result: Optional[str], sync_fn: Callable[[...], Awaitable[None]], *sync_args: Any
+        ) -> AsyncIterator[str]:
+            await sync_fn(*sync_args)
+            yield file_result if file_result else "Database synchronized."
+
+        async def dump_database(sync: Callable[[Optional[Query], JsGen], JsGen]) -> None:
             resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
             query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
             graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
             async with await graph_db.search_graph_gen(
                 QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
             ) as cursor:
-                async for elem in sync(query, stream.iterate(cursor)):
-                    yield elem
+                await sync(query, stream.iterate(cursor))
 
         async def database_synchronize(
             engine_config: EngineConfig,
@@ -5667,7 +5674,7 @@ class DbCommand(CLICommand):
             drop_existing_tables: bool,
             query: Optional[Query],
             in_stream: Stream,
-        ) -> AsyncIterator[JsonElement]:
+        ) -> None:
             resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
 
             if complete_model:
@@ -5718,7 +5725,6 @@ class DbCommand(CLICommand):
                 await update_sql(
                     engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
                 )
-                yield "Database synchronized."
 
         args = arg.split(maxsplit=1) if arg else []
         if len(args) == 2 and args[0] == "sync":
@@ -5748,13 +5754,24 @@ class DbCommand(CLICommand):
                 db_string += f"/{p.database}"
             db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
             db_config = EngineConfig(db_string, p.batch_size)
+            # optional: path of the output file
+            file_output: Optional[str] = p.database if p.db == "sqlite" else None
+            produces = MediaType.FilePath if file_output is not None else MediaType.Json
+
             if in_source_position:
                 # in this position we fall back to exporting the whole graph
-                sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
-                return CLISource.single(partial(dump_database, sync))
+                sync = partial(
+                    dump_database, partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
+                )
+                return CLISource.single(partial(sync_database_result, file_output, sync), produces=produces)
             else:
                 return CLIFlow(
-                    partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
+                    partial(
+                        sync_database_result,
+                        file_output,
+                        partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query),
+                    ),
+                    produces=produces,
                 )
         else:
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
