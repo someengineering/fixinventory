@@ -12,15 +12,32 @@ jobs:
     name: "resotoshell-homebrew"
     runs-on: macos-latest
     steps:
-      # TODO: wait for the release to be available on PyPI
+      - name: Wait for ResotoLib to be published on PyPI
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: resotolib
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for ResotoShell to be published on PyPI
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: resotoshell
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate with GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.SOME_CI_PAT }}"
+
       - name: Bump homebrew
-        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         env:
           GITHUB_TOKEN: ${{ secrets.SOME_CI_PAT }}
         run: |
           git config --global user.email "ci@some.engineering"
           git config --global user.name "Some CI"
           git clone "https://$GITHUB_TOKEN@github.com/someengineering/homebrew-tap.git"
+          # make requirements available to the the homebrew formula
           cp requirements.txt homebrew-tap/requirements-resoto.txt
           cd homebrew-tap
           TAG_NAME=${{ github.ref }}
@@ -29,6 +46,8 @@ jobs:
           BRANCH_NAME="ci/bump-resotoshell-$TAG_NAME"
           git checkout -b "$BRANCH_NAME"
           make resotoshell
+          # delete requirements again, nothing to commit
+          rm requirements-resoto.txt
           if ! git diff --quiet; then
             git commit -am "Bump resotoshell to $TAG_NAME"
             git push origin "$BRANCH_NAME"
