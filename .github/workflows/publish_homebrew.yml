@@ -1,4 +1,4 @@
-name: Check PR (resotoshell)
+name: ResotoShell Homebrew (Release)
 on:
   push:
     tags:
