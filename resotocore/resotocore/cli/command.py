@@ -5740,6 +5740,9 @@ class DbCommand(CLICommand):
             parser.add_argument("--drop-existing-tables", action="store_true")
             parser.add_argument("--batch-size", type=int, default=5000)
             p = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
+            # optional: path of the output file
+            file_output: Optional[str] = os.path.expanduser(p.database) if p.db == "sqlite" else None
+            produces = MediaType.FilePath if file_output is not None else MediaType.Json
             db_string = f"{p.db}://"
             if p.user:
                 db_string += p.user
@@ -5751,12 +5754,10 @@ class DbCommand(CLICommand):
                 if p.port:
                     db_string += f":{p.port}"
             if p.database:
-                db_string += f"/{p.database}"
+                database = file_output if file_output is not None else p.database
+                db_string += f"/{database}"
             db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
             db_config = EngineConfig(db_string, p.batch_size)
-            # optional: path of the output file
-            file_output: Optional[str] = p.database if p.db == "sqlite" else None
-            produces = MediaType.FilePath if file_output is not None else MediaType.Json
 
             if in_source_position:
                 # in this position we fall back to exporting the whole graph
