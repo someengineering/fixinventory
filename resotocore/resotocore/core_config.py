@@ -267,8 +267,8 @@ def alias_templates() -> List[AliasTemplateConfig]:
             info="Send the result of a search to Slack",
             description=(
                 "Perform a search and send the result to Slack.\n\n"
-                "Slack allows a maximum of 25 items per message. "
-                "If your search result is larger than 25 items, it will be split into multiple messages. "
+                "Slack allows a maximum of 10 items per message. "
+                "If your search result is larger than 10 items, it will be split into multiple messages. "
                 "There are parameters to adjust the information displayed for each resource. "
                 "You can define the title and the message to be displayed.\n\n"
                 "We recommend to define the webhook URL as part of the command configuration. "
@@ -279,8 +279,8 @@ def alias_templates() -> List[AliasTemplateConfig]:
             template=(
                 # define the fields to show in the message
                 'jq {type: "mrkdwn", text: ("*" + {{key}} + "*: " + {{value}})} | '
-                # Slack limit: https://api.slack.com/reference/block-kit/blocks#actions
-                "chunk 25 | "
+                # Slack limit: https://api.slack.com/reference/block-kit/blocks#section_fields
+                "chunk 10 | "
                 # define the Slack webhook JSON
                 "jq { blocks: ["
                 '{ type: "header", text: { type: "plain_text", text: "{{title}}" } }, '

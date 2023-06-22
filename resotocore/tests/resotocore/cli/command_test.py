@@ -880,15 +880,15 @@ async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Req
         f'search is(bla) | slack --webhook "http://localhost:{port}/success" --title test --message "test message"',
         stream.list,
     )
-    # 100 times bla, discord allows 25 fields -> 4 requests
-    assert result == [["4 requests with status 200 sent."]]
-    assert len(requests) == 4
+    # 100 times bla, Slack allows 10 fields -> 10 requests
+    assert result == [["10 requests with status 200 sent."]]
+    assert len(requests) == 10
     print(requests[0][1])
     assert requests[0][1] == {
         "blocks": [
             {"type": "header", "text": {"type": "plain_text", "text": "test"}},
             {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
-            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*: yes or no"} for _ in range(0, 25)]},
+            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*: yes or no"} for _ in range(0, 10)]},
             {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
         ],
     }
