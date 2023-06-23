@@ -5654,19 +5654,19 @@ class DbCommand(CLICommand):
         in_source_position = kwargs.get("position") == 0
 
         async def sync_database_result(
-            file_result: Optional[str], sync_fn: Callable[[...], Awaitable[None]], *sync_args: Any
+            file_result: Optional[str], sync_fn: Callable[..., Awaitable[None]], *sync_args: Any
         ) -> AsyncIterator[str]:
             await sync_fn(*sync_args)
             yield file_result if file_result else "Database synchronized."
 
-        async def dump_database(sync: Callable[[Optional[Query], JsGen], JsGen]) -> None:
+        async def dump_database(sync_fn: Callable[[Optional[Query], JsGen], JsGen]) -> None:
             resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
             query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
             graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
             async with await graph_db.search_graph_gen(
                 QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
             ) as cursor:
-                await sync(query, stream.iterate(cursor))
+                await sync_fn(query, stream.iterate(cursor))  # type: ignore
 
         async def database_synchronize(
             engine_config: EngineConfig,
