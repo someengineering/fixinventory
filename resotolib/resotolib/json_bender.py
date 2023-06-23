@@ -329,7 +329,7 @@ class Sort(Bender):
 
     def execute(self, source: Any) -> Any:
         if isinstance(source, list):
-            return sorted(source, key=lambda x: bend(self._extractor, x))  # type: ignore
+            return sorted(source, key=lambda x: bend(self._extractor, x))
         else:
             return source
 
