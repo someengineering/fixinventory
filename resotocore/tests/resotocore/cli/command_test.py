@@ -850,51 +850,6 @@ async def test_http_command(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Re
 
 
 @pytest.mark.asyncio
-async def test_discord_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
-    port, requests = echo_http_server
-    result = await cli.execute_cli_command(
-        f'search is(bla) | discord --webhook "http://localhost:{port}/success" --title test --message "test message"',
-        stream.list,
-    )
-    # 100 times bla, discord allows 25 fields -> 4 requests
-    assert result == [["4 requests with status 200 sent."]]
-    assert len(requests) == 4
-    print(requests[0][1])
-    assert requests[0][1] == {
-        "embeds": [
-            {
-                "type": "rich",
-                "title": "test",
-                "description": "test message",
-                "fields": [{"name": "bla", "value": "yes or no"} for _ in range(0, 25)],
-                "footer": {"text": "Message created by Resoto"},
-            }
-        ],
-    }
-
-
-@pytest.mark.asyncio
-async def test_slack_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
-    port, requests = echo_http_server
-    result = await cli.execute_cli_command(
-        f'search is(bla) | slack --webhook "http://localhost:{port}/success" --title test --message "test message"',
-        stream.list,
-    )
-    # 100 times bla, Slack allows 10 fields -> 10 requests
-    assert result == [["10 requests with status 200 sent."]]
-    assert len(requests) == 10
-    print(requests[0][1])
-    assert requests[0][1] == {
-        "blocks": [
-            {"type": "header", "text": {"type": "plain_text", "text": "test"}},
-            {"type": "section", "text": {"type": "mrkdwn", "text": "test message"}},
-            {"type": "section", "fields": [{"type": "mrkdwn", "text": "*bla*: yes or no"} for _ in range(0, 10)]},
-            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Message created by Resoto"}]},
-        ],
-    }
-
-
-@pytest.mark.asyncio
 async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Request, Json]]]) -> None:
     port, requests = echo_http_server
     result = await cli.execute_cli_command(
@@ -1104,7 +1059,7 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     assert manifest is not None
     assert manifest.name == "cleanup-untagged"
     # install discord app
-    assert "installed successfully" in (await execute("apps install discordapp", str))[0]
+    assert "installed successfully" in (await execute("apps install discord", str))[0]
 
     # info about the app
     info_json = (await execute("apps info cleanup-untagged", Json))[0]
@@ -1119,9 +1074,9 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
     assert result[0].startswith("search /metadata.protected == false and /metadata.phantom")
 
     # run discord app with stdin
-    result = await execute("search is(graph_root) | apps run discordapp --title foo --dry-run", str)
+    result = await execute("search is(graph_root) | apps run discord --title foo --dry-run", str)
     assert "http POST https://discordapp.com" in result[0]
-    await execute("apps uninstall discordapp", str)
+    await execute("apps uninstall discord", str)
 
     # update the app
     assert (
