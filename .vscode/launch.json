@@ -9,7 +9,9 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "purpose": ["debug-test"],
+            "purpose": [
+                "debug-test"
+            ],
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -27,8 +29,10 @@
             "request": "launch",
             "program": "./resotocore/resotocore/__main__.py",
             "args": [
-                "--psk", "changeme",
-                "-o", "resotocore.api.web_hosts=0.0.0.0",
+                "--psk",
+                "changeme",
+                "-o",
+                "resotocore.api.web_hosts=0.0.0.0",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
@@ -45,8 +49,10 @@
             "request": "launch",
             "program": "./resotoworker/resotoworker/__main__.py",
             "args": [
-                "--psk", "changeme",
-                "--resotocore-uri", "https://localhost:8900",
+                "--psk",
+                "changeme",
+                "--resotocore-uri",
+                "https://localhost:8900",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
@@ -63,8 +69,12 @@
             "request": "launch",
             "program": "./resotoshell/resotoshell/__main__.py",
             "args": [
-                "--psk", "changeme",
-                "--resotocore-uri", "https://localhost:8900",
+                "--psk",
+                "changeme",
+                "--resotocore-uri",
+                "https://localhost:8900",
+                "--resotocore-wait",
+                "10",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
@@ -75,5 +85,21 @@
                 "enable": true
             }
         },
+    ],
+    "compounds": [
+        {
+            "name": "Resoto - all components",
+            "configurations": [
+                "resotocore",
+                "resotoworker",
+                "resotoshell"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "",
+                "order": 1
+            }
+        }
     ]
 }

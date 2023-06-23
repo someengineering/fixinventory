@@ -3,17 +3,16 @@ import multiprocessing
 import os
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import List, Optional, Tuple, Union, Sequence
+import subprocess
+import json
 
 import boto3
 import botocore.exceptions
-from botocore.model import ListShape, OperationModel, Shape, StringShape, StructureShape
-from jsons import pascalcase
 from prometheus_client import Counter, Summary
 
 import resotolib.logger
 import resotolib.proc
-from resoto_plugin_aws.aws_client import AwsClient
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import (
@@ -24,14 +23,14 @@ from resotolib.baseresources import (
     metrics_resource_cleanup_exceptions,
     metrics_resource_pre_cleanup_exceptions,
 )
-from resotolib.config import Config, RunningConfig, current_config
+from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
-from resotolib.utils import NoExitArgumentParser, log_runtime
+from resotolib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
@@ -198,100 +197,29 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def call_aws_function(
         self, config: Config, resource: Optional[BaseResource], args: List[str]
     ) -> Union[JsonElement, BaseResource]:
-        parser = NoExitArgumentParser()
-        parser.add_argument("--account")
-        parser.add_argument("--role")
-        parser.add_argument("--profile")
-        parser.add_argument("--region")
-        parser.add_argument("service")
-        parser.add_argument("operation")
-        p, remaining = parser.parse_known_args(args)
-        cfg = config.aws
+        env = os.environ.copy()
 
-        def adjust_shape(o: str, shape: Optional[Shape]) -> Any:
-            if shape is None or isinstance(shape, StringShape):
-                return o
-            elif isinstance(shape, ListShape):
-                return o.split(",")
-            else:
-                # map and structure types are currently not supported
-                raise ValueError(f"Cannot convert {o} to {shape}")
+        if config.aws.access_key_id:
+            env["AWS_ACCESS_KEY_ID"] = config.aws.access_key_id
+        if config.aws.secret_access_key:
+            env["AWS_SECRET_ACCESS_KEY"] = config.aws.secret_access_key
 
-        # it is not always possible to translate the operation or parameter name directly
-        # Example: modify-db-cluster --> ModifyDBCluster
-        #          --db-cluster-identifier --> --DBClusterIdentifier
-        # Use a lookup list for possible candidates
-        def get_name(is_name: str, possible_names: Iterable[str]) -> Optional[str]:
-            if is_name in possible_names:
-                return is_name
-            else:
-                for name in possible_names:
-                    if name.lower() == is_name.lower():
-                        return name
-                return None
-
-        def coerce_args(fn_args: List[str], om: OperationModel) -> Dict[str, Any]:
-            members: Dict[str, Shape] = om.input_shape.members if isinstance(om.input_shape, StructureShape) else {}
-            param_name: Optional[str] = None
-            param_shape: Optional[Shape] = None
-            arg_val: Dict[str, Any] = {}
-            for arg in fn_args:
-                if arg.startswith("--"):
-                    name = pascalcase(arg.removeprefix("--"))
-                    param_name = get_name(name, members)
-                    if param_name is not None:
-                        param_shape = members.get(param_name)
-                    bool_value = True
-                    if param_shape is None and arg.startswith("--no-"):
-                        name = name[2:]
-                        param_name = get_name(name, members)
-                        param_shape = members.get(name)
-                        bool_value = False
-                    if param_shape is None:
-                        raise ValueError(f"AWS: Unknown parameter {arg}")
-                    if param_shape.name == "Boolean" or param_shape.type_name == "Boolean":
-                        arg_val[name] = bool_value
-                        param_shape = None
-                        param_name = None
-                elif param_name is not None:
-                    arg_val[param_name] = adjust_shape(arg, param_shape)
-                    param_name = None
-                    param_shape = None
-                else:
-                    raise ValueError(f"AWS: Unexpected argument {arg}")
-            return arg_val
-
-        def create_client() -> AwsClient:
-            role = p.role or cfg.role
-            region = p.region or (cfg.region[0] if cfg.region else None)
-            profile = p.profile or (cfg.profiles[0] if cfg.profiles else None)
-            # possibly expensive call: account id is looked up if not provided
-            account = p.account or (cfg.account[0] if cfg.account else current_account_id(profile))
-            return AwsClient(cfg, account, role=role, profile=profile, region=region)
-
-        client = get_client(current_config(), resource) if resource else create_client()
-
-        # try to get the output shape of the operation
-        service_model = client.service_model(p.service)
-        op_name = get_name(pascalcase(p.operation), service_model.operation_names)
-        op: OperationModel = service_model.operation_model(op_name)
-        output_shape = op.output_shape.type_name
-        func_args = coerce_args(remaining, op)
-
-        # call single and treat result as list
-        response = client.call_single(p.service, p.operation, None, **func_args)
-        if response is None:
+        cli_result = subprocess.run(["aws"] + args, timeout=10, capture_output=True, check=False, env=env)
+        if cli_result.returncode != 0:
+            raise RuntimeError(f"AWS {cli_result.stderr.decode('utf-8')}")
+        response_str = cli_result.stdout.decode("utf-8")
+        try:
+            response = json.loads(response_str)
+        except Exception:
+            response = response_str.splitlines()
+        if not response:
             result = []
         elif isinstance(response, list):
             result = response
         else:
             result = [response]
 
-        # Remove the "ResponseMetadata" from the result
-        for elem in result:
-            if isinstance(elem, dict):
-                elem.pop("ResponseMetadata", None)
-        return (result[0] if len(result) == 1 else None) if output_shape == "structure" else result
+        return result[0] if len(result) == 1 else result
 
     @staticmethod
     def update_tag(config: Config, resource: BaseResource, key: str, value: str) -> bool:
