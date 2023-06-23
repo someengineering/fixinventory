@@ -3682,11 +3682,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         try:
             async with in_stream.stream() as streamer:
                 async for out in streamer:
-                    if isinstance(out, str):
-                        shutil.copyfile(out, path)
-                    else:
-                        raise ValueError("Expected file paths as input.")
-            yield path
+                    assert isinstance(out, str), "Expected file paths as input."
+                    shutil.copyfile(out, path)
+                    yield path
         finally:
             shutil.rmtree(temp_dir)
 
@@ -5648,25 +5646,24 @@ class DbCommand(CLICommand, PreserveOutputFormat):
     async def list_kinds_of_query(
         self, query: Optional[Query], graph_name: GraphName, model: Model
     ) -> List[ComplexKind]:
-        if query is None or query.aggregate:
-            return []
-        else:
-            db = deps(self).db_access.get_graph_db(graph_name)
-            aggregate_by_kind = Aggregate(
-                [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
-                [AggregateFunction("sum", 1)],
-            )
-            query = evolve(query, aggregate=aggregate_by_kind)
-            async with await db.search_aggregation(QueryModel(query, model)) as cursor:
-                return [
-                    kind
-                    async for elem in cursor
-                    if (
-                        (kind_name := value_in_path(elem, ["group", "kind"]))
-                        and (kind := model.get(kind_name))
-                        and isinstance(kind, ComplexKind)
-                    )
-                ]
+        assert query is not None, "No query provided, not sure what to synchronize?"
+        assert query.aggregate is None, "Aggregates are not supported for synchronization"
+        db = deps(self).db_access.get_graph_db(graph_name)
+        aggregate_by_kind = Aggregate(
+            [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
+            [AggregateFunction("sum", 1)],
+        )
+        query = evolve(query, aggregate=aggregate_by_kind)
+        async with await db.search_aggregation(QueryModel(query, model)) as cursor:
+            return [
+                kind
+                async for elem in cursor
+                if (
+                    (kind_name := value_in_path(elem, ["group", "kind"]))
+                    and (kind := model.get(kind_name))
+                    and isinstance(kind, ComplexKind)
+                )
+            ]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         in_source_position = kwargs.get("position") == 0
@@ -5724,7 +5721,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             kind_by_id: Dict[str, str] = {}
 
             def key_fn(node: Json) -> Union[str, Tuple[str, str]]:
-                assert isinstance(node, dict), (
+                assert isinstance(node, dict) and node.get("type") in ("edge", "node"), (
                     f"Expected a JSON object. Don't know how to handle >{node}<.\n"
                     "Execute `help db` to get more information on how to use this command."
                 )
@@ -5732,11 +5729,9 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     fr = node["from"]
                     to = node["to"]
                     return kind_by_id[fr], kind_by_id[to]
-                elif node["type"] == "node":
+                else:  # node
                     kind_by_id[node["id"]] = node["reported"]["kind"]
                     return cast(str, node["reported"]["kind"])
-                else:
-                    raise ValueError(f"Unknown node type {node['type']}")
 
             async with in_stream.stream() as streamer:
                 batched = BatchStream(streamer, key_fn, db_config.batch_size, db_config.batch_size * 10)

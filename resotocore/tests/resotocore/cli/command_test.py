@@ -6,7 +6,7 @@ import sqlite3
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable
+from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable, Set
 
 import pytest
 import yaml
@@ -781,6 +781,9 @@ async def test_write_command(cli: CLI) -> None:
     await cli.execute_cli_command("search all limit 3 | format --json | write write_test.json ", check_file)
     # result can be read as yaml
     await cli.execute_cli_command("search all limit 3 | format --yaml | write write_test.yaml ", check_file)
+    # throw an exception
+    with pytest.raises(Exception):
+        await cli.execute_cli_command("echo hello | write", stream.list)  # missing filename
     # write enforces unescaped output.
     env = {"now": utc_str()}  # fix the time, so that replacements will stay equal
     truecolor = CLIContext(console_renderer=ConsoleRenderer(80, 25, ConsoleColorSystem.truecolor, True), env=env)
@@ -1264,28 +1267,59 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
 async def test_db(cli: CLI, tmp_directory: str) -> None:
     db_file = "test_db"
 
-    async def sync_and_check(cmd: str, expected: Callable[[str, int], bool]) -> None:
+    async def sync_and_check(
+        cmd: str,
+        *,
+        expected_table: Optional[Callable[[str, int], bool]] = None,
+        expected_tables: Optional[Set[str]] = None,
+        expected_table_count: Optional[int] = None,
+    ) -> str:
         # delete file
         if os.path.exists(f"{tmp_directory}/{db_file}"):
             os.remove(f"{tmp_directory}/{db_file}")
-        await cli.execute_cli_command(cmd, stream.list)
+        result = await cli.execute_cli_command(cmd, stream.list)
+        assert len(result) == 1
+        assert len(result[0]) == 1
+        assert isinstance(result[0][0], str)
         # open sqlite database
         conn = sqlite3.connect(f"{tmp_directory}/{db_file}")
         c = conn.cursor()
         tables = {row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()}
-        assert tables == {"bla", "foo", "link_foo_bla", "link_bla_bla"}
-        for table in tables:
-            count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-            assert expected(table, count), f"Table {table} has {count} rows"
+        if expected_tables is not None:
+            assert tables == expected_tables
+        if expected_table_count is not None:
+            assert len(tables) == expected_table_count
+        if expected_table is not None:
+            for table in tables:
+                count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                assert expected_table(table, count), f"Table {table} has {count} rows"
+        c.close()
+        conn.close()
+        return result[0][0]
 
     # search | db sync
     await sync_and_check(
         f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {tmp_directory}/{db_file}",
-        lambda table, count: count > 0 if not table.startswith("link_") else True,
+        expected_table=lambda table, count: count > 0 if not table.startswith("link_") else True,
+        expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
 
     # db sync
     await sync_and_check(
         f"db sync sqlite --database {tmp_directory}/{db_file}",
-        lambda table, count: count > 0 if not table.startswith("link_") else True,
+        expected_table=lambda table, count: count > 0 if not table.startswith("link_") else True,
+        expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
+
+    # db sync with complete schema will create tables for kinds
+    await sync_and_check(
+        f"db sync sqlite --complete-schema --database {tmp_directory}/{db_file}", expected_table_count=11
+    )
+
+    # support write after db sync (not required for simple files, but we want to support s3 etc. in the future)
+    name = await sync_and_check(f"db sync sqlite --database {tmp_directory}/{db_file} | write out.db")
+    assert name.endswith("out.db")
+
+    # search with aggregation does not export anything
+    with pytest.raises(Exception):
+        await sync_and_check(f"search all | aggregate kind:sum(1) | db sync sqlite --database foo")

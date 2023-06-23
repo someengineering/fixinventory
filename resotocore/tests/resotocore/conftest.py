@@ -248,11 +248,11 @@ def foo_kinds() -> List[Kind]:
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},
     )
-    cloud = ComplexKind("cloud", ["foo"], [])
-    account = ComplexKind("account", ["foo"], [])
-    region = ComplexKind("region", ["foo"], [])
-    parent = ComplexKind("parent", ["foo"], [])
-    child = ComplexKind("child", ["foo"], [])
+    cloud = ComplexKind("cloud", ["foo"], [Property("nick", "string")])
+    account = ComplexKind("account", ["foo"], [Property("nick", "string")])
+    region = ComplexKind("region", ["foo"], [Property("nick", "string")])
+    parent = ComplexKind("parent", ["foo"], [Property("nick", "string")])
+    child = ComplexKind("child", ["foo"], [Property("nick", "string")])
     some_complex = ComplexKind(
         "some_complex",
         ["base"],
