@@ -326,6 +326,16 @@ class CLICommand(ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
 
+    @staticmethod
+    def get_from(name: str, kind: Type[T], kwargs: Dict[str, Any]) -> Optional[T]:
+        if (kd := kwargs.get(name)) and isinstance(kd, kind):
+            return kd
+        return None
+
+    @staticmethod
+    def get_previous_command(kwargs: Dict[str, Any]) -> Optional[ExecutableCommand]:
+        return CLICommand.get_from("previous_command", ExecutableCommand, kwargs)
+
 
 @define(order=True, hash=True, frozen=True)
 class AliasTemplateParameter:

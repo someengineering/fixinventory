@@ -7,7 +7,7 @@ from contextlib import suppress
 from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, Sequence
 from typing import Optional, Any
 
 from aiostream import stream
@@ -39,6 +39,7 @@ from resotocore.cli.command import (
     ReportCommand,
     WriteCommand,
 )
+from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.model import (
     ParsedCommand,
     ParsedCommands,
@@ -59,7 +60,6 @@ from resotocore.cli.model import (
     ArgInfo,
     AliasTemplateParameter,
 )
-from resotocore.cli.dependencies import CLIDependencies
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
 from resotocore.model.typed_model import class_fqn
@@ -500,15 +500,13 @@ class CLIService(CLI):
             if parts:
                 query, options, query_parts = await self.create_query(parts, ctx)
                 ctx_wq = evolve(ctx, query=query, query_options=options, commands=commands)
-                part_offset = len(parts)
-                remaining = [
-                    self.command(c.name, c.arg, ctx_wq, position=pos + part_offset)
-                    for pos, c in enumerate(commands[len(parts) :])
-                ]  # noqa: E203
+                remaining = executable_commands(
+                    commands[len(parts) :], ctx_wq, offset=len(parts), previous_command=query_parts[-1]
+                )
                 rewritten_parts = [*query_parts, *remaining]
             else:
                 ctx_wq = evolve(ctx, commands=commands)
-                rewritten_parts = [self.command(c.name, c.arg, ctx_wq, position=pos) for pos, c in enumerate(commands)]
+                rewritten_parts = executable_commands(commands, ctx_wq)
             # re-evaluate remaining commands - to take the adapted context into account
             return ctx_wq, rewritten_parts
 
@@ -559,9 +557,25 @@ class CLIService(CLI):
             else:
                 return evolve(context, env=cmd_env)
 
+        # iterate the list of commands and pass information about position, previous command, etc.
+        def executable_commands(
+            commands: Sequence[Union[ParsedCommand, ExecutableCommand]],
+            ctx: CLIContext,
+            *,
+            previous_command: Optional[ExecutableCommand] = None,
+            offset: int = 0,
+        ) -> List[ExecutableCommand]:
+            result: List[ExecutableCommand] = []
+            for pos, c in enumerate(commands):
+                name, arg = (c.cmd, c.args) if isinstance(c, ParsedCommand) else (c.name, c.arg)
+                command = self.command(name, arg, ctx, position=pos + offset, previous_command=previous_command)
+                previous_command = command
+                result.append(command)
+            return result
+
         async def parse_line(parsed: ParsedCommands) -> ParsedCommandLine:
             ctx = adjust_context(parsed)
-            executable = [self.command(c.cmd, c.args, ctx, position=i) for i, c in enumerate(parsed.commands)]
+            executable = executable_commands(parsed.commands, ctx)
             rewritten = rewrite_command_line(executable, ctx)
             ctx, commands = await combine_query_parts(rewritten, ctx)
             not_met = [r for cmd in commands for r in cmd.action.required if r.name not in context.uploaded_files]

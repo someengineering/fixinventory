@@ -3675,11 +3675,29 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         finally:
             shutil.rmtree(temp_dir)
 
+    @staticmethod
+    async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
+        temp_dir: str = tempfile.mkdtemp()
+        path = os.path.join(temp_dir, file_name)
+        try:
+            async with in_stream.stream() as streamer:
+                async for out in streamer:
+                    if isinstance(out, str):
+                        shutil.copyfile(out, path)
+                    else:
+                        raise ValueError("Expected file paths as input.")
+            yield path
+        finally:
+            shutil.rmtree(temp_dir)
+
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         if arg is None:
             raise AttributeError("write requires a filename to write to")
-        defined_arg: str = arg
-        return CLIFlow(lambda in_stream: self.write_result_to_file(in_stream, defined_arg), MediaType.FilePath)
+        if (ex := self.get_previous_command(kwargs)) and ex.action.produces == MediaType.FilePath:
+            fn = self.already_file_stream
+        else:
+            fn = self.write_result_to_file
+        return CLIFlow(lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath)
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
@@ -5562,7 +5580,7 @@ class GraphCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-class DbCommand(CLICommand):
+class DbCommand(CLICommand, PreserveOutputFormat):
     """
     ```
     db sync <db-engine> --host <host> --port <port> --user <user> --password <password> --database <database>
