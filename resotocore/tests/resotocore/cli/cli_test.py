@@ -15,7 +15,15 @@ from resotocore.cli.command import (
     PredecessorsPart,
     DumpCommand,
 )
-from resotocore.cli.model import ParsedCommands, ParsedCommand, CLIContext, CLI, InfraAppAlias
+from resotocore.cli.model import (
+    ParsedCommands,
+    ParsedCommand,
+    CLIContext,
+    CLI,
+    InfraAppAlias,
+    CLICommand,
+    ExecutableCommand,
+)
 from resotocore.error import CLIParseError
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.util import utc
@@ -250,3 +258,12 @@ def test_escape_character_parsing() -> None:
     assert_command("echo 'f\\u00a7oo'", "echo", "'f§oo'")  # <bs>unicode_number --> character
     assert_command("echo 'f\\\"oo'", "echo", "'f\\\"oo'")  # <bs>" --> <bs>"
     assert_command("echo 'f\\'oo'", "echo", "'f\\'oo'")  # <bs>' --> <bs>'
+
+
+def test_get_kwargs() -> None:
+    ec = ExecutableCommand(None, None, None, None)  # type: ignore
+    d = {"a": 1, "b": "str", "previous_command": ec}
+    assert CLICommand.get_previous_command(d) == ec
+    assert CLICommand.get_from("a", int, d) == 1
+    assert CLICommand.get_from("a", str, d) is None
+    assert CLICommand.get_from("c", str, d) is None

@@ -878,9 +878,6 @@ class ComplexKind(Kind):
         else:
             return False
 
-    def __hash__(self) -> int:
-        return hash(self.fqn)
-
     def __contains__(self, name: str) -> bool:
         return name in self.__prop_by_name
 
