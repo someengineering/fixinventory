@@ -1079,7 +1079,7 @@ class ComplexKind(Kind):
                 return str(e)
             elif isinstance(e, str):
                 # if the string contains a newline, try a literal block, else a quoted string
-                return safe_string(e, indent, "|" if "\n" in e else "'")
+                return safe_string(e, indent, "|" if ("\n" in e and len(e) > 1) else "'")
             elif e is None:
                 return "null"
             elif e is True:

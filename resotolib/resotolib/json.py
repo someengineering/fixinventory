@@ -59,7 +59,7 @@ def timedelta_from_json(js: Any) -> timedelta:
         raise ValueError(f"Cannot convert {js} to timedelta")
 
 
-__converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)  # type: ignore
+__converter.register_structure_hook_func(is_primitive_or_primitive_union, lambda v, ty: v)
 
 
 def register_json(
