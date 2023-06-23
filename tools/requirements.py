@@ -85,4 +85,5 @@ def combine_dependencies() -> None:
     compile_dependencies("all", all_dependencies)
 
 
-combine_dependencies()
+if __name__ == "__main__":
+    combine_dependencies()
