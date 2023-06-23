@@ -30,7 +30,7 @@ keywords = ["aws", "k8s"]
 dependencies = [ "resotolib==3.5.4" ]
 
 [project.optional-dependencies]
-dev = [ "mypy" ]
+test = [ "mypy" ]
 
 [project.entry-points."resoto.plugins"]
 aws_k8s_collector = "resoto_plugin_aws_k8s:AWSK8sCollectorPlugin"
