@@ -103,8 +103,8 @@ class PostHogEventSender(AnalyticsEventSender):
                     distinct_id=self.system_data.system_id,
                     event=event.kind,
                     properties={
-                        **event.context,  # type: ignore
-                        **event.counters,  # type: ignore
+                        **event.context,
+                        **event.counters,
                         "source": event.system,
                         "run_id": self.run_id,
                     },
