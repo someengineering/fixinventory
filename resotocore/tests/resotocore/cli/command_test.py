@@ -1304,14 +1304,14 @@ async def test_db(cli: CLI, tmp_directory: str) -> None:
         expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
 
-    # db sync
+    # db sync synchronizes the whole graph
     await sync_and_check(
         f"db sync sqlite --database {tmp_directory}/{db_file}",
         expected_table=lambda table, count: count > 0 if not table.startswith("link_") else True,
         expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
 
-    # db sync with complete schema will create tables for kinds
+    # db sync with complete schema synchronizes the whole graph and created tables for all kinds even if they are empty
     await sync_and_check(
         f"db sync sqlite --complete-schema --database {tmp_directory}/{db_file}", expected_table_count=11
     )
@@ -1323,3 +1323,15 @@ async def test_db(cli: CLI, tmp_directory: str) -> None:
     # search with aggregation does not export anything
     with pytest.raises(Exception):
         await sync_and_check(f"search all | aggregate kind:sum(1) | db sync sqlite --database foo")
+
+    # define all parameters and check the connection string
+    with pytest.raises(Exception) as ex:
+        await sync_and_check(
+            f"db sync sqlite --database db --host bla --port 1234 --user test --password check --arg foo=bla foo2=bla2",
+            expected_table_count=11,
+        )
+    assert "sqlite://test:check@bla:1234/db?foo=bla&foo2=bla2" in str(ex.value)
+
+    # calling db without command will print the help
+    db_res = await cli.execute_cli_command("db", stream.list)
+    assert "Synchronizes data to an SQL database." in db_res[0][0]
