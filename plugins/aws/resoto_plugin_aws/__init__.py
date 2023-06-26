@@ -209,7 +209,10 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         env["AWS_ACCESS_KEY_ID"] = credentials.access_key
         env["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
         env["AWS_SESSION_TOKEN"] = credentials.token
-        env["AWS_DEFAULT_REGION"] = session.region_name
+        if resource:
+            env["AWS_DEFAULT_REGION"] = resource.region().id
+        else:
+            env["AWS_DEFAULT_REGION"] = session.region_name
 
         cli_result = subprocess.run(["aws"] + args, timeout=10, capture_output=True, check=False, env=env)
         if cli_result.returncode != 0:
