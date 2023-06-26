@@ -30,7 +30,7 @@ from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
-from resotolib.utils import log_runtime, NoExitArgumentParser
+from resotolib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
@@ -199,7 +199,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     ) -> Union[JsonElement, BaseResource]:
         if resource:
             ac = resource.account(self.graph)
-            session = aws_session(ac.id, ac.role, ac.profile, ac.partition)
+            session = aws_session(ac.id, ac.role, ac.profile, ac.partition)  # type: ignore
         else:
             session = aws_session()
 
