@@ -5777,14 +5777,16 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                 sync = partial(
                     dump_database, partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
                 )
-                return CLISource.single(partial(sync_database_result, file_output, sync), produces=produces)
+                return CLISource.single(
+                    fn=partial(sync_database_result, file_output, sync),
+                    envelope={CLIEnvelope.no_history: "yes"},
+                    produces=produces,
+                )
             else:
+                sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
                 return CLIFlow(
-                    partial(
-                        sync_database_result,
-                        file_output,
-                        partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query),
-                    ),
+                    fn=partial(sync_database_result, file_output, sync),
+                    envelope={CLIEnvelope.no_history: "yes"},
                     produces=produces,
                 )
         else:
