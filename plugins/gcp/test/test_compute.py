@@ -47,10 +47,12 @@ def test_disk_type_ondemand_cost(random_builder: GraphBuilder) -> None:
         ("pd-standard", "us-east1", 0.08),
     ]
     with open(os.path.dirname(__file__) + "/files/skus.json") as f:
-        GcpSku.collect(raw=json.load(f)["skus"], builder=random_builder)
+        for r in GcpSku.collect(raw=json.load(f)["skus"], builder=random_builder):
+            r.post_process_instance(random_builder, {})
 
     with open(os.path.dirname(__file__) + "/files/disk_type.json") as f:
-        GcpDiskType.collect(raw=json.load(f)["items"]["diskTypes"], builder=random_builder)
+        for r in GcpDiskType.collect(raw=json.load(f)["items"]["diskTypes"], builder=random_builder):
+            r.post_process_instance(random_builder, {})
 
     regions = random_builder.resources_of(GcpRegion)
     disk_types = random_builder.resources_of(GcpDiskType)
@@ -191,7 +193,7 @@ def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
         machine_type = next((obj for obj in machine_types if obj.name == price[0]), None)
         assert machine_type
         machine_type._region = region
-        machine_type.connect_in_graph(random_builder, {"Dummy": "Source"})
+        machine_type.post_process_instance(random_builder, {"Dummy": "Source"})
         assert machine_type.ondemand_cost
         assert round(machine_type.ondemand_cost, 5) == price[2]
 

@@ -20,7 +20,7 @@ def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:
 
 def test_instance_with_settings(random_builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/database_instance.json") as f:
-        GcpSqlDatabaseInstance.collect(raw=json.load(f)["items"], builder=random_builder)
+        res = GcpSqlDatabaseInstance.collect(raw=json.load(f)["items"], builder=random_builder)
 
     db = random_builder.resources_of(GcpSqlDatabaseInstance)
     assert db

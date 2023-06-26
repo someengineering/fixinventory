@@ -62,7 +62,7 @@ PredefinedResults = {
     "compute.zones.list": {"id": "regions", "items": []},
 }
 # dictionary keys under .items (used for aggregated list zone result) -> return zone ids
-PredefinedDictKeys = {".items": [a.id for a in random_zones]}
+PredefinedDictKeys = {".items": [f"zones/{a.id}" for a in random_zones]}
 
 # type_name -> property_name -> callable that returns fixed value
 FixtureReplies: Dict[str, Dict[str, Callable[[], JsonElement]]] = {}

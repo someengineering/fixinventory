@@ -195,22 +195,22 @@ class GraphBuilder:
         node._cloud = self.cloud
         node._account = self.project
 
-        self._standard_edges(node, source)
+        if self._standard_edges(node, source):
+            with self.graph_nodes_access:
+                self.graph.add_node(node, source=source or {})
+            return node
+        return None
 
-        with self.graph_nodes_access:
-            self.graph.add_node(node, source=source or {})
-        return node
-
-    def _standard_edges(self, node: GcpResourceType, source: Optional[Json] = None) -> None:
+    def _standard_edges(self, node: GcpResourceType, source: Optional[Json] = None) -> bool:
         if isinstance(node, GcpRegion):
             self.add_edge(node, node=self.project, reverse=True)
-            return
+            return True
         if node._zone:
             self.add_edge(node, node=node._zone, reverse=True)
-            return
+            return True
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
-            return
+            return True
 
         if source is not None:
             if InternalZoneProp in source:
@@ -218,28 +218,31 @@ class GraphBuilder:
                     node._zone = zone
                     node._region = self.region_by_zone_name[source[InternalZoneProp]]
                     self.add_edge(node, node=zone, reverse=True)
-                    return
+                    return True
                 else:
-                    log.debug(f"Zone {source[InternalZoneProp]} not found for node: {node}.")
+                    log.debug(f"Zone {source[InternalZoneProp]} not found for node: {node}. Ignore resource.")
+                    return False
 
             if RegionProp in source:
                 region_name = source[RegionProp].rsplit("/", 1)[-1]
                 if region := self.region_by_name.get(region_name):
                     node._region = region
                     self.add_edge(node, node=region, reverse=True)
-                    return
+                    return True
                 else:
-                    log.debug(f"Region {region_name} not found for node: {node}.")
+                    log.debug(f"Region {region_name} not found for node: {node}. Ignore resource.")
+                    return False
 
         # Fallback to GraphBuilder region, i.e. regional collection
         if self.region is not None:
             node._region = self.region
             self.add_edge(node, node=self.region, reverse=True)
-            return
+            return True
 
         # Fallback to global region
+        node._region = self.fallback_global_region
         self.add_edge(node, node=self.fallback_global_region, reverse=True)
-        return
+        return True
 
     def add_edge(
         self,
@@ -392,6 +395,13 @@ class GcpResource(BaseResource):
         """
         Hook method which is called when all resources have been collected.
         Connect the resource to other resources in the graph.
+        """
+        pass
+
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        """
+        Hook method to post process the resource after all connections are done.
+        Default: do nothing.
         """
         pass
 

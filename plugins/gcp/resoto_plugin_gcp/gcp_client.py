@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, List, Dict, Any, Set
+from typing import Optional, List, Dict, Any, Set, Tuple
 
 from attr import define, evolve
 from google.auth.credentials import Credentials
@@ -160,11 +160,11 @@ class GcpClient:
             response = request.execute()
             page = value_in_path(response, api_spec.response_path)
             if (sub_path := api_spec.response_regional_sub_path) is not None and isinstance(page, dict):
-                for zone_marker, zone_response in page.items():
-                    zone = zone_marker.split("/")[-1]
-                    for item in value_in_path(zone_response, sub_path) or []:
+                for zonal_marker, zonal_response in page.items():
+                    zone_prop, zonal_name = self.__extract_zonal_prop(zonal_marker)
+                    for item in value_in_path(zonal_response, sub_path) or []:
                         # store the zone as part of the item
-                        item[InternalZoneProp] = zone
+                        item[zone_prop] = zonal_name
                         result.append(item)
             elif isinstance(page, list):
                 result.extend(page)
@@ -180,3 +180,17 @@ class GcpClient:
 
         next_responses(getattr(executor, api_spec.action)(**params))
         return result
+
+    @staticmethod
+    def __extract_zonal_prop(name: str) -> Tuple[str, str]:
+        if name == "global":
+            return RegionProp, name
+        if "/" not in name:
+            raise ValueError(f"Unexpected zonal name: {name}")
+        zonal_kind, zonal_name = name.split("/", maxsplit=1)
+        if zonal_kind == "regions":
+            return RegionProp, zonal_name
+        elif zonal_kind == "zones":
+            return InternalZoneProp, zonal_name
+        else:
+            raise ValueError(f"Unexpected zonal kind: {zonal_kind}")

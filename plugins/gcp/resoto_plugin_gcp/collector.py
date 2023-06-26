@@ -1,12 +1,20 @@
-from concurrent.futures import ThreadPoolExecutor
 import logging
-from typing import Type, List
+from concurrent.futures import ThreadPoolExecutor
+from typing import Type, List, Any, Optional
 
 from resoto_plugin_gcp.config import GcpConfig
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.utils import Credentials
 from resoto_plugin_gcp.resources import compute, container, billing, sqladmin, storage
-from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
+from resoto_plugin_gcp.resources.base import (
+    GcpResource,
+    GcpProject,
+    ExecutorQueue,
+    GraphBuilder,
+    GcpRegion,
+    GcpZone,
+    GcpQuota,
+)
+from resoto_plugin_gcp.utils import Credentials
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -81,32 +89,51 @@ class GcpProjectCollector:
                 if region.name == "global":
                     continue
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
-
             global_builder.executor.wait_for_submitted_work()
+
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
                     node.connect_in_graph(global_builder, data.get("source", {}))
 
-            log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+            # remove unconnected nodes
             self.remove_unconnected_nodes()
 
-    def remove_unconnected_nodes(self):
-        remove_nodes = set()
+            # post process nodes
+            for node, data in list(self.graph.nodes(data=True)):
+                if isinstance(node, GcpResource):
+                    node.post_process_instance(global_builder, data.get("source", {}))
 
-        def rmnodes(cls) -> None:
+            log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+
+    def remove_unconnected_nodes(self):
+        remove_nodes = []
+
+        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None) -> None:
             for node in self.graph.nodes:
-                if isinstance(node, cls) and not any(True for _ in self.graph.successors(node)):
-                    remove_nodes.add(node)
+                if not isinstance(node, cls):
+                    continue
+                suc = list(self.graph.successors(node))
+                filtered = [s for s in suc if not isinstance(s, ignore_kinds)] if ignore_kinds else suc
+                if not filtered:
+                    remove_nodes.extend(suc)
+                    remove_nodes.append(node)
+            removed = set()
             for node in remove_nodes:
+                if node in removed:
+                    continue
+                removed.add(node)
                 self.graph.remove_node(node)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
             remove_nodes.clear()
 
         # nodes need to be removed in the correct order
-        rmnodes((compute.GcpNodeType, compute.GcpMachineType, compute.GcpDiskType, compute.GcpAcceleratorType))
-        rmnodes(billing.GcpSku)
-        rmnodes(billing.GcpService)
+        rm_nodes((compute.GcpNodeType, compute.GcpDiskType))
+        rm_nodes(compute.GcpMachineType, compute.GcpAcceleratorType)  # ignore accelerator types
+        rm_nodes(compute.GcpAcceleratorType)
+        rm_nodes(billing.GcpSku)
+        rm_nodes(billing.GcpService)
+        rm_nodes(GcpQuota)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources
