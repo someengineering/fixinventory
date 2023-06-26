@@ -5623,13 +5623,13 @@ class DbCommand(CLICommand, PreserveOutputFormat):
 
     ```
     # Sync the complete graph to a sqlite database
-    > db sync sqlite --database /data/resoto.db --drop-existing
+    > db sync sqlite --database resoto.db --drop-existing
 
     # Sync the complete graph to a postgresql database
     > db sync postgresql --host my.db --port 5432 --database resoto --user ci --password bombproof
 
     # Select a subset of data and sync it to a sqlite database
-    > search --with-edges is(graph_root) -[0:2]-> | db sync sqlite --database /data/resoto.db
+    > search --with-edges is(graph_root) -[0:2]-> | db sync sqlite --database resoto.db
     ```
     """
 
@@ -5667,6 +5667,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         in_source_position = kwargs.get("position") == 0
+        db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
 
         async def sync_database_result(
             file_result: Optional[str], sync_fn: Callable[..., Awaitable[None]], *sync_args: Any
@@ -5751,12 +5752,12 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             parser.add_argument("--arg", type=key_value_parser.parse, nargs="+", action="append", default=[])
             parser.add_argument("--complete-schema", action="store_true")
             parser.add_argument("--drop-existing-tables", action="store_true")
-            parser.add_argument("--batch-size", type=int, default=5000)
+            parser.add_argument("--batch-size", type=int, default=1000)
             p = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
             # optional: path of the output file
             file_output: Optional[str] = os.path.expanduser(p.database) if p.db == "sqlite" else None
             produces = MediaType.FilePath if file_output is not None else MediaType.Json
-            db_string = f"{p.db}://"
+            db_string = f"{db_lookup.get(p.db, p.db)}://"
             if p.user:
                 db_string += p.user
                 if p.password:
