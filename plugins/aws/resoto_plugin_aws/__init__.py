@@ -203,6 +203,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             env["AWS_ACCESS_KEY_ID"] = config.aws.access_key_id
         if config.aws.secret_access_key:
             env["AWS_SECRET_ACCESS_KEY"] = config.aws.secret_access_key
+        if resource:
+            env["AWS_DEFAULT_REGION"] = resource.region().id
 
         cli_result = subprocess.run(["aws"] + args, timeout=10, capture_output=True, check=False, env=env)
         if cli_result.returncode != 0:
