@@ -30,7 +30,7 @@ from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
-from resotolib.utils import log_runtime
+from resotolib.utils import log_runtime, NoExitArgumentParser
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
@@ -197,14 +197,19 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     def call_aws_function(
         self, config: Config, resource: Optional[BaseResource], args: List[str]
     ) -> Union[JsonElement, BaseResource]:
+        if resource:
+            ac = resource.account(self.graph)
+            session = aws_session(ac.id, ac.role, ac.profile, ac.partition)
+        else:
+            session = aws_session()
+
+        credentials = session.get_credentials()
         env = os.environ.copy()
 
-        if config.aws.access_key_id:
-            env["AWS_ACCESS_KEY_ID"] = config.aws.access_key_id
-        if config.aws.secret_access_key:
-            env["AWS_SECRET_ACCESS_KEY"] = config.aws.secret_access_key
-        if resource:
-            env["AWS_DEFAULT_REGION"] = resource.region().id
+        env["AWS_ACCESS_KEY_ID"] = credentials.access_key
+        env["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
+        env["AWS_SESSION_TOKEN"] = credentials.token
+        env["AWS_DEFAULT_REGION"] = session.region_name
 
         cli_result = subprocess.run(["aws"] + args, timeout=10, capture_output=True, check=False, env=env)
         if cli_result.returncode != 0:
