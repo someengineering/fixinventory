@@ -198,7 +198,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         self, config: Config, resource: Optional[BaseResource], args: List[str]
     ) -> Union[JsonElement, BaseResource]:
         if resource:
-            ac = resource.account(self.graph)
+            ac = resource.account()
             session = aws_session(ac.id, ac.role, ac.profile, ac.partition)  # type: ignore
         else:
             session = aws_session()
