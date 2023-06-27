@@ -5,15 +5,7 @@ from typing import Type, List, Any, Optional
 from resoto_plugin_gcp.config import GcpConfig
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources import compute, container, billing, sqladmin, storage
-from resoto_plugin_gcp.resources.base import (
-    GcpResource,
-    GcpProject,
-    ExecutorQueue,
-    GraphBuilder,
-    GcpRegion,
-    GcpZone,
-    GcpQuota,
-)
+from resoto_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from resoto_plugin_gcp.utils import Credentials
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
@@ -133,7 +125,6 @@ class GcpProjectCollector:
         rm_nodes(compute.GcpAcceleratorType)
         rm_nodes(billing.GcpSku)
         rm_nodes(billing.GcpService)
-        rm_nodes(GcpQuota)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources
