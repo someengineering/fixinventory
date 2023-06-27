@@ -920,9 +920,9 @@ class Api:
             task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None, task_id
-        )
+        mh = self.model_handler
+        max_wait = self.config.graph_update.merge_max_wait_time()
+        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, None, task_id)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -935,9 +935,9 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id, task_id
-        )
+        mh = self.model_handler
+        max_wait = self.config.graph_update.merge_max_wait_time()
+        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, batch_id, task_id)
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:

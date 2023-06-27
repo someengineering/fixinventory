@@ -25,6 +25,7 @@ from resotocore.dependencies import db_access, setup_process, reset_process_star
 from resotocore.error import ImportAborted
 from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
+from resotocore.model.model_handler import ModelHandlerDB, ModelHandler
 from resotocore.types import Json
 from resotocore.ids import TaskId, GraphName
 from resotocore.util import utc, uuid_str, shutdown_process
@@ -147,6 +148,9 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
+            # sizes of model entries have been adjusted during the merge. Update the model in the db.
+            model_handler = ModelHandlerDB(db, "")
+            await model_handler.update_model(graphdb.name, list(model.kinds.values()))
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
@@ -179,6 +183,7 @@ class DbUpdaterProcess(Process):
 
 async def merge_graph_process(
     db: GraphDB,
+    model_handler: ModelHandler,
     event_sender: AnalyticsEventSender,
     config: CoreConfig,
     content: AsyncGenerator[Union[bytes, Json], None],
@@ -237,6 +242,7 @@ async def merge_graph_process(
                     break
         await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None, task_id))
         result = await task  # wait for final result
+        await model_handler.load_model(db.name, force=True)  # reload model to get the latest changes
         return result
     finally:
         if task is not None and not task.done():

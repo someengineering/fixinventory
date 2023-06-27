@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import lru_cache
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, TypeVar
 
 import yaml
 from attrs import define
@@ -26,6 +26,8 @@ from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
 from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotolib.utils import is_env_var_string
+
+T = TypeVar("T")
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -75,7 +77,7 @@ class SyntheticProperty:
     """
 
 
-@define(order=True, hash=True, frozen=True)
+@define(order=True, hash=True)
 class Property:
     name: str
     kind: str
@@ -89,6 +91,13 @@ class Property:
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
+
+    def meta(self, name: str, clazz: Type[T]) -> Optional[T]:
+        meta = self.metadata
+        return v if meta is not None and (v := meta.get(name)) is not None and isinstance(v, clazz) else None
+
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return self.meta(name, clazz) or default
 
     @staticmethod
     def parse_kind(name: str, model: Dict[str, Kind]) -> Kind:
@@ -908,6 +917,9 @@ class ComplexKind(Kind):
 
     def all_props(self) -> List[Property]:
         return self.__all_props
+
+    def all_props_with_kind(self) -> List[Tuple[Property, Kind]]:
+        return [(a, self.property_kind_of(a.name, any_kind)) for a in self.__all_props]
 
     def synthetic_props(self) -> List[ResolvedProperty]:
         return self.__synthetic_props

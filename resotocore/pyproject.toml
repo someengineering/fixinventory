@@ -55,7 +55,7 @@ test = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "resotoclient",
+    "resotoclient>=1.5.0",
     "toml",
     "tox",
 ]

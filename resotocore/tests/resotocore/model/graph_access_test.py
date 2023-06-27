@@ -1,7 +1,7 @@
 import collections
 import re
 from datetime import date
-from typing import Optional
+from typing import Optional, cast, Dict
 
 import jsons
 import pytest
@@ -11,7 +11,7 @@ from pytest import fixture
 
 from resotocore.ids import NodeId
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, EdgeKey
-from resotocore.model.model import Model, AnyKind
+from resotocore.model.model import Model, AnyKind, ComplexKind
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json, EdgeType
 from resotocore.util import AccessJson, AccessNone
@@ -358,3 +358,21 @@ def test_resolve_graph_data() -> None:
     r3 = AccessJson(graph.node("cloud_gcp"))  # type: ignore
     assert r3.metadata.descendant_summary == {"child": 162, "region": 18, "account": 3}
     assert r3.metadata.descendant_count == 183
+
+
+def test_model_size(person_model: Model) -> None:
+    builder = GraphBuilder(person_model)
+    tags1 = {"foo": "bar", "bla": "blub" * 22}
+    a1 = {"kind": "Address", "id": "a1", "zip": "s1", "city": "c1", "list": ["ccc"]}
+    a2 = {"kind": "Address", "id": "aa2", "zip": "s2", "city": "gotham", "tags": tags1}
+    p1 = dict(kind="Person", id="pp1", name="pp1", address=a1, list=["a", "bb"], tags=tags1)
+    p2 = dict(kind="Person", id="p2", name="ppp2", addresses=[a1, a2], other_addresses=dict(home=a1, work=a2))
+    builder.add_node(NodeId("p1"), p1)
+    builder.add_node(NodeId("p2"), p2)
+
+    def kind_props(p: ComplexKind) -> Dict[str, int]:
+        return {p.name: p.meta_get("len", int, 0) for p in p.all_props() if p.meta("len", int)}
+
+    base = {"id": 3, "kind": 7, "list": 3, "tags": 88}  # base properties shared by person and address
+    assert kind_props(cast(ComplexKind, person_model["Person"])) == base | {"name": 4}
+    assert kind_props(cast(ComplexKind, person_model["Address"])) == base | {"city": 6, "zip": 2}

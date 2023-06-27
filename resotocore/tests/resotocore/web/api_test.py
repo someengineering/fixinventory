@@ -161,13 +161,14 @@ async def test_model_api(core_client: ResotoClient, client_session: ClientSessio
     setattr(string_kind, "min_length", 3)
     setattr(string_kind, "max_length", 3)
 
-    prop = rc.Property(name="ot", kind="only_three", required=False)
-    complex_kind: rc.Kind = rc.Kind(fqn="test_cpl", runtime_kind=None, properties=[prop], bases=None)
+    prop = rc.Property(name="ot", kind="only_three", required=False, metadata={"len": 3})
+    complex_kind: rc.Kind = rc.Kind(fqn="test_cpl", runtime_kind=None, properties=[prop], bases=None, metadata={"a": 1})
     setattr(complex_kind, "allow_unknown_props", False)
 
     update = await core_client.update_model([string_kind, complex_kind])
-    none_kind = rc.Kind(fqn="none", runtime_kind=None, properties=None, bases=None)
-    assert (update.kinds.get("only_three") or none_kind).runtime_kind == "string"
+    assert update.kinds["only_three"].runtime_kind == "string"
+    assert update.kinds["test_cpl"].metadata["a"] == 1
+    assert update.kinds["test_cpl"].properties[0].metadata["len"] == 3
 
     # GET /model/uml
     async with client_session.get(core_client.resotocore_url + "/model/uml", params={"output": "puml"}) as r:
