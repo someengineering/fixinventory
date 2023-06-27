@@ -1285,16 +1285,27 @@ class Api:
 
     @staticmethod
     async def multi_file_response(
-        cmd_line: ParsedCommandLine, results: AsyncIterator[str], boundary: str, response: StreamResponse
+        cmd_line: ParsedCommandLine, results: AsyncIterator[JsonElement], boundary: str, response: StreamResponse
     ) -> None:
         async for file_path in results:
-            path = Path(file_path)
-            if not (path.exists() and path.is_file()):
+            if isinstance(file_path, str):
+                local_path = Path(file_path)
+                user_path = Path(file_path)
+            elif isinstance(file_path, dict):
+                local_path = Path(file_path["local_path"])
+                user_path = Path(file_path["user_path"])
+            else:
+                raise ValueError(f"Can not handle file path: {file_path}")
+
+            if not (local_path.exists() and local_path.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
-            with open(path.absolute(), "rb") as content:
+            with open(local_path.absolute(), "rb") as content:
                 with MultipartWriter(boundary=boundary) as mp:
                     pl = BufferedReaderPayload(
-                        content, content_type="application/octet-stream", filename=path.name, headers=cmd_line.envelope
+                        content,
+                        content_type="application/octet-stream",
+                        filename=user_path.name,
+                        headers=cmd_line.envelope | {"file-path": str(user_path)},
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)

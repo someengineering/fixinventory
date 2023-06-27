@@ -5670,7 +5670,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
         in_source_position = kwargs.get("position") == 0
         db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
 
-        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[str]:
+        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[Json]:
             with TemporaryDirectory() as temp_dir:
                 # optional: path of the output file
                 file_output: Optional[Path] = Path(p.database) if p.db == "sqlite" else None
@@ -5703,8 +5703,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     ) as cursor:
                         await sync_fn(query=query, in_stream=stream.iterate(cursor))
 
-                # TODO: pass output (resulting name) and path
-                yield str(file_name) if file_name else "Database synchronized."
+                yield dict(local_path=file_name, user_path=file_output) if file_name else "Database synchronized."
 
         async def database_synchronize(
             engine_config: EngineConfig,
