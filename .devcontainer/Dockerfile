@@ -21,6 +21,18 @@ RUN apt-get install -y apt-transport-https
 RUN apt-get update
 RUN apt-get install -y arangodb3-client
 
+WORKDIR /build/awscli
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+    export AWSCLI_ARCH=x86_64; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+    export AWSCLI_ARCH=aarch64; \
+    else \
+    export AWSCLI_ARCH=x86_64; \
+    fi; \
+    curl -L -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip
+RUN unzip /tmp/awscliv2.zip
+RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
+
 COPY requirements-all.txt /tmp/resoto-requirements.txt
 
 # Install infrequently changing requirements
