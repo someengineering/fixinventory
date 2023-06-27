@@ -21,6 +21,7 @@ from contextlib import suppress
 from datetime import timedelta, datetime
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
     Dict,
@@ -5669,20 +5670,41 @@ class DbCommand(CLICommand, PreserveOutputFormat):
         in_source_position = kwargs.get("position") == 0
         db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
 
-        async def sync_database_result(
-            file_result: Optional[str], sync_fn: Callable[..., Awaitable[None]], *sync_args: Any
-        ) -> AsyncIterator[str]:
-            await sync_fn(*sync_args)
-            yield file_result if file_result else "Database synchronized."
+        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[str]:
+            with TemporaryDirectory() as temp_dir:
+                # optional: path of the output file
+                file_output: Optional[Path] = Path(p.database) if p.db == "sqlite" else None
+                file_name: Optional[Path] = Path(temp_dir) / file_output.name if file_output is not None else None
+                db_string = f"{db_lookup.get(p.db, p.db)}://"
+                if p.user:
+                    db_string += p.user
+                    if p.password:
+                        db_string += f":{p.password}"
+                    db_string += "@"
+                if p.host:
+                    db_string += p.host
+                    if p.port:
+                        db_string += f":{p.port}"
+                if p.database:
+                    database = file_name if file_name is not None else p.database
+                    db_string += f"/{database}"
+                db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
+                db_config = EngineConfig(db_string, p.batch_size)
 
-        async def dump_database(sync_fn: Callable[[Optional[Query], JsGen], JsGen]) -> None:
-            resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
-            query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
-            graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
-            async with await graph_db.search_graph_gen(
-                QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
-            ) as cursor:
-                await sync_fn(query, stream.iterate(cursor))  # type: ignore
+                sync_fn = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
+                if maybe_stream is not None:  # search | db sync
+                    await sync_fn(query=ctx.query, in_stream=maybe_stream)
+                else:
+                    resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+                    query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
+                    graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
+                    async with await graph_db.search_graph_gen(
+                        QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
+                    ) as cursor:
+                        await sync_fn(query=query, in_stream=stream.iterate(cursor))
+
+                # TODO: pass output (resulting name) and path
+                yield str(file_name) if file_name else "Database synchronized."
 
         async def database_synchronize(
             engine_config: EngineConfig,
@@ -5735,7 +5757,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     return cast(str, node["reported"]["kind"])
 
             async with in_stream.stream() as streamer:
-                batched = BatchStream(streamer, key_fn, db_config.batch_size, db_config.batch_size * 10)
+                batched = BatchStream(streamer, key_fn, engine_config.batch_size, engine_config.batch_size * 10)
                 await update_sql(
                     engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
                 )
@@ -5753,40 +5775,19 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             parser.add_argument("--complete-schema", action="store_true")
             parser.add_argument("--drop-existing-tables", action="store_true")
             parser.add_argument("--batch-size", type=int, default=1000)
-            p = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
-            # optional: path of the output file
-            file_output: Optional[str] = os.path.expanduser(p.database) if p.db == "sqlite" else None
-            produces = MediaType.FilePath if file_output is not None else MediaType.Json
-            db_string = f"{db_lookup.get(p.db, p.db)}://"
-            if p.user:
-                db_string += p.user
-                if p.password:
-                    db_string += f":{p.password}"
-                db_string += "@"
-            if p.host:
-                db_string += p.host
-                if p.port:
-                    db_string += f":{p.port}"
-            if p.database:
-                database = file_output if file_output is not None else p.database
-                db_string += f"/{database}"
-            db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
-            db_config = EngineConfig(db_string, p.batch_size)
-
+            parsed_args = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
+            produces = MediaType.FilePath if parsed_args.db == "sqlite" else MediaType.Json
             if in_source_position:
                 # in this position we fall back to exporting the whole graph
-                sync = partial(
-                    dump_database, partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
-                )
                 return CLISource.single(
-                    fn=partial(sync_database_result, file_output, sync),
+                    fn=partial(sync_database_result, parsed_args, None),
                     envelope={CLIEnvelope.no_history: "yes"},
                     produces=produces,
                 )
             else:
-                sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
+                # sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
                 return CLIFlow(
-                    fn=partial(sync_database_result, file_output, sync),
+                    fn=partial(sync_database_result, parsed_args),
                     envelope={CLIEnvelope.no_history: "yes"},
                     produces=produces,
                 )

@@ -1264,7 +1264,7 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
 
 
 @pytest.mark.asyncio
-async def test_db(cli: CLI, tmp_directory: str) -> None:
+async def test_db(cli: CLI) -> None:
     db_file = "test_db"
 
     async def sync_and_check(
@@ -1274,50 +1274,52 @@ async def test_db(cli: CLI, tmp_directory: str) -> None:
         expected_tables: Optional[Set[str]] = None,
         expected_table_count: Optional[int] = None,
     ) -> str:
-        # delete file
-        if os.path.exists(f"{tmp_directory}/{db_file}"):
-            os.remove(f"{tmp_directory}/{db_file}")
-        result = await cli.execute_cli_command(cmd, stream.list)
+        result: List[str] = []
+
+        async def check(in_: Stream) -> None:
+            async with in_.stream() as streamer:
+                async for s in streamer:
+                    # open sqlite database
+                    conn = sqlite3.connect(s)
+                    c = conn.cursor()
+                    tables = {
+                        row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()
+                    }
+                    if expected_tables is not None:
+                        assert tables == expected_tables
+                    if expected_table_count is not None:
+                        assert len(tables) == expected_table_count
+                    if expected_table is not None:
+                        for table in tables:
+                            count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                            assert expected_table(table, count), f"Table {table} has {count} rows"
+                    c.close()
+                    conn.close()
+                    result.append(s)
+
+        await cli.execute_cli_command(cmd, check)
         assert len(result) == 1
-        assert len(result[0]) == 1
-        assert isinstance(result[0][0], str)
-        # open sqlite database
-        conn = sqlite3.connect(f"{tmp_directory}/{db_file}")
-        c = conn.cursor()
-        tables = {row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()}
-        if expected_tables is not None:
-            assert tables == expected_tables
-        if expected_table_count is not None:
-            assert len(tables) == expected_table_count
-        if expected_table is not None:
-            for table in tables:
-                count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                assert expected_table(table, count), f"Table {table} has {count} rows"
-        c.close()
-        conn.close()
-        return result[0][0]
+        return result[0]
 
     # search | db sync
     await sync_and_check(
-        f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {tmp_directory}/{db_file}",
+        f"search --with-edges is(foo) -[0:1]-> | db sync sqlite --database {db_file}",
         expected_table=lambda table, count: count > 0 if not table.startswith("link_") else True,
         expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
 
     # db sync synchronizes the whole graph
     await sync_and_check(
-        f"db sync sqlite --database {tmp_directory}/{db_file}",
+        f"db sync sqlite --database {db_file}",
         expected_table=lambda table, count: count > 0 if not table.startswith("link_") else True,
         expected_tables={"foo", "bla", "link_bla_bla", "link_foo_bla"},
     )
 
     # db sync with complete schema synchronizes the whole graph and created tables for all kinds even if they are empty
-    await sync_and_check(
-        f"db sync sqlite --complete-schema --database {tmp_directory}/{db_file}", expected_table_count=11
-    )
+    await sync_and_check(f"db sync sqlite --complete-schema --database {db_file}", expected_table_count=11)
 
     # support write after db sync (not required for simple files, but we want to support s3 etc. in the future)
-    name = await sync_and_check(f"db sync sqlite --database {tmp_directory}/{db_file} | write out.db")
+    name = await sync_and_check(f"db sync sqlite --database {db_file} | write out.db")
     assert name.endswith("out.db")
 
     # search with aggregation does not export anything
@@ -1330,7 +1332,8 @@ async def test_db(cli: CLI, tmp_directory: str) -> None:
             f"db sync sqlite --database db --host bla --port 1234 --user test --password check --arg foo=bla foo2=bla2",
             expected_table_count=11,
         )
-    assert "sqlite://test:check@bla:1234/db?foo=bla&foo2=bla2" in str(ex.value)
+    assert "sqlite://test:check@bla:1234" in str(ex.value)
+    assert "?foo=bla&foo2=bla2" in str(ex.value)
 
     # calling db without command will print the help
     db_res = await cli.execute_cli_command("db", stream.list)
