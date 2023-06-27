@@ -74,7 +74,7 @@ class LocalResotocoreAppRuntime(Runtime):
 
         args = self._args_from_manifest(manifest, argv)
 
-        async for line in async_lines(template.generate_async(config=config, args=args, stdin=stdin)):  # type: ignore
+        async for line in async_lines(template.generate_async(config=config, args=args, stdin=stdin)):
             line = line.strip()
             log.debug(f"Rendered infrastructure app line: {line}")
             if not line:

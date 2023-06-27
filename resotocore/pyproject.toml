@@ -28,7 +28,7 @@ dependencies = [
     "posthog",
     "python-arango",
     "python-dateutil",
-    "resotodatalink>=1.1.0",
+    "resotodatalink>=1.2.0",
     "resotoui",
     "rich",
     "toolz",
