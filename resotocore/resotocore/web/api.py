@@ -67,6 +67,7 @@ from resotocore.cli.model import (
     CLI,
     AliasTemplate,
     InfraAppAlias,
+    FilePath,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -1288,24 +1289,16 @@ class Api:
         cmd_line: ParsedCommandLine, results: AsyncIterator[JsonElement], boundary: str, response: StreamResponse
     ) -> None:
         async for file_path in results:
-            if isinstance(file_path, str):
-                local_path = Path(file_path)
-                user_path = Path(file_path)
-            elif isinstance(file_path, dict):
-                local_path = Path(file_path["local_path"])
-                user_path = Path(file_path["user_path"])
-            else:
-                raise ValueError(f"Can not handle file path: {file_path}")
-
-            if not (local_path.exists() and local_path.is_file()):
+            path = FilePath.from_path(file_path)
+            if not (path.local.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
-            with open(local_path.absolute(), "rb") as content:
+            with open(path.local, "rb") as content:
                 with MultipartWriter(boundary=boundary) as mp:
                     pl = BufferedReaderPayload(
                         content,
                         content_type="application/octet-stream",
-                        filename=user_path.name,
-                        headers=cmd_line.envelope | {"file-path": str(user_path)},
+                        filename=path.user.name,
+                        headers=cmd_line.envelope | {"file-path": str(path.user)},
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)

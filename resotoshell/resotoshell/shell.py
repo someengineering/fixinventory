@@ -140,9 +140,6 @@ class Shell:
                 path = Path(filepath).expanduser().absolute()
                 filepath = str(path)
                 filename = path.name
-                allowed = [Path(directory).expanduser().absolute(), Path.home()]
-                if not any(path.is_relative_to(ap) for ap in allowed):
-                    raise ValueError(f"Not allowed to write to this path: {filepath}")
             else:  # fall back to content-disposition
                 disposition = response.headers.get("Content-Disposition", "")
                 match = re.findall('filename="([^"]+)"', disposition)

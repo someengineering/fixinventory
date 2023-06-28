@@ -9,7 +9,6 @@ import os.path
 import re
 import shutil
 import tarfile
-import tempfile
 from abc import abstractmethod, ABC
 from argparse import Namespace
 from asyncio import Future, Task
@@ -22,7 +21,6 @@ from datetime import timedelta, datetime
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import (
     Dict,
     List,
@@ -44,6 +42,7 @@ from urllib.parse import urlparse, urlunparse
 import aiofiles
 import jq
 import yaml
+from aiofiles.tempfile import TemporaryDirectory
 from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
@@ -95,6 +94,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
     EntityProvider,
+    FilePath,
 )
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
@@ -3480,57 +3480,56 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             "info": [],
         }
 
-    async def create_backup(self, arg: Optional[str]) -> AsyncIterator[str]:
-        temp_dir: str = tempfile.mkdtemp()
+    async def create_backup(self, arg: Optional[str]) -> AsyncIterator[JsonElement]:
         maybe_proc: Optional[Process] = None
-        try:
-            db_config = cast(CLIDependencies, self.dependencies).config.db
-            if not shutil.which("arangodump"):
-                raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
-            # fmt: off
-            process = await asyncio.create_subprocess_exec(
-                "arangodump",
-                "--progress", "false",  # do not show progress
-                "--include-system-collections", "true",  # graphs are considered a system collection
-                "--threads", "8",  # default is 2
-                "--log.level", "error",  # only print error messages
-                "--output-directory", temp_dir,  # directory to write to
-                "--overwrite", "true",  # required for existing directories
-                "--server.endpoint", db_config.server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if db_config.no_ssl_verify else "true",
-                "--server.database", db_config.database,
-                "--server.username", db_config.username,
-                "--server.password", db_config.password,
-                "--configuration", "none",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            # fmt: on
-            stdout_b, stderr_b = await process.communicate()
-            maybe_proc = process
-            code = await process.wait()
-            stdout = stdout_b.decode() if stdout_b else ""
-            stderr = stderr_b.decode() if stderr_b else ""
+        async with TemporaryDirectory() as temp_dir:
+            try:
+                db_config = cast(CLIDependencies, self.dependencies).config.db
+                if not shutil.which("arangodump"):
+                    raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
+                # fmt: off
+                process = await asyncio.create_subprocess_exec(
+                    "arangodump",
+                    "--progress", "false",  # do not show progress
+                    "--include-system-collections", "true",  # graphs are considered a system collection
+                    "--threads", "8",  # default is 2
+                    "--log.level", "error",  # only print error messages
+                    "--output-directory", temp_dir,  # directory to write to
+                    "--overwrite", "true",  # required for existing directories
+                    "--server.endpoint", db_config.server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if db_config.no_ssl_verify else "true",
+                    "--server.database", db_config.database,
+                    "--server.username", db_config.username,
+                    "--server.password", db_config.password,
+                    "--configuration", "none",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                stdout_b, stderr_b = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                stdout = stdout_b.decode() if stdout_b else ""
+                stderr = stderr_b.decode() if stderr_b else ""
 
-            if code == 0:
-                log.debug(f"arangodump: out={stdout}, err={stderr}.")
-                files = os.listdir(temp_dir)
-                name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
-                backup = os.path.join(temp_dir, name)
-                # create an unzipped tarfile (all of the entries are already gzipped)
-                with tarfile.open(backup, "w") as tar:
-                    for file in files:
-                        await run_async(tar.add, os.path.join(temp_dir, file), file)
-                yield backup
-            else:
-                log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
-                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
-        finally:
-            if maybe_proc and maybe_proc.returncode is None:
-                with suppress(Exception):
-                    maybe_proc.kill()
-                    await asyncio.sleep(5)
-            shutil.rmtree(temp_dir)
+                if code == 0:
+                    log.debug(f"arangodump: out={stdout}, err={stderr}.")
+                    files = os.listdir(temp_dir)
+                    name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
+                    backup = os.path.join(temp_dir, name)
+                    # create an unzipped tarfile (all of the entries are already gzipped)
+                    with tarfile.open(backup, "w") as tar:
+                        for file in files:
+                            await run_async(tar.add, os.path.join(temp_dir, file), file)
+                    yield FilePath.user_local(arg or name, backup).json()
+                else:
+                    log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
+                    raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
 
     async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncIterator[str]:
         if not backup_file:
@@ -3540,51 +3539,50 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         if not shutil.which("arangorestore"):
             raise CLIParseError("db_restore expects the executable `arangorestore` to be in path!")
 
-        temp_dir: str = tempfile.mkdtemp()
-        maybe_proc: Optional[Process] = None
-        try:
-            # extract tar file
-            with tarfile.open(backup_file, "r") as tar:
-                tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
+        async with TemporaryDirectory() as temp_dir:
+            maybe_proc: Optional[Process] = None
+            try:
+                # extract tar file
+                with tarfile.open(backup_file, "r") as tar:
+                    tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
-            # fmt: off
-            db_conf = cast(CLIDependencies, self.dependencies).config.db
-            process = await asyncio.create_subprocess_exec(
-                "arangorestore",
-                "--progress", "false",  # do not show progress
-                "--include-system-collections", "true",  # graphs are considered a system collection
-                "--threads", "8",  # default is 2
-                "--log.level", "error",  # only print error messages
-                "--input-directory", temp_dir,  # directory to write to
-                "--overwrite", "true",  # required for existing db collections
-                "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
-                "--server.database", db_conf.database,
-                "--server.username", db_conf.username,
-                "--server.password", db_conf.password,
-                "--configuration", "none",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            # fmt: on
-            stdout_b, stderr_b = await process.communicate()
-            maybe_proc = process
-            code = await process.wait()
-            stdout = stdout_b.decode() if stdout_b else ""
-            stderr = stderr_b.decode() if stderr_b else ""
+                # fmt: off
+                db_conf = cast(CLIDependencies, self.dependencies).config.db
+                process = await asyncio.create_subprocess_exec(
+                    "arangorestore",
+                    "--progress", "false",  # do not show progress
+                    "--include-system-collections", "true",  # graphs are considered a system collection
+                    "--threads", "8",  # default is 2
+                    "--log.level", "error",  # only print error messages
+                    "--input-directory", temp_dir,  # directory to write to
+                    "--overwrite", "true",  # required for existing db collections
+                    "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
+                    "--server.database", db_conf.database,
+                    "--server.username", db_conf.username,
+                    "--server.password", db_conf.password,
+                    "--configuration", "none",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                stdout_b, stderr_b = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                stdout = stdout_b.decode() if stdout_b else ""
+                stderr = stderr_b.decode() if stderr_b else ""
 
-            if code == 0:
-                log.debug(f"arangorestore: out={stdout}, err={stderr}.")
-                yield "Database has been restored successfully!"
-            else:
-                log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
-                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
-        finally:
-            if maybe_proc and maybe_proc.returncode is None:
-                with suppress(Exception):
-                    maybe_proc.kill()
-                    await asyncio.sleep(5)
-            shutil.rmtree(temp_dir)
+                if code == 0:
+                    log.debug(f"arangorestore: out={stdout}, err={stderr}.")
+                    yield "Database has been restored successfully!"
+                else:
+                    log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
+                    raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
 
         log.info("Restore process complete. Restart the service.")
         yield "Since all data has changed in the database eventually, this service needs to be restarted!"
@@ -3609,7 +3607,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
             rest = parts[2:]
 
-            def backup() -> AsyncIterator[str]:
+            def backup() -> AsyncIterator[JsonElement]:
                 return self.create_backup(" ".join(rest) if rest else None)
 
             return CLISource.single(backup, MediaType.FilePath)
@@ -3617,7 +3615,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
             backup_file = parts[2]
 
-            def restore() -> AsyncIterator[str]:
+            def restore() -> AsyncIterator[JsonElement]:
                 return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
             return CLISource.single(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
@@ -3661,10 +3659,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         return [ArgInfo(expects_value=True, value_hint="file", help_text="file to write to")]
 
     @staticmethod
-    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
-        temp_dir: str = tempfile.mkdtemp()
-        path = os.path.join(temp_dir, file_name)
-        try:
+    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+        async with TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, file_name)
             async with aiofiles.open(path, "w") as f:
                 async with in_stream.stream() as streamer:
                     async for out in streamer:
@@ -3673,21 +3670,12 @@ class WriteCommand(CLICommand, NoTerminalOutput):
                         else:
                             raise AttributeError("No output format is defined! Consider to use the format command.")
             yield path
-        finally:
-            shutil.rmtree(temp_dir)
 
     @staticmethod
-    async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
-        temp_dir: str = tempfile.mkdtemp()
-        path = os.path.join(temp_dir, file_name)
-        try:
-            async with in_stream.stream() as streamer:
-                async for out in streamer:
-                    assert isinstance(out, str), "Expected file paths as input."
-                    shutil.copyfile(out, path)
-                    yield path
-        finally:
-            shutil.rmtree(temp_dir)
+    async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+        async with in_stream.stream() as streamer:
+            async for out in streamer:
+                yield evolve(FilePath.from_path(out), user=Path(file_name)).json()
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         if arg is None:
@@ -4437,14 +4425,11 @@ class ConfigsCommand(CLICommand):
             yield f"Config {cfg_id} has been deleted."
 
         async def send_file(content: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, "config.yaml")
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, "config.yaml")
                 async with aiofiles.open(path, "w") as f:
                     await f.write(content)
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def set_config(cfg_id: ConfigId, updates: List[Tuple[str, JsonElement]]) -> AsyncIterator[JsonElement]:
             cfg = await self.dependencies.config_handler.get_config(cfg_id)
@@ -4699,7 +4684,7 @@ class CertificateCommand(CLICommand):
             key, cert = cast(CLIDependencies, self.dependencies).cert_handler.create_key_and_cert(
                 common_name, dns_names, ip_addresses, days_valid
             )
-            with TemporaryDirectory() as tmpdir:
+            async with TemporaryDirectory() as tmpdir:
                 key_file = os.path.join(tmpdir, f"{common_name}.key")
                 cert_file = os.path.join(tmpdir, f"{common_name}.crt")
                 write_cert_to_file(cert, cert_file, rename=False)
@@ -5013,14 +4998,11 @@ class AppsCommand(CLICommand):
             yield f"App {app_name} version {manifest.version} installed successfully"
 
         async def send_file(content: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, "manifest.yaml")
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, "manifest.yaml")
                 async with aiofiles.open(path, "w") as f:
                     await f.write(content)
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def edit_app(app_name: InfraAppName) -> AsyncIterator[str]:
             # Editing a config is a two-step process:
@@ -5488,15 +5470,12 @@ class GraphCommand(CLICommand):
             yield f"Graph {graph_name} deleted."
 
         async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, file_name)
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, file_name)
                 async with aiofiles.open(path, "w") as f:
                     async for line in export_lines:
                         await f.write(line + "\n")
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
@@ -5670,11 +5649,10 @@ class DbCommand(CLICommand, PreserveOutputFormat):
         in_source_position = kwargs.get("position") == 0
         db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
 
-        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[Json]:
-            with TemporaryDirectory() as temp_dir:
+        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[JsonElement]:
+            async with TemporaryDirectory() as temp_dir:
                 # optional: path of the output file
-                file_output: Optional[Path] = Path(p.database) if p.db == "sqlite" else None
-                file_name: Optional[Path] = Path(temp_dir) / file_output.name if file_output is not None else None
+                file_output: Optional[Path] = Path(temp_dir) / "db" if p.db == "sqlite" else None
                 db_string = f"{db_lookup.get(p.db, p.db)}://"
                 if p.user:
                     db_string += p.user
@@ -5686,7 +5664,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     if p.port:
                         db_string += f":{p.port}"
                 if p.database:
-                    database = file_name if file_name is not None else p.database
+                    database = str(file_output) if file_output is not None else p.database
                     db_string += f"/{database}"
                 db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
                 db_config = EngineConfig(db_string, p.batch_size)
@@ -5703,7 +5681,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     ) as cursor:
                         await sync_fn(query=query, in_stream=stream.iterate(cursor))
 
-                yield dict(local_path=file_name, user_path=file_output) if file_name else "Database synchronized."
+                yield FilePath.user_local(p.database, file_output).json() if file_output else "Database synchronized."
 
         async def database_synchronize(
             engine_config: EngineConfig,
