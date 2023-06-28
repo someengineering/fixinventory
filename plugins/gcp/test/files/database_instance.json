@@ -18,7 +18,7 @@
           "requireSsl": false
         },
         "locationPreference": {
-          "zone": "us-central1-b",
+          "zone": "us-east1-b",
           "kind": "sql#locationPreference"
         },
         "databaseFlags": [
@@ -75,10 +75,10 @@
       "serviceAccountEmailAddress": "foo",
       "backendType": "SECOND_GEN",
       "selfLink": "https://content-sqladmin.googleapis.com/v1/projects/inbound-axon-320811/instances/testdb",
-      "connectionName": "inbound-axon-320811:us-central1:testdb",
+      "connectionName": "inbound-axon-320811:us-east1:testdb",
       "name": "testdb",
-      "region": "us-central1",
-      "gceZone": "us-central1-b",
+      "region": "us-east1",
+      "gceZone": "us-east1-b",
       "databaseInstalledVersion": "MYSQL_8_0_26",
       "maintenanceVersion": "MYSQL_8_0_26.R20230314.03_02",
       "createTime": "2023-04-25T11:16:57.136Z"

@@ -786,7 +786,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         "pd-standard": "PDStandard",
     }
 
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from disk_types type to SKUs and determines ondemand pricing"""
         if not self.name:
             return
@@ -3421,7 +3421,9 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         # Add edge from machine type to accelerator type
         for at in self.accelerators or []:
             # The accelerator type resource name, not a full URL, e.g. nvidia-tesla-t4.
-            builder.add_edge(self, clazz=GcpAcceleratorType, id=at.guest_accelerator_type)
+            builder.add_edge(self, clazz=GcpAcceleratorType, id=at.guest_accelerator_type, reverse=True)
+
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         # Adds edges from machine type to SKUs and determines ondemand pricing
         if not self.name:
             return
