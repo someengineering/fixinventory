@@ -203,7 +203,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     cloudwatch_threshold_metric_id: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(alarm: AwsCloudwatchAlarm) -> None:
             tags = builder.client.list(service_name, "list-tags-for-resource", "Tags", ResourceARN=alarm.arn)
             if tags:
@@ -213,7 +213,6 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

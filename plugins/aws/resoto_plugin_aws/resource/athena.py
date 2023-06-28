@@ -105,7 +105,7 @@ class AwsAthenaWorkGroup(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
             result = builder.client.get(
                 aws_service=service_name, action="get-work-group", result_name="WorkGroup", WorkGroup=name
@@ -138,7 +138,6 @@ class AwsAthenaWorkGroup(AwsResource):
                 if wg is not None:
                     builder.add_node(wg)
                     builder.submit_work(service_name, add_tags, wg)
-        return []
 
     # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -215,7 +214,7 @@ class AwsAthenaDataCatalog(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
             result = builder.client.get(
                 aws_service=service_name,
@@ -247,7 +246,6 @@ class AwsAthenaDataCatalog(AwsResource):
                 if catalog is not None:
                     builder.add_node(catalog)
                     builder.submit_work(service_name, add_tags, catalog)
-        return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

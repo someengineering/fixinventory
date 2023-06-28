@@ -197,7 +197,7 @@ class AwsGlacierVault(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(vault: AwsGlacierVault) -> None:
             tags = builder.client.get(service_name, "list-tags-for-vault", "Tags", vaultName=vault.name)
             if tags:
@@ -211,7 +211,6 @@ class AwsGlacierVault(AwsResource):
                     if job_instance := AwsGlacierJob.from_api(job, builder):
                         builder.add_node(job_instance, job)
                         builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
-        return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

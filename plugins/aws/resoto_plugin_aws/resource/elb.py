@@ -208,7 +208,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(elb: AwsElb) -> None:
             tags = builder.client.list(
                 service_name,
@@ -224,7 +224,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

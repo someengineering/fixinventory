@@ -352,7 +352,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
                 # only store this information in the builder, not directly in the graph
@@ -361,7 +361,6 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
                 builder.global_instance_types[it.safe_name] = it
-        return []
 
 
 # endregion
@@ -437,7 +436,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     volume_throughput: Optional[int] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
@@ -480,8 +479,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 if vt := builder.volume_type(instance.volume_type):
                     builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
-
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1039,19 +1036,16 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_maintenance_options: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> Sequence[AwsResource]:
-        result = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for reservation in json:
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
                 builder.add_node(instance, instance_in)
-                result.append(instance)
-        return result
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], collected: Sequence[AwsResource], builder: GraphBuilder) -> None:
-        instances = {instance.id: instance for instance in collected if isinstance(instance, AwsEc2Instance)}
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        instances = {instance.id: instance for instance in builder.nodes(clazz=AwsEc2Instance)}
         queries = []
         now = utc()
         if builder.last_run:

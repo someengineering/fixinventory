@@ -312,7 +312,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: str) -> None:
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
@@ -328,7 +328,6 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
         for js in json:
             if isinstance(js, str):
                 add_instance(js)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_latest_stream_arn:
@@ -390,7 +389,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.get(
                 service_name,
@@ -410,7 +409,6 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
 
         for js in json:
             add_instance(js)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_replication_group is not []:

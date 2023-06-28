@@ -417,12 +417,11 @@ class AwsRedshiftCluster(AwsResource):
     redshift_reserved_node_exchange_status: Optional[AwsRedshiftReservedNodeExchangeStatus] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if cluster := cls.from_api(js, builder):
                 cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
                 builder.add_node(cluster, js)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:

@@ -147,7 +147,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(bucket: AwsS3Bucket) -> None:
             tags = bucket._get_tags(builder.client)
             if tags:
@@ -236,7 +236,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 builder.submit_work(service_name, add_public_access, bucket)
                 builder.submit_work(service_name, add_acls, bucket)
                 builder.submit_work(service_name, add_bucket_logging, bucket)
-        return []
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

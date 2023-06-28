@@ -68,7 +68,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
             tags = builder.client.get(
                 service_name,
@@ -102,7 +102,6 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                             builder.add_node(record, js)
                             builder.add_edge(record_set, EdgeType.default, node=record)
                             builder.add_edge(record_set, EdgeType.delete, node=record)
-        return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

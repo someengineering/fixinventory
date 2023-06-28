@@ -179,9 +179,9 @@ class AwsResource(BaseResource, ABC):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                resources = cls.collect(items, builder)
+                cls.collect(items, builder)
                 if builder.config.collect_usage_metrics:
-                    cls.collect_usage_metrics(resources, builder)
+                    cls.collect_usage_metrics(builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -192,21 +192,18 @@ class AwsResource(BaseResource, ABC):
                 raise
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> Sequence[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
-        result = []
         for js in json:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
-                result.append(instance)
-        return result
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], collected: Sequence[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         # Default behavior: do nothing
         pass
 

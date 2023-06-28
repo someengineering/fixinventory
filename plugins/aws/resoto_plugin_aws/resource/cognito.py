@@ -184,7 +184,7 @@ class AwsCognitoUserPool(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(pool: AwsCognitoUserPool) -> None:
             tags = builder.client.get(service_name, "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
             if tags:
@@ -203,7 +203,6 @@ class AwsCognitoUserPool(AwsResource):
                     if group_instance := AwsCognitoGroup.from_api(group, builder):
                         builder.add_node(group_instance, group)
                         builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=group_instance)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.lambda_config:

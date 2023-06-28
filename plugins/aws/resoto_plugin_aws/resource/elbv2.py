@@ -314,7 +314,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if lb := AwsAlb.from_api(js, builder):
                 tags = builder.client.list(
@@ -333,7 +333,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     if listener := parse_json(mapped, AwsAlbListener, builder):
                         lb.alb_listener.append(listener)
                 builder.add_node(lb, js)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
@@ -469,7 +468,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if tg := AwsAlbTargetGroup.from_api(js, builder):
                 tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
@@ -482,7 +481,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
                         tg.alb_target_health.append(tgh)
                 builder.add_node(tg, js)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):

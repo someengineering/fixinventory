@@ -89,7 +89,7 @@ class AwsSqsQueue(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.get(
                 service_name, "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
@@ -109,8 +109,6 @@ class AwsSqsQueue(AwsResource):
         for queue_url in json:
             if isinstance(queue_url, str):
                 add_instance(queue_url)
-
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.sqs_kms_master_key_id:

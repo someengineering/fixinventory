@@ -262,7 +262,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
             tags = builder.client.get(service_name, "list-tags", "Tags", Resource=function.arn)
             if tags:
@@ -322,7 +322,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, get_policy, instance)
                 builder.submit_work(service_name, get_url_config, instance)
-        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
