@@ -1340,3 +1340,6 @@ async def test_db(cli: CLI) -> None:
     # calling db without command will print the help
     db_res = await cli.execute_cli_command("db", stream.list)
     assert "Synchronizes data to an SQL database." in db_res[0][0]
+
+    # make sure argsinfo is available
+    assert "sync" in cli.direct_commands["db"].args_info()
