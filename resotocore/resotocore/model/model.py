@@ -1355,11 +1355,11 @@ class Model:
             """
             existing_props: Dict[str, Property] = {prop.name: prop for prop in existing.properties}
             for prop in update.properties:
-                existing = existing_props.get(prop.name)
+                existing_prop = existing_props.get(prop.name)
                 meta = prop.metadata or {}
                 # take the maximum of all lengths ever seen
-                if existing is not None and existing.meta("len", int) is not None:
-                    meta["len"] = max(prop.meta_get("len", int, 0), existing.meta_get("len", int, 0))
+                if existing_prop is not None and existing_prop.meta("len", int) is not None:
+                    meta["len"] = max(prop.meta_get("len", int, 0), existing_prop.meta_get("len", int, 0))
                     prop.metadata = meta
 
         for elem in kinds:
