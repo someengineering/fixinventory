@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any, Sequence
+from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
 
 from attrs import define, field
