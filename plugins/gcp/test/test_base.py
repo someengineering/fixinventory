@@ -1,3 +1,4 @@
+import json
 import os
 from resoto_plugin_gcp.resources.base import *
 from resoto_plugin_gcp.resources.compute import GcpMachineType
