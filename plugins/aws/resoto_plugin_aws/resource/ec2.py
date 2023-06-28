@@ -1045,7 +1045,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        instances = {instance.id: instance for instance in builder.nodes(clazz=AwsEc2Instance)}
+        instances = {
+            instance.id: instance
+            for instance in builder.nodes(clazz=AwsEc2Instance)
+            if instance.region().id == builder.region.id
+        }
         queries = []
         now = utc()
         if builder.last_run:
