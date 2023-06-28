@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 import concurrent
+import json
 import logging
 from concurrent.futures import Executor, Future
 from threading import Lock
-from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set
 from types import TracebackType
+from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set
 
 from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
@@ -21,16 +21,14 @@ from resotolib.baseresources import (
     EdgeType,
     BaseRegion,
     BaseZone,
-    BaseQuota,
     ModelReference,
 )
+from resotolib.config import Config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js, value_in_path
-from resotolib.json_bender import bend, Bender, S, Bend
+from resotolib.json_bender import bend, Bender, S, Bend, MapDict, F
 from resotolib.types import Json
-from resotolib.config import Config
-
 
 log = logging.getLogger("resoto.plugins.gcp")
 
@@ -481,17 +479,31 @@ class GcpDeprecationStatus:
 
 
 @define(eq=False, slots=False)
-class GcpQuota(GcpResource, BaseQuota):
+class GcpLimit:
     kind: ClassVar[str] = "gcp_quota"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("metric"),
         "limit": S("limit"),
-        "owner": S("owner"),
         "usage": S("usage"),
+        "percentage": F(lambda x: round(x.get("usage", 0) / max(x.get("limit", 1), 1) * 100, 2)),
     }
     limit: Optional[float] = field(default=None)
-    owner: Optional[str] = field(default=None)
     usage: Optional[float] = field(default=None)
+    percentage: Optional[float] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class GcpRegionQuota(GcpResource):
+    kind: ClassVar[str] = "gcp_region_quota"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
+        "name": S("name"),
+        "ctime": S("creationTimestamp"),
+        "link": S("selfLink"),
+        "label_fingerprint": S("labelFingerprint"),
+        "description": S("description"),
+        "quotas": S("quotas", default=[]) >> MapDict(S("metric") >> F(lambda x: x.lower()), Bend(GcpLimit.mapping)),
+    }
+    quotas: Optional[Dict[str, GcpLimit]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -529,10 +541,9 @@ class GcpRegion(GcpResource, BaseRegion):
         return cls(id="global", tags={}, name="global", account=project)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        for quota_js in source.get("quotas", []):
-            quota = GcpQuota.from_api(quota_js)
-            quota._region = self
-            graph_builder.add_node(quota, quota_js)
+        region_quota = GcpRegionQuota.from_api(source)
+        graph_builder.add_node(region_quota, source)
+        graph_builder.add_edge(self, node=region_quota)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

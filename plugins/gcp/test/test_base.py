@@ -1,4 +1,3 @@
-import json
 import os
 from resoto_plugin_gcp.resources.base import *
 from resoto_plugin_gcp.resources.compute import GcpMachineType
@@ -43,7 +42,8 @@ def test_gcp_region_collects_quotas(random_builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/gcp_regions.json") as f:
         GcpRegion.collect(raw=json.load(f)["items"], builder=random_builder)
 
-    assert len(random_builder.nodes(clazz=GcpQuota)) > 0
+    region_quotas = random_builder.nodes(clazz=GcpRegionQuota)
+    assert len(region_quotas) == 2  # 2 regions in the file
 
-    predecessor = list(random_builder.graph.predecessors(random_builder.node(clazz=GcpQuota)))[0]  # type: ignore
-    assert isinstance(predecessor, GcpRegion)
+    for predecessor in random_builder.graph.predecessors(region_quotas[0]):
+        assert isinstance(predecessor, GcpRegion)

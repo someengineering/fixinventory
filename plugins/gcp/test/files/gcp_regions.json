@@ -1005,12 +1005,12 @@
           {
             "metric": "REGIONAL_INTERNAL_LB_BACKEND_SERVICES",
             "limit": 50,
-            "usage": 0
+            "usage": 23
           },
           {
             "metric": "STATIC_EXTERNAL_IPV6_ADDRESS_RANGES",
             "limit": 200,
-            "usage": 0
+            "usage": 200
           }
         ],
         "selfLink": "https://www.googleapis.com/compute/v1/projects/some-project-42/regions/us-east1",
