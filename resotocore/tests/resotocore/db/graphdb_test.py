@@ -604,20 +604,29 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
     copy_db = await graph_db.copy_graph(copy_db_name)
     assert copy_db.name == copy_db_name
 
-    # validate the vertices
-    existing_vertex_ids = {a["_key"] for a in await db.all(graph_db.name)}
-    copy_vertex_ids = {a["_key"] for a in await db.all(copy_db_name)}
-    assert existing_vertex_ids == copy_vertex_ids
+    async def validate(original_db_name: GraphName, copy_db_name: str) -> None:
+        # validate the vertices
+        existing_vertex_ids = {a["_key"] for a in await db.all(original_db_name)}
+        copy_vertex_ids = {a["_key"] for a in await db.all(copy_db_name)}
+        assert existing_vertex_ids == copy_vertex_ids
 
-    # validate the default edges
-    existing_default_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_default")}
-    copy_default_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_default")}
-    assert existing_default_edge_ids == copy_default_edge_ids
+        # validate the default edges
+        existing_default_edge_ids = {a["_key"] for a in await db.all(f"{original_db_name}_default")}
+        copy_default_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_default")}
+        assert existing_default_edge_ids == copy_default_edge_ids
 
-    # validate the delete edges
-    existing_delete_edge_ids = {a["_key"] for a in await db.all(f"{graph_db.name}_delete")}
-    copy_delete_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_delete")}
-    assert existing_delete_edge_ids == copy_delete_edge_ids
+        # validate the delete edges
+        existing_delete_edge_ids = {a["_key"] for a in await db.all(f"{original_db_name}_delete")}
+        copy_delete_edge_ids = {a["_key"] for a in await db.all(f"{copy_db_name}_delete")}
+        assert existing_delete_edge_ids == copy_delete_edge_ids
+
+    await validate(graph_db.name, copy_db.name)
+
+    # check snapshots
+    snapshot_db_name = GraphName("snapshot_" + graph_db.name)
+    snapshot_db = await graph_db.copy_graph(snapshot_db_name, to_snapshot=True)
+    assert snapshot_db.name == snapshot_db_name
+    await validate(graph_db.name, snapshot_db.name)
 
 
 def test_render_metadata_section(foo_model: Model) -> None:
