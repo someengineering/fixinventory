@@ -930,7 +930,7 @@ class ArangoGraphDB(GraphDB):
             )
             return graph, vertex_collection, edge_collection
 
-        def create_node_indexes(nodes: VertexCollection):
+        def create_node_indexes(nodes: VertexCollection) -> None:
             node_idxes = {idx["name"]: idx for idx in cast(List[Json], nodes.indexes())}
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_nodes_ref_id" not in node_idxes:
@@ -950,12 +950,7 @@ class ArangoGraphDB(GraphDB):
                     name="kinds_id_name_ctime",
                 )
 
-        def create_update_collection_indexes(
-            nodes: VertexCollection, progress: StandardCollection, node_history: StandardCollection
-        ) -> None:
-            # node indexes ------
-            create_node_indexes(nodes)
-
+        def create_update_collection_indexes(progress: StandardCollection, node_history: StandardCollection) -> None:
             # progress indexes ------
             progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
             if "parent_nodes" not in progress_idxes:
@@ -1039,11 +1034,12 @@ class ArangoGraphDB(GraphDB):
         if snapshot:
             # since the snapshots are immutable, we don't in_progress or node_history collections
             # we only create the indexes on the vertex collection
-            await create_node_indexes(vertex)
+            create_node_indexes(vertex)
         else:
             in_progress = await create_collection(self.in_progress)
             node_history_collection = await create_collection(self.node_history)
-            create_update_collection_indexes(vertex, in_progress, node_history_collection)
+            create_node_indexes(vertex)
+            create_update_collection_indexes(in_progress, node_history_collection)
 
         for edge_type in EdgeTypes.all:
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
