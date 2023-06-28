@@ -8,7 +8,7 @@ from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache, reduce
 from threading import Event, Lock
-from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar, Sequence
+from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
 
 from attr import evolve, field
 from attrs import define
