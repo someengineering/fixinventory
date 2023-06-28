@@ -180,6 +180,8 @@ class AwsResource(BaseResource, ABC):
                     **kwargs,
                 )
                 cls.collect(items, builder)
+                if builder.config.collect_usage_metrics:
+                    cls.collect_usage_metrics(builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -199,6 +201,11 @@ class AwsResource(BaseResource, ABC):
         for js in json:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: do nothing
+        pass
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -473,6 +480,7 @@ class GraphBuilder:
         global_instance_types: Optional[Dict[str, Any]] = None,
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
+        last_run: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -485,6 +493,7 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
+        self.last_run = last_run
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

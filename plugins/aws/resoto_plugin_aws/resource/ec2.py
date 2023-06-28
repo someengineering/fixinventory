@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
 
@@ -1042,6 +1042,47 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
                 builder.add_node(instance, instance_in)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        instances = {
+            instance.id: instance
+            for instance in builder.nodes(clazz=AwsEc2Instance)
+            if instance.region().id == builder.region.id
+        }
+        queries = []
+        now = utc()
+        if builder.last_run:
+            start = builder.last_run
+            delta = now - start
+        else:
+            delta = timedelta(hours=1)
+            start = now - delta
+        for instance_id in instances:
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="CPUUtilization",
+                    namespace="AWS/EC2",
+                    period=delta,
+                    ref_id=instance_id,
+                    stat="Average",
+                    unit="Percent",
+                    InstanceId=instance_id,
+                )
+            )
+
+        metric_name = {"CPUUtilization": "cpu"}
+
+        stat_name = {
+            "Average": "avg",
+        }
+
+        for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+            instance = instances.get(query.ref_id)
+            metric_value = next(iter(metric.metric_values), None)
+
+            if instance and metric_value:
+                instance._metrics[metric_name[query.metric_name]] = {stat_name[query.stat]: metric_value}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

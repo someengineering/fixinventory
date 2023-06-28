@@ -341,6 +341,8 @@ class AwsCloudwatchQuery:
     period: timedelta
     ref_id: str
     metric_id: str
+    stat: str = "Sum"
+    unit: str = "Count"
 
     def to_json(self) -> Json:
         return {
@@ -352,8 +354,8 @@ class AwsCloudwatchQuery:
                     "Dimensions": [{"Name": k, "Value": v} for k, v in self.dimensions],
                 },
                 "Period": int((self.period.total_seconds() / 60) * 60),  # round to the next 60 seconds
-                "Stat": "Sum",
-                "Unit": "Count",
+                "Stat": self.stat,
+                "Unit": self.unit,
             },
             "ReturnData": True,
         }
@@ -365,6 +367,8 @@ class AwsCloudwatchQuery:
         period: timedelta,
         ref_id: str,
         metric_id: Optional[str] = None,
+        stat: str = "Sum",
+        unit: str = "Count",
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
@@ -377,6 +381,8 @@ class AwsCloudwatchQuery:
             dimensions=tuple(dimensions.items()),
             ref_id=ref_id,
             metric_id=rid,
+            stat=stat,
+            unit=unit,
         )
 
 

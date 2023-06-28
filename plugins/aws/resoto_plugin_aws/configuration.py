@@ -240,6 +240,10 @@ class AwsConfig:
             "If false, the error is logged and the resource is skipped."
         },
     )
+    collect_usage_metrics: Optional[bool] = field(
+        default=True,
+        metadata={"description": "Collect resource usage metrics via CloudWatch, enabled by default"},
+    )
 
     @staticmethod
     def from_json(json: Json) -> "AwsConfig":
