@@ -548,7 +548,7 @@ def test_yaml(person_model: Model) -> None:
 
 
 @given(json_object_gen)
-@settings(max_examples=200, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=list(HealthCheck))
 def test_yaml_generation(js: Json) -> None:
     kind = ComplexKind("test", [], [])
     assert js == yaml.safe_load(kind.create_yaml(js))
