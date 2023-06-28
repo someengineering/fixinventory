@@ -111,7 +111,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def collect_mount_points(fs: AwsEfsFileSystem) -> None:
             for mt_raw in builder.client.list(
                 service_name, "describe-mount-targets", "MountTargets", FileSystemId=fs.id
@@ -124,6 +124,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, collect_mount_points, instance)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):

@@ -108,7 +108,7 @@ class AwsKinesisStream(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_tags(stream: AwsKinesisStream) -> None:
             tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
             if tags:
@@ -126,6 +126,7 @@ class AwsKinesisStream(AwsResource):
                 if stream := AwsKinesisStream.from_api(stream_descriptions[0], builder):
                     builder.add_node(stream)
                     builder.submit_work(service_name, add_tags, stream)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

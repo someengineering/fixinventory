@@ -446,7 +446,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         for js in json:
             if api_instance := cls.from_api(js, builder):
                 api_instance.set_arn(
@@ -497,6 +497,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                                     resource_instance.resource_methods[method] = gm
                         builder.add_node(resource_instance, resource)
                         builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:

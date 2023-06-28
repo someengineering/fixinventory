@@ -150,7 +150,7 @@ class AwsCloudTrail(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def collect_trail(trail_arn: str) -> None:
             if trail_raw := builder.client.get(service_name, "get-trail", "Trail", Name=trail_arn):
                 if instance := AwsCloudTrail.from_api(trail_raw, builder):
@@ -211,6 +211,7 @@ class AwsCloudTrail(AwsResource):
                 builder.add_deferred_edge(
                     builder.region, EdgeType.default, f'is(aws_cloud_trail) and reported.arn=="{arn}"'
                 )
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if s3 := self.trail_s3_bucket_name:

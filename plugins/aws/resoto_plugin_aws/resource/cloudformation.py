@@ -216,7 +216,7 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
     @classmethod
-    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def stack_set_instances(ss: AwsCloudFormationStackSet) -> None:
             for sij in builder.client.list(service_name, "list-stack-instances", "Summaries", StackSetName=ss.name):
                 if sii := AwsCloudFormationStackInstanceSummary.from_api(sij, builder):
@@ -233,6 +233,8 @@ class AwsCloudFormationStackSet(AwsResource):
             if stack_set := cls.from_api(js, builder):
                 builder.add_node(stack_set, js)
                 builder.submit_work(service_name, stack_set_instances, stack_set)
+
+        return []
 
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)

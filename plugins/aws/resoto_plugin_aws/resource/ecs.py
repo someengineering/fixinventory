@@ -891,7 +891,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         for task_def_arn in json:
             response = builder.client.get(
                 service_name,
@@ -906,6 +906,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 task_definition["tags"] = tags
                 if task_definition_instance := cls.from_api(task_definition, builder):
                     builder.add_node(task_definition_instance, task_def_arn)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
@@ -1580,7 +1581,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         for cluster_arn in json:
             cluster = builder.client.list(
                 service_name,
@@ -1653,6 +1654,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                         if provider_instance := AwsEcsCapacityProvider.from_api(provider, builder):
                             builder.add_node(provider_instance, provider)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=provider_instance)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable

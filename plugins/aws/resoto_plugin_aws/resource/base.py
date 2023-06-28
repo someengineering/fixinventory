@@ -8,7 +8,7 @@ from concurrent.futures import Executor, Future
 from datetime import datetime, timezone
 from functools import lru_cache, reduce
 from threading import Event, Lock
-from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar, Sequence
 
 from attr import evolve, field
 from attrs import define
@@ -179,7 +179,9 @@ class AwsResource(BaseResource, ABC):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                cls.collect(items, builder)
+                resources = cls.collect(items, builder)
+                if builder.config.collect_usage_metrics:
+                    cls.collect_usage_metrics(resources, builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -190,15 +192,23 @@ class AwsResource(BaseResource, ABC):
                 raise
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> Sequence[AwsResource]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
+        result = []
         for js in json:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
+                result.append(instance)
+        return result
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], collected: Sequence[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: do nothing
+        pass
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -473,6 +483,7 @@ class GraphBuilder:
         global_instance_types: Optional[Dict[str, Any]] = None,
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
+        last_run: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -485,6 +496,7 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
+        self.last_run = last_run
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

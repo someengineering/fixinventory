@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from datetime import datetime, timedelta
+from typing import ClassVar, Dict, Optional, List, Type, Any, Sequence
 import copy
 
 from attrs import define, field
@@ -352,7 +352,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
                 # only store this information in the builder, not directly in the graph
@@ -361,6 +361,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
                 builder.global_instance_types[it.safe_name] = it
+        return []
 
 
 # endregion
@@ -436,7 +437,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     volume_throughput: Optional[int] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
@@ -479,6 +480,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 if vt := builder.volume_type(instance.volume_type):
                     builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
+
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1036,12 +1039,52 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_maintenance_options: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> Sequence[AwsResource]:
+        result = []
         for reservation in json:
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
                 builder.add_node(instance, instance_in)
+                result.append(instance)
+        return result
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], collected: Sequence[AwsResource], builder: GraphBuilder) -> None:
+        instances = {instance.id: instance for instance in collected if isinstance(instance, AwsEc2Instance)}
+        queries = []
+        now = utc()
+        if builder.last_run:
+            start = builder.last_run
+            delta = now - start
+        else:
+            delta = timedelta(hours=1)
+            start = now - delta
+        for instance_id in instances:
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="CPUUtilization",
+                    namespace="AWS/EC2",
+                    period=delta,
+                    ref_id=instance_id,
+                    stat="Average",
+                    unit="Percent",
+                    InstanceId=instance_id,
+                )
+            )
+
+        metric_name = {"CPUUtilization": "cpu"}
+
+        stat_name = {
+            "Average": "avg",
+        }
+
+        for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+            instance = instances.get(query.ref_id)
+            metric_value = next(iter(metric.metric_values), None)
+
+            if instance and metric_value:
+                instance._metrics[metric_name[query.metric_name]] = {stat_name[query.stat]: metric_value}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

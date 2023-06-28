@@ -90,7 +90,7 @@ class AwsBeanstalkApplication(AwsResource):
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_tags(app: AwsBeanstalkApplication) -> None:
             tags = builder.client.list(
                 service_name,
@@ -106,6 +106,7 @@ class AwsBeanstalkApplication(AwsResource):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
+        return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
@@ -274,7 +275,7 @@ class AwsBeanstalkEnvironment(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_tags(env: AwsBeanstalkEnvironment) -> None:
             tags = builder.client.list(
                 service_name,
@@ -306,6 +307,8 @@ class AwsBeanstalkEnvironment(AwsResource):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, add_resources, instance)
+
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(
