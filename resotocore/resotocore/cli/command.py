@@ -5569,6 +5569,8 @@ class DbCommand(CLICommand, PreserveOutputFormat):
     Takes the result of a search expression and synchronizes the data to an SQL database.
     All matching tables will be updated with the result of the search expression.
 
+    If invoked without a search command, the entire graph will be exported.
+
     By default, the database tables will be updated only for the data that is returned by the search expression.
     This behaviour can be overridden by using the `--complete-schema` flag, which will export the entire schema
     always. This is useful when you want to have a consistent database scheme, no matter which data gets exported.
@@ -5606,7 +5608,17 @@ class DbCommand(CLICommand, PreserveOutputFormat):
     > db sync sqlite --database resoto.db --drop-existing
 
     # Sync the complete graph to a postgresql database
-    > db sync postgresql --host my.db --port 5432 --database resoto --user ci --password bombproof
+    > db sync postgresql --host localhost --port 5432 --database resoto --user ci --password bombproof
+
+    # Sync the complete graph to a mariadb database
+    > db sync mariadb --host localhost --port 3306 --user root --password pw --database test
+
+    # Sync the complete graph to a mysql database
+    > db sync mysql --host localhost --port 3306 --user root --password pw --database test
+
+    # Sync the complete graph to a snowflake database
+    > db sync snowflake --host localhost --port 3306 --user root --password pw --database test
+      --arg warehouse=compute_wh --arg role=accountadmin
 
     # Select a subset of data and sync it to a sqlite database
     > search --with-edges is(graph_root) -[0:2]-> | db sync sqlite --database resoto.db
@@ -5618,7 +5630,22 @@ class DbCommand(CLICommand, PreserveOutputFormat):
         return "db"
 
     def args_info(self) -> ArgsInfo:
-        return {}
+        return {
+            "sync": [
+                ArgInfo(
+                    expects_value=False,
+                    possible_values=["mariadb", "mysql", "postgresql", "sqlite", "snowflake"],
+                    help_text="<db-engine>",
+                ),
+                ArgInfo(name="--host", expects_value=True, help_text="host-name"),
+                ArgInfo(name="--port", expects_value=True, help_text="port"),
+                ArgInfo(name="--user", expects_value=True, help_text="username"),
+                ArgInfo(name="--password", expects_value=True, help_text="password"),
+                ArgInfo(name="--database", expects_value=True, help_text="database"),
+                ArgInfo(name="--arg", can_occur_multiple_times=True, expects_value=True, help_text="key=value"),
+                ArgInfo(name="--batch-size", expects_value=True, help_text="count"),
+            ]
+        }
 
     def info(self) -> str:
         return "Synchronizes data to an SQL database."
