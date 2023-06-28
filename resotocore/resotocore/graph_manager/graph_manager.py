@@ -139,7 +139,7 @@ class GraphManager(Service):
         destination: GraphName,
         replace_existing: bool,
         validate_name: bool = True,
-        snapshot: bool = False,
+        to_snapshot: bool = False,
     ) -> GraphName:
         if not self.lock:
             raise RuntimeError("GraphManager has not been started")
@@ -153,10 +153,10 @@ class GraphManager(Service):
                     await self.delete(destination)
                 else:
                     raise ValueError(f"Destination graph {destination} already exists")
-            return await self._copy_graph(source, destination, validate_name, snapshot)
+            return await self._copy_graph(source, destination, validate_name, to_snapshot)
 
     async def _copy_graph(
-        self, source: GraphName, destination: GraphName, validate_name: bool = True, snapshot: bool = False
+        self, source: GraphName, destination: GraphName, validate_name: bool = True, to_snapshot: bool = False
     ) -> GraphName:
         destination = GraphName(_compress_timestamps(destination))
 
@@ -168,7 +168,7 @@ class GraphManager(Service):
 
         source_db = self.db_access.get_graph_db(source, no_check=True)
 
-        await source_db.copy_graph(destination, snapshot)
+        await source_db.copy_graph(destination, to_snapshot)
 
         source_model_db = await self.db_access.get_graph_model_db(source)
         destination_model_db = await self.db_access.get_graph_model_db(destination)
@@ -188,7 +188,7 @@ class GraphManager(Service):
         time = utc_str(timestamp, date_format=UTC_Date_Format_short)
         check_graph_name(label)
         snapshot_name = GraphName(f"snapshot-{source}-{label}-{time}")
-        return await self.copy(source, snapshot_name, replace_existing=False, validate_name=False, snapshot=True)
+        return await self.copy(source, snapshot_name, replace_existing=False, validate_name=False, to_snapshot=True)
 
     async def delete(self, graph_name: GraphName) -> None:
         await self.db_access.delete_graph(graph_name)

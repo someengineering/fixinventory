@@ -155,7 +155,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def copy_graph(self, to_graph: GraphName, snapshot: bool = False) -> "GraphDB":
+    async def copy_graph(self, to_graph: GraphName, to_snapshot: bool = False) -> "GraphDB":
         pass
 
 
@@ -911,7 +911,7 @@ class ArangoGraphDB(GraphDB):
             # ignore if the root not is already created
             return None
 
-    async def create_update_schema(self, init_with_data: bool = True, snapshot: bool = False) -> None:
+    async def create_update_schema(self, init_with_data: bool = True, to_snapshot: bool = False) -> None:
         db = self.db
 
         async def create_update_graph(
@@ -1031,7 +1031,7 @@ class ArangoGraphDB(GraphDB):
 
         vertex = db.graph(self.name).vertex_collection(self.vertex_name)
 
-        if snapshot:
+        if to_snapshot:
             # since the snapshots are immutable, we don't in_progress or node_history collections
             # we only create the indexes on the vertex collection
             create_node_indexes(vertex)
@@ -1049,7 +1049,7 @@ class ArangoGraphDB(GraphDB):
         if init_with_data:
             await self.insert_genesis_data()
 
-    async def copy_graph(self, to_graph: GraphName, snapshot: bool = False) -> GraphDB:
+    async def copy_graph(self, to_graph: GraphName, to_snapshot: bool = False) -> GraphDB:
         if await self.db.has_graph(to_graph):
             raise ValueError(f"Graph {to_graph} already exists")
 
@@ -1057,8 +1057,8 @@ class ArangoGraphDB(GraphDB):
 
         # collection creation can't be a part of a transaction so we do that first
         # we simply reuse the existing create_update_schema method but do not insert any genesis data
-        async def create_new_collections(new_db: ArangoGraphDB, snapshot: bool) -> None:
-            await new_db.create_update_schema(init_with_data=False, snapshot=snapshot)
+        async def create_new_collections(new_db: ArangoGraphDB, to_snapshot: bool) -> None:
+            await new_db.create_update_schema(init_with_data=False, to_snapshot=to_snapshot)
 
         # we want to have a consistent snapshot view of the graph
         async def copy_data() -> None:
@@ -1117,7 +1117,7 @@ class ArangoGraphDB(GraphDB):
                 write=[new_vertex, new_default_edge, new_delete_edge],
             )
 
-        await create_new_collections(new_graph_db, snapshot=snapshot)
+        await create_new_collections(new_graph_db, to_snapshot=to_snapshot)
         await copy_data()
 
         return cast(GraphDB, new_graph_db)
@@ -1371,9 +1371,9 @@ class EventGraphDB(GraphDB):
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()
 
-    async def copy_graph(self, to_graph: GraphName, snapshot: bool = False) -> GraphDB:
+    async def copy_graph(self, to_graph: GraphName, to_snapshot: bool = False) -> GraphDB:
         await self.event_sender.core_event(
             CoreEvent.GraphCopied,
             {"graph": self.graph_name, "to_graph": to_graph},
         )
-        return await self.real.copy_graph(to_graph, snapshot=snapshot)
+        return await self.real.copy_graph(to_graph, to_snapshot=to_snapshot)
