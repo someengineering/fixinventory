@@ -8,9 +8,9 @@ from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
 from resotocore.db.db_access import DbAccess
-from resotocore.types import EdgeType
 from resotocore.ids import GraphName
 from resotocore.model.model import Model, Kind, ComplexKind, Property
+from resotocore.types import EdgeType
 from resotocore.util import exist
 
 log = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class ModelHandler(ABC):
     @abstractmethod
-    async def load_model(self, graph_name: GraphName) -> Model:
+    async def load_model(self, graph_name: GraphName, *, force: bool = False) -> Model:
         pass
 
     @abstractmethod
@@ -97,8 +97,8 @@ class ModelHandlerDB(ModelHandler):
         self.__loaded_model: Dict[GraphName, Model] = {}
         self.default_legacy_graph_name = GraphName("resoto")
 
-    async def load_model(self, graph_name: GraphName) -> Model:
-        if model := self.__loaded_model.get(graph_name):
+    async def load_model(self, graph_name: GraphName, *, force: bool = False) -> Model:
+        if not force and (model := self.__loaded_model.get(graph_name)) is not None:
             return model
         else:
             graph_model_db = await self.db_access.get_graph_model_db(graph_name)

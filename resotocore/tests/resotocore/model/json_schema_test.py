@@ -4,8 +4,8 @@ from resotocore.model.model import Model
 
 def test_schema(foo_model: Model) -> None:
     schema = json_schema(foo_model)
-    # The resource is one of the possible 9 types
-    assert len(schema["oneOf"]) == 9
+    # The resource is one of the possible 8 types
+    assert len(schema["oneOf"]) == 8
 
     # base type - all properties are defined, additional properties are allowed
     assert schema["$defs"]["base"]["required"] == ["identifier", "kind"]

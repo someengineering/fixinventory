@@ -8,6 +8,7 @@ from asyncio import iscoroutine
 from datetime import timedelta
 from enum import Enum
 from functools import reduce
+from pathlib import Path
 from textwrap import dedent
 from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
 
@@ -21,10 +22,10 @@ from resotocore.cli import JsGen, T, Sink
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.error import CLIParseError
-from resotocore.query.template_expander import render_template
-from resotocore.query.model import Query, variable_to_absolute, PathRoot
-from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
+from resotocore.query.model import Query, variable_to_absolute, PathRoot
+from resotocore.query.template_expander import render_template
+from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
 from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
@@ -56,6 +57,29 @@ l_or_r_curly_dp = string("{") | string("}")
 
 # use this property name as reference to self when defined via .
 self_name = "self_" + uuid_str()
+
+
+@define(frozen=True)
+class FilePath:
+    user: Path
+    local: Path
+
+    def json(self) -> Json:
+        return {"user_path": str(self.user), "local_path": str(self.local)}
+
+    @staticmethod
+    def from_path(in_path: JsonElement) -> FilePath:
+        if isinstance(in_path, str):
+            p = Path(in_path)
+            return FilePath(Path(p.name), p.expanduser().absolute())
+        elif isinstance(in_path, dict) and "user_path" in in_path and "local_path" in in_path:
+            return FilePath(Path(in_path["user_path"]), Path(in_path["local_path"]).expanduser().absolute())
+        else:
+            raise ValueError(f"Invalid file path: {in_path}")
+
+    @staticmethod
+    def user_local(user: Union[str, Path], local: Union[str, Path]) -> FilePath:
+        return FilePath(Path(user), Path(local).expanduser().absolute())
 
 
 @define(frozen=True)
@@ -325,6 +349,16 @@ class CLICommand(ABC):
     @abstractmethod
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         pass
+
+    @staticmethod
+    def get_from(name: str, kind: Type[T], kwargs: Dict[str, Any]) -> Optional[T]:
+        if (kd := kwargs.get(name)) and isinstance(kd, kind):
+            return kd
+        return None
+
+    @staticmethod
+    def get_previous_command(kwargs: Dict[str, Any]) -> Optional[ExecutableCommand]:
+        return CLICommand.get_from("previous_command", ExecutableCommand, kwargs)
 
 
 @define(order=True, hash=True, frozen=True)

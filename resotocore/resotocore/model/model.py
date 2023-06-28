@@ -5,28 +5,29 @@ import re
 import sys
 import textwrap
 from abc import ABC, abstractmethod
-from functools import lru_cache
-
-from attrs import define
 from datetime import datetime, timezone, date
+from functools import lru_cache
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable
+from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, TypeVar
 
 import yaml
+from attrs import define
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
 from networkx import MultiDiGraph
 from parsy import regex, string, Parser
 
-from resotolib.core.model_check import check_overlap_for
-from resotolib.durations import duration_parser, DurationRe
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
-from resotolib.utils import is_env_var_string
+from resotocore.compat import remove_suffix
 from resotocore.model.transform_kind_convert import converters
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, EdgeType
 from resotocore.util import if_set, utc, duration, first
-from resotocore.compat import remove_suffix
+from resotolib.core.model_check import check_overlap_for
+from resotolib.durations import duration_parser, DurationRe
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.utils import is_env_var_string
+
+T = TypeVar("T")
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -76,7 +77,7 @@ class SyntheticProperty:
     """
 
 
-@define(order=True, hash=True, frozen=True)
+@define(order=True, hash=True, eq=True)
 class Property:
     name: str
     kind: str
@@ -90,6 +91,13 @@ class Property:
 
     def resolve(self, model: Dict[str, Kind]) -> Kind:
         return Property.parse_kind(self.kind, model)
+
+    def meta(self, name: str, clazz: Type[T]) -> Optional[T]:
+        meta = self.metadata
+        return v if meta is not None and (v := meta.get(name)) is not None and isinstance(v, clazz) else None
+
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return self.meta(name, clazz) or default
 
     @staticmethod
     def parse_kind(name: str, model: Dict[str, Kind]) -> Kind:
@@ -107,7 +115,7 @@ class Property:
         @make_parser
         def array_parser() -> Parser:
             inner = yield dictionary_parser | simple_kind_parser
-            brackets = yield bracket_parser.times(1, float("inf"))
+            brackets = yield bracket_parser.times(1, cast(int, float("inf")))
             return ArrayKind.mk_array(inner, len(brackets))
 
         @make_parser
@@ -205,6 +213,9 @@ class Kind(ABC):
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__ if isinstance(other, Kind) else False
+
+    def __hash__(self) -> int:
+        return hash(self.fqn)
 
     def coerce(self, value: JsonElement, **kwargs: bool) -> JsonElement:
         coerced = self.coerce_if_required(value, **kwargs)
@@ -826,6 +837,7 @@ class ComplexKind(Kind):
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
+        self.__resolved_bases: Dict[str, ComplexKind] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__property_by_path: List[ResolvedProperty] = []
@@ -852,6 +864,7 @@ class ComplexKind(Kind):
                     base: Kind = model[base_name]
                     base.resolve(model)
                     if isinstance(base, ComplexKind):
+                        self.__resolved_bases[base_name] = base
                         self.__resolved_kinds.update(base.__resolved_kinds)
                         self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
@@ -870,6 +883,8 @@ class ComplexKind(Kind):
                 and self.bases == other.bases
                 and self.allow_unknown_props == other.allow_unknown_props
                 and self.successor_kinds == other.successor_kinds
+                and self.aggregate_root == other.aggregate_root
+                and self.metadata == other.metadata
             )
         else:
             return False
@@ -899,11 +914,47 @@ class ComplexKind(Kind):
     def resolved_properties(self) -> List[ResolvedProperty]:
         return self.__property_by_path
 
+    def resolved_bases(self) -> Dict[str, ComplexKind]:
+        return self.__resolved_bases
+
     def all_props(self) -> List[Property]:
         return self.__all_props
 
+    def all_props_with_kind(self) -> List[Tuple[Property, Kind]]:
+        return [(a, self.property_kind_of(a.name, any_kind)) for a in self.__all_props]
+
     def synthetic_props(self) -> List[ResolvedProperty]:
         return self.__synthetic_props
+
+    def transitive_complex_types(self, with_bases: bool = True, with_properties: bool = True) -> List[ComplexKind]:
+        result: Dict[str, ComplexKind] = {}
+        visited: Set[str] = set()
+
+        def add_bases(ck: ComplexKind) -> None:
+            for fqn, base in ck.resolved_bases().items():
+                result[fqn] = base
+
+        def add_props(ck: ComplexKind) -> None:
+            for prop in ck.resolved_properties():
+                if isinstance(prop.kind, ComplexKind):
+                    result[prop.kind.fqn] = prop.kind
+                    in_hierarchy(prop.kind)
+
+        def in_hierarchy(ck: ComplexKind) -> None:
+            if ck.fqn in visited:
+                return
+            visited.add(ck.fqn)
+            result[ck.fqn] = ck
+            if with_bases:
+                add_bases(ck)
+            if with_properties:
+                add_props(ck)
+            for base in ck.resolved_bases().values():
+                if not base.is_root():
+                    in_hierarchy(base)
+
+        in_hierarchy(self)
+        return list(result.values())
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
@@ -1296,9 +1347,27 @@ class Model:
     def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
         # Create a list of kinds that have changed to the existing model
         to_update = []
+
+        def merge_metadata(update: ComplexKind, existing: ComplexKind) -> None:
+            """
+            Merge metadata of complex kinds and their properties.
+            ATM: we only merge the len property of string kinds.
+            """
+            existing_props: Dict[str, Property] = {prop.name: prop for prop in existing.properties}
+            for prop in update.properties:
+                existing_prop = existing_props.get(prop.name)
+                meta = prop.metadata or {}
+                # take the maximum of all lengths ever seen
+                if existing_prop is not None and existing_prop.meta("len", int) is not None:
+                    meta["len"] = max(prop.meta_get("len", int, 0), existing_prop.meta_get("len", int, 0))
+                    prop.metadata = meta
+
         for elem in kinds:
-            existing_props = self.kinds.get(elem.fqn)
-            if elem.fqn not in predefined_kinds_by_name and (not existing_props or existing_props != elem):
+            existing_elem = self.kinds.get(elem.fqn)
+            # merge old and new metadata for complex kinds and their properties
+            if isinstance(elem, ComplexKind) and isinstance(existing_elem, ComplexKind):
+                merge_metadata(elem, existing_elem)
+            if elem.fqn not in predefined_kinds_by_name and (not existing_elem or existing_elem != elem):
                 to_update.append(elem)
 
         # Short circuit, if there are no changes

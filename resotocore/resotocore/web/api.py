@@ -67,6 +67,7 @@ from resotocore.cli.model import (
     CLI,
     AliasTemplate,
     InfraAppAlias,
+    FilePath,
 )
 from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
@@ -920,9 +921,9 @@ class Api:
             task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), None, task_id
-        )
+        mh = self.model_handler
+        max_wait = self.config.graph_update.merge_max_wait_time()
+        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, None, task_id)
         return web.json_response(to_js(info))
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -935,9 +936,9 @@ class Api:
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        info = await merge_graph_process(
-            db, self.event_sender, self.config, it, self.config.graph_update.merge_max_wait_time(), batch_id, task_id
-        )
+        mh = self.model_handler
+        max_wait = self.config.graph_update.merge_max_wait_time()
+        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, batch_id, task_id)
         return web.json_response(to_json(info), headers={"BatchId": batch_id})
 
     async def list_batches(self, request: Request) -> StreamResponse:
@@ -1285,16 +1286,19 @@ class Api:
 
     @staticmethod
     async def multi_file_response(
-        cmd_line: ParsedCommandLine, results: AsyncIterator[str], boundary: str, response: StreamResponse
+        cmd_line: ParsedCommandLine, results: AsyncIterator[JsonElement], boundary: str, response: StreamResponse
     ) -> None:
         async for file_path in results:
-            path = Path(file_path)
-            if not (path.exists() and path.is_file()):
+            path = FilePath.from_path(file_path)
+            if not (path.local.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
-            with open(path.absolute(), "rb") as content:
+            with open(path.local, "rb") as content:
                 with MultipartWriter(boundary=boundary) as mp:
                     pl = BufferedReaderPayload(
-                        content, content_type="application/octet-stream", filename=path.name, headers=cmd_line.envelope
+                        content,
+                        content_type="application/octet-stream",
+                        filename=path.user.name,
+                        headers=cmd_line.envelope | {"file-path": str(path.user)},
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)

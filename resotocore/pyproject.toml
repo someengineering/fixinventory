@@ -28,6 +28,7 @@ dependencies = [
     "posthog",
     "python-arango",
     "python-dateutil",
+    "resotodatalink>=1.2.0",
     "resotoui",
     "rich",
     "toolz",
@@ -37,24 +38,28 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "mypy",
-    "flake8",
-    "pep8-naming",
-    "tox",
-    "coverage",
-    "pylint",
-    "black",
-    "toml",
-    "pip-tools",
+
+extra = [
+    "resotodatalink[extra]"
 ]
+
 test = [
-    "pytest",
-    "pytest-cov",
-    "pytest-asyncio",
+    "black",
+    "coverage",
+    "flake8",
     "hypothesis",
-    "resotoclient",
+    "mypy",
+    "pep8-naming",
+    "pip-tools",
+    "pylint",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "resotoclient>=1.5.0",
+    "toml",
+    "tox",
 ]
+
 
 [project.scripts]
 resotocore = "resotocore.__main__:main"

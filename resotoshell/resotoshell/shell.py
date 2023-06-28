@@ -2,6 +2,7 @@ import os.path
 import re
 import shutil
 import sys
+from pathlib import Path
 from subprocess import call
 from tempfile import TemporaryDirectory
 from typing import Dict, Union, Optional, Tuple
@@ -135,12 +136,18 @@ class Shell:
     ) -> None:
         # store the file from the part inside the given directory
         async def store_file(response: Union[HttpResponse, aiohttp.BodyPartReader], directory: str) -> Tuple[str, str]:
-            disposition = response.headers.get("Content-Disposition", "")
-            match = re.findall('filename="([^"]+)"', disposition)
-            filename = parse.unquote(match[0]) if match else "out"
-            if "/" in filename:
-                raise ValueError(f"Invalid filename: {filename}")
-            filepath = os.path.join(directory, filename)
+            if (filepath := response.headers.get("file-path")) is not None:
+                path = Path(filepath).expanduser().absolute()
+                filepath = str(path)
+                filename = path.name
+            else:  # fall back to content-disposition
+                disposition = response.headers.get("Content-Disposition", "")
+                match = re.findall('filename="([^"]+)"', disposition)
+                filename = parse.unquote(match[0]) if match else "out"
+                if "/" in filename:
+                    raise ValueError(f"Invalid filename: {filename}")
+                filepath = os.path.join(directory, filename)
+            Path(filepath).parent.mkdir(parents=True, exist_ok=True)
             with open(filepath, "wb+") as fh:
                 if isinstance(response, HttpResponse):
                     content = await response.payload_bytes()

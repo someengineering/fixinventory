@@ -1,7 +1,8 @@
 import json
+from copy import deepcopy
 from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import Type, Any, Union, cast, List
+from typing import Type, Any, Union, cast, List, Dict
 
 import pytest
 import yaml
@@ -335,6 +336,31 @@ def test_property_path_on_model(person_model: Model) -> None:
     assert person_model.kind_by_path("tags.owner") == person_model["string"]
 
 
+def test_metadata_on_update(person_model: Model) -> None:
+    person = cast(ComplexKind, person_model["Person"])
+    person_23 = deepcopy(person)
+    person_23.properties = [evolve(prop, metadata={"len": 23}) for prop in person_23.properties]
+    person_42 = deepcopy(person)
+    person_42.properties = [evolve(prop, metadata={"size": 23, "len": 42}) for prop in person_42.properties]
+
+    def check_person(model: Model, expect_prop: Dict[str, int]) -> None:
+        for pp in cast(ComplexKind, model["Person"]).properties:
+            assert pp.metadata == expect_prop
+
+    # we update the model and expect the metadata to be set
+    updated = person_model.update_kinds([person_23])
+    check_person(updated, {"len": 23})
+    # when we update the updated model with the original person, we expect the metadata to be unchanged (not removed)
+    updated = updated.update_kinds([person])
+    check_person(updated, {"len": 23})
+    # when we update the updated model with the person_with_bla, we expect the metadata to be updated
+    updated = updated.update_kinds([person_42])
+    check_person(updated, {"len": 42, "size": 23})
+    # when we update the updated model with the person_with_foo, we expect the len property to keep as is
+    updated = updated.update_kinds([person_23])
+    check_person(updated, {"len": 42})
+
+
 def test_update(person_model: Model) -> None:
     updated = person_model.update_kinds([StringKind("Foo")])
     assert updated["Foo"].fqn == "Foo"
@@ -548,7 +574,7 @@ def test_yaml(person_model: Model) -> None:
 
 
 @given(json_object_gen)
-@settings(max_examples=200, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=list(HealthCheck))
 def test_yaml_generation(js: Json) -> None:
     kind = ComplexKind("test", [], [])
     assert js == yaml.safe_load(kind.create_yaml(js))

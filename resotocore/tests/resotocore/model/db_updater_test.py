@@ -12,10 +12,11 @@ from resotocore.db.model import GraphUpdate
 from resotocore.dependencies import empty_config
 from resotocore.ids import TaskId
 from resotocore.model.db_updater import merge_graph_process
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
 from tests.resotocore.db.graphdb_test import create_graph
+from tests.resotocore.model import ModelHandlerStatic
 
 
 @pytest.mark.asyncio
@@ -48,8 +49,9 @@ async def test_merge_process(
             "utf-8",
         )
 
+    model_handler = ModelHandlerStatic(Model.from_kinds(foo_kinds))
     result = await merge_graph_process(
-        graph_db, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
+        graph_db, model_handler, event_sender, config, iterator(), timedelta(seconds=30), None, TaskId("test_task_123")
     )
     assert result == GraphUpdate(112, 1, 0, 212, 0, 0)
     elem: Json = graph_db.db.collection("deferred_outer_edges").get("test_task_123")  # type: ignore

@@ -9,17 +9,18 @@ import os.path
 import re
 import shutil
 import tarfile
-import tempfile
 from abc import abstractmethod, ABC
 from argparse import Namespace
 from asyncio import Future, Task
+
+# noinspection PyProtectedMember
 from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
 from datetime import timedelta, datetime
 from functools import partial, lru_cache
 from itertools import dropwhile, chain
-from tempfile import TemporaryDirectory
+from pathlib import Path
 from typing import (
     Dict,
     List,
@@ -34,19 +35,26 @@ from typing import (
     cast,
     Set,
     FrozenSet,
+    Union,
 )
 from urllib.parse import urlparse, urlunparse
 
 import aiofiles
 import jq
 import yaml
+from aiofiles.tempfile import TemporaryDirectory
 from aiohttp import ClientTimeout, JsonPayload, BasicAuth
 from aiostream import stream, pipe
 from aiostream.aiter_utils import is_async_iterable
 from aiostream.core import Stream
+from attr import evolve
 from attrs import define, field
 from dateutil import parser as date_parser
 from parsy import Parser, string
+from resotoclient.models import Model as RCModel, Kind as RCKind
+from resotodatalink import EngineConfig
+from resotodatalink.batch_stream import BatchStream
+from resotodatalink.collect_plugins import update_sql
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
@@ -66,6 +74,7 @@ from resotocore.cli import (
     key_values_parser,
     parse_time_or_delta,
     strip_quotes,
+    key_value_parser,
 )
 from resotocore.cli.dependencies import CLIDependencies
 from resotocore.cli.model import (
@@ -85,6 +94,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
     EntityProvider,
+    FilePath,
 )
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
@@ -120,6 +130,10 @@ from resotocore.query.model import (
     AggregateVariableName,
     AggregateVariableCombined,
     Aggregate,
+    AggregateVariable,
+    Part,
+    NavigateUntilLeaf,
+    IsTerm,
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser
 from resotocore.query.template_expander import tpl_props_p
@@ -138,6 +152,7 @@ from resotocore.util import (
     set_value_in_path,
     restart_service,
     combine_optional,
+    value_in_path,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -165,6 +180,10 @@ from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
 
 log = logging.getLogger(__name__)
+
+
+def deps(command: CLICommand) -> CLIDependencies:
+    return cast(CLIDependencies, command.dependencies)
 
 
 # A SearchCLIPart is a command that can be used on the command line.
@@ -3461,57 +3480,56 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             "info": [],
         }
 
-    async def create_backup(self, arg: Optional[str]) -> AsyncIterator[str]:
-        temp_dir: str = tempfile.mkdtemp()
+    async def create_backup(self, arg: Optional[str]) -> AsyncIterator[JsonElement]:
         maybe_proc: Optional[Process] = None
-        try:
-            db_config = cast(CLIDependencies, self.dependencies).config.db
-            if not shutil.which("arangodump"):
-                raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
-            # fmt: off
-            process = await asyncio.create_subprocess_exec(
-                "arangodump",
-                "--progress", "false",  # do not show progress
-                "--include-system-collections", "true",  # graphs are considered a system collection
-                "--threads", "8",  # default is 2
-                "--log.level", "error",  # only print error messages
-                "--output-directory", temp_dir,  # directory to write to
-                "--overwrite", "true",  # required for existing directories
-                "--server.endpoint", db_config.server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if db_config.no_ssl_verify else "true",
-                "--server.database", db_config.database,
-                "--server.username", db_config.username,
-                "--server.password", db_config.password,
-                "--configuration", "none",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            # fmt: on
-            stdout_b, stderr_b = await process.communicate()
-            maybe_proc = process
-            code = await process.wait()
-            stdout = stdout_b.decode() if stdout_b else ""
-            stderr = stderr_b.decode() if stderr_b else ""
+        async with TemporaryDirectory() as temp_dir:
+            try:
+                db_config = cast(CLIDependencies, self.dependencies).config.db
+                if not shutil.which("arangodump"):
+                    raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
+                # fmt: off
+                process = await asyncio.create_subprocess_exec(
+                    "arangodump",
+                    "--progress", "false",  # do not show progress
+                    "--include-system-collections", "true",  # graphs are considered a system collection
+                    "--threads", "8",  # default is 2
+                    "--log.level", "error",  # only print error messages
+                    "--output-directory", temp_dir,  # directory to write to
+                    "--overwrite", "true",  # required for existing directories
+                    "--server.endpoint", db_config.server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if db_config.no_ssl_verify else "true",
+                    "--server.database", db_config.database,
+                    "--server.username", db_config.username,
+                    "--server.password", db_config.password,
+                    "--configuration", "none",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                stdout_b, stderr_b = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                stdout = stdout_b.decode() if stdout_b else ""
+                stderr = stderr_b.decode() if stderr_b else ""
 
-            if code == 0:
-                log.debug(f"arangodump: out={stdout}, err={stderr}.")
-                files = os.listdir(temp_dir)
-                name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
-                backup = os.path.join(temp_dir, name)
-                # create an unzipped tarfile (all of the entries are already gzipped)
-                with tarfile.open(backup, "w") as tar:
-                    for file in files:
-                        await run_async(tar.add, os.path.join(temp_dir, file), file)
-                yield backup
-            else:
-                log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
-                raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
-        finally:
-            if maybe_proc and maybe_proc.returncode is None:
-                with suppress(Exception):
-                    maybe_proc.kill()
-                    await asyncio.sleep(5)
-            shutil.rmtree(temp_dir)
+                if code == 0:
+                    log.debug(f"arangodump: out={stdout}, err={stderr}.")
+                    files = os.listdir(temp_dir)
+                    name = re.sub("[^a-zA-Z0-9_\\-.]", "_", arg) if arg else f'backup_{utc().strftime("%Y%m%d_%H%M")}'
+                    backup = os.path.join(temp_dir, name)
+                    # create an unzipped tarfile (all of the entries are already gzipped)
+                    with tarfile.open(backup, "w") as tar:
+                        for file in files:
+                            await run_async(tar.add, os.path.join(temp_dir, file), file)
+                    yield FilePath.user_local(arg or name, backup).json()
+                else:
+                    log.error(f"Could not create backup: {code}. out={stdout}, err={stderr}")
+                    raise CLIExecutionError(f"Creation of backup failed! Response from process:\n{stderr}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
 
     async def restore_backup(self, backup_file: Optional[str], ctx: CLIContext) -> AsyncIterator[str]:
         if not backup_file:
@@ -3521,51 +3539,50 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         if not shutil.which("arangorestore"):
             raise CLIParseError("db_restore expects the executable `arangorestore` to be in path!")
 
-        temp_dir: str = tempfile.mkdtemp()
-        maybe_proc: Optional[Process] = None
-        try:
-            # extract tar file
-            with tarfile.open(backup_file, "r") as tar:
-                tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
+        async with TemporaryDirectory() as temp_dir:
+            maybe_proc: Optional[Process] = None
+            try:
+                # extract tar file
+                with tarfile.open(backup_file, "r") as tar:
+                    tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
-            # fmt: off
-            db_conf = cast(CLIDependencies, self.dependencies).config.db
-            process = await asyncio.create_subprocess_exec(
-                "arangorestore",
-                "--progress", "false",  # do not show progress
-                "--include-system-collections", "true",  # graphs are considered a system collection
-                "--threads", "8",  # default is 2
-                "--log.level", "error",  # only print error messages
-                "--input-directory", temp_dir,  # directory to write to
-                "--overwrite", "true",  # required for existing db collections
-                "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
-                "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
-                "--server.database", db_conf.database,
-                "--server.username", db_conf.username,
-                "--server.password", db_conf.password,
-                "--configuration", "none",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            # fmt: on
-            stdout_b, stderr_b = await process.communicate()
-            maybe_proc = process
-            code = await process.wait()
-            stdout = stdout_b.decode() if stdout_b else ""
-            stderr = stderr_b.decode() if stderr_b else ""
+                # fmt: off
+                db_conf = cast(CLIDependencies, self.dependencies).config.db
+                process = await asyncio.create_subprocess_exec(
+                    "arangorestore",
+                    "--progress", "false",  # do not show progress
+                    "--include-system-collections", "true",  # graphs are considered a system collection
+                    "--threads", "8",  # default is 2
+                    "--log.level", "error",  # only print error messages
+                    "--input-directory", temp_dir,  # directory to write to
+                    "--overwrite", "true",  # required for existing db collections
+                    "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
+                    "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
+                    "--server.database", db_conf.database,
+                    "--server.username", db_conf.username,
+                    "--server.password", db_conf.password,
+                    "--configuration", "none",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                # fmt: on
+                stdout_b, stderr_b = await process.communicate()
+                maybe_proc = process
+                code = await process.wait()
+                stdout = stdout_b.decode() if stdout_b else ""
+                stderr = stderr_b.decode() if stderr_b else ""
 
-            if code == 0:
-                log.debug(f"arangorestore: out={stdout}, err={stderr}.")
-                yield "Database has been restored successfully!"
-            else:
-                log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
-                raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
-        finally:
-            if maybe_proc and maybe_proc.returncode is None:
-                with suppress(Exception):
-                    maybe_proc.kill()
-                    await asyncio.sleep(5)
-            shutil.rmtree(temp_dir)
+                if code == 0:
+                    log.debug(f"arangorestore: out={stdout}, err={stderr}.")
+                    yield "Database has been restored successfully!"
+                else:
+                    log.error(f"Could not restore backup: {code}. out={stdout}, err={stderr}")
+                    raise CLIExecutionError(f"Restore of backup failed! Response from process:\n{stderr}")
+            finally:
+                if maybe_proc and maybe_proc.returncode is None:
+                    with suppress(Exception):
+                        maybe_proc.kill()
+                        await asyncio.sleep(5)
 
         log.info("Restore process complete. Restart the service.")
         yield "Since all data has changed in the database eventually, this service needs to be restarted!"
@@ -3590,7 +3607,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         if len(parts) >= 2 and parts[0] == "backup" and parts[1] == "create":
             rest = parts[2:]
 
-            def backup() -> AsyncIterator[str]:
+            def backup() -> AsyncIterator[JsonElement]:
                 return self.create_backup(" ".join(rest) if rest else None)
 
             return CLISource.single(backup, MediaType.FilePath)
@@ -3598,7 +3615,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
             backup_file = parts[2]
 
-            def restore() -> AsyncIterator[str]:
+            def restore() -> AsyncIterator[JsonElement]:
                 return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
             return CLISource.single(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
@@ -3642,10 +3659,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         return [ArgInfo(expects_value=True, value_hint="file", help_text="file to write to")]
 
     @staticmethod
-    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[str]:
-        temp_dir: str = tempfile.mkdtemp()
-        path = os.path.join(temp_dir, file_name)
-        try:
+    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+        async with TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, file_name)
             async with aiofiles.open(path, "w") as f:
                 async with in_stream.stream() as streamer:
                     async for out in streamer:
@@ -3654,14 +3670,21 @@ class WriteCommand(CLICommand, NoTerminalOutput):
                         else:
                             raise AttributeError("No output format is defined! Consider to use the format command.")
             yield path
-        finally:
-            shutil.rmtree(temp_dir)
+
+    @staticmethod
+    async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+        async with in_stream.stream() as streamer:
+            async for out in streamer:
+                yield evolve(FilePath.from_path(out), user=Path(file_name)).json()
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         if arg is None:
             raise AttributeError("write requires a filename to write to")
-        defined_arg: str = arg
-        return CLIFlow(lambda in_stream: self.write_result_to_file(in_stream, defined_arg), MediaType.FilePath)
+        if (ex := self.get_previous_command(kwargs)) and ex.action.produces == MediaType.FilePath:
+            fn = self.already_file_stream
+        else:
+            fn = self.write_result_to_file
+        return CLIFlow(lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath)
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
@@ -4402,14 +4425,11 @@ class ConfigsCommand(CLICommand):
             yield f"Config {cfg_id} has been deleted."
 
         async def send_file(content: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, "config.yaml")
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, "config.yaml")
                 async with aiofiles.open(path, "w") as f:
                     await f.write(content)
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def set_config(cfg_id: ConfigId, updates: List[Tuple[str, JsonElement]]) -> AsyncIterator[JsonElement]:
             cfg = await self.dependencies.config_handler.get_config(cfg_id)
@@ -4664,7 +4684,7 @@ class CertificateCommand(CLICommand):
             key, cert = cast(CLIDependencies, self.dependencies).cert_handler.create_key_and_cert(
                 common_name, dns_names, ip_addresses, days_valid
             )
-            with TemporaryDirectory() as tmpdir:
+            async with TemporaryDirectory() as tmpdir:
                 key_file = os.path.join(tmpdir, f"{common_name}.key")
                 cert_file = os.path.join(tmpdir, f"{common_name}.crt")
                 write_cert_to_file(cert, cert_file, rename=False)
@@ -4978,14 +4998,11 @@ class AppsCommand(CLICommand):
             yield f"App {app_name} version {manifest.version} installed successfully"
 
         async def send_file(content: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, "manifest.yaml")
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, "manifest.yaml")
                 async with aiofiles.open(path, "w") as f:
                     await f.write(content)
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def edit_app(app_name: InfraAppName) -> AsyncIterator[str]:
             # Editing a config is a two-step process:
@@ -5453,15 +5470,12 @@ class GraphCommand(CLICommand):
             yield f"Graph {graph_name} deleted."
 
         async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
-            temp_dir: str = tempfile.mkdtemp()
-            path = os.path.join(temp_dir, file_name)
-            try:
+            async with TemporaryDirectory() as temp_dir:
+                path = os.path.join(temp_dir, file_name)
                 async with aiofiles.open(path, "w") as f:
                     async for line in export_lines:
                         await f.write(line + "\n")
                 yield path
-            finally:
-                shutil.rmtree(temp_dir)
 
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
@@ -5544,6 +5558,247 @@ class GraphCommand(CLICommand):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
+class DbCommand(CLICommand, PreserveOutputFormat):
+    """
+    ```
+    db sync <db-engine> --host <host> --port <port> --user <user> --password <password> --database <database>
+                   --arg key=value --arg key2=value2
+                   --complete-schema --drop-existing-tables --batch-size <batch-size>
+    ```
+
+    Takes the result of a search expression and synchronizes the data to an SQL database.
+    All matching tables will be updated with the result of the search expression.
+
+    If invoked without a search command, the entire graph will be exported.
+
+    By default, the database tables will be updated only for the data that is returned by the search expression.
+    This behaviour can be overridden by using the `--complete-schema` flag, which will export the entire schema
+    always. This is useful when you want to have a consistent database scheme, no matter which data gets exported.
+
+    The `--drop-existing-tables` can come in handy, if you only want to export a subset of data from a graph and
+    make sure everything from the last export is cleaned up. This flag does not have any effect in combination with
+    `--complete-schema`.
+
+    ## Parameters
+
+    - `db-engine` - The database engine to use. The following engines are supported:
+        - postgresql
+        - mariadb
+        - mysql
+        - sqlite
+        - snowflake
+    - `--host` - The host of the database server.
+    - `--port` - The port of the database server.
+    - `--user` - The user to use for authentication.
+    - `--password` - The password to use for authentication.
+    - `--database` - The database to use.
+    - `--arg` - A key-value pair that will be passed to the connection driver.
+                This property can be used multiple times.
+    - `--batch-size` - The number of rows that will be inserted in a single batch.
+
+    ## Options
+
+    - `--complete-schema` - Export the entire schema, no matter which data gets exported.
+    - `--drop-existing-tables` - Drop all tables that are not part of the current export.
+
+    ## Examples
+
+    ```
+    # Sync the complete graph to a sqlite database
+    > db sync sqlite --database resoto.db --drop-existing
+
+    # Sync the complete graph to a postgresql database
+    > db sync postgresql --host localhost --port 5432 --database resoto --user ci --password bombproof
+
+    # Sync the complete graph to a mariadb database
+    > db sync mariadb --host localhost --port 3306 --user root --password pw --database test
+
+    # Sync the complete graph to a mysql database
+    > db sync mysql --host localhost --port 3306 --user root --password pw --database test
+
+    # Sync the complete graph to a snowflake database
+    > db sync snowflake --host localhost --port 3306 --user root --password pw --database test
+      --arg warehouse=compute_wh --arg role=accountadmin
+
+    # Select a subset of data and sync it to a sqlite database
+    > search --with-edges is(graph_root) -[0:2]-> | db sync sqlite --database resoto.db
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "db"
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "sync": [
+                ArgInfo(
+                    expects_value=False,
+                    possible_values=["mariadb", "mysql", "postgresql", "sqlite", "snowflake"],
+                    help_text="<db-engine>",
+                ),
+                ArgInfo(name="--host", expects_value=True, help_text="host-name"),
+                ArgInfo(name="--port", expects_value=True, help_text="port"),
+                ArgInfo(name="--user", expects_value=True, help_text="username"),
+                ArgInfo(name="--password", expects_value=True, help_text="password"),
+                ArgInfo(name="--database", expects_value=True, help_text="database"),
+                ArgInfo(name="--arg", can_occur_multiple_times=True, expects_value=True, help_text="key=value"),
+                ArgInfo(name="--batch-size", expects_value=True, help_text="count"),
+            ]
+        }
+
+    def info(self) -> str:
+        return "Synchronizes data to an SQL database."
+
+    async def list_kinds_of_query(
+        self, query: Optional[Query], graph_name: GraphName, model: Model
+    ) -> List[ComplexKind]:
+        assert query is not None, "No query provided, not sure what to synchronize?"
+        assert query.aggregate is None, "Aggregates are not supported for synchronization"
+        db = deps(self).db_access.get_graph_db(graph_name)
+        aggregate_by_kind = Aggregate(
+            [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
+            [AggregateFunction("sum", 1)],
+        )
+        query = evolve(query, aggregate=aggregate_by_kind)
+        async with await db.search_aggregation(QueryModel(query, model)) as cursor:
+            return [
+                kind
+                async for elem in cursor
+                if (
+                    (kind_name := value_in_path(elem, ["group", "kind"]))
+                    and (kind := model.get(kind_name))
+                    and isinstance(kind, ComplexKind)
+                )
+            ]
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        in_source_position = kwargs.get("position") == 0
+        db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
+
+        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[JsonElement]:
+            async with TemporaryDirectory() as temp_dir:
+                # optional: path of the output file
+                file_output: Optional[Path] = Path(temp_dir) / "db" if p.db == "sqlite" else None
+                db_string = f"{db_lookup.get(p.db, p.db)}://"
+                if p.user:
+                    db_string += p.user
+                    if p.password:
+                        db_string += f":{p.password}"
+                    db_string += "@"
+                if p.host:
+                    db_string += p.host
+                    if p.port:
+                        db_string += f":{p.port}"
+                if p.database:
+                    database = str(file_output) if file_output is not None else p.database
+                    db_string += f"/{database}"
+                db_string += "?" + "&".join([f"{k}={v}" for pl in p.arg for k, v in pl])
+                db_config = EngineConfig(db_string, p.batch_size)
+
+                sync_fn = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables)
+                if maybe_stream is not None:  # search | db sync
+                    await sync_fn(query=ctx.query, in_stream=maybe_stream)
+                else:
+                    resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+                    query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
+                    graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
+                    async with await graph_db.search_graph_gen(
+                        QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
+                    ) as cursor:
+                        await sync_fn(query=query, in_stream=stream.iterate(cursor))
+
+                yield FilePath.user_local(p.database, file_output).json() if file_output else "Database synchronized."
+
+        async def database_synchronize(
+            engine_config: EngineConfig,
+            complete_model: bool,
+            drop_existing_tables: bool,
+            query: Optional[Query],
+            in_stream: Stream,
+        ) -> None:
+            resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+
+            if complete_model:
+                complex_kinds = resoto_model.complex_kinds()
+                kinds = list(resoto_model.kinds.values())
+            else:
+                # only export the kinds that are exported by this query
+                complex_kinds = await self.list_kinds_of_query(query, ctx.graph_name, resoto_model)
+                tct = [
+                    ck
+                    for kind in complex_kinds
+                    for ck in kind.transitive_complex_types(with_bases=True, with_properties=True)
+                ]
+                sk = [kind for kind in resoto_model.kinds.values() if isinstance(kind, SimpleKind)]
+                kinds = [*tct, *sk]
+
+            kind_by_name = {k.fqn: from_js(to_js(k), RCKind) for k in kinds}
+            rcm = RCModel(kind_by_name)
+
+            edges = {
+                (kind.fqn, succ)
+                for kind in complex_kinds
+                for succ_lists in kind.successor_kinds.values()
+                for succ in succ_lists
+                if succ in kind_by_name
+            }
+
+            # lookup map for edges: id -> kind. Assumption: when an edge is created, the nodes already passed
+            kind_by_id: Dict[str, str] = {}
+
+            def key_fn(node: Json) -> Union[str, Tuple[str, str]]:
+                assert isinstance(node, dict) and node.get("type") in ("edge", "node"), (
+                    f"Expected a JSON object. Don't know how to handle >{node}<.\n"
+                    "Execute `help db` to get more information on how to use this command."
+                )
+                if node["type"] == "edge":
+                    fr = node["from"]
+                    to = node["to"]
+                    return kind_by_id[fr], kind_by_id[to]
+                else:  # node
+                    kind_by_id[node["id"]] = node["reported"]["kind"]
+                    return cast(str, node["reported"]["kind"])
+
+            async with in_stream.stream() as streamer:
+                batched = BatchStream(streamer, key_fn, engine_config.batch_size, engine_config.batch_size * 10)
+                await update_sql(
+                    engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
+                )
+
+        args = arg.split(maxsplit=1) if arg else []
+        if len(args) == 2 and args[0] == "sync":
+            parser = NoExitArgumentParser()
+            parser.add_argument("db", type=str)
+            parser.add_argument("--host", type=str)
+            parser.add_argument("--port", type=int)
+            parser.add_argument("--user", type=str)
+            parser.add_argument("--password", type=str)
+            parser.add_argument("--database", type=str)
+            parser.add_argument("--arg", type=key_value_parser.parse, nargs="+", action="append", default=[])
+            parser.add_argument("--complete-schema", action="store_true")
+            parser.add_argument("--drop-existing-tables", action="store_true")
+            parser.add_argument("--batch-size", type=int, default=1000)
+            parsed_args = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
+            produces = MediaType.FilePath if parsed_args.db == "sqlite" else MediaType.Json
+            if in_source_position:
+                # in this position we fall back to exporting the whole graph
+                return CLISource.single(
+                    fn=partial(sync_database_result, parsed_args, None),
+                    envelope={CLIEnvelope.no_history: "yes"},
+                    produces=produces,
+                )
+            else:
+                # sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
+                return CLIFlow(
+                    fn=partial(sync_database_result, parsed_args),
+                    envelope={CLIEnvelope.no_history: "yes"},
+                    produces=produces,
+                )
+        else:
+            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+
+
 def all_commands(d: CLIDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -5554,6 +5809,7 @@ def all_commands(d: CLIDependencies) -> List[CLICommand]:
         CleanCommand(d, "action"),
         ConfigsCommand(d, "setup", allowed_in_source_position=True),
         CountCommand(d, "search"),
+        DbCommand(d, "action", allowed_in_source_position=True),
         DescendantsPart(d, "search"),
         DumpCommand(d, "format"),
         EchoCommand(d, "misc", allowed_in_source_position=True),

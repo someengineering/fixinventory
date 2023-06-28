@@ -168,10 +168,10 @@ install_dev() {
 
 install_resoto() {
     echo "Installing resoto"
-    if [ -f "requirements.txt" ]; then
-        pip install -q -r "requirements.txt"
+    if [ -f "requirements-extra.txt" ]; then
+        pip install -q -r "requirements-extra.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/resoto/main/requirements-extra.txt"
     fi
     local resoto_components=(resotolib resotocore resotoshell resotoworker resotometrics)
     for component in "${resoto_components[@]}"; do

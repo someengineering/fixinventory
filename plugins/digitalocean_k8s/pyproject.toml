@@ -31,9 +31,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "mypy",
-]
+test = [ "mypy" ]
 
 [project.entry-points."resoto.plugins"]
 digitalocean_k8s_collector = "resoto_plugin_digitalocean_k8s:DigitalOceanK8sCollectorPlugin"

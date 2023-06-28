@@ -101,11 +101,11 @@ def test_with_query_with_limit(foo_model: Model, graph_db: GraphDB) -> None:
 
 
 def test_context(foo_model: Model, graph_db: GraphDB) -> None:
-    query = 'is(foo) and inner[*].{name=true and inner[*].{name=true}} and parents[*].{some_int="23"}'
+    query = 'is(foo) and nested[*].{name=true and inner[*].{name=true}} and parents[*].{some_int="23"}'
     aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     # query unfolds all nested loops
     assert aql == (
-        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  FOR pre0 IN TO_ARRAY(m0.reported.inner) "
+        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  FOR pre0 IN TO_ARRAY(m0.reported.nested) "
         "FOR pre1 IN TO_ARRAY(pre0.inner)  "
         "FOR pre2 IN TO_ARRAY(m0.reported.parents) "
         "FILTER ((@b0 IN m0.kinds) and ((pre0.name == @b1) and (pre1.name == @b2))) and (pre2.some_int == @b3) "

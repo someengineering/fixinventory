@@ -7,17 +7,29 @@ import re
 from collections import namedtuple, defaultdict
 from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
-from attrs import define
 
+from attrs import define
 from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
 
-from resotocore.model.model import Model, Kind, AnyKind, ComplexKind, ArrayKind, DateTimeKind, DictionaryKind
-from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
-from resotocore.types import Json, EdgeType
 from resotocore.ids import NodeId
-from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
+from resotocore.model.model import (
+    Model,
+    Kind,
+    AnyKind,
+    ComplexKind,
+    ArrayKind,
+    DateTimeKind,
+    DictionaryKind,
+    StringKind,
+    Property,
+    SimpleKind,
+    DateKind,
+    DurationKind,
+)
+from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
-
+from resotocore.types import Json, EdgeType, JsonElement
+from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +174,38 @@ class GraphBuilder:
         else:
             raise AttributeError(f"Format not understood! Got {json.dumps(js)} which is neither vertex nor edge.")
 
+    def __update_property_size(self, kind: Kind, element: JsonElement) -> None:
+        def prop_size(prop: Property, pk: Kind, part: JsonElement) -> None:
+            if part is None:
+                pass
+            elif isinstance(pk, (StringKind, DateTimeKind, DateKind, DurationKind)) and isinstance(part, str):
+                str_len = len(part)
+                if prop.metadata is None:
+                    prop.metadata = {}
+                size = prop.metadata.get("len", 0)
+                prop.metadata["len"] = max(size, str_len)
+            elif isinstance(pk, SimpleKind):
+                pass
+            elif isinstance(pk, ArrayKind) and isinstance(part, list) and isinstance(pk.inner, StringKind):
+                for elem in part:
+                    prop_size(prop, pk.inner, elem)
+            elif isinstance(pk, ArrayKind) and isinstance(part, list):
+                for elem in part:
+                    self.__update_property_size(pk.inner, elem)
+            elif isinstance(pk, DictionaryKind) and isinstance(part, dict) and isinstance(pk.value_kind, StringKind):
+                for elem in part.values():
+                    prop_size(prop, pk.value_kind, elem)
+            elif isinstance(pk, DictionaryKind) and isinstance(part, dict):
+                for k, v in part.items():
+                    self.__update_property_size(pk.key_kind, k)
+                    self.__update_property_size(pk.value_kind, v)
+            elif isinstance(pk, ComplexKind) and isinstance(part, dict):
+                for cp, cpk in pk.all_props_with_kind():
+                    prop_size(cp, cpk, part.get(cp.name, None))
+
+        if isinstance(kind, ComplexKind) and isinstance(element, dict):
+            prop_size(Property("root", kind.fqn), kind, element)
+
     def add_node(
         self,
         node_id: NodeId,
@@ -193,6 +237,8 @@ class GraphBuilder:
             flat=flat,
             replace=replace | metadata.get("replace", False) is True if metadata else False,
         )
+        # update property sizes
+        self.__update_property_size(kind, reported)
 
     def add_edge(self, from_node: str, to_node: str, edge_type: EdgeType) -> None:
         self.edges += 1

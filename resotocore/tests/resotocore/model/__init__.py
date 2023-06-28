@@ -1,4 +1,4 @@
-from typing import Optional, List, Set
+from typing import Optional, List, Set, Any
 
 from resotocore.model.model import Model, Kind
 from resotocore.model.model_handler import ModelHandler
@@ -10,7 +10,7 @@ class ModelHandlerStatic(ModelHandler):
     def __init__(self, model: Model):
         self.model = model
 
-    async def load_model(self, graph_name: GraphName) -> Model:
+    async def load_model(self, graph_name: GraphName, **kwargs: Any) -> Model:
         return self.model
 
     async def uml_image(

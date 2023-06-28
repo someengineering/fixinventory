@@ -220,6 +220,7 @@ def foo_kinds() -> List[Kind]:
             Property("kind", "string", required=True),
             Property("ctime", "datetime"),
         ],
+        aggregate_root=False,
     )
     foo = ComplexKind(
         "foo",
@@ -234,7 +235,7 @@ def foo_kinds() -> List[Kind]:
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},
     )
-    inner = ComplexKind("inner", [], [Property("name", "string"), Property("inner", "inner[]")])
+    inner = ComplexKind("inner", [], [Property("name", "string"), Property("inner", "inner[]")], aggregate_root=False)
     bla = ComplexKind(
         "bla",
         ["base"],
@@ -247,11 +248,11 @@ def foo_kinds() -> List[Kind]:
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},
     )
-    cloud = ComplexKind("cloud", ["foo"], [])
-    account = ComplexKind("account", ["foo"], [])
-    region = ComplexKind("region", ["foo"], [])
-    parent = ComplexKind("parent", ["foo"], [])
-    child = ComplexKind("child", ["foo"], [])
+    cloud = ComplexKind("cloud", ["foo"], [Property("nick", "string")])
+    account = ComplexKind("account", ["foo"], [Property("nick", "string")])
+    region = ComplexKind("region", ["foo"], [Property("nick", "string")])
+    parent = ComplexKind("parent", ["foo"], [Property("nick", "string")])
+    child = ComplexKind("child", ["foo"], [Property("nick", "string")])
     some_complex = ComplexKind(
         "some_complex",
         ["base"],

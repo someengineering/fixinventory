@@ -333,7 +333,7 @@ def test_special_cases() -> None:
 
 
 @given(query)
-@settings(max_examples=200, suppress_health_check=HealthCheck.all())
+@settings(max_examples=200, suppress_health_check=list(HealthCheck))
 def test_generated_query(q: Query) -> None:
     assert str(q) == str(parse_query(str(q)))
 
