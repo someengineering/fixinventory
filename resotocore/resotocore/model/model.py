@@ -77,7 +77,7 @@ class SyntheticProperty:
     """
 
 
-@define(order=True, hash=True)
+@define(order=True, hash=True, eq=True)
 class Property:
     name: str
     kind: str
@@ -883,6 +883,8 @@ class ComplexKind(Kind):
                 and self.bases == other.bases
                 and self.allow_unknown_props == other.allow_unknown_props
                 and self.successor_kinds == other.successor_kinds
+                and self.aggregate_root == other.aggregate_root
+                and self.metadata == other.metadata
             )
         else:
             return False
@@ -1345,9 +1347,27 @@ class Model:
     def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
         # Create a list of kinds that have changed to the existing model
         to_update = []
+
+        def merge_metadata(update: ComplexKind, existing: ComplexKind) -> None:
+            """
+            Merge metadata of complex kinds and their properties.
+            ATM: we only merge the len property of string kinds.
+            """
+            existing_props: Dict[str, Property] = {prop.name: prop for prop in existing.properties}
+            for prop in update.properties:
+                existing = existing_props.get(prop.name)
+                meta = prop.metadata or {}
+                # take the maximum of all lengths ever seen
+                if existing is not None and existing.meta("len", int) is not None:
+                    meta["len"] = max(prop.meta_get("len", int, 0), existing.meta_get("len", int, 0))
+                    prop.metadata = meta
+
         for elem in kinds:
-            existing_props = self.kinds.get(elem.fqn)
-            if elem.fqn not in predefined_kinds_by_name and (not existing_props or existing_props != elem):
+            existing_elem = self.kinds.get(elem.fqn)
+            # merge old and new metadata for complex kinds and their properties
+            if isinstance(elem, ComplexKind) and isinstance(existing_elem, ComplexKind):
+                merge_metadata(elem, existing_elem)
+            if elem.fqn not in predefined_kinds_by_name and (not existing_elem or existing_elem != elem):
                 to_update.append(elem)
 
         # Short circuit, if there are no changes
