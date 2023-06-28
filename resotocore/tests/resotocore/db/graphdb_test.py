@@ -624,7 +624,7 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
 
     # check snapshots
     snapshot_db_name = GraphName("snapshot_" + graph_db.name)
-    snapshot_db = await graph_db.copy_graph(snapshot_db_name, snapshot=True)
+    snapshot_db = await graph_db.copy_graph(snapshot_db_name, to_snapshot=True)
     assert snapshot_db.name == snapshot_db_name
     await validate(graph_db.name, snapshot_db.name)
 
