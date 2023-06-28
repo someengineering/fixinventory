@@ -23,7 +23,7 @@ from resotocore.cli import is_node
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
 from resotocore.cli.dependencies import CLIDependencies
-from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI
+from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI, FilePath
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
@@ -656,10 +656,10 @@ async def test_system_backup_command(cli: CLI) -> None:
         async with res.stream() as streamer:
             only_one = True
             async for s in streamer:
-                assert isinstance(s, str)
-                assert os.path.exists(s)
+                path = FilePath.from_path(s)
+                assert path.local.exists()
                 # backup should have size between 30k and 500k (adjust size if necessary)
-                assert 30000 < os.path.getsize(s) < 500000
+                assert 30000 < path.local.stat().st_size < 500000
                 assert only_one
                 only_one = False
 
@@ -682,7 +682,8 @@ async def test_system_restore_command(cli: CLI, tmp_directory: str) -> None:
     async def move_backup(res: Stream) -> None:
         async with res.stream() as streamer:
             async for s in streamer:
-                os.rename(s, backup)
+                path = FilePath.from_path(s)
+                os.rename(path.local, backup)
 
     await cli.execute_cli_command("system backup create", move_backup)
     ctx = CLIContext(uploaded_files={"backup": backup})
@@ -1279,8 +1280,9 @@ async def test_db(cli: CLI) -> None:
         async def check(in_: Stream) -> None:
             async with in_.stream() as streamer:
                 async for s in streamer:
+                    path = FilePath.from_path(s)
                     # open sqlite database
-                    conn = sqlite3.connect(s)
+                    conn = sqlite3.connect(path.local)
                     c = conn.cursor()
                     tables = {
                         row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()
@@ -1319,8 +1321,8 @@ async def test_db(cli: CLI) -> None:
     await sync_and_check(f"db sync sqlite --complete-schema --database {db_file}", expected_table_count=11)
 
     # support write after db sync (not required for simple files, but we want to support s3 etc. in the future)
-    name = await sync_and_check(f"db sync sqlite --database {db_file} | write out.db")
-    assert name.endswith("out.db")
+    path_result = await sync_and_check(f"db sync sqlite --database {db_file} | write out.db")
+    assert FilePath.from_path(path_result).user.name == "out.db"
 
     # search with aggregation does not export anything
     with pytest.raises(Exception):
