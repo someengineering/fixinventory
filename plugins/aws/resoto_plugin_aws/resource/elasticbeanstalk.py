@@ -307,7 +307,6 @@ class AwsBeanstalkEnvironment(AwsResource):
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, add_resources, instance)
 
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(
             self,

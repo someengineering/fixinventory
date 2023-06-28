@@ -486,7 +486,6 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
 
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:
             builder.dependant_node(
