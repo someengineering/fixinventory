@@ -1,6 +1,6 @@
 [project]
 name = "resotocore"
-version = "3.5.4"
+version = "3.6.0"
 authors = [{name="Some Engineering Inc."}]
 description = "Keeps all the things."
 license = {file="LICENSE"}
