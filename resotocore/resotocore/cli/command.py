@@ -5469,7 +5469,7 @@ class GraphCommand(CLICommand):
             await self.dependencies.graph_manager.delete(graph_name)
             yield f"Graph {graph_name} deleted."
 
-        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
+        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[JsonElement]:
             async with TemporaryDirectory() as temp_dir:
                 path = os.path.join(temp_dir, uuid_str())
                 async with aiofiles.open(path, "w") as f:

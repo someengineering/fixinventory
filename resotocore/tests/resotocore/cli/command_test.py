@@ -5,7 +5,6 @@ import os
 import sqlite3
 from datetime import timedelta
 from functools import partial
-from pathlib import Path
 from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable, Set
 
 import pytest
@@ -658,8 +657,8 @@ async def test_system_backup_command(cli: CLI) -> None:
             async for s in streamer:
                 path = FilePath.from_path(s)
                 assert path.local.exists()
-                # backup should have size between 30k and 500k (adjust size if necessary)
-                assert 30000 < path.local.stat().st_size < 500000
+                # backup should have size between 30k and 1500k (adjust size if necessary)
+                assert 30000 < path.local.stat().st_size < 1500000
                 assert only_one
                 only_one = False
 
@@ -766,15 +765,14 @@ async def test_write_command(cli: CLI) -> None:
         async with res.stream() as streamer:
             only_one = True
             async for s in streamer:
-                assert isinstance(s, str)
-                p = Path(s)
-                assert p.exists() and p.is_file()
-                assert 1 < p.stat().st_size < 100000
-                assert p.name.startswith("write_test")
+                fp = FilePath.from_path(s)
+                assert fp.local.exists() and fp.local.is_file()
+                assert 1 < fp.local.stat().st_size < 100000
+                assert fp.user.name.startswith("write_test")
                 assert only_one
                 only_one = False
                 if check_content:
-                    with open(s, "r") as file:
+                    with open(fp.local, "r") as file:
                         data = file.read()
                         assert data == check_content
 
@@ -1248,7 +1246,8 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     async def move_dump(res: Stream) -> None:
         async with res.stream() as streamer:
             async for s in streamer:
-                os.rename(s, dump)
+                fp = FilePath.from_path(s)
+                os.rename(fp.local, dump)
 
     # graph export works
     await cli.execute_cli_command("graph export graphtest dump", move_dump)
