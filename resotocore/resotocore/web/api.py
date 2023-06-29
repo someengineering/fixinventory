@@ -1293,12 +1293,16 @@ class Api:
             if not (path.local.is_file()):
                 raise HTTPNotFound(text=f"No file with this path: {file_path}")
             with open(path.local, "rb") as content:
+                headers = cmd_line.envelope
+                # only add path header if the user path is more than a file name
+                if path.user.name != str(path.user):
+                    headers = {**headers, "file-path": str(path.user)}
                 with MultipartWriter(boundary=boundary) as mp:
                     pl = BufferedReaderPayload(
                         content,
                         content_type="application/octet-stream",
                         filename=path.user.name,
-                        headers=cmd_line.envelope | {"file-path": str(path.user)},
+                        headers=headers,
                     )
                     mp.append_payload(pl)
                     await mp.write(response, close_boundary=False)

@@ -3661,7 +3661,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
     @staticmethod
     async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
         async with TemporaryDirectory() as temp_dir:
-            path = os.path.join(temp_dir, file_name)
+            path = os.path.join(temp_dir, uuid_str())
             async with aiofiles.open(path, "w") as f:
                 async with in_stream.stream() as streamer:
                     async for out in streamer:
@@ -3669,7 +3669,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
                             await f.write(out + "\n")
                         else:
                             raise AttributeError("No output format is defined! Consider to use the format command.")
-            yield path
+            yield FilePath.user_local(user=file_name, local=path).json()
 
     @staticmethod
     async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
@@ -5469,13 +5469,13 @@ class GraphCommand(CLICommand):
             await self.dependencies.graph_manager.delete(graph_name)
             yield f"Graph {graph_name} deleted."
 
-        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[str]:
+        async def write_result_to_file(export_lines: AsyncIterator[str], file_name: str) -> AsyncIterator[JsonElement]:
             async with TemporaryDirectory() as temp_dir:
-                path = os.path.join(temp_dir, file_name)
+                path = os.path.join(temp_dir, uuid_str())
                 async with aiofiles.open(path, "w") as f:
                     async for line in export_lines:
                         await f.write(line + "\n")
-                yield path
+                yield FilePath.user_local(file_name, path).json()
 
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
