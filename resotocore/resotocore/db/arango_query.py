@@ -2,10 +2,11 @@ import json
 import logging
 import re
 from collections import defaultdict
-from attrs import evolve
+from textwrap import dedent
 from typing import Union, List, Tuple, Any, Optional, Dict, Set
 
 from arango.typings import Json
+from attrs import evolve
 
 from resotocore.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Rating
@@ -38,6 +39,7 @@ from resotocore.query.model import (
     FulltextTerm,
     Limit,
     ContextTerm,
+    WithUsage,
 )
 from resotocore.util import first, set_value_in_path, exist
 
@@ -400,6 +402,38 @@ def query_string(
             query_part += f"LET {filtered_out} = {reverse}({for_stmt}{return_stmt})"
             return filtered_out
 
+        def with_usage(in_crsr: str, usage: WithUsage, term: Term, limit: Optional[Limit]) -> str:
+            nonlocal query_part
+
+            # split the term and create a filter statement for everything before the usage predicates
+            before_term, after_term = term.split_by_usage()
+
+            # the limit is applied here, when the after term does not filter at all
+            after_filter_cursor = filter_statement(in_crsr, before_term, limit=limit if after_term.is_all else None)
+
+            # add the usage predicates
+            usage_crs = next_crs("with_usage")
+            start = next_bind_var_name()
+            end = next_bind_var_name()
+            bind_vars[start] = usage.start_from_now().timestamp()
+            bind_vars[end] = (usage.end_from_now()).timestamp()
+            avgs = []
+            merges = []
+            for mn in usage.metrics:
+                avgs.append(f"{mn}_min = AVG(m.v.{mn}[0]), {mn}_avg = AVG(m.v.{mn}[1]), {mn}_max = AVG(m.v.{mn}[2])")
+                merges.append(f"{mn}: {{min: {mn}_min, avg: {mn}_avg, max: {mn}_max}}")
+            query_part += dedent(
+                f"""
+                let {usage_crs} = (for resource in {after_filter_cursor} for m in metrics
+                filter m.at>=@{start} and m.at<=@{end} and m.id==resource._key
+                collect r=resource aggregate {", ".join(avgs)}, count = sum(1)
+                return MERGE(r, {{usage: {{{",".join(merges)}, entries: count}}}}))
+                """
+            )
+
+            # finally apply the filter that includes the usage predicates
+            return filter_statement(usage_crs, after_term, limit)
+
         def with_clause(in_crsr: str, clause: WithClause, limit: Optional[Limit]) -> str:
             nonlocal query_part
             # this is the general structure of the with_clause that is created
@@ -528,16 +562,22 @@ def query_string(
         # apply the limit in the filter statement only, when no with clause is present
         # otherwise the limit is applied in the with clause
         filter_limit = p.limit if p.with_clause is None else None
+        cursor = in_cursor
+        part_term = p.term
         if isinstance(p.term, MergeTerm):
-            # do not allow a limit in the prefilter
-            filter_cursor = filter_statement(in_cursor, p.term.pre_filter, None)
+            # only allow a limit in the prefilter, if there is no post filter
+            pre_limit = filter_limit if (p.term.post_filter is None or p.term.post_filter.is_all) else None
+            filter_cursor = filter_statement(cursor, p.term.pre_filter, pre_limit)
             cursor, merge_part = merge(filter_cursor, p.term.merge)
             query_part += merge_part
-            post = p.term.post_filter if p.term.post_filter else AllTerm()
             # always do the post filter in case of sort or limit
-            cursor = filter_statement(cursor, post, filter_limit)
+            part_term = p.term.post_filter if p.term.post_filter else AllTerm()
+        if p.with_usage and len(p.with_usage.metrics) > 0:
+            # filter is applied in the with usage
+            cursor = with_usage(cursor, p.with_usage, part_term, filter_limit)
         else:
-            cursor = filter_statement(in_cursor, p.term, filter_limit)
+            cursor = filter_statement(cursor, part_term, filter_limit)
+
         cursor = with_clause(cursor, p.with_clause, p.limit) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part

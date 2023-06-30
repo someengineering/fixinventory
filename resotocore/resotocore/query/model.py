@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from datetime import datetime, timedelta
+
 from attrs import define, field, evolve
 from functools import reduce, partial, cached_property
 from itertools import chain
@@ -13,7 +15,8 @@ from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
 from resotocore.types import Json, JsonElement, EdgeType
-from resotocore.util import combine_optional
+from resotocore.util import combine_optional, utc_str, utc
+from resotolib.durations import duration_str
 
 PathRoot = "/"
 
@@ -209,6 +212,10 @@ class Term(abc.ABC):
         else:
             raise AttributeError(f"Don't know how to combine with {op}")
 
+    @property
+    def is_all(self) -> bool:
+        return isinstance(self, AllTerm)
+
     def or_term(self, other: Term) -> Term:
         if isinstance(self, AllTerm):  # all or x == all
             return self
@@ -299,6 +306,53 @@ class Term(abc.ABC):
 
     def contains_term_type(self, clazz: type) -> bool:
         return self.find_term(lambda x: isinstance(x, clazz)) is not None
+
+    def split_term_by(self, check_fn: Callable[[Term], bool]) -> Tuple[Term, Term]:
+        before_merge: Term = AllTerm()
+        after_merge: Term = AllTerm()
+
+        def walk_term(term: Term) -> None:
+            # precondition: this method is only called with a term that has ancestor/descendant
+            nonlocal before_merge
+            nonlocal after_merge
+            if isinstance(term, CombinedTerm):
+                left_has_ad = check_fn(term.left)
+                right_has_ad = check_fn(term.right)
+                if term.op == "or":
+                    after_merge = after_merge & term
+                elif left_has_ad and right_has_ad:
+                    walk_term(term.left)
+                    walk_term(term.right)
+                elif left_has_ad:
+                    before_merge = before_merge & term.right
+                    walk_term(term.left)
+                elif right_has_ad:
+                    before_merge = before_merge & term.left
+                    walk_term(term.right)
+                else:
+                    raise NotImplementedError("Logic unsound. This case should not happen!")
+            elif isinstance(term, MergeTerm):
+                # in case pre- and post- filter are defined, handle it as AND combined term
+                # background: pre- and post- filter will be applied on the result
+                #             that effectively reflects an and combination.
+                #             The merge part only merges data to the existing values.
+                if term.post_filter:
+                    walk_term(CombinedTerm(term.pre_filter, "and", term.post_filter))
+                else:
+                    walk_term(term.pre_filter)
+            else:
+                after_merge = after_merge & term
+
+        if check_fn(self):
+            walk_term(self)
+            return before_merge, after_merge
+        else:
+            return self, AllTerm()
+
+    def split_by_usage(self) -> Tuple[Term, Term]:
+        return self.split_term_by(
+            lambda x: x.find_term(lambda t: isinstance(t, Predicate) and t.name.startswith("usage")) is not None
+        )
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -559,6 +613,29 @@ class WithClause:
 
 
 @define(order=True, hash=True, frozen=True)
+class WithUsage:
+    start: Union[datetime, timedelta]
+    end: Union[datetime, timedelta, None]
+    metrics: List[str]
+
+    def __str__(self) -> str:
+        def dd_str(d: Union[datetime, timedelta]) -> str:
+            return duration_str(d) if isinstance(d, timedelta) else utc_str(d)
+
+        end = f"::{dd_str(self.end)}" if self.end else ""
+        return f'with_usage({dd_str(self.start)}{end}, [{",".join(self.metrics)}])'
+
+    def start_from_now(self) -> datetime:
+        return self.start if isinstance(self.start, datetime) else utc() - self.start
+
+    def end_from_now(self) -> datetime:
+        if self.end:
+            return self.end if isinstance(self.end, datetime) else utc() - self.end
+        else:
+            return utc()
+
+
+@define(order=True, hash=True, frozen=True)
 class Limit:
     offset: int
     length: int
@@ -573,19 +650,21 @@ class Part:
     term: Term
     tag: Optional[str] = None
     with_clause: Optional[WithClause] = None
+    with_usage: Optional[WithUsage] = None
     sort: List[Sort] = field(factory=list)
     limit: Optional[Limit] = None
     navigation: Optional[Navigation] = None
     reverse_result: bool = False
 
     def __str__(self) -> str:
+        with_usage = f"{self.with_usage} " if self.with_usage is not None else ""
         with_clause = f" {self.with_clause}" if self.with_clause is not None else ""
         tag = f"#{self.tag}" if self.tag else ""
         sort = " sort " + (", ".join(f"{a.name} {a.order}" for a in self.sort)) if self.sort else ""
         limit = str(self.limit) if self.limit else ""
         nav = f" {self.navigation}" if self.navigation is not None else ""
         reverse = " reversed " if self.reverse_result else ""
-        return f"{self.term}{with_clause}{tag}{sort}{limit}{reverse}{nav}"
+        return f"{with_usage}{self.term}{with_clause}{tag}{sort}{limit}{reverse}{nav}"
 
     def change_variable(self, fn: Callable[[str], str]) -> Part:
         return evolve(
@@ -638,8 +717,6 @@ class Part:
 
         :return: the rewritten part with resolved merge parts if ancestor or descendant predicates are found.
         """
-        before_merge: Term = AllTerm()
-        after_merge: Term = AllTerm()
 
         def has_ancestor_descendant(t: Term) -> bool:
             return t.find_term(lambda trm: isinstance(trm, Predicate) and is_ancestor_descendant(trm.name)) is not None
@@ -647,40 +724,9 @@ class Part:
         def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
             return t.find_terms(lambda t: isinstance(t, Predicate) and is_ancestor_descendant(t.name), in_context_term=False)  # type: ignore # noqa: E501
 
-        def walk_term(term: Term) -> None:
-            # precondition: this method is only called with a term that has ancestor/descendant
-            nonlocal before_merge
-            nonlocal after_merge
-            if isinstance(term, CombinedTerm):
-                left_has_ad = has_ancestor_descendant(term.left)
-                right_has_ad = has_ancestor_descendant(term.right)
-                if term.op == "or":
-                    after_merge = after_merge & term
-                elif left_has_ad and right_has_ad:
-                    walk_term(term.left)
-                    walk_term(term.right)
-                elif left_has_ad:
-                    before_merge = before_merge & term.right
-                    walk_term(term.left)
-                elif right_has_ad:
-                    before_merge = before_merge & term.left
-                    walk_term(term.right)
-                else:
-                    raise NotImplementedError("Logic unsound. This case should not happen!")
-            elif isinstance(term, MergeTerm):
-                # in case pre- and post- filter are defined, handle it as AND combined term
-                # background: pre- and post- filter will be applied on the result
-                #             that effectively reflects an and combination.
-                #             The merge part only merges data to the existing values.
-                if term.post_filter:
-                    walk_term(CombinedTerm(term.pre_filter, "and", term.post_filter))
-                else:
-                    walk_term(term.pre_filter)
-            else:
-                after_merge = after_merge & term
-
         if has_ancestor_descendant(self.term):
-            walk_term(self.term)
+            # create a filter term that is independent of the merge and execute it before the merge
+            before_merge, after_merge = self.term.split_term_by(has_ancestor_descendant)
             # Create a dict here instead of a set only to ensure ordering (dict remembers order, set is not)'b
             queries = self.merge_queries_for({p.name: 1 for p in ancestor_descendant_predicates(after_merge)})
             return evolve(self, term=MergeTerm(before_merge, queries, after_merge))
@@ -1004,9 +1050,10 @@ class Query:
                 raise AttributeError("Can not combine 2 tag clauses!")
             tag = left_last.tag if left_last.tag else right_first.tag
             with_clause = left_last.with_clause if left_last.with_clause else right_first.with_clause
+            with_usage = left_last.with_usage if left_last.with_usage else right_first.with_usage
             sort = combine_optional(left_last.sort, right_first.sort, lambda m, r: m + r)
             limit = combine_optional(left_last.limit, right_first.limit, combine_limit)
-            combined = Part(term, tag, with_clause, sort if sort else [], limit, right_first.navigation)
+            combined = Part(term, tag, with_clause, with_usage, sort if sort else [], limit, right_first.navigation)
             parts = [*other.parts[0:-1], combined, *self.parts[1:]]
         return Query(parts, preamble, aggregate)
 

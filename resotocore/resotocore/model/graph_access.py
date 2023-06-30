@@ -67,12 +67,14 @@ class Section:
     # Only here for completeness - currently not used.
     descendants = "descendants"
 
+    usage = "usage"
+
     # The set of all content sections
     content_ordered = [reported, desired, metadata]
     content = set(content_ordered)
 
     # The list of all lookup sections
-    lookup_sections_ordered = [ancestors, descendants]
+    lookup_sections_ordered = [ancestors, descendants, usage]
 
     # The list of all sections
     all_ordered = [*content_ordered, *lookup_sections_ordered]

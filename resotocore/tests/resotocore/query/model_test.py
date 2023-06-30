@@ -155,6 +155,20 @@ def test_on_section() -> None:
     assert str(with_section_r.relative_to_section(PathRoot)) == on_section
 
 
+def test_rewrite_usage() -> None:
+    def check(query_str: str, expect_before: str, expect_after: str) -> None:
+        before, after = parse_query(query_str).current_part.term.split_by_usage()
+        assert str(before) == expect_before
+        assert str(after) == expect_after
+
+    # filter on a,b,c before the usage is evaluated
+    check("usage.cpu.max>3 and ((a<1 and b>1) or c==3)", "((a < 1 and b > 1) or c == 3)", "usage.cpu.max > 3")
+    # same query, but different order
+    check("((a<1 and b>1) or c==3) and usage.cpu.max>3", "((a < 1 and b > 1) or c == 3)", "usage.cpu.max > 3")
+    # usage on top level in combination with or can not be optimized
+    check("usage.cpu.max>3 or ((a<1 and b>1) or c==3)", "all", "(usage.cpu.max > 3 or ((a < 1 and b > 1) or c == 3))")
+
+
 def test_rewrite_ancestors_descendants() -> None:
     # a query without ancestor/descendants is not changed
     assert str(parse_query("(a<1 and b>1) or c==3")) == "((a < 1 and b > 1) or c == 3)"

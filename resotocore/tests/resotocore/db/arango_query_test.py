@@ -125,3 +125,20 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
         "((m0.reported.inner[1].name == @b1) and (m0.reported.inner[1].inner[0].name == @b2))  RETURN m0) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])'
     )
+
+
+def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
+    q, b = to_query(graph_db, QueryModel(parse_query("with_usage(3w, cpu, mem) is(foo)"), foo_model))
+    assert q == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0)\n"
+        "let with_usage0 = "
+        "(for resource in filter0 for m in metrics\n"
+        "filter m.at>=@b1 and m.at<=@b2 and m.id==resource._key\n"
+        "collect r=resource aggregate "
+        "cpu_min = AVG(m.v.cpu[0]), cpu_avg = AVG(m.v.cpu[1]), cpu_max = AVG(m.v.cpu[2]), "
+        "mem_min = AVG(m.v.mem[0]), mem_avg = AVG(m.v.mem[1]), mem_max = AVG(m.v.mem[2]), "
+        "count = sum(1)\n"
+        "return MERGE(r, {usage: {cpu: {min: cpu_min, avg: cpu_avg, max: cpu_max},mem: "
+        "{min: mem_min, avg: mem_avg, max: mem_max}, entries: count}}))\n "
+        'FOR result in with_usage0 RETURN UNSET(result, ["flat"])'
+    )

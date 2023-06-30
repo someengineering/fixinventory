@@ -1,3 +1,4 @@
+import logging
 import time
 from functools import wraps
 from typing import Callable, Any, TypeVar, cast
@@ -14,6 +15,8 @@ RequestInProgress = Gauge(f"{Prefix}requests_in_progress_total", "Requests in pr
 # Create a type that is bound to the underlying wrapped function
 # This way all signature information is preserved!
 DecoratedFn = TypeVar("DecoratedFn", bound=Callable[..., Any])
+
+log = logging.getLogger(__name__)
 
 
 def perf_now() -> float:
@@ -38,7 +41,9 @@ def timed(module: str, name: str, is_async: bool = True) -> Callable[[DecoratedF
                 rv = fn(*args, **kwargs)
                 return rv
             finally:
-                metric.observe(perf_now() - start_time)
+                duration = perf_now() - start_time
+                log.debug(f"Duration of {module}::{name}: {duration}")
+                metric.observe(duration)
 
         return cast(DecoratedFn, async_time_decorated)
 
@@ -50,7 +55,9 @@ def timed(module: str, name: str, is_async: bool = True) -> Callable[[DecoratedF
                 rv = await fn(*args, **kwargs)
                 return rv
             finally:
-                metric.observe(perf_now() - start_time)
+                duration = round((perf_now() - start_time) * 1000)
+                log.debug(f"Duration of {module}::{name}: {duration} millis")
+                metric.observe(duration)
 
         return cast(DecoratedFn, async_time_decorated)
 

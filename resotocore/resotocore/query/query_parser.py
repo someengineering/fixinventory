@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import reduce
 from typing import List
 
@@ -32,8 +33,10 @@ from resotocore.query.model import (
     FulltextTerm,
     Limit,
     ContextTerm,
+    WithUsage,
 )
 from resotocore.types import EdgeType
+from resotolib.durations import duration_parser
 from resotolib.parse_util import (
     lparen_p,
     lexeme,
@@ -71,6 +74,7 @@ from resotolib.parse_util import (
     double_quoted_string_dp,
     float_dp,
     dot_p,
+    iso_date_time_utc_parser,
 )
 
 operation_p = (
@@ -265,6 +269,7 @@ navigation_parser = in_out_p | out_p | in_p
 
 tag_parser = lexeme(string("#") >> literal_p).optional()
 with_p = lexeme(string("with"))
+with_usage_p = lexeme(string("with_usage"))
 count_p = lexeme(string("count"))
 
 len_empty = lexeme(string("empty")).result(WithClauseFilter("==", 0))
@@ -277,6 +282,22 @@ def with_count_parser() -> Parser:
     op = yield operation_p
     num = yield integer_p
     return WithClauseFilter(op, num)
+
+
+timedelta_parser = duration_parser.map(lambda ds: timedelta(seconds=ds))
+duration_or_datetime_parser = timedelta_parser | iso_date_time_utc_parser
+
+
+@make_parser
+def with_usage_parser() -> Parser:
+    yield with_usage_p
+    yield lparen_p
+    start = yield duration_or_datetime_parser
+    end = yield ((whitespace + colon_p + colon_p) >> duration_or_datetime_parser).optional()
+    yield comma_p
+    metrics = yield literal_list_optional_brackets
+    yield rparen_p
+    return WithUsage(start, end, metrics)
 
 
 @make_parser
@@ -333,6 +354,7 @@ limit_parser = limit_p >> space_dp >> limit_parser_direct
 
 @make_parser
 def part_parser() -> Parser:
+    with_usage = yield with_usage_parser.optional()
     term = yield term_parser.optional()
     yield whitespace
     with_clause = yield with_clause_parser.optional()
@@ -342,7 +364,7 @@ def part_parser() -> Parser:
     reverse = yield reversed_p
     nav = yield navigation_parser.optional() if term or sort or limit else navigation_parser
     term = term if term else AllTerm()
-    return Part(term, tag, with_clause, sort if sort else [], limit, nav, reverse)
+    return Part(term, tag, with_clause, with_usage, sort if sort else [], limit, nav, reverse)
 
 
 @make_parser
@@ -363,7 +385,9 @@ def preamble_tags_parser() -> Parser:
 
 as_p = lexeme(string("as"))
 aggregate_p = lexeme(string("aggregate"))
-aggregate_func_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg"]])
+aggregate_func_p = reduce(
+    lambda x, y: x | y, [lexeme(string(a)) for a in ["sum", "count", "min", "max", "avg", "stddev", "variance"]]
+)
 match_p = lexeme(string("match"))
 aggregate_variable_name_p = variable_p.map(AggregateVariableName)
 no_curly_dp = regex(r'[^{"]+')

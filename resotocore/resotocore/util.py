@@ -89,10 +89,12 @@ def utc() -> datetime:
 def utc_str(dt: Optional[datetime] = None, date_format: str = UTC_Date_Format) -> str:
     if dt is None:
         dt = utc()
-    if dt.tzinfo is not None and dt.tzname() != "UTC":
-        offset = dt.tzinfo.utcoffset(dt)
-        if offset is not None and offset.total_seconds() != 0:
-            dt = (dt - offset).replace(tzinfo=timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    elif dt.tzinfo == timezone.utc:
+        pass
+    else:
+        dt = dt.astimezone(timezone.utc)
     return dt.strftime(date_format)
 
 
@@ -105,11 +107,9 @@ def parse_utc(date_string: str) -> datetime:
         dt = datetime.fromisoformat(date_string)
     except Exception:
         dt = parse_date(date_string)
-    if (
-        not dt.tzinfo
-        or dt.tzinfo.utcoffset(None) is None
-        or dt.tzinfo.utcoffset(None).total_seconds() != 0  # type: ignore
-    ):
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    elif dt.tzinfo == timezone.utc:
         dt = dt.astimezone(timezone.utc)
     return dt
 
