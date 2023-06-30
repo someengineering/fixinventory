@@ -79,7 +79,7 @@ iso_date_re = re.compile("[0-9]{4}-?[0-9]{2}-?[0-9]{2}T?[0-9]{2}:?[0-9]{2}:?[0-9
 
 
 @make_direct_parser
-def iso_date_time_utc_parser(stream, index):
+def iso_date_time_utc_parser(stream: str, index: int) -> parsy.Result:
     try:
         if match := iso_date_re.match(stream, index):
             ds = match.group()
@@ -89,9 +89,10 @@ def iso_date_time_utc_parser(stream, index):
                 dt = parse_iso_8601(ds)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
-            offset = dt.tzinfo.utcoffset(None)
-            if offset is not None and offset.total_seconds() > 0:
-                dt = dt.astimezone(timezone.utc)
+            else:
+                offset = dt.tzinfo.utcoffset(None)
+                if offset is not None and offset.total_seconds() > 0:
+                    dt = dt.astimezone(timezone.utc)
             return parsy.Result.success(index + len(ds), dt)
     except Exception:
         pass
