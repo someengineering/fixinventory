@@ -424,10 +424,17 @@ def query_string(
                 merges.append(f"{mn}: {{min: {mn}_min, avg: {mn}_avg, max: {mn}_max}}")
             query_part += dedent(
                 f"""
-                let {usage_crs} = (for resource in {after_filter_cursor} for m in metrics
-                filter m.at>=@{start} and m.at<=@{end} and m.id==resource._key
-                collect r=resource aggregate {", ".join(avgs)}, count = sum(1)
-                return MERGE(r, {{usage: {{{",".join(merges)}, entries: count}}}}))
+                let {usage_crs} = (
+                    for r in {after_filter_cursor}
+                        let resource=r
+                        let usage = first(
+                            for m in metrics
+                            filter m.at>=@{start} and m.at<=@{end} and m.id==r._key
+                            collect aggregate {", ".join(avgs)}, count = sum(1)
+                            return {{usage: {{{",".join(merges)}, entries: count}}}}
+                        )
+                        return usage.entries ? merge(resource, usage) : resource
+                )
                 """
             )
 

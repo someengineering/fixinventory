@@ -362,7 +362,8 @@ def part_parser() -> Parser:
     sort = yield sort_parser.optional()
     limit = yield limit_parser.optional()
     reverse = yield reversed_p
-    nav = yield navigation_parser.optional() if term or sort or limit else navigation_parser
+    part_def = bool(with_usage or term or with_clause or tag or sort or limit or reverse)
+    nav = yield navigation_parser.optional() if part_def else navigation_parser
     term = term if term else AllTerm()
     return Part(term, tag, with_clause, with_usage, sort if sort else [], limit, nav, reverse)
 
@@ -456,6 +457,7 @@ def preamble_parser() -> Parser:
 @make_parser
 def query_parser() -> Parser:
     maybe_aggregate, preamble = yield preamble_parser
+    # noinspection PyTypeChecker
     parts: List[Part] = yield part_parser.at_least(1)
     # Make sure the parts are connected via traversals (is not enforced by the parser)
     for p in parts[0:-1]:
