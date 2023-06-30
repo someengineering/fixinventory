@@ -1082,7 +1082,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             metric_value = next(iter(metric.metric_values), None)
 
             if instance and metric_value:
-                instance._metrics[metric_name[query.metric_name]] = {stat_name[query.stat]: metric_value}
+                instance._resource_usage[metric_name[query.metric_name]] = {stat_name[query.stat]: metric_value}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

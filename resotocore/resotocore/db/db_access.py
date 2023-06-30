@@ -29,6 +29,7 @@ from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
 from resotocore.db.packagedb import app_package_entity_db
+from resotocore.db.usagedb import resource_usage_db, ResourceUsageDb
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
@@ -57,6 +58,7 @@ class DbAccess(ABC):
         configs_model: str = "configs_model",
         template_entity: str = "templates",
         infra_app_packages: str = "infra_app_packages",
+        resource_usage: str = "resource_usage",
     ):
         self.event_sender = event_sender
         self.database = arango_database
@@ -74,6 +76,10 @@ class DbAccess(ABC):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
+        self.usage_db = resource_usage_db(
+            self.db,
+            resource_usage,
+        )
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -89,6 +95,7 @@ class DbAccess(ABC):
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
         await self.package_entity_db.create_update_schema()
+        await self.usage_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
             graph_name = GraphName(graph["name"])
 
@@ -169,6 +176,9 @@ class DbAccess(ABC):
             await db.create_update_schema()
             self.graph_model_dbs[graph_name] = db
             return db
+
+    def get_usage_db(self) -> ResourceUsageDb:
+        return self.usage_db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

@@ -314,7 +314,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
                     "phantom": node.phantom,
                     "protected": node.protected,
                 },
-                "metrics": node._metrics,
+                "resource_usage": node._resource_usage,
             }
         )
         if node.clean:

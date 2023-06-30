@@ -6,7 +6,7 @@ from abc import ABC
 from asyncio import Task
 from contextlib import suppress
 from attrs import define
-from datetime import timedelta
+from datetime import timedelta, datetime
 from multiprocessing import Process, Queue
 from queue import Empty
 from typing import Optional, Union, AsyncGenerator, Any, Generator, List
@@ -19,6 +19,7 @@ from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
+from resotocore.db.usagedb import UsageDatapoint
 from resotocore.db.model import GraphUpdate
 from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.dependencies import db_access, setup_process, reset_process_start_method
@@ -150,7 +151,19 @@ class DbUpdaterProcess(Process):
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             model_handler = ModelHandlerDB(db, "")
+            usage_db = db.get_usage_db()
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
+            resource_usage = [
+                UsageDatapoint(
+                    id=id,
+                    resource_id=elem.get("resource_id"),
+                    timestamp=int(datetime.utcnow().timestamp()),
+                    metric_name=elem.get("metric_name"),
+                    values=[elem.get("min"), elem.get("avg"), elem.get("max")],
+                )
+                for id, elem in builder.resource_usage.items()
+            ]
+            await usage_db.update_many(resource_usage)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
