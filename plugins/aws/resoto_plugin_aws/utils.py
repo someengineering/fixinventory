@@ -45,6 +45,7 @@ def aws_session(
     role: Optional[str] = None,
     profile: Optional[str] = None,
     partition: Optional[str] = None,
+    role_arn: Optional[str] = None,
 ) -> BotoSession:
     if partition is None:
         partition = "aws"
@@ -52,8 +53,9 @@ def aws_session(
 
     if Config.aws.role_override:
         role = Config.aws.role
-    if role and account:
-        role_arn = f"arn:{partition}:iam::{account}:role/{role}"
+    if (role and account) or role_arn:
+        if role_arn is None:
+            role_arn = f"arn:{partition}:iam::{account}:role/{role}"
         if profile:
             session = BotoSession(
                 profile_name=profile,
