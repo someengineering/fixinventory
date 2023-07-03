@@ -566,7 +566,10 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
 def get_org_accounts(
     filter_current_account: bool, profile: Optional[str], core_feedback: CoreFeedback, partition: Optional[str] = None
 ) -> List[str]:
-    session = aws_session(profile=profile, partition=partition)
+    scrape_org_role_arn = Config.aws.scrape_org_role_arn
+    if scrape_org_role_arn is not None and len(str(scrape_org_role_arn).strip()) == 0:
+        scrape_org_role_arn = None
+    session = aws_session(profile=profile, partition=partition, role_arn=scrape_org_role_arn)
     client = session.client("organizations")
     accounts = []
     try:

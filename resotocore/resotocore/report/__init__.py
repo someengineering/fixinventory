@@ -67,7 +67,7 @@ class ReportCheck:
     remediation: Remediation
     default_values: Optional[Json] = None
     url: Optional[str] = None
-    related: List[str] = field(factory=list)
+    related: Optional[List[str]] = None
 
     def environment(self, values: Json) -> Json:
         return {**self.default_values, **values} if self.default_values else values

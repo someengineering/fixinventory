@@ -156,6 +156,13 @@ class AwsConfig:
         metadata={"description": "List of AWS Regions to collect (null for all)"},
     )
     scrape_org: bool = field(default=False, metadata={"description": "Scrape the entire AWS organization"})
+    scrape_org_role_arn: Optional[str] = field(
+        default=None,
+        metadata={
+            "description": "Role ARN to assume when listing AWS org accounts. If set to null Resoto will use the"
+            " default credentials it was started with to call organizations:ListAccounts"
+        },
+    )
     fork_process: bool = field(
         default=True,
         metadata={

@@ -52,7 +52,7 @@ class ReportCheckConfig:
         metadata={"description": "Default values for the check. Will be merged with the values from the config."},
     )
     url: Optional[str] = field(default=None, metadata={"description": "URL that documents the check."})
-    related: List[str] = field(factory=list, metadata={"description": "List of related checks."})
+    related: Optional[List[str]] = field(default=None, metadata={"description": "List of related checks."})
     internal_notes: Optional[str] = field(default=None, metadata={"description": "Internal notes for the check."})
 
 
