@@ -76,10 +76,7 @@ class DbAccess(ABC):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
-        self.usage_db = resource_usage_db(
-            self.db,
-            resource_usage,
-        )
+        self.usage_dbs: Dict[str, ResourceUsageDb] = {}
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -95,7 +92,6 @@ class DbAccess(ABC):
         await self.template_entity_db.create_update_schema()
         await self.pending_deferred_edge_db.create_update_schema()
         await self.package_entity_db.create_update_schema()
-        await self.usage_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
             graph_name = GraphName(graph["name"])
 
@@ -108,6 +104,7 @@ class DbAccess(ABC):
             db = self.get_graph_db(graph_name)
             await db.create_update_schema()
             await self.get_graph_model_db(graph_name)
+            await self.get_usage_db(graph_name)
         await self.cleaner.start()
 
     async def stop(self) -> None:
@@ -115,6 +112,9 @@ class DbAccess(ABC):
 
     def graph_model_name(self, graph_name: GraphName) -> str:
         return f"{graph_name}_model"
+
+    def usage_db_name(self, graph_name: GraphName) -> str:
+        return f"{graph_name}_usage"
 
     async def create_graph(self, name: GraphName, validate_name: bool = True) -> GraphDB:
         if validate_name:
@@ -177,8 +177,15 @@ class DbAccess(ABC):
             self.graph_model_dbs[graph_name] = db
             return db
 
-    def get_usage_db(self) -> ResourceUsageDb:
-        return self.usage_db
+    async def get_usage_db(self, graph_name: GraphName) -> ResourceUsageDb:
+        if db := self.usage_dbs.get(graph_name):
+            return db
+        else:
+            model_name = self.usage_db_name(graph_name)
+            db = resource_usage_db(self.db, model_name)
+            await db.create_update_schema()
+            self.usage_dbs[graph_name] = db
+            return db
 
     async def check_outdated_updates(self) -> None:
         now = datetime.now(timezone.utc)

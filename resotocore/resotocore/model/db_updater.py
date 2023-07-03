@@ -6,10 +6,11 @@ from abc import ABC
 from asyncio import Task
 from contextlib import suppress
 from attrs import define
-from datetime import timedelta, datetime
+from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
 from typing import Optional, Union, AsyncGenerator, Any, Generator, List
+import itertools
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -146,23 +147,28 @@ class DbUpdaterProcess(Process):
         elif isinstance(nxt, MergeGraph):
             log.debug("Graph read into memory")
             builder.check_complete()
+            now = int(utc().timestamp())
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             model_handler = ModelHandlerDB(db, "")
-            usage_db = db.get_usage_db()
+            usage_db = await db.get_usage_db(graphdb.name)
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
-            resource_usage = [
-                UsageDatapoint(
-                    id=id,
-                    resource_id=elem.get("resource_id"),
-                    timestamp=int(datetime.utcnow().timestamp()),
-                    metric_name=elem.get("metric_name"),
-                    values=[elem.get("min"), elem.get("avg"), elem.get("max")],
+
+            resource_usage = []
+            builder.resource_usage.sort(key=lambda x: x["resource_id"])
+            for key, group in itertools.groupby(builder.resource_usage, key=lambda x: x["resource_id"]):
+                values = {
+                    elem.get("metric_name"): [elem.get("min"), elem.get("avg"), elem.get("max")] for elem in group
+                }
+                datapoint = UsageDatapoint(
+                    id=key,  # type: ignore
+                    at=now,
+                    v=values,  # type: ignore
                 )
-                for id, elem in builder.resource_usage.items()
-            ]
+                resource_usage.append(datapoint)
+
             await usage_db.update_many(resource_usage)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))

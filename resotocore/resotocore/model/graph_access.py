@@ -146,7 +146,7 @@ class GraphBuilder:
         self.nodes = 0
         self.edges = 0
         self.deferred_edges: List[DeferredEdge] = []
-        self.resource_usage: Dict[str, Any] = {}
+        self.resource_usage: List[Dict[str, Union[str, int]]] = []
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -167,7 +167,7 @@ class GraphBuilder:
                         "max": metric_value.get("max", metric_value["avg"]),
                         "min": metric_value.get("min", metric_value["avg"]),
                     }
-                    self.resource_usage[js["id"]] = usage
+                    self.resource_usage.append(usage)
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeTypes.default))
         elif "from_selector" in js and "to_selector" in js:
