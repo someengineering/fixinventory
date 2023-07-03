@@ -15,6 +15,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Iterator, Optional
 import toml
 
+from resotocore.util import first
+
 
 class ProjectDefinition:
     def __init__(self, definition: Dict[str, Any]) -> None:
@@ -60,13 +62,28 @@ def filter_dependencies(deps: List[str]) -> List[str]:
     return [dep for dep in deps if not any(name in dep for name in filter_out)]
 
 
-def compile_dependencies(name: Optional[str], deps: List[str]) -> None:
+def compile_dependencies(name: Optional[str], deps: List[str], all_dependencies: List[str]) -> List[str]:
+    # If a dependency is defined in all, use that version
+    def dependency_line(dep: str) -> str:
+        d_name, d_version = dep.split("==", maxsplit=1)
+        if defined_in_all := first(lambda x: x.startswith(d_name), all_dependencies):
+            return defined_in_all
+        else:
+            return dep
+
     delim = "-" + name if name else ""
     with open(f"requirements{delim}-in.txt", "w") as f:
         f.write("\n".join(deps))
     args = "-q --no-annotate --resolver=backtracking --upgrade --allow-unsafe --no-header  --unsafe-package n/a"
     os.system(f"pip-compile {args} --output-file requirements{delim}.txt requirements{delim}-in.txt")
     os.remove(f"requirements{delim}-in.txt")
+    # make sure, none of the filtered dependencies was selected as transitive dependency
+    with open(f"requirements{delim}.txt", "r+") as f:
+        lines = [dependency_line(line) for line in f.readlines() if not any(name in line for name in filter_out)]
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+        return lines
 
 
 def combine_dependencies() -> None:
@@ -76,13 +93,16 @@ def combine_dependencies() -> None:
         prod_dependencies.extend(filter_dependencies(project.dependencies))
         for name, deps in project.optional_dependencies.items():
             optional_dependencies[name].extend(filter_dependencies(deps))
-    all_dependencies = prod_dependencies.copy()
 
-    compile_dependencies(None, prod_dependencies)
+    # gather all dependencies
+    all_dependencies = prod_dependencies.copy()
     for name, deps in optional_dependencies.items():
         all_dependencies.extend(deps)
-        compile_dependencies(name, deps + prod_dependencies)
-    compile_dependencies("all", all_dependencies)
+    all_compiled = compile_dependencies("all", all_dependencies, [])
+
+    compile_dependencies(None, prod_dependencies, all_compiled)
+    for name, deps in optional_dependencies.items():
+        compile_dependencies(name, deps + prod_dependencies, all_compiled)
 
 
 if __name__ == "__main__":
