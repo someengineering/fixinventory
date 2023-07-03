@@ -1071,28 +1071,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         namespace="AWS/EC2",
                         period=delta,
                         ref_id=instance_id,
-                        stat="Minimum",
+                        stat=stat,
                         unit="Percent",
                         InstanceId=instance_id,
-                    ),
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/EC2",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat="Average",
-                        unit="Percent",
-                        InstanceId=instance_id,
-                    ),
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/EC2",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat="Maximum",
-                        unit="Percent",
-                        InstanceId=instance_id,
-                    ),
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
 

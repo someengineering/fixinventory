@@ -58,7 +58,6 @@ class DbAccess(ABC):
         configs_model: str = "configs_model",
         template_entity: str = "templates",
         infra_app_packages: str = "infra_app_packages",
-        resource_usage: str = "resource_usage",
     ):
         self.event_sender = event_sender
         self.database = arango_database
