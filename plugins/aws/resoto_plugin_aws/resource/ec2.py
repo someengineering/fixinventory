@@ -1089,7 +1089,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             "Maximum": "max",
         }
 
-        for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        for query, metric in cloudwatch_result.items():
             instance = instances.get(query.ref_id)
             if not instance:
                 continue
