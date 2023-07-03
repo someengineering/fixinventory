@@ -1,7 +1,7 @@
 {
     "MetricDataResults": [
         {
-            "Id": "volumereadops_aws_ebs_volumeid_vol_123",
+            "Id": "volumereadops_aws_ebs_volumeid_vol_123_sum",
             "Label": "VolumeReadOps",
             "Timestamps": [
                 "2020-01-18T18:40:00Z",
@@ -16,7 +16,7 @@
             "StatusCode": "Complete"
         },
         {
-            "Id": "volumewriteops_aws_ebs_volumeid_vol_123",
+            "Id": "volumewriteops_aws_ebs_volumeid_vol_123_sum",
             "Label": "VolumeWriteOps",
             "Timestamps": [
                 "2020-01-18T18:40:00Z",
