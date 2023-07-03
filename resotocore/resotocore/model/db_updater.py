@@ -10,7 +10,6 @@ from datetime import timedelta
 from multiprocessing import Process, Queue
 from queue import Empty
 from typing import Optional, Union, AsyncGenerator, Any, Generator, List
-import itertools
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -20,7 +19,6 @@ from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB
-from resotocore.db.usagedb import UsageDatapoint
 from resotocore.db.model import GraphUpdate
 from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.dependencies import db_access, setup_process, reset_process_start_method
