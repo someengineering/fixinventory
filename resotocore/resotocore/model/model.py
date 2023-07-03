@@ -8,7 +8,22 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from functools import lru_cache
 from json import JSONDecodeError
-from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, TypeVar
+from typing import (
+    Union,
+    Any,
+    Optional,
+    Callable,
+    Type,
+    Sequence,
+    Dict,
+    List,
+    Set,
+    cast,
+    Tuple,
+    Iterable,
+    TypeVar,
+    NamedTuple,
+)
 
 import yaml
 from attrs import define, frozen
@@ -1444,6 +1459,12 @@ class Model:
         return result
 
 
+class UsageMetricValues(NamedTuple):
+    min: float
+    avg: float
+    max: float
+
+
 @frozen
 class UsageDatapoint:
     """
@@ -1461,7 +1482,7 @@ class UsageDatapoint:
 
     id: str
     at: int
-    v: Dict[str, List[float]]
+    v: Dict[str, UsageMetricValues]
 
 
 # register serializer for this class
