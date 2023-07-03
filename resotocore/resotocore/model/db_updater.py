@@ -147,7 +147,6 @@ class DbUpdaterProcess(Process):
         elif isinstance(nxt, MergeGraph):
             log.debug("Graph read into memory")
             builder.check_complete()
-            now = int(utc().timestamp())
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
@@ -155,21 +154,7 @@ class DbUpdaterProcess(Process):
             model_handler = ModelHandlerDB(db, "")
             usage_db = await db.get_usage_db(graphdb.name)
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
-
-            resource_usage = []
-            builder.resource_usage.sort(key=lambda x: x["resource_id"])
-            for key, group in itertools.groupby(builder.resource_usage, key=lambda x: x["resource_id"]):
-                values = {
-                    elem.get("metric_name"): [elem.get("min"), elem.get("avg"), elem.get("max")] for elem in group
-                }
-                datapoint = UsageDatapoint(
-                    id=key,  # type: ignore
-                    at=now,
-                    v=values,  # type: ignore
-                )
-                resource_usage.append(datapoint)
-
-            await usage_db.update_many(resource_usage)
+            await usage_db.update_many(builder.usage)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")

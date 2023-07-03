@@ -25,6 +25,7 @@ from resotocore.model.model import (
     SimpleKind,
     DateKind,
     DurationKind,
+    UsageDatapoint,
 )
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
@@ -68,7 +69,7 @@ class Section:
     descendants = "descendants"
 
     # Usage of the resource
-    resource_usage = "resource_usage"
+    usage = "usage"
 
     # The set of all content sections
     content_ordered = [reported, desired, metadata]
@@ -146,7 +147,8 @@ class GraphBuilder:
         self.nodes = 0
         self.edges = 0
         self.deferred_edges: List[DeferredEdge] = []
-        self.resource_usage: List[Dict[str, Union[str, int]]] = []
+        self.usage: List[UsageDatapoint] = []
+        self.at = utc()
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -158,16 +160,13 @@ class GraphBuilder:
                 js.get("search", None),
                 js.get("replace", False) is True,
             )
-            if Section.resource_usage in js and len(js[Section.resource_usage]):
-                for metric_name, metric_value in js[Section.resource_usage].items():
-                    usage = {
-                        "resource_id": js[Section.reported]["id"],
-                        "metric_name": metric_name,
-                        "avg": metric_value["avg"],
-                        "max": metric_value.get("max", metric_value["avg"]),
-                        "min": metric_value.get("min", metric_value["avg"]),
-                    }
-                    self.resource_usage.append(usage)
+            if Section.usage in js and len(js[Section.usage]):
+                usage = UsageDatapoint(
+                    id=js["id"],
+                    at=int(self.at.timestamp()),
+                    v=js[Section.usage],
+                )
+                self.usage.append(usage)
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeTypes.default))
         elif "from_selector" in js and "to_selector" in js:

@@ -11,7 +11,7 @@ from json import JSONDecodeError
 from typing import Union, Any, Optional, Callable, Type, Sequence, Dict, List, Set, cast, Tuple, Iterable, TypeVar
 
 import yaml
-from attrs import define
+from attrs import define, frozen
 from dateutil.parser import parse
 from jsons import set_deserializer, set_serializer
 from networkx import MultiDiGraph
@@ -1442,6 +1442,26 @@ class Model:
             else:
                 result.append(kind)
         return result
+
+
+@frozen
+class UsageDatapoint:
+    """
+    A single datapoint of resource usage.
+
+    id: `str`
+        Identifier of the resource as named by the cloud.
+    at: `int`
+        Timestamp of the datapoint in seconds since epoch.
+        Name of the metric.
+    v: `Dict[str, List[float]]]`
+        Dictionary of metric names to lists of values. The values are `min`, `avg` and `max`.
+
+    """
+
+    id: str
+    at: int
+    v: Dict[str, List[float]]
 
 
 # register serializer for this class
