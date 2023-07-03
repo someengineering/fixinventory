@@ -165,6 +165,7 @@ class ArangoGraphDB(GraphDB):
         self._name = name
         self.node_adjuster = adjust_node
         self.vertex_name = name
+        self.usage_metrics_name = f"{name}_usage_metrics"
         self.in_progress = f"{name}_in_progress"
         self.node_history = f"{name}_node_history"
         self.db = db

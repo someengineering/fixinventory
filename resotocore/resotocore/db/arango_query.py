@@ -41,7 +41,8 @@ from resotocore.query.model import (
     ContextTerm,
     WithUsage,
 )
-from resotocore.util import first, set_value_in_path, exist
+from resotocore.util import first, set_value_in_path, exist, utc_str
+from resotolib.durations import duration_str
 
 log = logging.getLogger(__name__)
 
@@ -415,25 +416,31 @@ def query_string(
             usage_crs = next_crs("with_usage")
             start = next_bind_var_name()
             end = next_bind_var_name()
-            bind_vars[start] = usage.start_from_now().timestamp()
-            bind_vars[end] = (usage.end_from_now()).timestamp()
+            start_s = next_bind_var_name()
+            duration = next_bind_var_name()
+            start_time = usage.start_from_now()
+            end_time = usage.end_from_now()
+            bind_vars[start] = start_time.timestamp()
+            bind_vars[end] = end_time.timestamp()
+            bind_vars[start_s] = utc_str(start_time)
+            bind_vars[duration] = duration_str(end_time - start_time)
             avgs = []
             merges = []
             for mn in usage.metrics:
-                avgs.append(f"{mn}_min = AVG(m.v.{mn}[0]), {mn}_avg = AVG(m.v.{mn}[1]), {mn}_max = AVG(m.v.{mn}[2])")
+                avgs.append(f"{mn}_min = MIN(m.v.{mn}[0]), {mn}_avg = AVG(m.v.{mn}[1]), {mn}_max = MAX(m.v.{mn}[2])")
                 merges.append(f"{mn}: {{min: {mn}_min, avg: {mn}_avg, max: {mn}_max}}")
             query_part += dedent(
                 f"""
                 let {usage_crs} = (
                     for r in {after_filter_cursor}
                         let resource=r
-                        let usage = first(
-                            for m in metrics
+                        let resource_usage = first(
+                            for m in {db.usage_metrics_name}
                             filter m.at>=@{start} and m.at<=@{end} and m.id==r._key
                             collect aggregate {", ".join(avgs)}, count = sum(1)
-                            return {{usage: {{{",".join(merges)}, entries: count}}}}
+                            return {{usage:{{{",".join(merges)},entries:count,start:@{start_s},duration:@{duration}}}}}
                         )
-                        return usage.entries ? merge(resource, usage) : resource
+                        return resource_usage.usage.entries ? merge(resource, resource_usage) : resource
                 )
                 """
             )
