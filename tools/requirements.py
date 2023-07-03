@@ -15,8 +15,6 @@ from collections import defaultdict
 from typing import Any, Dict, List, Iterator, Optional
 import toml
 
-from resotocore.util import first
-
 
 class ProjectDefinition:
     def __init__(self, definition: Dict[str, Any]) -> None:
@@ -66,11 +64,13 @@ def compile_dependencies(name: Optional[str], deps: List[str], all_dependencies:
     # If a dependency is defined in all, use that version
     def dependency_line(dep: str) -> str:
         d_name, d_version = dep.split("==", maxsplit=1)
-        if defined_in_all := first(lambda x: x.startswith(d_name), all_dependencies):
-            return defined_in_all
+        if defined_in_all := [a for a in all_dependencies if a.startswith(d_name + "==")]:
+            assert len(defined_in_all) == 1, f"More than one dependency with this name: {d_name}"
+            return defined_in_all[0]
         else:
             return dep
 
+    print(f"Compile dependencies for {name or 'prod'}")
     delim = "-" + name if name else ""
     with open(f"requirements{delim}-in.txt", "w") as f:
         f.write("\n".join(deps))
