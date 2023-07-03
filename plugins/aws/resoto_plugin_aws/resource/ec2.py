@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any, Callable
+from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, NamedTuple
 import copy
 
 from attrs import define, field
@@ -902,6 +902,11 @@ InstanceStatusMapping = {
 }
 
 
+class MetricNormalization(NamedTuple):
+    name: str
+    normalize_value: Callable[[float], float]
+
+
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
@@ -1090,11 +1095,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     ),
                 ]
             )
-
-        @define
-        class MetricNormalization:
-            name: str
-            normalize_value: Callable[[float], float]
 
         metric_normalizers = {
             "CPUUtilization": MetricNormalization("cpu", lambda x: x / 100)
