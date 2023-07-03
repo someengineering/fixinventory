@@ -9,6 +9,7 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum, unique
 from functools import wraps, cached_property
 from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
+from collections import defaultdict
 
 from attr import resolve_types
 from attrs import define, field, Factory
@@ -113,6 +114,10 @@ class ResourceChanges:
         return changes
 
 
+MetricName = str
+StatName = str
+
+
 @define(eq=False, slots=False, kw_only=True)
 class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
@@ -151,7 +156,7 @@ class BaseResource(ABC):
     _cleaned: bool = False
     _protected: bool = False
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
-    _resource_usage: Dict[str, Any] = field(factory=dict)
+    _resource_usage: Dict[MetricName, Dict[StatName, float]] = field(factory=lambda: defaultdict(dict))
 
     ctime: Optional[datetime] = field(
         default=None,

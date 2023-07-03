@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Type, Any, Callable
 import copy
 
 from attrs import define, field
@@ -1059,30 +1059,65 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             delta = timedelta(hours=1)
             start = now - delta
         for instance_id in instances:
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="CPUUtilization",
-                    namespace="AWS/EC2",
-                    period=delta,
-                    ref_id=instance_id,
-                    stat="Average",
-                    unit="Percent",
-                    InstanceId=instance_id,
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Minimum",
+                        unit="Percent",
+                        InstanceId=instance_id,
+                    ),
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Average",
+                        unit="Percent",
+                        InstanceId=instance_id,
+                    ),
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Maximum",
+                        unit="Percent",
+                        InstanceId=instance_id,
+                    ),
+                ]
             )
 
-        metric_name = {"CPUUtilization": "cpu"}
+        @define
+        class MetricNormalization:
+            name: str
+            normalize_value: Callable[[float], float]
+
+        metric_normalizers = {
+            "CPUUtilization": MetricNormalization("cpu", lambda x: x / 100)
+        }  # convert from percent to fraction
 
         stat_name = {
+            "Minimum": "min",
             "Average": "avg",
+            "Maximum": "max",
         }
 
         for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
             instance = instances.get(query.ref_id)
+            if not instance:
+                continue
             metric_value = next(iter(metric.metric_values), None)
+            if not metric_value:
+                continue
 
-            if instance and metric_value:
-                instance._resource_usage[metric_name[query.metric_name]] = {stat_name[query.stat]: metric_value}
+            name = metric_normalizers[query.metric_name].name
+            value = metric_normalizers[query.metric_name].normalize_value(metric_value)
+
+            instance._resource_usage[name][stat_name[query.stat]] = value
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
