@@ -23,7 +23,7 @@
 		"vscode": {
 			"extensions": [
 				"mhutchie.git-graph",
-				"github.copilot"
+				"mutantdino.resourcemonitor"
 			],
 			"settings": {
 				// formatting

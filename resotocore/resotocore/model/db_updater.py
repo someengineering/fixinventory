@@ -151,6 +151,7 @@ class DbUpdaterProcess(Process):
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             model_handler = ModelHandlerDB(db, "")
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
+            await graphdb.insert_usage_data(builder.usage)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")

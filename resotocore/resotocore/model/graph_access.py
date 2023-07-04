@@ -25,6 +25,8 @@ from resotocore.model.model import (
     SimpleKind,
     DateKind,
     DurationKind,
+    UsageDatapoint,
+    UsageMetricValues,
 )
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
@@ -66,6 +68,9 @@ class Section:
     # Resolved descendants would be written to this section.
     # Only here for completeness - currently not used.
     descendants = "descendants"
+
+    # Usage of the resource
+    usage = "usage"
 
     # The set of all content sections
     content_ordered = [reported, desired, metadata]
@@ -143,6 +148,8 @@ class GraphBuilder:
         self.nodes = 0
         self.edges = 0
         self.deferred_edges: List[DeferredEdge] = []
+        self.usage: List[UsageDatapoint] = []
+        self.at = int(utc().timestamp())
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -154,6 +161,21 @@ class GraphBuilder:
                 js.get("search", None),
                 js.get("replace", False) is True,
             )
+            if Section.usage in js and len(js[Section.usage]):
+                values = {
+                    k: UsageMetricValues(
+                        min=v.get("min", v["avg"]),
+                        avg=v["avg"],
+                        max=v.get("max", v["avg"]),
+                    )
+                    for k, v in js[Section.usage].items()
+                }
+                usage = UsageDatapoint(
+                    id=js["id"],
+                    at=self.at,
+                    v=values,
+                )
+                self.usage.append(usage)
         elif "from" in js and "to" in js:
             self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeTypes.default))
         elif "from_selector" in js and "to_selector" in js:
