@@ -149,7 +149,7 @@ class GraphBuilder:
         self.edges = 0
         self.deferred_edges: List[DeferredEdge] = []
         self.usage: List[UsageDatapoint] = []
-        self.at = utc()
+        self.at = int(utc().timestamp())
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -172,7 +172,7 @@ class GraphBuilder:
                 }
                 usage = UsageDatapoint(
                     id=js["id"],
-                    at=int(self.at.timestamp()),
+                    at=self.at,
                     v=values,
                 )
                 self.usage.append(usage)
