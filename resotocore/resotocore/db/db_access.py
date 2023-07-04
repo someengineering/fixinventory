@@ -29,7 +29,6 @@ from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
 from resotocore.db.packagedb import app_package_entity_db
-from resotocore.db.usagedb import resource_usage_db, ResourceUsageDb
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.typed_model import from_js, to_js
@@ -75,7 +74,6 @@ class DbAccess(ABC):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
-        self.usage_dbs: Dict[str, ResourceUsageDb] = {}
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -103,7 +101,6 @@ class DbAccess(ABC):
             db = self.get_graph_db(graph_name)
             await db.create_update_schema()
             await self.get_graph_model_db(graph_name)
-            await self.get_usage_db(graph_name)
         await self.cleaner.start()
 
     async def stop(self) -> None:
@@ -111,9 +108,6 @@ class DbAccess(ABC):
 
     def graph_model_name(self, graph_name: GraphName) -> str:
         return f"{graph_name}_model"
-
-    def usage_db_name(self, graph_name: GraphName) -> str:
-        return f"{graph_name}_usage"
 
     async def create_graph(self, name: GraphName, validate_name: bool = True) -> GraphDB:
         if validate_name:
@@ -174,16 +168,6 @@ class DbAccess(ABC):
             db = EventEntityDb(model_db(self.db, model_name), self.event_sender, model_name)
             await db.create_update_schema()
             self.graph_model_dbs[graph_name] = db
-            return db
-
-    async def get_usage_db(self, graph_name: GraphName) -> ResourceUsageDb:
-        if db := self.usage_dbs.get(graph_name):
-            return db
-        else:
-            model_name = self.usage_db_name(graph_name)
-            db = resource_usage_db(self.db, model_name)
-            await db.create_update_schema()
-            self.usage_dbs[graph_name] = db
             return db
 
     async def check_outdated_updates(self) -> None:
