@@ -26,7 +26,6 @@ from resotocore.model.model import (
     DateKind,
     DurationKind,
     UsageDatapoint,
-    UsageMetricValues,
 )
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
@@ -163,11 +162,11 @@ class GraphBuilder:
             )
             if Section.usage in js and len(js[Section.usage]):
                 values = {
-                    k: UsageMetricValues(
-                        min=v.get("min", v["avg"]),
-                        avg=v["avg"],
-                        max=v.get("max", v["avg"]),
-                    )
+                    k: [
+                        v.get("min", v["avg"]),
+                        v["avg"],
+                        v.get("max", v["avg"]),
+                    ]
                     for k, v in js[Section.usage].items()
                 }
                 usage = UsageDatapoint(

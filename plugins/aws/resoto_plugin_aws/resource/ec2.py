@@ -1053,7 +1053,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         instances = {
             instance.id: instance
             for instance in builder.nodes(clazz=AwsEc2Instance)
-            if instance.region().id == builder.region.id
+            if instance.region().id == builder.region.id and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
         now = utc()
