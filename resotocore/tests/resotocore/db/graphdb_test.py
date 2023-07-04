@@ -18,7 +18,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.ids import NodeId, GraphName
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
-from resotocore.model.model import Model
+from resotocore.model.model import Model, UsageDatapoint, UsageMetricValues
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
@@ -623,10 +623,30 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
     await validate(graph_db.name, copy_db.name)
 
     # check snapshots
-    snapshot_db_name = GraphName("snapshot_" + graph_db.name)
+    snapshot_db_name = GraphName("snapshot-" + graph_db.name)
     snapshot_db = await graph_db.copy_graph(snapshot_db_name, to_snapshot=True)
     assert snapshot_db.name == snapshot_db_name
     await validate(graph_db.name, snapshot_db.name)
+
+    # clean up
+    await snapshot_db.wipe()
+
+
+@mark.asyncio
+async def test_no_snapshot_usage(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess) -> None:
+    await graph_db.wipe()
+    await db_access.delete_graph(GraphName("snapshot-" + graph_db.name))
+
+    snapshot_db_name = GraphName("snapshot-" + graph_db.name)
+    snapshot_db = await graph_db.copy_graph(snapshot_db_name, to_snapshot=True)
+
+    with raises(ValueError) as ex:
+        await snapshot_db.insert_usage_data([UsageDatapoint("foo", 42, {"cpu": UsageMetricValues(0.42, 0.42, 0.42)})])
+
+    assert str(ex.value) == "Cannot insert usage data into a snapshot graph"
+
+    # clean up
+    await snapshot_db.wipe()
 
 
 def test_render_metadata_section(foo_model: Model) -> None:
