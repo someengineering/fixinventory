@@ -125,6 +125,14 @@ def initializer() -> None:
     signal(SIGTERM, handler)
 
 
+def collector_initializer(nice_level: int = 5) -> None:
+    initializer()
+    try:
+        os.nice(nice_level)
+    except Exception:
+        pass
+
+
 def set_thread_name(thread_name: str = "resoto") -> None:
     threading.current_thread().name = thread_name
 

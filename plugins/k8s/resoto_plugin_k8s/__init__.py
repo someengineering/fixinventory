@@ -46,7 +46,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             pool_args: Dict[str, Any] = {"max_workers": max_workers}
             if k8s.fork_process:
                 pool_args["mp_context"] = multiprocessing.get_context("spawn")
-                pool_args["initializer"] = resotolib.proc.initializer
+                pool_args["initializer"] = resotolib.proc.collector_initializer
                 pool_executor: Type[Executor] = futures.ProcessPoolExecutor
             else:
                 pool_executor = futures.ThreadPoolExecutor

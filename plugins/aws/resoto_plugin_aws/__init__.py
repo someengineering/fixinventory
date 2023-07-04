@@ -641,7 +641,7 @@ def collect_account(
 
 
 def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
-    resotolib.proc.initializer()
+    resotolib.proc.collector_initializer()
     queue.put(collect_account(*args, **kwargs))
 
 

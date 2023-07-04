@@ -133,7 +133,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
 
 def collect_project_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
-    resotolib.proc.initializer()
+    resotolib.proc.collector_initializer()
     queue.put(GCPCollectorPlugin.collect_project(*args, **kwargs))
 
 
