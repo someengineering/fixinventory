@@ -22,7 +22,6 @@ from typing import (
     Tuple,
     Iterable,
     TypeVar,
-    NamedTuple,
 )
 
 import yaml
@@ -1459,7 +1458,6 @@ class Model:
         return result
 
 
-
 @frozen
 class UsageDatapoint:
     """
@@ -1477,7 +1475,7 @@ class UsageDatapoint:
 
     id: str
     at: int
-    v: Dict[str, List[float]
+    v: Dict[str, List[float]]
 
 
 # register serializer for this class
