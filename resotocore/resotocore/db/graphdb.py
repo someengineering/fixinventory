@@ -22,11 +22,19 @@ from resotocore.db import arango_query, EstimatedSearchCost
 from resotocore.db.arango_query import fulltext_delimiter
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
 from resotocore.db.model import GraphUpdate, QueryModel
+from resotocore.db.usagedb import resource_usage_db
 from resotocore.error import InvalidBatchUpdate, ConflictingChangeInProgress, NoSuchChangeError, OptimisticLockingFailed
 from resotocore.ids import NodeId, GraphName
 from resotocore.model.adjust_node import AdjustNode
 from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, Section
-from resotocore.model.model import Model, ComplexKind, TransformKind, ResolvedProperty, synthetic_metadata_kinds
+from resotocore.model.model import (
+    Model,
+    ComplexKind,
+    TransformKind,
+    ResolvedProperty,
+    UsageDatapoint,
+    synthetic_metadata_kinds,
+)
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P
 from resotocore.types import JsonElement, EdgeType
@@ -158,6 +166,10 @@ class GraphDB(ABC):
     async def copy_graph(self, to_graph: GraphName, to_snapshot: bool = False) -> "GraphDB":
         pass
 
+    @abstractmethod
+    async def insert_usage_data(self, data: List[UsageDatapoint]) -> None:
+        pass
+
 
 class ArangoGraphDB(GraphDB):
     def __init__(self, db: AsyncArangoDB, name: GraphName, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
@@ -168,6 +180,7 @@ class ArangoGraphDB(GraphDB):
         self.usage_metrics_name = f"{name}_usage_metrics"
         self.in_progress = f"{name}_in_progress"
         self.node_history = f"{name}_node_history"
+        self.usage_db = resource_usage_db(db, f"{name}_usage")
         self.db = db
         self.config = config
 
@@ -1041,6 +1054,7 @@ class ArangoGraphDB(GraphDB):
             node_history_collection = await create_collection(self.node_history)
             create_node_indexes(vertex)
             create_update_collection_indexes(in_progress, node_history_collection)
+            await self.usage_db.create_update_schema()
 
         for edge_type in EdgeTypes.all:
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
@@ -1122,6 +1136,11 @@ class ArangoGraphDB(GraphDB):
         await copy_data()
 
         return cast(GraphDB, new_graph_db)
+
+    async def insert_usage_data(self, data: List[UsageDatapoint]) -> None:
+        if self.name.startswith("snapshot"):
+            raise ValueError("Cannot insert usage data into a snapshot graph")
+        await self.usage_db.update_many(data)
 
     @staticmethod
     def db_edge_key(from_node: str, to_node: str) -> str:
@@ -1378,3 +1397,6 @@ class EventGraphDB(GraphDB):
             {"graph": self.graph_name, "to_graph": to_graph},
         )
         return await self.real.copy_graph(to_graph, to_snapshot=to_snapshot)
+
+    async def insert_usage_data(self, data: List[UsageDatapoint]) -> None:
+        await self.real.insert_usage_data(data)

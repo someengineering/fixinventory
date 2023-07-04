@@ -372,7 +372,7 @@ class AwsCloudwatchQuery:
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
-        rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}".lower())
+        rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}-{stat}".lower())
         # noinspection PyTypeChecker
         return AwsCloudwatchQuery(
             metric_name=metric_name,
