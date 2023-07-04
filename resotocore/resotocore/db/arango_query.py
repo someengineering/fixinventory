@@ -435,7 +435,7 @@ def query_string(
                     for r in {after_filter_cursor}
                         let resource=r
                         let resource_usage = first(
-                            for m in {db.usage_metrics_name}
+                            for m in {db.usage_db.collection_name}
                             filter m.at>=@{start} and m.at<=@{end} and m.id==r._key
                             collect aggregate {", ".join(avgs)}, count = sum(1)
                             return {{usage:{{{",".join(merges)},entries:count,start:@{start_s},duration:@{duration}}}}}
