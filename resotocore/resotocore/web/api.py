@@ -52,9 +52,9 @@ from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from attrs import evolve
+from dateutil import parser as date_parser
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
-from dateutil import parser as date_parser
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.cli.command import alias_names
@@ -79,6 +79,7 @@ from resotocore.error import NotFoundError
 from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
+from resotocore.metrics import timed
 from resotocore.model.db_updater import merge_graph_process
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
@@ -93,6 +94,7 @@ from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
 from resotocore.user import UserManagement
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
+from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -111,7 +113,6 @@ from resotocore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
-from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 from resotolib.x509 import cert_to_bytes
@@ -1129,6 +1130,7 @@ class Api:
 
         return web.json_response([line_to_js(line) for line in parsed])
 
+    @timed("api", "execute")
     async def execute(self, request: Request) -> StreamResponse:
         temp_dir: Optional[str] = None
         try:

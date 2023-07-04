@@ -28,7 +28,6 @@ from arango.typings import Json, Jsons
 
 from resotocore.async_extensions import run_async
 from resotocore.error import QueryTookToLongError
-from resotocore.metrics import timed
 from resotocore.util import identity
 from resotocore.ids import GraphName
 
@@ -158,7 +157,6 @@ class AsyncArangoDBBase:
     def __init__(self, db: Database):
         self.db = db
 
-    @timed("arango", "aql")
     async def aql_cursor(
         self,
         query: str,
@@ -208,7 +206,6 @@ class AsyncArangoDBBase:
         )
         return AsyncCursorContext(cursor, trafo)
 
-    @timed("arango", "aql")
     async def aql(
         self,
         query: str,
@@ -256,7 +253,6 @@ class AsyncArangoDBBase:
             max_runtime,
         )
 
-    @timed("arango", "explain")
     async def explain(
         self,
         query: str,
@@ -267,7 +263,6 @@ class AsyncArangoDBBase:
     ) -> Union[Json, Jsons]:
         return await run_async(self.db.aql.explain, query, all_plans, max_plans, opt_rules, bind_vars)  # type: ignore
 
-    @timed("arango", "execute_transaction")
     async def execute_transaction(
         self,
         command: str,
@@ -295,7 +290,6 @@ class AsyncArangoDBBase:
             intermediate_commit_size,
         )
 
-    @timed("arango", "get")
     async def get(
         self,
         collection: str,
@@ -305,7 +299,6 @@ class AsyncArangoDBBase:
     ) -> Optional[Json]:
         return await run_async(self.db.collection(collection).get, document, rev, check_rev)  # type: ignore
 
-    @timed("arango", "insert")
     async def insert(
         self,
         collection: str,
@@ -333,7 +326,6 @@ class AsyncArangoDBBase:
             merge,
         )
 
-    @timed("arango", "update")
     async def update(
         self,
         collection: str,
@@ -358,7 +350,6 @@ class AsyncArangoDBBase:
             silent,
         )
 
-    @timed("arango", "delete")
     async def delete(
         self,
         collection: str,
@@ -381,18 +372,15 @@ class AsyncArangoDBBase:
             silent,
         )
 
-    @timed("arango", "all")
     async def all(self, collection: str, skip: Optional[int] = None, limit: Optional[int] = None) -> Cursor:
         return await run_async(self.db.collection(collection).all, skip, limit)  # type: ignore
 
-    @timed("arango", "keys")
     async def keys(self, collection: str) -> Cursor:
         return await run_async(self.db.collection(collection).keys)  # type: ignore
 
     async def count(self, collection: str) -> int:
         return await run_async(self.db.collection(collection).count)  # type: ignore
 
-    @timed("arango", "insert_many")
     async def insert_many(
         self,
         collection: str,
@@ -406,7 +394,6 @@ class AsyncArangoDBBase:
         fn = self.db.collection(collection).insert_many
         return await run_async(fn, documents, return_new, sync, silent, overwrite, return_old)  # type: ignore
 
-    @timed("arango", "update_many")
     async def update_many(
         self,
         collection: str,
@@ -424,7 +411,6 @@ class AsyncArangoDBBase:
             fn, documents, check_rev, merge, keep_none, return_new, return_old, sync, silent  # type: ignore
         )
 
-    @timed("arango", "delete_many")
     async def delete_many(
         self,
         collection: str,

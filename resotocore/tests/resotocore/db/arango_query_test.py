@@ -125,3 +125,22 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
         "((m0.reported.inner[1].name == @b1) and (m0.reported.inner[1].inner[0].name == @b2))  RETURN m0) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])'
     )
+
+
+def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
+    q, b = to_query(graph_db, QueryModel(parse_query("with_usage(3w, cpu, mem) is(foo)"), foo_model))
+    assert q == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0)\n"
+        "let with_usage0 = (\n"
+        "    for r in filter0\n"
+        "        let resource=r\n"
+        "        let resource_usage = first(\n"
+        "            for m in ns_usage\n"
+        "            filter m.at>=@b1 and m.at<=@b2 and m.id==r._key\n"
+        "            collect aggregate cpu_min = MIN(m.v.cpu[0]), cpu_avg = AVG(m.v.cpu[1]), cpu_max = MAX(m.v.cpu[2]), mem_min = MIN(m.v.mem[0]), mem_avg = AVG(m.v.mem[1]), mem_max = MAX(m.v.mem[2]), count = sum(1)\n"  # noqa: E501
+        "            return {usage:{cpu: {min: cpu_min, avg: cpu_avg, max: cpu_max},mem: {min: mem_min, avg: mem_avg, max: mem_max},entries:count,start:@b3,duration:@b4}}\n"  # noqa: E501
+        "        )\n"
+        "        return resource_usage.usage.entries ? merge(resource, resource_usage) : resource\n"
+        ")\n"
+        ' FOR result in with_usage0 RETURN UNSET(result, ["flat"])'
+    )

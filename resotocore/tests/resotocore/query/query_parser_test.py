@@ -1,11 +1,13 @@
+from datetime import datetime, timedelta
 from functools import partial
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, List
 
 import pytest
 from attrs import evolve
 from deepdiff import DeepDiff
 from hypothesis import given, settings, HealthCheck
 from parsy import Parser, ParseError
+from pytest import approx
 
 from resotocore import error
 from resotocore.model.graph_access import EdgeTypes, Direction
@@ -32,6 +34,7 @@ from resotocore.query.model import (
     Predicate,
     Limit,
     NotTerm,
+    WithUsage,
 )
 from resotocore.query.query_parser import (
     predicate_term,
@@ -54,7 +57,9 @@ from resotocore.query.query_parser import (
     term_parser,
     parse_query,
     context_term,
+    with_usage_parser,
 )
+from resotocore.util import utc, parse_utc
 from tests.resotocore.query import query
 
 
@@ -330,6 +335,25 @@ def test_special_cases() -> None:
     # parser read the reversed option as separate part, so following query became 3 parts
     q = parse_query("all sort kind desc limit 1 reversed -default-> all sort kind asc")
     assert len(q.parts) == 2
+
+
+def test_usage_parser() -> None:
+    def test_usage(s: str, start: datetime, end: Optional[datetime], metrics: List[str]) -> None:
+        usage: WithUsage = with_usage_parser.parse(s)
+        assert usage.start_from_now().timestamp() == approx(start.timestamp(), abs=1)
+        if end:
+            assert usage.end is not None
+            assert usage.end_from_now().timestamp() == approx(end.timestamp(), abs=1)
+        assert usage.metrics == metrics
+
+    oneweekago = utc() - timedelta(weeks=1)
+    twoweekago = utc() - timedelta(weeks=2)
+    at = parse_utc("2023-06-10T12:23:21Z")
+    test_usage("with_usage(1w, a,b,c)", oneweekago, None, ["a", "b", "c"])
+    test_usage("with_usage(2w::1w, a,b,c)", twoweekago, oneweekago, ["a", "b", "c"])
+    test_usage("with_usage(2w::1w, [a,b,c])", twoweekago, oneweekago, ["a", "b", "c"])
+    test_usage("with_usage(2023-06-10T12:23:21Z::1w, [a,b,c])", at, oneweekago, ["a", "b", "c"])
+    test_usage("with_usage(2023-06-10T12:23:21Z::2023-06-10T12:23:21Z, [a,b,c])", at, at, ["a", "b", "c"])
 
 
 @given(query)

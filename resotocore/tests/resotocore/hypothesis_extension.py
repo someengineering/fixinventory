@@ -1,4 +1,5 @@
 import string
+from datetime import datetime
 from typing import TypeVar, Callable, Any, cast, Optional, List, Generator
 
 from aiostream import stream
@@ -45,6 +46,8 @@ class Drawer:
 any_ws_digits_string = text(alphabet=string.ascii_letters + string.whitespace + string.digits, min_size=0, max_size=10)
 any_string = text(alphabet=string.ascii_letters, min_size=3, max_size=10)
 kind_gen = sampled_from(["volume", "instance", "load_balancer", "volume_type"])
+
+any_datetime = integers(min_value=0, max_value=1688108028).map(lambda x: datetime.fromtimestamp(x))
 
 
 @composite

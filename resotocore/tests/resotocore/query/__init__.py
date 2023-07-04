@@ -11,7 +11,7 @@ from hypothesis.strategies import (
 )
 
 from resotocore.model.graph_access import EdgeTypes, Direction
-from tests.resotocore.hypothesis_extension import Drawer, optional, UD, any_string
+from tests.resotocore.hypothesis_extension import Drawer, optional, UD, any_string, any_datetime
 from resotocore.query.model import (
     IsTerm,
     Predicate,
@@ -33,6 +33,7 @@ from resotocore.query.model import (
     AggregateVariable,
     AggregateFunction,
     Limit,
+    WithUsage,
 )
 
 
@@ -92,17 +93,29 @@ def with_clause(ud: UD) -> WithClause:
     return WithClause(WithClauseFilter(op, num), nav, trm, wc)
 
 
+@composite
+def with_usage(ud: UD) -> WithUsage:
+    d = Drawer(ud)
+    start = d.draw(any_datetime)
+    end = d.optional(any_datetime)
+    metrics = d.draw(lists(any_string, min_size=1, max_size=3))
+    return WithUsage(start, end, metrics)
+
+
 part = builds(
     Part,
     term | merge_term(),
     optional(any_string),
     with_clause(),
+    with_usage(),
     lists(sort, min_size=0, max_size=3),
     optional(limit_gen),
     navigation(),
 )
 
-only_filter_part = builds(Part, term, just(None), just(None), lists(sort, min_size=0, max_size=1), optional(limit_gen))
+only_filter_part = builds(
+    Part, term, just(None), just(None), just(None), lists(sort, min_size=0, max_size=1), optional(limit_gen)
+)
 
 
 @composite

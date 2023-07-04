@@ -76,7 +76,7 @@ class Section:
     content = set(content_ordered)
 
     # The list of all lookup sections
-    lookup_sections_ordered = [ancestors, descendants]
+    lookup_sections_ordered = [ancestors, descendants, usage]
 
     # The list of all sections
     all_ordered = [*content_ordered, *lookup_sections_ordered]

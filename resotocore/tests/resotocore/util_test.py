@@ -1,11 +1,11 @@
 import json
 import shutil
+from copy import deepcopy
+from datetime import datetime, timezone
 
 import pytest
+import pytz
 from aiostream import stream
-from copy import deepcopy
-from dataclasses import dataclass
-from typing import Any
 
 from resotocore.util import (
     AccessJson,
@@ -18,6 +18,8 @@ from resotocore.util import (
     del_value_in_path,
     deep_merge,
     partition_by,
+    utc_str,
+    parse_utc,
 )
 
 
@@ -130,3 +132,28 @@ def test_deep_merge() -> None:
         "b": {"bar": 123, "baz": 456},
         "c": [8, 9],
     }
+
+
+def test_utc() -> None:
+    # datetime in utc
+    assert utc_str(datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)) == "2020-01-01T00:00:00Z"
+    # no timezone: assume utc
+    assert utc_str(datetime(2020, 1, 1, 0, 0, 0, 0)) == "2020-01-01T00:00:00Z"
+    # different timezone: convert to utc
+    assert utc_str(datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=pytz.timezone("CET"))) == "2019-12-31T23:00:00Z"
+    # gmt same timezone as utc
+    assert utc_str(datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=pytz.timezone("GMT"))) == "2020-01-01T00:00:00Z"
+
+    # valid utc
+    assert parse_utc("2020-01-01T00:00:00Z") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    # no timezone: assume utc
+    assert parse_utc("2020-01-01T00:00:00") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    # different timezone: convert to utc
+    assert parse_utc("2019-12-31T23:00:00-01:00") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert parse_utc("2019-12-31T22:00:00-02:00") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert parse_utc("2020-01-01T00:00:00+00:00") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    # other formats
+    assert parse_utc("20200101T000000Z") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert parse_utc("20200101000000") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert parse_utc("20200101") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert parse_utc("2020-01-01") == datetime(2020, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)

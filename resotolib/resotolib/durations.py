@@ -85,7 +85,7 @@ def duration_str(duration: timedelta, precision: Optional[int] = 0, down_to_unit
                 result += f"{num}{unit}"
             if found:
                 count += 1
-            if precision and count >= precision or unit == down_to_unit:
+            if (precision and count >= precision) or unit == down_to_unit or (down_to_unit is None and seconds < 1):
                 break
 
     # in case the duration is less than one second
