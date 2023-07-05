@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from functools import lru_cache
 from time import time
-from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type, TypeVar
+from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type, TypeVar, Set
 
 import networkx
 from attr import resolve_types
@@ -25,10 +25,15 @@ from resotolib.baseresources import (
     Cloud,
     BaseResource,
     EdgeType,
+    BaseRegion,
+    BaseZone,
+    MetricName,
+    StatName,
 )
 from resotolib.core.model_export import (
-    dataclasses_to_resotocore_model,
     node_to_dict,
+    dataclasses_to_resotocore_model,
+    dynamic_object_to_resotocore_model,
 )
 from resotolib.json import to_json_str
 from resotolib.logger import log
@@ -360,7 +365,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
         classes = set()
         for node in self.nodes:
             classes.add(type(node))
-        model = dataclasses_to_resotocore_model(classes, aggregate_root=BaseResource, **kwargs)
+        model = resource_classes_to_resotocore_model(classes, aggregate_root=BaseResource, **kwargs)
 
         # fixme: workaround to report kind
         for resource_model in model:
@@ -377,6 +382,24 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
 
     def export_iterator(self) -> GraphExportIterator:
         return GraphExportIterator(self)
+
+
+def resource_classes_to_resotocore_model(classes: Set[Type[Any]], **kwargs: Any) -> List[Json]:
+    model = {c["fqn"]: c for c in dataclasses_to_resotocore_model(classes, **kwargs)}
+    # create a phantom resource which defines default property paths
+    dynamic_types: Dict[str, Dict[str, Type[Any]]] = {
+        "resource_short_property_access": {
+            "cloud": Union[Cloud, str],  # type: ignore
+            "account": Union[BaseAccount, str],  # type: ignore
+            "region": Union[BaseRegion, str],  # type: ignore
+            "zone": Union[BaseZone, str],  # type: ignore
+            "usage": Dict[MetricName, Dict[StatName, float]],
+        }
+    }
+    for name, dynamic in dynamic_types.items():
+        for dyn in dynamic_object_to_resotocore_model(name, dynamic, aggregate_root=True, traverse_dependant=False):
+            model[dyn["fqn"]] = dyn
+    return list(model.values())
 
 
 @lru_cache(maxsize=4096)  # Only resolve types once per type

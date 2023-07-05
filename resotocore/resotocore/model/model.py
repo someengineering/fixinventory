@@ -1216,6 +1216,7 @@ predefined_kinds = [
             Property("exported_at", "datetime", False, None, "datetime when the account was exported."),
             Property("exported_age", "trafo.duration_to_datetime", False, SyntheticProperty(["exported_at"])),
         ],
+        metadata={"dynamic": True},
     ),
 ]
 predefined_kinds_by_name = {k.fqn: k for k in predefined_kinds}
