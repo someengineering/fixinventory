@@ -158,15 +158,18 @@ def test_custom_tags() -> None:
 
 @pytest.mark.asyncio
 async def test_abbreviation(expander: TemplateExpander) -> None:
-    section = "reported"
-    # name form
-    assert str(await expander.parse_query("cloud=a", section)) == 'ancestors.cloud.reported.name == "a"'
-    assert str(await expander.parse_query("account=a", section)) == 'ancestors.account.reported.name == "a"'
-    assert str(await expander.parse_query("region=a", section)) == 'ancestors.region.reported.name == "a"'
-    assert str(await expander.parse_query("zone=a", section)) == 'ancestors.zone.reported.name == "a"'
-    # short form
-    assert str(await expander.parse_query("cloud.name=a", section)) == 'ancestors.cloud.reported.name == "a"'
-    assert str(await expander.parse_query("account.name=a", section)) == 'ancestors.account.reported.name == "a"'
-    assert str(await expander.parse_query("region.name=a", section)) == 'ancestors.region.reported.name == "a"'
-    assert str(await expander.parse_query("zone.name=a", section)) == 'ancestors.zone.reported.name == "a"'
-    assert str(await expander.parse_query("usage.cpu.max > 3", section)) == "usage.cpu.max > 3"
+    async def with_section(section: Optional[str]) -> None:
+        # name form
+        assert str(await expander.parse_query("cloud=a", section)) == 'ancestors.cloud.reported.name == "a"'
+        assert str(await expander.parse_query("account=a", section)) == 'ancestors.account.reported.name == "a"'
+        assert str(await expander.parse_query("region=a", section)) == 'ancestors.region.reported.name == "a"'
+        assert str(await expander.parse_query("zone=a", section)) == 'ancestors.zone.reported.name == "a"'
+        # short form
+        assert str(await expander.parse_query("cloud.name=a", section)) == 'ancestors.cloud.reported.name == "a"'
+        assert str(await expander.parse_query("account.name=a", section)) == 'ancestors.account.reported.name == "a"'
+        assert str(await expander.parse_query("region.name=a", section)) == 'ancestors.region.reported.name == "a"'
+        assert str(await expander.parse_query("zone.name=a", section)) == 'ancestors.zone.reported.name == "a"'
+        assert str(await expander.parse_query("usage.cpu.max > 3", section)) == "usage.cpu.max > 3"
+
+    for s in Section.content_ordered + [None]:
+        await with_section(s)
