@@ -33,10 +33,38 @@ def graph_access() -> GraphAccess:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         g.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    g.add_node("1", reported=to_json(FooTuple("1")), desired={"name": "a"}, metadata={"version": 1}, kinds=["foo"])
-    g.add_node("2", reported=to_json(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
-    g.add_node("3", reported=to_json(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
-    g.add_node("4", reported=to_json(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
+    g.add_node(
+        "1",
+        reported=to_json(FooTuple("1")),
+        desired={"name": "a"},
+        metadata={"version": 1},
+        kinds=["foo"],
+        usage={"cpu": {"min": 0.1, "avg": 1, "max": 1}},
+    )
+    g.add_node(
+        "2",
+        reported=to_json(FooTuple("2")),
+        desired={"name": "b"},
+        metadata={"version": 2},
+        kinds=["foo"],
+        usage={"cpu": {"min": 0.2, "avg": 1, "max": 1}},
+    )
+    g.add_node(
+        "3",
+        reported=to_json(FooTuple("3")),
+        desired={"name": "c"},
+        metadata={"version": 3},
+        kinds=["foo"],
+        usage={"cpu": {"min": 0.3, "avg": 1, "max": 1}},
+    )
+    g.add_node(
+        "4",
+        reported=to_json(FooTuple("4")),
+        desired={"name": "d"},
+        metadata={"version": 4},
+        kinds=["foo"],
+        usage={"cpu": {"min": 0.4, "avg": 1, "max": 1}},
+    )
     add_edge("1", "2", edge_type=EdgeTypes.default)
     add_edge("1", "3", edge_type=EdgeTypes.default)
     add_edge("2", "3", edge_type=EdgeTypes.default)
@@ -119,6 +147,16 @@ def test_desired(graph_access: GraphAccess) -> None:
 def test_metadata(graph_access: GraphAccess) -> None:
     desired = {a["id"]: a["metadata"] for a in graph_access.not_visited_nodes()}
     assert desired == {"1": {"version": 1}, "2": {"version": 2}, "3": {"version": 3}, "4": {"version": 4}}
+
+
+def test_usage(graph_access: GraphAccess) -> None:
+    usage = {a["id"]: a["usage"] for a in graph_access.not_visited_nodes()}
+    assert usage == {
+        "1": {"cpu": {"min": 0.1, "avg": 1, "max": 1}},
+        "2": {"cpu": {"min": 0.2, "avg": 1, "max": 1}},
+        "3": {"cpu": {"min": 0.3, "avg": 1, "max": 1}},
+        "4": {"cpu": {"min": 0.4, "avg": 1, "max": 1}},
+    }
 
 
 def test_flatten() -> None:

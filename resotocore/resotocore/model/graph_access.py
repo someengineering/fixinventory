@@ -152,22 +152,26 @@ class GraphBuilder:
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
+            usage_json = js.get(Section.usage, {})
+            if len(usage_json) == 0:
+                usage_json = None
             self.add_node(
-                js["id"],
-                js[Section.reported],
-                js.get(Section.desired, None),
-                js.get(Section.metadata, None),
-                js.get("search", None),
-                js.get("replace", False) is True,
+                node_id=js["id"],
+                reported=js[Section.reported],
+                desired=js.get(Section.desired, None),
+                metadata=js.get(Section.metadata, None),
+                search=js.get("search", None),
+                replace=js.get("replace", False) is True,
+                usage=usage_json,
             )
-            if Section.usage in js and len(js[Section.usage]):
+            if usage_json:
                 values = {
                     k: [
                         v.get("min", v["avg"]),
                         v["avg"],
                         v.get("max", v["avg"]),
                     ]
-                    for k, v in js[Section.usage].items()
+                    for k, v in usage_json.items()
                 }
                 usage = UsageDatapoint(
                     id=js["id"],
@@ -235,6 +239,7 @@ class GraphBuilder:
         metadata: Optional[Json] = None,
         search: Optional[str] = None,
         replace: bool = False,
+        usage: Optional[Json] = None,
     ) -> None:
         self.nodes += 1
         # validate kind of this reported json
@@ -242,7 +247,7 @@ class GraphBuilder:
         reported = reported if coerced is None else coerced
         kind = self.model[reported]
         # create content hash
-        sha = GraphBuilder.content_hash(reported, desired, metadata)
+        sha = GraphBuilder.content_hash(reported, desired, metadata, usage)
         # flat all properties into a single string for search
         flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
         self.graph.add_node(
@@ -251,6 +256,7 @@ class GraphBuilder:
             reported=reported,
             desired=desired,
             metadata=metadata,
+            usage=usage,
             hash=sha,
             kind=kind,
             kinds=list(kind.kind_hierarchy()),
@@ -270,7 +276,9 @@ class GraphBuilder:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
 
     @staticmethod
-    def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
+    def content_hash(
+        js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None, usage: Optional[Json] = None
+    ) -> str:
         sha256 = hashlib.sha256()
         # all content hashes will be different, when the version changes
         sha256.update(ContentHashVersion.to_bytes(2, "big"))
@@ -279,6 +287,8 @@ class GraphBuilder:
             sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
         if metadata:
             sha256.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
+        if usage:
+            sha256.update(json.dumps(usage, sort_keys=True).encode("utf-8"))
         return sha256.hexdigest()
 
     @staticmethod
@@ -496,10 +506,13 @@ class GraphAccess:
         reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
+        usage: Optional[Json] = node.get(Section.usage, None)
+        if not usage:
+            usage = None
         if "id" not in node:
             node["id"] = node_id
         if recompute or "hash" not in node:
-            node["hash"] = GraphBuilder.content_hash(reported, desired, metadata)
+            node["hash"] = GraphBuilder.content_hash(reported, desired, metadata, usage)
         if recompute or "flat" not in node:
             node["flat"] = GraphBuilder.flatten(reported, kind)
         if "kinds" not in node:
