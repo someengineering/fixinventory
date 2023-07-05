@@ -1093,10 +1093,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
         for query, metric in cloudwatch_result.items():
             instance = instances.get(query.ref_id)
-            if not instance:
+            if instance is None:
                 continue
             metric_value = next(iter(metric.metric_values), None)
-            if not metric_value:
+            if metric_value is None:
                 continue
 
             name = metric_normalizers[query.metric_name].name
