@@ -28,7 +28,7 @@ from prompt_toolkit.styles import Style
 from resotoclient.async_client import ResotoClient
 from resotoclient.models import Property
 
-from resotolib.json import from_json, register_json
+from resotolib.json import from_json, register_json, value_in_path
 from resotolib.logger import log
 from resotolib.types import JsonElement
 
@@ -807,9 +807,9 @@ async def core_metadata(
                 result.extend(name + "." + pp for prop in kd.properties for pp in path(prop))
             return result
 
-        aggregate_roots = {
-            k: v for k, v in model.kinds.items() if getattr(v, "aggregate_root", True) and v.properties is not None
-        }
+        aggregate_roots = {k: v for k, v in model.kinds.items() if v.aggregate_root and v.properties is not None}
+        # filter out all dynamically created kinds
+        visible_kinds = sorted(k for k, v in aggregate_roots.items() if value_in_path(v.metadata, ["dynamic"]) is None)
 
         known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
         info = await client.cli_info()
@@ -821,7 +821,7 @@ async def core_metadata(
         for alias, cmd in info.get("alias_names", {}).items():
             if cmd in lookup and alias not in lookup:
                 cmds.append(evolve(lookup[cmd], name=alias, is_alias=True))
-        return cmds, sorted(aggregate_roots.keys()), sorted(known_props)
+        return cmds, visible_kinds, sorted(known_props)
     except Exception as ex:
         log.warning(
             f"Can not load metadata from core: {ex}. No suggestions as fallback.",

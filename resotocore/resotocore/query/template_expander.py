@@ -1,5 +1,6 @@
 import functools
 import json
+import re
 from abc import abstractmethod
 from typing import Any, Union, Iterable, Tuple, List, Optional, cast
 
@@ -91,11 +92,35 @@ class TemplateExpander(QueryParser):
         """
 
 
+# Replace abbreviated predicate names with actual names
+PredicateNameAdditions = {
+    # shortcut for selecting any attribute on cloud/account/region/zone: cloud.id=123
+    "(cloud[.]).*": "/ancestors.cloud.reported.",
+    "(account[.]).*": "/ancestors.account.reported.",
+    "(region[.]).*": "/ancestors.region.reported.",
+    "(zone[.]).*": "/ancestors.zone.reported.",
+    "(usage[.]).*": "/usage.",
+    # shortcut for selecting by name on cloud/account/region/zone: cloud=aws
+    "(cloud)": "/ancestors.cloud.reported.name",
+    "(account)": "/ancestors.account.reported.name",
+    "(region)": "/ancestors.region.reported.name",
+    "(zone)": "/ancestors.zone.reported.name",
+}
+
+
 class TemplateExpanderBase(TemplateExpander):
     """
     Base expander functionality which implements the expanding functionality
     and leaves the storage functionality to the subsequent classes.
     """
+
+    @staticmethod
+    def change_well_known_names(name: str) -> str:
+        for pattern, addition in PredicateNameAdditions.items():
+            if match := re.fullmatch(pattern, name):
+                res = addition + name[len(match.group(1)) :]
+                return res
+        return name
 
     async def parse_query(
         self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False, **env: str
@@ -108,6 +133,7 @@ class TemplateExpanderBase(TemplateExpander):
         rendered = self.render(to_parse, env) if env else to_parse
         expanded, _ = await self.expand(rendered)
         result = query_parser.parse_query(expanded, **env)
+        result = result.change_variable(self.change_well_known_names)
         return result if omit_section_expansion else result.on_section(on_section)
 
     async def expand(self, maybe_expandable: str) -> Tuple[str, List[Expandable]]:

@@ -276,17 +276,21 @@ def dataclasses_to_resotocore_model(
 
 # Use this model exporter, if a dynamic object is exported
 # with given name and properties.
-def dynamic_object_to_resotocore_model(name: str, properties: Dict[str, type]) -> List[Json]:
-    dependant = dataclasses_to_resotocore_model(set(properties.values()))
+def dynamic_object_to_resotocore_model(
+    name: str, properties: Dict[str, type], aggregate_root: bool = True, traverse_dependant: bool = True
+) -> List[Json]:
+    dependant = dataclasses_to_resotocore_model(set(properties.values())) if traverse_dependant else []
     # append definition for top level object
     dependant.append(
         {
             "fqn": name,
             "bases": [],
+            "aggregate_root": aggregate_root,
             "properties": [
                 {"name": prop_name, "kind": model_name(prop_type), "required": False}
                 for prop_name, prop_type in properties.items()
             ],
+            "metadata": {"dynamic": True},
         }
     )
     return dependant
