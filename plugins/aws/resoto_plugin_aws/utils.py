@@ -1,7 +1,7 @@
 import uuid
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
 
 from boto3.session import Session as BotoSession
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
@@ -184,3 +184,10 @@ class TagsValue(Bender):
             if k.get("Key") == self.name:
                 return k.get("Value", "")
         return None
+
+
+T = TypeVar("T")
+
+
+def identity(x: T) -> T:
+    return x
