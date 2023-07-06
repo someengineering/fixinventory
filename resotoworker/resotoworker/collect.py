@@ -7,7 +7,7 @@ from concurrent import futures
 from threading import Lock
 from resotoworker.exceptions import DuplicateMessageError
 from resotoworker.resotocore import Resotocore
-from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, sanitize, GraphMergeKind

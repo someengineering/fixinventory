@@ -13,7 +13,7 @@ import requests
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
-from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
+from resotolib.baseplugin import BaseActionPlugin, BaseCollectorPlugin, PluginType
 from resotolib.config import Config
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
 from resotolib.core.actions import CoreActions, CoreFeedback
