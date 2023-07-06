@@ -212,7 +212,7 @@ class BaseCollectorPlugin(BasePlugin):
         self.name = str(self.cloud)
         cloud = Cloud(id=self.cloud)
         self.root = cloud
-        self._graph_queue: Queue[Optional[Graph]] = graph_queue
+        self._graph_queue: Optional[Queue[Optional[Graph]]] = graph_queue
         self.graph_merge_kind: GraphMergeKind = graph_merge_kind
         self.graph = self.new_graph()
 
@@ -249,6 +249,7 @@ class BaseCollectorPlugin(BasePlugin):
         if self.graph_merge_kind == GraphMergeKind.cloud or len(self.graph) > 1:
             if self.graph_merge_kind == GraphMergeKind.account:
                 log.debug("Using backwards compatibility mode")
+            assert isinstance(self.graph.root, BaseResource)
             log.debug(f"Sending graph of {self.graph.root.kdname} to queue")
             self.send_graph(self.graph)
 
@@ -261,6 +262,7 @@ class BaseCollectorPlugin(BasePlugin):
             return
 
         if self.graph_merge_kind == GraphMergeKind.account:
+            assert isinstance(graph.root, BaseResource)
             kdname = graph.root.kdname
             cloud_graph = self.new_graph()
             cloud_graph.merge(graph, skip_deferred_edges=True)

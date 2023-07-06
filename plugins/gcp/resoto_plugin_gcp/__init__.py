@@ -26,7 +26,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     cloud = "gcp"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.core_feedback: Optional[CoreFeedback] = None
 

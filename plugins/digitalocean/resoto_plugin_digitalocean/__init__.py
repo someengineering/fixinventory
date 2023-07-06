@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, cast
+from typing import Optional, List, Tuple, cast, Any
 
 from resoto_plugin_digitalocean.client import StreamingWrapper, get_team_credentials
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
@@ -21,7 +21,7 @@ import time
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.core_feedback: Optional[CoreFeedback] = None
 

@@ -3,10 +3,9 @@ import multiprocessing
 import os
 from concurrent import futures
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, Sequence
+from typing import List, Optional, Tuple, Union, Sequence, Any
 import subprocess
 import json
-from queue import Queue
 
 import boto3
 import botocore.exceptions
@@ -52,7 +51,7 @@ GLOBAL_REGIONS = ("us-east-1", "us-gov-west-1", "cn-north-1")
 class AWSCollectorPlugin(BaseCollectorPlugin):
     cloud = "aws"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__regions: List[str] = []
         self.core_feedback: Optional[CoreFeedback] = None

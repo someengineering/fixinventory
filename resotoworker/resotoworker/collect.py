@@ -8,7 +8,7 @@ from threading import Lock
 from resotoworker.exceptions import DuplicateMessageError
 from resotoworker.resotocore import Resotocore
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
-from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount
+from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, sanitize, GraphMergeKind
 from resotolib.logger import log, setup_logger
@@ -29,7 +29,7 @@ class Collector:
         self.processing: Set[str] = set()
         self.processing_lock = Lock()
 
-    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId):
+    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId) -> None:
         log.debug("Waiting for collector graphs")
         while True:
             collector_graph = graph_queue.get()
@@ -42,6 +42,7 @@ class Collector:
             sanitize(graph)
 
             graph_info = ""
+            assert isinstance(graph.root, BaseResource)
             for cloud in graph.successors(graph.root):
                 if isinstance(cloud, BaseCloud):
                     graph_info += f" {cloud.kdname}"
@@ -61,7 +62,6 @@ class Collector:
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
-        post_collectors: List[Type[BasePostCollectPlugin]],
         task_id: TaskId,
         step_name: str,
     ) -> None:
@@ -78,7 +78,7 @@ class Collector:
             )
             if max_workers == 0:
                 log.error("No workers configured or no collector plugins loaded - skipping collect")
-                return None
+                return False
             pool_args = {"max_workers": max_workers}
             pool_executor: Type[futures.Executor]
             collect_args: Dict[str, Any]
@@ -138,39 +138,6 @@ class Collector:
             with self.processing_lock:
                 if processing_id in self.processing:
                     self.processing.remove(processing_id)
-
-
-def run_post_collect_plugin(
-    post_collector_plugin: Type[BasePostCollectPlugin],
-    graph: Graph,
-    core_feedback: CoreFeedback,
-    args: Optional[Namespace] = None,
-    running_config: Optional[RunningConfig] = None,
-) -> Optional[Graph]:
-    try:
-        post_collector: BasePostCollectPlugin = post_collector_plugin()
-        if core_feedback and hasattr(post_collector, "core_feedback"):
-            setattr(post_collector, "core_feedback", core_feedback)
-
-        if args is not None:
-            ArgumentParser.args = args  # type: ignore
-            setup_logger("resotoworker")
-        if running_config is not None:
-            Config.running_config.apply(running_config)
-
-        log.debug(f"starting new post-collect process for {post_collector.name}")
-        start_time = time()
-        post_collector.post_collect(graph)
-        elapsed = time() - start_time
-        if (cycle := graph.find_cycle()) is not None:
-            desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
-            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results. Cycle {desc}")
-            return None
-        log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
-        return graph
-    except Exception as e:
-        log.exception(f"Unhandled exception in {post_collector_plugin}: {e} - ignoring plugin")
-        return None
 
 
 def collect_plugin_graph(

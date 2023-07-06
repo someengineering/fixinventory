@@ -3,7 +3,7 @@ from resotolib.logger import log
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config
 from .config import DockerHubConfig
-from typing import Optional
+from typing import Optional, Any
 from .resources import (
     DockerHubNamespace,
     DockerHubRepository,
@@ -13,7 +13,7 @@ from .resources import (
 class DockerHubCollectorPlugin(BaseCollectorPlugin):
     cloud = "dockerhub"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.dockerhub_uri = "https://hub.docker.com/v2/repositories/"
 

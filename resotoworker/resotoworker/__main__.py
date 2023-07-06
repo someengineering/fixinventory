@@ -224,7 +224,6 @@ def core_actions_processor(
     message: Dict[str, Any],
 ) -> Optional[Dict[str, Any]]:
     collectors: List[Type[BaseCollectorPlugin]] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
-    post_collectors: List[Type[BasePostCollectPlugin]] = plugin_loader.plugins(PluginType.POST_COLLECT)  # type: ignore
     # todo: clean this up
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -239,7 +238,7 @@ def core_actions_processor(
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, post_collectors, task_id=task_id, step_name=step_name)
+                collector.collect_and_send(collectors, task_id=task_id, step_name=step_name)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
