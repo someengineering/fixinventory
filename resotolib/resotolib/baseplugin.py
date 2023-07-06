@@ -271,6 +271,8 @@ class BaseCollectorPlugin(BasePlugin):
     def send_graph(self, graph: Graph) -> None:
         if self._graph_queue is None:
             raise RuntimeError("Unable to send graph - no graph queue set")
+        if not isinstance(graph, Graph):
+            raise TypeError(f"Unable to send graph - expected type Graph, got {type(graph)}")
         self._graph_queue.put(graph)
 
 
