@@ -60,6 +60,7 @@ class Collector:
                 continue
 
             self._resotocore.send_to_resotocore(graph, task_id)
+            del graph
 
     def collect_and_send(
         self,
