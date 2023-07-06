@@ -141,7 +141,7 @@ class Collector:
                 for _ in range(graph_sender_pool_size):
                     graph_queue.put(None)
                 for t in graph_sender_threads:
-                    t.join()
+                    t.join(self._config.resotoworker.timeout)
 
         finally:
             with self.processing_lock:
