@@ -262,9 +262,10 @@ class BaseCollectorPlugin(BasePlugin):
 
         if self.graph_merge_kind == GraphMergeKind.account:
             kdname = graph.root.kdname
-            graph = self.new_graph().merge(graph, skip_deferred_edges=True)
+            cloud_graph = self.new_graph()
+            cloud_graph.merge(graph, skip_deferred_edges=True)
             log.debug(f"Sending graph of {kdname} to queue")
-            self.send_graph(graph)
+            self.send_graph(cloud_graph)
         elif self.graph_merge_kind == GraphMergeKind.cloud:
             self.graph.merge(graph, skip_deferred_edges=True)
 
