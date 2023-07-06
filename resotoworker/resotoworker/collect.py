@@ -127,12 +127,12 @@ class Collector:
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
             try:
                 for i in range(graph_sender_pool_size):
-                    graph_queue_t = threading.Thread(
+                    graph_sender_t = threading.Thread(
                         target=self.graph_sender, args=(graph_queue, task_id), name=f"graph_sender_{i}"
                     )
-                    graph_queue_t.daemon = True
-                    graph_queue_t.start()
-                    graph_sender_threads.append(graph_queue_t)
+                    graph_sender_t.daemon = True
+                    graph_sender_t.start()
+                    graph_sender_threads.append(graph_sender_t)
 
                 self._resotocore.create_graph_and_update_model()
                 collect(collectors, graph_queue)
