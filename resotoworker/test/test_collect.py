@@ -68,7 +68,13 @@ def test_collect_and_send() -> None:
         Config,
         FakeConfig(
             values={
-                "resotoworker": {"pool_size": 1, "fork_process": False, "graph_merge_kind": GraphMergeKind.cloud},
+                "resotoworker": {
+                    "pool_size": 1,
+                    "fork_process": False,
+                    "graph_merge_kind": GraphMergeKind.cloud,
+                    "graph_sender_pool_size": 5,
+                    "timeout": 10800,
+                },
                 "running_config": None,
             }
         ),
