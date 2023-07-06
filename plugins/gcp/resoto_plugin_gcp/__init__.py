@@ -80,6 +80,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     log.error(f"Skipping invalid project_graph {type(project_graph)}")
                     continue
                 self.send_account_graph(project_graph)
+                del project_graph
 
     @staticmethod
     def collect_project(

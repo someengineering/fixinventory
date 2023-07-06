@@ -134,6 +134,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
                 self.send_account_graph(account_graph)
+                del account_graph
 
         # collect done, purge all session caches
         aws_config.sessions().purge_caches()
