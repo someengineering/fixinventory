@@ -15,7 +15,7 @@ from resotolib.config import Config
 from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.core.ca import TLSData
-from resotolib.graph import Graph
+from resotolib.graph import Graph, GraphMergeKind
 from resotolib.logger import log
 from resotolib.types import Json
 
@@ -203,13 +203,18 @@ class BaseCollectorPlugin(BasePlugin):
     plugin_type = PluginType.COLLECTOR  # Type of the Plugin
     cloud: str = NotImplemented  # Name of the cloud this plugin implements
 
-    def __init__(self, graph_queue: Optional[Queue[Optional[Graph]]] = None) -> None:
+    def __init__(
+        self,
+        graph_queue: Optional[Queue[Optional[Graph]]] = None,
+        graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
+    ) -> None:
         super().__init__()
         self.name = str(self.cloud)
         cloud = Cloud(id=self.cloud)
         self.root = cloud
         self._graph_queue: Queue[Optional[Graph]] = graph_queue
-        self.graph = Graph(root=self.root)
+        self.graph_merge_kind: GraphMergeKind = graph_merge_kind
+        self.graph = self.new_graph()
 
     @abstractmethod
     def collect(self) -> None:
@@ -241,7 +246,27 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
-        self.send_graph(self.graph)
+        if self.graph_merge_kind == GraphMergeKind.cloud or len(self.graph) > 1:
+            if self.graph_merge_kind == GraphMergeKind.account:
+                log.debug("Using backwards compatibility mode")
+            log.debug(f"Sending graph of {self.graph.root.kdname} to queue")
+            self.send_graph(self.graph)
+
+    def new_graph(self) -> Graph:
+        return Graph(root=self.root)
+
+    def send_account_graph(self, graph: Graph) -> None:
+        if not isinstance(graph, Graph):
+            log.error(f"Expected Graph, got {type(graph)}")
+            return
+
+        if self.graph_merge_kind == GraphMergeKind.account:
+            kdname = graph.root.kdname
+            graph = self.new_graph().merge(graph, skip_deferred_edges=True)
+            log.debug(f"Sending graph of {kdname} to queue")
+            self.send_graph(graph)
+        elif self.graph_merge_kind == GraphMergeKind.cloud:
+            self.graph.merge(graph, skip_deferred_edges=True)
 
     def send_graph(self, graph: Graph) -> None:
         self._graph_queue.put(graph)

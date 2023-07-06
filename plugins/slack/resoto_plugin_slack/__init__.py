@@ -42,8 +42,8 @@ def retry_on_request_limit_exceeded(e):
 class SlackCollectorPlugin(BaseCollectorPlugin):
     cloud = "slack"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.client = None
 
     def collect(self) -> None:

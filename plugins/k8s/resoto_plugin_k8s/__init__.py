@@ -25,8 +25,8 @@ log = logging.getLogger("resoto.plugins.k8s")
 class KubernetesCollectorPlugin(BaseCollectorPlugin):
     cloud = "k8s"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         # once defined, it will be set by the worker
         self.core_feedback: Optional[CoreFeedback] = None
 

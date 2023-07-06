@@ -10,7 +10,7 @@ from resotoworker.resotocore import Resotocore
 from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
 from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph, sanitize
+from resotolib.graph import Graph, sanitize, GraphMergeKind
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
@@ -34,6 +34,7 @@ class Collector:
         while True:
             collector_graph = graph_queue.get()
             if collector_graph is None:
+                log.debug(f"Ending graph sender thread for task id {task_id}")
                 break
 
             graph = Graph(root=GraphRoot(id="root", tags={}))
@@ -68,6 +69,7 @@ class Collector:
 
         def collect(collectors: List[Type[BaseCollectorPlugin]], graph_queue: Queue[Optional[Graph]]) -> bool:
             all_success = True
+            graph_merge_kind = self._config.resotoworker.graph_merge_kind
 
             max_workers = (
                 len(collectors)
@@ -99,6 +101,7 @@ class Collector:
                         collector,
                         core_feedback,
                         graph_queue,
+                        graph_merge_kind,
                         **collect_args,
                     )
                     for collector in collectors
@@ -128,6 +131,7 @@ class Collector:
                 self._resotocore.create_graph_and_update_model()
                 collect(collectors, graph_queue)
             finally:
+                log.debug("Telling graph sender thread to end")
                 graph_queue.put(None)
 
         finally:
@@ -173,11 +177,12 @@ def collect_plugin_graph(
     collector_plugin: Type[BaseCollectorPlugin],
     core_feedback: CoreFeedback,
     graph_queue: Queue[Optional[Graph]],
+    graph_merge_kind: GraphMergeKind,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
 ) -> bool:
     try:
-        collector: BaseCollectorPlugin = collector_plugin(graph_queue=graph_queue)
+        collector: BaseCollectorPlugin = collector_plugin(graph_queue=graph_queue, graph_merge_kind=graph_merge_kind)
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
             setattr(collector, "core_feedback", core_feedback)

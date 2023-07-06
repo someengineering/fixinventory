@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union, Sequence
 import subprocess
 import json
+from queue import Queue
 
 import boto3
 import botocore.exceptions
@@ -27,7 +28,7 @@ from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph
+from resotolib.graph import Graph, GraphMergeKind
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
 from resotolib.utils import log_runtime
@@ -51,8 +52,8 @@ GLOBAL_REGIONS = ("us-east-1", "us-gov-west-1", "cn-north-1")
 class AWSCollectorPlugin(BaseCollectorPlugin):
     cloud = "aws"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.__regions: List[str] = []
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -133,7 +134,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(account_graph, Graph):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
-                self.graph.merge(account_graph, skip_deferred_edges=True)
+                self.send_account_graph(account_graph)
 
         # collect done, purge all session caches
         aws_config.sessions().purge_caches()
