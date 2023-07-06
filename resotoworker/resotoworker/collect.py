@@ -31,10 +31,12 @@ class Collector:
 
     def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId) -> None:
         log.debug("Waiting for collector graphs")
+        start_time = time()
         while True:
             collector_graph = graph_queue.get()
             if collector_graph is None:
-                log.debug(f"Ending graph sender thread for task id {task_id}")
+                run_time = time() - start_time
+                log.debug(f"Ending graph sender thread for task id {task_id} after {run_time} seconds")
                 break
 
             graph = Graph(root=GraphRoot(id="root", tags={}))
