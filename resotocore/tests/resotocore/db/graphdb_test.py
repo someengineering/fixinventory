@@ -181,7 +181,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     g = create_graph("yes or no")
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.merge_graph(g, foo_model, batch_id, True) == (
+    assert await graph_db.merge_graph(g, foo_model, 42, batch_id, True) == (
         ["collector"],
         GraphUpdate(112, 1, 0, 212, 0, 0),
     )
@@ -196,7 +196,7 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     assert len(list(filter(lambda c: c["name"].startswith("temp_"), cast(List[Json], test_db.collections())))) == 0
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
-    await graph_db.merge_graph(g, foo_model, batch_id, True)
+    await graph_db.merge_graph(g, foo_model, 42, batch_id, True)
     await graph_db.abort_update(batch_id)
     assert len(list(filter(lambda c: c["name"].startswith("temp_"), cast(List[Json], test_db.collections())))) == 0
 
@@ -210,17 +210,17 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
     p = ["collector"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
-    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(112, 1, 0, 212, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, 42) == (p, GraphUpdate(112, 1, 0, 212, 0, 0))
     # exactly the same graph is updated: expect no changes
-    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, 42) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
-    assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 100, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("maybe"), foo_model, 40) == (p, GraphUpdate(0, 100, 0, 0, 0, 0))
     # the width of the graph is reduced: expect nodes and edges to be removed
-    assert await graph_db.merge_graph(create("maybe", width=5), foo_model) == (p, GraphUpdate(0, 0, 80, 0, 0, 155))
+    assert await graph_db.merge_graph(create("maybe", width=5), foo_model, 42) == (p, GraphUpdate(0, 0, 80, 0, 0, 155))
     # going back to the previous graph: the same amount of nodes and edges is inserted
-    assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(80, 0, 0, 155, 0, 0))
+    assert await graph_db.merge_graph(create("maybe"), foo_model, 42) == (p, GraphUpdate(80, 0, 0, 155, 0, 0))
     # updating with the same data again, does not perform any changes
-    assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("maybe"), foo_model, 42) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
 
 
 @mark.asyncio
@@ -231,11 +231,11 @@ async def test_merge_multi_graph(graph_db: ArangoGraphDB, foo_model: Model) -> N
     # 1 root which changes => 1 node to update
     # edges:
     # 110 default, 108 delete connections (missing: collector -> root) => 218 edge inserts
-    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model, 42)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
     # doing the same thing again should do nothing
-    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model, 42)
     assert info == GraphUpdate(0, 0, 0, 0, 0, 0)
     assert len(nodes) == 8
 
@@ -438,7 +438,7 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
     for _, node in graph.nodes(True):
         del node["desired"]
         del node["metadata"]
-    await graph_db.merge_graph(graph, foo_model)
+    await graph_db.merge_graph(graph, foo_model, 42)
     async with await graph_db.search_list(QueryModel(parse_query("all"), foo_model)) as cursor:
         async for elem in cursor:
             assert "reported" in elem
@@ -560,8 +560,8 @@ async def test_events(
     await event_graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
     await event_graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
     await event_graph_db.delete_node(NodeId("some_other"))
-    await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
-    await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
+    await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model, 42)
+    await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, 42, "batch1", True)
     copy_graph_name = GraphName("graph_copy_for_event")
     await db_access.delete_graph(copy_graph_name)
     await event_graph_db.copy_graph(copy_graph_name)
@@ -591,7 +591,7 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
     await graph_db.wipe()
 
     # populate some data in the graphes
-    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model, 42)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
 

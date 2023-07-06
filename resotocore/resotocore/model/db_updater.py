@@ -148,7 +148,7 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             await graphdb.insert_usage_data(builder.usage)
-            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch, builder.at)
+            _, result = await graphdb.merge_graph(builder.graph, model, builder.at, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             model_handler = ModelHandlerDB(db, "")
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
