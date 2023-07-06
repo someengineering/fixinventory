@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, NamedTuple
 import copy
+from functools import partial
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -1079,7 +1080,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 ]
             )
 
-        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu")}
+        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu", partial(round, ndigits=3))}
 
         stat_name = {
             "Minimum": "min",
