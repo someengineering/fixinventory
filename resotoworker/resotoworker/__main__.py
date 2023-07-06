@@ -118,7 +118,7 @@ def main() -> None:
     mp_manager = multiprocessing.Manager()
     core_messages: Queue[Json] = mp_manager.Queue()
 
-    collector = Collector(config, core.send_to_resotocore, core_messages)
+    collector = Collector(config, core, core_messages)
 
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()

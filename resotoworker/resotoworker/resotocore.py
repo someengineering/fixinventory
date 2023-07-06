@@ -5,7 +5,7 @@ from datetime import datetime
 from resotolib.args import ArgumentParser
 from resotolib.logger import log
 from resotolib.jwt import encode_jwt_to_headers
-from resotolib.graph import Graph, GraphExportIterator
+from resotolib.graph import Graph, GraphExportIterator, export_model
 from resotolib.config import Config
 from resotolib.core import resotocore
 from typing import Callable, Optional
@@ -23,20 +23,23 @@ class Resotocore:
         self._send_request = send_request
         self._config = config
 
+    def create_graph_and_update_model(self) -> None:
+        base_uri = resotocore.http_uri
+        resotocore_graph = self._config.resotoworker.graph
+        dump_json = self._config.resotoworker.debug_dump_json
+        tempdir = self._config.resotoworker.tempdir
+        self.create_graph(base_uri, resotocore_graph)
+        self.update_model(base_uri, dump_json=dump_json, tempdir=tempdir)
+
     def send_to_resotocore(self, graph: Graph, task_id: str) -> None:
         if not ArgumentParser.args.resotocore_uri:
             return None
-
-        log.info("resotocore Event Handler called")
 
         base_uri = resotocore.http_uri
         resotocore_graph = self._config.resotoworker.graph
         dump_json = self._config.resotoworker.debug_dump_json
         tempdir = self._config.resotoworker.tempdir
         graph_merge_kind = self._config.resotoworker.graph_merge_kind
-
-        self.create_graph(base_uri, resotocore_graph)
-        self.update_model(graph, base_uri, dump_json=dump_json, tempdir=tempdir)
 
         graph_export_iterator = GraphExportIterator(
             graph,
@@ -74,7 +77,6 @@ class Resotocore:
 
     def update_model(
         self,
-        graph: Graph,
         resotocore_base_uri: str,
         dump_json: bool = False,
         tempdir: Optional[str] = None,
@@ -83,7 +85,7 @@ class Resotocore:
 
         log.debug(f"Updating model via {model_uri}")
 
-        model_json = json.dumps(graph.export_model(), indent=4)
+        model_json = json.dumps(export_model(), indent=4)
 
         if dump_json:
             ts = datetime.now().strftime("%Y-%m-%d-%H-%M")

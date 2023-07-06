@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from threading import Thread, current_thread
 from typing import Dict, Optional, Set, Any
+from queue import Queue
 
 from prometheus_client import Counter
 
@@ -18,7 +19,6 @@ from resotolib.graph import Graph
 from resotolib.logger import log
 from resotolib.types import Json
 
-# from multiprocessing import Process
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",
@@ -203,11 +203,12 @@ class BaseCollectorPlugin(BasePlugin):
     plugin_type = PluginType.COLLECTOR  # Type of the Plugin
     cloud: str = NotImplemented  # Name of the cloud this plugin implements
 
-    def __init__(self) -> None:
+    def __init__(self, graph_queue: Optional[Queue[Optional[Graph]]] = None) -> None:
         super().__init__()
         self.name = str(self.cloud)
         cloud = Cloud(id=self.cloud)
         self.root = cloud
+        self._graph_queue: Queue[Optional[Graph]] = graph_queue
         self.graph = Graph(root=self.root)
 
     @abstractmethod
@@ -240,6 +241,10 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
+        self.send_graph(self.graph)
+
+    def send_graph(self, graph: Graph) -> None:
+        self._graph_queue.put(graph)
 
 
 class BasePostCollectPlugin(ABC):

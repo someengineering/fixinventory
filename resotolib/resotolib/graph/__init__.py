@@ -402,6 +402,22 @@ def resource_classes_to_resotocore_model(classes: Set[Type[Any]], **kwargs: Any)
     return list(model.values())
 
 
+def export_model() -> List[Json]:
+    """Return the graph node dataclass model in resotocore format"""
+    model = dataclasses_to_resotocore_model({BaseResource}, aggregate_root=BaseResource)
+    for resource_model in model:
+        if resource_model.get("fqn") == "resource":
+            resource_model.get("properties", []).append(
+                {
+                    "name": "kind",
+                    "kind": "string",
+                    "required": True,
+                    "description": "",
+                }
+            )
+    return model
+
+
 @lru_cache(maxsize=4096)  # Only resolve types once per type
 def resolve_type(clazz: Type[Any]) -> None:
     resolve_types(clazz)  # type: ignore
