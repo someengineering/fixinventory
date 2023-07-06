@@ -304,7 +304,7 @@ class AwsConfig:
         if self._holder is None:
             with self._lock:
                 if self._holder is None:
-                    log.info("Create a new AWS session holder")
+                    log.debug("Creating a new AWS session holder")
                     self._holder = AwsSessionHolder(
                         access_key_id=self.access_key_id,
                         secret_access_key=self.secret_access_key,
