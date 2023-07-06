@@ -123,19 +123,25 @@ class Collector:
 
             mp_manager = multiprocessing.Manager()
             graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
+            graph_sender_threads = []
+            graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
             try:
-                graph_queue_t = threading.Thread(
-                    target=self.graph_sender, args=(graph_queue, task_id), name="graph_sender"
-                )
-                graph_queue_t.daemon = True
-                graph_queue_t.start()
+                for i in range(graph_sender_pool_size):
+                    graph_queue_t = threading.Thread(
+                        target=self.graph_sender, args=(graph_queue, task_id), name=f"graph_sender_{i}"
+                    )
+                    graph_queue_t.daemon = True
+                    graph_queue_t.start()
+                    graph_sender_threads.append(graph_queue_t)
 
                 self._resotocore.create_graph_and_update_model()
                 collect(collectors, graph_queue)
             finally:
-                log.debug("Telling graph sender thread to end")
-                graph_queue.put(None)
-                graph_queue_t.join()
+                log.debug("Telling graph sender threads to end")
+                for _ in range(graph_sender_pool_size):
+                    graph_queue.put(None)
+                for t in graph_sender_threads:
+                    t.join()
 
         finally:
             with self.processing_lock:

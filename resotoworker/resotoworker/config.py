@@ -58,6 +58,9 @@ class ResotoWorkerConfig:
     )
     timeout: int = field(default=10800, metadata={"description": "Collection/cleanup timeout in seconds"})
     pool_size: int = field(default=5, metadata={"description": "Collector thread/process pool size"})
+    graph_sender_pool_size: int = field(
+        default=5, metadata={"description": "Maximum number of graphs to send to the core concurrently"}
+    )
     fork_process: bool = field(default=True, metadata={"description": "Use forked process instead of threads"})
     graph_merge_kind: GraphMergeKind = field(
         default=GraphMergeKind.account,
