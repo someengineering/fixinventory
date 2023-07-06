@@ -179,9 +179,15 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     await graph_db.wipe()
     batch_id = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
     g = create_graph("yes or no")
+    await graph_db.insert_usage_data(
+        [
+            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}),
+            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}),
+        ]
+    )
 
     # empty database: all changes are written to a temp table
-    assert await graph_db.merge_graph(g, foo_model, 42, batch_id, True) == (
+    assert await graph_db.merge_graph(g, foo_model, 100, batch_id, True) == (
         ["collector"],
         GraphUpdate(112, 1, 0, 212, 0, 0),
     )
@@ -191,9 +197,13 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
         await graph_db.commit_batch_update("does_not_exist")
     # commit the batch and see the changes reflected in the database
     await graph_db.commit_batch_update(batch_id)
-    assert len((await load_graph(graph_db, md)).nodes) == 111
+    updated_graph = await load_graph(graph_db, md)
+    assert len(updated_graph.nodes) == 111
     # ensure that all temp tables are removed
     assert len(list(filter(lambda c: c["name"].startswith("temp_"), cast(List[Json], test_db.collections())))) == 0
+    # ensure the usage is there
+    n = await graph_db.get_node(foo_model, NodeId("0")) or {}
+    assert n.get("usage", {}).get("cpu") == {"min": 42, "avg": 42, "max": 42}
     # create a new batch that gets aborted: make sure all temp tables are gone
     batch_id = "will_be_aborted"
     await graph_db.merge_graph(g, foo_model, 42, batch_id, True)

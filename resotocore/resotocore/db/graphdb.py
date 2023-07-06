@@ -920,7 +920,7 @@ class ArangoGraphDB(GraphDB):
         temp_table = await self.get_tmp_collection(batch_id, False)
         updates = await self.list_in_progress_updates()
         timestamps: List[int] = next(
-            iter([u.get("usage_timestamps", []) for u in updates if u.get("change_id") == batch_id]), []
+            iter([u.get("usage_timestamps", []) for u in updates if u.get("id") == batch_id]), []
         )
         await self.move_temp_to_proper(batch_id, temp_table.name, timestamps)
         await self.db.delete_collection(temp_table.name)
