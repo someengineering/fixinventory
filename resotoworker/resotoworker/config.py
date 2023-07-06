@@ -60,7 +60,7 @@ class ResotoWorkerConfig:
     pool_size: int = field(default=5, metadata={"description": "Collector thread/process pool size"})
     fork_process: bool = field(default=True, metadata={"description": "Use forked process instead of threads"})
     graph_merge_kind: GraphMergeKind = field(
-        default=GraphMergeKind.cloud,
+        default=GraphMergeKind.account,
         metadata={"description": "Resource kind to merge graph at (cloud or account)"},
     )
     debug_dump_json: bool = field(default=False, metadata={"description": "Dump the generated JSON data to disk"})
