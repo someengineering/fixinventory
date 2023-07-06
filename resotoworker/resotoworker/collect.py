@@ -60,7 +60,10 @@ class Collector:
                 log.error(f"Graph of {graph_info} is not acyclic - ignoring. Cycle {desc}")
                 continue
 
-            self._resotocore.send_to_resotocore(graph, task_id)
+            try:
+                self._resotocore.send_to_resotocore(graph, task_id)
+            except Exception as e:
+                log.error(f"Error sending graph of {graph_info} to resotocore: {e}")
             del graph
 
     def collect_and_send(
