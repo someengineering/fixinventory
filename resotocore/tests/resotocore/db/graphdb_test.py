@@ -218,9 +218,19 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     def create(txt: str, width: int = 10) -> MultiDiGraph:
         return create_graph(txt, width=width)
 
+    await graph_db.insert_usage_data(
+        [
+            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}),
+            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}),
+        ]
+    )
+
     p = ["collector"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
-    assert await graph_db.merge_graph(create("yes or no"), foo_model, 42) == (p, GraphUpdate(112, 1, 0, 212, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, 100) == (p, GraphUpdate(112, 1, 0, 212, 0, 0))
+    # check the usage
+    n = await graph_db.get_node(foo_model, NodeId("0")) or {}
+    assert n.get("usage", {}).get("cpu") == {"min": 42, "avg": 42, "max": 42}
     # exactly the same graph is updated: expect no changes
     assert await graph_db.merge_graph(create("yes or no"), foo_model, 42) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
