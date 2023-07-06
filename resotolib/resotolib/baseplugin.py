@@ -270,6 +270,8 @@ class BaseCollectorPlugin(BasePlugin):
             self.send_graph(cloud_graph)
         elif self.graph_merge_kind == GraphMergeKind.cloud:
             self.graph.merge(graph, skip_deferred_edges=True)
+        else:
+            raise ValueError(f"Unknown graph merge kind {self.graph_merge_kind}")
 
     def send_graph(self, graph: Graph) -> None:
         if self._graph_queue is None:
