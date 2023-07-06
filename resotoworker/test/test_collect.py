@@ -1,9 +1,11 @@
+import requests
 from argparse import ArgumentParser
 from queue import Queue
 
 from resotoworker.collect import Collector
 from resotoworker.config import ResotoWorkerConfig
-from typing import Optional, cast
+from resotoworker.resotocore import Resotocore
+from typing import Optional, cast, Any
 from resotolib.graph import Graph, GraphMergeKind
 from resotolib.config import Config
 from test.fakeconfig import FakeConfig
@@ -40,8 +42,16 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         pass
 
 
-class Resotocore:
-    def __init__(self) -> None:
+def make_query(request: requests.Request) -> requests.Response:
+    resp = requests.Response()
+    resp.status_code = 200
+    resp._content = b""
+    return resp
+
+
+class TestResotocore(Resotocore):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.sent_task_id: Optional[str] = None
 
     def send_to_resotocore(self, graph: Graph, task_id: str) -> None:
@@ -52,7 +62,7 @@ class Resotocore:
 
 
 def test_collect_and_send() -> None:
-    resotocore = Resotocore()
+    resotocore = TestResotocore(make_query, Config)
 
     config = cast(
         Config,

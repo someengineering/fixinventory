@@ -27,7 +27,7 @@ from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph, GraphMergeKind
+from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
 from resotolib.types import JsonElement
 from resotolib.utils import log_runtime
