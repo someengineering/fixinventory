@@ -79,7 +79,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(project_graph, Graph):
                     log.error(f"Skipping invalid project_graph {type(project_graph)}")
                     continue
-                self.graph.merge(project_graph)
+                self.send_account_graph(project_graph)
 
     @staticmethod
     def collect_project(
