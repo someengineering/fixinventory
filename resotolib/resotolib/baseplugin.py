@@ -269,6 +269,8 @@ class BaseCollectorPlugin(BasePlugin):
             self.graph.merge(graph, skip_deferred_edges=True)
 
     def send_graph(self, graph: Graph) -> None:
+        if self._graph_queue is None:
+            raise RuntimeError("Unable to send graph - no graph queue set")
         self._graph_queue.put(graph)
 
 
