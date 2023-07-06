@@ -135,6 +135,7 @@ class Collector:
             finally:
                 log.debug("Telling graph sender thread to end")
                 graph_queue.put(None)
+                graph_queue_t.join()
 
         finally:
             with self.processing_lock:
