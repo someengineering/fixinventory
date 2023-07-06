@@ -97,7 +97,12 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
+        self,
+        graph_to_merge: MultiDiGraph,
+        model: Model,
+        maybe_change_id: Optional[str] = None,
+        is_batch: bool = False,
+        usage_timestamp: Optional[int] = None,
     ) -> Tuple[List[str], GraphUpdate]:
         pass
 
@@ -571,7 +576,7 @@ class ArangoGraphDB(GraphDB):
         else:
             raise NoSuchChangeError(change_id)
 
-    async def move_temp_to_proper(self, change_id: str, temp_name: str) -> None:
+    async def move_temp_to_proper(self, change_id: str, temp_name: str, usage_timestamp: Optional[int] = None) -> None:
         change_key = str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))
         log.info(f"Move temp->proper data: change_id={change_id}, change_key={change_key}, temp_name={temp_name}")
         edge_inserts = [
@@ -589,6 +594,13 @@ class ArangoGraphDB(GraphDB):
             f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
             f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
         ]
+        usage_updates = (
+            [
+                f"for u in {self.usage_db.collection_name} filter u.at=={usage_timestamp} update {{_key: u.id}} with {{ usage: MERGE(u.v, {{ start: DATE_ISO8601(u.at*1000), duration: '1h' }}) }} in {self.vertex_name}"  # noqa: E501
+            ]
+            if usage_timestamp
+            else []
+        )
         updates = ";\n".join(
             map(
                 lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()",
@@ -602,12 +614,13 @@ class ArangoGraphDB(GraphDB):
                 ]
                 + edge_inserts
                 + edge_deletes
+                + usage_updates
                 + [f'remove {{_key: "{change_key}"}} in {self.in_progress}'],
             )
         )
         await self.db.execute_transaction(
             f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
-            read=[temp_name],
+            read=[temp_name, self.usage_db.collection_name],
             write=[self.edge_collection(a) for a in EdgeTypes.all]
             + [self.vertex_name, self.in_progress, self.node_history],
         )
@@ -748,7 +761,12 @@ class ArangoGraphDB(GraphDB):
         return info, edges_inserts, edges_deletes
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
+        self,
+        graph_to_merge: MultiDiGraph,
+        model: Model,
+        maybe_change_id: Optional[str] = None,
+        is_batch: bool = False,
+        usage_timestamp: Optional[int] = None,
     ) -> Tuple[List[str], GraphUpdate]:
         change_id = maybe_change_id if maybe_change_id else uuid_str()
 
@@ -824,7 +842,7 @@ class ArangoGraphDB(GraphDB):
 
             log.debug(f"Update prepared: {info}. Going to persist the changes.")
             await self.refresh_marked_update(change_id)
-            await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
+            await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds, usage_timestamp)
             return roots, info
         except Exception as ex:
             await self.delete_marked_update(change_id)
@@ -840,6 +858,7 @@ class ArangoGraphDB(GraphDB):
         resource_deletes: List[Json],
         edge_inserts: Dict[EdgeType, List[Json]],
         edge_deletes: Dict[EdgeType, List[Json]],
+        usage_timestamp: Optional[int],
     ) -> None:
         async def execute_many_async(
             async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], **kwargs: Any
@@ -881,7 +900,7 @@ class ArangoGraphDB(GraphDB):
             log.debug(f"Store change in temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
-                await self.move_temp_to_proper(change_id, temp.name)
+                await self.move_temp_to_proper(change_id, temp.name, usage_timestamp)
             finally:
                 log.debug(f"Delete temp collection {temp.name}")
                 await self.db.delete_collection(temp.name)
@@ -1296,9 +1315,14 @@ class EventGraphDB(GraphDB):
             yield a
 
     async def merge_graph(
-        self, graph_to_merge: MultiDiGraph, model: Model, maybe_change_id: Optional[str] = None, is_batch: bool = False
+        self,
+        graph_to_merge: MultiDiGraph,
+        model: Model,
+        maybe_change_id: Optional[str] = None,
+        is_batch: bool = False,
+        usage_timestamp: Optional[int] = None,
     ) -> Tuple[List[str], GraphUpdate]:
-        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
+        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch, usage_timestamp)
         root_counter: Dict[str, int] = {}
         for root in roots:
             root_node = graph_to_merge.nodes[root]

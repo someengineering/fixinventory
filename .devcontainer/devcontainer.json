@@ -23,7 +23,8 @@
 		"vscode": {
 			"extensions": [
 				"mhutchie.git-graph",
-				"mutantdino.resourcemonitor"
+				"mutantdino.resourcemonitor",
+				"ms-toolsai.jupyter"
 			],
 			"settings": {
 				// formatting
