@@ -41,6 +41,7 @@ class Collector:
 
             graph = Graph(root=GraphRoot(id="root", tags={}))
             graph.merge(collector_graph)
+            del collector_graph
             sanitize(graph)
 
             graph_info = ""
