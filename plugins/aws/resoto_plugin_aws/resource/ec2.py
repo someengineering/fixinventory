@@ -1079,7 +1079,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 ]
             )
 
-        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu/utilization")}
+        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu")}
 
         stat_name = {
             "Minimum": "min",
