@@ -69,7 +69,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                     if not isinstance(cluster_graph, Graph):
                         log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
                         continue
-                    self.graph.merge(cluster_graph)
+                    self.send_account_graph(cluster_graph)
 
     @staticmethod
     def collect_cluster(

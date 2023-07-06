@@ -87,7 +87,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             )
             team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
-                self.graph.merge(team_graph)
+                self.send_account_graph(team_graph)
 
     def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback) -> Optional[Graph]:
         """Collects an individual team."""
