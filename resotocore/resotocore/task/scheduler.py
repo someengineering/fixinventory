@@ -8,6 +8,7 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from resotocore.service import Service
 from resotolib.utils import get_local_tzinfo
 
 
@@ -17,7 +18,7 @@ warnings.filterwarnings(
 )
 
 
-class Scheduler:
+class Scheduler(Service):
     def __init__(self) -> None:
         self.scheduler = AsyncIOScheduler(
             jobstores={"default": MemoryJobStore()},

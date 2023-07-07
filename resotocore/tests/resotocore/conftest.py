@@ -28,7 +28,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.cli.dependencies import Dependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -494,11 +494,11 @@ async def cli_deps(
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
     user_management: UserManagement,
-) -> AsyncIterator[CLIDependencies]:
+) -> AsyncIterator[Dependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
     config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
-    deps = CLIDependencies(
+    deps = Dependencies(
         message_bus=message_bus,
         event_sender=event_sender,
         db_access=db_access,
@@ -518,7 +518,7 @@ async def cli_deps(
 
 
 @fixture
-def cli(cli_deps: CLIDependencies) -> CLIService:
+def cli(cli_deps: Dependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
     return CLIService(cli_deps, all_commands(cli_deps), env, alias_names())
 

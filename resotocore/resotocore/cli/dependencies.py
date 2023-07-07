@@ -1,34 +1,47 @@
 from asyncio import Queue, Task
-from typing import Optional, Any, Dict, Tuple
+from typing import Optional, Any, Dict, Tuple, TypeVar, List
 
 from aiohttp import ClientSession, TCPConnector
 
 from resotocore.analytics import AnalyticsEventSender
-from resotocore.config import ConfigHandler
+from resotocore.cli.model import CLI
+from resotocore.config import ConfigHandler, ConfigOverride
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
+from resotocore.graph_manager.graph_manager import GraphManager
+from resotocore.infra_apps.package_manager import PackageManager
+from resotocore.infra_apps.runtime import Runtime
 from resotocore.message_bus import MessageBus
+from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model_handler import ModelHandler
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import Inspector
-from resotocore.task import TaskHandler
+from resotocore.service import Service
+from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement
 from resotocore.user import UserManagement
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
-from resotocore.infra_apps.runtime import Runtime
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.cli.model import CLIEngine
+
+T = TypeVar("T")
 
 
-class CLIDependencies:
+class Dependencies(Service):
     def __init__(self, **deps: Any) -> None:
         self.lookup: Dict[str, Any] = deps
 
-    def extend(self, **deps: Any) -> "CLIDependencies":
+    def add(self, name: str, service: T) -> "T":
+        self.lookup[name] = service
+        return service
+
+    def extend(self, **deps: Any) -> "Dependencies":
         self.lookup = {**self.lookup, **deps}
         return self
+
+    @property
+    def services(self) -> List[Service]:
+        return [v for _, v in self.lookup.items() if isinstance(v, Service)]
 
     @property
     def config(self) -> CoreConfig:
@@ -51,7 +64,7 @@ class CLIDependencies:
         return self.lookup["model_handler"]  # type:ignore
 
     @property
-    def task_handler(self) -> TaskHandler:
+    def task_handler(self) -> TaskHandlerService:
         return self.lookup["task_handler"]  # type:ignore
 
     @property
@@ -67,7 +80,7 @@ class CLIDependencies:
         return self.lookup["forked_tasks"]  # type:ignore
 
     @property
-    def cli(self) -> CLIEngine:
+    def cli(self) -> CLI:
         return self.lookup["cli"]  # type:ignore
 
     @property
@@ -97,6 +110,18 @@ class CLIDependencies:
     @property
     def graph_manager(self) -> GraphManager:
         return self.lookup["graph_manager"]  # type:ignore
+
+    @property
+    def subscription_handler(self) -> SubscriptionHandler:
+        return self.lookup["subscription_handler"]  # type:ignore
+
+    @property
+    def graph_merger(self) -> GraphMerger:
+        return self.lookup["graph_merger"]  # type:ignore
+
+    @property
+    def config_override(self) -> ConfigOverride:
+        return self.lookup["config_override"]  # type:ignore
 
     @property
     def http_session(self) -> ClientSession:

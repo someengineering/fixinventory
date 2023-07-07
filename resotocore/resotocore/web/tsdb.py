@@ -46,10 +46,10 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
             return False
 
     async def proxy_request(request: Request) -> StreamResponse:
-        if api_handler.config.api.tsdb_proxy_url:
+        if api_handler.deps.config.api.tsdb_proxy_url:
             in_headers = request.headers.copy()
             drop_request_specific_headers(in_headers)
-            url = f'{api_handler.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
+            url = f'{api_handler.deps.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
             max_retries = 5
 
             async def do_request(attempts_left: int) -> StreamResponse:
@@ -60,7 +60,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                     headers=in_headers,
                     compress="deflate",
                     data=request.content,
-                    ssl=api_handler.cert_handler.client_context,
+                    ssl=api_handler.deps.cert_handler.client_context,
                 ) as cr:
                     try:
                         # in case of error: do we need to retry?

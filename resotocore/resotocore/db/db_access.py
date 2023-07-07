@@ -1,5 +1,4 @@
 import logging
-from abc import ABC
 from argparse import Namespace
 from datetime import datetime, timezone, timedelta
 from time import sleep
@@ -11,7 +10,6 @@ from arango.database import StandardDatabase
 from dateutil.parser import parse
 from requests.exceptions import RequestException
 
-
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
@@ -19,28 +17,29 @@ from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.configdb import config_entity_db, config_validation_entity_db
+from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
-from resotocore.db.deferred_edge_db import pending_deferred_edge_db
+from resotocore.db.packagedb import app_package_entity_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
-from resotocore.db.packagedb import app_package_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
-from resotocore.model.adjust_node import AdjustNode
-from resotocore.model.typed_model import from_js, to_js
-from resotocore.model.graph_access import EdgeTypes
-from resotocore.types import Json
 from resotocore.ids import GraphName
+from resotocore.model.adjust_node import AdjustNode
+from resotocore.model.graph_access import EdgeTypes
+from resotocore.model.typed_model import from_js, to_js
+from resotocore.service import Service
+from resotocore.types import Json
 from resotocore.util import Periodic, utc, shutdown_process, uuid_str, check_graph_name
 
 log = logging.getLogger(__name__)
 
 
-class DbAccess(ABC):
+class DbAccess(Service):
     def __init__(
         self,
         arango_database: StandardDatabase,

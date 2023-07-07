@@ -25,7 +25,7 @@ from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.cli.dependencies import Dependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -42,6 +42,9 @@ from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.error import RestartService
+from resotocore.graph_manager.graph_manager import GraphManager
+from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
+from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.message_bus import MessageBus
 from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model_handler import ModelHandlerDB
@@ -56,9 +59,6 @@ from resotocore.util import shutdown_process, utc
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue
-from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
-from resotocore.infra_apps.package_manager import PackageManager
-from resotocore.graph_manager.graph_manager import GraphManager
 from resotolib.asynchronous.web import runner
 
 log = logging.getLogger("resotocore")
@@ -139,103 +139,83 @@ def with_config(
     # only lg the editable config - to not log any passwords
     log.debug(f"Starting with config: {config.editable}")
     info = system_info()
-    event_sender = PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
-    db = db_access(config, sdb, event_sender)
-    message_bus = MessageBus()
-    scheduler = Scheduler()
-    worker_task_queue = WorkerTaskQueue()
-    model = ModelHandlerDB(db, config.runtime.plantuml_server)
-    # a "real" config override service, unlike the one used for core config
-    config_override_service = ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db))
-    config_handler = ConfigHandlerService(
-        db.config_entity_db,
-        db.config_validation_entity_db,
-        db.configs_model_db,
-        worker_task_queue,
-        message_bus,
-        event_sender,
-        config,
-        config_override_service,
+    deps = Dependencies(config=config, system_info=info, cert_handler=cert_handler)
+
+    event_sender = deps.add(
+        "event_sender", PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
     )
-    user_management = UserManagementService(db, config_handler, event_sender)
-    cli_deps = CLIDependencies(
-        message_bus=message_bus,
-        event_sender=event_sender,
-        db_access=db,
-        model_handler=model,
-        worker_task_queue=worker_task_queue,
-        config=config,
-        config_handler=config_handler,
-        cert_handler=cert_handler,
-        user_management=user_management,
-    )
-    default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
-    cli = CLIService(cli_deps, all_commands(cli_deps), default_env, alias_names())
-    template_expander = TemplateExpanderService(db.template_entity_db, cli)
-    cli_deps.extend(template_expander=template_expander)
-    inspector = InspectorService(cli)
-    subscriptions = SubscriptionHandler(db.subscribers_db, message_bus)
-    task_handler = TaskHandlerService(
-        db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
-    )
-    core_config_handler = CoreConfigHandler(
-        config, message_bus, worker_task_queue, config_handler, event_sender, inspector
-    )
-    merge_outer_edges_handler = MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
-    cli_deps.extend(task_handler=task_handler, inspector=inspector)
-    infra_apps_runtime = LocalResotocoreAppRuntime(cli)
-    cli_deps.extend(infra_apps_runtime=infra_apps_runtime)
-    infra_apps_package_manager = PackageManager(
-        db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias
-    )
-    cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
-    graph_manager = GraphManager(db, config.snapshots, core_config_handler, task_handler)
-    cli_deps.extend(graph_manager=graph_manager)
-    graph_updater = GraphMerger(model, event_sender, config)
-    api = Api(
-        db,
-        model,
-        subscriptions,
-        task_handler,
-        message_bus,
-        event_sender,
-        worker_task_queue,
-        cert_handler,
-        config_handler,
-        inspector,
-        cli,
-        template_expander,
-        config,
-        user_management,
-        config_override_service.get_override,
-        graph_manager,
-        graph_updater,
-    )
-    event_emitter = emit_recurrent_events(
-        event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
-    )
+    db = deps.add("db_access", db_access(config, sdb, event_sender))
+    api = deps.add("api", Api(deps))
 
     async def on_start() -> None:
+        message_bus = deps.add("message_bus", MessageBus())
+        scheduler = deps.add("scheduler", Scheduler())
+        model = deps.add("model_handler", ModelHandlerDB(db, config.runtime.plantuml_server))
+
+        worker_task_queue = deps.add("worker_task_queue", WorkerTaskQueue())
+        # a "real" config override deps.add, unlike the one used for core config
+        config_override_service = deps.add(
+            "config_override",
+            ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db)),
+        )
+        config_handler = deps.add(
+            "config_handler",
+            ConfigHandlerService(
+                db.config_entity_db,
+                db.config_validation_entity_db,
+                db.configs_model_db,
+                worker_task_queue,
+                message_bus,
+                event_sender,
+                config,
+                config_override_service,
+            ),
+        )
+        deps.add("user_management", UserManagementService(db, config_handler, event_sender))
+        default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
+        cli = deps.add("cli", CLIService(deps, all_commands(deps), default_env, alias_names()))
+        deps.add("template_expander", TemplateExpanderService(db.template_entity_db, cli))
+        inspector = deps.add("inspector_service", InspectorService(cli))
+        subscriptions = deps.add("subscription_handler", SubscriptionHandler(db.subscribers_db, message_bus))
+        task_handler = deps.add(
+            "task_handler",
+            TaskHandlerService(
+                db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
+            ),
+        )
+        core_config_handler = deps.add(
+            "core_config_handler",
+            CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
+        )
+        deps.add(
+            "merge_outer_edges_handler", MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
+        )
+        deps.add("infra_apps_runtime", LocalResotocoreAppRuntime(cli))
+        deps.add(
+            "infra_apps_package_manager",
+            PackageManager(
+                db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias
+            ),
+        )
+        deps.add("graph_manager", GraphManager(db, config.snapshots, core_config_handler, task_handler))
+        deps.add("graph_merger", GraphMerger(model, event_sender, config))
+        deps.add(
+            "event_emitter_periodic",
+            emit_recurrent_events(
+                event_sender,
+                model,
+                subscriptions,
+                worker_task_queue,
+                message_bus,
+                timedelta(hours=1),
+                timedelta(hours=1),
+            ),
+        )
         # queue must be created inside an async function!
-        cli_deps.extend(forked_tasks=Queue())
-        await db.start()
-        await event_sender.start()
-        await subscriptions.start()
-        await scheduler.start()
-        await worker_task_queue.start()
-        await event_emitter.start()
-        await cli.start()
-        await inspector.start()
-        await task_handler.start()
-        await config_override_service.start()
-        await config_handler.start()
-        await core_config_handler.start()
-        await merge_outer_edges_handler.start()
-        await cert_handler.start()
-        await graph_updater.start()
-        await infra_apps_package_manager.start()
-        await graph_manager.start()
-        await api.start()
+        deps.add("forked_tasks", Queue())
+        for srv in deps.services:
+            await srv.start()
+
         if created:
             docker = inside_docker()
             kubernetes = inside_kubernetes()
@@ -265,24 +245,9 @@ def with_config(
 
     async def on_stop() -> None:
         duration = utc() - info.started_at
-        await api.stop()
-        await graph_manager.stop()
-        await infra_apps_package_manager.stop()
-        await graph_updater.stop()
-        await cert_handler.stop()
-        await config_override_service.stop()
-        await core_config_handler.stop()
-        await merge_outer_edges_handler.stop()
-        await task_handler.stop()
-        await inspector.stop()
-        await cli.stop()
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
-        await event_emitter.stop()
-        await worker_task_queue.stop()
-        await scheduler.stop()
-        await subscriptions.stop()
-        await db.stop()
-        await event_sender.stop()
+        for srv in reversed(deps.services):
+            await srv.stop()
 
     async def async_initializer() -> Application:
         async def clean_all_tasks() -> None:

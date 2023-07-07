@@ -56,46 +56,36 @@ from dateutil import parser as date_parser
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
-from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
+from resotocore.analytics import AnalyticsEvent
 from resotocore.cli.command import alias_names
+from resotocore.cli.dependencies import Dependencies
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
     CLICommand,
     InternalPart,
     WorkerCustomCommand,
-    CLI,
     AliasTemplate,
     InfraAppAlias,
     FilePath,
 )
-from resotocore.config import ConfigHandler, ConfigValidation, ConfigEntity
+from resotocore.config import ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
-from resotocore.core_config import CoreConfig
-from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
-from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
-from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
+from resotocore.message_bus import Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.metrics import timed
-from resotocore.model.db_updater import GraphMerger
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
 from resotocore.model.model import Kind, Model
-from resotocore.model.model_handler import ModelHandler
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
-from resotocore.query import QueryParser
-from resotocore.report import Inspector
+from resotocore.service import Service
 from resotocore.task.model import Subscription
-from resotocore.task.subscribers import SubscriptionHandler
-from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json, JsonElement
-from resotocore.user import UserManagement
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
 from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
-from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
     metrics_handler,
@@ -108,7 +98,6 @@ from resotocore.web.directives import (
 from resotocore.web.tsdb import tsdb
 from resotocore.worker_task_queue import (
     WorkerTaskDescription,
-    WorkerTaskQueue,
     WorkerTask,
     WorkerTaskResult,
     WorkerTaskInProgress,
@@ -147,54 +136,21 @@ AlwaysAllowed = {
 DeferredCheck = {"/events", "/work/queue"}
 
 
-class Api:
-    def __init__(
-        self,
-        db: DbAccess,
-        model_handler: ModelHandler,
-        subscription_handler: SubscriptionHandler,
-        workflow_handler: TaskHandlerService,
-        message_bus: MessageBus,
-        event_sender: AnalyticsEventSender,
-        worker_task_queue: WorkerTaskQueue,
-        cert_handler: CertificateHandler,
-        config_handler: ConfigHandler,
-        inspector: Inspector,
-        cli: CLI,
-        query_parser: QueryParser,
-        config: CoreConfig,
-        user_management: UserManagement,
-        get_override: Callable[[ConfigId], Optional[Json]],
-        graph_manager: GraphManager,
-        graph_merger: GraphMerger,
-    ):
-        self.db = db
-        self.model_handler = model_handler
-        self.subscription_handler = subscription_handler
-        self.workflow_handler = workflow_handler
-        self.message_bus = message_bus
-        self.event_sender = event_sender
-        self.worker_task_queue = worker_task_queue
-        self.cert_handler = cert_handler
-        self.config_handler = config_handler
-        self.inspector = inspector
-        self.cli = cli
-        self.query_parser = query_parser
-        self.config = config
-        self.user_management = user_management
-        self.get_override = get_override
-        self.auth_handler = AuthHandler(db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck)
-        self.graph_manager = graph_manager
-        self.graph_merger = graph_merger
+class Api(Service):
+    def __init__(self, deps: Dependencies):
+        self.deps = deps
+        self.auth_handler = AuthHandler(
+            deps.db_access.system_data_db, deps.config, deps.cert_handler, AlwaysAllowed | DeferredCheck
+        )
 
         self.app = web.Application(
-            client_max_size=config.api.max_request_size or 1024**2,
+            client_max_size=self.deps.config.api.max_request_size or 1024**2,
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,
                 self.auth_handler.middleware(),
                 cors_handler,
-                error_handler(config, event_sender),
+                error_handler(deps.config, deps.event_sender),
                 default_middleware(self),
             ],
         )
@@ -202,7 +158,7 @@ class Api:
         self._session: Optional[ClientSession] = None
         self.in_shutdown = False
         self.websocket_handler: Dict[str, Tuple[Future[Any], WebSocketResponse]] = {}
-        path_part = config.api.web_path.strip().strip("/").strip()
+        path_part = deps.config.api.web_path.strip().strip("/").strip()
         web_path = "" if path_part == "" else f"/{path_part}"
         self.__add_routes(web_path)
         aiohttp_jinja2.setup(
@@ -328,7 +284,7 @@ class Api:
                 web.static(f"{prefix}/ui/", ui_path),
             ]
         )
-        if self.config.runtime.debug:
+        if self.deps.config.runtime.debug:
             self.app.add_routes([web.get(prefix + "/debug/ui/{commit}/{path:.+}", self.serve_debug_ui)])
         SwaggerFile(
             self.app,
@@ -374,7 +330,7 @@ class Api:
         return web.json_response(self.auth_handler.signing_key_jwk)
 
     async def login_page(self, request: Request) -> StreamResponse:
-        template = "login.html" if await self.user_management.has_users() else "create_first_user.html"
+        template = "login.html" if await self.deps.user_management.has_users() else "create_first_user.html"
         return aiohttp_jinja2.render_template(template, request, context=request.query)
 
     async def create_first_user(self, request: Request) -> StreamResponse:
@@ -397,7 +353,7 @@ class Api:
             if password != password_repeat:
                 errors.append("Passwords do not match")
             if not errors:
-                await self.user_management.create_first_user(company, fullname, email, password)
+                await self.deps.user_management.create_first_user(company, fullname, email, password)
                 return await self.authenticate(request)
         except Exception as e:
             errors.append(str(e))
@@ -411,9 +367,9 @@ class Api:
         email = Email(str(post_data.get("email", "")))
         password = Password(str(post_data.get("password", "")))
         redirect = str(post_data.get("redirect", ""))
-        if email and password and (user := await self.user_management.login(email, password)):
+        if email and password and (user := await self.deps.user_management.login(email, password)):
             params: Dict[str, List[str]] = {}
-            if self.config.args.psk:
+            if self.deps.config.args.psk:
                 code = await self.auth_handler.add_authorized_user(AuthorizedUser(email, user.roles, utc()))
                 params["code"] = [code]
             if redirect:
@@ -448,14 +404,14 @@ class Api:
             return HTTPNoContent()  # no psk, no renewal
 
     async def list_configs(self, request: Request) -> StreamResponse:
-        return await self.stream_response_from_gen(request, self.config_handler.list_config_ids())
+        return await self.stream_response_from_gen(request, self.deps.config_handler.list_config_ids())
 
     async def get_config(self, request: Request) -> StreamResponse:
         config_id = ConfigId(request.match_info["config_id"])
         accept = request.headers.get("accept", "application/json")
         not_found = HTTPNotFound(text="No config with this id")
         if accept == "application/yaml":
-            yml = await self.config_handler.config_yaml(config_id)
+            yml = await self.deps.config_handler.config_yaml(config_id)
             return web.Response(body=yml.encode("utf-8"), content_type="application/yaml") if yml else not_found
         else:
 
@@ -480,13 +436,13 @@ class Api:
                 # ignored in case of a single config object requested
                 include_raw_config = False
 
-            config = await self.config_handler.get_config(config_id, apply_overrides, resolve_env_vars)
+            config = await self.deps.config_handler.get_config(config_id, apply_overrides, resolve_env_vars)
             if config:
                 headers = {"Resoto-Config-Revision": config.revision}
                 if separate_overrides:
-                    payload = {"config": config.config, "overrides": self.get_override(config_id)}
+                    payload = {"config": config.config, "overrides": self.deps.config_override.get_override(config_id)}
                     if include_raw_config:
-                        raw_config = await self.config_handler.get_config(
+                        raw_config = await self.deps.config_handler.get_config(
                             config_id, apply_overrides=False, resolve_env_vars=False
                         )
                         payload["raw_config"] = raw_config.config if raw_config else None
@@ -502,7 +458,7 @@ class Api:
         validate = request.query.get("validate", "true").lower() != "false"
         dry_run = request.query.get("dry_run", "false").lower() == "true"
         config = await self.json_from_request(request)
-        result = await self.config_handler.put_config(
+        result = await self.deps.config_handler.put_config(
             ConfigEntity(config_id, config), validate=validate, dry_run=dry_run
         )
         headers = {"Resoto-Config-Revision": result.revision}
@@ -513,7 +469,7 @@ class Api:
         validate = request.query.get("validate", "true").lower() != "false"
         dry_run = request.query.get("dry_run", "false").lower() == "true"
         patch = await self.json_from_request(request)
-        updated = await self.config_handler.patch_config(
+        updated = await self.deps.config_handler.patch_config(
             ConfigEntity(config_id, patch), validate=validate, dry_run=dry_run
         )
         headers = {"Resoto-Config-Revision": updated.revision}
@@ -521,19 +477,19 @@ class Api:
 
     async def delete_config(self, request: Request) -> StreamResponse:
         config_id = ConfigId(request.match_info["config_id"])
-        await self.config_handler.delete_config(config_id)
+        await self.deps.config_handler.delete_config(config_id)
         return HTTPNoContent()
 
     async def list_config_models(self, request: Request) -> StreamResponse:
-        return await self.stream_response_from_gen(request, self.config_handler.list_config_validation_ids())
+        return await self.stream_response_from_gen(request, self.deps.config_handler.list_config_validation_ids())
 
     async def get_config_validation(self, request: Request) -> StreamResponse:
         config_id = request.match_info["config_id"]
-        model = await self.config_handler.get_config_validation(config_id)
+        model = await self.deps.config_handler.get_config_validation(config_id)
         return await single_result(request, to_js(model)) if model else HTTPNotFound(text="No model for this config.")
 
     async def get_configs_model(self, request: Request) -> StreamResponse:
-        model = await self.config_handler.get_configs_model()
+        model = await self.deps.config_handler.get_configs_model()
         if request.query.get("flat", "false") == "true":
             model = Model.from_kinds(model.flat_kinds())
         return await single_result(request, to_js(model, strip_nulls=True))
@@ -541,7 +497,7 @@ class Api:
     async def update_configs_model(self, request: Request) -> StreamResponse:
         js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
-        model = await self.config_handler.update_configs_model(kinds)
+        model = await self.deps.config_handler.update_configs_model(kinds)
         return await single_result(request, to_js(model))
 
     async def put_config_validation(self, request: Request) -> StreamResponse:
@@ -549,22 +505,24 @@ class Api:
         js = await self.json_from_request(request)
         js["id"] = config_id
         config_model = from_js(js, ConfigValidation)
-        model = await self.config_handler.put_config_validation(config_model)
+        model = await self.deps.config_handler.put_config_validation(config_model)
         return await single_result(request, to_js(model))
 
     async def certificate(self, _: Request) -> StreamResponse:
-        cert, fingerprint = self.cert_handler.authority_certificate
+        cert, fingerprint = self.deps.cert_handler.authority_certificate
         headers = {
             "SHA256-Fingerprint": fingerprint,
             "Content-Disposition": 'attachment; filename="resoto_root_ca.pem"',
         }
-        if self.config.args.psk:
-            headers["Authorization"] = "Bearer " + encode_jwt({"sha256_fingerprint": fingerprint}, self.config.args.psk)
+        if self.deps.config.args.psk:
+            headers["Authorization"] = "Bearer " + encode_jwt(
+                {"sha256_fingerprint": fingerprint}, self.deps.config.args.psk
+            )
         return HTTPOk(headers=headers, body=cert, content_type="application/x-pem-file")
 
     async def sign_certificate(self, request: Request) -> StreamResponse:
         csr_bytes = await request.content.read()
-        cert, fingerprint = self.cert_handler.sign(csr_bytes)
+        cert, fingerprint = self.deps.cert_handler.sign(csr_bytes)
         headers = {"SHA256-Fingerprint": fingerprint}
         return HTTPOk(headers=headers, body=cert_to_bytes(cert), content_type="application/x-pem-file")
 
@@ -575,29 +533,29 @@ class Api:
         return resp
 
     async def list_all_subscriptions(self, request: Request) -> StreamResponse:
-        subscribers = await self.subscription_handler.all_subscribers()
+        subscribers = await self.deps.subscription_handler.all_subscribers()
         return await single_result(request, to_json(subscribers))
 
     async def get_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = SubscriberId(request.match_info["subscriber_id"])
-        subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
+        subscriber = await self.deps.subscription_handler.get_subscriber(subscriber_id)
         return self.optional_json(subscriber, f"No subscriber with id {subscriber_id}")
 
     async def list_subscription_for_event(self, request: Request) -> StreamResponse:
         event_type = request.match_info["event_type"]
-        subscribers = await self.subscription_handler.list_subscriber_for(event_type)
+        subscribers = await self.deps.subscription_handler.list_subscriber_for(event_type)
         return await single_result(request, to_json(subscribers))
 
     async def update_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         body = await self.json_from_request(request)
         subscriptions = from_js(body, List[Subscription])
-        sub = await self.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
+        sub = await self.deps.subscription_handler.update_subscriptions(subscriber_id, subscriptions)
         return await single_result(request, to_json(sub))
 
     async def delete_subscriber(self, request: Request) -> StreamResponse:
         subscriber_id = SubscriberId(request.match_info["subscriber_id"])
-        await self.subscription_handler.remove_subscriber(subscriber_id)
+        await self.deps.subscription_handler.remove_subscriber(subscriber_id)
         return web.HTTPNoContent()
 
     async def add_subscription(self, request: Request) -> StreamResponse:
@@ -605,23 +563,25 @@ class Api:
         event_type = request.match_info["event_type"]
         timeout = timedelta(seconds=int(request.query.get("timeout", "60")))
         wait_for_completion = request.query.get("wait_for_completion", "true").lower() != "false"
-        sub = await self.subscription_handler.add_subscription(subscriber_id, event_type, wait_for_completion, timeout)
+        sub = await self.deps.subscription_handler.add_subscription(
+            subscriber_id, event_type, wait_for_completion, timeout
+        )
         return await single_result(request, to_js(sub))
 
     async def delete_subscription(self, request: Request) -> StreamResponse:
         subscriber_id = SubscriberId(request.match_info["subscriber_id"])
         event_type = request.match_info["event_type"]
-        sub = await self.subscription_handler.remove_subscription(subscriber_id, event_type)
+        sub = await self.deps.subscription_handler.remove_subscription(subscriber_id, event_type)
         return await single_result(request, to_js(sub))
 
     async def handle_subscribed(self, request: Request) -> StreamResponse:
         subscriber_id = SubscriberId(request.match_info["subscriber_id"])
-        subscriber = await self.subscription_handler.get_subscriber(subscriber_id)
-        if subscriber_id in self.message_bus.active_listener:
+        subscriber = await self.deps.subscription_handler.get_subscriber(subscriber_id)
+        if subscriber_id in self.deps.message_bus.active_listener:
             log.info(f"There is already a listener for subscriber: {subscriber_id}. Reject.")
             return web.HTTPTooManyRequests(text="Only one connection per subscriber is allowed!")
         elif subscriber and subscriber.subscriptions:
-            pending = await self.workflow_handler.list_all_pending_actions_for(subscriber)
+            pending = await self.deps.task_handler.list_all_pending_actions_for(subscriber)
             return await self.listen_to_events(request, subscriber_id, list(subscriber.subscriptions.keys()), pending)
         else:
             return web.HTTPNotFound(text=f"No subscriber with this id: {subscriber_id} or no subscriptions")
@@ -634,7 +594,7 @@ class Api:
         kind = request.query.get("kind")
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_checks(
+        result = await self.deps.inspector.perform_checks(
             graph, provider=provider, service=service, category=category, kind=kind, accounts=accounts
         )
         return await single_result(request, to_js(result))
@@ -644,7 +604,7 @@ class Api:
         graph = GraphName(request.match_info["graph_id"])
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        result = await self.inspector.perform_benchmark(graph, benchmark, accounts=accounts)
+        result = await self.deps.inspector.perform_benchmark(graph, benchmark, accounts=accounts)
         result_graph = result.to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             await self.stream_response_from_gen(request, streamer, len(result_graph))
@@ -655,7 +615,9 @@ class Api:
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        inspections = await self.inspector.list_checks(provider=provider, service=service, category=category, kind=kind)
+        inspections = await self.deps.inspector.list_checks(
+            provider=provider, service=service, category=category, kind=kind
+        )
         return await single_result(request, to_js(inspections))
 
     async def inspection_results(self, request: Request) -> StreamResponse:
@@ -663,7 +625,7 @@ class Api:
         check_id = request.match_info["check_id"]
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        inspections = await self.inspector.list_failing_resources(graph, check_id, accounts)
+        inspections = await self.deps.inspector.list_failing_resources(graph, check_id, accounts)
         return await self.stream_response_from_gen(request, inspections)
 
     async def handle_events(self, request: Request) -> StreamResponse:
@@ -673,7 +635,7 @@ class Api:
     async def send_analytics_events(self, request: Request) -> StreamResponse:
         events_json = await self.json_from_request(request)
         events = from_js(events_json, List[AnalyticsEvent])
-        await self.event_sender.capture(events)
+        await self.deps.event_sender.capture(events)
         return web.HTTPNoContent()
 
     async def listen_to_events(
@@ -701,21 +663,21 @@ class Api:
             if isinstance(message, Action):
                 raise AttributeError("Actors should not emit action messages. ")
             elif isinstance(message, ActionInfo):
-                await self.workflow_handler.handle_action_info(message)
+                await self.deps.task_handler.handle_action_info(message)
             elif isinstance(message, ActionProgress):
-                await self.workflow_handler.handle_action_progress(message)
+                await self.deps.task_handler.handle_action_progress(message)
             elif isinstance(message, ActionDone):
-                await self.workflow_handler.handle_action_done(message)
+                await self.deps.task_handler.handle_action_done(message)
             elif isinstance(message, ActionError):
-                await self.workflow_handler.handle_action_error(message)
+                await self.deps.task_handler.handle_action_error(message)
             else:
-                await self.message_bus.emit(message)
+                await self.deps.message_bus.emit(message)
 
         handler = authorize_request if request.get("authorized", False) is False else handle_message
         return await accept_websocket(
             request,
             handle_incoming=lambda x: handler(x),  # pylint: disable=unnecessary-lambda # it is required!
-            outgoing_context=partial(self.message_bus.subscribe, listener_id, event_types),
+            outgoing_context=partial(self.deps.message_bus.subscribe, listener_id, event_types),
             websocket_handler=self.websocket_handler,
             initial_messages=initial_messages,
         )
@@ -740,7 +702,7 @@ class Api:
             worker_descriptions.set_result(description)
             # register the descriptions as custom command on the CLI
             for cmd in cmds:
-                self.cli.register_alias_template(cmd.to_template())
+                self.deps.cli.register_alias_template(cmd.to_template())
             # the connect process is done, define the final handler
             handler = handle_message
 
@@ -748,9 +710,9 @@ class Api:
             tr = from_js(json.loads(msg), WorkerTaskResult)
             if tr.result == "error":
                 error = tr.error if tr.error else "worker signalled error without detailed error message"
-                await self.worker_task_queue.error_task(worker_id, tr.task_id, error)
+                await self.deps.worker_task_queue.error_task(worker_id, tr.task_id, error)
             elif tr.result == "done":
-                await self.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
+                await self.deps.worker_task_queue.acknowledge_task(worker_id, tr.task_id, tr.data)
             else:
                 log.info(f"Do not understand this message: {msg}")
 
@@ -762,7 +724,7 @@ class Api:
             # we need to wait for the worker to send the list of commands it can handle
             # before we can attach to the worker task queue
             descriptions = await worker_descriptions
-            async with self.worker_task_queue.attach(worker_id, descriptions) as queue:
+            async with self.deps.worker_task_queue.attach(worker_id, descriptions) as queue:
                 yield queue
 
         handler = authorize_request if request.get("authorized", False) is False else handle_connect
@@ -784,7 +746,7 @@ class Api:
                 "deadline": to_json(ip.deadline),
             }
 
-        return web.json_response([wt_to_js(ot) for ot in self.worker_task_queue.outstanding_tasks.values()])
+        return web.json_response([wt_to_js(ot) for ot in self.deps.worker_task_queue.outstanding_tasks.values()])
 
     async def model_uml(self, request: Request) -> StreamResponse:
         output = request.query.get("output", "svg")
@@ -801,7 +763,7 @@ class Api:
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         sort_props = request.query.get("sort_props", "true") != "false"
-        result = await self.model_handler.uml_image(
+        result = await self.deps.model_handler.uml_image(
             graph_name=graph_id,
             output=output,
             show_packages=show,
@@ -826,7 +788,7 @@ class Api:
 
     async def get_model(self, request: Request) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
-        md = await self.model_handler.load_model(graph_id)
+        md = await self.deps.model_handler.load_model(graph_id)
         # default to internal model format, but allow to request json schema format
         if request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
@@ -841,14 +803,14 @@ class Api:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         js = await self.json_from_request(request)
         kinds: List[Kind] = from_js(js, List[Kind])
-        model = await self.model_handler.update_model(graph_id, kinds)
+        model = await self.deps.model_handler.update_model(graph_id, kinds)
         return await single_result(request, to_js(model, strip_nulls=True))
 
     async def get_node(self, request: Request) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "root"))
-        graph = self.db.get_graph_db(graph_id)
-        model = await self.model_handler.load_model(graph_id)
+        graph = self.deps.db_access.get_graph_db(graph_id)
+        model = await self.deps.model_handler.load_model(graph_id)
         node = await graph.get_node(model, node_id)
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
@@ -859,9 +821,9 @@ class Api:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         parent_node_id = NodeId(request.match_info.get("parent_node_id", "root"))
-        graph = self.db.get_graph_db(graph_id)
+        graph = self.deps.db_access.get_graph_db(graph_id)
         item = await self.json_from_request(request)
-        md = await self.model_handler.load_model(graph_id)
+        md = await self.deps.model_handler.load_model(graph_id)
         node = await graph.create_node(md, node_id, item, parent_node_id)
         return await single_result(request, node)
 
@@ -869,9 +831,9 @@ class Api:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         section = section_of(request)
-        graph = self.db.get_graph_db(graph_id)
+        graph = self.deps.db_access.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
-        md = await self.model_handler.load_model(graph_id)
+        md = await self.deps.model_handler.load_model(graph_id)
         node = await graph.update_node(md, node_id, patch, False, section)
         return await single_result(request, node)
 
@@ -880,7 +842,7 @@ class Api:
         node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
-        graph = self.db.get_graph_db(graph_id)
+        graph = self.deps.db_access.get_graph_db(graph_id)
         await graph.delete_node(node_id)
         return web.HTTPNoContent()
 
@@ -897,13 +859,13 @@ class Api:
             assert uid not in updates, f"Only one update allowed per id! {elem}"
             del elem["id"]
             updates[uid] = elem
-        db = self.db.get_graph_db(graph_name)
-        model = await self.model_handler.load_model(graph_name)
+        db = self.deps.db_access.get_graph_db(graph_name)
+        model = await self.deps.model_handler.load_model(graph_name)
         result_gen = db.update_nodes(model, updates)
         return await self.stream_response_from_gen(request, result_gen)
 
     async def list_graphs(self, request: Request) -> StreamResponse:
-        graphs = await self.db.list_graphs()
+        graphs = await self.deps.db_access.list_graphs()
         return await single_result(request, graphs)
 
     async def create_graph(self, request: Request) -> StreamResponse:
@@ -911,8 +873,8 @@ class Api:
         if "_" in graph_id:
             raise AttributeError("Graph name should not have underscores!")
         graph_name = GraphName(graph_id)
-        graph = await self.db.create_graph(graph_name)
-        model = await self.model_handler.load_model(graph_name)
+        graph = await self.deps.db_access.create_graph(graph_name)
+        model = await self.deps.model_handler.load_model(graph_name)
         root = await graph.get_node(model, NodeId("root"))
         return web.json_response(root)
 
@@ -925,10 +887,10 @@ class Api:
         )
         if tid := request.headers.get("Resoto-Worker-Task-Id"):
             task_id = TaskId(tid)
-        db = self.db.get_graph_db(graph_id)
+        db = self.deps.db_access.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        max_wait = self.config.graph_update.merge_max_wait_time()
-        info = await self.graph_merger.merge_graph(db, it, max_wait, None, task_id, wait_for_result)
+        max_wait = self.deps.config.graph_update.merge_max_wait_time()
+        info = await self.deps.graph_merger.merge_graph(db, it, max_wait, None, task_id, wait_for_result)
         return web.json_response(to_js(info)) if info else web.HTTPNoContent()
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
@@ -938,28 +900,28 @@ class Api:
         if tid := request.headers.get("Resoto-Worker-Task-Id"):
             task_id = TaskId(tid)
         log.info(f"Received put_sub_graph_batch request for graph {graph_id}, wait_for_result={wait_for_result}")
-        db = self.db.get_graph_db(graph_id)
+        db = self.deps.db_access.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        max_wait = self.config.graph_update.merge_max_wait_time()
-        info = await self.graph_merger.merge_graph(db, it, max_wait, batch_id, task_id, wait_for_result)
+        max_wait = self.deps.config.graph_update.merge_max_wait_time()
+        info = await self.deps.graph_merger.merge_graph(db, it, max_wait, batch_id, task_id, wait_for_result)
         headers = {"BatchId": batch_id}
         return web.json_response(to_json(info), headers=headers) if info else web.HTTPNoContent(headers=headers)
 
     async def list_batches(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
+        graph_db = self.deps.db_access.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
         batch_updates = await graph_db.list_in_progress_updates()
         return web.json_response([b for b in batch_updates if b.get("is_batch")])
 
     async def commit_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
+        graph_db = self.deps.db_access.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
         batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.commit_batch_update(batch_id)
         return web.HTTPOk(body="Batch committed.")
 
     async def abort_batch(self, request: Request) -> StreamResponse:
-        graph_db = self.db.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
+        graph_db = self.deps.db_access.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
         batch_id = request.match_info.get("batch_id", "some_existing")
         await graph_db.abort_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
@@ -974,15 +936,15 @@ class Api:
         snapshot_name = None
 
         if at:
-            snapshot_name = await self.graph_manager.snapshot_at(time=at, graph_name=graph_name)
+            snapshot_name = await self.deps.graph_manager.snapshot_at(time=at, graph_name=graph_name)
             if not snapshot_name:
                 raise ValueError(f"No snapshot found for {graph_name} at {at}")
 
         graph_name = snapshot_name or graph_name
 
-        graph_db = self.db.get_graph_db(graph_name)
-        q = await self.query_parser.parse_query(query_string, section, **request.query)
-        m = await self.model_handler.load_model(graph_name)
+        graph_db = self.deps.db_access.get_graph_db(graph_name)
+        q = await self.deps.template_expander.parse_query(query_string, section, **request.query)
+        m = await self.deps.model_handler.load_model(graph_name)
         return graph_db, QueryModel(q, m)
 
     async def raw(self, request: Request) -> StreamResponse:
@@ -1045,7 +1007,7 @@ class Api:
         commit = request.match_info.get("commit", "default")
         commit = commit[0:6] if len(commit) == 40 else commit  # shorten commit hash
         path = request.match_info.get("path", "index.html")
-        dir_path = self.config.run.temp_dir / "ui" / commit
+        dir_path = self.deps.config.run.temp_dir / "ui" / commit
         if not dir_path.exists():
             dir_path.mkdir(parents=True)
             async with self.session.get(f"https://cdn.some.engineering/resoto-ui/commits/{commit}.zip") as resp:
@@ -1062,10 +1024,10 @@ class Api:
     async def wipe(self, request: Request) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         if "truncate" in request.query:
-            await self.db.get_graph_db(graph_id).wipe()
+            await self.deps.db_access.get_graph_db(graph_id).wipe()
             return web.HTTPOk(body="Graph truncated.")
         else:
-            await self.db.delete_graph(graph_id)
+            await self.deps.db_access.delete_graph(graph_id)
             return web.HTTPOk(body="Graph deleted.")
 
     async def cli_info(self, _: Request) -> StreamResponse:
@@ -1096,15 +1058,19 @@ class Api:
                 "source": True,
             }
 
-        commands = [cmd_json(cmd) for cmd in self.cli.direct_commands.values() if not isinstance(cmd, InternalPart)]
-        replacements = self.cli.replacements()
+        commands = [
+            cmd_json(cmd) for cmd in self.deps.cli.direct_commands.values() if not isinstance(cmd, InternalPart)
+        ]
+        replacements = self.deps.cli.replacements()
         return web.json_response(
             {
                 "commands": commands,
                 "replacements": replacements,
                 "alias_names": alias_names(),
-                "alias_templates": [alias_json(alias) for alias in self.cli.alias_templates.values()],
-                "infra_app_aliases": [infra_app_alias_json(alias) for alias in self.cli.infra_app_aliases.values()],
+                "alias_templates": [alias_json(alias) for alias in self.deps.cli.alias_templates.values()],
+                "infra_app_aliases": [
+                    infra_app_alias_json(alias) for alias in self.deps.cli.infra_app_aliases.values()
+                ],
             }
         )
 
@@ -1126,7 +1092,7 @@ class Api:
     async def evaluate(self, request: Request) -> StreamResponse:
         ctx = self.cli_context_from_request(request)
         command = await request.text()
-        parsed = await self.cli.evaluate_cli_command(command, ctx)
+        parsed = await self.deps.cli.evaluate_cli_command(command, ctx)
 
         def line_to_js(line: ParsedCommandLine) -> Json:
             parsed_commands = to_json(line.parsed_commands.commands)
@@ -1162,7 +1128,7 @@ class Api:
                 raise AttributeError(f"Not able to handle: {request.content_type}")
 
             # we want to eagerly evaluate the command, so that parse exceptions will throw directly here
-            parsed = await self.cli.evaluate_cli_command(command, ctx)
+            parsed = await self.deps.cli.evaluate_cli_command(command, ctx)
             return await self.execute_parsed(request, command, parsed, ctx)
         finally:
             if temp_dir:

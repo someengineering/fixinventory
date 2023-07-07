@@ -28,6 +28,7 @@ from resotocore.message_bus import (
     CoreMessage,
 )
 from resotocore.ids import SubscriberId, TaskDescriptorId
+from resotocore.service import Service
 from resotocore.task import TaskHandler, RunningTaskInfo
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
@@ -57,7 +58,7 @@ import re
 log = logging.getLogger(__name__)
 
 
-class TaskHandlerService(TaskHandler):
+class TaskHandlerService(TaskHandler, Service):
     # region init
 
     def __init__(

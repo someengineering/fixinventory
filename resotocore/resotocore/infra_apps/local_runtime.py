@@ -1,6 +1,7 @@
 from typing import List, AsyncIterator, Type, Optional, Any
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.infra_apps.manifest import AppManifest
+from resotocore.service import Service
 from resotocore.types import Json, JsonElement
 from resotocore.ids import GraphName
 from resotocore.db.model import QueryModel
@@ -19,7 +20,7 @@ from pydoc import locate
 log = logging.getLogger(__name__)
 
 
-class LocalResotocoreAppRuntime(Runtime):
+class LocalResotocoreAppRuntime(Runtime, Service):
     """
     Runtime implementation that runs the Infrastructure Apps directly on the resotocore.
     Currently, only the Jinja2 language is supported.

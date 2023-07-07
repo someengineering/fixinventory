@@ -10,6 +10,7 @@ from typing import Any, Optional, Dict, List, AsyncGenerator
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from resotocore.ids import TaskId
+from resotocore.service import Service
 
 from resotocore.types import Json
 from resotocore.util import pop_keys, utc_str, from_utc
@@ -224,7 +225,7 @@ class ActionError(ActionMessage):
         return f"Fatal: could not perform action {self.step_name}. Reason: {self.error}"
 
 
-class MessageBus:
+class MessageBus(Service):
     """
     This class implements a simple event bus.
     Every subscriber is context managed and gets its own queue of events.

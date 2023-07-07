@@ -32,6 +32,7 @@ from resotocore.model.model import Kind
 from resotocore.model.typed_model import from_js
 from resotocore.report import ResotoReportBenchmark, ResotoReportCheck, Inspector, BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.report_config import config_model as report_config_model
+from resotocore.service import Service
 from resotocore.types import Json
 from resotocore.user import config_model as user_config_model, UsersConfigId, ResotoUsersConfig
 from resotocore.util import deep_merge, restart_service, value_in_path, value_in_path_get
@@ -40,7 +41,7 @@ from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription,
 log = logging.getLogger(__name__)
 
 
-class CoreConfigHandler:
+class CoreConfigHandler(Service):
     def __init__(
         self,
         config: CoreConfig,
