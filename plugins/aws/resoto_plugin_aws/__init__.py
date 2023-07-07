@@ -3,7 +3,7 @@ import multiprocessing
 import os
 from concurrent import futures
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, Sequence
+from typing import List, Optional, Tuple, Union, Sequence, Any
 import subprocess
 import json
 
@@ -51,8 +51,8 @@ GLOBAL_REGIONS = ("us-east-1", "us-gov-west-1", "cn-north-1")
 class AWSCollectorPlugin(BaseCollectorPlugin):
     cloud = "aws"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.__regions: List[str] = []
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -133,7 +133,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(account_graph, Graph):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
-                self.graph.merge(account_graph, skip_deferred_edges=True)
+                self.send_account_graph(account_graph)
+                del account_graph
 
         # collect done, purge all session caches
         aws_config.sessions().purge_caches()

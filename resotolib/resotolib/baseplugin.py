@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from threading import Thread, current_thread
 from typing import Dict, Optional, Set, Any
+from queue import Queue
 
 from prometheus_client import Counter
 
@@ -14,11 +15,10 @@ from resotolib.config import Config
 from resotolib.core import resotocore
 from resotolib.core.actions import CoreActions
 from resotolib.core.ca import TLSData
-from resotolib.graph import Graph
+from resotolib.graph import Graph, GraphMergeKind
 from resotolib.logger import log
 from resotolib.types import Json
 
-# from multiprocessing import Process
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",
@@ -203,12 +203,18 @@ class BaseCollectorPlugin(BasePlugin):
     plugin_type = PluginType.COLLECTOR  # Type of the Plugin
     cloud: str = NotImplemented  # Name of the cloud this plugin implements
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        graph_queue: Optional[Queue[Optional[Graph]]] = None,
+        graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
+    ) -> None:
         super().__init__()
         self.name = str(self.cloud)
         cloud = Cloud(id=self.cloud)
         self.root = cloud
-        self.graph = Graph(root=self.root)
+        self._graph_queue: Optional[Queue[Optional[Graph]]] = graph_queue
+        self.graph_merge_kind: GraphMergeKind = graph_merge_kind
+        self.graph = self.new_graph()
 
     @abstractmethod
     def collect(self) -> None:
@@ -240,6 +246,39 @@ class BaseCollectorPlugin(BasePlugin):
 
     def go(self) -> None:
         self.collect()
+        if self.graph_merge_kind == GraphMergeKind.cloud or len(self.graph) > 1:
+            if self.graph_merge_kind == GraphMergeKind.account:
+                log.debug("Using backwards compatibility mode")
+            assert isinstance(self.graph.root, BaseResource)
+            log.debug(f"Sending graph of {self.graph.root.kdname} to queue")
+            self.send_graph(self.graph)
+
+    def new_graph(self) -> Graph:
+        return Graph(root=self.root)
+
+    def send_account_graph(self, graph: Graph) -> None:
+        if not isinstance(graph, Graph):
+            log.error(f"Expected Graph, got {type(graph)}")
+            return
+
+        if self.graph_merge_kind == GraphMergeKind.account:
+            assert isinstance(graph.root, BaseResource)
+            kdname = graph.root.kdname
+            cloud_graph = self.new_graph()
+            cloud_graph.merge(graph, skip_deferred_edges=True)
+            log.debug(f"Sending graph of {kdname} to queue")
+            self.send_graph(cloud_graph)
+        elif self.graph_merge_kind == GraphMergeKind.cloud:
+            self.graph.merge(graph, skip_deferred_edges=True)
+        else:
+            raise ValueError(f"Unknown graph merge kind {self.graph_merge_kind}")
+
+    def send_graph(self, graph: Graph) -> None:
+        if self._graph_queue is None:
+            raise RuntimeError("Unable to send graph - no graph queue set")
+        if not isinstance(graph, Graph):
+            raise TypeError(f"Unable to send graph - expected type Graph, got {type(graph)}")
+        self._graph_queue.put(graph)
 
 
 class BasePostCollectPlugin(ABC):

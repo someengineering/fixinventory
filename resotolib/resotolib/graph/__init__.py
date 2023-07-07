@@ -361,24 +361,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
                 node.resolve_deferred_connections(self)
 
     def export_model(self, **kwargs: Any) -> List[Json]:
-        """Return the graph node dataclass model in resotocore format"""
-        classes = set()
-        for node in self.nodes:
-            classes.add(type(node))
-        model = resource_classes_to_resotocore_model(classes, aggregate_root=BaseResource, **kwargs)
-
-        # fixme: workaround to report kind
-        for resource_model in model:
-            if resource_model.get("fqn") == "resource":
-                resource_model.get("properties", []).append(
-                    {
-                        "name": "kind",
-                        "kind": "string",
-                        "required": True,
-                        "description": "",
-                    }
-                )
-        return model
+        return export_model(graph=self, **kwargs)
 
     def export_iterator(self) -> GraphExportIterator:
         return GraphExportIterator(self)
@@ -400,6 +383,29 @@ def resource_classes_to_resotocore_model(classes: Set[Type[Any]], **kwargs: Any)
         for dyn in dynamic_object_to_resotocore_model(name, dynamic, aggregate_root=True, traverse_dependant=False):
             model[dyn["fqn"]] = dyn
     return list(model.values())
+
+
+def export_model(graph: Optional[Graph] = None, **kwargs: Any) -> List[Json]:
+    """Return the graph node dataclass model in resotocore format"""
+    classes = set()
+    if graph is None:
+        classes.add(BaseResource)
+    else:
+        for node in graph.nodes:
+            classes.add(type(node))
+
+    model = resource_classes_to_resotocore_model(classes, aggregate_root=BaseResource, **kwargs)
+    for resource_model in model:
+        if resource_model.get("fqn") == "resource":
+            resource_model.get("properties", []).append(
+                {
+                    "name": "kind",
+                    "kind": "string",
+                    "required": True,
+                    "description": "",
+                }
+            )
+    return model
 
 
 @lru_cache(maxsize=4096)  # Only resolve types once per type

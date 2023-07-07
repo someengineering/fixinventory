@@ -25,8 +25,8 @@ log = logging.getLogger("resoto.plugins.k8s")
 class KubernetesCollectorPlugin(BaseCollectorPlugin):
     cloud = "k8s"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         # once defined, it will be set by the worker
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -69,7 +69,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
                     if not isinstance(cluster_graph, Graph):
                         log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
                         continue
-                    self.graph.merge(cluster_graph)
+                    self.send_account_graph(cluster_graph)
 
     @staticmethod
     def collect_cluster(

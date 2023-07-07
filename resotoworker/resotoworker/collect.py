@@ -1,19 +1,20 @@
 import multiprocessing
+import threading
 from queue import Queue
-
 import resotolib.proc
 from time import time
 from concurrent import futures
 from threading import Lock
 from resotoworker.exceptions import DuplicateMessageError
-from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin
-from resotolib.baseresources import GraphRoot
+from resotoworker.resotocore import Resotocore
+from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph, sanitize
+from resotolib.graph import Graph, sanitize, GraphMergeKind
 from resotolib.logger import log, setup_logger
 from resotolib.args import ArgumentParser
 from argparse import Namespace
-from typing import List, Optional, Callable, Type, Dict, Any, Set
+from typing import List, Optional, Type, Dict, Any, Set
 from resotolib.config import Config, RunningConfig
 from resotolib.types import Json
 
@@ -21,26 +22,61 @@ TaskId = str
 
 
 class Collector:
-    def __init__(
-        self, config: Config, send_to_resotocore: Callable[[Graph, TaskId], None], core_messages: Queue[Json]
-    ) -> None:
-        self._send_to_resotocore = send_to_resotocore
+    def __init__(self, config: Config, resotocore: Resotocore, core_messages: Queue[Json]) -> None:
+        self._resotocore = resotocore
         self._config = config
         self.core_messages = core_messages
         self.processing: Set[str] = set()
         self.processing_lock = Lock()
 
+    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId) -> None:
+        log.debug("Waiting for collector graphs")
+        start_time = time()
+        while True:
+            collector_graph = graph_queue.get()
+            if collector_graph is None:
+                run_time = time() - start_time
+                log.debug(f"Ending graph sender thread for task id {task_id} after {run_time} seconds")
+                break
+
+            graph = Graph(root=GraphRoot(id="root", tags={}))
+            graph.merge(collector_graph)
+            del collector_graph
+            sanitize(graph)
+
+            graph_info = ""
+            assert isinstance(graph.root, BaseResource)
+            for cloud in graph.successors(graph.root):
+                if isinstance(cloud, BaseCloud):
+                    graph_info += f" {cloud.kdname}"
+                for account in graph.successors(cloud):
+                    if isinstance(account, BaseAccount):
+                        graph_info += f" {account.kdname}"
+
+            log.info(f"Received collector graph for{graph_info}")
+
+            if (cycle := graph.find_cycle()) is not None:
+                desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+                log.error(f"Graph of {graph_info} is not acyclic - ignoring. Cycle {desc}")
+                continue
+
+            try:
+                self._resotocore.send_to_resotocore(graph, task_id)
+            except Exception as e:
+                log.error(f"Error sending graph of {graph_info} to resotocore: {e}")
+            del graph
+
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
-        post_collectors: List[Type[BasePostCollectPlugin]],
-        task_id: str,
+        task_id: TaskId,
         step_name: str,
     ) -> None:
         core_feedback = CoreFeedback(task_id, step_name, "collect", self.core_messages)
 
-        def collect(collectors: List[Type[BaseCollectorPlugin]]) -> Optional[Graph]:
-            graph = Graph(root=GraphRoot(id="root", tags={}))
+        def collect(collectors: List[Type[BaseCollectorPlugin]], graph_queue: Queue[Optional[Graph]]) -> bool:
+            all_success = True
+            graph_merge_kind = self._config.resotoworker.graph_merge_kind
 
             max_workers = (
                 len(collectors)
@@ -49,7 +85,7 @@ class Collector:
             )
             if max_workers == 0:
                 log.error("No workers configured or no collector plugins loaded - skipping collect")
-                return None
+                return False
             pool_args = {"max_workers": max_workers}
             pool_executor: Type[futures.Executor]
             collect_args: Dict[str, Any]
@@ -71,57 +107,17 @@ class Collector:
                         collect_plugin_graph,
                         collector,
                         core_feedback,
+                        graph_queue,
+                        graph_merge_kind,
                         **collect_args,
                     )
                     for collector in collectors
                 ]
                 for future in futures.as_completed(wait_for):
-                    collector_graph = future.result()
-                    if not isinstance(collector_graph, Graph):
-                        log.error(f"Skipping invalid collector graph {type(collector_graph)}")
-                        continue
-                    graph.merge(collector_graph)
-            sanitize(graph)
-            return graph
-
-        def post_collect(graph: Graph, post_collectors: List[Type[BasePostCollectPlugin]]) -> Graph:
-            if len(post_collectors) == 0:
-                log.info("No post-collect plugins loaded - skipping")
-                return graph
-            pool_args: Dict[str, Any] = {"max_workers": 1}
-            pool_executor: Type[futures.Executor]
-            collect_args: Dict[str, Any] = {}
-            if self._config.resotoworker.fork_process:
-                pool_args["mp_context"] = multiprocessing.get_context("spawn")
-                pool_args["initializer"] = resotolib.proc.initializer
-                pool_executor = futures.ProcessPoolExecutor
-                collect_args = {
-                    "args": ArgumentParser.args,
-                    "running_config": self._config.running_config,
-                }
-            else:
-                pool_executor = futures.ThreadPoolExecutor
-
-            with pool_executor(**pool_args) as executor:
-                for post_collector in post_collectors:
-                    future = executor.submit(
-                        run_post_collect_plugin, post_collector, graph, core_feedback, **collect_args
-                    )
-                    try:
-                        new_graph = future.result(Config.resotoworker.timeout)
-                    except TimeoutError as e:
-                        log.exception(f"Unhandled exception in {post_collector}: {e} - ignoring plugin")
-                        continue
-                    except Exception as e:
-                        log.exception(f"Unhandled exception in {post_collector}: {e} - ignoring plugin")
-                        continue
-
-                    if new_graph is None:
-                        continue
-                    graph = new_graph
-
-                sanitize(graph)
-                return graph
+                    collector_success = future.result()
+                    if not collector_success:
+                        all_success = False
+            return all_success
 
         processing_id = f"{task_id}:{step_name}"
         try:
@@ -130,58 +126,44 @@ class Collector:
                     raise DuplicateMessageError(f"Already processing {processing_id} - ignoring message")
                 self.processing.add(processing_id)
 
-            collected = collect(collectors)
+            mp_manager = multiprocessing.Manager()
+            graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
+            graph_sender_threads = []
+            graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
+            try:
+                for i in range(graph_sender_pool_size):
+                    graph_sender_t = threading.Thread(
+                        target=self.graph_sender, args=(graph_queue, task_id), name=f"graph_sender_{i}"
+                    )
+                    graph_sender_t.daemon = True
+                    graph_sender_t.start()
+                    graph_sender_threads.append(graph_sender_t)
 
-            if collected:
-                collected = post_collect(collected, post_collectors)
-                self._send_to_resotocore(collected, task_id)
+                self._resotocore.create_graph_and_update_model()
+                collect(collectors, graph_queue)
+            finally:
+                log.debug("Telling graph sender threads to end")
+                for _ in range(graph_sender_pool_size):
+                    graph_queue.put(None)
+                for t in graph_sender_threads:
+                    t.join(self._config.resotoworker.timeout)
+
         finally:
             with self.processing_lock:
                 if processing_id in self.processing:
                     self.processing.remove(processing_id)
 
 
-def run_post_collect_plugin(
-    post_collector_plugin: Type[BasePostCollectPlugin],
-    graph: Graph,
-    core_feedback: CoreFeedback,
-    args: Optional[Namespace] = None,
-    running_config: Optional[RunningConfig] = None,
-) -> Optional[Graph]:
-    try:
-        post_collector: BasePostCollectPlugin = post_collector_plugin()
-        if core_feedback and hasattr(post_collector, "core_feedback"):
-            setattr(post_collector, "core_feedback", core_feedback)
-
-        if args is not None:
-            ArgumentParser.args = args  # type: ignore
-            setup_logger("resotoworker")
-        if running_config is not None:
-            Config.running_config.apply(running_config)
-
-        log.debug(f"starting new post-collect process for {post_collector.name}")
-        start_time = time()
-        post_collector.post_collect(graph)
-        elapsed = time() - start_time
-        if (cycle := graph.find_cycle()) is not None:
-            desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
-            log.error(f"Graph of plugin {post_collector.name} is not acyclic - ignoring plugin results. Cycle {desc}")
-            return None
-        log.info(f"Collector of plugin {post_collector.name} finished in {elapsed:.4f}s")
-        return graph
-    except Exception as e:
-        log.exception(f"Unhandled exception in {post_collector_plugin}: {e} - ignoring plugin")
-        return None
-
-
 def collect_plugin_graph(
     collector_plugin: Type[BaseCollectorPlugin],
     core_feedback: CoreFeedback,
+    graph_queue: Queue[Optional[Graph]],
+    graph_merge_kind: GraphMergeKind,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
-) -> Optional[Graph]:
+) -> bool:
     try:
-        collector: BaseCollectorPlugin = collector_plugin()
+        collector: BaseCollectorPlugin = collector_plugin(graph_queue=graph_queue, graph_merge_kind=graph_merge_kind)
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
             setattr(collector, "core_feedback", core_feedback)
@@ -203,16 +185,12 @@ def collect_plugin_graph(
         if not collector.is_alive():  # The plugin has finished its work
             if not collector.finished:
                 log.error(f"Plugin {collector.cloud} did not finish collection" " - ignoring plugin results")
-                return None
-            if (cycle := collector.graph.find_cycle()) is not None:
-                desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
-                log.error(f"Graph of plugin {collector.cloud} is not acyclic - ignoring plugin results. Cycle {desc}")
-                return None
+                return False
             log.info(f"Collector of plugin {collector.cloud} finished in {elapsed:.4f}s")
-            return collector.graph
+            return True
         else:
             log.error(f"Plugin {collector.cloud} timed out - discarding plugin graph")
-            return None
+            return False
     except Exception as e:
         log.exception(f"Unhandled exception in {collector_plugin}: {e} - ignoring plugin")
-        return None
+        return False

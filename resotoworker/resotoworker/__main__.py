@@ -13,7 +13,7 @@ import requests
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
-from resotolib.baseplugin import BaseActionPlugin, BasePostCollectPlugin, BaseCollectorPlugin, PluginType
+from resotolib.baseplugin import BaseActionPlugin, BaseCollectorPlugin, PluginType
 from resotolib.config import Config
 from resotolib.core import add_args as core_add_args, resotocore, wait_for_resotocore
 from resotolib.core.actions import CoreActions, CoreFeedback
@@ -118,7 +118,7 @@ def main() -> None:
     mp_manager = multiprocessing.Manager()
     core_messages: Queue[Json] = mp_manager.Queue()
 
-    collector = Collector(config, core.send_to_resotocore, core_messages)
+    collector = Collector(config, core, core_messages)
 
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()
@@ -224,7 +224,6 @@ def core_actions_processor(
     message: Dict[str, Any],
 ) -> Optional[Dict[str, Any]]:
     collectors: List[Type[BaseCollectorPlugin]] = plugin_loader.plugins(PluginType.COLLECTOR)  # type: ignore
-    post_collectors: List[Type[BasePostCollectPlugin]] = plugin_loader.plugins(PluginType.POST_COLLECT)  # type: ignore
     # todo: clean this up
     if not isinstance(message, dict):
         log.error(f"Invalid message: {message}")
@@ -239,7 +238,7 @@ def core_actions_processor(
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, post_collectors, task_id=task_id, step_name=step_name)
+                collector.collect_and_send(collectors, task_id=task_id, step_name=step_name)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
