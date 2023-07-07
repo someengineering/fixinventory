@@ -80,7 +80,7 @@ from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import MessageBus, Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.metrics import timed
-from resotocore.model.db_updater import merge_graph_process
+from resotocore.model.db_updater import GraphMerger
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
 from resotocore.model.model import Kind, Model
@@ -166,6 +166,7 @@ class Api:
         user_management: UserManagement,
         get_override: Callable[[ConfigId], Optional[Json]],
         graph_manager: GraphManager,
+        graph_merger: GraphMerger,
     ):
         self.db = db
         self.model_handler = model_handler
@@ -184,6 +185,7 @@ class Api:
         self.get_override = get_override
         self.auth_handler = AuthHandler(db.system_data_db, config, cert_handler, AlwaysAllowed | DeferredCheck)
         self.graph_manager = graph_manager
+        self.graph_merger = graph_merger
 
         self.app = web.Application(
             client_max_size=config.api.max_request_size or 1024**2,
@@ -915,32 +917,35 @@ class Api:
         return web.json_response(root)
 
     async def merge_graph(self, request: Request) -> StreamResponse:
-        log.info("Received merge_graph request")
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        wait_for_result = request.query.get("wait_for_result", "true").lower() == "true"
         task_id: Optional[TaskId] = None
+        log.info(
+            f"Received merge_graph request for graph {graph_id}, wait_for_result={wait_for_result}, task_id={task_id}"
+        )
         if tid := request.headers.get("Resoto-Worker-Task-Id"):
             task_id = TaskId(tid)
         db = self.db.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        mh = self.model_handler
         max_wait = self.config.graph_update.merge_max_wait_time()
-        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, None, task_id)
-        return web.json_response(to_js(info))
+        info = await self.graph_merger.merge_graph(db, it, max_wait, None, task_id, wait_for_result)
+        return web.json_response(to_js(info)) if info else web.HTTPNoContent()
 
     async def update_merge_graph_batch(self, request: Request) -> StreamResponse:
-        log.info("Received put_sub_graph_batch request")
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        wait_for_result = request.query.get("wait_for_result", "true").lower() == "true"
         task_id: Optional[TaskId] = None
         if tid := request.headers.get("Resoto-Worker-Task-Id"):
             task_id = TaskId(tid)
+        log.info(f"Received put_sub_graph_batch request for graph {graph_id}, wait_for_result={wait_for_result}")
         db = self.db.get_graph_db(graph_id)
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        mh = self.model_handler
         max_wait = self.config.graph_update.merge_max_wait_time()
-        info = await merge_graph_process(db, mh, self.event_sender, self.config, it, max_wait, batch_id, task_id)
-        return web.json_response(to_json(info), headers={"BatchId": batch_id})
+        info = await self.graph_merger.merge_graph(db, it, max_wait, batch_id, task_id, wait_for_result)
+        headers = {"BatchId": batch_id}
+        return web.json_response(to_json(info), headers=headers) if info else web.HTTPNoContent(headers=headers)
 
     async def list_batches(self, request: Request) -> StreamResponse:
         graph_db = self.db.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))

@@ -204,7 +204,12 @@ def config_json() -> Json:
                     }
                 ],
             },
-            "graph_update": {"abort_after_seconds": 1234, "merge_max_wait_time_seconds": 4321, "keep_history": True},
+            "graph_update": {
+                "abort_after_seconds": 1234,
+                "merge_max_wait_time_seconds": 4321,
+                "keep_history": True,
+                "parallel_imports": 5,
+            },
             "runtime": {
                 "usage_metrics": False,
                 "debug": True,

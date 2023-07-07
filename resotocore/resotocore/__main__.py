@@ -43,6 +43,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.error import RestartService
 from resotocore.message_bus import MessageBus
+from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander_service import TemplateExpanderService
@@ -190,6 +191,7 @@ def with_config(
     cli_deps.extend(infra_apps_package_manager=infra_apps_package_manager)
     graph_manager = GraphManager(db, config.snapshots, core_config_handler, task_handler)
     cli_deps.extend(graph_manager=graph_manager)
+    graph_updater = GraphMerger(model, event_sender, config)
     api = Api(
         db,
         model,
@@ -207,6 +209,7 @@ def with_config(
         user_management,
         config_override_service.get_override,
         graph_manager,
+        graph_updater,
     )
     event_emitter = emit_recurrent_events(
         event_sender, model, subscriptions, worker_task_queue, message_bus, timedelta(hours=1), timedelta(hours=1)
@@ -229,9 +232,10 @@ def with_config(
         await core_config_handler.start()
         await merge_outer_edges_handler.start()
         await cert_handler.start()
-        await api.start()
+        await graph_updater.start()
         await infra_apps_package_manager.start()
         await graph_manager.start()
+        await api.start()
         if created:
             docker = inside_docker()
             kubernetes = inside_kubernetes()
@@ -261,9 +265,10 @@ def with_config(
 
     async def on_stop() -> None:
         duration = utc() - info.started_at
+        await api.stop()
         await graph_manager.stop()
         await infra_apps_package_manager.stop()
-        await api.stop()
+        await graph_updater.stop()
         await cert_handler.stop()
         await config_override_service.stop()
         await core_config_handler.stop()

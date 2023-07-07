@@ -6,7 +6,7 @@ from attr import define, field
 from resotocore.ids import ConfigId, Email, Password
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
-from resotocore.web.service import Service
+from resotocore.service import Service
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 
 UsersConfigRoot = "resoto_users"
