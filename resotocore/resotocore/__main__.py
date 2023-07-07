@@ -198,7 +198,7 @@ def with_config(
             ),
         )
         deps.add("graph_manager", GraphManager(db, config.snapshots, core_config_handler, task_handler))
-        deps.add("graph_merger", GraphMerger(model, event_sender, config))
+        deps.add("graph_merger", GraphMerger(model, event_sender, config, message_bus))
         deps.add(
             "event_emitter_periodic",
             emit_recurrent_events(

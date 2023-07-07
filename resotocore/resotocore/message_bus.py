@@ -28,6 +28,7 @@ class CoreMessage:
     ConfigDeleted = "config-deleted"
     ErrorMessage = "error"
     ProgressMessage = "progress"
+    GraphMergeCompleted = "graph-merge-completed"
 
 
 class Message(ABC):
@@ -292,6 +293,10 @@ class MessageBus(Service):
         return await self.emit(Event(event_type, data))
 
     async def emit(self, message: Message) -> None:
+        log.debug(
+            "Emitting message %s: %s", message.message_type, ", ".join(f"{k}={v}" for k, v in message.data.items())
+        )
+
         async def emit_by(name: str) -> None:
             for listener in self.listeners.get(name, []):
                 await listener.put(message)

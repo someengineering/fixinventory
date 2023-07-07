@@ -51,6 +51,7 @@ from resotocore.task.task_description import (
     StepErrorBehaviour,
     RestartAgainStepAction,
     Trigger,
+    WaitForEvent,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
 import re
@@ -581,6 +582,7 @@ class TaskHandlerService(TaskHandler, Service):
         collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
+            Step("wait_for_graph_merged", WaitForEvent(CoreMessage.GraphMergeCompleted), timedelta(minutes=10)),
             Step("merge_outer_edges", PerformAction("merge_outer_edges"), timedelta(seconds=10)),
             Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
         ]

@@ -7,12 +7,13 @@ import shutil
 import tempfile
 from abc import ABC
 from asyncio import Task, CancelledError
+from collections import defaultdict
 from contextlib import suppress
 from datetime import timedelta, datetime
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
-from typing import Optional, Union, Any, Generator, List, AsyncIterator
+from typing import Optional, Union, Any, Generator, List, AsyncIterator, Dict
 
 import aiofiles
 from aiostream import stream
@@ -29,6 +30,7 @@ from resotocore.db.model import GraphUpdate
 from resotocore.dependencies import db_access, setup_process, reset_process_start_method
 from resotocore.error import ImportAborted
 from resotocore.ids import TaskId, GraphName
+from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
 from resotocore.model.model_handler import ModelHandlerDB, ModelHandler
@@ -232,10 +234,14 @@ class GraphMerger(Service):
         model_handler: ModelHandler,
         event_sender: AnalyticsEventSender,
         config: CoreConfig,
+        message_bus: MessageBus,
     ) -> None:
         self.model_handler = model_handler
         self.event_sender = event_sender
         self.config = config
+        self.message_bus = message_bus
+        self.run_lock = asyncio.Lock()
+        self.running_imports: Dict[TaskId, int] = defaultdict(int)
         self.update_queue: asyncio.Queue[GraphUpdateTask] = asyncio.Queue()
         self.concurrent_updates = asyncio.Semaphore(self.config.graph_update.parallel_imports)
         self.handler_task: Optional[Task[Any]] = None
@@ -281,6 +287,11 @@ class GraphMerger(Service):
         task_id: Optional[TaskId],
         wait_for_result: bool = False,
     ) -> Optional[GraphUpdate]:
+        # increment count
+        if task_id:
+            async with self.run_lock:
+                self.running_imports[task_id] += 1
+
         deadline = utc() + max_wait
         if wait_for_result:
             return await self.__merge_graph_process(db, content, deadline, maybe_batch, task_id)
@@ -360,6 +371,13 @@ class GraphMerger(Service):
                 await self.model_handler.load_model(db.name, force=True)  # reload model to get the latest changes
                 return result
             finally:
+                # update running imports and send event if completed
+                if task_id:
+                    async with self.run_lock:
+                        self.running_imports[task_id] -= 1
+                        if self.running_imports[task_id] == 0:
+                            del self.running_imports[task_id]
+                            await self.message_bus.emit_event(CoreMessage.GraphMergeCompleted, dict(task_id=task_id))
                 if task is not None and not task.done():
                     task.cancel()
                 if not result:

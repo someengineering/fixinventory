@@ -882,11 +882,11 @@ class Api(Service):
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         wait_for_result = request.query.get("wait_for_result", "true").lower() == "true"
         task_id: Optional[TaskId] = None
+        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+            task_id = TaskId(tid)
         log.info(
             f"Received merge_graph request for graph {graph_id}, wait_for_result={wait_for_result}, task_id={task_id}"
         )
-        if tid := request.headers.get("Resoto-Worker-Task-Id"):
-            task_id = TaskId(tid)
         db = self.deps.db_access.get_graph_db(graph_id)
         it = self.to_line_generator(request)
         max_wait = self.deps.config.graph_update.merge_max_wait_time()

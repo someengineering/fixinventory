@@ -12,6 +12,7 @@ from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import GraphUpdate
 from resotocore.dependencies import empty_config
 from resotocore.ids import TaskId
+from resotocore.message_bus import MessageBus
 from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_js
@@ -22,7 +23,7 @@ from tests.resotocore.model import ModelHandlerStatic
 
 @pytest.mark.asyncio
 async def test_merge_process(
-    event_sender: AnalyticsEventSender, graph_db: ArangoGraphDB, foo_kinds: List[Kind]
+    event_sender: AnalyticsEventSender, graph_db: ArangoGraphDB, foo_kinds: List[Kind], message_bus: MessageBus
 ) -> None:
     # set explicitly (is done in main explicitly as well)
     set_start_method("spawn")
@@ -51,7 +52,7 @@ async def test_merge_process(
         )
 
     model_handler = ModelHandlerStatic(Model.from_kinds(foo_kinds))
-    async with GraphMerger(model_handler, event_sender, config) as merger:
+    async with GraphMerger(model_handler, event_sender, config, message_bus) as merger:
         result = await merger.merge_graph(
             graph_db, iterator(), timedelta(seconds=30), None, TaskId("test_task_123"), wait_for_result=True
         )
