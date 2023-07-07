@@ -10,7 +10,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
-from resoto_plugin_aws.utils import ToDict, TagsValue
+from resoto_plugin_aws.utils import ToDict, TagsValue, identity
 from resotolib.baseresources import (
     BaseInstance,
     EdgeType,
@@ -904,7 +904,7 @@ InstanceStatusMapping = {
 
 class MetricNormalization(NamedTuple):
     name: str
-    normalize_value: Callable[[float], float]
+    normalize_value: Callable[[float], float] = identity
 
 
 @define(eq=False, slots=False)
@@ -1079,9 +1079,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 ]
             )
 
-        metric_normalizers = {
-            "CPUUtilization": MetricNormalization("cpu", lambda x: x / 100)
-        }  # convert from percent to fraction
+        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu", lambda x: round(x, ndigits=3))}
 
         stat_name = {
             "Minimum": "min",

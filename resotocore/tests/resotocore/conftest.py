@@ -332,7 +332,7 @@ async def filled_graph_db(graph_db: ArangoGraphDB, foo_model: Model) -> ArangoGr
     if await graph_db.db.has_collection("model"):
         graph_db.db.collection("model").truncate()
     await graph_db.wipe()
-    await graph_db.merge_graph(create_graph("yes or no"), foo_model)
+    await graph_db.merge_graph(create_graph("yes or no"), foo_model, 42)
     return graph_db
 
 

@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Iterable,
     TypeVar,
+    NamedTuple,
 )
 
 import yaml
@@ -1459,6 +1460,12 @@ class Model:
         return result
 
 
+class UsageMetricValues(NamedTuple):
+    min: float
+    avg: float
+    max: float
+
+
 @frozen
 class UsageDatapoint:
     """
@@ -1476,7 +1483,7 @@ class UsageDatapoint:
 
     id: str
     at: int
-    v: Dict[str, List[float]]
+    v: Dict[str, UsageMetricValues]
 
 
 # register serializer for this class

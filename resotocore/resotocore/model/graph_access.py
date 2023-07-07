@@ -26,6 +26,7 @@ from resotocore.model.model import (
     DateKind,
     DurationKind,
     UsageDatapoint,
+    UsageMetricValues,
 )
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
@@ -152,22 +153,25 @@ class GraphBuilder:
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
+            usage_json = js.get(Section.usage, {})
+            if len(usage_json) == 0:
+                usage_json = None
             self.add_node(
-                js["id"],
-                js[Section.reported],
-                js.get(Section.desired, None),
-                js.get(Section.metadata, None),
-                js.get("search", None),
-                js.get("replace", False) is True,
+                node_id=js["id"],
+                reported=js[Section.reported],
+                desired=js.get(Section.desired, None),
+                metadata=js.get(Section.metadata, None),
+                search=js.get("search", None),
+                replace=js.get("replace", False) is True,
             )
-            if Section.usage in js and len(js[Section.usage]):
+            if usage_json:
                 values = {
-                    k: [
-                        v.get("min", v["avg"]),
-                        v["avg"],
-                        v.get("max", v["avg"]),
-                    ]
-                    for k, v in js[Section.usage].items()
+                    k: UsageMetricValues(
+                        min=v.get("min", v["avg"]),
+                        avg=v["avg"],
+                        max=v.get("max", v["avg"]),
+                    )
+                    for k, v in usage_json.items()
                 }
                 usage = UsageDatapoint(
                     id=js["id"],
