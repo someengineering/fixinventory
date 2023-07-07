@@ -236,9 +236,23 @@ class GraphMerger(Service):
         self.model_handler = model_handler
         self.event_sender = event_sender
         self.config = config
-        self.update_queue: asyncio.Queue[GraphUpdateTask] = asyncio.Queue()
-        self.concurrent_updates = asyncio.Semaphore(self.config.graph_update.parallel_imports)
+        self.__update_queue: Optional[asyncio.Queue[GraphUpdateTask]] = None
+        self.__concurrent_updates: Optional[asyncio.Semaphore] = None
         self.handler_task: Optional[Task[Any]] = None
+
+    @property
+    def update_queue(self) -> asyncio.Queue[GraphUpdateTask]:
+        # prop required, since async properties need to be created from a running loop
+        if self.__update_queue is None:
+            self.__update_queue = asyncio.Queue()
+        return self.__update_queue
+
+    @property
+    def concurrent_updates(self) -> asyncio.Semaphore:
+        # prop required, since async properties need to be created from a running loop
+        if self.__concurrent_updates is None:
+            self.__concurrent_updates = asyncio.Semaphore(self.config.graph_update.parallel_imports)
+        return self.__concurrent_updates
 
     async def __process_item(self, item: GraphUpdateTask) -> Union[GraphUpdate, Exception]:
         log.info(f"Start processing graph merge from queue: {item}")
