@@ -69,7 +69,7 @@ class PluginLoader:
             plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
             return [plugin for plugin in plugins if plugin.cloud in configured_collectors]
 
-        return self._plugins.get(plugin_type, [])  # type: ignore
+        return self._plugins.get(plugin_type, [])
 
     def all_plugins(
         self, plugin_type: Optional[PluginType] = None
@@ -77,7 +77,7 @@ class PluginLoader:
         if not self._initialized:
             self.find_plugins()
         if plugin_type is not None:
-            return self._plugins.get(plugin_type, [])  # type: ignore
+            return self._plugins.get(plugin_type, [])
         return [plugin for plugins in self._plugins.values() for plugin in plugins]
 
     def all_collector_plugins(self) -> List[Type[BaseCollectorPlugin]]:
