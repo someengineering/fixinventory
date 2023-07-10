@@ -138,5 +138,4 @@ class Resotocore:
                 if r.status_code not in (200, 204):
                     log.error(r.content)
                     raise RuntimeError(f"Failed to send graph: {r.content}")  # type: ignore
-                log.debug(f"resotocore reply: {r.content.decode()}")
         log.debug(f"Sent {graph_export_iterator.total_lines} items to resotocore")
