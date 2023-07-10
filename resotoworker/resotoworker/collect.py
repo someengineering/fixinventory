@@ -1,5 +1,7 @@
 import multiprocessing
 import threading
+from tempfile import mkdtemp
+from shutil import rmtree
 from queue import Queue
 import resotolib.proc
 from time import time
@@ -29,7 +31,7 @@ class Collector:
         self.processing: Set[str] = set()
         self.processing_lock = Lock()
 
-    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId) -> None:
+    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId, tempdir: str) -> None:
         log.debug("Waiting for collector graphs")
         start_time = time()
         while True:
@@ -61,7 +63,7 @@ class Collector:
                 continue
 
             try:
-                self._resotocore.send_to_resotocore(graph, task_id)
+                self._resotocore.send_to_resotocore(graph, task_id, tempdir)
             except Exception as e:
                 log.error(f"Error sending graph of {graph_info} to resotocore: {e}")
             del graph
@@ -131,15 +133,16 @@ class Collector:
             graph_sender_threads = []
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
             try:
+                tempdir = mkdtemp(prefix=f"resoto-{task_id}", dir=self._config.resotoworker.tempdir)
                 for i in range(graph_sender_pool_size):
                     graph_sender_t = threading.Thread(
-                        target=self.graph_sender, args=(graph_queue, task_id), name=f"graph_sender_{i}"
+                        target=self.graph_sender, args=(graph_queue, task_id, tempdir), name=f"graph_sender_{i}"
                     )
                     graph_sender_t.daemon = True
                     graph_sender_t.start()
                     graph_sender_threads.append(graph_sender_t)
 
-                self._resotocore.create_graph_and_update_model()
+                self._resotocore.create_graph_and_update_model(tempdir=tempdir)
                 collect(collectors, graph_queue)
             finally:
                 log.debug("Telling graph sender threads to end")
@@ -147,6 +150,8 @@ class Collector:
                     graph_queue.put(None)
                 for t in graph_sender_threads:
                     t.join(self._config.resotoworker.timeout)
+                if not self._config.resotoworker.debug_dump_json:
+                    rmtree(tempdir, ignore_errors=True)
 
         finally:
             with self.processing_lock:
