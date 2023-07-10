@@ -132,8 +132,8 @@ class Collector:
             graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
             graph_sender_threads = []
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
+            tempdir = mkdtemp(prefix=f"resoto-{task_id}", dir=self._config.resotoworker.tempdir)
             try:
-                tempdir = mkdtemp(prefix=f"resoto-{task_id}", dir=self._config.resotoworker.tempdir)
                 for i in range(graph_sender_pool_size):
                     graph_sender_t = threading.Thread(
                         target=self.graph_sender, args=(graph_queue, task_id, tempdir), name=f"graph_sender_{i}"

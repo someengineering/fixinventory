@@ -54,7 +54,7 @@ def test_resotocore() -> None:
                 "resotoworker": {
                     "graph": "resoto",
                     "debug_dump_json": False,
-                    "tempdir": "/tmp",
+                    "tempdir": None,
                     "graph_merge_kind": "foo_kind",
                 },
                 "running_config": None,
@@ -69,7 +69,7 @@ def test_resotocore() -> None:
     graph = Graph(root=GraphRoot(id="graph_root"))
     graph.merge(collector.graph)
 
-    core.send_to_resotocore(graph, "task_123")
+    core.send_to_resotocore(graph, "task_123", "/tmp")
     print(recorded_headers)
 
     assert recorded_headers["Resoto-Worker-Task-Id"] == "task_123"
