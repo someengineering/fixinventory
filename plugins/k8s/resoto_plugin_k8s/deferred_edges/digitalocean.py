@@ -1,17 +1,6 @@
-from resotolib.baseplugin import BasePostCollectPlugin
 from resotolib.baseresources import BaseResource
 from resotolib.graph import BySearchCriteria, ByNodeId, Graph
-
-from resotolib.logger import log
-import functools
-from typing import cast, Any, Set
-
-
-def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
-    def _getattr(obj: Any, attr: str) -> Any:
-        return getattr(obj, attr, *args)
-
-    return functools.reduce(_getattr, [obj] + attr.split("."))
+from resoto_plugin_k8s.deferred_edges.utils import rgetattr
 
 
 def link_node_to_do_droplet(graph: Graph, resource: BaseResource) -> None:
@@ -45,14 +34,7 @@ def link_pv_to_do_volume(graph: Graph, resource: BaseResource) -> None:
             )
 
 
-class DigitalOceanK8sCollectorPlugin(BasePostCollectPlugin):
-    name = "digitalocean_k8s"
-    activate_with: Set[str] = {"digitalocean", "k8s"}
-
-    def post_collect(self, graph: Graph) -> None:
-        log.info("plugin: collecting DigitalOcean to k8s edges")
-        for node in graph.nodes:
-            node = cast(BaseResource, node)
-            link_node_to_do_droplet(graph, node)
-            link_service_to_do_lb(graph, node)
-            link_pv_to_do_volume(graph, node)
+def link_all(graph: Graph, resource: BaseResource) -> None:
+    link_node_to_do_droplet(graph, resource)
+    link_service_to_do_lb(graph, resource)
+    link_pv_to_do_volume(graph, resource)

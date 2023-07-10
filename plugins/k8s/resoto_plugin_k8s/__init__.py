@@ -13,6 +13,7 @@ from kubernetes.client import Configuration
 from resoto_plugin_k8s.base import K8sApiClient, K8sClient
 from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.base import K8sConfig
+from resoto_plugin_k8s.deferred_edges import create_deferred_edges
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
@@ -98,6 +99,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             ).with_feedback(core_feedback)
             kc = KubernetesCollector(Config.k8s, k8s_client)
             kc.collect()
+            create_deferred_edges(kc.graph)
         except ApiException as e:
             if e.reason == "Unauthorized":
                 core_feedback.error(f"Unable to authenticate with {cluster_id}", log)
