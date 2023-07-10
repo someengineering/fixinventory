@@ -13,7 +13,7 @@ from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.dependencies import empty_config
 from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError
-from resotocore.task import RunningTaskInfo
+from resotocore.model.db_updater import GraphMerger
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
@@ -43,6 +43,7 @@ async def test_recover_workflow(
     message_bus: MessageBus,
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
+    graph_merger: GraphMerger,
     all_events: List[Message],
     cli: CLIService,
     test_workflow: Workflow,
@@ -54,6 +55,7 @@ async def test_recover_workflow(
             message_bus,
             event_sender,
             subscription_handler,
+            graph_merger,
             Scheduler(),
             cli,
             empty_config(),

@@ -18,6 +18,7 @@ from aiohttp.test_utils import TestServer
 from aiohttp.web import Request, Response, Application, route
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
+from attr import evolve
 from pytest import fixture
 from rich.console import Console
 
@@ -64,6 +65,7 @@ from resotocore.message_bus import (
     ActionDone,
 )
 from resotocore.model.adjust_node import NoAdjust
+from resotocore.model.db_updater import GraphMerger
 from resotocore.model.graph_access import EdgeTypes, Section
 from resotocore.model.model import Model, Kind, ComplexKind, Property, SyntheticProperty, StringKind
 from resotocore.model.resolve_in_graph import GraphResolver
@@ -73,6 +75,7 @@ from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import BenchmarkConfig
+from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -483,7 +486,7 @@ async def core_config_handler_started(core_config_handler: CoreConfigHandler) ->
 
 
 @fixture
-async def cli_deps(
+async def dependencies(
     filled_graph_db: ArangoGraphDB,
     message_bus: MessageBus,
     event_sender: InMemoryEventSender,
@@ -518,9 +521,22 @@ async def cli_deps(
 
 
 @fixture
-def cli(cli_deps: Dependencies) -> CLIService:
+async def graph_merger(
+    foo_model: Model, event_sender: AnalyticsEventSender, default_config: CoreConfig, message_bus: MessageBus
+) -> GraphMerger:
+    model_handler = ModelHandlerStatic(foo_model)
+    return GraphMerger(model_handler, event_sender, default_config, message_bus)
+
+
+@fixture
+async def task_dependencies(graph_merger: GraphMerger, subscription_handler: SubscriptionHandler) -> TaskDependencies:
+    return TaskDependencies(graph_merger, subscription_handler.subscribers_by_event)
+
+
+@fixture
+def cli(dependencies: Dependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
-    return CLIService(cli_deps, all_commands(cli_deps), env, alias_names())
+    return CLIService(dependencies, all_commands(dependencies), env, alias_names())
 
 
 @fixture
@@ -662,6 +678,7 @@ def test_wait_workflow() -> Workflow:
 
 @fixture
 def workflow_instance(
+    task_dependencies: TaskDependencies,
     test_wait_workflow: Workflow,
 ) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
     td = timedelta(seconds=100)
@@ -671,7 +688,7 @@ def workflow_instance(
     s1 = Subscriber.from_list(SubscriberId("s1"), [sub1, sub2, sub3])
     s2 = Subscriber.from_list(SubscriberId("s2"), [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = RunningTask.empty(test_wait_workflow, lambda: subscriptions)
+    w, _ = RunningTask.empty(test_wait_workflow, evolve(task_dependencies, subscribers_by_event=lambda: subscriptions))
     w.received_messages = [
         Action("start_collect", w.id, "start"),
         ActionDone("start_collect", w.id, "start", s1.id),
@@ -698,13 +715,14 @@ async def task_handler(
     message_bus: MessageBus,
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
+    graph_merger: GraphMerger,
     cli: CLIService,
     test_workflow: Workflow,
     additional_workflows: List[Workflow],
 ) -> AsyncGenerator[TaskHandlerService, None]:
     config = empty_config()
     task_handler = TaskHandlerService(
-        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, config
+        running_task_db, job_db, message_bus, event_sender, subscription_handler, graph_merger, Scheduler(), cli, config
     )
     task_handler.task_descriptions = additional_workflows + [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler

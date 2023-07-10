@@ -140,7 +140,6 @@ def with_config(
     log.debug(f"Starting with config: {config.editable}")
     info = system_info()
     deps = Dependencies(config=config, system_info=info, cert_handler=cert_handler)
-
     event_sender = deps.add(
         "event_sender", PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
     )
@@ -177,18 +176,9 @@ def with_config(
         deps.add("template_expander", TemplateExpanderService(db.template_entity_db, cli))
         inspector = deps.add("inspector_service", InspectorService(cli))
         subscriptions = deps.add("subscription_handler", SubscriptionHandler(db.subscribers_db, message_bus))
-        task_handler = deps.add(
-            "task_handler",
-            TaskHandlerService(
-                db.running_task_db, db.job_db, message_bus, event_sender, subscriptions, scheduler, cli, config
-            ),
-        )
         core_config_handler = deps.add(
             "core_config_handler",
             CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
-        )
-        deps.add(
-            "merge_outer_edges_handler", MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
         )
         deps.add("infra_apps_runtime", LocalResotocoreAppRuntime(cli))
         deps.add(
@@ -197,8 +187,25 @@ def with_config(
                 db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias
             ),
         )
+        graph_merger = deps.add("graph_merger", GraphMerger(model, event_sender, config, message_bus))
+        task_handler = deps.add(
+            "task_handler",
+            TaskHandlerService(
+                db.running_task_db,
+                db.job_db,
+                message_bus,
+                event_sender,
+                subscriptions,
+                graph_merger,
+                scheduler,
+                cli,
+                config,
+            ),
+        )
         deps.add("graph_manager", GraphManager(db, config.snapshots, core_config_handler, task_handler))
-        deps.add("graph_merger", GraphMerger(model, event_sender, config, message_bus))
+        deps.add(
+            "merge_outer_edges_handler", MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
+        )
         deps.add(
             "event_emitter_periodic",
             emit_recurrent_events(

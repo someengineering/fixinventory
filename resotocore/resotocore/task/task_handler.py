@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from asyncio import Task, CancelledError
 from contextlib import suppress
 from copy import copy
-from attrs import evolve
 from datetime import timedelta
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
 
 from aiostream import stream
+from attrs import evolve
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
 from resotocore.cli.model import CLIContext, CLI
 from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
+from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.message_bus import (
     MessageBus,
     Event,
@@ -27,13 +29,14 @@ from resotocore.message_bus import (
     ActionProgress,
     CoreMessage,
 )
-from resotocore.ids import SubscriberId, TaskDescriptorId
+from resotocore.model.db_updater import GraphMerger
 from resotocore.service import Service
 from resotocore.task import TaskHandler, RunningTaskInfo
 from resotocore.task.model import Subscriber
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.start_workflow_on_first_subscriber import wait_and_start
 from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.task_description import (
     Workflow,
     RunningTask,
@@ -51,10 +54,9 @@ from resotocore.task.task_description import (
     StepErrorBehaviour,
     RestartAgainStepAction,
     Trigger,
-    WaitForEvent,
+    WaitForCollectDone,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
-import re
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +71,7 @@ class TaskHandlerService(TaskHandler, Service):
         message_bus: MessageBus,
         event_sender: AnalyticsEventSender,
         subscription_handler: SubscriptionHandler,
+        graph_merger: GraphMerger,
         scheduler: Scheduler,
         cli: CLI,
         config: CoreConfig,
@@ -93,6 +96,7 @@ class TaskHandlerService(TaskHandler, Service):
         self.timeout_watcher = Periodic("task_watcher", self.check_running_tasks, timedelta(seconds=10))
         self.registered_event_trigger: List[Tuple[EventTrigger, TaskDescription]] = []
         self.registered_event_trigger_by_message_type: Dict[str, List[Tuple[EventTrigger, TaskDescription]]] = {}
+        self.task_dependencies = TaskDependencies(graph_merger, subscription_handler.subscribers_by_event)
 
     # endregion
 
@@ -137,7 +141,8 @@ class TaskHandlerService(TaskHandler, Service):
 
     async def start_task_directly(self, desc: TaskDescription, reason: str) -> RunningTask:
         updated = self.evaluate_task_definition(desc)
-        task, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
+
+        task, commands = RunningTask.empty(updated, self.task_dependencies)
         log.info(f"Start new task: {updated.name} with id {task.id}")
         # store initial state in database
         await self.running_task_db.insert(task)
@@ -209,7 +214,7 @@ class TaskHandlerService(TaskHandler, Service):
             if descriptor:
                 # we have captured the timestamp when the task has been started
                 updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
-                rt = RunningTask(data.id, updated, self.subscription_handler.subscribers_by_event)
+                rt = RunningTask(data.id, updated, self.task_dependencies)
                 instance = reset_state(rt, data)
                 if isinstance(instance.current_step.action, RestartAgainStepAction):
                     log.info(f"Restart interrupted action: {instance.current_step.action}")
@@ -582,7 +587,7 @@ class TaskHandlerService(TaskHandler, Service):
         collect_steps = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
-            Step("wait_for_graph_merged", WaitForEvent(CoreMessage.GraphMergeCompleted), timedelta(minutes=10)),
+            Step("wait_for_graph_merged", WaitForCollectDone(), timedelta(minutes=10)),
             Step("merge_outer_edges", PerformAction("merge_outer_edges"), timedelta(seconds=10)),
             Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
         ]
