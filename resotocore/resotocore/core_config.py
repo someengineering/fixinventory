@@ -497,6 +497,10 @@ class GraphUpdateConfig(ConfigObject):
         default=True,
         metadata={"description": "If true, changes of the graph are stored and are available via history."},
     )
+    parallel_imports: int = field(
+        default=5,
+        metadata={"description": "Number of parallel graph merge requests handled in parallel."},
+    )
 
     def merge_max_wait_time(self) -> timedelta:
         return timedelta(seconds=self.merge_max_wait_time_seconds)

@@ -39,7 +39,7 @@ from resotocore.cli.command import (
     ReportCommand,
     WriteCommand,
 )
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     ParsedCommand,
     ParsedCommands,
@@ -76,6 +76,7 @@ from resotocore.query.model import (
     Sort,
 )
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
+from resotocore.service import Service
 from resotocore.types import JsonElement
 from resotocore.util import group_by
 from resotolib.parse_util import make_parser, pipe_p, semicolon_p
@@ -117,7 +118,7 @@ class HelpCommand(CLICommand):
 
     def __init__(
         self,
-        dependencies: CLIDependencies,
+        dependencies: Dependencies,
         parts: List[CLICommand],
         alias_names: Dict[str, str],
         alias_templates: Dict[str, AliasTemplate],
@@ -218,14 +219,14 @@ DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.i
 HistorySort = [Sort("/changed_at"), Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 
 
-class CLIService(CLI):
+class CLIService(CLI, Service):
     """
     The CLI has a defined set of dependencies and knows a list if commands.
     A string can be parsed into a command line that can be executed based on the list of available commands.
     """
 
     def __init__(
-        self, dependencies: CLIDependencies, parts: List[CLICommand], env: Dict[str, Any], alias_names: Dict[str, str]
+        self, dependencies: Dependencies, parts: List[CLICommand], env: Dict[str, Any], alias_names: Dict[str, str]
     ):
         dependencies.extend(cli=self)
         alias_templates_list = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
@@ -267,7 +268,7 @@ class CLIService(CLI):
         return self.cli_env
 
     @property
-    def dependencies(self) -> CLIDependencies:
+    def dependencies(self) -> Dependencies:
         return self.__dependencies
 
     @property

@@ -5,7 +5,7 @@ from arango.database import StandardDatabase
 
 from resotocore.analytics import NoEventSender
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import parse_args, empty_config
+from resotocore.system_start import parse_args, empty_config
 from resotocore.model.adjust_node import NoAdjust
 from resotocore.ids import GraphName
 

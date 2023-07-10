@@ -11,7 +11,7 @@ from resotocore.message_bus import MessageBus
 from resotocore.util import utc, Periodic
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.ids import SubscriberId
-from resotocore.web.service import Service
+from resotocore.service import Service
 
 log = logging.getLogger(__name__)
 

@@ -10,6 +10,7 @@ from datetime import timedelta, datetime
 from functools import reduce
 from typing import Any, Optional, AsyncGenerator, Dict, List
 
+from resotocore.service import Service
 from resotocore.types import Json, JsonElement
 from resotocore.util import utc, Periodic, set_future_result
 from resotocore.ids import TaskId, WorkerId
@@ -80,7 +81,7 @@ class WorkerTaskSubscription:
         return self.queue.qsize()
 
 
-class WorkerTaskQueue:
+class WorkerTaskQueue(Service):
     """
     This class implements a simple task queue.
     """

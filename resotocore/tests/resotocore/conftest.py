@@ -8,7 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from typing import AsyncGenerator, Iterator, Dict, Any, Generator
+from typing import AsyncGenerator, Iterator, Dict, Any, Generator, Callable
 from typing import List, Optional
 from typing import Tuple, AsyncIterator, cast
 
@@ -18,6 +18,7 @@ from aiohttp.test_utils import TestServer
 from aiohttp.web import Request, Response, Application, route
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
+from attr import evolve
 from pytest import fixture
 from rich.console import Console
 
@@ -28,7 +29,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.dependencies import Dependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -52,7 +53,7 @@ from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.dependencies import empty_config, parse_args
+from resotocore.system_start import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
@@ -64,6 +65,7 @@ from resotocore.message_bus import (
     ActionDone,
 )
 from resotocore.model.adjust_node import NoAdjust
+from resotocore.model.db_updater import GraphMerger
 from resotocore.model.graph_access import EdgeTypes, Section
 from resotocore.model.model import Model, Kind, ComplexKind, Property, SyntheticProperty, StringKind
 from resotocore.model.resolve_in_graph import GraphResolver
@@ -73,6 +75,7 @@ from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import BenchmarkConfig
+from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -89,6 +92,7 @@ from resotocore.task.task_description import (
     Job,
     Workflow,
     TimeTrigger,
+    WaitForCollectDone,
 )
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import Json
@@ -483,7 +487,7 @@ async def core_config_handler_started(core_config_handler: CoreConfigHandler) ->
 
 
 @fixture
-async def cli_deps(
+async def dependencies(
     filled_graph_db: ArangoGraphDB,
     message_bus: MessageBus,
     event_sender: InMemoryEventSender,
@@ -494,11 +498,11 @@ async def cli_deps(
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
     user_management: UserManagement,
-) -> AsyncIterator[CLIDependencies]:
+) -> AsyncIterator[Dependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
     config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
-    deps = CLIDependencies(
+    deps = Dependencies(
         message_bus=message_bus,
         event_sender=event_sender,
         db_access=db_access,
@@ -518,9 +522,22 @@ async def cli_deps(
 
 
 @fixture
-def cli(cli_deps: CLIDependencies) -> CLIService:
+async def graph_merger(
+    foo_model: Model, event_sender: AnalyticsEventSender, default_config: CoreConfig, message_bus: MessageBus
+) -> GraphMerger:
+    model_handler = ModelHandlerStatic(foo_model)
+    return GraphMerger(model_handler, event_sender, default_config, message_bus)
+
+
+@fixture
+async def task_dependencies(graph_merger: GraphMerger, subscription_handler: SubscriptionHandler) -> TaskDependencies:
+    return TaskDependencies(graph_merger, subscription_handler.subscribers_by_event)
+
+
+@fixture
+def cli(dependencies: Dependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
-    return CLIService(cli_deps, all_commands(cli_deps), env, alias_names())
+    return CLIService(dependencies, all_commands(dependencies), env, alias_names())
 
 
 @fixture
@@ -640,7 +657,17 @@ def additional_workflows() -> List[Workflow]:
             [Step("sleep", ExecuteCommand("sleep 0.1"), timedelta(seconds=10))],
             triggers=[],
             on_surpass=TaskSurpassBehaviour.Wait,
-        )
+        ),
+        Workflow(
+            TaskDescriptorId("wait_for_collect_done"),
+            "Wait for collect",
+            [
+                Step("wait", WaitForEvent("collected", {}), timedelta(seconds=10)),
+                Step("wait_for_collect_done", WaitForCollectDone(), timedelta(seconds=10)),
+            ],
+            triggers=[],
+            on_surpass=TaskSurpassBehaviour.Wait,
+        ),
     ]
 
 
@@ -662,6 +689,7 @@ def test_wait_workflow() -> Workflow:
 
 @fixture
 def workflow_instance(
+    task_dependencies: TaskDependencies,
     test_wait_workflow: Workflow,
 ) -> Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]:
     td = timedelta(seconds=100)
@@ -671,7 +699,7 @@ def workflow_instance(
     s1 = Subscriber.from_list(SubscriberId("s1"), [sub1, sub2, sub3])
     s2 = Subscriber.from_list(SubscriberId("s2"), [sub2, sub3])
     subscriptions = {"start_collect": [s1], "collect": [s1, s2], "collect_done": [s1, s2]}
-    w, _ = RunningTask.empty(test_wait_workflow, lambda: subscriptions)
+    w, _ = RunningTask.empty(test_wait_workflow, evolve(task_dependencies, subscribers_by_event=lambda: subscriptions))
     w.received_messages = [
         Action("start_collect", w.id, "start"),
         ActionDone("start_collect", w.id, "start", s1.id),
@@ -698,13 +726,14 @@ async def task_handler(
     message_bus: MessageBus,
     event_sender: AnalyticsEventSender,
     subscription_handler: SubscriptionHandler,
+    graph_merger: GraphMerger,
     cli: CLIService,
     test_workflow: Workflow,
     additional_workflows: List[Workflow],
 ) -> AsyncGenerator[TaskHandlerService, None]:
     config = empty_config()
     task_handler = TaskHandlerService(
-        running_task_db, job_db, message_bus, event_sender, subscription_handler, Scheduler(), cli, config
+        running_task_db, job_db, message_bus, event_sender, subscription_handler, graph_merger, Scheduler(), cli, config
     )
     task_handler.task_descriptions = additional_workflows + [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler
@@ -780,3 +809,15 @@ async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataD
     async_db = AsyncArangoDB(test_db)
     yield SystemDataDb(async_db)
     test_db.collection("system_data").delete({"_key": "ca"})
+
+
+async def eventually(
+    predicate: Callable[[], bool],
+    timeout: timedelta = timedelta(seconds=5),
+    interval: timedelta = timedelta(seconds=0.1),
+) -> None:
+    async def wait_for_condition() -> None:
+        while not predicate():
+            await asyncio.sleep(interval.total_seconds())
+
+    await asyncio.wait_for(wait_for_condition(), timeout.total_seconds())

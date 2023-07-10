@@ -127,14 +127,17 @@ class Resotocore:
             "Resoto-Worker-Edges": str(graph_export_iterator.number_of_edges),
             "Resoto-Worker-Task-Id": task_id,
         }
+        params = dict(wait_for_result=False)
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
 
         for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
             with attempt:
-                request = requests.Request(method="POST", url=merge_uri, data=graph_export_iterator, headers=headers)
+                request = requests.Request(
+                    method="POST", url=merge_uri, data=graph_export_iterator, params=params, headers=headers
+                )
                 r = self._send_request(request)
-                if r.status_code != 200:
+                if r.status_code not in (200, 204):
                     log.error(r.content)
                     raise RuntimeError(f"Failed to send graph: {r.content}")  # type: ignore
                 log.debug(f"resotocore reply: {r.content.decode()}")
