@@ -13,6 +13,7 @@ from kubernetes.client import Configuration
 from resoto_plugin_k8s.base import K8sApiClient, K8sClient
 from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.base import K8sConfig
+from resoto_plugin_k8s.deferred_edges import link_graph_to_all
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.config import Config, RunningConfig
@@ -108,6 +109,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             core_feedback.error(f"An unhandled error occurred while collecting {cluster_id}: {e}", log)
             raise
         else:
+            link_graph_to_all(kc.graph)
             return kc.graph
 
     @staticmethod
