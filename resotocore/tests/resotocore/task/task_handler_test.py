@@ -8,11 +8,12 @@ from pytest import LogCaptureFixture
 
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.cli.cli import CLIService
+from tests.resotocore.conftest import eventually
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.system_start import empty_config
 from resotocore.ids import SubscriberId, TaskDescriptorId
-from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError
+from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError, CoreMessage
 from resotocore.model.db_updater import GraphMerger
 from resotocore.task.scheduler import Scheduler
 from resotocore.task.subscribers import SubscriptionHandler
@@ -23,6 +24,7 @@ from resotocore.task.task_description import (
     Job,
     TaskSurpassBehaviour,
     ExecuteCommand,
+    RunningTask,
 )
 from resotocore.task.task_handler import TaskHandlerService
 from tests.resotocore.message_bus_test import wait_for_message
@@ -205,3 +207,37 @@ async def test_validate_add_delete_job(task_handler: TaskHandlerService) -> None
 
     # force delete a job should not throw an exception
     await task_handler.delete_job("foo:bar", force=True)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_collect_done(
+    task_handler: TaskHandlerService, message_bus: MessageBus, graph_merger: GraphMerger
+) -> None:
+    async with task_handler:
+        # Test 1: start a task without any ongoing graph merges
+        # start task
+        task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
+        assert task is not None
+        rt: RunningTask = task.running_task
+        assert rt in await task_handler.running_tasks()
+        # no collect is in progress. The task should be finished immediately.
+        await message_bus.emit_event("collected", {})
+        await eventually(lambda: rt.current_step.name == "task_end")
+
+        # Test 2: start a task with an ongoing graph merge operations. The task should wait for the merge to finish.
+        # start task
+        task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
+        assert task is not None
+        rt = task.running_task
+        assert rt in await task_handler.running_tasks()
+        # fake some ongoing imports in graph merger
+        graph_merger.running_imports[rt.id] = 42
+        # send event to finish task
+        await message_bus.emit_event("collected", {})
+        # sleep a little bit to make sure the task is not finished
+        await asyncio.sleep(0.1)
+        await eventually(lambda: rt.current_step.name == "wait_for_collect_done")
+        # signal, that the import is finished
+        await message_bus.emit_event(CoreMessage.GraphMergeCompleted, dict(task_id=rt.id))
+        # make sure the task finishes
+        await eventually(lambda: rt.current_step.name == "task_end")

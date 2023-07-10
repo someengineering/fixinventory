@@ -314,7 +314,7 @@ async def test_workflows_command(cli: CLIService, task_handler: TaskHandlerServi
         ctx = CLIContext(cli.cli_env)
         return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
 
-    assert await execute("workflows list") == ["sleep_workflow", "test_workflow"]
+    assert await execute("workflows list") == ["sleep_workflow", "wait_for_collect_done", "test_workflow"]
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
     wf = await execute("workflows run test_workflow")
     assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
