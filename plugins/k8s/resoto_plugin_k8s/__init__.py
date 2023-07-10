@@ -99,6 +99,7 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             ).with_feedback(core_feedback)
             kc = KubernetesCollector(Config.k8s, k8s_client)
             kc.collect()
+            create_deferred_edges(kc.graph)
         except ApiException as e:
             if e.reason == "Unauthorized":
                 core_feedback.error(f"Unable to authenticate with {cluster_id}", log)
@@ -109,7 +110,6 @@ class KubernetesCollectorPlugin(BaseCollectorPlugin):
             core_feedback.error(f"An unhandled error occurred while collecting {cluster_id}: {e}", log)
             raise
         else:
-            create_deferred_edges(kc.graph)
             return kc.graph
 
     @staticmethod
