@@ -10,7 +10,7 @@ from resotocore.analytics import AnalyticsEventSender
 from resotocore.db.deferred_edge_db import pending_deferred_edge_db
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import GraphUpdate
-from resotocore.dependencies import empty_config
+from resotocore.system_start import empty_config
 from resotocore.ids import TaskId
 from resotocore.message_bus import MessageBus
 from resotocore.model.db_updater import GraphMerger

@@ -10,7 +10,21 @@ from enum import Enum
 from functools import reduce
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional, List, Any, Dict, Tuple, Callable, Union, Awaitable, Type, cast, Set, AsyncIterator
+from typing import (
+    Optional,
+    List,
+    Any,
+    Dict,
+    Tuple,
+    Callable,
+    Union,
+    Awaitable,
+    Type,
+    cast,
+    Set,
+    AsyncIterator,
+    TYPE_CHECKING,
+)
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -29,6 +43,9 @@ from resotocore.types import Json, JsonElement
 from resotocore.util import AccessJson, uuid_str, from_utc, utc, utc_str
 from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
+
+if TYPE_CHECKING:
+    from resotocore.dependencies import Dependencies
 
 
 class MediaType(Enum):
@@ -319,7 +336,9 @@ class CLICommand(ABC):
     Sink: takes a stream of objects and creates a result
     """
 
-    def __init__(self, dependencies: Any, category: str = "misc", allowed_in_source_position: bool = False) -> None:
+    def __init__(
+        self, dependencies: Dependencies, category: str = "misc", allowed_in_source_position: bool = False
+    ) -> None:
         self.dependencies = dependencies
         self.category = category
         self.allowed_in_source_position = allowed_in_source_position

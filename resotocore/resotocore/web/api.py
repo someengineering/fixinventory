@@ -58,7 +58,7 @@ from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEvent
 from resotocore.cli.command import alias_names
-from resotocore.cli.dependencies import Dependencies
+from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,

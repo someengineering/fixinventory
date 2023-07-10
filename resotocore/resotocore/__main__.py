@@ -25,7 +25,7 @@ from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
-from resotocore.cli.dependencies import Dependencies
+from resotocore.dependencies import Dependencies
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -40,7 +40,7 @@ from resotocore.core_config import (
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
-from resotocore.dependencies import db_access, setup_process, parse_args, system_info, reconfigure_logging
+from resotocore.system_start import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.error import RestartService
 from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime

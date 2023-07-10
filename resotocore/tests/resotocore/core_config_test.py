@@ -20,7 +20,7 @@ from resotocore.core_config import (
     ResotoCoreCommandsRoot,
     ResotoCoreConfigId,
 )
-from resotocore.dependencies import parse_args
+from resotocore.system_start import parse_args
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.types import Json
 from resotocore.util import value_in_path

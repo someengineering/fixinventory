@@ -27,7 +27,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
-from resotocore.dependencies import db_access, setup_process, reset_process_start_method
+from resotocore.system_start import db_access, setup_process, reset_process_start_method
 from resotocore.error import ImportAborted
 from resotocore.ids import TaskId, GraphName
 from resotocore.message_bus import MessageBus, CoreMessage

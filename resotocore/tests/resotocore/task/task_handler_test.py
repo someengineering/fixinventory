@@ -10,7 +10,7 @@ from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.cli.cli import CLIService
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
-from resotocore.dependencies import empty_config
+from resotocore.system_start import empty_config
 from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError
 from resotocore.model.db_updater import GraphMerger

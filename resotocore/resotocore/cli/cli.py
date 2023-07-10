@@ -39,7 +39,7 @@ from resotocore.cli.command import (
     ReportCommand,
     WriteCommand,
 )
-from resotocore.cli.dependencies import Dependencies
+from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     ParsedCommand,
     ParsedCommands,

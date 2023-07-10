@@ -29,7 +29,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.cli.dependencies import Dependencies
+from resotocore.dependencies import Dependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -53,7 +53,7 @@ from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.dependencies import empty_config, parse_args
+from resotocore.system_start import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager

@@ -25,7 +25,7 @@ from resotocore.core_config import (
     config_model as core_config_model,
     migrate_command_config,
 )
-from resotocore.dependencies import empty_config
+from resotocore.system_start import empty_config
 from resotocore.ids import SubscriberId, WorkerId, ConfigId
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Kind
