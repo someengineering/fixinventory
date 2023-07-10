@@ -45,3 +45,10 @@ def link_pv_to_ebs_volume(graph: Graph, resource: BaseResource) -> None:
             graph.add_deferred_edge(
                 BySearchCriteria(f"is(aws_ec2_volume) and reported.id={vol_id}"), ByNodeId(resource.chksum)
             )
+
+
+def link_all(graph: Graph, resource: BaseResource) -> None:
+    link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph, resource)
+    link_k8s_cluster_to_eks_cluster(graph, resource)
+    link_service_to_elb(graph, resource)
+    link_pv_to_ebs_volume(graph, resource)

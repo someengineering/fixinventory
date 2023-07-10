@@ -32,3 +32,9 @@ def link_pv_to_do_volume(graph: Graph, resource: BaseResource) -> None:
             graph.add_deferred_edge(
                 BySearchCriteria(f"is(digitalocean_volume) and reported.id={vol_id}"), ByNodeId(resource.chksum)
             )
+
+
+def link_all(graph: Graph, resource: BaseResource) -> None:
+    link_node_to_do_droplet(graph, resource)
+    link_service_to_do_lb(graph, resource)
+    link_pv_to_do_volume(graph, resource)
