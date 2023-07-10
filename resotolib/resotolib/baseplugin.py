@@ -39,7 +39,6 @@ class PluginType(Enum):
     ACTION = auto()
     PERSISTENT = auto()
     CLI = auto()
-    POST_COLLECT = auto()
 
 
 class BasePlugin(ABC, Thread):
