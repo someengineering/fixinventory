@@ -14,7 +14,7 @@ from resoto_plugin_k8s.deferred_edges.digitalocean import (
 )
 
 
-def link_graph_to_all(graph: Graph) -> None:
+def create_deferred_edges(graph: Graph) -> None:
     if not isinstance(graph, Graph):
         log.error(f"Expected type Graph, got {type(graph)}")
         return
