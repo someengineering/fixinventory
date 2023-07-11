@@ -128,7 +128,7 @@ class RunningTaskDb(EntityDb[str, RunningTaskData]):
     async def last(
         self,
         *,
-        descriptor_id: Optional[str] = None,
+        descriptor_id: Optional[TaskDescriptorId] = None,
     ) -> Optional[RunningTaskData]:
         pass
 
@@ -205,7 +205,7 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
     async def last(
         self,
         *,
-        descriptor_id: Optional[str] = None,
+        descriptor_id: Optional[TaskDescriptorId] = None,
     ) -> Optional[RunningTaskData]:
         if descriptor_id:
             descriptor_clause = "AND rt.task_descriptor_id == @descriptor_id"
