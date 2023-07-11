@@ -1,6 +1,6 @@
 from typing import Tuple, List
 
-from resotocore.dependencies import parse_args
+from resotocore.system_start import parse_args
 from resotocore.types import JsonElement
 
 

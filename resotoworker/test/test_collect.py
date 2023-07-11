@@ -54,10 +54,10 @@ class TestResotocore(Resotocore):
         super().__init__(*args, **kwargs)
         self.sent_task_id: Optional[str] = None
 
-    def send_to_resotocore(self, graph: Graph, task_id: str) -> None:
+    def send_to_resotocore(self, graph: Graph, task_id: str, tempdir: str) -> None:
         self.sent_task_id = task_id
 
-    def create_graph_and_update_model(self) -> None:
+    def create_graph_and_update_model(self, tempdir: str) -> None:
         pass
 
 
@@ -71,9 +71,11 @@ def test_collect_and_send() -> None:
                 "resotoworker": {
                     "pool_size": 1,
                     "fork_process": False,
+                    "debug_dump_json": False,
                     "graph_merge_kind": GraphMergeKind.cloud,
                     "graph_sender_pool_size": 5,
                     "timeout": 10800,
+                    "tempdir": None,
                 },
                 "running_config": None,
             }

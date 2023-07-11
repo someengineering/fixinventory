@@ -14,6 +14,7 @@ from resotocore.db.configdb import ConfigEntityDb, ConfigValidationEntityDb
 from resotocore.db.modeldb import ModelDb
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.model import Model, Kind, ComplexKind
+from resotocore.service import Service
 from resotocore.types import Json, JsonElement
 from resotocore.util import uuid_str, deep_merge, first
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTask, WorkerTaskName
@@ -24,7 +25,7 @@ from resotolib.utils import merge_json_elements
 from resotolib.utils import replace_env_vars
 
 
-class ConfigHandlerService(ConfigHandler):
+class ConfigHandlerService(ConfigHandler, Service):
     def __init__(
         self,
         cfg_db: ConfigEntityDb,

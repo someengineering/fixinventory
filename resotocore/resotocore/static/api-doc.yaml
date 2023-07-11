@@ -448,6 +448,14 @@ paths:
           required: true
           schema:
             type: string
+        - name: wait_for_result
+          in: query
+          description: >
+            If this parameter is set, the request will block until the batch update is finished.
+            The response will contain the batch identifier and the result of the batch update.
+          schema:
+            default: true
+            type: boolean
       requestBody:
         description:
           "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."
@@ -500,6 +508,14 @@ paths:
           schema:
             default: null
             type: string
+        - name: wait_for_result
+          in: query
+          description: >
+            If this parameter is set, the request will block until the batch update is finished.
+            The response will contain the batch identifier and the result of the batch update.
+          schema:
+            default: true
+            type: boolean
       requestBody:
         description:
           "The graph is sent as newline delimited json, where each line holds a document, which is either a node or an edge."

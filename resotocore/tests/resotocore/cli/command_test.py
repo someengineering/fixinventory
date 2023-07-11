@@ -21,7 +21,7 @@ from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.dependencies import Dependencies
 from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI, FilePath
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -52,9 +52,9 @@ def json_source() -> str:
     return "json [" + nums + "," + nums + "]"
 
 
-def test_known_category(cli_deps: CLIDependencies) -> None:
+def test_known_category(dependencies: Dependencies) -> None:
     allowed_categories = {"search", "format", "action", "setup", "misc"}
-    for cmd in all_commands(cli_deps):
+    for cmd in all_commands(dependencies):
         assert cmd.category in allowed_categories, f"Unknown category {cmd.category} for command {cmd.name}"
 
 
@@ -267,7 +267,7 @@ async def test_protect_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_sink(cli: CLI, cli_deps: CLIDependencies) -> None:
+async def test_list_sink(cli: CLI, dependencies: Dependencies) -> None:
     result = await cli.execute_cli_command("json [1,2,3] | dump", stream.list)
     assert result == [[1, 2, 3]]
 
@@ -314,7 +314,7 @@ async def test_workflows_command(cli: CLIService, task_handler: TaskHandlerServi
         ctx = CLIContext(cli.cli_env)
         return (await cli.execute_cli_command(cmd, stream.list, ctx))[0]  # type: ignore
 
-    assert await execute("workflows list") == ["sleep_workflow", "test_workflow"]
+    assert await execute("workflows list") == ["sleep_workflow", "wait_for_collect_done", "test_workflow"]
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
     wf = await execute("workflows run test_workflow")
     assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
@@ -988,13 +988,13 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
 
 
 @pytest.mark.asyncio
-async def test_aggregate(cli_deps: CLIDependencies) -> None:
+async def test_aggregate(dependencies: Dependencies) -> None:
     in_stream = stream.iterate(
         [{"a": 1, "b": 1, "c": 1}, {"a": 2, "b": 1, "c": 1}, {"a": 3, "b": 2, "c": 1}, {"a": 4, "b": 2, "c": 1}]
     )
 
     async def aggregate(agg_str: str) -> List[Json]:
-        res = AggregateCommand(cli_deps).parse(agg_str)
+        res = AggregateCommand(dependencies).parse(agg_str)
         async with (await res.flow(in_stream)).stream() as flow:
             return [s async for s in flow]
 

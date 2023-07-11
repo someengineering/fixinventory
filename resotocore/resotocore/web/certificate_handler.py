@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.x509 import Certificate, CertificateSigningRequest
 
 from resotocore.core_config import CoreConfig, CertificateConfig
+from resotocore.service import Service
 from resotocore.types import Json
 from resotocore.util import Periodic
 from resotolib.utils import get_local_ip_addresses, get_local_hostnames
@@ -36,7 +37,7 @@ from resotolib.x509 import (
 log = logging.getLogger(__name__)
 
 
-class CertificateHandler:
+class CertificateHandler(Service):
     def __init__(self, config: CoreConfig, ca_key: RSAPrivateKey, ca_cert: Certificate, temp_dir: Path) -> None:
         self.config = config
         self._ca_key = ca_key

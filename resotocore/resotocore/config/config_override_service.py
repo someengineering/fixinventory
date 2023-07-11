@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from resotocore.core_config import config_model
 from resotocore.model.typed_model import from_js
+from resotocore.service import Service
 from resotocore.types import Json
 from resotocore.ids import ConfigId
 from resotocore.util import Periodic
@@ -26,7 +27,7 @@ async def model_from_db(model_db: ModelDb) -> Model:
     return Model.from_kinds(list(kinds))
 
 
-class ConfigOverrideService(ConfigOverride):
+class ConfigOverrideService(ConfigOverride, Service):
     def __init__(
         self, override_paths: List[Path], get_configs_model: Callable[[], Awaitable[Model]], sleep_time: float = 10.0
     ):

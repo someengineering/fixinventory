@@ -6,6 +6,7 @@ from attrs import define
 from datetime import datetime
 from typing import Optional, Mapping, List, Union
 
+from resotocore.service import Service
 from resotocore.types import JsonElement
 from resotocore.util import utc
 
@@ -55,7 +56,7 @@ class AnalyticsEvent:
     at: datetime  # time, when this event has been created
 
 
-class AnalyticsEventSender(ABC):
+class AnalyticsEventSender(Service, ABC):
     async def core_event(
         self, kind: str, context: Optional[Mapping[str, JsonElement]] = None, **counters: Union[int, float]
     ) -> AnalyticsEvent:

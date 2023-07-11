@@ -19,7 +19,7 @@ from resotocore.types import Json
 from resotocore.model.typed_model import from_js
 from resotocore.cli.model import InfraAppAlias, InfraAppAliasParameter
 from logging import getLogger
-from resotocore.web.service import Service
+from resotocore.service import Service
 
 logger = getLogger(__name__)
 

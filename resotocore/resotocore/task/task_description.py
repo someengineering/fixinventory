@@ -7,7 +7,7 @@ from asyncio import Task
 from contextlib import suppress
 from datetime import timedelta, datetime
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union, cast
+from typing import Optional, Any, Sequence, MutableSequence, Dict, List, Set, Tuple, Union, TYPE_CHECKING, cast
 
 from apscheduler.triggers.cron import CronTrigger
 from attrs import define
@@ -16,12 +16,24 @@ from jsons import set_deserializer, set_serializer
 from transitions import Machine, State, MachineError
 
 from resotocore.ids import SubscriberId, TaskDescriptorId, TaskId
-from resotocore.message_bus import Event, Action, ActionDone, Message, ActionError, ActionInfo, ActionProgress
+from resotocore.message_bus import (
+    Event,
+    Action,
+    ActionDone,
+    Message,
+    ActionError,
+    ActionInfo,
+    ActionProgress,
+    CoreMessage,
+)
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.task.model import Subscriber
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
 from resotolib.core.progress import ProgressTree, Progress, ProgressDone
+
+if TYPE_CHECKING:  # avoid circular dependency
+    from resotocore.task.task_dependencies import TaskDependencies
 
 log = logging.getLogger(__name__)
 
@@ -102,6 +114,11 @@ class WaitForEvent(StepAction):
     # Wait for this event to arrive
     wait_for_message_type: str
     filter_data: Optional[Json] = None
+
+
+@define(order=True, hash=True, frozen=True)
+class WaitForCollectDone(StepAction):
+    pass
 
 
 @define(order=True, hash=True, frozen=True)
@@ -403,6 +420,8 @@ class StepState(State):
             return EmitEventState(step.action, step, instance)
         elif isinstance(step.action, WaitForEvent):
             return WaitForEventState(step.action, step, instance)
+        elif isinstance(step.action, WaitForCollectDone):
+            return WaitForCollectDoneState(step, instance)
         elif isinstance(step.action, ExecuteCommand):
             return ExecuteCommandState(step.action, step, instance)
         else:
@@ -450,10 +469,12 @@ class PerformActionState(StepState):
     def __init__(self, perform: PerformAction, step: Step, instance: RunningTask):
         super().__init__(step, instance)
         self.perform = perform
-        self._wait_for: List[Subscriber] = self.instance.subscribers_by_event().get(perform.message_type, [])
+        self._wait_for: List[Subscriber] = self.instance.dependencies.subscribers_by_event().get(
+            perform.message_type, []
+        )
 
     def wait_for(self) -> List[Subscriber]:
-        existing = {s.id for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
+        existing = {s.id for s in self.instance.dependencies.subscribers_by_event().get(self.perform.message_type, [])}
         return [s for s in self._wait_for if s.id in existing]
 
     def current_step_done(self) -> bool:
@@ -493,13 +514,15 @@ class PerformActionState(StepState):
     def step_started(self) -> None:
         super().step_started()
         # refresh the list of subscribers when the step has started
-        self._wait_for = self.instance.subscribers_by_event().get(self.perform.message_type, [])
+        self._wait_for = self.instance.dependencies.subscribers_by_event().get(self.perform.message_type, [])
 
     def export_state(self) -> Json:
         return {"wait_for": [a.id for a in self._wait_for]}
 
     def import_state(self, js: Json) -> None:
-        existing = {s.id: s for s in self.instance.subscribers_by_event().get(self.perform.message_type, [])}
+        existing = {
+            s.id: s for s in self.instance.dependencies.subscribers_by_event().get(self.perform.message_type, [])
+        }
         wait_for = js.get("wait_for", [])
         # filter all existing subscriber from the list of subscribers to wait_for
         self._wait_for = list(filter(identity, (existing.get(sid) for sid in wait_for)))  # type: ignore
@@ -539,6 +562,31 @@ class WaitForEventState(StepState):
 
         if event.message_type == self.perform.wait_for_message_type and filter_applies():
             self.instance.received_messages.append(event)
+            return True
+        return False
+
+
+class WaitForCollectDoneState(StepState):
+    def __init__(self, step: Step, instance: RunningTask):
+        super().__init__(step, instance)
+        self.collection_done = False
+
+    def current_step_done(self) -> bool:
+        running = self.instance.dependencies.graph_merger.running_imports.get(self.instance.id)
+        if running is None or running == 0:  # no running imports for this task
+            self.collection_done = True
+
+        # either no collect or event is already received
+        return self.collection_done
+
+    def handle_event(self, event: Event) -> bool:
+        if (
+            not self.collection_done
+            and event.message_type == CoreMessage.GraphMergeCompleted
+            and event.data.get("task_id") == self.instance.id
+        ):
+            self.instance.received_messages.append(event)
+            self.collection_done = True
             return True
         return False
 
@@ -613,12 +661,12 @@ class RunningTask:
     @staticmethod
     def empty(
         descriptor: TaskDescription,
-        subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]],
+        dependencies: TaskDependencies,
         metadata: Optional[frozendict[str, Any]] = None,
     ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = TaskId(str(uuid.uuid1()))
-        task = RunningTask(uid, descriptor, subscriber_by_event, metadata)
+        task = RunningTask(uid, descriptor, dependencies, metadata)
         messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *task.move_to_next_state()]
         return task, messages
 
@@ -626,14 +674,14 @@ class RunningTask:
         self,
         uid: TaskId,
         descriptor: TaskDescription,
-        subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]],
+        dependencies: TaskDependencies,
         metadata: Optional[frozendict[str, Any]] = None,
     ):
         self.id = uid
         self.is_error = False
         self.descriptor = descriptor
         self.received_messages: MutableSequence[Message] = []
-        self.subscribers_by_event = subscribers_by_event
+        self.dependencies = dependencies
         self.task_started_at = utc()
         self.task_duration: Optional[timedelta] = None
         self.update_task: Optional[Task[None]] = None

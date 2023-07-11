@@ -76,7 +76,7 @@ from resotocore.cli import (
     strip_quotes,
     key_value_parser,
 )
-from resotocore.cli.dependencies import CLIDependencies
+from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -102,7 +102,7 @@ from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange, GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
-from resotocore.dependencies import system_info
+from resotocore.system_start import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError
 from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
 from resotocore.infra_apps.manifest import AppManifest
@@ -180,10 +180,6 @@ from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
 
 log = logging.getLogger(__name__)
-
-
-def deps(command: CLICommand) -> CLIDependencies:
-    return cast(CLIDependencies, command.dependencies)
 
 
 # A SearchCLIPart is a command that can be used on the command line.
@@ -1424,12 +1420,10 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         query = parse_query(rest, **ctx.env)
 
         async def get_db(at: Optional[datetime], graph_name: GraphName) -> Tuple[GraphDB, GraphName]:
-            db_access = cast(CLIDependencies, self.dependencies).db_access
+            db_access = self.dependencies.db_access
             if at:
                 # if we search at some specific time: find a snapshot at that time
-                snapshot_name = await cast(CLIDependencies, self.dependencies).graph_manager.snapshot_at(
-                    time=at, graph_name=graph_name
-                )
+                snapshot_name = await self.dependencies.graph_manager.snapshot_at(time=at, graph_name=graph_name)
                 if not snapshot_name:
                     raise CLIParseError(f"No graph snapshot at {at} found for graph {graph_name}.")
 
@@ -1958,7 +1952,7 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
         self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
-        db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(graph_name)
+        db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
             if "id" in item:
@@ -2092,7 +2086,7 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
-        db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(graph_name)
+        db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
         for item in items:
             if "id" in item:
@@ -3070,7 +3064,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
             try:
                 result = await future_result
                 if is_node(result):
-                    db = cast(CLIDependencies, self.dependencies).db_access.get_graph_db(GraphName(env["graph"]))
+                    db = self.dependencies.db_access.get_graph_db(GraphName(env["graph"]))
                     try:
                         updated: Json = await db.update_node(model, result["id"], result, True, None)
                         return updated
@@ -3204,7 +3198,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
 
             # dependencies are not resolved directly (no async function is allowed here)
             async def load_model() -> Model:
-                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
+                return await self.dependencies.model_handler.load_model(ctx.graph_name)
 
             dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
@@ -3327,7 +3321,7 @@ class TagCommand(SendWorkerTaskCommand):
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
 
             async def load_model() -> Model:
-                return await cast(CLIDependencies, self.dependencies).model_handler.load_model(ctx.graph_name)
+                return await self.dependencies.model_handler.load_model(ctx.graph_name)
 
             # dependencies are not resolved directly (no async function is allowed here)
             dependencies = stream.call(load_model)
@@ -3484,7 +3478,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
         maybe_proc: Optional[Process] = None
         async with TemporaryDirectory() as temp_dir:
             try:
-                db_config = cast(CLIDependencies, self.dependencies).config.db
+                db_config = self.dependencies.config.db
                 if not shutil.which("arangodump"):
                     raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
                 # fmt: off
@@ -3547,7 +3541,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                     tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
                 # fmt: off
-                db_conf = cast(CLIDependencies, self.dependencies).config.db
+                db_conf = self.dependencies.config.db
                 process = await asyncio.create_subprocess_exec(
                     "arangorestore",
                     "--progress", "false",  # do not show progress
@@ -3776,9 +3770,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
         async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
             # try to render_console the template with dummy values and see if the search can be parsed
             try:
-                rendered_query = cast(CLIDependencies, self.dependencies).template_expander.render(
-                    template_query, defaultdict(lambda: True)
-                )
+                rendered_query = self.dependencies.template_expander.render(template_query, defaultdict(lambda: True))
                 parse_query(rendered_query, **ctx.env)
             except Exception as ex:
                 raise CLIParseError(f"Given template does not define a valid search: {template_query}") from ex
@@ -3980,7 +3972,7 @@ class HttpCommand(CLICommand):
             authuser, authpass = template.auth.split(":", 1) if template.auth else (None, None)
             log.debug(f"Perform request with this template={template} and data={data}")
             try:
-                async with cast(CLIDependencies, self.dependencies).http_session.request(
+                async with self.dependencies.http_session.request(
                     template.method,
                     template.url,
                     headers=template.headers,
@@ -4681,7 +4673,7 @@ class CertificateCommand(CLICommand):
         async def create_certificate(
             common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
         ) -> AsyncIterator[str]:
-            key, cert = cast(CLIDependencies, self.dependencies).cert_handler.create_key_and_cert(
+            key, cert = self.dependencies.cert_handler.create_key_and_cert(
                 common_name, dns_names, ip_addresses, days_valid
             )
             async with TemporaryDirectory() as tmpdir:
@@ -5055,7 +5047,7 @@ class AppsCommand(CLICommand):
         async def app_run(
             in_stream: JsGen, app_name: InfraAppName, dry_run: bool, config: Optional[str], argv: List[str]
         ) -> AsyncIterator[JsonElement]:
-            runtime = cast(CLIDependencies, self.dependencies).infra_apps_runtime
+            runtime = self.dependencies.infra_apps_runtime
             manifest = await self.dependencies.infra_apps_package_manager.get_manifest(app_name)
             if not manifest:
                 raise ValueError(f"App {app_name} is not installed.")
@@ -5480,7 +5472,7 @@ class GraphCommand(CLICommand):
         async def graph_export(graph_name: Optional[GraphName], file_name: str) -> AsyncIterator[JsonElement]:
             if not graph_name:
                 graph_name = ctx.graph_name
-            lines = cast(CLIDependencies, self.dependencies).graph_manager.export_graph(graph_name)
+            lines = self.dependencies.graph_manager.export_graph(graph_name)
             return write_result_to_file(lines, file_name)
 
         async def graph_import(
@@ -5655,7 +5647,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
     ) -> List[ComplexKind]:
         assert query is not None, "No query provided, not sure what to synchronize?"
         assert query.aggregate is None, "Aggregates are not supported for synchronization"
-        db = deps(self).db_access.get_graph_db(graph_name)
+        db = self.dependencies.db_access.get_graph_db(graph_name)
         aggregate_by_kind = Aggregate(
             [AggregateVariable(AggregateVariableName("reported.kind"), "kind")],
             [AggregateFunction("sum", 1)],
@@ -5700,9 +5692,9 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                 if maybe_stream is not None:  # search | db sync
                     await sync_fn(query=ctx.query, in_stream=maybe_stream)
                 else:
-                    resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+                    resoto_model = await self.dependencies.model_handler.load_model(ctx.graph_name)
                     query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
-                    graph_db = deps(self).db_access.get_graph_db(ctx.graph_name)
+                    graph_db = self.dependencies.db_access.get_graph_db(ctx.graph_name)
                     async with await graph_db.search_graph_gen(
                         QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
                     ) as cursor:
@@ -5717,7 +5709,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             query: Optional[Query],
             in_stream: Stream,
         ) -> None:
-            resoto_model = await deps(self).model_handler.load_model(ctx.graph_name)
+            resoto_model = await self.dependencies.model_handler.load_model(ctx.graph_name)
 
             if complete_model:
                 complex_kinds = resoto_model.complex_kinds()
@@ -5799,7 +5791,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
 
 
-def all_commands(d: CLIDependencies) -> List[CLICommand]:
+def all_commands(d: Dependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
         AggregateToCountCommand(d, "search"),
