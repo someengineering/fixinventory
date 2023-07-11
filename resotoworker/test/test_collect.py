@@ -84,6 +84,6 @@ def test_collect_and_send() -> None:
 
     collector = Collector(config, resotocore, Queue())
 
-    collector.collect_and_send([ExampleCollectorPlugin], "task_123", "collect")
+    collector.collect_and_send([ExampleCollectorPlugin], "task_123", "collect", None)
 
     assert resotocore.sent_task_id == "task_123"
