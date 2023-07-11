@@ -49,9 +49,11 @@ async def test_last(running_task_db: RunningTaskDb, instances: List[RunningTaskD
     await running_task_db.update_many(instances)
     running_tasks = list(filter(lambda x: x.done, instances))
     running_tasks.sort(key=lambda x: x.task_started_at, reverse=True)
-    done = next(iter(running_tasks), None)
-    assert done
-    assert done.id == (await running_task_db.last(descriptor_id=done.task_descriptor_id)).id
+    done_task = next(iter(running_tasks), None)
+    assert done_task
+    last_done = await running_task_db.last(descriptor_id=done_task.task_descriptor_id)
+    assert last_done
+    assert done_task.id == last_done.id
 
 
 @mark.asyncio
