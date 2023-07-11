@@ -33,9 +33,11 @@ RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
 RUN unzip /tmp/awscliv2.zip
 RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
-COPY requirements-all.txt /tmp/resoto-requirements.txt
+RUN su vscode -c 'curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y' \
+    && su vscode -c '$HOME/.cargo/bin/cargo install --features=ssl websocat'
 
 # Install infrequently changing requirements
+COPY requirements-all.txt /tmp/resoto-requirements.txt
 RUN su vscode -c 'pip3 install --no-warn-script-location -U pip wheel poetry' \
     && su vscode -c 'pip3 --disable-pip-version-check --no-cache-dir install --no-warn-script-location -U -r /tmp/resoto-requirements.txt' \
     && rm -rf /tmp/resoto-requirements.txt

@@ -10,6 +10,7 @@ import json
 import boto3
 import botocore.exceptions
 from prometheus_client import Counter, Summary
+from datetime import datetime
 
 import resotolib.logger
 import resotolib.proc
@@ -125,6 +126,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     Config.running_config,
                     self.core_feedback.with_context(cloud.id, account.dname),
                     cloud,
+                    self.last_run,
                 )
                 for account in accounts
             ]
@@ -607,6 +609,7 @@ def collect_account(
     running_config: RunningConfig,
     feedback: CoreFeedback,
     cloud: Cloud,
+    last_run: Optional[datetime] = None,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -626,7 +629,7 @@ def collect_account(
 
     aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback)
     try:
-        aac.collect()
+        aac.collect(last_run)
     except botocore.exceptions.ClientError as e:
         feedback.error(
             f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log

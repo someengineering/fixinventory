@@ -8,6 +8,7 @@ from functools import partial
 from queue import Queue
 from signal import SIGTERM
 from typing import List, Dict, Type, Optional, Any, Callable
+from datetime import datetime, timezone
 
 import requests
 
@@ -233,12 +234,18 @@ def core_actions_processor(
     data = message.get("data") or {}
     task_id: str = data.get("task")  # type: ignore
     step_name: str = data.get("step")  # type: ignore
+    timing: Json = data.get("timing") or {}  # type: ignore
+    last_run_raw: Optional[int] = timing.get(step_name, {}).get("started_at", None)  # type: ignore
+    last_run: Optional[datetime] = None
+    if last_run_raw:
+        last_run = datetime.fromtimestamp(last_run_raw, tz=timezone.utc)
+
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, task_id=task_id, step_name=step_name)
+                collector.collect_and_send(collectors, task_id=task_id, step_name=step_name, last_run=last_run)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":

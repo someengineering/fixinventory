@@ -629,4 +629,5 @@ class GraphBuilder:
             self.global_instance_types,
             self.graph_nodes_access,
             self.graph_edges_access,
+            self.last_run,
         )

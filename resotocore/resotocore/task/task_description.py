@@ -7,7 +7,7 @@ from asyncio import Task
 from contextlib import suppress
 from datetime import timedelta, datetime
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union
+from typing import Optional, Any, Sequence, MutableSequence, Callable, Dict, List, Set, Tuple, Union, cast
 
 from apscheduler.triggers.cron import CronTrigger
 from attrs import define
@@ -487,7 +487,8 @@ class PerformActionState(StepState):
         """
         When the state is entered, emit the action message and inform all actors.
         """
-        return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name))]
+        data = cast(Json, self.instance.metadata)
+        return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name, data))]
 
     def step_started(self) -> None:
         super().step_started()
@@ -611,16 +612,22 @@ class EndState(StepState):
 class RunningTask:
     @staticmethod
     def empty(
-        descriptor: TaskDescription, subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]]
+        descriptor: TaskDescription,
+        subscriber_by_event: Callable[[], Dict[str, List[Subscriber]]],
+        metadata: Optional[frozendict[str, Any]] = None,
     ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = TaskId(str(uuid.uuid1()))
-        task = RunningTask(uid, descriptor, subscriber_by_event)
+        task = RunningTask(uid, descriptor, subscriber_by_event, metadata)
         messages = [SendMessage(Event("task_started", data={"task": descriptor.name})), *task.move_to_next_state()]
         return task, messages
 
     def __init__(
-        self, uid: TaskId, descriptor: TaskDescription, subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]]
+        self,
+        uid: TaskId,
+        descriptor: TaskDescription,
+        subscribers_by_event: Callable[[], Dict[str, List[Subscriber]]],
+        metadata: Optional[frozendict[str, Any]] = None,
     ):
         self.id = uid
         self.is_error = False
@@ -631,6 +638,7 @@ class RunningTask:
         self.task_duration: Optional[timedelta] = None
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
+        self.metadata = metadata or frozendict({})
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
         self.__progress: ProgressTree = ProgressTree(self.descriptor.name)
         self.__progress_updated_at: datetime = utc()

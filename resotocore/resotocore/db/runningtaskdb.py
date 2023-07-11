@@ -124,6 +124,14 @@ class RunningTaskDb(EntityDb[str, RunningTaskData]):
     ) -> AsyncCursorContext:
         pass
 
+    @abstractmethod
+    async def last(
+        self,
+        *,
+        descriptor_id: Optional[str] = None,
+    ) -> Optional[RunningTaskData]:
+        pass
+
 
 class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
     def __init__(self, db: AsyncArangoDB, collection: str):
@@ -193,6 +201,31 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
                 elem["average_duration"] = duration_str(timedelta(seconds=elem["average_duration"]), precision=2)
                 result[name] = elem
         return result
+
+    async def last(
+        self,
+        *,
+        descriptor_id: Optional[str] = None,
+    ) -> Optional[RunningTaskData]:
+        if descriptor_id:
+            descriptor_clause = "AND rt.task_descriptor_id == @descriptor_id"
+            bind_vars = {"descriptor_id": descriptor_id}
+        else:
+            descriptor_clause = ""
+            bind_vars = None
+
+        aql = f"""
+        FOR rt in {self.collection_name}
+        FILTER rt.done == true {descriptor_clause}
+        SORT rt.task_started_at DESC
+        LIMIT 1
+        RETURN rt
+        """
+
+        async with await self.db.aql_cursor(aql, bind_vars=bind_vars) as crsr:
+            async for elem in crsr:
+                return from_js(elem, RunningTaskData)
+        return None
 
     async def filtered(
         self,

@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Type
+from typing import List, Type, Optional
+from datetime import datetime
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
 from resoto_plugin_aws.configuration import AwsConfig
@@ -149,7 +150,7 @@ class AwsAccountCollector:
             error_accumulator=self.error_accumulator,
         )
 
-    def collect(self) -> None:
+    def collect(self, last_run: Optional[datetime]) -> None:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.resource_pool_size
         ) as executor:
@@ -158,7 +159,14 @@ class AwsAccountCollector:
             tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
             shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
             global_builder = GraphBuilder(
-                self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
+                self.graph,
+                self.cloud,
+                self.account,
+                self.global_region,
+                self.client,
+                shared_queue,
+                self.core_feedback,
+                last_run=last_run,
             )
             global_builder.submit_work("iam", self.update_account)
 

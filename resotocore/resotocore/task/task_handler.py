@@ -8,7 +8,7 @@ from copy import copy
 from attrs import evolve
 from datetime import timedelta
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
-
+from frozendict import frozendict
 from aiostream import stream
 
 from resotocore.analytics import AnalyticsEventSender, CoreEvent
@@ -135,7 +135,28 @@ class TaskHandlerService(TaskHandler):
 
     async def start_task_directly(self, desc: TaskDescription, reason: str) -> RunningTask:
         updated = self.evaluate_task_definition(desc)
-        task, commands = RunningTask.empty(updated, self.subscription_handler.subscribers_by_event)
+        fd = frozendict
+        timing: frozendict[str, frozendict[str, int]] = frozendict({})
+        if last_workflow_run := await self.running_task_db.last(descriptor_id=desc.id):
+            timing = fd(
+                {
+                    s.step_name: fd(
+                        {"started_at": int(s.started_at.timestamp()), "finished_at": int(s.finished_at.timestamp())}
+                    )
+                    for s in last_workflow_run.step_states
+                    if s.finished_at and s.started_at
+                }
+            )
+        task, commands = RunningTask.empty(
+            updated,
+            self.subscription_handler.subscribers_by_event,
+            metadata=fd(
+                {
+                    "timing": timing,
+                }
+            ),
+        )
+
         log.info(f"Start new task: {updated.name} with id {task.id}")
         # store initial state in database
         await self.running_task_db.insert(task)
@@ -468,6 +489,7 @@ class TaskHandlerService(TaskHandler):
                     else:
                         raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
                 except Exception as ex:
+                    log.info(f"Error executing command: {command} {ex}")
                     results[command] = ex
 
             # The descriptor might be removed in the meantime. If this is the case stop execution.

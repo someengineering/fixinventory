@@ -1060,6 +1060,12 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         if builder.last_run:
             start = builder.last_run
             delta = now - start
+            min_delta = max(delta, timedelta(seconds=600))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
+            # otherwise we get no results from AWS
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
         else:
             delta = timedelta(hours=1)
             start = now - delta
