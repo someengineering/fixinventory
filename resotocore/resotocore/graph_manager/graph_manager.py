@@ -7,7 +7,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import EventGraphDB
 from resotocore.util import utc_str, UTC_Date_Format_short, utc
 from resotocore.ids import GraphName, TaskDescriptorId
-from resotocore.web.service import Service
+from resotocore.service import Service
 from resotocore.util import check_graph_name, Periodic
 from resotocore.types import Json
 from resotocore.model.model import Kind

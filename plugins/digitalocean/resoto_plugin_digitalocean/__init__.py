@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, cast
+from typing import Optional, List, Tuple, cast, Any
 
 from resoto_plugin_digitalocean.client import StreamingWrapper, get_team_credentials
 from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
@@ -21,8 +21,8 @@ import time
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
     cloud = "digitalocean"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.core_feedback: Optional[CoreFeedback] = None
 
     def collect(self) -> None:
@@ -87,7 +87,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             )
             team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
             if team_graph:
-                self.graph.merge(team_graph)
+                self.send_account_graph(team_graph)
 
     def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback) -> Optional[Graph]:
         """Collects an individual team."""

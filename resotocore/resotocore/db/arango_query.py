@@ -427,7 +427,7 @@ def query_string(
             avgs = []
             merges = []
             for mn in usage.metrics:
-                avgs.append(f"{mn}_min = MIN(m.v.{mn}[0]), {mn}_avg = AVG(m.v.{mn}[1]), {mn}_max = MAX(m.v.{mn}[2])")
+                avgs.append(f"{mn}_min = MIN(m.v.{mn}.min), {mn}_avg = AVG(m.v.{mn}.avg), {mn}_max = MAX(m.v.{mn}.max)")
                 merges.append(f"{mn}: {{min: {mn}_min, avg: {mn}_avg, max: {mn}_max}}")
             query_part += dedent(
                 f"""

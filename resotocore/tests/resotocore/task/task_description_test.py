@@ -1,12 +1,14 @@
 from datetime import timedelta
 from typing import Any, List, Dict, Tuple, Callable
 
+from attr import evolve
 from deepdiff import DeepDiff
 from frozendict import frozendict
 
 from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.message_bus import Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo
 from resotocore.model.typed_model import from_js, to_js
+from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.task_description import (
     Workflow,
@@ -98,11 +100,14 @@ def test_handle_error(
 
 
 def test_complete_workflow(
-    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]
+    workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]],
+    task_dependencies: TaskDependencies,
 ) -> None:
     init, s1, s2, subscriptions = workflow_instance
     # start new workflow instance
-    wi, events = RunningTask.empty(init.descriptor, lambda: subscriptions)
+    wi, events = RunningTask.empty(
+        init.descriptor, evolve(task_dependencies, subscribers_by_event=lambda: subscriptions)
+    )
     assert wi.current_step.name == "start"
     assert len(events) == 2
     assert wi.progress.percentage == 0
@@ -184,11 +189,11 @@ def roundtrip(obj: Any) -> None:
     assert DeepDiff(obj, again) == {}, f"Json: {js} serialized as {again}"
 
 
-def test_task_progress() -> None:
+def test_task_progress(task_dependencies: TaskDependencies) -> None:
     actions = ["collect", "encode"]
     wf = Workflow(TaskDescriptorId("test_workflow"), "name", [Step(a, PerformAction(a)) for a in actions], [])
     sb = Subscriber(SubscriberId("test"), {s: Subscription(s) for s in actions})
-    rt, _ = RunningTask.empty(wf, lambda: {s: [sb] for s in actions})
+    rt, _ = RunningTask.empty(wf, evolve(task_dependencies, subscribers_by_event=lambda: {s: [sb] for s in actions}))
 
     def progress(step: str, fn: Callable[[int], ProgressDone]) -> None:
         # use revers order to test that the correct order is used

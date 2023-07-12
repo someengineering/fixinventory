@@ -1,9 +1,10 @@
 import re
-from attrs import define
 from typing import List, Dict, Tuple, Type, Optional, Any
 
+from attrs import define
+
 from resotolib.baseresources import BaseResource
-from resotolib.core.model_export import dataclasses_to_resotocore_model
+from resotolib.graph import resource_classes_to_resotocore_model
 from resotolib.json import from_json
 from resotolib.types import Json
 
@@ -137,4 +138,4 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         *base,
     }
     # check overlap for all plugin classes
-    check_overlap_for(dataclasses_to_resotocore_model(model_classes, aggregate_root=BaseResource))
+    check_overlap_for(resource_classes_to_resotocore_model(model_classes, aggregate_root=BaseResource))

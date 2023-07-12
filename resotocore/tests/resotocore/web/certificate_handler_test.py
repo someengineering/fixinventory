@@ -6,7 +6,7 @@ from arango.database import StandardDatabase
 from attr import evolve
 
 from resotocore.core_config import CoreConfig
-from resotocore.dependencies import empty_config, parse_args
+from resotocore.system_start import empty_config, parse_args
 from resotocore.types import Json
 from resotocore.web.certificate_handler import CertificateHandler
 from resotolib.x509 import (

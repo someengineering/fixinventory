@@ -20,7 +20,7 @@ from resotocore.core_config import (
     ResotoCoreCommandsRoot,
     ResotoCoreConfigId,
 )
-from resotocore.dependencies import parse_args
+from resotocore.system_start import parse_args
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.types import Json
 from resotocore.util import value_in_path
@@ -204,7 +204,12 @@ def config_json() -> Json:
                     }
                 ],
             },
-            "graph_update": {"abort_after_seconds": 1234, "merge_max_wait_time_seconds": 4321, "keep_history": True},
+            "graph_update": {
+                "abort_after_seconds": 1234,
+                "merge_max_wait_time_seconds": 4321,
+                "keep_history": True,
+                "parallel_imports": 5,
+            },
             "runtime": {
                 "usage_metrics": False,
                 "debug": True,

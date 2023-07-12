@@ -5,7 +5,7 @@ ServiceType = TypeVar("ServiceType", bound="Service")
 
 
 class Service(ABC):
-    async def start(self) -> None:
+    async def start(self) -> Any:
         pass
 
     async def stop(self) -> None:

@@ -10,6 +10,7 @@ from typing import Any, Optional, Dict, List, AsyncGenerator
 from frozendict import frozendict
 from jsons import set_deserializer, set_serializer
 from resotocore.ids import TaskId
+from resotocore.service import Service
 
 from resotocore.types import Json
 from resotocore.util import pop_keys, utc_str, from_utc
@@ -27,6 +28,7 @@ class CoreMessage:
     ConfigDeleted = "config-deleted"
     ErrorMessage = "error"
     ProgressMessage = "progress"
+    GraphMergeCompleted = "graph-merge-completed"
 
 
 class Message(ABC):
@@ -224,7 +226,7 @@ class ActionError(ActionMessage):
         return f"Fatal: could not perform action {self.step_name}. Reason: {self.error}"
 
 
-class MessageBus:
+class MessageBus(Service):
     """
     This class implements a simple event bus.
     Every subscriber is context managed and gets its own queue of events.
@@ -291,6 +293,10 @@ class MessageBus:
         return await self.emit(Event(event_type, data))
 
     async def emit(self, message: Message) -> None:
+        log.debug(
+            "Emitting message %s: %s", message.message_type, ", ".join(f"{k}={v}" for k, v in message.data.items())
+        )
+
         async def emit_by(name: str) -> None:
             for listener in self.listeners.get(name, []):
                 await listener.put(message)

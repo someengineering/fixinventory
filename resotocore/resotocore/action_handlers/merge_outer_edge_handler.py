@@ -7,6 +7,7 @@ from typing import Optional, Tuple, List
 from contextlib import suppress
 from datetime import timedelta
 from resotocore.model.graph_access import ByNodeId, NodeSelector
+from resotocore.service import Service
 from resotocore.task.model import Subscriber
 from resotocore.ids import NodeId, SubscriberId
 from resotocore.task.task_handler import TaskHandlerService
@@ -23,7 +24,7 @@ subscriber_id = SubscriberId("resotocore")
 merge_outer_edges = "merge_outer_edges"
 
 
-class MergeOuterEdgesHandler:
+class MergeOuterEdgesHandler(Service):
     def __init__(
         self,
         message_bus: MessageBus,

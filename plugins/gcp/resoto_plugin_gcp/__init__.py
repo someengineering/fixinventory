@@ -26,8 +26,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
     cloud = "gcp"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.core_feedback: Optional[CoreFeedback] = None
 
     def collect(self) -> None:
@@ -79,7 +79,8 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(project_graph, Graph):
                     log.error(f"Skipping invalid project_graph {type(project_graph)}")
                     continue
-                self.graph.merge(project_graph)
+                self.send_account_graph(project_graph)
+                del project_graph
 
     @staticmethod
     def collect_project(

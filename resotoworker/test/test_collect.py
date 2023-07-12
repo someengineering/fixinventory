@@ -1,15 +1,21 @@
+import requests
 from argparse import ArgumentParser
 from queue import Queue
 
 from resotoworker.collect import Collector
-from typing import Optional, cast
-from resotolib.graph import Graph
+from resotoworker.config import ResotoWorkerConfig
+from resotoworker.resotocore import Resotocore
+from typing import Optional, cast, Any
+from resotolib.graph import Graph, GraphMergeKind
 from resotolib.config import Config
 from test.fakeconfig import FakeConfig
 from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseAccount
 from typing import ClassVar
 from attrs import define
+
+Config.add_config(ResotoWorkerConfig)
+Config.init_default_config()
 
 
 @define(eq=False)
@@ -36,25 +42,48 @@ class ExampleCollectorPlugin(BaseCollectorPlugin):
         pass
 
 
-def test_collect_and_send() -> None:
-    sent_task_id: Optional[str] = None
+def make_query(request: requests.Request) -> requests.Response:
+    resp = requests.Response()
+    resp.status_code = 200
+    resp._content = b""
+    return resp
 
-    def send_to_resotocore(graph: Graph, task_id: str) -> None:
-        nonlocal sent_task_id
-        sent_task_id = task_id
+
+class TestResotocore(Resotocore):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.sent_task_id: Optional[str] = None
+
+    def send_to_resotocore(self, graph: Graph, task_id: str, tempdir: str) -> None:
+        self.sent_task_id = task_id
+
+    def create_graph_and_update_model(self, tempdir: str) -> None:
+        pass
+
+
+def test_collect_and_send() -> None:
+    resotocore = TestResotocore(make_query, Config)
 
     config = cast(
         Config,
         FakeConfig(
             values={
-                "resotoworker": {"pool_size": 1, "fork_process": False},
+                "resotoworker": {
+                    "pool_size": 1,
+                    "fork_process": False,
+                    "debug_dump_json": False,
+                    "graph_merge_kind": GraphMergeKind.cloud,
+                    "graph_sender_pool_size": 5,
+                    "timeout": 10800,
+                    "tempdir": None,
+                },
                 "running_config": None,
             }
         ),
     )
 
-    collector = Collector(config, send_to_resotocore, Queue())
+    collector = Collector(config, resotocore, Queue())
 
-    collector.collect_and_send([ExampleCollectorPlugin], [], "task_123", "collect")
+    collector.collect_and_send([ExampleCollectorPlugin], "task_123", "collect")
 
-    assert sent_task_id == "task_123"
+    assert resotocore.sent_task_id == "task_123"

@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Iterable,
     TypeVar,
+    NamedTuple,
 )
 
 import yaml
@@ -1216,6 +1217,7 @@ predefined_kinds = [
             Property("exported_at", "datetime", False, None, "datetime when the account was exported."),
             Property("exported_age", "trafo.duration_to_datetime", False, SyntheticProperty(["exported_at"])),
         ],
+        metadata={"dynamic": True},
     ),
 ]
 predefined_kinds_by_name = {k.fqn: k for k in predefined_kinds}
@@ -1458,6 +1460,12 @@ class Model:
         return result
 
 
+class UsageMetricValues(NamedTuple):
+    min: float
+    avg: float
+    max: float
+
+
 @frozen
 class UsageDatapoint:
     """
@@ -1475,7 +1483,7 @@ class UsageDatapoint:
 
     id: str
     at: int
-    v: Dict[str, List[float]]
+    v: Dict[str, UsageMetricValues]
 
 
 # register serializer for this class

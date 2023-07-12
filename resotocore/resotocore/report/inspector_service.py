@@ -35,7 +35,7 @@ from resotocore.report import (
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.types import Json
 from resotocore.util import value_in_path
-from resotocore.web.service import Service
+from resotocore.service import Service
 
 log = logging.getLogger(__name__)
 

@@ -1,17 +1,6 @@
-from resotolib.baseplugin import BasePostCollectPlugin
 from resotolib.baseresources import BaseResource
 from resotolib.graph import BySearchCriteria, ByNodeId, Graph
-
-from resotolib.logger import log
-import functools
-from typing import Any, Set
-
-
-def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
-    def _getattr(obj: Any, attr: str) -> Any:
-        return getattr(obj, attr, *args)
-
-    return functools.reduce(_getattr, [obj] + attr.split("."))
+from resoto_plugin_k8s.deferred_edges.utils import rgetattr
 
 
 def link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph: Graph, resource: BaseResource) -> None:
@@ -58,17 +47,8 @@ def link_pv_to_ebs_volume(graph: Graph, resource: BaseResource) -> None:
             )
 
 
-class AWSK8sCollectorPlugin(BasePostCollectPlugin):
-    name = "aws_k8s"
-    activate_with: Set[str] = {"aws", "k8s"}
-
-    def post_collect(self, graph: Graph) -> None:
-        log.info("plugin: collecting AWS to k8s edges")
-        for node in graph.nodes:
-            if isinstance(node, BaseResource):
-                link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph, node)
-                link_k8s_cluster_to_eks_cluster(graph, node)
-                link_pv_to_ebs_volume(graph, node)
-                link_service_to_elb(graph, node)
-            else:
-                log.warn(f"Node {node} is not a BaseResource")
+def link_all(graph: Graph, resource: BaseResource) -> None:
+    link_k8s_node_to_aws_nodegroup_or_ec2_instance(graph, resource)
+    link_k8s_cluster_to_eks_cluster(graph, resource)
+    link_service_to_elb(graph, resource)
+    link_pv_to_ebs_volume(graph, resource)

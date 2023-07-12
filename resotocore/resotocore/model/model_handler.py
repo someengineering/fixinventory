@@ -10,6 +10,7 @@ from resotocore.async_extensions import run_async
 from resotocore.db.db_access import DbAccess
 from resotocore.ids import GraphName
 from resotocore.model.model import Model, Kind, ComplexKind, Property
+from resotocore.service import Service
 from resotocore.types import EdgeType
 from resotocore.util import exist
 
@@ -90,7 +91,7 @@ PlantUmlAttrs = (
 )
 
 
-class ModelHandlerDB(ModelHandler):
+class ModelHandlerDB(ModelHandler, Service):
     def __init__(self, db_access: DbAccess, plantuml_server: str):
         self.db_access = db_access
         self.plantuml_server = plantuml_server

@@ -5,10 +5,11 @@ from resotocore.cli.model import CLI, CLIContext
 from resotocore.db.templatedb import TemplateEntityDb
 from resotocore.query.model import Template
 from resotocore.query.template_expander import TemplateExpanderBase
+from resotocore.service import Service
 from resotocore.types import Json
 
 
-class TemplateExpanderService(TemplateExpanderBase):
+class TemplateExpanderService(TemplateExpanderBase, Service):
     """
     Template expander, which maintains the templates in the database.
     """

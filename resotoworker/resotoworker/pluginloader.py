@@ -4,7 +4,7 @@ from resotolib.logger import log
 from typing import List, Optional, Type, Union, Dict, cast, Set
 from resotolib.args import ArgumentParser
 from resotolib.config import Config
-from resotolib.baseplugin import BaseCollectorPlugin, BasePostCollectPlugin, BasePlugin, BaseActionPlugin, PluginType
+from resotolib.baseplugin import BaseCollectorPlugin, BasePlugin, BaseActionPlugin, PluginType
 
 
 class PluginLoader:
@@ -51,7 +51,7 @@ class PluginLoader:
         if (
             inspect.isclass(plugin)
             and not inspect.isabstract(plugin)
-            and issubclass(plugin, (BasePlugin, BaseActionPlugin, BasePostCollectPlugin))
+            and issubclass(plugin, (BasePlugin, BaseActionPlugin))
             and plugin.plugin_type in self._plugins
         ):
             log.debug(f"Found plugin {plugin} ({plugin.plugin_type.name})")
@@ -59,34 +59,25 @@ class PluginLoader:
                 self._plugins[plugin.plugin_type].append(plugin)
         return True
 
-    def plugins(
-        self, plugin_type: PluginType
-    ) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
+    def plugins(self, plugin_type: PluginType) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]:
         """Returns the list of Plugins of a certain PluginType"""
         if not self._initialized:
             self.find_plugins()
         configured_collectors: Set[str] = set(Config.resotoworker.collector)
 
-        if plugin_type == PluginType.POST_COLLECT:
-            post_collect_plugins = cast(List[Type[BasePostCollectPlugin]], self._plugins.get(plugin_type, []))
-            return [
-                plugin
-                for plugin in post_collect_plugins
-                if plugin.activate_with.issubset(configured_collectors) or plugin.name in configured_collectors
-            ]
-        elif plugin_type == PluginType.COLLECTOR:
+        if plugin_type == PluginType.COLLECTOR:
             plugins: List[Type[BaseCollectorPlugin]] = self._plugins.get(plugin_type, [])  # type: ignore
             return [plugin for plugin in plugins if plugin.cloud in configured_collectors]
 
-        return self._plugins.get(plugin_type, [])  # type: ignore
+        return self._plugins.get(plugin_type, [])
 
     def all_plugins(
         self, plugin_type: Optional[PluginType] = None
-    ) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin], Type[BasePostCollectPlugin]]]:
+    ) -> List[Union[Type[BasePlugin], Type[BaseActionPlugin]]]:
         if not self._initialized:
             self.find_plugins()
         if plugin_type is not None:
-            return self._plugins.get(plugin_type, [])  # type: ignore
+            return self._plugins.get(plugin_type, [])
         return [plugin for plugins in self._plugins.values() for plugin in plugins]
 
     def all_collector_plugins(self) -> List[Type[BaseCollectorPlugin]]:

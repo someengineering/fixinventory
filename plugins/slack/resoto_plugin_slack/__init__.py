@@ -3,7 +3,7 @@ import threading
 import time
 import ssl
 import slack_sdk
-from typing import List
+from typing import List, Any
 from retrying import retry
 
 from resotolib.utils import utc_str
@@ -42,8 +42,8 @@ def retry_on_request_limit_exceeded(e):
 class SlackCollectorPlugin(BaseCollectorPlugin):
     cloud = "slack"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.client = None
 
     def collect(self) -> None:
