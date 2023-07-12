@@ -6,7 +6,7 @@ from attr import define, field
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
 from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend
+from resotolib.json_bender import Bender, S, Bend, ForallBend, AsDate
 
 
 @define(eq=False, slots=False)
@@ -51,9 +51,9 @@ class GcpBucketAccessControl:
 @define(eq=False, slots=False)
 class GcpAutoclass:
     kind: ClassVar[str] = "gcp_autoclass"
-    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime")}
+    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime") >> AsDate()}
     enabled: Optional[bool] = field(default=None)
-    toggle_time: Optional[str] = field(default=None)
+    toggle_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -105,17 +105,17 @@ class GcpObjectAccessControl:
 @define(eq=False, slots=False)
 class GcpBucketpolicyonly:
     kind: ClassVar[str] = "gcp_bucketpolicyonly"
-    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
+    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime") >> AsDate()}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[str] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
 class GcpUniformbucketlevelaccess:
     kind: ClassVar[str] = "gcp_uniformbucketlevelaccess"
-    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
+    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime") >> AsDate()}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[str] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -202,11 +202,11 @@ class GcpOwner:
 class GcpRetentionpolicy:
     kind: ClassVar[str] = "gcp_retentionpolicy"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "effective_time": S("effectiveTime"),
+        "effective_time": S("effectiveTime") >> AsDate(),
         "is_locked": S("isLocked"),
         "retention_period": S("retentionPeriod"),
     }
-    effective_time: Optional[str] = field(default=None)
+    effective_time: Optional[datetime] = field(default=None)
     is_locked: Optional[bool] = field(default=None)
     retention_period: Optional[str] = field(default=None)
 
@@ -264,6 +264,7 @@ class GcpBucket(GcpResource):
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
+        "mtime": S("updated") >> AsDate(),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
@@ -289,8 +290,8 @@ class GcpBucket(GcpResource):
         "rpo": S("rpo"),
         "satisfies_pzs": S("satisfiesPZS"),
         "storage_class": S("storageClass"),
-        "time_created": S("timeCreated"),
-        "updated": S("updated"),
+        "time_created": S("timeCreated") >> AsDate(),
+        "updated": S("updated") >> AsDate(),
         "versioning_enabled": S("versioning", "enabled"),
         "bucket_website": S("website", default={}) >> Bend(GcpWebsite.mapping),
     }
@@ -313,8 +314,8 @@ class GcpBucket(GcpResource):
     rpo: Optional[str] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
     storage_class: Optional[str] = field(default=None)
-    time_created: Optional[str] = field(default=None)
-    updated: Optional[str] = field(default=None)
+    time_created: Optional[datetime] = field(default=None)
+    updated: Optional[datetime] = field(default=None)
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
     versioning_enabled: Optional[bool] = field(default=None)
