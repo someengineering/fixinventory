@@ -18,6 +18,7 @@ from resotocore.task.task_description import RunningTask
 from resotocore.types import Json, JsonElement
 from resotocore.util import utc, utc_str
 from resotolib.durations import duration_str
+from resotolib.utils import freeze
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ class RunningTaskData:
     has_info: bool = False
     # indicates if this task had errors
     has_error: bool = False
+    # metadata about the task, such as last stage creation tims
+    metadata: Json = field(factory=dict)
 
     def info_messages(self) -> List[Union[ActionInfo, ActionError]]:
         return [m for m in iter(self.received_messages) if isinstance(m, (ActionInfo, ActionError))]
@@ -90,6 +93,7 @@ class RunningTaskData:
                 for msg in wi.info_messages
                 if (isinstance(msg, ActionInfo) and msg.level == "error") or isinstance(msg, ActionError)
             ),
+            freeze(wi.metadata),
         )
 
 
@@ -122,6 +126,14 @@ class RunningTaskDb(EntityDb[str, RunningTaskData]):
         with_error: Optional[bool] = None,
         limit: Optional[int] = None,
     ) -> AsyncCursorContext:
+        pass
+
+    @abstractmethod
+    async def last(
+        self,
+        *,
+        descriptor_id: Optional[TaskDescriptorId] = None,
+    ) -> Optional[RunningTaskData]:
         pass
 
 
@@ -193,6 +205,31 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
                 elem["average_duration"] = duration_str(timedelta(seconds=elem["average_duration"]), precision=2)
                 result[name] = elem
         return result
+
+    async def last(
+        self,
+        *,
+        descriptor_id: Optional[TaskDescriptorId] = None,
+    ) -> Optional[RunningTaskData]:
+        if descriptor_id:
+            descriptor_clause = "AND rt.task_descriptor_id == @descriptor_id"
+            bind_vars = {"descriptor_id": descriptor_id}
+        else:
+            descriptor_clause = ""
+            bind_vars = None
+
+        aql = f"""
+        FOR rt in {self.collection_name}
+        FILTER rt.done == true {descriptor_clause}
+        SORT rt.task_started_at DESC
+        LIMIT 1
+        RETURN rt
+        """
+
+        async with await self.db.aql_cursor(aql, bind_vars=bind_vars) as crsr:
+            async for elem in crsr:
+                return from_js(elem, RunningTaskData)
+        return None
 
     async def filtered(
         self,

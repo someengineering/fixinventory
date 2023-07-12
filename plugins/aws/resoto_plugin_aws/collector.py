@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Type
+from typing import List, Type, Optional
+from datetime import datetime, timezone
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
 from resoto_plugin_aws.configuration import AwsConfig
@@ -52,6 +53,8 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
+from resotolib.types import Json
+from resotolib.json import value_in_path
 
 from .utils import global_region_by_partition
 
@@ -127,7 +130,13 @@ def called_mutator_apis() -> List[AwsApiSpec]:
 
 class AwsAccountCollector:
     def __init__(
-        self, config: AwsConfig, cloud: Cloud, account: AwsAccount, regions: List[str], core_feedback: CoreFeedback
+        self,
+        config: AwsConfig,
+        cloud: Cloud,
+        account: AwsAccount,
+        regions: List[str],
+        core_feedback: CoreFeedback,
+        task_data: Json,
     ) -> None:
         self.config = config
         self.cloud = cloud
@@ -148,6 +157,7 @@ class AwsAccountCollector:
             partition=account.partition,
             error_accumulator=self.error_accumulator,
         )
+        self.task_data = task_data
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -157,8 +167,29 @@ class AwsAccountCollector:
             # Note: only tasks_per_key threads are running max for each region.
             tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
             shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
+
+            def get_last_run() -> Optional[datetime]:
+                td = self.task_data
+                if not td:
+                    return None
+                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
+
+                if timestamp is None:
+                    return None
+
+                return datetime.fromtimestamp(timestamp, timezone.utc)
+
+            last_run = get_last_run()
+
             global_builder = GraphBuilder(
-                self.graph, self.cloud, self.account, self.global_region, self.client, shared_queue, self.core_feedback
+                self.graph,
+                self.cloud,
+                self.account,
+                self.global_region,
+                self.client,
+                shared_queue,
+                self.core_feedback,
+                last_run=last_run,
             )
             global_builder.submit_work("iam", self.update_account)
 

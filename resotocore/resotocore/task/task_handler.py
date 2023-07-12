@@ -8,7 +8,6 @@ from contextlib import suppress
 from copy import copy
 from datetime import timedelta
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
-
 from aiostream import stream
 from attrs import evolve
 
@@ -57,6 +56,7 @@ from resotocore.task.task_description import (
     WaitForCollectDone,
 )
 from resotocore.util import first, Periodic, group_by, utc_str, utc, partition_by
+from resotocore.types import Json
 
 log = logging.getLogger(__name__)
 
@@ -139,10 +139,27 @@ class TaskHandlerService(TaskHandler, Service):
         updated.steps = [evaluate(step) for step in descriptor.steps]
         return updated
 
+    async def fetch_task_metadata(self, descriptor_id: TaskDescriptorId) -> Json:
+        timing: Dict[str, Dict[str, int]] = {}
+        if last_workflow_run := await self.running_task_db.last(descriptor_id=descriptor_id):
+            timing = {
+                s.step_name: {
+                    "started_at": int(s.started_at.timestamp()),
+                    "finished_at": int(s.finished_at.timestamp()),
+                }
+                for s in last_workflow_run.step_states
+                if s.finished_at and s.started_at
+            }
+        return {
+            "timing": timing,
+        }
+
     async def start_task_directly(self, desc: TaskDescription, reason: str) -> RunningTask:
         updated = self.evaluate_task_definition(desc)
 
-        task, commands = RunningTask.empty(updated, self.task_dependencies)
+        metadata = await self.fetch_task_metadata(desc.id)
+        task, commands = RunningTask.empty(updated, self.task_dependencies, metadata=metadata)
+
         log.info(f"Start new task: {updated.name} with id {task.id}")
         # store initial state in database
         await self.running_task_db.insert(task)
@@ -475,6 +492,7 @@ class TaskHandlerService(TaskHandler, Service):
                     else:
                         raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")
                 except Exception as ex:
+                    log.info(f"Error executing command: {command} {ex}")
                     results[command] = ex
 
             # The descriptor might be removed in the meantime. If this is the case stop execution.
