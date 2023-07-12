@@ -167,8 +167,7 @@ class RandomDataClient:
         response_kind_name = method["response"]["$ref"]
         response_kind = self.schemas[response_kind_name]
         path_full = ".".join(p for p, _, _ in self.path)
-        result = PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
-        return result
+        return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
 
     def __getattr__(self, name: Any) -> Any:
         def add_path(*args: Any, **kwargs: Any) -> Any:
