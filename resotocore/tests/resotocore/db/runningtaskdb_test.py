@@ -55,6 +55,8 @@ async def test_last(running_task_db: RunningTaskDb, instances: List[RunningTaskD
     assert last_done
     assert done_task.id == last_done.id
 
+    assert await running_task_db.last()
+
 
 @mark.asyncio
 async def test_load(running_task_db: RunningTaskDb, instances: List[RunningTaskData]) -> None:
