@@ -10,7 +10,6 @@ import json
 import boto3
 import botocore.exceptions
 from prometheus_client import Counter, Summary
-from datetime import datetime, timezone
 
 import resotolib.logger
 import resotolib.proc
@@ -30,7 +29,7 @@ from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.types import JsonElement
+from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
@@ -116,18 +115,6 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         else:
             collect_method = collect_account
 
-        def get_last_run() -> Optional[datetime]:
-            if not self.task_data:
-                return None
-            timestamp = self.task_data.get("timing", {}).get(self.task_data.get("step"), {}).get("started_at")
-
-            if timestamp is None:
-                return None
-
-            return datetime.fromtimestamp(timestamp, timezone.utc)
-
-        last_run = get_last_run()
-
         with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
@@ -138,7 +125,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     Config.running_config,
                     self.core_feedback.with_context(cloud.id, account.dname),
                     cloud,
-                    last_run,
+                    self.task_data or {},
                 )
                 for account in accounts
             ]
@@ -621,7 +608,7 @@ def collect_account(
     running_config: RunningConfig,
     feedback: CoreFeedback,
     cloud: Cloud,
-    last_run: Optional[datetime] = None,
+    task_data: Json,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -641,7 +628,7 @@ def collect_account(
 
     aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback)
     try:
-        aac.collect(last_run)
+        aac.collect(task_data)
     except botocore.exceptions.ClientError as e:
         feedback.error(
             f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log

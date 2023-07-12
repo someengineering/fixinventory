@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import List, Type, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
 from resoto_plugin_aws.configuration import AwsConfig
@@ -53,6 +53,8 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
+from resotolib.types import Json
+from resotolib.json import value_in_path
 
 from .utils import global_region_by_partition
 
@@ -150,7 +152,7 @@ class AwsAccountCollector:
             error_accumulator=self.error_accumulator,
         )
 
-    def collect(self, last_run: Optional[datetime]) -> None:
+    def collect(self, task_data: Json) -> None:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.resource_pool_size
         ) as executor:
@@ -158,6 +160,19 @@ class AwsAccountCollector:
             # Note: only tasks_per_key threads are running max for each region.
             tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
             shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
+
+            def get_last_run() -> Optional[datetime]:
+                if not task_data:
+                    return None
+                timestamp = value_in_path(task_data, ["timing", task_data.get("step", ""), "started_at"])
+
+                if timestamp is None:
+                    return None
+
+                return datetime.fromtimestamp(timestamp, timezone.utc)
+
+            last_run = get_last_run()
+
             global_builder = GraphBuilder(
                 self.graph,
                 self.cloud,
