@@ -18,6 +18,7 @@ from resotocore.task.task_description import RunningTask
 from resotocore.types import Json, JsonElement
 from resotocore.util import utc, utc_str
 from resotolib.durations import duration_str
+from resotolib.utils import freeze
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ class RunningTaskData:
     has_info: bool = False
     # indicates if this task had errors
     has_error: bool = False
+    # metadata about the task, such as last stage creation tims
+    metadata: Json = field(factory=dict)
 
     def info_messages(self) -> List[Union[ActionInfo, ActionError]]:
         return [m for m in iter(self.received_messages) if isinstance(m, (ActionInfo, ActionError))]
@@ -90,6 +93,7 @@ class RunningTaskData:
                 for msg in wi.info_messages
                 if (isinstance(msg, ActionInfo) and msg.level == "error") or isinstance(msg, ActionError)
             ),
+            freeze(wi.metadata),
         )
 
 

@@ -19,6 +19,7 @@ from resotolib.utils import (
     replace_env_vars,
     merge_json_elements,
     drop_deleted_attributes,
+    freeze,
 )
 from resotolib.baseresources import BaseResource
 from resotolib.utils import stdin_generator
@@ -28,6 +29,7 @@ import pytest
 import sys
 import tempfile
 from contextlib import contextmanager
+from frozendict import frozendict
 
 
 class Writer(threading.Thread):
@@ -462,3 +464,17 @@ def test_sync_stdin_generator(input_data, expected_output):
     with replace_stdin(input_data):
         output = list(stdin_generator())
     assert output == expected_output
+
+
+def test_freeze():
+    tpl = (1, 2, 3)
+    # hashable things are not touched
+    assert id(tpl) == id(freeze(tpl))
+    # dict to frozendict
+    flat_dict = {"foo": "bar"}
+    assert freeze(flat_dict) == frozendict(flat_dict)
+    # nested too
+    nested_dict = {"foo": flat_dict}
+    assert freeze(nested_dict) == frozendict({"foo": frozendict(flat_dict)})
+    # and a list to tupple
+    assert freeze([1, 2]) == (1, 2)

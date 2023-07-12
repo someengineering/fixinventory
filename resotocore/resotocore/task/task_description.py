@@ -31,6 +31,7 @@ from resotocore.task.model import Subscriber
 from resotocore.types import Json
 from resotocore.util import first, interleave, empty, exist, identity, utc, utc_str
 from resotolib.core.progress import ProgressTree, Progress, ProgressDone
+from resotolib.utils import freeze
 
 if TYPE_CHECKING:  # avoid circular dependency
     from resotocore.task.task_dependencies import TaskDependencies
@@ -508,7 +509,7 @@ class PerformActionState(StepState):
         """
         When the state is entered, emit the action message and inform all actors.
         """
-        data = {"metadata": self.instance.metadata}
+        data = freeze({"metadata": self.instance.metadata})
         return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name, data))]
 
     def step_started(self) -> None:
@@ -662,7 +663,7 @@ class RunningTask:
     def empty(
         descriptor: TaskDescription,
         dependencies: TaskDependencies,
-        metadata: Optional[frozendict[str, Any]] = None,
+        metadata: Optional[Json] = None,
     ) -> Tuple[RunningTask, Sequence[TaskCommand]]:
         assert len(descriptor.steps) > 0, "TaskDescription needs at least one step!"
         uid = TaskId(str(uuid.uuid1()))
@@ -675,7 +676,7 @@ class RunningTask:
         uid: TaskId,
         descriptor: TaskDescription,
         dependencies: TaskDependencies,
-        metadata: Optional[frozendict[str, Any]] = None,
+        metadata: Optional[Json] = None,
     ):
         self.id = uid
         self.is_error = False
@@ -686,7 +687,7 @@ class RunningTask:
         self.task_duration: Optional[timedelta] = None
         self.update_task: Optional[Task[None]] = None
         self.descriptor_alive = True
-        self.metadata = metadata or frozendict({})
+        self.metadata = metadata or {}
         self.info_messages: List[Union[ActionInfo, ActionError]] = []
         self.__progress: ProgressTree = ProgressTree(self.descriptor.name)
         self.__progress_updated_at: datetime = utc()

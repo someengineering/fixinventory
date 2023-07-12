@@ -1056,9 +1056,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             if instance.region().id == builder.region.id and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
-        now = utc()
-        if builder.last_run:
-            start = builder.last_run
+        if builder.last_run_started_at:
+            now = builder.created_at
+            start = builder.last_run_started_at
             delta = now - start
             min_delta = max(delta, timedelta(seconds=600))
             # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
@@ -1067,6 +1067,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 start = now - min_delta
                 delta = min_delta
         else:
+            now = utc()
             delta = timedelta(hours=1)
             start = now - delta
         for instance_id in instances:
