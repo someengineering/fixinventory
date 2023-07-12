@@ -6,6 +6,7 @@ from threading import Lock
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable
 
 from attr import define, field
+from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion
@@ -232,6 +233,11 @@ class AzureSubscription(AzureResource, BaseAccount):
     subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
     subscription_policies: Optional[AzureSubscriptionPolicies] = field(default=None, metadata={'description': 'Subscription policies.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
+
+    @classmethod
+    def list_subscriptions(cls, credentials: DefaultAzureCredential) -> List[AzureSubscription]:
+        client = AzureClient(credentials, "global")
+        return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 
 class GraphBuilder:
