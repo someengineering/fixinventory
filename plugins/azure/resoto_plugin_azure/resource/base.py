@@ -239,7 +239,7 @@ class AzureSubscription(AzureResource, BaseAccount):
     display_name: Optional[str] = field(default=None, metadata={"description": "The subscription display name."})
     managed_by_tenants: Optional[List[str]] = field(default=None, metadata={'description': 'An array containing the tenants managing the subscription.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'The subscription state. Possible values are enabled, warned, pastdue, disabled, and deleted.'})  # fmt: skip
-    subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
+    subscription_id: str = field(default="", metadata={"description": "The subscription id."})
     subscription_policies: Optional[AzureSubscriptionPolicies] = field(default=None, metadata={'description': 'Subscription policies.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
 
@@ -340,9 +340,9 @@ class GraphBuilder:
                 node._region = location
                 last_edge_key = self.add_edge(location, node=node)
         if source and "locations" in source:
-            for location in source["locations"]:
+            for loc in source["locations"]:
                 # reference the location node if available
-                if location := self.location_lookup.get(location):
+                if location := self.location_lookup.get(loc):
                     last_edge_key = self.add_edge(location, node=node)
                     node._region = location  # TODO: how to handle multiple locations?
         elif last_edge_key is None:
@@ -421,7 +421,7 @@ class GraphBuilder:
 
     def fetch_locations(self) -> List[AzureLocation]:
         locations = AzureLocation.collect_resources(self)
-        self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})
+        self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
         return locations
 
     def with_resource_group(self, group: AzureResourceGroup) -> GraphBuilder:

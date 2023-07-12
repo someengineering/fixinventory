@@ -74,7 +74,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
                 self.graph.merge(graph, skip_deferred_edges=True)
 
 
-def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:
+def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:  # type: ignore
     collector_initializer()
     config, cloud, subscription, account_config, core_feedback = subscription_collector_arg
     subscription_collector = AzureSubscriptionCollector(

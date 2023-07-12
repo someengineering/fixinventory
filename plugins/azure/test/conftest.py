@@ -22,7 +22,7 @@ def executor_queue() -> Iterator[ExecutorQueue]:
 
 @fixture
 def azure_subscription() -> AzureSubscription:
-    return AzureSubscription(id="test")
+    return AzureSubscription(id="test", subscription_id="test")
 
 
 @fixture

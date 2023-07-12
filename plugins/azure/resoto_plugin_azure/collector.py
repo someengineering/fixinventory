@@ -6,7 +6,7 @@ from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.config import AzureConfig
 from resoto_plugin_azure.azure_client import AzureClient
-from resoto_plugin_azure.resource import compute
+from resoto_plugin_azure.resource.compute import resources as compute_resources
 from resoto_plugin_azure.resource.base import (
     AzureSubscription,
     GraphBuilder,
@@ -22,11 +22,13 @@ log = logging.getLogger("resoto.plugin.azure")
 
 
 def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_all: bool = False) -> bool:
+    if clazz.api_spec is None:
+        return False
     cp = set(clazz.api_spec.path_parameters)
-    return clazz.api_spec is not None and cp.issubset(params) and (not includes_all or params.issubset(cp))
+    return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = compute.resources
+all_resources: List[Type[AzureResource]] = compute_resources
 subscription_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 group_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "resourceGroupName"}, True)]
 
