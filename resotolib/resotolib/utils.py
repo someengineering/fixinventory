@@ -13,8 +13,23 @@ from copy import deepcopy
 from datetime import date, datetime, timezone, timedelta
 from functools import wraps, cached_property
 from tarfile import TarFile, TarInfo
-from typing import Dict, List, Tuple, Optional, NoReturn, Any, Mapping, Union, Callable, cast, Iterator, TypeVar
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    NoReturn,
+    Any,
+    Mapping,
+    Union,
+    Callable,
+    cast,
+    Iterator,
+    TypeVar,
+    Sequence,
+)
 from zoneinfo import ZoneInfo
+from frozendict import frozendict
 
 import pkg_resources
 import requests
@@ -628,3 +643,20 @@ def stdin_generator() -> Iterator[str]:
     if select.select([sys.stdin], [], [], 0.0)[0]:
         for line in iter(sys.stdin.readline, ""):
             yield line.rstrip("\r\n")
+
+
+# makes things hashable
+def freeze(elem: JsonElement) -> Any:
+    # check if can be hashed first
+    try:
+        hash(elem)
+        return elem
+    except TypeError:
+        pass
+
+    if isinstance(elem, Sequence):
+        return tuple([freeze(v) for v in elem])
+    elif isinstance(elem, Mapping):
+        return frozendict({k: freeze(v) for k, v in elem.items()})
+    else:
+        return elem

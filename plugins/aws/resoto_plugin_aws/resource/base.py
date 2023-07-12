@@ -10,6 +10,7 @@ from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type
 from attr import evolve
 from attrs import define
 from boto3.exceptions import Boto3Error
+from resotolib.utils import utc
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.configuration import AwsConfig
@@ -342,7 +343,8 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
-        self.last_run = last_run
+        self.last_run_started_at = last_run
+        self.created_at = utc()
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -478,4 +480,5 @@ class GraphBuilder:
             self.global_instance_types,
             self.graph_nodes_access,
             self.graph_edges_access,
+            self.last_run_started_at,
         )

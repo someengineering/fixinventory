@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from threading import Thread, current_thread
-from typing import Dict, Optional, Set, Any
+from typing import Dict, Optional, Any
 from queue import Queue
 
 from prometheus_client import Counter
@@ -206,6 +206,7 @@ class BaseCollectorPlugin(BasePlugin):
         self,
         graph_queue: Optional[Queue[Optional[Graph]]] = None,
         graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
+        task_data: Optional[Json] = None,
     ) -> None:
         super().__init__()
         self.name = str(self.cloud)
@@ -214,6 +215,7 @@ class BaseCollectorPlugin(BasePlugin):
         self._graph_queue: Optional[Queue[Optional[Graph]]] = graph_queue
         self.graph_merge_kind: GraphMergeKind = graph_merge_kind
         self.graph = self.new_graph()
+        self.task_data = task_data
 
     @abstractmethod
     def collect(self) -> None:

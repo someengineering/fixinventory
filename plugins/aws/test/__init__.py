@@ -44,4 +44,4 @@ def no_feedback() -> CoreFeedback:
 @fixture
 def account_collector(aws_config: AwsConfig, no_feedback: CoreFeedback) -> AwsAccountCollector:
     account = AwsAccount(id="test")
-    return AwsAccountCollector(aws_config, Cloud(id="aws"), account, ["us-east-1"], no_feedback)
+    return AwsAccountCollector(aws_config, Cloud(id="aws"), account, ["us-east-1"], no_feedback, {})

@@ -29,7 +29,7 @@ from resotolib.core.custom_command import execute_command_on_resource
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.logger import log, setup_logger
-from resotolib.types import JsonElement
+from resotolib.types import JsonElement, Json
 from resotolib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
@@ -125,6 +125,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     Config.running_config,
                     self.core_feedback.with_context(cloud.id, account.dname),
                     cloud,
+                    self.task_data or {},
                 )
                 for account in accounts
             ]
@@ -607,6 +608,7 @@ def collect_account(
     running_config: RunningConfig,
     feedback: CoreFeedback,
     cloud: Cloud,
+    task_data: Json,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     resotolib.proc.set_thread_name(collector_name)
@@ -624,7 +626,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback)
+    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback, task_data)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:

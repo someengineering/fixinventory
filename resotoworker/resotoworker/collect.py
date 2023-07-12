@@ -71,12 +71,17 @@ class Collector:
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
-        task_id: TaskId,
-        step_name: str,
+        task_data: Json,
     ) -> None:
+        task_id = task_data["task"]
+        step_name = task_data["step"]
         core_feedback = CoreFeedback(task_id, step_name, "collect", self.core_messages)
 
-        def collect(collectors: List[Type[BaseCollectorPlugin]], graph_queue: Queue[Optional[Graph]]) -> bool:
+        def collect(
+            collectors: List[Type[BaseCollectorPlugin]],
+            graph_queue: Queue[Optional[Graph]],
+            task_data: Json,
+        ) -> bool:
             all_success = True
             graph_merge_kind = self._config.resotoworker.graph_merge_kind
 
@@ -111,6 +116,7 @@ class Collector:
                         core_feedback,
                         graph_queue,
                         graph_merge_kind,
+                        task_data=task_data,
                         **collect_args,
                     )
                     for collector in collectors
@@ -136,14 +142,16 @@ class Collector:
             try:
                 for i in range(graph_sender_pool_size):
                     graph_sender_t = threading.Thread(
-                        target=self.graph_sender, args=(graph_queue, task_id, tempdir), name=f"graph_sender_{i}"
+                        target=self.graph_sender,
+                        args=(graph_queue, task_id, tempdir),
+                        name=f"graph_sender_{i}",
                     )
                     graph_sender_t.daemon = True
                     graph_sender_t.start()
                     graph_sender_threads.append(graph_sender_t)
 
                 self._resotocore.create_graph_and_update_model(tempdir=tempdir)
-                collect(collectors, graph_queue)
+                collect(collectors, graph_queue, task_data)
             finally:
                 log.debug("Telling graph sender threads to end")
                 for _ in range(graph_sender_pool_size):
@@ -164,11 +172,14 @@ def collect_plugin_graph(
     core_feedback: CoreFeedback,
     graph_queue: Queue[Optional[Graph]],
     graph_merge_kind: GraphMergeKind,
+    task_data: Json,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
 ) -> bool:
     try:
-        collector: BaseCollectorPlugin = collector_plugin(graph_queue=graph_queue, graph_merge_kind=graph_merge_kind)
+        collector: BaseCollectorPlugin = collector_plugin(
+            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data
+        )
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
             setattr(collector, "core_feedback", core_feedback)
