@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import weakref
-from abc import ABC, abstractmethod
+from abc import ABC
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from enum import Enum, unique
@@ -453,9 +453,8 @@ class BaseResource(ABC):
         return True
 
     @unless_protected
-    @abstractmethod
     def delete(self, graph: Any) -> bool:
-        raise NotImplementedError
+        return False
 
     def account(self, graph: Optional[Any] = None) -> "BaseAccount":
         account: Optional[BaseAccount] = None

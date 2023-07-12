@@ -4,8 +4,9 @@ from typing import Sequence, Tuple, List, Optional, Callable, Any
 
 from more_itertools import flatten
 
-from resoto_plugin_aws.resource.base import ExecutorQueue, AwsRegion, GraphBuilder, GatherFutures
+from resoto_plugin_aws.resource.base import AwsRegion, GraphBuilder
 from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
+from resotolib.threading import ExecutorQueue, GatherFutures
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 
@@ -30,7 +31,7 @@ def check_executor_work(
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         queue = ExecutorQueue(
-            executor, lambda _: tasks_per_key, "test", fail_on_first_exception_in_group=fail_on_first_exception
+            executor, "test", lambda _: tasks_per_key, fail_on_first_exception_in_group=fail_on_first_exception
         )
         for key, idx in work:
             queue.submit_work(key, do_work, idx)

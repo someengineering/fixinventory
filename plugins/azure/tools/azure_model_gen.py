@@ -14,6 +14,8 @@ from prance.util.url import ResolutionError
 
 Json = Dict[str, Any]
 
+Debug = False
+
 
 def to_snake(name: str) -> str:
     name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -47,7 +49,15 @@ class AzureProperty:
 
     def assignment(self) -> str:
         default = self.field_default or "default=None"
-        return f"field({default})"
+        desc = re.sub("[\n\r'\"]", " ", self.description)  # remove invalid characters
+        desc = re.sub("<br\\s*/?>", " ", desc)  # replace <br/> tags
+        desc = re.sub("\\s\\s+", " ", desc)  # remove multiple spaces
+        sentences = " ".join(f"{s.strip().capitalize()}." for s in desc.split(".") if len(s.strip()) > 0)
+        metadata = f", metadata={{'description': '{sentences}'}}"
+        result = f"field({default}{metadata})"
+        if (len(result) + len(self.name) + len(self.type_name)) > 100:
+            result += "  # fmt: skip"
+        return result
 
     @property
     def is_any(self) -> bool:
@@ -110,10 +120,11 @@ class AzureClassModel:
         base = ("(" + ", ".join(bases) + ")") if bases else ""
         kind = f'    kind: ClassVar[str] = "azure_{to_snake(self.name)}"'
 
-        api = f"    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec{str(self.api_info)[12:]}" if self.api_info else ""
+        api = f"    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec{str(self.api_info)[12:]}\n" if self.api_info else ""
 
         # add mappings for base properties
         base_mappings: Dict[str, str] = {}
+        # tags need a default value
         for bp in ["id", "tags", "name", "ctime", "mtime", "atime"]:
             if bp in self.props or bp in self.ignored:
                 base_mappings[bp] = f'S("{bp}")'
@@ -135,6 +146,7 @@ class AzureClassModel:
 
             if bp not in base_mappings:
                 base_mappings[bp] = "K(None)"
+            base_mappings["tags"] = "S('tags', default={})"
 
         mapping = "    mapping: ClassVar[Dict[str, Bender]] = {\n"
         if self.aggregate_root:
@@ -143,7 +155,7 @@ class AzureClassModel:
         mapping += ",\n".join(f"        {p.mapping()}" for p in self.sorted_props())
         mapping += "\n    }"
         props = "\n".join(f"    {p.name}: {p.type_string()} = {p.assignment()}" for p in self.sorted_props())
-        debug = f"# {self.spec.file}\n" if True else ""
+        debug = f"# {self.spec.file}\n" if Debug else ""
         return (
             f"{debug}@define(eq=False, slots=False)\nclass {self.class_name}{base}:\n{kind}\n{api}{mapping}\n{props}\n"
         )
@@ -221,7 +233,7 @@ def class_method(
     api_info: Optional[AzureApiInfo] = None,
 ) -> Dict[str, AzureClassModel]:
     ignore_props = ignore_properties or set()
-    unfold_props = unfold_properties or set()
+    unfold_props = (unfold_properties or set()) | {"properties"}  # always unfold properties
 
     def add_types(acs: Dict[str, AzureClassModel]) -> None:
         result.update(acs)
@@ -317,7 +329,7 @@ def class_method(
                         add_prop(
                             AzureProperty(
                                 np.name,
-                                [prop_name, np.name],
+                                [prop_name] + np.from_name if isinstance(np.from_name, list) else [np.from_name],
                                 np.type,
                                 np.description,
                                 is_complex=np.is_complex,
@@ -355,8 +367,13 @@ class AzureRestSpec:
                 if "200" not in method["responses"] or "schema" not in method["responses"]["200"]:
                     continue
                 parameters = method.get("parameters", [])
+                required_params = [p for p in parameters if p.get("required", False) is True]
                 # api-version and subscriptionId are always there
-                param_names = {p["name"] for p in parameters} - {"api-version", "subscriptionId"}
+                param_names = {p["name"] for p in required_params} - {
+                    "api-version",
+                    "subscriptionId",
+                    "resourceGroupName",
+                }
                 if len(param_names) == 0:
                     schema = method["responses"]["200"]["schema"]
                     access_path: Optional[str] = None
@@ -365,12 +382,11 @@ class AzureRestSpec:
                         props = list(set(schema["properties"].keys()) - {"nextLink"})
                         if len(props) == 1 and schema["properties"][props[0]].get("type") == "array":
                             value_prop = props[0]
-                            access_path = access_path
+                            access_path = value_prop
                             is_array = True
                             type_definition = schema["properties"][value_prop]["items"]
                         else:
                             type_definition = schema
-                            pass
                     elif schema.get("type") == "array":
                         is_array = True
                         type_definition = schema["items"]
@@ -381,8 +397,8 @@ class AzureRestSpec:
                         service,
                         version,
                         path,
-                        [p["name"] for p in parameters if p["in"] == "path"],
-                        [p["name"] for p in parameters if p["in"] == "query"],
+                        [p["name"] for p in required_params if p["in"] == "path"],
+                        [p["name"] for p in required_params if p["in"] == "query"],
                         access_path,
                         is_array,
                     )
@@ -409,15 +425,11 @@ class AzureModel:
                     version_path = sub_dir[-1]
                     for file in version_path.iterdir():
                         if file.is_file() and file.name.endswith(".json"):
-                            try:
-                                parsed = ResolvingRefParser(str(file))
-                                for aspec in AzureRestSpec.parse_spec(
-                                    service, version_path.name, parsed.specification, file
-                                ):
-                                    yield aspec
-                            except ResolutionError as e:
-                                # print(f"Error parsing {type(e)})", file, e)
-                                pass
+                            parsed = ResolvingRefParser(str(file))
+                            for aspec in AzureRestSpec.parse_spec(
+                                service, version_path.name, parsed.specification, file
+                            ):
+                                yield aspec
                 elif child.is_dir():
                     yield from walk_dir(service, child)
 
@@ -442,6 +454,14 @@ class RefKeepResolver(RefResolver):
 
         return partial
 
+    def _dereferencing_iterator(self, base_url, partial, path, recursions):
+        try:
+            yield from super()._dereferencing_iterator(base_url, partial, path, recursions)
+        except ResolutionError as e:
+            if Debug:
+                print(">>>>> Can not parse spec. Ignore: ", e)
+            pass
+
 
 class ResolvingRefParser(ResolvingParser):
     def __init__(self, url=None, spec_string=None, lazy=False, **kwargs):
@@ -462,6 +482,7 @@ class ResolvingRefParser(ResolvingParser):
             self.specification,
             self.url,
             reference_cache=self.__reference_cache,
+            recursion_limit=3,
             **forward_args,
         )
         resolver.resolve_references()
@@ -564,7 +585,8 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in model.list_specs({"compute"})}
+    shapes = {spec.name: spec for spec in model.list_specs({"resources"})}
     models = classes_from_model(shapes)
     for model in models.values():
-        print(model.to_class())
+        if model.name != "Resource":
+            print(model.to_class())
