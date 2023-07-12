@@ -191,6 +191,8 @@ class BaseActionPlugin(ABC, Thread):
 
 @frozen
 class CollectorMetadata:
+    task_id: str
+    step_name: str
     last_run: Optional[datetime]
 
 

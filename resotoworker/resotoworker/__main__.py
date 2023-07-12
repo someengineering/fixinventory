@@ -239,22 +239,22 @@ def core_actions_processor(
     last_run: Optional[datetime] = None
     if last_run_raw:
         last_run = datetime.fromtimestamp(last_run_raw, tz=timezone.utc)
-    metadata = CollectorMetadata(last_run=last_run)
+    metadata = CollectorMetadata(task_id, step_name, last_run)
 
     log.debug(f"Received message of kind {kind}, type {message_type}, data: {data}")
     if kind == "action":
         try:
             if message_type == "collect":
                 start_time = time.time()
-                collector.collect_and_send(collectors, task_id=task_id, step_name=step_name, metadata=metadata)
+                collector.collect_and_send(collectors, metadata=metadata)
                 run_time = int(time.time() - start_time)
                 log.info(f"Collect ran for {run_time} seconds")
             elif message_type == "cleanup":
                 if not Config.resotoworker.cleanup:
-                    log.info("Cleanup called but disabled in config" " (resotoworker.cleanup) - skipping")
+                    log.info("Cleanup called but disabled in config (resotoworker.cleanup) - skipping")
                 else:
                     if Config.resotoworker.cleanup_dry_run:
-                        log.info("Cleanup called with dry run configured" " (resotoworker.cleanup_dry_run)")
+                        log.info("Cleanup called with dry run configured (resotoworker.cleanup_dry_run)")
                     start_time = time.time()
                     feedback = CoreFeedback(task_id, step_name, "cleanup", collector.core_messages)
                     cleanup(

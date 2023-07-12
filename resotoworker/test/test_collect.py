@@ -9,7 +9,7 @@ from typing import Optional, cast, Any
 from resotolib.graph import Graph, GraphMergeKind
 from resotolib.config import Config
 from test.fakeconfig import FakeConfig
-from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseplugin import BaseCollectorPlugin, CollectorMetadata
 from resotolib.baseresources import BaseAccount
 from typing import ClassVar
 from attrs import define
@@ -84,6 +84,6 @@ def test_collect_and_send() -> None:
 
     collector = Collector(config, resotocore, Queue())
 
-    collector.collect_and_send([ExampleCollectorPlugin], "task_123", "collect", None)
+    collector.collect_and_send([ExampleCollectorPlugin], CollectorMetadata("task_123", "collect", None))
 
     assert resotocore.sent_task_id == "task_123"

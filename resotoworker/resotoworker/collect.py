@@ -71,16 +71,14 @@ class Collector:
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
-        task_id: TaskId,
-        step_name: str,
-        metadata: Optional[CollectorMetadata],
+        metadata: CollectorMetadata,
     ) -> None:
-        core_feedback = CoreFeedback(task_id, step_name, "collect", self.core_messages)
+        core_feedback = CoreFeedback(metadata.task_id, metadata.step_name, "collect", self.core_messages)
 
         def collect(
             collectors: List[Type[BaseCollectorPlugin]],
             graph_queue: Queue[Optional[Graph]],
-            metadata: Optional[CollectorMetadata],
+            metadata: CollectorMetadata,
         ) -> bool:
             all_success = True
             graph_merge_kind = self._config.resotoworker.graph_merge_kind
@@ -127,7 +125,7 @@ class Collector:
                         all_success = False
             return all_success
 
-        processing_id = f"{task_id}:{step_name}"
+        processing_id = f"{metadata.task_id}:{metadata.step_name}"
         try:
             with self.processing_lock:
                 if processing_id in self.processing:
@@ -138,11 +136,13 @@ class Collector:
             graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
             graph_sender_threads = []
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
-            tempdir = mkdtemp(prefix=f"resoto-{task_id}", dir=self._config.resotoworker.tempdir)
+            tempdir = mkdtemp(prefix=f"resoto-{metadata.task_id}", dir=self._config.resotoworker.tempdir)
             try:
                 for i in range(graph_sender_pool_size):
                     graph_sender_t = threading.Thread(
-                        target=self.graph_sender, args=(graph_queue, task_id, tempdir), name=f"graph_sender_{i}"
+                        target=self.graph_sender,
+                        args=(graph_queue, metadata.task_id, tempdir),
+                        name=f"graph_sender_{i}",
                     )
                     graph_sender_t.daemon = True
                     graph_sender_t.start()
@@ -170,9 +170,9 @@ def collect_plugin_graph(
     core_feedback: CoreFeedback,
     graph_queue: Queue[Optional[Graph]],
     graph_merge_kind: GraphMergeKind,
+    metadata: CollectorMetadata,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
-    metadata: Optional[CollectorMetadata] = None,
 ) -> bool:
     try:
         collector: BaseCollectorPlugin = collector_plugin(
