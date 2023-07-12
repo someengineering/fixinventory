@@ -116,6 +116,10 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         else:
             collect_method = collect_account
 
+        last_run = None
+        if (m := self.metadata) and (lr := m.last_run):
+            last_run = lr
+
         with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [
                 executor.submit(
@@ -126,7 +130,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     Config.running_config,
                     self.core_feedback.with_context(cloud.id, account.dname),
                     cloud,
-                    self.last_run,
+                    last_run,
                 )
                 for account in accounts
             ]

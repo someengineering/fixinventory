@@ -508,7 +508,7 @@ class PerformActionState(StepState):
         """
         When the state is entered, emit the action message and inform all actors.
         """
-        data = cast(Json, self.instance.metadata)
+        data = {"metadata": self.instance.metadata}
         return [SendMessage(Action(self.perform.message_type, self.instance.id, self.step.name, data))]
 
     def step_started(self) -> None:
