@@ -21,13 +21,14 @@ from resotolib.threading import ExecutorQueue, GatherFutures
 log = logging.getLogger("resoto.plugin.azure")
 
 
-def resource_with_params(clazz: Type[AzureResource], params: Set[str]) -> bool:
-    return clazz.api_spec is not None and not (set(clazz.api_spec.path_parameters) - params)
+def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_all: bool = False) -> bool:
+    cp = set(clazz.api_spec.path_parameters)
+    return clazz.api_spec is not None and cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
 all_resources: List[Type[AzureResource]] = compute.resources
 subscription_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
-group_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "resourceGroupName"})]
+group_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "resourceGroupName"}, True)]
 
 
 class AzureSubscriptionCollector:
@@ -48,21 +49,24 @@ class AzureSubscriptionCollector:
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
-            thread_name_prefix=f"azure_{self.subscription.id}", max_workers=self.config.resource_pool_size
+            thread_name_prefix=f"azure_{self.subscription.subscription_id}", max_workers=self.config.resource_pool_size
         ) as executor:
-            self.core_feedback.progress_done(self.subscription.dname, 0, 1, context=[self.cloud.id])
+            self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
             client = AzureClient(self.credentials, self.subscription.subscription_id)
             builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
+            # add subscription
+            builder.graph.add_node(self.subscription)
+            builder.graph.add_edge(self.cloud, self.subscription)
             # collect all locations
             builder.fetch_locations()
             # collect resource groups
             groups = AzureResourceGroup.collect_resources(builder)
             # collect all resources that are either global or need the subscription id
-            self.collect_resources("subscription", builder, subscription_resources)
+            self.collect_resource_list("subscription", builder, subscription_resources)
             # collect all resources inside resource groups
             for group in groups:
-                self.collect_resources(group.safe_name, builder.with_resource_group(group), subscription_resources)
+                self.collect_resource_list(group.safe_name, builder.with_resource_group(group), group_resources)
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes
@@ -76,19 +80,22 @@ class AzureSubscriptionCollector:
                     raise Exception(f"Only Azure resources expected, but got {node}")
             # wait for all work to finish
             queue.wait_for_submitted_work()
-            self.core_feedback.progress_done(self.subscription.dname, 1, 1, context=[self.cloud.id])
+            self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
 
-    def collect_resources(self, name: str, builder: GraphBuilder, resources: List[Type[AzureResource]]) -> Future[None]:
+    def collect_resource_list(
+        self, name: str, builder: GraphBuilder, resources: List[Type[AzureResource]]
+    ) -> Future[None]:
         def collect_resource(clazz: Type[AzureResource]) -> None:
+            log.info(f"[Azure:{self.subscription.subscription_id}:{name}] start collecting: {clazz.kind}")
             clazz.collect_resources(builder)
-            log.info(f"[Azure:{self.subscription.id}:{name}] finished collecting: {clazz.kind}")
+            log.info(f"[Azure:{self.subscription.subscription_id}:{name}] finished collecting: {clazz.kind}")
 
         def work_done(_: Future[None]) -> None:
-            self.core_feedback.progress_done(name, 1, 1, context=[self.cloud.id, self.subscription.id])
+            self.core_feedback.progress_done(name, 1, 1, context=[self.cloud.id, self.subscription.subscription_id])
 
         group_futures = []
-        self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.subscription.id])
+        self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.subscription.subscription_id])
         for resource_type in resources:
             group_futures.append(builder.submit_work(collect_resource, resource_type))
         all_done = GatherFutures.all(group_futures)

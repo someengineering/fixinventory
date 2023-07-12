@@ -6,6 +6,7 @@ from threading import Lock
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable
 
 from attr import define, field
+from azure.core.utils import CaseInsensitiveDict
 from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
@@ -31,6 +32,13 @@ class AzureResource(BaseResource):
         # TODO: implement me.
         # get_client().delete(self.id)
         return False
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        """
+        Hook method to pre process the resource before it is added to the graph.
+        Default: do nothing.
+        """
+        pass
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         """
@@ -66,6 +74,7 @@ class AzureResource(BaseResource):
         for js in raw:
             # map from api
             instance = cls.from_api(js)
+            instance.pre_process(builder, js)
             # add to graph
             if (added := builder.add_node(instance, js)) is not None:
                 # post process
@@ -156,13 +165,13 @@ class AzureLocation(AzureResource, BaseRegion):
         "availability_zone_mappings": S("availabilityZoneMappings")
         >> ForallBend(AzureAvailabilityZoneMappings.mapping),
         "display_name": S("displayName"),
-        "location": S("metadata") >> Bend(AzureLocationMetadata.mapping),
+        "location_metadata": S("metadata") >> Bend(AzureLocationMetadata.mapping),
         "regional_display_name": S("regionalDisplayName"),
         "subscription_id": S("subscriptionId"),
     }
     availability_zone_mappings: Optional[List[AzureAvailabilityZoneMappings]] = field(default=None, metadata={'description': 'The availability zone mappings for this region.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the location."})
-    location: Optional[AzureLocationMetadata] = field(default=None, metadata={'description': 'Location metadata information.'})  # fmt: skip
+    location_metadata: Optional[AzureLocationMetadata] = field(default=None, metadata={'description': 'Location metadata information.'})  # fmt: skip
     regional_display_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the location and its region.'})  # fmt: skip
     subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
 
@@ -328,7 +337,14 @@ class GraphBuilder:
         if source and "location" in source:
             # reference the location node if available
             if location := self.location_lookup.get(source["location"]):
+                node._region = location
                 last_edge_key = self.add_edge(location, node=node)
+        if source and "locations" in source:
+            for location in source["locations"]:
+                # reference the location node if available
+                if location := self.location_lookup.get(location):
+                    last_edge_key = self.add_edge(location, node=node)
+                    node._region = location  # TODO: how to handle multiple locations?
         elif last_edge_key is None:
             # add edge from subscription to resource
             last_edge_key = self.add_edge(self.subscription, node=node)
@@ -338,7 +354,7 @@ class GraphBuilder:
                 self.graph.add_node(node, source=source or {})
             return node
         else:
-            log.info(f"Node is not attached in the graph. Ignore. Source: {node}")
+            log.debug(f"Node is not attached in the graph. Ignore. Source: {node}")
             return None
 
     def add_edge(
@@ -405,7 +421,7 @@ class GraphBuilder:
 
     def fetch_locations(self) -> List[AzureLocation]:
         locations = AzureLocation.collect_resources(self)
-        self.location_lookup = {loc.safe_name: loc for loc in locations}
+        self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})
         return locations
 
     def with_resource_group(self, group: AzureResourceGroup) -> GraphBuilder:

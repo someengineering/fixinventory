@@ -2,7 +2,7 @@ import logging
 import multiprocessing
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, Any, Tuple
+from typing import Optional, Tuple
 
 from resoto_plugin_azure.collector import AzureSubscriptionCollector
 from resoto_plugin_azure.config import AzureConfig, AzureAccountConfig
@@ -38,7 +38,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         return False
 
     def collect(self) -> None:
-        log.debug("plugin: Azure collecting resources")
+        log.info("plugin: Azure collecting resources")
         config: AzureConfig = Config.azure
         assert self.core_feedback, "core_feedback is not set"
         cloud = Cloud(id=self.cloud, name="Azure")
@@ -58,8 +58,8 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         # Send initial progress
         progress = ProgressTree(self.cloud)
         for sub in args:
-            progress.add_progress(ProgressDone(sub.subscription.dname, 0, 1, path=[cloud.id]))
-            log.debug(f"Found {sub.subscription.rtdname}")
+            progress.add_progress(ProgressDone(sub.subscription.subscription_id, 0, 1))
+            log.debug(f"Found {sub.subscription.subscription_id}")
         self.core_feedback.progress(progress)
 
         # Collect all subscriptions
@@ -67,7 +67,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
             wait_for = [executor.submit(collect_in_process, sub) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()
-                progress.add_progress(ProgressDone(subscription.dname, 1, 1, path=[cloud.id]))
+                progress.add_progress(ProgressDone(subscription.subscription_id, 1, 1, path=[cloud.id]))
                 if not isinstance(graph, Graph):
                     log.debug(f"Skipping subscription graph of invalid type {type(graph)}")
                     continue
@@ -76,7 +76,6 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 
 def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:
     collector_initializer()
-    print(">>> GOT: ", subscription_collector_arg)
     config, cloud, subscription, account_config, core_feedback = subscription_collector_arg
     subscription_collector = AzureSubscriptionCollector(
         config, cloud, subscription, account_config.credentials(), core_feedback
