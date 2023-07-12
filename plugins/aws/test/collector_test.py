@@ -18,7 +18,7 @@ from test import account_collector, builder, aws_client, aws_config, no_feedback
 
 
 def test_collect(account_collector: AwsAccountCollector) -> None:
-    account_collector.collect({})
+    account_collector.collect()
 
     def count_kind(clazz: Type[AwsResource]) -> int:
         count = 0

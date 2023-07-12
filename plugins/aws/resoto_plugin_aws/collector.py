@@ -130,7 +130,13 @@ def called_mutator_apis() -> List[AwsApiSpec]:
 
 class AwsAccountCollector:
     def __init__(
-        self, config: AwsConfig, cloud: Cloud, account: AwsAccount, regions: List[str], core_feedback: CoreFeedback
+        self,
+        config: AwsConfig,
+        cloud: Cloud,
+        account: AwsAccount,
+        regions: List[str],
+        core_feedback: CoreFeedback,
+        task_data: Json,
     ) -> None:
         self.config = config
         self.cloud = cloud
@@ -151,8 +157,9 @@ class AwsAccountCollector:
             partition=account.partition,
             error_accumulator=self.error_accumulator,
         )
+        self.task_data = task_data
 
-    def collect(self, task_data: Json) -> None:
+    def collect(self) -> None:
         with ThreadPoolExecutor(
             thread_name_prefix=f"aws_{self.account.id}", max_workers=self.config.resource_pool_size
         ) as executor:
@@ -162,9 +169,10 @@ class AwsAccountCollector:
             shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
 
             def get_last_run() -> Optional[datetime]:
-                if not task_data:
+                td = self.task_data
+                if not td:
                     return None
-                timestamp = value_in_path(task_data, ["timing", task_data.get("step", ""), "started_at"])
+                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
 
                 if timestamp is None:
                     return None

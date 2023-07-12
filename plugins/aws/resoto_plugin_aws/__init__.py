@@ -626,9 +626,9 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback)
+    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback, task_data)
     try:
-        aac.collect(task_data)
+        aac.collect()
     except botocore.exceptions.ClientError as e:
         feedback.error(
             f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log
