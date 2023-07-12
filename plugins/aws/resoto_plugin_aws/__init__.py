@@ -10,7 +10,7 @@ import json
 import boto3
 import botocore.exceptions
 from prometheus_client import Counter, Summary
-from datetime import datetime
+from datetime import datetime, timezone
 
 import resotolib.logger
 import resotolib.proc
@@ -116,9 +116,17 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         else:
             collect_method = collect_account
 
-        last_run = None
-        if (m := self.metadata) and (lr := m.last_run):
-            last_run = lr
+        def get_last_run() -> Optional[datetime]:
+            if not self.task_data:
+                return None
+            timestamp = self.task_data.get("timing", {}).get(self.task_data.get("step"), {}).get("started_at")
+
+            if timestamp is None:
+                return None
+
+            return datetime.fromtimestamp(timestamp, timezone.utc)
+
+        last_run = get_last_run()
 
         with pool_executor(**pool_args) as executor:  # type: ignore
             wait_for = [

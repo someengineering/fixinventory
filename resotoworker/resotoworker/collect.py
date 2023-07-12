@@ -9,7 +9,7 @@ from concurrent import futures
 from threading import Lock
 from resotoworker.exceptions import DuplicateMessageError
 from resotoworker.resotocore import Resotocore
-from resotolib.baseplugin import BaseCollectorPlugin, CollectorMetadata
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, sanitize, GraphMergeKind
@@ -71,14 +71,16 @@ class Collector:
     def collect_and_send(
         self,
         collectors: List[Type[BaseCollectorPlugin]],
-        metadata: CollectorMetadata,
+        task_data: Json,
     ) -> None:
-        core_feedback = CoreFeedback(metadata.task_id, metadata.step_name, "collect", self.core_messages)
+        task_id = task_data["task"]
+        step_name = task_data["step"]
+        core_feedback = CoreFeedback(task_id, step_name, "collect", self.core_messages)
 
         def collect(
             collectors: List[Type[BaseCollectorPlugin]],
             graph_queue: Queue[Optional[Graph]],
-            metadata: CollectorMetadata,
+            task_data: Json,
         ) -> bool:
             all_success = True
             graph_merge_kind = self._config.resotoworker.graph_merge_kind
@@ -114,7 +116,7 @@ class Collector:
                         core_feedback,
                         graph_queue,
                         graph_merge_kind,
-                        metadata=metadata,
+                        task_data=task_data,
                         **collect_args,
                     )
                     for collector in collectors
@@ -125,7 +127,7 @@ class Collector:
                         all_success = False
             return all_success
 
-        processing_id = f"{metadata.task_id}:{metadata.step_name}"
+        processing_id = f"{task_id}:{step_name}"
         try:
             with self.processing_lock:
                 if processing_id in self.processing:
@@ -136,12 +138,12 @@ class Collector:
             graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
             graph_sender_threads = []
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
-            tempdir = mkdtemp(prefix=f"resoto-{metadata.task_id}", dir=self._config.resotoworker.tempdir)
+            tempdir = mkdtemp(prefix=f"resoto-{task_id}", dir=self._config.resotoworker.tempdir)
             try:
                 for i in range(graph_sender_pool_size):
                     graph_sender_t = threading.Thread(
                         target=self.graph_sender,
-                        args=(graph_queue, metadata.task_id, tempdir),
+                        args=(graph_queue, task_id, tempdir),
                         name=f"graph_sender_{i}",
                     )
                     graph_sender_t.daemon = True
@@ -149,7 +151,7 @@ class Collector:
                     graph_sender_threads.append(graph_sender_t)
 
                 self._resotocore.create_graph_and_update_model(tempdir=tempdir)
-                collect(collectors, graph_queue, metadata)
+                collect(collectors, graph_queue, task_data)
             finally:
                 log.debug("Telling graph sender threads to end")
                 for _ in range(graph_sender_pool_size):
@@ -170,13 +172,13 @@ def collect_plugin_graph(
     core_feedback: CoreFeedback,
     graph_queue: Queue[Optional[Graph]],
     graph_merge_kind: GraphMergeKind,
-    metadata: CollectorMetadata,
+    task_data: Json,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
 ) -> bool:
     try:
         collector: BaseCollectorPlugin = collector_plugin(
-            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, metadata=metadata
+            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data
         )
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):

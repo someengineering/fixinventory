@@ -4,8 +4,6 @@ from enum import Enum, auto
 from threading import Thread, current_thread
 from typing import Dict, Optional, Any
 from queue import Queue
-from datetime import datetime
-from attrs import frozen
 
 from prometheus_client import Counter
 
@@ -189,13 +187,6 @@ class BaseActionPlugin(ABC, Thread):
         pass
 
 
-@frozen
-class CollectorMetadata:
-    task_id: str
-    step_name: str
-    last_run: Optional[datetime]
-
-
 class BaseCollectorPlugin(BasePlugin):
     """A resoto Collector plugin is a thread that collects cloud resources.
 
@@ -215,7 +206,7 @@ class BaseCollectorPlugin(BasePlugin):
         self,
         graph_queue: Optional[Queue[Optional[Graph]]] = None,
         graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
-        metadata: Optional[CollectorMetadata] = None,
+        task_data: Optional[Json] = None,
     ) -> None:
         super().__init__()
         self.name = str(self.cloud)
@@ -224,7 +215,7 @@ class BaseCollectorPlugin(BasePlugin):
         self._graph_queue: Optional[Queue[Optional[Graph]]] = graph_queue
         self.graph_merge_kind: GraphMergeKind = graph_merge_kind
         self.graph = self.new_graph()
-        self.metadata = metadata
+        self.task_data = task_data
 
     @abstractmethod
     def collect(self) -> None:
