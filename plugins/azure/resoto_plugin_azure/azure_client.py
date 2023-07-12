@@ -11,11 +11,11 @@ from azure.core.exceptions import (
 from azure.core.pipeline import PipelineResponse
 from azure.core.rest import HttpRequest
 from azure.core.utils import case_insensitive_dict
-from azure.identity import DefaultAzureCredential
 from azure.mgmt.core.exceptions import ARMErrorFormat
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.resource.resources._serialization import Serializer
 
+from resoto_plugin_azure.config import AzureCredentials
 from resotolib.types import Json
 
 
@@ -32,7 +32,7 @@ class AzureApiSpec:
 
 class AzureClient:
     def __init__(
-        self, credential: DefaultAzureCredential, subscription_id: str, resource_group: Optional[str] = None
+        self, credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
     ) -> None:
         self.credential = credential
         self.subscription_id = subscription_id

@@ -4,6 +4,8 @@ from typing import ClassVar, Optional, Dict, List
 from attr import define, field
 from azure.identity import DefaultAzureCredential
 
+AzureCredentials = DefaultAzureCredential
+
 
 @define
 class AzureAccountConfig:
@@ -17,7 +19,7 @@ class AzureAccountConfig:
         default=None, metadata={"description": "Subscriptions to exclude"}
     )
 
-    def credentials(self) -> DefaultAzureCredential:
+    def credentials(self) -> AzureCredentials:
         # update env vars if defined
         if self.env_vars:
             os.environ.update(self.env_vars)

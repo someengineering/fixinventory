@@ -7,9 +7,9 @@ from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
-from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
+from resoto_plugin_azure.config import AzureCredentials
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -244,7 +244,7 @@ class AzureSubscription(AzureResource, BaseAccount):
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
 
     @classmethod
-    def list_subscriptions(cls, credentials: DefaultAzureCredential) -> List[AzureSubscription]:
+    def list_subscriptions(cls, credentials: AzureCredentials) -> List[AzureSubscription]:
         client = AzureClient(credentials, "global")
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 

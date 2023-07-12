@@ -2,9 +2,8 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, Future
 from typing import Type, Set, List
 
-from azure.identity import DefaultAzureCredential
 
-from resoto_plugin_azure.config import AzureConfig
+from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
 from resoto_plugin_azure.resource.compute import resources as compute_resources
 from resoto_plugin_azure.resource.base import (
@@ -39,7 +38,7 @@ class AzureSubscriptionCollector:
         config: AzureConfig,
         cloud: Cloud,
         subscription: AzureSubscription,
-        credentials: DefaultAzureCredential,
+        credentials: AzureCredentials,
         core_feedback: CoreFeedback,
     ):
         self.config = config

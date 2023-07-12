@@ -2,7 +2,7 @@ import logging
 import multiprocessing
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 from resoto_plugin_azure.collector import AzureSubscriptionCollector
 from resoto_plugin_azure.config import AzureConfig, AzureAccountConfig
@@ -25,8 +25,8 @@ AzureSubscriptionArg = namedtuple(
 class AzureCollectorPlugin(BaseCollectorPlugin):
     cloud = "azure"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.core_feedback: Optional[CoreFeedback] = None
 
     @staticmethod
@@ -71,7 +71,8 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(graph, Graph):
                     log.debug(f"Skipping subscription graph of invalid type {type(graph)}")
                     continue
-                self.graph.merge(graph, skip_deferred_edges=True)
+                self.send_account_graph(graph)
+                del graph
 
 
 def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:  # type: ignore

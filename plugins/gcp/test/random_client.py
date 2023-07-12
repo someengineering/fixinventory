@@ -120,7 +120,11 @@ def random_json(schemas: Dict[str, Schema], response_schema: Schema, parameter: 
                 return [value_for(schema["items"], level + 1, f"{path}[]") for _ in range(count)]
             elif schema["type"] == "string" and "enum" in schema:
                 return random_choice(schema["enum"])  # type: ignore
-            elif schema["type"] == "string" and "in RFC3339 text format" in schema.get("description", ""):
+            elif schema["type"] == "string" and (
+                schema.get("format") == "date-time"
+                or schema.get("format") == "google-datetime"
+                or "in RFC3339 text format" in schema.get("description", "")
+            ):
                 return random_datetime()
             elif schema["type"] == "string" and "URL" in schema.get("description", ""):
                 return f"https://example.{random_string()}.{random_choice(['com', 'org', 'net'])}"
@@ -163,7 +167,8 @@ class RandomDataClient:
         response_kind_name = method["response"]["$ref"]
         response_kind = self.schemas[response_kind_name]
         path_full = ".".join(p for p, _, _ in self.path)
-        return PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
+        result = PredefinedResults.get(f"{self.service}.{path_full}", random_json(self.schemas, response_kind, kwargs))
+        return result
 
     def __getattr__(self, name: Any) -> Any:
         def add_path(*args: Any, **kwargs: Any) -> Any:
