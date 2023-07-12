@@ -7,7 +7,7 @@ from asyncio import Task
 from contextlib import suppress
 from datetime import timedelta, datetime
 from enum import Enum
-from typing import Optional, Any, Sequence, MutableSequence, Dict, List, Set, Tuple, Union, TYPE_CHECKING, cast
+from typing import Optional, Any, Sequence, MutableSequence, Dict, List, Set, Tuple, Union, TYPE_CHECKING
 
 from apscheduler.triggers.cron import CronTrigger
 from attrs import define

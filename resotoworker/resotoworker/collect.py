@@ -80,7 +80,7 @@ class Collector:
         def collect(
             collectors: List[Type[BaseCollectorPlugin]],
             graph_queue: Queue[Optional[Graph]],
-            metadata: CollectorMetadata,
+            metadata: Optional[CollectorMetadata],
         ) -> bool:
             all_success = True
             graph_merge_kind = self._config.resotoworker.graph_merge_kind
