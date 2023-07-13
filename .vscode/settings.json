@@ -4,7 +4,6 @@
         "plugins/k8s/test",
         "plugins/digitalocean/test",
         "plugins/aws/test",
-        "plugins/aws_k8s/test",
         "plugins/gcp/test",
         "resotolib/test/core",
         "resotolib/test",
@@ -12,5 +11,12 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "search.exclude": {
+        "**/*.code-search": true,
+        "**/bower_components": true,
+        "**/jupyterlite": true,
+        "**/node_modules": true,
+    },
+    "search.useParentIgnoreFiles": true
 }
