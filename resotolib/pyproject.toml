@@ -47,6 +47,7 @@ dependencies = [
     "tzdata",
     "tzlocal",
     "websocket-client",
+    "frozendict"
 ]
 
 [project.optional-dependencies]
