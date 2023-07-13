@@ -58,14 +58,14 @@ class AzureAvailabilitySet(AzureResource):
         "proximity_placement_group": S("properties", "AvailabilitySetProperties", "id"),
         "sku": S("sku") >> Bend(AzureSku.mapping),
         "statuses": S("properties", "statuses") >> Bend(AzureInstanceViewStatus.mapping),
-        "virtual_machines": S("properties", "AvailabilitySetProperties", "id"),
+        "virtual_machines_availability": S("properties", "AvailabilitySetProperties", "id"),
     }
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={"description": "Fault domain count."})
     platform_update_domain_count: Optional[int] = field(default=None, metadata={"description": "Update domain count."})
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
     sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
     statuses: Optional[AzureInstanceViewStatus] = field(default=None, metadata={'description': 'The resource status information.'})  # fmt: skip
-    virtual_machines: Optional[str] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
+    virtual_machines_availability: Optional[str] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -97,11 +97,12 @@ class AzureCapacityReservationGroup(AzureResource):
         "mtime": K(None),
         "atime": K(None),
         "capacity_reservations": S("properties", "CapacityReservationGroupProperties", "id"),
-        "instance_view": S("properties", "instanceView") >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
+        "reservation_group_instance_view": S("properties", "instanceView")
+        >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
         "virtual_machines_associated": S("properties", "CapacityReservationGroupProperties", "id"),
     }
     capacity_reservations: Optional[str] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
-    instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
+    reservation_group_instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
     virtual_machines_associated: Optional[str] = field(default=None, metadata={'description': 'A list of references to all virtual machines associated to the capacity reservation group.'})  # fmt: skip
 
 
@@ -492,15 +493,18 @@ class AzureDedicatedHostGroup(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "additional_capabilities": S("properties", "DedicatedHostGroupProperties", "ultraSSDEnabled"),
+        "ultra_ssd_enabled": S("properties", "DedicatedHostGroupProperties", "ultraSSDEnabled"),
         "hosts": S("properties", "DedicatedHostGroupProperties", "id"),
-        "instance_view": S("properties", "instanceView") >> Bend(AzureDedicatedHostGroupInstanceView.mapping),
+        "host_group_instance_view": S("properties", "instanceView")
+        >> Bend(AzureDedicatedHostGroupInstanceView.mapping),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "support_automatic_placement": S("properties", "supportAutomaticPlacement"),
     }
-    additional_capabilities: Optional[bool] = field(default=None, metadata={'description': 'Enables or disables a capability on the dedicated host group. Minimum api-version: 2022-03-01.'})  # fmt: skip
+    ultra_ssd_enabled: Optional[bool] = field(default=None, metadata={'description': 'Enables or disables a capability on the dedicated host group. Minimum api-version: 2022-03-01.'})  # fmt: skip
     hosts: Optional[str] = field(default=None, metadata={'description': 'A list of references to all dedicated hosts in the dedicated host group.'})  # fmt: skip
-    instance_view: Optional[AzureDedicatedHostGroupInstanceView] = field(default=None, metadata={"description": ""})
+    host_group_instance_view: Optional[AzureDedicatedHostGroupInstanceView] = field(
+        default=None, metadata={"description": ""}
+    )
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={'description': 'Number of fault domains that the host group can span.'})  # fmt: skip
     support_automatic_placement: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether virtual machines or virtual machine scale sets can be placed automatically on the dedicated host group. Automatic placement means resources are allocated on dedicated hosts, that are chosen by azure, under the dedicated host group. The value is defaulted to false when not provided. Minimum api-version: 2020-06-01.'})  # fmt: skip
 
@@ -690,7 +694,7 @@ class AzureDisk(AzureResource):
         "disk_size_bytes": S("properties", "diskSizeBytes"),
         "disk_size_gb": S("properties", "diskSizeGB"),
         "disk_state": S("properties", "diskState"),
-        "encryption": S("properties", "encryption") >> Bend(AzureEncryption.mapping),
+        "disk_encryption": S("properties", "encryption") >> Bend(AzureEncryption.mapping),
         "encryption_settings_collection": S("properties", "encryptionSettingsCollection")
         >> Bend(AzureEncryptionSettingsCollection.mapping),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -705,9 +709,9 @@ class AzureDisk(AzureResource):
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "purchase_plan": S("properties", "purchasePlan") >> Bend(AzurePurchasePlan.mapping),
-        "security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
+        "disk_security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
         "share_info": S("properties", "DiskProperties", "vmUri"),
-        "sku": S("sku") >> Bend(AzureDiskSku.mapping),
+        "disk_sku": S("sku") >> Bend(AzureDiskSku.mapping),
         "supported_capabilities": S("properties", "supportedCapabilities") >> Bend(AzureSupportedCapabilities.mapping),
         "supports_hibernation": S("properties", "supportsHibernation"),
         "tier": S("properties", "tier"),
@@ -727,7 +731,7 @@ class AzureDisk(AzureResource):
     disk_size_bytes: Optional[int] = field(default=None, metadata={'description': 'The size of the disk in bytes. This field is read only.'})  # fmt: skip
     disk_size_gb: Optional[int] = field(default=None, metadata={'description': 'If creationdata. Createoption is empty, this field is mandatory and it indicates the size of the disk to create. If this field is present for updates or creation with other options, it indicates a resize. Resizes are only allowed if the disk is not attached to a running vm, and can only increase the disk s size.'})  # fmt: skip
     disk_state: Optional[str] = field(default=None, metadata={'description': 'This enumerates the possible state of the disk.'})  # fmt: skip
-    encryption: Optional[AzureEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk or snapshot.'})  # fmt: skip
+    disk_encryption: Optional[AzureEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk or snapshot.'})  # fmt: skip
     encryption_settings_collection: Optional[AzureEncryptionSettingsCollection] = field(default=None, metadata={'description': 'Encryption settings for disk or snapshot.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     hyper_v_generation: Optional[str] = field(default=None, metadata={'description': 'The hypervisor generation of the virtual machine. Applicable to os disks only.'})  # fmt: skip
@@ -741,9 +745,9 @@ class AzureDisk(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={"description": "The disk provisioning state."})
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Policy for controlling export on the disk.'})  # fmt: skip
     purchase_plan: Optional[AzurePurchasePlan] = field(default=None, metadata={'description': 'Used for establishing the purchase context of any 3rd party artifact through marketplace.'})  # fmt: skip
-    security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
+    disk_security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
     share_info: Optional[str] = field(default=None, metadata={'description': 'Details of the list of all vms that have the disk attached. Maxshares should be set to a value greater than one for disks to allow attaching them to multiple vms.'})  # fmt: skip
-    sku: Optional[AzureDiskSku] = field(default=None, metadata={'description': 'The disks sku name. Can be standard_lrs, premium_lrs, standardssd_lrs, ultrassd_lrs, premium_zrs, standardssd_zrs, or premiumv2_lrs.'})  # fmt: skip
+    disk_sku: Optional[AzureDiskSku] = field(default=None, metadata={'description': 'The disks sku name. Can be standard_lrs, premium_lrs, standardssd_lrs, ultrassd_lrs, premium_zrs, standardssd_zrs, or premiumv2_lrs.'})  # fmt: skip
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a disk supports hibernation.'})  # fmt: skip
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
@@ -906,7 +910,7 @@ class AzureDiskEncryptionSet(AzureResource):
         "auto_key_rotation_error": S("properties", "autoKeyRotationError") >> Bend(AzureApiError.mapping),
         "encryption_type": S("properties", "encryptionType"),
         "federated_client_id": S("properties", "federatedClientId"),
-        "identity": S("identity") >> Bend(AzureEncryptionSetIdentity.mapping),
+        "encryption_set_identity": S("identity") >> Bend(AzureEncryptionSetIdentity.mapping),
         "last_key_rotation_timestamp": S("properties", "lastKeyRotationTimestamp"),
         "previous_keys": S("properties", "previousKeys") >> Bend(AzureKeyForDiskEncryptionSet.mapping),
         "provisioning_state": S("properties", "provisioningState"),
@@ -916,7 +920,7 @@ class AzureDiskEncryptionSet(AzureResource):
     auto_key_rotation_error: Optional[AzureApiError] = field(default=None, metadata={"description": "Api error."})
     encryption_type: Optional[str] = field(default=None, metadata={'description': 'The type of key used to encrypt the data of the disk.'})  # fmt: skip
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'Multi-tenant application client id to access key vault in a different tenant. Setting the value to none will clear the property.'})  # fmt: skip
-    identity: Optional[AzureEncryptionSetIdentity] = field(default=None, metadata={'description': 'The managed identity for the disk encryption set. It should be given permission on the key vault before it can be used to encrypt disks.'})  # fmt: skip
+    encryption_set_identity: Optional[AzureEncryptionSetIdentity] = field(default=None, metadata={'description': 'The managed identity for the disk encryption set. It should be given permission on the key vault before it can be used to encrypt disks.'})  # fmt: skip
     last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={'description': 'The time when the active key of this disk encryption set was updated.'})  # fmt: skip
     previous_keys: Optional[AzureKeyForDiskEncryptionSet] = field(default=None, metadata={'description': 'A readonly collection of key vault keys previously used by this disk encryption set while a key rotation is in progress. It will be empty if there is no ongoing key rotation.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The disk encryption set provisioning state.'})  # fmt: skip
@@ -1147,14 +1151,15 @@ class AzureProximityPlacementGroup(AzureResource):
         "proximity_placement_group_type": S("properties", "proximityPlacementGroupType"),
         "virtual_machine_scale_sets": S("properties", "virtualMachineScaleSets")
         >> Bend(AzureSubResourceWithColocationStatus.mapping),
-        "virtual_machines": S("properties", "virtualMachines") >> Bend(AzureSubResourceWithColocationStatus.mapping),
+        "virtual_machines_status": S("properties", "virtualMachines")
+        >> Bend(AzureSubResourceWithColocationStatus.mapping),
     }
     availability_sets: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all availability sets in the proximity placement group.'})  # fmt: skip
     colocation_status: Optional[AzureInstanceViewStatus] = field(default=None, metadata={'description': 'Instance view status.'})  # fmt: skip
     intent: Optional[AzureVmSizes] = field(default=None, metadata={'description': 'Specifies the user intent of the proximity placement group.'})  # fmt: skip
     proximity_placement_group_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the type of the proximity placement group. Possible values are: **standard** : co-locate resources within an azure region or availability zone. **ultra** : for future use.'})  # fmt: skip
     virtual_machine_scale_sets: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all virtual machine scale sets in the proximity placement group.'})  # fmt: skip
-    virtual_machines: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the proximity placement group.'})  # fmt: skip
+    virtual_machines_status: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the proximity placement group.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1275,8 +1280,8 @@ class AzureResourceSku(AzureResource):
         "locations": S("locations"),
         "resource_type": S("resourceType"),
         "restrictions": S("restrictions") >> ForallBend(AzureResourceSkuRestrictions.mapping),
-        "size": S("size"),
-        "tier": S("tier"),
+        "sku_size": S("size"),
+        "sku_tier": S("tier"),
     }
     api_versions: Optional[List[str]] = field(default=None, metadata={'description': 'The api versions that support this sku.'})  # fmt: skip
     capabilities: Optional[List[AzureResourceSkuCapabilities]] = field(default=None, metadata={'description': 'A name value pair to describe the capability.'})  # fmt: skip
@@ -1288,8 +1293,8 @@ class AzureResourceSku(AzureResource):
     locations: Optional[List[str]] = field(default=None, metadata={'description': 'The set of locations that the sku is available.'})  # fmt: skip
     resource_type: Optional[str] = field(default=None, metadata={'description': 'The type of resource the sku applies to.'})  # fmt: skip
     restrictions: Optional[List[AzureResourceSkuRestrictions]] = field(default=None, metadata={'description': 'The restrictions because of which sku cannot be used. This is empty if there are no restrictions.'})  # fmt: skip
-    size: Optional[str] = field(default=None, metadata={"description": "The size of the sku."})
-    tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
+    sku_size: Optional[str] = field(default=None, metadata={"description": "The size of the sku."})
+    sku_tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1382,11 +1387,11 @@ class AzureManagedDiskParameters(AzureSubResource):
     kind: ClassVar[str] = "azure_managed_disk_parameters"
     mapping: ClassVar[Dict[str, Bender]] = {
         "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
-        "security_profile": S("securityProfile") >> Bend(AzureVMDiskSecurityProfile.mapping),
+        "disk_parameters_security_profile": S("securityProfile") >> Bend(AzureVMDiskSecurityProfile.mapping),
         "storage_account_type": S("storageAccountType"),
     }
     disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
-    security_profile: Optional[AzureVMDiskSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the managed disk. **note:** it can only be set for confidential vms.'})  # fmt: skip
+    disk_parameters_security_profile: Optional[AzureVMDiskSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the managed disk. **note:** it can only be set for confidential vms.'})  # fmt: skip
     storage_account_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the storage account type for the managed disk. Managed os disk storage account type can only be set when you create the scale set. Note: ultrassd_lrs can only be used with data disks. It cannot be used with os disk. Standard_lrs uses standard hdd. Standardssd_lrs uses standard ssd. Premium_lrs uses premium ssd. Ultrassd_lrs uses ultra disk. Premium_zrs uses premium ssd zone redundant storage. Standardssd_zrs uses standard ssd zone redundant storage. For more information regarding disks supported for windows virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/windows/disks-types and, for linux virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/linux/disks-types.'})  # fmt: skip
 
 
@@ -1764,7 +1769,7 @@ class AzureRestorePoint(AzureProxyResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "consistency_mode": S("properties", "consistencyMode"),
         "exclude_disks": S("properties", "RestorePointProperties", "id"),
-        "instance_view": S("properties", "instanceView") >> Bend(AzureRestorePointInstanceView.mapping),
+        "restore_point_instance_view": S("properties", "instanceView") >> Bend(AzureRestorePointInstanceView.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "source_metadata": S("properties", "sourceMetadata") >> Bend(AzureRestorePointSourceMetadata.mapping),
         "source_restore_point": S("properties", "RestorePointProperties", "id"),
@@ -1772,7 +1777,7 @@ class AzureRestorePoint(AzureProxyResource):
     }
     consistency_mode: Optional[str] = field(default=None, metadata={'description': 'Consistencymode of the restorepoint. Can be specified in the input while creating a restore point. For now, only crashconsistent is accepted as a valid input. Please refer to https://aka. Ms/restorepoints for more details.'})  # fmt: skip
     exclude_disks: Optional[str] = field(default=None, metadata={'description': 'List of disk resource ids that the customer wishes to exclude from the restore point. If no disks are specified, all disks will be included.'})  # fmt: skip
-    instance_view: Optional[AzureRestorePointInstanceView] = field(default=None, metadata={'description': 'The instance view of a restore point.'})  # fmt: skip
+    restore_point_instance_view: Optional[AzureRestorePointInstanceView] = field(default=None, metadata={'description': 'The instance view of a restore point.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Gets the provisioning state of the restore point.'})  # fmt: skip
     source_metadata: Optional[AzureRestorePointSourceMetadata] = field(default=None, metadata={'description': 'Describes the properties of the virtual machine for which the restore point was created. The properties provided are a subset and the snapshot of the overall virtual machine properties captured at the time of the restore point creation.'})  # fmt: skip
     source_restore_point: Optional[str] = field(default=None, metadata={"description": "The api entity reference."})
@@ -1852,7 +1857,7 @@ class AzureSnapshot(AzureResource):
         "disk_size_bytes": S("properties", "diskSizeBytes"),
         "disk_size_gb": S("properties", "diskSizeGB"),
         "disk_state": S("properties", "diskState"),
-        "encryption": S("properties", "encryption") >> Bend(AzureEncryption.mapping),
+        "snapshot_encryption": S("properties", "encryption") >> Bend(AzureEncryption.mapping),
         "encryption_settings_collection": S("properties", "encryptionSettingsCollection")
         >> Bend(AzureEncryptionSettingsCollection.mapping),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -1865,8 +1870,8 @@ class AzureSnapshot(AzureResource):
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "purchase_plan": S("properties", "purchasePlan") >> Bend(AzurePurchasePlan.mapping),
-        "security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
-        "sku": S("sku") >> Bend(AzureSnapshotSku.mapping),
+        "snapshot_security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
+        "snapshot_sku": S("sku") >> Bend(AzureSnapshotSku.mapping),
         "supported_capabilities": S("properties", "supportedCapabilities") >> Bend(AzureSupportedCapabilities.mapping),
         "supports_hibernation": S("properties", "supportsHibernation"),
         "time_created": S("properties", "timeCreated"),
@@ -1880,7 +1885,7 @@ class AzureSnapshot(AzureResource):
     disk_size_bytes: Optional[int] = field(default=None, metadata={'description': 'The size of the disk in bytes. This field is read only.'})  # fmt: skip
     disk_size_gb: Optional[int] = field(default=None, metadata={'description': 'If creationdata. Createoption is empty, this field is mandatory and it indicates the size of the disk to create. If this field is present for updates or creation with other options, it indicates a resize. Resizes are only allowed if the disk is not attached to a running vm, and can only increase the disk s size.'})  # fmt: skip
     disk_state: Optional[str] = field(default=None, metadata={'description': 'This enumerates the possible state of the disk.'})  # fmt: skip
-    encryption: Optional[AzureEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk or snapshot.'})  # fmt: skip
+    snapshot_encryption: Optional[AzureEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk or snapshot.'})  # fmt: skip
     encryption_settings_collection: Optional[AzureEncryptionSettingsCollection] = field(default=None, metadata={'description': 'Encryption settings for disk or snapshot.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     hyper_v_generation: Optional[str] = field(default=None, metadata={'description': 'The hypervisor generation of the virtual machine. Applicable to os disks only.'})  # fmt: skip
@@ -1892,8 +1897,8 @@ class AzureSnapshot(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={"description": "The disk provisioning state."})
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Policy for controlling export on the disk.'})  # fmt: skip
     purchase_plan: Optional[AzurePurchasePlan] = field(default=None, metadata={'description': 'Used for establishing the purchase context of any 3rd party artifact through marketplace.'})  # fmt: skip
-    security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
-    sku: Optional[AzureSnapshotSku] = field(default=None, metadata={'description': 'The snapshots sku name. Can be standard_lrs, premium_lrs, or standard_zrs. This is an optional parameter for incremental snapshot and the default behavior is the sku will be set to the same sku as the previous snapshot.'})  # fmt: skip
+    snapshot_security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
+    snapshot_sku: Optional[AzureSnapshotSku] = field(default=None, metadata={'description': 'The snapshots sku name. Can be standard_lrs, premium_lrs, or standard_zrs. This is an optional parameter for incremental snapshot and the default behavior is the sku will be set to the same sku as the previous snapshot.'})  # fmt: skip
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a snapshot supports hibernation.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the snapshot was created.'})  # fmt: skip
@@ -1948,7 +1953,7 @@ class AzureImageReference(AzureSubResource):
         "offer": S("offer"),
         "publisher": S("publisher"),
         "shared_gallery_image_id": S("sharedGalleryImageId"),
-        "sku": S("sku"),
+        "image_reference_sku": S("sku"),
         "version": S("version"),
     }
     community_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the community gallery image unique id for vm deployment. This can be fetched from community gallery image get call.'})  # fmt: skip
@@ -1956,7 +1961,7 @@ class AzureImageReference(AzureSubResource):
     offer: Optional[str] = field(default=None, metadata={'description': 'Specifies the offer of the platform image or marketplace image used to create the virtual machine.'})  # fmt: skip
     publisher: Optional[str] = field(default=None, metadata={"description": "The image publisher."})
     shared_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the shared gallery image unique id for vm deployment. This can be fetched from shared gallery image get call.'})  # fmt: skip
-    sku: Optional[str] = field(default=None, metadata={"description": "The image sku."})
+    image_reference_sku: Optional[str] = field(default=None, metadata={"description": "The image sku."})
     version: Optional[str] = field(default=None, metadata={'description': 'Specifies the version of the platform image or marketplace image used to create the virtual machine. The allowed formats are major. Minor. Build or latest. Major, minor, and build are decimal numbers. Specify latest to use the latest version of an image available at deploy time. Even if you use latest , the vm image will not automatically update after deploy time even if a new version becomes available. Please do not use field version for gallery image deployment, gallery image should always use id field for deployment, to use latest version of gallery image, just set /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Compute/galleries/{galleryname}/images/{imagename} in the id field without version input.'})  # fmt: skip
 
 
@@ -2487,7 +2492,8 @@ class AzureVirtualMachineExtension(AzureResourceWithOptionalLocation):
         "auto_upgrade_minor_version": S("properties", "autoUpgradeMinorVersion"),
         "enable_automatic_upgrade": S("properties", "enableAutomaticUpgrade"),
         "force_update_tag": S("properties", "forceUpdateTag"),
-        "instance_view": S("properties", "instanceView") >> Bend(AzureVirtualMachineExtensionInstanceView.mapping),
+        "machine_extension_instance_view": S("properties", "instanceView")
+        >> Bend(AzureVirtualMachineExtensionInstanceView.mapping),
         "protected_settings": S("properties", "protectedSettings"),
         "protected_settings_from_key_vault": S("properties", "protectedSettingsFromKeyVault")
         >> Bend(AzureKeyVaultSecretReference.mapping),
@@ -2502,7 +2508,7 @@ class AzureVirtualMachineExtension(AzureResourceWithOptionalLocation):
     auto_upgrade_minor_version: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the extension should use a newer minor version if one is available at deployment time. Once deployed, however, the extension will not upgrade minor versions unless redeployed, even with this property set to true.'})  # fmt: skip
     enable_automatic_upgrade: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the extension should be automatically upgraded by the platform if there is a newer version of the extension available.'})  # fmt: skip
     force_update_tag: Optional[str] = field(default=None, metadata={'description': 'How the extension handler should be forced to update even if the extension configuration has not changed.'})  # fmt: skip
-    instance_view: Optional[AzureVirtualMachineExtensionInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine extension.'})  # fmt: skip
+    machine_extension_instance_view: Optional[AzureVirtualMachineExtensionInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine extension.'})  # fmt: skip
     protected_settings: Optional[Any] = field(default=None, metadata={'description': 'The extension can contain either protectedsettings or protectedsettingsfromkeyvault or no protected settings at all.'})  # fmt: skip
     protected_settings_from_key_vault: Optional[AzureKeyVaultSecretReference] = field(default=None, metadata={'description': 'Describes a reference to key vault secret.'})  # fmt: skip
     provision_after_extensions: Optional[str] = field(default=None, metadata={'description': 'Collection of extension names after which this extension needs to be provisioned.'})  # fmt: skip
@@ -2548,65 +2554,67 @@ class AzureVirtualMachine(AzureResource):
         "ctime": S("time_created"),
         "mtime": K(None),
         "atime": K(None),
-        "additional_capabilities": S("properties", "additionalCapabilities")
+        "virtual_machine_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "application_profile": S("properties", "applicationProfile") >> Bend(AzureApplicationProfile.mapping),
         "availability_set": S("properties", "VirtualMachineProperties", "id"),
         "billing_profile": S("properties", "VirtualMachineProperties", "maxPrice"),
         "capacity_reservation": S("properties", "capacityReservation") >> Bend(AzureCapacityReservationProfile.mapping),
-        "diagnostics_profile": S("properties", "diagnosticsProfile") >> Bend(AzureDiagnosticsProfile.mapping),
+        "virtual_machine_diagnostics_profile": S("properties", "diagnosticsProfile")
+        >> Bend(AzureDiagnosticsProfile.mapping),
         "eviction_policy": S("properties", "evictionPolicy"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "extensions_time_budget": S("properties", "extensionsTimeBudget"),
         "hardware_profile": S("properties", "hardwareProfile") >> Bend(AzureHardwareProfile.mapping),
         "host": S("properties", "VirtualMachineProperties", "id"),
         "host_group": S("properties", "VirtualMachineProperties", "id"),
-        "identity": S("identity") >> Bend(AzureVirtualMachineIdentity.mapping),
-        "instance_view": S("properties", "instanceView") >> Bend(AzureVirtualMachineInstanceView.mapping),
+        "virtual_machine_identity": S("identity") >> Bend(AzureVirtualMachineIdentity.mapping),
+        "virtual_machine_instance_view": S("properties", "instanceView")
+        >> Bend(AzureVirtualMachineInstanceView.mapping),
         "license_type": S("properties", "licenseType"),
-        "network_profile": S("properties", "networkProfile") >> Bend(AzureNetworkProfile.mapping),
-        "os_profile": S("properties", "osProfile") >> Bend(AzureOSProfile.mapping),
-        "plan": S("plan") >> Bend(AzurePlan.mapping),
+        "virtual_machine_network_profile": S("properties", "networkProfile") >> Bend(AzureNetworkProfile.mapping),
+        "virtual_machine_os_profile": S("properties", "osProfile") >> Bend(AzureOSProfile.mapping),
+        "azure_plan": S("plan") >> Bend(AzurePlan.mapping),
         "platform_fault_domain": S("properties", "platformFaultDomain"),
-        "priority": S("properties", "priority"),
+        "virtual_machine_priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
         "proximity_placement_group": S("properties", "VirtualMachineProperties", "id"),
-        "resources": S("resources") >> ForallBend(AzureVirtualMachineExtension.mapping),
+        "virtual_machine_resources": S("resources") >> ForallBend(AzureVirtualMachineExtension.mapping),
         "scheduled_events_profile": S("properties", "scheduledEventsProfile")
         >> Bend(AzureScheduledEventsProfile.mapping),
-        "security_profile": S("properties", "securityProfile") >> Bend(AzureSecurityProfile.mapping),
-        "storage_profile": S("properties", "storageProfile") >> Bend(AzureStorageProfile.mapping),
+        "virtual_machine_security_profile": S("properties", "securityProfile") >> Bend(AzureSecurityProfile.mapping),
+        "virtual_machine_storage_profile": S("properties", "storageProfile") >> Bend(AzureStorageProfile.mapping),
         "time_created": S("properties", "timeCreated"),
         "user_data": S("properties", "userData"),
         "virtual_machine_scale_set": S("properties", "VirtualMachineProperties", "id"),
         "vm_id": S("properties", "vmId"),
     }
-    additional_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
+    virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
     availability_set: Optional[str] = field(default=None, metadata={"description": ""})
     billing_profile: Optional[float] = field(default=None, metadata={'description': 'Specifies the billing related details of a azure spot vm or vmss. Minimum api-version: 2019-03-01.'})  # fmt: skip
     capacity_reservation: Optional[AzureCapacityReservationProfile] = field(default=None, metadata={'description': 'The parameters of a capacity reservation profile.'})  # fmt: skip
-    diagnostics_profile: Optional[AzureDiagnosticsProfile] = field(default=None, metadata={'description': 'Specifies the boot diagnostic settings state. Minimum api-version: 2015-06-15.'})  # fmt: skip
+    virtual_machine_diagnostics_profile: Optional[AzureDiagnosticsProfile] = field(default=None, metadata={'description': 'Specifies the boot diagnostic settings state. Minimum api-version: 2015-06-15.'})  # fmt: skip
     eviction_policy: Optional[str] = field(default=None, metadata={'description': 'Specifies the eviction policy for the azure spot vm/vmss.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     extensions_time_budget: Optional[str] = field(default=None, metadata={'description': 'Specifies the time alloted for all extensions to start. The time duration should be between 15 minutes and 120 minutes (inclusive) and should be specified in iso 8601 format. The default value is 90 minutes (pt1h30m). Minimum api-version: 2020-06-01.'})  # fmt: skip
     hardware_profile: Optional[AzureHardwareProfile] = field(default=None, metadata={'description': 'Specifies the hardware settings for the virtual machine.'})  # fmt: skip
     host: Optional[str] = field(default=None, metadata={"description": ""})
     host_group: Optional[str] = field(default=None, metadata={"description": ""})
-    identity: Optional[AzureVirtualMachineIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine.'})  # fmt: skip
-    instance_view: Optional[AzureVirtualMachineInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine.'})  # fmt: skip
+    virtual_machine_identity: Optional[AzureVirtualMachineIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine.'})  # fmt: skip
+    virtual_machine_instance_view: Optional[AzureVirtualMachineInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine.'})  # fmt: skip
     license_type: Optional[str] = field(default=None, metadata={'description': 'Specifies that the image or disk that is being used was licensed on-premises. Possible values for windows server operating system are: windows_client windows_server possible values for linux server operating system are: rhel_byos (for rhel) sles_byos (for suse) for more information, see [azure hybrid use benefit for windows server](https://docs. Microsoft. Com/azure/virtual-machines/windows/hybrid-use-benefit-licensing) [azure hybrid use benefit for linux server](https://docs. Microsoft. Com/azure/virtual-machines/linux/azure-hybrid-benefit-linux) minimum api-version: 2015-06-15.'})  # fmt: skip
-    network_profile: Optional[AzureNetworkProfile] = field(default=None, metadata={'description': 'Specifies the network interfaces or the networking configuration of the virtual machine.'})  # fmt: skip
-    os_profile: Optional[AzureOSProfile] = field(default=None, metadata={'description': 'Specifies the operating system settings for the virtual machine. Some of the settings cannot be changed once vm is provisioned.'})  # fmt: skip
-    plan: Optional[AzurePlan] = field(default=None, metadata={'description': 'Specifies information about the marketplace image used to create the virtual machine. This element is only used for marketplace images. Before you can use a marketplace image from an api, you must enable the image for programmatic use. In the azure portal, find the marketplace image that you want to use and then click **want to deploy programmatically, get started ->**. Enter any required information and then click **save**.'})  # fmt: skip
+    virtual_machine_network_profile: Optional[AzureNetworkProfile] = field(default=None, metadata={'description': 'Specifies the network interfaces or the networking configuration of the virtual machine.'})  # fmt: skip
+    virtual_machine_os_profile: Optional[AzureOSProfile] = field(default=None, metadata={'description': 'Specifies the operating system settings for the virtual machine. Some of the settings cannot be changed once vm is provisioned.'})  # fmt: skip
+    azure_plan: Optional[AzurePlan] = field(default=None, metadata={'description': 'Specifies information about the marketplace image used to create the virtual machine. This element is only used for marketplace images. Before you can use a marketplace image from an api, you must enable the image for programmatic use. In the azure portal, find the marketplace image that you want to use and then click **want to deploy programmatically, get started ->**. Enter any required information and then click **save**.'})  # fmt: skip
     platform_fault_domain: Optional[int] = field(default=None, metadata={'description': 'Specifies the scale set logical fault domain into which the virtual machine will be created. By default, the virtual machine will by automatically assigned to a fault domain that best maintains balance across available fault domains. This is applicable only if the virtualmachinescaleset property of this virtual machine is set. The virtual machine scale set that is referenced, must have platformfaultdomaincount greater than 1. This property cannot be updated once the virtual machine is created. Fault domain assignment can be viewed in the virtual machine instance view. Minimum api‐version: 2020‐12‐01.'})  # fmt: skip
-    priority: Optional[str] = field(default=None, metadata={'description': 'Specifies the priority for a standalone virtual machine or the virtual machines in the scale set. Low enum will be deprecated in the future, please use spot as the enum to deploy azure spot vm/vmss.'})  # fmt: skip
+    virtual_machine_priority: Optional[str] = field(default=None, metadata={'description': 'Specifies the priority for a standalone virtual machine or the virtual machines in the scale set. Low enum will be deprecated in the future, please use spot as the enum to deploy azure spot vm/vmss.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
-    resources: Optional[List[AzureVirtualMachineExtension]] = field(default=None, metadata={'description': 'The virtual machine child extension resources.'})  # fmt: skip
+    virtual_machine_resources: Optional[List[AzureVirtualMachineExtension]] = field(default=None, metadata={'description': 'The virtual machine child extension resources.'})  # fmt: skip
     scheduled_events_profile: Optional[AzureScheduledEventsProfile] = field(default=None, metadata={"description": ""})
-    security_profile: Optional[AzureSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the virtual machine or virtual machine scale set.'})  # fmt: skip
-    storage_profile: Optional[AzureStorageProfile] = field(default=None, metadata={'description': 'Specifies the storage settings for the virtual machine disks.'})  # fmt: skip
+    virtual_machine_security_profile: Optional[AzureSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the virtual machine or virtual machine scale set.'})  # fmt: skip
+    virtual_machine_storage_profile: Optional[AzureStorageProfile] = field(default=None, metadata={'description': 'Specifies the storage settings for the virtual machine disks.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time at which the virtual machine resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
     user_data: Optional[str] = field(default=None, metadata={'description': 'Userdata for the vm, which must be base-64 encoded. Customer should not pass any secrets in here. Minimum api-version: 2021-03-01.'})  # fmt: skip
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
@@ -3064,7 +3072,7 @@ class AzureVirtualMachineScaleSet(AzureResource):
         "ctime": S("time_created"),
         "mtime": K(None),
         "atime": K(None),
-        "additional_capabilities": S("properties", "additionalCapabilities")
+        "scale_set_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "automatic_repairs_policy": S("properties", "automaticRepairsPolicy")
         >> Bend(AzureAutomaticRepairsPolicy.mapping),
@@ -3072,17 +3080,17 @@ class AzureVirtualMachineScaleSet(AzureResource):
         "do_not_run_extensions_on_overprovisioned_v_ms": S("properties", "doNotRunExtensionsOnOverprovisionedVMs"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "host_group": S("properties", "VirtualMachineScaleSetProperties", "id"),
-        "identity": S("identity") >> Bend(AzureVirtualMachineScaleSetIdentity.mapping),
+        "scale_set_identity": S("identity") >> Bend(AzureVirtualMachineScaleSetIdentity.mapping),
         "orchestration_mode": S("properties", "orchestrationMode"),
         "overprovision": S("properties", "overprovision"),
-        "plan": S("plan") >> Bend(AzurePlan.mapping),
+        "azure_plan": S("plan") >> Bend(AzurePlan.mapping),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "priority_mix_policy": S("properties", "priorityMixPolicy") >> Bend(AzurePriorityMixPolicy.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "proximity_placement_group": S("properties", "VirtualMachineScaleSetProperties", "id"),
         "scale_in_policy": S("properties", "scaleInPolicy") >> Bend(AzureScaleInPolicy.mapping),
         "single_placement_group": S("properties", "singlePlacementGroup"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "scale_set_sku": S("sku") >> Bend(AzureSku.mapping),
         "spot_restore_policy": S("properties", "spotRestorePolicy") >> Bend(AzureSpotRestorePolicy.mapping),
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
@@ -3091,23 +3099,23 @@ class AzureVirtualMachineScaleSet(AzureResource):
         >> Bend(AzureVirtualMachineScaleSetVMProfile.mapping),
         "zone_balance": S("properties", "zoneBalance"),
     }
-    additional_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
+    scale_set_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     automatic_repairs_policy: Optional[AzureAutomaticRepairsPolicy] = field(default=None, metadata={'description': 'Specifies the configuration parameters for automatic repairs on the virtual machine scale set.'})  # fmt: skip
     constrained_maximum_capacity: Optional[bool] = field(default=None, metadata={'description': 'Optional property which must either be set to true or omitted.'})  # fmt: skip
     do_not_run_extensions_on_overprovisioned_v_ms: Optional[bool] = field(default=None, metadata={'description': 'When overprovision is enabled, extensions are launched only on the requested number of vms which are finally kept. This property will hence ensure that the extensions do not run on the extra overprovisioned vms.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     host_group: Optional[str] = field(default=None, metadata={"description": ""})
-    identity: Optional[AzureVirtualMachineScaleSetIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine scale set.'})  # fmt: skip
+    scale_set_identity: Optional[AzureVirtualMachineScaleSetIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine scale set.'})  # fmt: skip
     orchestration_mode: Optional[str] = field(default=None, metadata={'description': 'Specifies the orchestration mode for the virtual machine scale set.'})  # fmt: skip
     overprovision: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether the virtual machine scale set should be overprovisioned.'})  # fmt: skip
-    plan: Optional[AzurePlan] = field(default=None, metadata={'description': 'Specifies information about the marketplace image used to create the virtual machine. This element is only used for marketplace images. Before you can use a marketplace image from an api, you must enable the image for programmatic use. In the azure portal, find the marketplace image that you want to use and then click **want to deploy programmatically, get started ->**. Enter any required information and then click **save**.'})  # fmt: skip
+    azure_plan: Optional[AzurePlan] = field(default=None, metadata={'description': 'Specifies information about the marketplace image used to create the virtual machine. This element is only used for marketplace images. Before you can use a marketplace image from an api, you must enable the image for programmatic use. In the azure portal, find the marketplace image that you want to use and then click **want to deploy programmatically, get started ->**. Enter any required information and then click **save**.'})  # fmt: skip
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={'description': 'Fault domain count for each placement group.'})  # fmt: skip
     priority_mix_policy: Optional[AzurePriorityMixPolicy] = field(default=None, metadata={'description': 'Specifies the target splits for spot and regular priority vms within a scale set with flexible orchestration mode. With this property the customer is able to specify the base number of regular priority vms created as the vmss flex instance scales out and the split between spot and regular priority vms after this base target has been reached.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
     scale_in_policy: Optional[AzureScaleInPolicy] = field(default=None, metadata={'description': 'Describes a scale-in policy for a virtual machine scale set.'})  # fmt: skip
     single_placement_group: Optional[bool] = field(default=None, metadata={'description': 'When true this limits the scale set to a single placement group, of max size 100 virtual machines. Note: if singleplacementgroup is true, it may be modified to false. However, if singleplacementgroup is false, it may not be modified to true.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
+    scale_set_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
     spot_restore_policy: Optional[AzureSpotRestorePolicy] = field(default=None, metadata={'description': 'Specifies the spot-try-restore properties for the virtual machine scale set. With this property customer can enable or disable automatic restore of the evicted spot vmss vm instances opportunistically based on capacity availability and pricing constraint.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time at which the virtual machine scale set resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the id which uniquely identifies a virtual machine scale set.'})  # fmt: skip
