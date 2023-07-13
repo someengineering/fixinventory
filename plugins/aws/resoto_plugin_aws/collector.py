@@ -189,7 +189,7 @@ class AwsAccountCollector:
                 self.client,
                 shared_queue,
                 self.core_feedback,
-                last_run=last_run,
+                last_run_started_at=last_run,
             )
             global_builder.submit_work("iam", self.update_account)
 

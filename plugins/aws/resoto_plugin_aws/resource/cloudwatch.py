@@ -1,14 +1,15 @@
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple
+from typing import ClassVar, Dict, List, Optional, Type, Tuple, Any, TypeVar
+from collections import defaultdict
 
 from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
+from resoto_plugin_aws.utils import ToDict, MetricNormalization
+from resotolib.baseresources import ModelReference, BaseResource
 from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -450,3 +451,55 @@ class AwsCloudwatchMetricData:
 
 
 resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm, AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter]
+
+V = TypeVar("V", bound=BaseResource)
+
+
+def update_resource_metrics(
+    resources_map: Dict[str, V],
+    cloudwatch_result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData],
+    metric_normalizers: Dict[str, MetricNormalization],
+) -> None:
+    metrics_per_resource: Dict[str, Dict[Tuple[str, ...], float]] = defaultdict(dict)
+
+    for query, metric in cloudwatch_result.items():
+        resource = resources_map.get(query.ref_id)
+        if resource is None:
+            continue
+        metric_value = next(iter(metric.metric_values), None)
+        if metric_value is None:
+            continue
+        normalizer = metric_normalizers.get(query.metric_name)
+        if not normalizer:
+            continue
+
+        name = list(normalizer.name)
+        if sm := normalizer.stat_map:
+            name.append(sm[query.stat])
+        if um := normalizer.unit_map:
+            name.append(um[query.unit])
+
+        value = metric_normalizers[query.metric_name].normalize_value(metric_value)
+
+        normalized_metrics: Dict[Tuple[str, ...], float] = metrics_per_resource[resource.id]
+
+        normalized_metrics[tuple(name)] = value
+
+    # transform (foo, bar, baz) -> 42 into {foo:{bar:{baz:42}}}
+    def mk_nested_dict(key: Tuple[str, ...], value: float, result: Dict[str, Any]) -> Dict[str, Any]:
+        if len(key) == 1:
+            result[key[0]] = value
+        else:
+            head = key[0]
+            tail = key[1:]
+            if head not in result:
+                result[head] = {}
+            mk_nested_dict(tail, value, result[head])
+        return result
+
+    for resource_id, metrics in metrics_per_resource.items():
+        resource_metrics: Dict[str, Any] = {}
+        for name_path, value in metrics.items():
+            mk_nested_dict(name_path, value, resource_metrics)
+
+        resources_map[resource_id]._resource_usage = resource_metrics

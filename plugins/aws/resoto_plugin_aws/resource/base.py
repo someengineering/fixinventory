@@ -5,20 +5,21 @@ import logging
 from abc import ABC
 from collections import defaultdict, deque
 from concurrent.futures import Executor, Future
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import lru_cache, reduce
 from threading import Event, Lock
 from typing import Any, Callable, ClassVar, Deque, Dict, Iterator, List, Optional, Tuple, Type, TypeVar
+from math import ceil
 
 from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
-from resotolib.utils import utc
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
+from resotolib.utils import utc
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -481,7 +482,7 @@ class GraphBuilder:
         global_instance_types: Optional[Dict[str, Any]] = None,
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
-        last_run: Optional[datetime] = None,
+        last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -494,8 +495,28 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
-        self.last_run_started_at = last_run
+        self.last_run_started_at = last_run_started_at
         self.created_at = utc()
+
+        if last_run_started_at:
+            now = utc()
+            start = last_run_started_at
+            delta = now - start
+            # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
+            delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
+            min_delta = max(delta, timedelta(seconds=600))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
+            # otherwise we get no results from AWS
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
+
+        self.metrics_start = start
+        self.metrics_delta = delta
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

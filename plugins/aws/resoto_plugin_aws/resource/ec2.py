@@ -1,18 +1,16 @@
 import logging
-from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, Tuple
+from datetime import datetime
+from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
-from collections import defaultdict
-from math import ceil
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
-from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
-from resoto_plugin_aws.utils import ToDict, TagsValue, identity
+from resoto_plugin_aws.utils import ToDict, TagsValue, MetricNormalization
 from resotolib.baseresources import (
     BaseInstance,
     EdgeType,
@@ -904,14 +902,6 @@ InstanceStatusMapping = {
 }
 
 
-@define(kw_only=True, frozen=True)
-class MetricNormalization:
-    name: Tuple[str, ...]
-    stat_map: Optional[Dict[str, str]] = None
-    unit_map: Optional[Dict[str, str]] = None
-    normalize_value: Callable[[float], float] = identity
-
-
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
@@ -1061,22 +1051,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             if instance.region().id == builder.region.id and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
-        if builder.last_run_started_at:
-            now = builder.created_at
-            start = builder.last_run_started_at
-            delta = now - start
-            # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
-            delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
-            min_delta = max(delta, timedelta(seconds=600))
-            # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
-            # otherwise we get no results from AWS
-            if min_delta != delta:
-                start = now - min_delta
-                delta = min_delta
-        else:
-            now = utc()
-            delta = timedelta(hours=1)
-            start = now - delta
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
         for instance_id in instances:
             queries.extend(
                 [
@@ -1151,50 +1128,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
 
-        metrics_per_instance: Dict[str, Dict[Tuple[str, ...], float]] = defaultdict(dict)
-
-        for query, metric in cloudwatch_result.items():
-            instance = instances.get(query.ref_id)
-            if instance is None:
-                continue
-            metric_value = next(iter(metric.metric_values), None)
-            if metric_value is None:
-                continue
-            normalizer = metric_normalizers.get(query.metric_name)
-            if not normalizer:
-                continue
-
-            name = list(normalizer.name)
-            if sm := normalizer.stat_map:
-                name.append(sm[query.stat])
-            if um := normalizer.unit_map:
-                name.append(um[query.unit])
-
-            value = metric_normalizers[query.metric_name].normalize_value(metric_value)
-
-            normalized_metrics: Dict[Tuple[str, ...], float] = metrics_per_instance[instance.id]
-
-            normalized_metrics[tuple(name)] = value
-
-        def mk_nested_dict(key, value, result):
-            if len(key) == 1:
-                result[key[0]] = value
-            else:
-                head = key[0]
-                tail = key[1:]
-                if head not in result:
-                    result[head] = {}
-                mk_nested_dict(tail, value, result[head])
-            return result
-
-        for instance_id, metrics in metrics_per_instance.items():
-            instance_metrics: Dict[str, Any] = {}
-            for name_path, value in metrics.items():
-                mk_nested_dict(name_path, value, instance_metrics)
-
-            instances[instance_id]._resource_usage = instance_metrics
-
-        print(len(instances))
+        update_resource_metrics(instances, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
