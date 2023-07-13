@@ -13,6 +13,8 @@ from networkx import MultiDiGraph
 from datetime import timedelta
 from resotoclient import models as rc
 from resotoclient.async_client import ResotoClient
+from resotoclient.json_utils import json_loadb
+from resotoclient.models import JsObject
 
 from resotolib.utils import get_free_port
 from tests.resotocore import create_graph
@@ -23,8 +25,6 @@ from resotocore.model.model import predefined_kinds, Kind
 from resotocore.model.typed_model import to_js
 from resotocore.util import rnd_str, AccessJson, utc, utc_str
 from resotocore.ids import GraphName
-from resotoclient.json_utils import json_loadb
-from resotoclient.models import JsObject
 
 
 def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:

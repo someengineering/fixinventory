@@ -22,7 +22,6 @@ from typing import (
     Tuple,
     Iterable,
     TypeVar,
-    NamedTuple,
 )
 
 import yaml

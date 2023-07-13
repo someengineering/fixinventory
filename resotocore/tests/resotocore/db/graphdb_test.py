@@ -18,7 +18,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from resotocore.ids import NodeId, GraphName
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
-from resotocore.model.model import Model, UsageDatapoint, UsageMetricValues
+from resotocore.model.model import Model, UsageDatapoint
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
@@ -181,8 +181,8 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     g = create_graph("yes or no")
     await graph_db.insert_usage_data(
         [
-            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}),
-            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}),
+            UsageDatapoint("0", at=100, v={"cpu": {"min": 42, "avg": 42, "max": 42}}),
+            UsageDatapoint("0", at=101, v={"cpu": {"min": 43, "avg": 43, "max": 43}}),
         ]
     )
 
@@ -220,8 +220,8 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
     await graph_db.insert_usage_data(
         [
-            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}),
-            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}),
+            UsageDatapoint("0", at=100, v={"cpu": {"min": 42, "avg": 42, "max": 42}}),
+            UsageDatapoint("0", at=101, v={"cpu": {"min": 43, "avg": 43, "max": 43}}),
         ]
     )
 
@@ -661,7 +661,9 @@ async def test_no_snapshot_usage(graph_db: ArangoGraphDB, foo_model: Model, db_a
     snapshot_db = await graph_db.copy_graph(snapshot_db_name, to_snapshot=True)
 
     with raises(ValueError) as ex:
-        await snapshot_db.insert_usage_data([UsageDatapoint("foo", 42, {"cpu": UsageMetricValues(0.42, 0.42, 0.42)})])
+        await snapshot_db.insert_usage_data(
+            [UsageDatapoint("foo", 42, {"cpu": {"min": 0.42, "avg": 0.42, "max": 0.42}})]
+        )
 
     assert str(ex.value) == "Cannot insert usage data into a snapshot graph"
 
