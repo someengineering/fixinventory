@@ -48,7 +48,7 @@ class AzureSubscriptionCollector:
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
-            client = AzureClient(self.credentials, self.subscription.subscription_id)
+            client = AzureClient.create(self.credentials, self.subscription.subscription_id)
             builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
             # collect all locations
             builder.fetch_locations()

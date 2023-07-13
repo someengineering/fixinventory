@@ -55,24 +55,24 @@ class AzureAvailabilitySet(AzureResource):
         "atime": K(None),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "platform_update_domain_count": S("properties", "platformUpdateDomainCount"),
-        "proximity_placement_group": S("properties", "AvailabilitySetProperties", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
         "sku": S("sku") >> Bend(AzureSku.mapping),
-        "statuses": S("properties", "statuses") >> Bend(AzureInstanceViewStatus.mapping),
-        "virtual_machines_availability": S("properties", "AvailabilitySetProperties", "id"),
+        "statuses": S("properties", "statuses") >> ForallBend(AzureInstanceViewStatus.mapping),
+        "virtual_machines_availability": S("properties") >> S("virtualMachines", default=[]) >> ForallBend(S("id")),
     }
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={"description": "Fault domain count."})
     platform_update_domain_count: Optional[int] = field(default=None, metadata={"description": "Update domain count."})
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
     sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
-    statuses: Optional[AzureInstanceViewStatus] = field(default=None, metadata={'description': 'The resource status information.'})  # fmt: skip
-    virtual_machines_availability: Optional[str] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
+    statuses: Optional[List[AzureInstanceViewStatus]] = field(default=None, metadata={'description': 'The resource status information.'})  # fmt: skip
+    virtual_machines_availability: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AzureCapacityReservationGroupInstanceView:
     kind: ClassVar[str] = "azure_capacity_reservation_group_instance_view"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "capacity_reservations": S("CapacityReservationGroupInstanceView", default=[]) >> ForallBend(S("name"))
+        "capacity_reservations": S("capacityReservations", default=[]) >> ForallBend(S("name"))
     }
     capacity_reservations: Optional[List[str]] = field(default=None, metadata={'description': 'List of instance view of the capacity reservations under the capacity reservation group.'})  # fmt: skip
 
@@ -96,14 +96,16 @@ class AzureCapacityReservationGroup(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "capacity_reservations": S("properties", "CapacityReservationGroupProperties", "id"),
+        "capacity_reservations": S("properties") >> S("capacityReservations", default=[]) >> ForallBend(S("id")),
         "reservation_group_instance_view": S("properties", "instanceView")
         >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
-        "virtual_machines_associated": S("properties", "CapacityReservationGroupProperties", "id"),
+        "virtual_machines_associated": S("properties")
+        >> S("virtualMachinesAssociated", default=[])
+        >> ForallBend(S("id")),
     }
-    capacity_reservations: Optional[str] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
+    capacity_reservations: Optional[List[str]] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
     reservation_group_instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
-    virtual_machines_associated: Optional[str] = field(default=None, metadata={'description': 'A list of references to all virtual machines associated to the capacity reservation group.'})  # fmt: skip
+    virtual_machines_associated: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines associated to the capacity reservation group.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -139,8 +141,8 @@ class AzureCloudServiceRoleProfile:
 class AzureCloudServiceVaultSecretGroup:
     kind: ClassVar[str] = "azure_cloud_service_vault_secret_group"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "source_vault": S("CloudServiceVaultSecretGroup") >> ForallBend(S("id")),
-        "vault_certificates": S("CloudServiceVaultSecretGroup", default=[]) >> ForallBend(S("certificateUrl")),
+        "source_vault": S("sourceVault", "id"),
+        "vault_certificates": S("vaultCertificates", default=[]) >> ForallBend(S("certificateUrl")),
     }
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
     vault_certificates: Optional[List[str]] = field(default=None, metadata={'description': 'The list of key vault references in sourcevault which contain certificates.'})  # fmt: skip
@@ -161,8 +163,8 @@ class AzureLoadBalancerFrontendIpConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "private_ip_address": S("properties", "privateIPAddress"),
-        "public_ip_address": S("properties", "LoadBalancerFrontendIpConfigurationProperties", "id"),
-        "subnet": S("properties", "LoadBalancerFrontendIpConfigurationProperties", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id"),
+        "subnet": S("properties", "subnet", "id"),
     }
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the set of frontend ip configurations used by the load balancer. This name can be used to access the resource.'})  # fmt: skip
     private_ip_address: Optional[str] = field(default=None, metadata={'description': 'The virtual network private ip address of the ip configuration.'})  # fmt: skip
@@ -175,11 +177,11 @@ class AzureLoadBalancerConfiguration:
     kind: ClassVar[str] = "azure_load_balancer_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "frontend_ip_configurations": S("properties", "frontendIpConfigurations")
-        >> Bend(AzureLoadBalancerFrontendIpConfiguration.mapping),
+        >> ForallBend(AzureLoadBalancerFrontendIpConfiguration.mapping),
         "id": S("id"),
         "name": S("name"),
     }
-    frontend_ip_configurations: Optional[AzureLoadBalancerFrontendIpConfiguration] = field(default=None, metadata={'description': 'Specifies the frontend ip to be used for the load balancer. Only ipv4 frontend ip address is supported. Each load balancer configuration must have exactly one frontend ip configuration.'})  # fmt: skip
+    frontend_ip_configurations: Optional[List[AzureLoadBalancerFrontendIpConfiguration]] = field(default=None, metadata={'description': 'Specifies the frontend ip to be used for the load balancer. Only ipv4 frontend ip address is supported. Each load balancer configuration must have exactly one frontend ip configuration.'})  # fmt: skip
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
     name: Optional[str] = field(default=None, metadata={"description": "The name of the load balancer."})
 
@@ -191,7 +193,7 @@ class AzureCloudServiceNetworkProfile:
         "load_balancer_configurations": S("loadBalancerConfigurations")
         >> ForallBend(AzureLoadBalancerConfiguration.mapping),
         "slot_type": S("slotType"),
-        "swappable_cloud_service": S("CloudServiceNetworkProfile") >> ForallBend(S("id")),
+        "swappable_cloud_service": S("swappableCloudService", "id"),
     }
     load_balancer_configurations: Optional[List[AzureLoadBalancerConfiguration]] = field(default=None, metadata={'description': 'List of load balancer configurations. Cloud service can have up to two load balancer configurations, corresponding to a public load balancer and an internal load balancer.'})  # fmt: skip
     slot_type: Optional[str] = field(default=None, metadata={'description': 'Slot type for the cloud service. Possible values are **production** **staging** if not specified, the default value is production.'})  # fmt: skip
@@ -201,10 +203,7 @@ class AzureCloudServiceNetworkProfile:
 @define(eq=False, slots=False)
 class AzureCloudServiceVaultAndSecretReference:
     kind: ClassVar[str] = "azure_cloud_service_vault_and_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "secret_url": S("secretUrl"),
-        "source_vault": S("CloudServiceVaultAndSecretReference") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
     secret_url: Optional[str] = field(default=None, metadata={'description': 'Secret url which contains the protected settings of the extension.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -233,7 +232,7 @@ class AzureExtension:
     protected_settings_from_key_vault: Optional[AzureCloudServiceVaultAndSecretReference] = field(default=None, metadata={'description': 'Protected settings for the extension, referenced using keyvault which are encrypted before sent to the role instance.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
     publisher: Optional[str] = field(default=None, metadata={'description': 'The name of the extension handler publisher.'})  # fmt: skip
-    roles_applied_to: Optional[str] = field(default=None, metadata={'description': 'Optional list of roles to apply this extension. If property is not specified or * is specified, extension is applied to all roles in the cloud service.'})  # fmt: skip
+    roles_applied_to: Optional[List[str]] = field(default=None, metadata={'description': 'Optional list of roles to apply this extension. If property is not specified or * is specified, extension is applied to all roles in the cloud service.'})  # fmt: skip
     settings: Optional[Any] = field(default=None, metadata={'description': 'Public settings for the extension. For json extensions, this is the json settings for the extension. For xml extension (like rdp), this is the xml setting for the extension.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Specifies the type of the extension."})
     type_handler_version: Optional[str] = field(default=None, metadata={'description': 'Specifies the version of the extension. Specifies the version of the extension. If this element is not specified or an asterisk (*) is used as the value, the latest version of the extension is used. If the value is specified with a major version number and an asterisk as the minor version number (x. ), the latest minor version of the specified major version is selected. If a major version number and a minor version number are specified (x. Y), the specific extension version is selected. If a version is specified, an auto-upgrade is performed on the role instance.'})  # fmt: skip
@@ -299,7 +298,7 @@ class AzureCloudService(AzureResource):
     start_cloud_service: Optional[bool] = field(default=None, metadata={'description': '(optional) indicates whether to start the cloud service immediately after it is created. The default value is `true`. If false, the service model is still deployed, but the code is not run immediately. Instead, the service is poweredoff until you call start, at which time the service will be started. A deployed service still incurs charges, even if it is poweredoff.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'The system meta data relating to this resource.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'The unique identifier for the cloud service.'})  # fmt: skip
-    upgrade_mode: Optional[str] = field(default=None, metadata={'description': 'Upgrade mode for the cloud service. Role instances are allocated to update domains when the service is deployed. Updates can be initiated manually in each update domain or initiated automatically in all update domains. Possible values are **auto** **manual** **simultaneous** if not specified, the default value is auto. If set to manual, put updatedomain must be called to apply the update. If set to auto, the update is automatically applied to each update domain in sequence.'})  # fmt: skip
+    upgrade_mode: Optional[str] = field(default=None, metadata={'description': 'Update mode for the cloud service. Role instances are allocated to update domains when the service is deployed. Updates can be initiated manually in each update domain or initiated automatically in all update domains. Possible values are **auto** **manual** **simultaneous** if not specified, the default value is auto. If set to manual, put updatedomain must be called to apply the update. If set to auto, the update is automatically applied to each update domain in sequence.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -361,23 +360,6 @@ class AzureContainerServiceMasterProfile:
 
 
 @define(eq=False, slots=False)
-class AzureContainerServiceAgentPoolProfile:
-    kind: ClassVar[str] = "azure_container_service_agent_pool_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "count": S("count"),
-        "dns_prefix": S("dnsPrefix"),
-        "fqdn": S("fqdn"),
-        "name": S("name"),
-        "vm_size": S("vmSize"),
-    }
-    count: Optional[int] = field(default=None, metadata={'description': 'Number of agents (vms) to host docker containers. Allowed values must be in the range of 1 to 100 (inclusive). The default value is 1.'})  # fmt: skip
-    dns_prefix: Optional[str] = field(default=None, metadata={'description': 'Dns prefix to be used to create the fqdn for the agent pool.'})  # fmt: skip
-    fqdn: Optional[str] = field(default=None, metadata={"description": "Fqdn for the agent pool."})
-    name: Optional[str] = field(default=None, metadata={'description': 'Unique name of the agent pool profile in the context of the subscription and resource group.'})  # fmt: skip
-    vm_size: Optional[str] = field(default=None, metadata={"description": "Size of agent vms."})
-
-
-@define(eq=False, slots=False)
 class AzureContainerServiceWindowsProfile:
     kind: ClassVar[str] = "azure_container_service_windows_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"admin_password": S("adminPassword"), "admin_username": S("adminUsername")}
@@ -388,9 +370,7 @@ class AzureContainerServiceWindowsProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceSshConfiguration:
     kind: ClassVar[str] = "azure_container_service_ssh_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "public_keys": S("ContainerServiceSshConfiguration", default=[]) >> ForallBend(S("keyData"))
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"public_keys": S("publicKeys", default=[]) >> ForallBend(S("keyData"))}
     public_keys: Optional[List[str]] = field(default=None, metadata={'description': 'The list of ssh public keys used to authenticate with linux-based vms.'})  # fmt: skip
 
 
@@ -414,63 +394,9 @@ class AzureContainerServiceVMDiagnostics:
 
 
 @define(eq=False, slots=False)
-class AzureContainerServiceDiagnosticsProfile:
-    kind: ClassVar[str] = "azure_container_service_diagnostics_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "vm_diagnostics": S("vmDiagnostics") >> Bend(AzureContainerServiceVMDiagnostics.mapping)
-    }
-    vm_diagnostics: Optional[AzureContainerServiceVMDiagnostics] = field(default=None, metadata={'description': 'Profile for diagnostics on the container service vms.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureContainerService(AzureResource):
-    kind: ClassVar[str] = "azure_container_service"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="compute",
-        version="2017-01-31",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/containerServices",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "agent_pool_profiles": S("properties", "agentPoolProfiles")
-        >> Bend(AzureContainerServiceAgentPoolProfile.mapping),
-        "custom_profile": S("properties", "ContainerServiceProperties", "orchestrator"),
-        "diagnostics_profile": S("properties", "diagnosticsProfile")
-        >> Bend(AzureContainerServiceDiagnosticsProfile.mapping),
-        "linux_profile": S("properties", "linuxProfile") >> Bend(AzureContainerServiceLinuxProfile.mapping),
-        "master_profile": S("properties", "masterProfile") >> Bend(AzureContainerServiceMasterProfile.mapping),
-        "orchestrator_profile": S("properties", "ContainerServiceProperties", "orchestratorType"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "service_principal_profile": S("properties", "servicePrincipalProfile")
-        >> Bend(AzureContainerServiceServicePrincipalProfile.mapping),
-        "windows_profile": S("properties", "windowsProfile") >> Bend(AzureContainerServiceWindowsProfile.mapping),
-    }
-    agent_pool_profiles: Optional[AzureContainerServiceAgentPoolProfile] = field(default=None, metadata={'description': 'Properties of the agent pool.'})  # fmt: skip
-    custom_profile: Optional[str] = field(default=None, metadata={'description': 'Properties to configure a custom container service cluster.'})  # fmt: skip
-    diagnostics_profile: Optional[AzureContainerServiceDiagnosticsProfile] = field(default=None, metadata={'description': ''})  # fmt: skip
-    linux_profile: Optional[AzureContainerServiceLinuxProfile] = field(default=None, metadata={'description': 'Profile for linux vms in the container service cluster.'})  # fmt: skip
-    master_profile: Optional[AzureContainerServiceMasterProfile] = field(default=None, metadata={'description': 'Profile for the container service master.'})  # fmt: skip
-    orchestrator_profile: Optional[str] = field(default=None, metadata={'description': 'Profile for the container service orchestrator.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current deployment or provisioning state, which only appears in the response.'})  # fmt: skip
-    service_principal_profile: Optional[AzureContainerServiceServicePrincipalProfile] = field(default=None, metadata={'description': 'Information about a service principal identity for the cluster to use for manipulating azure apis.'})  # fmt: skip
-    windows_profile: Optional[AzureContainerServiceWindowsProfile] = field(default=None, metadata={'description': 'Profile for windows vms in the container service cluster.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureDedicatedHostGroupInstanceView:
     kind: ClassVar[str] = "azure_dedicated_host_group_instance_view"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "hosts": S("DedicatedHostGroupInstanceView", default=[]) >> ForallBend(S("name"))
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"hosts": S("hosts", default=[]) >> ForallBend(S("name"))}
     hosts: Optional[List[str]] = field(default=None, metadata={'description': 'List of instance view of the dedicated hosts under the dedicated host group.'})  # fmt: skip
 
 
@@ -493,15 +419,15 @@ class AzureDedicatedHostGroup(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "ultra_ssd_enabled": S("properties", "DedicatedHostGroupProperties", "ultraSSDEnabled"),
-        "hosts": S("properties", "DedicatedHostGroupProperties", "id"),
+        "ultra_ssd_enabled": S("properties", "additionalCapabilities", "ultraSSDEnabled"),
+        "hosts": S("properties") >> S("hosts", default=[]) >> ForallBend(S("id")),
         "host_group_instance_view": S("properties", "instanceView")
         >> Bend(AzureDedicatedHostGroupInstanceView.mapping),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "support_automatic_placement": S("properties", "supportAutomaticPlacement"),
     }
     ultra_ssd_enabled: Optional[bool] = field(default=None, metadata={'description': 'Enables or disables a capability on the dedicated host group. Minimum api-version: 2022-03-01.'})  # fmt: skip
-    hosts: Optional[str] = field(default=None, metadata={'description': 'A list of references to all dedicated hosts in the dedicated host group.'})  # fmt: skip
+    hosts: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all dedicated hosts in the dedicated host group.'})  # fmt: skip
     host_group_instance_view: Optional[AzureDedicatedHostGroupInstanceView] = field(
         default=None, metadata={"description": ""}
     )
@@ -600,10 +526,7 @@ class AzureCreationData:
 @define(eq=False, slots=False)
 class AzureKeyVaultAndSecretReference:
     kind: ClassVar[str] = "azure_key_vault_and_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "secret_url": S("secretUrl"),
-        "source_vault": S("KeyVaultAndSecretReference") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
     secret_url: Optional[str] = field(default=None, metadata={'description': 'Url pointing to a key or secret in keyvault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -611,10 +534,7 @@ class AzureKeyVaultAndSecretReference:
 @define(eq=False, slots=False)
 class AzureKeyVaultAndKeyReference:
     kind: ClassVar[str] = "azure_key_vault_and_key_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "key_url": S("keyUrl"),
-        "source_vault": S("KeyVaultAndKeyReference") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
     key_url: Optional[str] = field(default=None, metadata={'description': 'Url pointing to a key or secret in keyvault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -705,12 +625,12 @@ class AzureDisk(AzureResource):
         "network_access_policy": S("properties", "networkAccessPolicy"),
         "optimized_for_frequent_attach": S("properties", "optimizedForFrequentAttach"),
         "os_type": S("properties", "osType"),
-        "property_updates_in_progress": S("properties", "DiskProperties", "targetTier"),
+        "property_updates_in_progress": S("properties", "propertyUpdatesInProgress", "targetTier"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "purchase_plan": S("properties", "purchasePlan") >> Bend(AzurePurchasePlan.mapping),
         "disk_security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
-        "share_info": S("properties", "DiskProperties", "vmUri"),
+        "share_info": S("properties") >> S("shareInfo", default=[]) >> ForallBend(S("vmUri")),
         "disk_sku": S("sku") >> Bend(AzureDiskSku.mapping),
         "supported_capabilities": S("properties", "supportedCapabilities") >> Bend(AzureSupportedCapabilities.mapping),
         "supports_hibernation": S("properties", "supportsHibernation"),
@@ -746,7 +666,7 @@ class AzureDisk(AzureResource):
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Policy for controlling export on the disk.'})  # fmt: skip
     purchase_plan: Optional[AzurePurchasePlan] = field(default=None, metadata={'description': 'Used for establishing the purchase context of any 3rd party artifact through marketplace.'})  # fmt: skip
     disk_security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
-    share_info: Optional[str] = field(default=None, metadata={'description': 'Details of the list of all vms that have the disk attached. Maxshares should be set to a value greater than one for disks to allow attaching them to multiple vms.'})  # fmt: skip
+    share_info: Optional[List[str]] = field(default=None, metadata={'description': 'Details of the list of all vms that have the disk attached. Maxshares should be set to a value greater than one for disks to allow attaching them to multiple vms.'})  # fmt: skip
     disk_sku: Optional[AzureDiskSku] = field(default=None, metadata={'description': 'The disks sku name. Can be standard_lrs, premium_lrs, standardssd_lrs, ultrassd_lrs, premium_zrs, standardssd_zrs, or premiumv2_lrs.'})  # fmt: skip
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a disk supports hibernation.'})  # fmt: skip
@@ -774,7 +694,7 @@ class AzurePrivateEndpointConnection:
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
-        "private_endpoint": S("properties", "PrivateEndpointConnectionProperties", "id"),
+        "private_endpoint": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
@@ -809,12 +729,12 @@ class AzureDiskAccess(AzureResource):
         "atime": K(None),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> Bend(AzurePrivateEndpointConnection.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "time_created": S("properties", "timeCreated"),
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
-    private_endpoint_connections: Optional[AzurePrivateEndpointConnection] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
+    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The disk access resource provisioning state.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk access was created.'})  # fmt: skip
 
@@ -845,10 +765,7 @@ class AzureEncryptionSetIdentity:
 @define(eq=False, slots=False)
 class AzureKeyForDiskEncryptionSet:
     kind: ClassVar[str] = "azure_key_for_disk_encryption_set"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "key_url": S("keyUrl"),
-        "source_vault": S("KeyForDiskEncryptionSet") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
     key_url: Optional[str] = field(default=None, metadata={'description': 'Fully versioned key url pointing to a key in keyvault. Version segment of the url is required regardless of rotationtolatestkeyversionenabled value.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -912,7 +829,7 @@ class AzureDiskEncryptionSet(AzureResource):
         "federated_client_id": S("properties", "federatedClientId"),
         "encryption_set_identity": S("identity") >> Bend(AzureEncryptionSetIdentity.mapping),
         "last_key_rotation_timestamp": S("properties", "lastKeyRotationTimestamp"),
-        "previous_keys": S("properties", "previousKeys") >> Bend(AzureKeyForDiskEncryptionSet.mapping),
+        "previous_keys": S("properties", "previousKeys") >> ForallBend(AzureKeyForDiskEncryptionSet.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "rotation_to_latest_key_version_enabled": S("properties", "rotationToLatestKeyVersionEnabled"),
     }
@@ -922,7 +839,7 @@ class AzureDiskEncryptionSet(AzureResource):
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'Multi-tenant application client id to access key vault in a different tenant. Setting the value to none will clear the property.'})  # fmt: skip
     encryption_set_identity: Optional[AzureEncryptionSetIdentity] = field(default=None, metadata={'description': 'The managed identity for the disk encryption set. It should be given permission on the key vault before it can be used to encrypt disks.'})  # fmt: skip
     last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={'description': 'The time when the active key of this disk encryption set was updated.'})  # fmt: skip
-    previous_keys: Optional[AzureKeyForDiskEncryptionSet] = field(default=None, metadata={'description': 'A readonly collection of key vault keys previously used by this disk encryption set while a key rotation is in progress. It will be empty if there is no ongoing key rotation.'})  # fmt: skip
+    previous_keys: Optional[List[AzureKeyForDiskEncryptionSet]] = field(default=None, metadata={'description': 'A readonly collection of key vault keys previously used by this disk encryption set while a key rotation is in progress. It will be empty if there is no ongoing key rotation.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The disk encryption set provisioning state.'})  # fmt: skip
     rotation_to_latest_key_version_enabled: Optional[bool] = field(default=None, metadata={'description': 'Set this flag to true to enable auto-updating of this disk encryption set to the latest key version.'})  # fmt: skip
 
@@ -1009,11 +926,11 @@ class AzureGallery(AzureResource):
         "mtime": K(None),
         "atime": K(None),
         "description": S("properties", "description"),
-        "identifier": S("properties", "GalleryProperties", "uniqueName"),
+        "identifier": S("properties", "identifier", "uniqueName"),
         "provisioning_state": S("properties", "provisioningState"),
         "sharing_profile": S("properties", "sharingProfile") >> Bend(AzureSharingProfile.mapping),
         "sharing_status": S("properties", "sharingStatus") >> Bend(AzureSharingStatus.mapping),
-        "soft_delete_policy": S("properties", "GalleryProperties", "isSoftDeleteEnabled"),
+        "soft_delete_policy": S("properties", "softDeletePolicy", "isSoftDeleteEnabled"),
     }
     description: Optional[str] = field(default=None, metadata={'description': 'The description of this shared image gallery resource. This property is updatable.'})  # fmt: skip
     identifier: Optional[str] = field(default=None, metadata={"description": "Describes the gallery unique name."})
@@ -1044,8 +961,8 @@ class AzureImageDisk:
         "caching": S("caching"),
         "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
         "disk_size_gb": S("diskSizeGB"),
-        "managed_disk": S("ImageDisk") >> ForallBend(S("id")),
-        "snapshot": S("ImageDisk") >> ForallBend(S("id")),
+        "managed_disk": S("managedDisk", "id"),
+        "snapshot": S("snapshot", "id"),
         "storage_account_type": S("storageAccountType"),
     }
     blob_uri: Optional[str] = field(default=None, metadata={"description": "The virtual hard disk."})
@@ -1069,7 +986,7 @@ class AzureImageOSDisk(AzureImageDisk):
 class AzureImageStorageProfile:
     kind: ClassVar[str] = "azure_image_storage_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "data_disks": S("ImageStorageProfile", default=[]) >> ForallBend(S("lun")),
+        "data_disks": S("dataDisks", default=[]) >> ForallBend(S("lun")),
         "os_disk": S("osDisk") >> Bend(AzureImageOSDisk.mapping),
         "zone_resilient": S("zoneResilient"),
     }
@@ -1100,7 +1017,7 @@ class AzureImage(AzureResource):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "hyper_v_generation": S("properties", "hyperVGeneration"),
         "provisioning_state": S("properties", "provisioningState"),
-        "source_virtual_machine": S("properties", "ImageProperties", "id"),
+        "source_virtual_machine": S("properties", "sourceVirtualMachine", "id"),
         "storage_profile": S("properties", "storageProfile") >> Bend(AzureImageStorageProfile.mapping),
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
@@ -1145,21 +1062,22 @@ class AzureProximityPlacementGroup(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "availability_sets": S("properties", "availabilitySets") >> Bend(AzureSubResourceWithColocationStatus.mapping),
+        "availability_sets": S("properties", "availabilitySets")
+        >> ForallBend(AzureSubResourceWithColocationStatus.mapping),
         "colocation_status": S("properties", "colocationStatus") >> Bend(AzureInstanceViewStatus.mapping),
         "intent": S("properties", "intent") >> Bend(AzureVmSizes.mapping),
         "proximity_placement_group_type": S("properties", "proximityPlacementGroupType"),
         "virtual_machine_scale_sets": S("properties", "virtualMachineScaleSets")
-        >> Bend(AzureSubResourceWithColocationStatus.mapping),
+        >> ForallBend(AzureSubResourceWithColocationStatus.mapping),
         "virtual_machines_status": S("properties", "virtualMachines")
-        >> Bend(AzureSubResourceWithColocationStatus.mapping),
+        >> ForallBend(AzureSubResourceWithColocationStatus.mapping),
     }
-    availability_sets: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all availability sets in the proximity placement group.'})  # fmt: skip
+    availability_sets: Optional[List[AzureSubResourceWithColocationStatus]] = field(default=None, metadata={'description': 'A list of references to all availability sets in the proximity placement group.'})  # fmt: skip
     colocation_status: Optional[AzureInstanceViewStatus] = field(default=None, metadata={'description': 'Instance view status.'})  # fmt: skip
     intent: Optional[AzureVmSizes] = field(default=None, metadata={'description': 'Specifies the user intent of the proximity placement group.'})  # fmt: skip
     proximity_placement_group_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the type of the proximity placement group. Possible values are: **standard** : co-locate resources within an azure region or availability zone. **ultra** : for future use.'})  # fmt: skip
-    virtual_machine_scale_sets: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all virtual machine scale sets in the proximity placement group.'})  # fmt: skip
-    virtual_machines_status: Optional[AzureSubResourceWithColocationStatus] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the proximity placement group.'})  # fmt: skip
+    virtual_machine_scale_sets: Optional[List[AzureSubResourceWithColocationStatus]] = field(default=None, metadata={'description': 'A list of references to all virtual machine scale sets in the proximity placement group.'})  # fmt: skip
+    virtual_machines_status: Optional[List[AzureSubResourceWithColocationStatus]] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the proximity placement group.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1339,10 +1257,7 @@ class AzureHardwareProfile:
 @define(eq=False, slots=False)
 class AzureKeyVaultSecretReference:
     kind: ClassVar[str] = "azure_key_vault_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "secret_url": S("secretUrl"),
-        "source_vault": S("KeyVaultSecretReference") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
     secret_url: Optional[str] = field(default=None, metadata={'description': 'The url referencing a secret in a key vault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -1350,10 +1265,7 @@ class AzureKeyVaultSecretReference:
 @define(eq=False, slots=False)
 class AzureKeyVaultKeyReference:
     kind: ClassVar[str] = "azure_key_vault_key_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "key_url": S("keyUrl"),
-        "source_vault": S("KeyVaultKeyReference") >> ForallBend(S("id")),
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
     key_url: Optional[str] = field(default=None, metadata={'description': 'The url referencing a key encryption key in key vault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -1418,7 +1330,7 @@ class AzureDiskRestorePointAttributes(AzureSubResourceReadOnly):
     kind: ClassVar[str] = "azure_disk_restore_point_attributes"
     mapping: ClassVar[Dict[str, Bender]] = {
         "encryption": S("encryption") >> Bend(AzureRestorePointEncryption.mapping),
-        "source_disk_restore_point": S("DiskRestorePointAttributes") >> ForallBend(S("id")),
+        "source_disk_restore_point": S("sourceDiskRestorePoint", "id"),
     }
     encryption: Optional[AzureRestorePointEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk restore point. It is an optional property that can be specified in the input while creating a restore point.'})  # fmt: skip
     source_disk_restore_point: Optional[str] = field(default=None, metadata={'description': 'The api entity reference.'})  # fmt: skip
@@ -1630,7 +1542,7 @@ class AzureVaultCertificate:
 class AzureVaultSecretGroup:
     kind: ClassVar[str] = "azure_vault_secret_group"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "source_vault": S("VaultSecretGroup") >> ForallBend(S("id")),
+        "source_vault": S("sourceVault", "id"),
         "vault_certificates": S("vaultCertificates") >> ForallBend(AzureVaultCertificate.mapping),
     }
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
@@ -1768,15 +1680,15 @@ class AzureRestorePoint(AzureProxyResource):
     kind: ClassVar[str] = "azure_restore_point"
     mapping: ClassVar[Dict[str, Bender]] = {
         "consistency_mode": S("properties", "consistencyMode"),
-        "exclude_disks": S("properties", "RestorePointProperties", "id"),
+        "exclude_disks": S("properties") >> S("excludeDisks", default=[]) >> ForallBend(S("id")),
         "restore_point_instance_view": S("properties", "instanceView") >> Bend(AzureRestorePointInstanceView.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "source_metadata": S("properties", "sourceMetadata") >> Bend(AzureRestorePointSourceMetadata.mapping),
-        "source_restore_point": S("properties", "RestorePointProperties", "id"),
+        "source_restore_point": S("properties", "sourceRestorePoint", "id"),
         "time_created": S("properties", "timeCreated"),
     }
     consistency_mode: Optional[str] = field(default=None, metadata={'description': 'Consistencymode of the restorepoint. Can be specified in the input while creating a restore point. For now, only crashconsistent is accepted as a valid input. Please refer to https://aka. Ms/restorepoints for more details.'})  # fmt: skip
-    exclude_disks: Optional[str] = field(default=None, metadata={'description': 'List of disk resource ids that the customer wishes to exclude from the restore point. If no disks are specified, all disks will be included.'})  # fmt: skip
+    exclude_disks: Optional[List[str]] = field(default=None, metadata={'description': 'List of disk resource ids that the customer wishes to exclude from the restore point. If no disks are specified, all disks will be included.'})  # fmt: skip
     restore_point_instance_view: Optional[AzureRestorePointInstanceView] = field(default=None, metadata={'description': 'The instance view of a restore point.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Gets the provisioning state of the restore point.'})  # fmt: skip
     source_metadata: Optional[AzureRestorePointSourceMetadata] = field(default=None, metadata={'description': 'Describes the properties of the virtual machine for which the restore point was created. The properties provided are a subset and the snapshot of the overall virtual machine properties captured at the time of the restore point creation.'})  # fmt: skip
@@ -1805,12 +1717,12 @@ class AzureRestorePointCollection(AzureResource):
         "atime": K(None),
         "provisioning_state": S("properties", "provisioningState"),
         "restore_point_collection_id": S("properties", "restorePointCollectionId"),
-        "restore_points": S("properties", "restorePoints") >> Bend(AzureRestorePoint.mapping),
+        "restore_points": S("properties", "restorePoints") >> ForallBend(AzureRestorePoint.mapping),
         "source": S("properties", "source") >> Bend(AzureRestorePointCollectionSourceProperties.mapping),
     }
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the restore point collection.'})  # fmt: skip
     restore_point_collection_id: Optional[str] = field(default=None, metadata={'description': 'The unique id of the restore point collection.'})  # fmt: skip
-    restore_points: Optional[AzureRestorePoint] = field(default=None, metadata={'description': 'A list containing all restore points created under this restore point collection.'})  # fmt: skip
+    restore_points: Optional[List[AzureRestorePoint]] = field(default=None, metadata={'description': 'A list containing all restore points created under this restore point collection.'})  # fmt: skip
     source: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
 
 
@@ -1924,7 +1836,7 @@ class AzureSshPublicKeyResource(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "properties": S("SshPublicKeyResource") >> ForallBend(S("publicKey")),
+        "properties": S("properties", "publicKey"),
     }
     properties: Optional[str] = field(default=None, metadata={"description": "Properties of the ssh public key."})
 
@@ -1983,11 +1895,11 @@ class AzureOSDisk:
         "diff_disk_settings": S("diffDiskSettings") >> Bend(AzureDiffDiskSettings.mapping),
         "disk_size_gb": S("diskSizeGB"),
         "encryption_settings": S("encryptionSettings") >> Bend(AzureDiskEncryptionSettings.mapping),
-        "image": S("OSDisk") >> ForallBend(S("uri")),
+        "image": S("image", "uri"),
         "managed_disk": S("managedDisk") >> Bend(AzureManagedDiskParameters.mapping),
         "name": S("name"),
         "os_type": S("osType"),
-        "vhd": S("OSDisk") >> ForallBend(S("uri")),
+        "vhd": S("vhd", "uri"),
         "write_accelerator_enabled": S("writeAcceleratorEnabled"),
     }
     caching: Optional[str] = field(default=None, metadata={'description': 'Specifies the caching requirements. Possible values are: **none,** **readonly,** **readwrite. ** the default values are: **none for standard storage. Readonly for premium storage**.'})  # fmt: skip
@@ -2015,12 +1927,12 @@ class AzureDataDisk:
         "disk_iops_read_write": S("diskIOPSReadWrite"),
         "disk_m_bps_read_write": S("diskMBpsReadWrite"),
         "disk_size_gb": S("diskSizeGB"),
-        "image": S("DataDisk") >> ForallBend(S("uri")),
+        "image": S("image", "uri"),
         "lun": S("lun"),
         "managed_disk": S("managedDisk") >> Bend(AzureManagedDiskParameters.mapping),
         "name": S("name"),
         "to_be_detached": S("toBeDetached"),
-        "vhd": S("DataDisk") >> ForallBend(S("uri")),
+        "vhd": S("vhd", "uri"),
         "write_accelerator_enabled": S("writeAcceleratorEnabled"),
     }
     caching: Optional[str] = field(default=None, metadata={'description': 'Specifies the caching requirements. Possible values are: **none,** **readonly,** **readwrite. ** the default values are: **none for standard storage. Readonly for premium storage**.'})  # fmt: skip
@@ -2106,19 +2018,19 @@ class AzureVirtualMachinePublicIPAddressConfiguration:
     kind: ClassVar[str] = "azure_virtual_machine_public_ip_address_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "delete_option": S("properties", "deleteOption"),
-        "dns_settings": S("properties", "VirtualMachinePublicIPAddressConfigurationProperties", "domainNameLabel"),
+        "dns_settings": S("properties", "dnsSettings", "domainNameLabel"),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
-        "ip_tags": S("properties", "ipTags") >> Bend(AzureVirtualMachineIpTag.mapping),
+        "ip_tags": S("properties", "ipTags") >> ForallBend(AzureVirtualMachineIpTag.mapping),
         "name": S("name"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
-        "public_ip_prefix": S("properties", "VirtualMachinePublicIPAddressConfigurationProperties", "id"),
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
         "sku": S("sku") >> Bend(AzurePublicIPAddressSku.mapping),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public ip address when the vm is deleted.'})  # fmt: skip
     dns_settings: Optional[str] = field(default=None, metadata={'description': 'Describes a virtual machines network configuration s dns settings.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the public ip address.'})  # fmt: skip
-    ip_tags: Optional[AzureVirtualMachineIpTag] = field(default=None, metadata={'description': 'The list of ip tags associated with the public ip address.'})  # fmt: skip
+    ip_tags: Optional[List[AzureVirtualMachineIpTag]] = field(default=None, metadata={'description': 'The list of ip tags associated with the public ip address.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The publicip address configuration name."})
     public_ip_address_version: Optional[str] = field(default=None, metadata={'description': 'Available from api-version 2019-07-01 onwards, it represents whether the specific ipconfiguration is ipv4 or ipv6. Default is taken as ipv4. Possible values are: ipv4 and ipv6.'})  # fmt: skip
     public_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'Specify the public ip allocation type.'})  # fmt: skip
@@ -2130,23 +2042,25 @@ class AzureVirtualMachinePublicIPAddressConfiguration:
 class AzureVirtualMachineNetworkInterfaceIPConfiguration:
     kind: ClassVar[str] = "azure_virtual_machine_network_interface_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "application_gateway_backend_address_pools": S(
-            "properties", "VirtualMachineNetworkInterfaceIPConfigurationProperties", "id"
-        ),
-        "application_security_groups": S("properties", "VirtualMachineNetworkInterfaceIPConfigurationProperties", "id"),
-        "load_balancer_backend_address_pools": S(
-            "properties", "VirtualMachineNetworkInterfaceIPConfigurationProperties", "id"
-        ),
+        "application_gateway_backend_address_pools": S("properties")
+        >> S("applicationGatewayBackendAddressPools", default=[])
+        >> ForallBend(S("id")),
+        "application_security_groups": S("properties")
+        >> S("applicationSecurityGroups", default=[])
+        >> ForallBend(S("id")),
+        "load_balancer_backend_address_pools": S("properties")
+        >> S("loadBalancerBackendAddressPools", default=[])
+        >> ForallBend(S("id")),
         "name": S("name"),
         "primary": S("properties", "primary"),
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "public_ip_address_configuration": S("properties", "publicIPAddressConfiguration")
         >> Bend(AzureVirtualMachinePublicIPAddressConfiguration.mapping),
-        "subnet": S("properties", "VirtualMachineNetworkInterfaceIPConfigurationProperties", "id"),
+        "subnet": S("properties", "subnet", "id"),
     }
-    application_gateway_backend_address_pools: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A virtual machine can reference backend address pools of multiple application gateways. Multiple virtual machines cannot use the same application gateway.'})  # fmt: skip
-    application_security_groups: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
-    load_balancer_backend_address_pools: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of load balancers. A virtual machine can reference backend address pools of one public and one internal load balancer. [multiple virtual machines cannot use the same basic sku load balancer].'})  # fmt: skip
+    application_gateway_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A virtual machine can reference backend address pools of multiple application gateways. Multiple virtual machines cannot use the same application gateway.'})  # fmt: skip
+    application_security_groups: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
+    load_balancer_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of load balancers. A virtual machine can reference backend address pools of one public and one internal load balancer. [multiple virtual machines cannot use the same basic sku load balancer].'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The ip configuration name."})
     primary: Optional[bool] = field(default=None, metadata={'description': 'Specifies the primary network interface in case the virtual machine has more than 1 network interface.'})  # fmt: skip
     private_ip_address_version: Optional[str] = field(default=None, metadata={'description': 'Available from api-version 2017-03-30 onwards, it represents whether the specific ipconfiguration is ipv4 or ipv6. Default is taken as ipv4. Possible values are: ipv4 and ipv6.'})  # fmt: skip
@@ -2162,14 +2076,14 @@ class AzureVirtualMachineNetworkInterfaceConfiguration:
         "disable_tcp_state_tracking": S("properties", "disableTcpStateTracking"),
         "dns_settings": S("properties", "dnsSettings")
         >> Bend(AzureVirtualMachineNetworkInterfaceDnsSettingsConfiguration.mapping),
-        "dscp_configuration": S("properties", "VirtualMachineNetworkInterfaceConfigurationProperties", "id"),
+        "dscp_configuration": S("properties", "dscpConfiguration", "id"),
         "enable_accelerated_networking": S("properties", "enableAcceleratedNetworking"),
         "enable_fpga": S("properties", "enableFpga"),
         "enable_ip_forwarding": S("properties", "enableIPForwarding"),
         "ip_configurations": S("properties", "ipConfigurations")
-        >> Bend(AzureVirtualMachineNetworkInterfaceIPConfiguration.mapping),
+        >> ForallBend(AzureVirtualMachineNetworkInterfaceIPConfiguration.mapping),
         "name": S("name"),
-        "network_security_group": S("properties", "VirtualMachineNetworkInterfaceConfigurationProperties", "id"),
+        "network_security_group": S("properties", "networkSecurityGroup", "id"),
         "primary": S("properties", "primary"),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the network interface when the vm is deleted.'})  # fmt: skip
@@ -2179,7 +2093,7 @@ class AzureVirtualMachineNetworkInterfaceConfiguration:
     enable_accelerated_networking: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether the network interface is accelerated networking-enabled.'})  # fmt: skip
     enable_fpga: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether the network interface is fpga networking-enabled.'})  # fmt: skip
     enable_ip_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Whether ip forwarding enabled on this nic.'})  # fmt: skip
-    ip_configurations: Optional[AzureVirtualMachineNetworkInterfaceIPConfiguration] = field(default=None, metadata={'description': 'Specifies the ip configurations of the network interface.'})  # fmt: skip
+    ip_configurations: Optional[List[AzureVirtualMachineNetworkInterfaceIPConfiguration]] = field(default=None, metadata={'description': 'Specifies the ip configurations of the network interface.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The network interface configuration name."})
     network_security_group: Optional[str] = field(default=None, metadata={"description": ""})
     primary: Optional[bool] = field(default=None, metadata={'description': 'Specifies the primary network interface in case the virtual machine has more than 1 network interface.'})  # fmt: skip
@@ -2434,9 +2348,7 @@ class AzureScheduledEventsProfile:
 @define(eq=False, slots=False)
 class AzureCapacityReservationProfile:
     kind: ClassVar[str] = "azure_capacity_reservation_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "capacity_reservation_group": S("CapacityReservationProfile") >> ForallBend(S("id"))
-    }
+    mapping: ClassVar[Dict[str, Bender]] = {"capacity_reservation_group": S("capacityReservationGroup", "id")}
     capacity_reservation_group: Optional[str] = field(default=None, metadata={"description": ""})
 
 
@@ -2511,7 +2423,7 @@ class AzureVirtualMachineExtension(AzureResourceWithOptionalLocation):
     machine_extension_instance_view: Optional[AzureVirtualMachineExtensionInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine extension.'})  # fmt: skip
     protected_settings: Optional[Any] = field(default=None, metadata={'description': 'The extension can contain either protectedsettings or protectedsettingsfromkeyvault or no protected settings at all.'})  # fmt: skip
     protected_settings_from_key_vault: Optional[AzureKeyVaultSecretReference] = field(default=None, metadata={'description': 'Describes a reference to key vault secret.'})  # fmt: skip
-    provision_after_extensions: Optional[str] = field(default=None, metadata={'description': 'Collection of extension names after which this extension needs to be provisioned.'})  # fmt: skip
+    provision_after_extensions: Optional[List[str]] = field(default=None, metadata={'description': 'Collection of extension names after which this extension needs to be provisioned.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
     publisher: Optional[str] = field(default=None, metadata={'description': 'The name of the extension handler publisher.'})  # fmt: skip
     settings: Optional[Any] = field(default=None, metadata={'description': 'Json formatted public settings for the extension.'})  # fmt: skip
@@ -2557,8 +2469,8 @@ class AzureVirtualMachine(AzureResource):
         "virtual_machine_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "application_profile": S("properties", "applicationProfile") >> Bend(AzureApplicationProfile.mapping),
-        "availability_set": S("properties", "VirtualMachineProperties", "id"),
-        "billing_profile": S("properties", "VirtualMachineProperties", "maxPrice"),
+        "availability_set": S("properties", "availabilitySet", "id"),
+        "billing_profile": S("properties", "billingProfile", "maxPrice"),
         "capacity_reservation": S("properties", "capacityReservation") >> Bend(AzureCapacityReservationProfile.mapping),
         "virtual_machine_diagnostics_profile": S("properties", "diagnosticsProfile")
         >> Bend(AzureDiagnosticsProfile.mapping),
@@ -2566,8 +2478,8 @@ class AzureVirtualMachine(AzureResource):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "extensions_time_budget": S("properties", "extensionsTimeBudget"),
         "hardware_profile": S("properties", "hardwareProfile") >> Bend(AzureHardwareProfile.mapping),
-        "host": S("properties", "VirtualMachineProperties", "id"),
-        "host_group": S("properties", "VirtualMachineProperties", "id"),
+        "host": S("properties", "host", "id"),
+        "host_group": S("properties", "hostGroup", "id"),
         "virtual_machine_identity": S("identity") >> Bend(AzureVirtualMachineIdentity.mapping),
         "virtual_machine_instance_view": S("properties", "instanceView")
         >> Bend(AzureVirtualMachineInstanceView.mapping),
@@ -2578,7 +2490,7 @@ class AzureVirtualMachine(AzureResource):
         "platform_fault_domain": S("properties", "platformFaultDomain"),
         "virtual_machine_priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "proximity_placement_group": S("properties", "VirtualMachineProperties", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
         "virtual_machine_resources": S("resources") >> ForallBend(AzureVirtualMachineExtension.mapping),
         "scheduled_events_profile": S("properties", "scheduledEventsProfile")
         >> Bend(AzureScheduledEventsProfile.mapping),
@@ -2586,7 +2498,7 @@ class AzureVirtualMachine(AzureResource):
         "virtual_machine_storage_profile": S("properties", "storageProfile") >> Bend(AzureStorageProfile.mapping),
         "time_created": S("properties", "timeCreated"),
         "user_data": S("properties", "userData"),
-        "virtual_machine_scale_set": S("properties", "VirtualMachineProperties", "id"),
+        "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
@@ -2730,7 +2642,7 @@ class AzureVirtualMachineScaleSetOSDisk:
         "delete_option": S("deleteOption"),
         "diff_disk_settings": S("diffDiskSettings") >> Bend(AzureDiffDiskSettings.mapping),
         "disk_size_gb": S("diskSizeGB"),
-        "image": S("VirtualMachineScaleSetOSDisk") >> ForallBend(S("uri")),
+        "image": S("image", "uri"),
         "managed_disk": S("managedDisk") >> Bend(AzureVirtualMachineScaleSetManagedDiskParameters.mapping),
         "name": S("name"),
         "os_type": S("osType"),
@@ -2814,20 +2726,18 @@ class AzureVirtualMachineScaleSetPublicIPAddressConfiguration:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_public_ip_address_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "delete_option": S("properties", "deleteOption"),
-        "dns_settings": S(
-            "properties", "VirtualMachineScaleSetPublicIPAddressConfigurationProperties", "domainNameLabel"
-        ),
+        "dns_settings": S("properties", "dnsSettings", "domainNameLabel"),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
-        "ip_tags": S("properties", "ipTags") >> Bend(AzureVirtualMachineScaleSetIpTag.mapping),
+        "ip_tags": S("properties", "ipTags") >> ForallBend(AzureVirtualMachineScaleSetIpTag.mapping),
         "name": S("name"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
-        "public_ip_prefix": S("properties", "VirtualMachineScaleSetPublicIPAddressConfigurationProperties", "id"),
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
         "sku": S("sku") >> Bend(AzurePublicIPAddressSku.mapping),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public ip when the vm is deleted.'})  # fmt: skip
     dns_settings: Optional[str] = field(default=None, metadata={'description': 'Describes a virtual machines scale sets network configuration s dns settings.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the public ip address.'})  # fmt: skip
-    ip_tags: Optional[AzureVirtualMachineScaleSetIpTag] = field(default=None, metadata={'description': 'The list of ip tags associated with the public ip address.'})  # fmt: skip
+    ip_tags: Optional[List[AzureVirtualMachineScaleSetIpTag]] = field(default=None, metadata={'description': 'The list of ip tags associated with the public ip address.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The publicip address configuration name."})
     public_ip_address_version: Optional[str] = field(default=None, metadata={'description': 'Available from api-version 2019-07-01 onwards, it represents whether the specific ipconfiguration is ipv4 or ipv6. Default is taken as ipv4. Possible values are: ipv4 and ipv6.'})  # fmt: skip
     public_ip_prefix: Optional[str] = field(default=None, metadata={"description": ""})
@@ -2838,23 +2748,29 @@ class AzureVirtualMachineScaleSetPublicIPAddressConfiguration:
 class AzureVirtualMachineScaleSetIPConfiguration:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "application_gateway_backend_address_pools": S(
-            "properties", "VirtualMachineScaleSetIPConfigurationProperties", "id"
-        ),
-        "application_security_groups": S("properties", "VirtualMachineScaleSetIPConfigurationProperties", "id"),
-        "load_balancer_backend_address_pools": S("properties", "VirtualMachineScaleSetIPConfigurationProperties", "id"),
-        "load_balancer_inbound_nat_pools": S("properties", "VirtualMachineScaleSetIPConfigurationProperties", "id"),
+        "application_gateway_backend_address_pools": S("properties")
+        >> S("applicationGatewayBackendAddressPools", default=[])
+        >> ForallBend(S("id")),
+        "application_security_groups": S("properties")
+        >> S("applicationSecurityGroups", default=[])
+        >> ForallBend(S("id")),
+        "load_balancer_backend_address_pools": S("properties")
+        >> S("loadBalancerBackendAddressPools", default=[])
+        >> ForallBend(S("id")),
+        "load_balancer_inbound_nat_pools": S("properties")
+        >> S("loadBalancerInboundNatPools", default=[])
+        >> ForallBend(S("id")),
         "name": S("name"),
         "primary": S("properties", "primary"),
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "public_ip_address_configuration": S("properties", "publicIPAddressConfiguration")
         >> Bend(AzureVirtualMachineScaleSetPublicIPAddressConfiguration.mapping),
-        "subnet": S("properties", "VirtualMachineScaleSetIPConfigurationProperties", "id"),
+        "subnet": S("properties", "subnet", "id"),
     }
-    application_gateway_backend_address_pools: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A scale set can reference backend address pools of multiple application gateways. Multiple scale sets cannot use the same application gateway.'})  # fmt: skip
-    application_security_groups: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
-    load_balancer_backend_address_pools: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of load balancers. A scale set can reference backend address pools of one public and one internal load balancer. Multiple scale sets cannot use the same basic sku load balancer.'})  # fmt: skip
-    load_balancer_inbound_nat_pools: Optional[str] = field(default=None, metadata={'description': 'Specifies an array of references to inbound nat pools of the load balancers. A scale set can reference inbound nat pools of one public and one internal load balancer. Multiple scale sets cannot use the same basic sku load balancer.'})  # fmt: skip
+    application_gateway_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A scale set can reference backend address pools of multiple application gateways. Multiple scale sets cannot use the same application gateway.'})  # fmt: skip
+    application_security_groups: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
+    load_balancer_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of load balancers. A scale set can reference backend address pools of one public and one internal load balancer. Multiple scale sets cannot use the same basic sku load balancer.'})  # fmt: skip
+    load_balancer_inbound_nat_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to inbound nat pools of the load balancers. A scale set can reference inbound nat pools of one public and one internal load balancer. Multiple scale sets cannot use the same basic sku load balancer.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The ip configuration name."})
     primary: Optional[bool] = field(default=None, metadata={'description': 'Specifies the primary network interface in case the virtual machine has more than 1 network interface.'})  # fmt: skip
     private_ip_address_version: Optional[str] = field(default=None, metadata={'description': 'Available from api-version 2017-03-30 onwards, it represents whether the specific ipconfiguration is ipv4 or ipv6. Default is taken as ipv4. Possible values are: ipv4 and ipv6.'})  # fmt: skip
@@ -2874,9 +2790,9 @@ class AzureVirtualMachineScaleSetNetworkConfiguration:
         "enable_fpga": S("properties", "enableFpga"),
         "enable_ip_forwarding": S("properties", "enableIPForwarding"),
         "ip_configurations": S("properties", "ipConfigurations")
-        >> Bend(AzureVirtualMachineScaleSetIPConfiguration.mapping),
+        >> ForallBend(AzureVirtualMachineScaleSetIPConfiguration.mapping),
         "name": S("name"),
-        "network_security_group": S("properties", "VirtualMachineScaleSetNetworkConfigurationProperties", "id"),
+        "network_security_group": S("properties", "networkSecurityGroup", "id"),
         "primary": S("properties", "primary"),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the network interface when the vm is deleted.'})  # fmt: skip
@@ -2885,7 +2801,7 @@ class AzureVirtualMachineScaleSetNetworkConfiguration:
     enable_accelerated_networking: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether the network interface is accelerated networking-enabled.'})  # fmt: skip
     enable_fpga: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether the network interface is fpga networking-enabled.'})  # fmt: skip
     enable_ip_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Whether ip forwarding enabled on this nic.'})  # fmt: skip
-    ip_configurations: Optional[AzureVirtualMachineScaleSetIPConfiguration] = field(default=None, metadata={'description': 'Specifies the ip configurations of the network interface.'})  # fmt: skip
+    ip_configurations: Optional[List[AzureVirtualMachineScaleSetIPConfiguration]] = field(default=None, metadata={'description': 'Specifies the ip configurations of the network interface.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The network configuration name."})
     network_security_group: Optional[str] = field(default=None, metadata={"description": ""})
     primary: Optional[bool] = field(default=None, metadata={'description': 'Specifies the primary network interface in case the virtual machine has more than 1 network interface.'})  # fmt: skip
@@ -2895,7 +2811,7 @@ class AzureVirtualMachineScaleSetNetworkConfiguration:
 class AzureVirtualMachineScaleSetNetworkProfile:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_network_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "health_probe": S("VirtualMachineScaleSetNetworkProfile") >> ForallBend(S("id")),
+        "health_probe": S("healthProbe", "id"),
         "network_api_version": S("networkApiVersion"),
         "network_interface_configurations": S("networkInterfaceConfigurations")
         >> ForallBend(AzureVirtualMachineScaleSetNetworkConfiguration.mapping),
@@ -2930,7 +2846,7 @@ class AzureVirtualMachineScaleSetExtension(AzureSubResourceReadOnly):
     name: Optional[str] = field(default=None, metadata={"description": "The name of the extension."})
     protected_settings: Optional[Any] = field(default=None, metadata={'description': 'The extension can contain either protectedsettings or protectedsettingsfromkeyvault or no protected settings at all.'})  # fmt: skip
     protected_settings_from_key_vault: Optional[AzureKeyVaultSecretReference] = field(default=None, metadata={'description': 'Describes a reference to key vault secret.'})  # fmt: skip
-    provision_after_extensions: Optional[str] = field(default=None, metadata={'description': 'Collection of extension names after which this extension needs to be provisioned.'})  # fmt: skip
+    provision_after_extensions: Optional[List[str]] = field(default=None, metadata={'description': 'Collection of extension names after which this extension needs to be provisioned.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
     publisher: Optional[str] = field(default=None, metadata={'description': 'The name of the extension handler publisher.'})  # fmt: skip
     settings: Optional[Any] = field(default=None, metadata={'description': 'Json formatted public settings for the extension.'})  # fmt: skip
@@ -2975,7 +2891,7 @@ class AzureVirtualMachineScaleSetVMProfile:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_vm_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "application_profile": S("applicationProfile") >> Bend(AzureApplicationProfile.mapping),
-        "billing_profile": S("VirtualMachineScaleSetVMProfile") >> ForallBend(S("maxPrice")),
+        "billing_profile": S("billingProfile", "maxPrice"),
         "capacity_reservation": S("capacityReservation") >> Bend(AzureCapacityReservationProfile.mapping),
         "diagnostics_profile": S("diagnosticsProfile") >> Bend(AzureDiagnosticsProfile.mapping),
         "eviction_policy": S("evictionPolicy"),
@@ -2988,7 +2904,7 @@ class AzureVirtualMachineScaleSetVMProfile:
         "scheduled_events_profile": S("scheduledEventsProfile") >> Bend(AzureScheduledEventsProfile.mapping),
         "security_posture_reference": S("securityPostureReference") >> Bend(AzureSecurityPostureReference.mapping),
         "security_profile": S("securityProfile") >> Bend(AzureSecurityProfile.mapping),
-        "service_artifact_reference": S("VirtualMachineScaleSetVMProfile") >> ForallBend(S("id")),
+        "service_artifact_reference": S("serviceArtifactReference", "id"),
         "storage_profile": S("storageProfile") >> Bend(AzureVirtualMachineScaleSetStorageProfile.mapping),
         "user_data": S("userData"),
     }
@@ -3079,7 +2995,7 @@ class AzureVirtualMachineScaleSet(AzureResource):
         "constrained_maximum_capacity": S("properties", "constrainedMaximumCapacity"),
         "do_not_run_extensions_on_overprovisioned_v_ms": S("properties", "doNotRunExtensionsOnOverprovisionedVMs"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
-        "host_group": S("properties", "VirtualMachineScaleSetProperties", "id"),
+        "host_group": S("properties", "hostGroup", "id"),
         "scale_set_identity": S("identity") >> Bend(AzureVirtualMachineScaleSetIdentity.mapping),
         "orchestration_mode": S("properties", "orchestrationMode"),
         "overprovision": S("properties", "overprovision"),
@@ -3087,7 +3003,7 @@ class AzureVirtualMachineScaleSet(AzureResource):
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "priority_mix_policy": S("properties", "priorityMixPolicy") >> Bend(AzurePriorityMixPolicy.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "proximity_placement_group": S("properties", "VirtualMachineScaleSetProperties", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
         "scale_in_policy": S("properties", "scaleInPolicy") >> Bend(AzureScaleInPolicy.mapping),
         "single_placement_group": S("properties", "singlePlacementGroup"),
         "scale_set_sku": S("sku") >> Bend(AzureSku.mapping),
@@ -3129,7 +3045,6 @@ resources: List[Type[AzureResource]] = [
     AzureCapacityReservationGroup,
     AzureCloudService,
     AzureComputeOperationValue,
-    AzureContainerService,
     AzureDedicatedHostGroup,
     AzureDisk,
     AzureDiskAccess,

@@ -105,14 +105,6 @@ AzureResourceType = TypeVar("AzureResourceType", bound=AzureResource)
 
 
 @define(eq=False, slots=False)
-class AzureAvailabilityZoneMappings:
-    kind: ClassVar[str] = "azure_availability_zone_mappings"
-    mapping: ClassVar[Dict[str, Bender]] = {"logical_zone": S("logicalZone"), "physical_zone": S("physicalZone")}
-    logical_zone: Optional[str] = field(default=None, metadata={'description': 'The logical zone id for the availability zone.'})  # fmt: skip
-    physical_zone: Optional[str] = field(default=None, metadata={'description': 'The fully qualified physical zone id of availability zone to which logical zone id is mapped to.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzurePairedRegion:
     kind: ClassVar[str] = "azure_paired_region"
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "subscription_id": S("subscriptionId")}
@@ -144,6 +136,14 @@ class AzureLocationMetadata:
     physical_location: Optional[str] = field(default=None, metadata={'description': 'The physical location of the azure location.'})  # fmt: skip
     region_category: Optional[str] = field(default=None, metadata={"description": "The category of the region."})
     region_type: Optional[str] = field(default=None, metadata={"description": "The type of the region."})
+
+
+@define(eq=False, slots=False)
+class AzureAvailabilityZoneMappings:
+    kind: ClassVar[str] = "azure_availability_zone_mappings"
+    mapping: ClassVar[Dict[str, Bender]] = {"logical_zone": S("logicalZone"), "physical_zone": S("physicalZone")}
+    logical_zone: Optional[str] = field(default=None, metadata={'description': 'The logical zone id for the availability zone.'})  # fmt: skip
+    physical_zone: Optional[str] = field(default=None, metadata={'description': 'The fully qualified physical zone id of availability zone to which logical zone id is mapped to.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -193,7 +193,7 @@ class AzureResourceGroup(AzureResource):
         "tags": S("tags", default={}),
         "name": S("name"),
         "managed_by": S("managedBy"),
-        "provisioning_state": S("ResourceGroup") >> ForallBend(S("provisioningState")),
+        "provisioning_state": S("properties", "provisioningState"),
     }
     managed_by: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that manages this resource group.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={"description": "The resource group properties."})
@@ -229,7 +229,7 @@ class AzureSubscription(AzureResource, BaseAccount):
         "tags": S("tags", default={}),
         "authorization_source": S("authorizationSource"),
         "display_name": S("displayName"),
-        "managed_by_tenants": S("Subscription", default=[]) >> ForallBend(S("tenantId")),
+        "managed_by_tenants": S("managedByTenants", default=[]) >> ForallBend(S("tenantId")),
         "state": S("state"),
         "subscription_id": S("subscriptionId"),
         "subscription_policies": S("subscriptionPolicies") >> Bend(AzureSubscriptionPolicies.mapping),
@@ -246,7 +246,7 @@ class AzureSubscription(AzureResource, BaseAccount):
 
     @classmethod
     def list_subscriptions(cls, credentials: AzureCredentials) -> List[AzureSubscription]:
-        client = AzureClient(credentials, "global")
+        client = AzureClient.create(credentials, "global")
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 

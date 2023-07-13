@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from typing import List, Optional, Any, Union
 
 from attr import define
@@ -30,7 +32,25 @@ class AzureApiSpec:
     expect_array: bool = False
 
 
-class AzureClient:
+class AzureClient(ABC):
+    @abstractmethod
+    def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
+        pass
+
+    @abstractmethod
+    def for_resource_group(self, resource_group: str) -> AzureClient:
+        pass
+
+    @staticmethod
+    def __create_management_client(
+        credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
+    ) -> AzureClient:
+        return AzureResourceManagementClient(credential, subscription_id, resource_group)
+
+    create = __create_management_client
+
+
+class AzureResourceManagementClient(AzureClient):
     def __init__(
         self, credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
     ) -> None:
@@ -81,6 +101,7 @@ class AzureClient:
             raise HttpResponseError(response=response, error_format=ARMErrorFormat)  # type: ignore
 
         # Parse json content
+        # TODO: handle pagination
         js: Union[Json, List[Json]] = response.json()
         if spec.access_path and isinstance(js, dict):
             js = js[spec.access_path]
@@ -90,4 +111,4 @@ class AzureClient:
             return [js]  # type: ignore
 
     def for_resource_group(self, resource_group: str) -> AzureClient:
-        return AzureClient(self.credential, self.subscription_id, resource_group)
+        return AzureClient.create(self.credential, self.subscription_id, resource_group)

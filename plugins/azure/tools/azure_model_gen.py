@@ -267,30 +267,22 @@ def class_method(
             if simple := simple_shape(prop_shape):
                 add_prop(AzureProperty(prop, prop_name, simple, prop_shape.get("description", "")))
             elif simple_path := complex_simple_shape(prop_shape):
-                prop_name, prop_type = simple_path
-                add_prop(
-                    AzureProperty(
-                        prop,
-                        [name, prop_name],
-                        prop_type,
-                        prop_shape.get("description", ""),
-                        extractor=f'S("{name}") >> ForallBend(S("{prop_name}"))',
-                    )
-                )
+                inner_name, prop_type = simple_path
+                add_prop(AzureProperty(prop, [prop_name, inner_name], prop_type, prop_shape.get("description", "")))
             elif prop_shape.get("type") == "array":
                 inner = prop_shape["items"]
                 if simple := simple_shape(inner):
                     add_prop(AzureProperty(prop, prop_name, simple, prop_shape.get("description", ""), is_array=True))
                 elif simple_path := complex_simple_shape(inner):
-                    prop_name, prop_type = simple_path
+                    inner_name, prop_type = simple_path
                     add_prop(
                         AzureProperty(
                             prop,
-                            [name, prop_name],
+                            [prop_name, inner_name],
                             prop_type,
                             prop_shape.get("description", ""),
                             is_array=True,
-                            extractor=f'S("{name}", default=[]) >> ForallBend(S("{prop_name}"))',
+                            extractor=f'S("{prop_name}", default=[]) >> ForallBend(S("{inner_name}"))',
                         )
                     )
                 else:
@@ -334,6 +326,8 @@ def class_method(
                                 np.description,
                                 is_complex=np.is_complex,
                                 is_complex_dict=np.is_complex_dict,
+                                is_array=np.is_array,
+                                extractor=(f'S("{prop_name}") >> ' + np.extractor) if np.extractor else None,
                             )
                         )
 
@@ -581,8 +575,8 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"compute"}), key=lambda x: x.name)}
-    models = classes_from_model(shapes)
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"resources"}), key=lambda x: x.name)}
+    models = classes_from_model(shapes, {"Location"})
     for model in models.values():
         if model.name != "Resource":
             print(model.to_class())
