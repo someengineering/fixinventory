@@ -1,11 +1,7 @@
-import json
-
-from azure.identity import DefaultAzureCredential
-
-from resoto_plugin_azure.resource.base import AzureSubscription
-from resoto_plugin_azure.collector import AzureSubscriptionCollector
 from resoto_plugin_azure.azure_client import AzureClient
+from resoto_plugin_azure.collector import AzureSubscriptionCollector
 from resoto_plugin_azure.config import AzureCredentials, AzureConfig
+from resoto_plugin_azure.resource.base import AzureSubscription
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 
