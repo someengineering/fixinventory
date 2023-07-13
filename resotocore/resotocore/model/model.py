@@ -1460,12 +1460,6 @@ class Model:
         return result
 
 
-class UsageMetricValues(NamedTuple):
-    min: float
-    avg: float
-    max: float
-
-
 @frozen
 class UsageDatapoint:
     """
@@ -1476,14 +1470,14 @@ class UsageDatapoint:
     at: `int`
         Timestamp of the datapoint in seconds since epoch.
         Name of the metric.
-    v: `Dict[str, List[float]]]`
-        Dictionary of metric names to lists of values. The values are `min`, `avg` and `max`.
+    v: `Dict[str, Any]]`
+        Dictionary of metrics.
 
     """
 
     id: str
     at: int
-    v: Dict[str, UsageMetricValues]
+    v: Dict[str, Any]
 
 
 # register serializer for this class

@@ -26,7 +26,6 @@ from resotocore.model.model import (
     DateKind,
     DurationKind,
     UsageDatapoint,
-    UsageMetricValues,
 )
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
@@ -165,18 +164,10 @@ class GraphBuilder:
                 replace=js.get("replace", False) is True,
             )
             if usage_json:
-                values = {
-                    k: UsageMetricValues(
-                        min=v.get("min", v["avg"]),
-                        avg=v["avg"],
-                        max=v.get("max", v["avg"]),
-                    )
-                    for k, v in usage_json.items()
-                }
                 usage = UsageDatapoint(
                     id=js["id"],
                     at=self.at,
-                    v=values,
+                    v=usage_json,
                 )
                 self.usage.append(usage)
         elif "from" in js and "to" in js:

@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, NamedTuple
+from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, Tuple
 import copy
+from collections import defaultdict
+from math import ceil
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -902,8 +904,11 @@ InstanceStatusMapping = {
 }
 
 
-class MetricNormalization(NamedTuple):
-    name: str
+@define(kw_only=True, frozen=True)
+class MetricNormalization:
+    name: Tuple[str, ...]
+    stat_map: Optional[Dict[str, str]] = None
+    unit_map: Optional[Dict[str, str]] = None
     normalize_value: Callable[[float], float] = identity
 
 
@@ -1060,6 +1065,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             now = builder.created_at
             start = builder.last_run_started_at
             delta = now - start
+            # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
+            delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
             min_delta = max(delta, timedelta(seconds=600))
             # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
             # otherwise we get no results from AWS
@@ -1085,16 +1092,66 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["NetworkIn", "NetworkOut"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Count",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadOps", "DiskWriteOps"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadBytes", "DiskWriteBytes"]
+                ]
+            )
 
-        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu", lambda x: round(x, ndigits=3))}
-
-        stat_name = {
-            "Minimum": "min",
-            "Average": "avg",
-            "Maximum": "max",
+        metric_normalizers = {
+            "CPUUtilization": MetricNormalization(
+                name=("cpu", "utilization"),
+                stat_map={"Minimum": "min", "Average": "avg", "Maximum": "max"},
+                normalize_value=lambda x: round(x, ndigits=3),
+            ),
+            "NetworkIn": MetricNormalization(name=("network", "in"), unit_map={"Bytes": "bytes"}),
+            "NetworkOut": MetricNormalization(name=("network", "out"), unit_map={"Bytes": "bytes"}),
+            "DiskReadOps": MetricNormalization(name=("disk", "read"), unit_map={"Count": "ops"}),
+            "DiskWriteOps": MetricNormalization(name=("disk", "write"), unit_map={"Count": "ops"}),
+            "DiskReadBytes": MetricNormalization(name=("disk", "read"), unit_map={"Bytes": "bytes"}),
+            "DiskWriteBytes": MetricNormalization(name=("disk", "write"), unit_map={"Bytes": "bytes"}),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        metrics_per_instance: Dict[str, Dict[Tuple[str, ...], float]] = defaultdict(dict)
 
         for query, metric in cloudwatch_result.items():
             instance = instances.get(query.ref_id)
@@ -1103,11 +1160,41 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             metric_value = next(iter(metric.metric_values), None)
             if metric_value is None:
                 continue
+            normalizer = metric_normalizers.get(query.metric_name)
+            if not normalizer:
+                continue
 
-            name = metric_normalizers[query.metric_name].name
+            name = list(normalizer.name)
+            if sm := normalizer.stat_map:
+                name.append(sm[query.stat])
+            if um := normalizer.unit_map:
+                name.append(um[query.unit])
+
             value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
-            instance._resource_usage[name][stat_name[query.stat]] = value
+            normalized_metrics: Dict[Tuple[str, ...], float] = metrics_per_instance[instance.id]
+
+            normalized_metrics[tuple(name)] = value
+
+        def mk_nested_dict(key, value, result):
+            if len(key) == 1:
+                result[key[0]] = value
+            else:
+                head = key[0]
+                tail = key[1:]
+                if head not in result:
+                    result[head] = {}
+                mk_nested_dict(tail, value, result[head])
+            return result
+
+        for instance_id, metrics in metrics_per_instance.items():
+            instance_metrics: Dict[str, Any] = {}
+            for name_path, value in metrics.items():
+                mk_nested_dict(name_path, value, instance_metrics)
+
+            instances[instance_id]._resource_usage = instance_metrics
+
+        print(len(instances))
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
