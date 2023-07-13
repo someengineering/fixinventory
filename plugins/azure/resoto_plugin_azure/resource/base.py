@@ -242,6 +242,7 @@ class AzureSubscription(AzureResource, BaseAccount):
     subscription_id: str = field(default="", metadata={"description": "The subscription id."})
     subscription_policies: Optional[AzureSubscriptionPolicies] = field(default=None, metadata={'description': 'Subscription policies.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
+    account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
 
     @classmethod
     def list_subscriptions(cls, credentials: AzureCredentials) -> List[AzureSubscription]:

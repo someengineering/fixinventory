@@ -46,19 +46,17 @@ class AzureSubscriptionCollector:
         self.subscription = subscription
         self.credentials = credentials
         self.core_feedback = core_feedback
-        self.graph = Graph(root=cloud)
+        self.graph = Graph(root=subscription)
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
-            thread_name_prefix=f"azure_{self.subscription.subscription_id}", max_workers=self.config.resource_pool_size
+            thread_name_prefix=f"azure_{self.subscription.subscription_id}",
+            max_workers=self.config.subscription_pool_size,
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
             client = AzureClient(self.credentials, self.subscription.subscription_id)
             builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
-            # add subscription
-            builder.graph.add_node(self.subscription)
-            builder.graph.add_edge(self.cloud, self.subscription)
             # collect all locations
             builder.fetch_locations()
             # collect resource groups

@@ -1,17 +1,29 @@
-import os
-from typing import ClassVar, Optional, Dict, List
+from typing import ClassVar, Optional, Dict, List, Union
 
 from attr import define, field
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ClientSecretCredential
 
-AzureCredentials = DefaultAzureCredential
+AzureCredentials = Union[DefaultAzureCredential, ClientSecretCredential]
+
+
+@define
+class AzureClientSecretConfig:
+    kind: ClassVar[str] = "azure_client_secret"
+    tenant_id: str = field(metadata={"description": "Azure tenant ID"})
+    client_id: str = field(metadata={"description": "Azure client ID"})
+    client_secret: str = field(metadata={"description": "Azure client secret"})
 
 
 @define
 class AzureAccountConfig:
     kind: ClassVar[str] = "azure_account"
 
-    env_vars: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Environment variables to set"})
+    client_secret: Optional[AzureClientSecretConfig] = field(
+        default=None,
+        metadata={
+            "description": "If you can not provide access via the environment, define access with a client secret.\nIf no secret is provided the default credential chain will be used.\nSee https://docs.microsoft.com/en-us/azure/developer/python/azure-sdk-authenticate?tabs=cmd#environment-variables for more information."  # noqa: E501
+        },
+    )
     subscriptions: Optional[List[str]] = field(
         default=None, metadata={"description": "If not defined, all subscriptions that are found will be collected."}
     )
@@ -21,8 +33,13 @@ class AzureAccountConfig:
 
     def credentials(self) -> AzureCredentials:
         # update env vars if defined
-        if self.env_vars:
-            os.environ.update(self.env_vars)
+        if cs := self.client_secret:
+            return ClientSecretCredential(
+                tenant_id=cs.tenant_id,
+                client_id=cs.client_id,
+                client_secret=cs.client_secret,
+            )
+
         return DefaultAzureCredential()
 
 
@@ -30,9 +47,10 @@ class AzureAccountConfig:
 class AzureConfig:
     kind: ClassVar[str] = "azure"
 
-    resource_pool_size: int = field(
-        default=10, metadata={"description": "Number of threads to use for resource collection"}
+    subscription_pool_size: int = field(
+        default=4, metadata={"description": "Number of concurrent subscriptions to collect."}
     )
-    accounts: List[AzureAccountConfig] = field(
-        factory=list, metadata={"description": "Configure accounts to collect subscriptions."}
+    accounts: Optional[Dict[str, AzureAccountConfig]] = field(
+        factory=lambda: {"default": AzureAccountConfig()},
+        metadata={"description": "Configure accounts to collect subscriptions. You can define multiple accounts here."},
     )

@@ -4,6 +4,8 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, Tuple, Any
 
+from attr import evolve
+
 from resoto_plugin_azure.collector import AzureSubscriptionCollector
 from resoto_plugin_azure.config import AzureConfig, AzureAccountConfig
 from resoto_plugin_azure.resource.base import AzureSubscription
@@ -41,19 +43,24 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         log.info("plugin: Azure collecting resources")
         config: AzureConfig = Config.azure
         assert self.core_feedback, "core_feedback is not set"
-        cloud = Cloud(id=self.cloud, name="Azure")
+        cloud = Cloud(id=self.cloud)
 
         # In case no account is configured, fallback to default settings
-        account_configs = config.accounts or [AzureAccountConfig()]
+        account_configs = config.accounts or {"default": AzureAccountConfig()}
 
         # Gather all subscriptions
-        args = [
-            AzureSubscriptionArg(
-                config, cloud, subscription, ac, self.core_feedback.with_context(cloud.id, subscription.safe_name)
+        args_by_subscription_id = {
+            subscription.subscription_id: AzureSubscriptionArg(
+                config,
+                cloud,
+                evolve(subscription, account_name=name),
+                ac,
+                self.core_feedback.with_context(cloud.id, subscription.safe_name),
             )
-            for ac in account_configs
+            for name, ac in account_configs.items()
             for subscription in AzureSubscription.list_subscriptions(ac.credentials())
-        ]
+        }
+        args = list(args_by_subscription_id.values())
 
         # Send initial progress
         progress = ProgressTree(self.cloud)
@@ -63,7 +70,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         self.core_feedback.progress(progress)
 
         # Collect all subscriptions
-        with ThreadPoolExecutor(max_workers=config.resource_pool_size) as executor:
+        with ThreadPoolExecutor(max_workers=config.subscription_pool_size) as executor:
             wait_for = [executor.submit(collect_in_process, sub) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()
