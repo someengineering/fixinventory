@@ -329,7 +329,7 @@ def class_method(
                         add_prop(
                             AzureProperty(
                                 np.name,
-                                [prop_name] + np.from_name if isinstance(np.from_name, list) else [np.from_name],
+                                [prop_name] + (np.from_name if isinstance(np.from_name, list) else [np.from_name]),
                                 np.type,
                                 np.description,
                                 is_complex=np.is_complex,
@@ -369,11 +369,7 @@ class AzureRestSpec:
                 parameters = method.get("parameters", [])
                 required_params = [p for p in parameters if p.get("required", False) is True]
                 # api-version and subscriptionId are always there
-                param_names = {p["name"] for p in required_params} - {
-                    "api-version",
-                    "subscriptionId",
-                    "resourceGroupName",
-                }
+                param_names = {p["name"] for p in required_params} - {"api-version", "subscriptionId"}
                 if len(param_names) == 0:
                     schema = method["responses"]["200"]["schema"]
                     access_path: Optional[str] = None
@@ -585,8 +581,9 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in model.list_specs({"resources"})}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"compute"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":
             print(model.to_class())
+            # print(model.name)

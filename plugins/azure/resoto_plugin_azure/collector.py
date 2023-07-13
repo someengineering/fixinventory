@@ -6,12 +6,7 @@ from typing import Type, Set, List
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
 from resoto_plugin_azure.resource.compute import resources as compute_resources
-from resoto_plugin_azure.resource.base import (
-    AzureSubscription,
-    GraphBuilder,
-    AzureResource,
-    AzureResourceGroup,
-)
+from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder, AzureResource
 from resotolib.baseresources import Cloud, GraphRoot
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -28,8 +23,6 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
 
 
 all_resources: List[Type[AzureResource]] = compute_resources
-subscription_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
-group_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "resourceGroupName"}, True)]
 
 
 class AzureSubscriptionCollector:
@@ -59,13 +52,8 @@ class AzureSubscriptionCollector:
             builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
             # collect all locations
             builder.fetch_locations()
-            # collect resource groups
-            groups = AzureResourceGroup.collect_resources(builder)
-            # collect all resources that are either global or need the subscription id
-            self.collect_resource_list("subscription", builder, subscription_resources)
-            # collect all resources inside resource groups
-            for group in groups:
-                self.collect_resource_list(group.safe_name, builder.with_resource_group(group), group_resources)
+            # collect all resources
+            self.collect_resource_list("subscription", builder, all_resources)
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes
