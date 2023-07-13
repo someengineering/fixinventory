@@ -21,9 +21,3 @@ def test_collect(
     collector.collect()
     assert len(collector.graph.nodes) == 40
     assert len(collector.graph.edges) == 39
-
-
-def test_foo() -> None:
-    client = AzureClient.create(DefaultAzureCredential(), "38b02a39-99c8-45bd-a92e-38b616f109df")
-    res = client.list(AzureSubscription.api_spec)
-    print(json.dumps(res, indent=2))
