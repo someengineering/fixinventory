@@ -174,7 +174,7 @@ def with_config(
         default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
         cli = deps.add("cli", CLIService(deps, all_commands(deps), default_env, alias_names()))
         deps.add("template_expander", TemplateExpanderService(db.template_entity_db, cli))
-        inspector = deps.add("inspector_service", InspectorService(cli))
+        inspector = deps.add("inspector", InspectorService(cli))
         subscriptions = deps.add("subscription_handler", SubscriptionHandler(db.subscribers_db, message_bus))
         core_config_handler = deps.add(
             "core_config_handler",
