@@ -42,7 +42,7 @@ async def test_graph_manager(
     )
 
     # populate some data in the graphes
-    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model, 42)
+    nodes, info = await graph_db.merge_graph(create_multi_collector_graph(), foo_model)
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
 

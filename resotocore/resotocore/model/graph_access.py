@@ -31,7 +31,7 @@ from resotocore.model.model import (
 from resotocore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from resotocore.model.typed_model import from_js
 from resotocore.types import Json, EdgeType, JsonElement
-from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
+from resotocore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get, uuid_str
 
 log = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class DeferredEdge:
 
 
 class GraphBuilder:
-    def __init__(self, model: Model):
+    def __init__(self, model: Model, change_id: Optional[str] = None):
         self.model = model
         self.graph = MultiDiGraph()
         self.nodes = 0
@@ -150,6 +150,7 @@ class GraphBuilder:
         self.deferred_edges: List[DeferredEdge] = []
         self.usage: List[UsageDatapoint] = []
         self.at = int(utc().timestamp())
+        self.change_id = change_id or uuid_str()
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -175,6 +176,7 @@ class GraphBuilder:
                 }
                 usage = UsageDatapoint(
                     id=js["id"],
+                    change_id=self.change_id,
                     at=self.at,
                     v=values,
                 )

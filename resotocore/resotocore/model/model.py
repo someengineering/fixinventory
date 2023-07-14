@@ -1483,6 +1483,7 @@ class UsageDatapoint:
 
     id: str
     at: int
+    change_id: str
     v: Dict[str, UsageMetricValues]
 
 
