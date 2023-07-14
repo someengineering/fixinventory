@@ -145,11 +145,13 @@ class DbUpdaterProcess(Process):
         write_queue: Queue[ProcessAction],
         config: CoreConfig,
         graph_name: GraphName,
+        change_id: str,
     ) -> None:
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
         self.config = config
+        self.change_id = change_id
         self.graph_name = graph_name
 
     def next_action(self) -> ProcessAction:
@@ -163,7 +165,7 @@ class DbUpdaterProcess(Process):
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
         model_handler = ModelHandlerDB(db)
         model = await model_handler.load_model(self.graph_name)
-        builder = GraphBuilder(model)
+        builder = GraphBuilder(model, self.change_id)
         nxt = self.next_action()
         if isinstance(nxt, ReadFile):
             for element in nxt.jsons():
@@ -184,7 +186,7 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             await graphdb.insert_usage_data(builder.usage)
-            _, result = await graphdb.merge_graph(builder.graph, model, builder.at, nxt.change_id, nxt.is_batch)
+            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
             if nxt.task_id and builder.deferred_edges:
@@ -323,7 +325,7 @@ class GraphMerger(Service):
             change_id = maybe_batch if maybe_batch else uuid_str()
             write: Queue[ProcessAction] = Queue()
             read: Queue[ProcessAction] = Queue()
-            updater = DbUpdaterProcess(write, read, self.config, db.name)  # the process communication queue
+            updater = DbUpdaterProcess(write, read, self.config, db.name, change_id)  # the process communication queue
             stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
             dead_adjusted = False
 

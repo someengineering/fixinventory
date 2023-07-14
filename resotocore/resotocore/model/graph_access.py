@@ -142,7 +142,7 @@ class DeferredEdge:
 
 
 class GraphBuilder:
-    def __init__(self, model: Model):
+    def __init__(self, model: Model, change_id: str):
         self.model = model
         self.graph = MultiDiGraph()
         self.nodes = 0
@@ -150,6 +150,7 @@ class GraphBuilder:
         self.deferred_edges: List[DeferredEdge] = []
         self.usage: List[UsageDatapoint] = []
         self.at = int(utc().timestamp())
+        self.change_id = change_id
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
@@ -175,6 +176,7 @@ class GraphBuilder:
                 }
                 usage = UsageDatapoint(
                     id=js["id"],
+                    change_id=self.change_id,
                     at=self.at,
                     v=values,
                 )
