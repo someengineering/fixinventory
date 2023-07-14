@@ -1476,6 +1476,8 @@ class UsageDatapoint:
     at: `int`
         Timestamp of the datapoint in seconds since epoch.
         Name of the metric.
+    change_id: `str`
+        Id of the import
     v: `Dict[str, List[float]]]`
         Dictionary of metric names to lists of values. The values are `min`, `avg` and `max`.
 
