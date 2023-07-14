@@ -14,7 +14,7 @@ from resotocore.model.graph_access import GraphAccess, GraphBuilder, EdgeTypes, 
 from resotocore.model.model import Model, AnyKind, ComplexKind
 from resotocore.model.typed_model import to_json
 from resotocore.types import Json, EdgeType
-from resotocore.util import AccessJson, AccessNone
+from resotocore.util import AccessJson, AccessNone, uuid_str
 from tests.resotocore.db.graphdb_test import Foo
 
 FooTuple = collections.namedtuple(
@@ -137,7 +137,7 @@ def node(access: GraphAccess, node_id: NodeId) -> Optional[Json]:
 
 def test_builder(person_model: Model) -> None:
     max_m = {"id": "max", "kind": "Person", "name": "Max"}
-    builder = GraphBuilder(person_model)
+    builder = GraphBuilder(person_model, uuid_str())
     builder.add_from_json({"id": "root", "reported": max_m})
     builder.add_from_json({"from": "root", "to": "2"})
     with pytest.raises(AssertionError) as no_node:
@@ -154,7 +154,7 @@ def test_builder(person_model: Model) -> None:
 
 def test_reassign_root(person_model: Model) -> None:
     max_m = {"id": "max", "kind": "Person", "name": "Max"}
-    builder = GraphBuilder(person_model)
+    builder = GraphBuilder(person_model, uuid_str())
     builder.add_from_json({"id": "should_be_root", "reported": {"kind": "graph_root"}})
     builder.add_from_json({"id": "2", "reported": max_m})
     builder.add_from_json({"id": "3", "reported": max_m})
@@ -167,7 +167,7 @@ def test_reassign_root(person_model: Model) -> None:
 
 
 def test_replace_nodes(person_model: Model) -> None:
-    builder = GraphBuilder(person_model)
+    builder = GraphBuilder(person_model, uuid_str())
     meta = {"metadata": {"replace": True}}
     builder.add_from_json({"id": "root", "reported": {"kind": "graph_root"}})
     builder.add_from_json({"id": "cloud", "reported": {"id": "cloud", "kind": "cloud"}, **meta})
@@ -361,7 +361,7 @@ def test_resolve_graph_data() -> None:
 
 
 def test_model_size(person_model: Model) -> None:
-    builder = GraphBuilder(person_model)
+    builder = GraphBuilder(person_model, uuid_str())
     tags1 = {"foo": "bar", "bla": "blub" * 22}
     a1 = {"kind": "Address", "id": "a1", "zip": "s1", "city": "c1", "list": ["ccc"]}
     a2 = {"kind": "Address", "id": "aa2", "zip": "s2", "city": "gotham", "tags": tags1}

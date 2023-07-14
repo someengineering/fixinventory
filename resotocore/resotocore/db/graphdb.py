@@ -199,7 +199,7 @@ class ArangoGraphDB(GraphDB):
         return self.document_to_instance_fn(model)(node) if node is not None else None
 
     async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
-        graph = GraphBuilder(model)
+        graph = GraphBuilder(model, uuid_str())
         graph.add_node(node_id, data)
         graph.add_edge(under_node_id, node_id, EdgeTypes.default)
         access = GraphAccess(graph.graph, node_id, {under_node_id})
