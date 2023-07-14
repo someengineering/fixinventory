@@ -92,7 +92,7 @@ PlantUmlAttrs = (
 
 
 class ModelHandlerDB(ModelHandler, Service):
-    def __init__(self, db_access: DbAccess, plantuml_server: str):
+    def __init__(self, db_access: DbAccess, plantuml_server: str = "https://plantuml.resoto.org"):
         self.db_access = db_access
         self.plantuml_server = plantuml_server
         self.__loaded_model: Dict[GraphName, Model] = {}
@@ -103,13 +103,7 @@ class ModelHandlerDB(ModelHandler, Service):
             return model
         else:
             graph_model_db = await self.db_access.get_graph_model_db(graph_name)
-            model_db = self.db_access.get_model_db()
-            # check the new implementation for the kinds
-            model_kinds = [kind async for kind in graph_model_db.all()]
-            # if nothing found and the graph is the legacy default one, look in the legacy implementation
-            if not model_kinds and graph_name == self.default_legacy_graph_name:
-                model_kinds = [kind async for kind in model_db.all()]
-            model = Model.from_kinds(model_kinds)
+            model = Model.from_kinds([kind async for kind in graph_model_db.all()])
             self.__loaded_model[graph_name] = model
             return model
 
@@ -238,8 +232,6 @@ class ModelHandlerDB(ModelHandler, Service):
         # store all updated kinds
         db = await self.db_access.get_graph_model_db(graph_name)
         await db.update_many(kinds)
-        if graph_name == self.default_legacy_graph_name:
-            await self.db_access.get_model_db().update_many(kinds)
         # unset loaded model
         self.__loaded_model[graph_name] = updated
         return updated
