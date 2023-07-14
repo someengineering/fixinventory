@@ -140,11 +140,18 @@ class DbUpdaterProcess(Process):
     The result is either an exception in case of failure or a graph update in success case.
     """
 
-    def __init__(self, read_queue: Queue[ProcessAction], write_queue: Queue[ProcessAction], config: CoreConfig) -> None:
+    def __init__(
+        self,
+        read_queue: Queue[ProcessAction],
+        write_queue: Queue[ProcessAction],
+        config: CoreConfig,
+        graph_name: GraphName,
+    ) -> None:
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
         self.config = config
+        self.graph_name = graph_name
 
     def next_action(self) -> ProcessAction:
         try:
@@ -155,7 +162,8 @@ class DbUpdaterProcess(Process):
             raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
 
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
-        model = Model.from_kinds([kind async for kind in db.model_db.all()])
+        model_db = await db.get_graph_model_db(self.graph_name)
+        model = Model.from_kinds([kind async for kind in model_db.all()])
         builder = GraphBuilder(model)
         nxt = self.next_action()
         if isinstance(nxt, ReadFile):
@@ -317,7 +325,7 @@ class GraphMerger(Service):
             change_id = maybe_batch if maybe_batch else uuid_str()
             write: Queue[ProcessAction] = Queue()
             read: Queue[ProcessAction] = Queue()
-            updater = DbUpdaterProcess(write, read, self.config)  # the process communication queue
+            updater = DbUpdaterProcess(write, read, self.config, db.name)  # the process communication queue
             stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
             dead_adjusted = False
 
