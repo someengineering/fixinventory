@@ -31,7 +31,7 @@ async def test_merge_process(
     # wipe any existing data
     await graph_db.wipe()
     # store the model in db, so it can be loaded by the sub process
-    graph_db.db.collection("model").insert_many([to_js(a) for a in foo_kinds])
+    graph_db.db.collection(f"{graph_db.name}_model").insert_many([to_js(a) for a in foo_kinds])
     # define args to parse for the sub process
     config = empty_config(["--graphdb-username", "test", "--graphdb-password", "test", "--graphdb-database", "test"])
     # create sample graph data to insert
