@@ -46,7 +46,6 @@ class DbAccess(Service):
         event_sender: AnalyticsEventSender,
         adjust_node: AdjustNode,
         config: CoreConfig,
-        model_name: str = "model",
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
@@ -61,7 +60,6 @@ class DbAccess(Service):
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)
         self.adjust_node = adjust_node
-        self.model_db = EventEntityDb(model_db(self.db, model_name), event_sender, model_name)
         self.graph_model_dbs: Dict[GraphName, ModelDb] = {}
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.system_data_db = SystemDataDb(self.db)
@@ -78,7 +76,6 @@ class DbAccess(Service):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        await self.model_db.create_update_schema()
         await self.subscribers_db.create_update_schema()
         await self.running_task_db.create_update_schema()
         await self.job_db.create_update_schema()
@@ -117,7 +114,7 @@ class DbAccess(Service):
         return db
 
     async def delete_graph(self, name: GraphName) -> None:
-        def delete(name: GraphName) -> None:
+        def delete() -> None:
             db = self.database
             if db.has_graph(name):
                 # delete arrangodb graph
@@ -136,7 +133,7 @@ class DbAccess(Service):
                         db.delete_collection(coll["name"], ignore_missing=True)
                 self.graph_dbs.pop(name, None)
 
-        return await run_async(delete, name)
+        return await run_async(delete)
 
     async def delete_graph_model(self, graph_name: GraphName) -> None:
         await self.db.delete_collection(self.graph_model_name(graph_name), ignore_missing=True)
@@ -155,9 +152,6 @@ class DbAccess(Service):
             event_db = EventGraphDB(graph_db, self.event_sender)
             self.graph_dbs[name] = event_db
             return event_db
-
-    def get_model_db(self) -> ModelDb:
-        return self.model_db
 
     async def get_graph_model_db(self, graph_name: GraphName) -> ModelDb:
         if db := self.graph_model_dbs.get(graph_name):
