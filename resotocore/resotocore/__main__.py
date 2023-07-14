@@ -25,7 +25,7 @@ from resotocore.analytics.posthog import PostHogEventSender
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import alias_names, all_commands
-from resotocore.dependencies import Dependencies
+from resotocore.dependencies import Dependencies, ServiceNames as SN
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.config_override_service import ConfigOverrideService, model_from_db, override_config_for_startup
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -141,24 +141,24 @@ def with_config(
     info = system_info()
     deps = Dependencies(config=config, system_info=info, cert_handler=cert_handler)
     event_sender = deps.add(
-        "event_sender", PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
+        SN.event_sender, PostHogEventSender(system_data) if config.runtime.usage_metrics else NoEventSender()
     )
-    db = deps.add("db_access", db_access(config, sdb, event_sender))
+    db = deps.add(SN.db_access, db_access(config, sdb, event_sender))
     api = deps.add("api", Api(deps))
 
     async def on_start() -> None:
-        message_bus = deps.add("message_bus", MessageBus())
-        scheduler = deps.add("scheduler", Scheduler())
-        model = deps.add("model_handler", ModelHandlerDB(db, config.runtime.plantuml_server))
+        message_bus = deps.add(SN.message_bus, MessageBus())
+        scheduler = deps.add(SN.scheduler, Scheduler())
+        model = deps.add(SN.model_handler, ModelHandlerDB(db, config.runtime.plantuml_server))
 
-        worker_task_queue = deps.add("worker_task_queue", WorkerTaskQueue())
+        worker_task_queue = deps.add(SN.worker_task_queue, WorkerTaskQueue())
         # a "real" config override deps.add, unlike the one used for core config
         config_override_service = deps.add(
-            "config_override",
+            SN.config_override,
             ConfigOverrideService(config_overrides_paths, partial(model_from_db, db.configs_model_db)),
         )
         config_handler = deps.add(
-            "config_handler",
+            SN.config_handler,
             ConfigHandlerService(
                 db.config_entity_db,
                 db.config_validation_entity_db,
@@ -170,26 +170,26 @@ def with_config(
                 config_override_service,
             ),
         )
-        deps.add("user_management", UserManagementService(db, config_handler, event_sender))
+        deps.add(SN.user_management, UserManagementService(db, config_handler, event_sender))
         default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
-        cli = deps.add("cli", CLIService(deps, all_commands(deps), default_env, alias_names()))
-        deps.add("template_expander", TemplateExpanderService(db.template_entity_db, cli))
-        inspector = deps.add("inspector", InspectorService(cli))
-        subscriptions = deps.add("subscription_handler", SubscriptionHandler(db.subscribers_db, message_bus))
+        cli = deps.add(SN.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
+        deps.add(SN.template_expander, TemplateExpanderService(db.template_entity_db, cli))
+        inspector = deps.add(SN.inspector, InspectorService(cli))
+        subscriptions = deps.add(SN.subscription_handler, SubscriptionHandler(db.subscribers_db, message_bus))
         core_config_handler = deps.add(
-            "core_config_handler",
+            SN.core_config_handler,
             CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
         )
-        deps.add("infra_apps_runtime", LocalResotocoreAppRuntime(cli))
+        deps.add(SN.infra_apps_runtime, LocalResotocoreAppRuntime(cli))
         deps.add(
-            "infra_apps_package_manager",
+            SN.infra_apps_package_manager,
             PackageManager(
                 db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias
             ),
         )
-        graph_merger = deps.add("graph_merger", GraphMerger(model, event_sender, config, message_bus))
+        graph_merger = deps.add(SN.graph_merger, GraphMerger(model, event_sender, config, message_bus))
         task_handler = deps.add(
-            "task_handler",
+            SN.task_handler,
             TaskHandlerService(
                 db.running_task_db,
                 db.job_db,
@@ -202,12 +202,12 @@ def with_config(
                 config,
             ),
         )
-        deps.add("graph_manager", GraphManager(db, config.snapshots, core_config_handler, task_handler))
+        deps.add(SN.graph_manager, GraphManager(db, config.snapshots, core_config_handler, task_handler))
         deps.add(
-            "merge_outer_edges_handler", MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
+            SN.merge_outer_edges_handler, MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model)
         )
         deps.add(
-            "event_emitter_periodic",
+            SN.event_emitter_periodic,
             emit_recurrent_events(
                 event_sender,
                 model,
@@ -219,7 +219,7 @@ def with_config(
             ),
         )
         # queue must be created inside an async function!
-        deps.add("forked_tasks", Queue())
+        deps.add(SN.forked_tasks, Queue())
         for srv in deps.services:
             await srv.start()
 
