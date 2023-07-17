@@ -22,6 +22,7 @@ def test_gcp_service_and_sku(random_builder: GraphBuilder) -> None:
     }
     with FixturedClient(random_builder, fixture_replies) as random_builder:
         services = GcpService.collect_resources(random_builder)
+        random_builder.executor.wait_for_submitted_work()
         for service in services:
             service.connect_in_graph(random_builder, {"Dummy": "Source"})
         assert len(random_builder.edges_of(GcpService, GcpSku)) > 0

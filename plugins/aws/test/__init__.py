@@ -7,10 +7,11 @@ from pytest import fixture
 from resoto_plugin_aws.collector import AwsAccountCollector
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder, ExecutorQueue
+from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
+from resotolib.threading import ExecutorQueue
 from test.resources import BotoFileBasedSession
 
 
@@ -29,7 +30,7 @@ def aws_client(aws_config: AwsConfig) -> AwsClient:
 @fixture
 def builder(aws_client: AwsClient, no_feedback: CoreFeedback) -> Iterator[GraphBuilder]:
     with ThreadPoolExecutor(1) as executor:
-        queue = ExecutorQueue(executor, lambda _: 1, "dummy")
+        queue = ExecutorQueue(executor, "dummy", lambda _: 1)
         yield GraphBuilder(
             Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, queue, no_feedback
         )

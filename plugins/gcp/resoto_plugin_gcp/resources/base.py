@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import concurrent
 import json
 import logging
-from concurrent.futures import Executor, Future
+from concurrent.futures import Future
 from threading import Lock
 from types import TracebackType
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set
@@ -28,6 +27,7 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
 from resotolib.json import from_json as from_js, value_in_path
 from resotolib.json_bender import bend, Bender, S, Bend, MapDict, F
+from resotolib.threading import ExecutorQueue
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
@@ -44,68 +44,6 @@ def get_client(resource: BaseResource) -> GcpClient:
         project_id=project.id,
         region=resource.region().name if resource.region() else None,
     )
-
-
-class CancelOnFirstError(Exception):
-    pass
-
-
-@define
-class ExecutorQueue:
-    executor: Executor
-    name: str
-    fail_on_first_exception: bool = False
-    futures: List[Future[Any]] = field(factory=list)
-    _lock: Lock = Lock()
-    _exception: Optional[Exception] = None
-
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
-        def do_work() -> T:
-            # in case of exception let's fail fast and do not execute the function
-            if self._exception is None:
-                try:
-                    return fn(*args, **kwargs)
-                except Exception as e:
-                    # only store the first exception if we should fail on first future
-                    if self._exception is None:
-                        self._exception = e
-                    raise e
-            else:
-                raise CancelOnFirstError(
-                    "Exception happened in another thread. Do not start work."
-                ) from self._exception
-
-        future = (
-            self.executor.submit(do_work) if self.fail_on_first_exception else self.executor.submit(fn, *args, **kwargs)
-        )
-
-        with self._lock:
-            self.futures.append(future)
-        return future
-
-    def wait_for_submitted_work(self) -> None:
-        def _wait_for_current_batch() -> None:
-            # wait until all futures are complete
-            with self._lock:
-                to_wait = self.futures
-                self.futures = []
-            for future in concurrent.futures.as_completed(to_wait):
-                try:
-                    future.result()
-                except CancelOnFirstError:
-                    pass
-                except Exception as ex:
-                    log.exception(f"Unhandled exception in project {self.name}: {ex}")
-                    raise
-
-        # Wait until all submitted work and their potential "children" work is done
-        with self._lock:
-            remaining = len(self.futures)
-
-        while not remaining == 0:
-            _wait_for_current_batch()
-            with self._lock:
-                remaining = len(self.futures)
 
 
 class GraphBuilder:
@@ -144,7 +82,7 @@ class GraphBuilder:
         Use this method for work that can be done in parallel.
         Example: fetching tags of a resource.
         """
-        return self.executor.submit_work(fn, *args, **kwargs)
+        return self.executor.submit_work(self.project.id, fn, *args, **kwargs)
 
     def prepare_region_zone_lookup(self) -> None:
         regions = self.resources_of(GcpRegion)

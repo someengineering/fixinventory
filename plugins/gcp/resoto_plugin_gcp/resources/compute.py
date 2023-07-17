@@ -16,7 +16,7 @@ from resotolib.baseresources import (
     BaseInstance,
     InstanceStatus,
 )
-from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, F, MapEnum
+from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict, F, MapEnum, AsInt
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.gcp")
@@ -773,10 +773,10 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "default_disk_size_gb": S("defaultDiskSizeGb"),
+        "default_disk_size_gb": S("defaultDiskSizeGb") >> AsInt(),
         "valid_disk_size": S("validDiskSize"),
     }
-    default_disk_size_gb: Optional[str] = field(default=None)
+    default_disk_size_gb: Optional[int] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
     resource_group_map: ClassVar[Dict[str, str]] = {
@@ -893,7 +893,7 @@ class GcpDisk(GcpResource, BaseVolume):
         "options": S("options"),
         "disk_params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
         "physical_block_size_bytes": S("physicalBlockSizeBytes"),
-        "provisioned_iops": S("provisionedIops"),
+        "provisioned_iops": S("provisionedIops") >> AsInt(),
         "replica_zones": S("replicaZones", default=[]),
         "resource_policies": S("resourcePolicies", default=[]),
         "satisfies_pzs": S("satisfiesPzs"),
@@ -941,7 +941,7 @@ class GcpDisk(GcpResource, BaseVolume):
     options: Optional[str] = field(default=None)
     disk_params: Optional[GcpDiskParams] = field(default=None)
     physical_block_size_bytes: Optional[str] = field(default=None)
-    provisioned_iops: Optional[str] = field(default=None)
+    provisioned_iops: Optional[int] = field(default=None)
     replica_zones: Optional[List[str]] = field(default=None)
     resource_policies: Optional[List[str]] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
@@ -1968,7 +1968,7 @@ class GcpImage(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "architecture": S("architecture"),
         "archive_size_bytes": S("archiveSizeBytes"),
-        "disk_size_gb": S("diskSizeGb"),
+        "disk_size_gb": S("diskSizeGb") >> AsInt(),
         "family": S("family"),
         "guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
         "image_encryption_key": S("imageEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
@@ -1996,7 +1996,7 @@ class GcpImage(GcpResource):
     }
     architecture: Optional[str] = field(default=None)
     archive_size_bytes: Optional[str] = field(default=None)
-    disk_size_gb: Optional[str] = field(default=None)
+    disk_size_gb: Optional[int] = field(default=None)
     family: Optional[str] = field(default=None)
     guest_os_features: Optional[List[str]] = field(default=None)
     image_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
@@ -2317,12 +2317,12 @@ class GcpAttachedDiskInitializeParams:
         "architecture": S("architecture"),
         "description": S("description"),
         "disk_name": S("diskName"),
-        "disk_size_gb": S("diskSizeGb"),
+        "disk_size_gb": S("diskSizeGb") >> AsInt(),
         "disk_type": S("diskType"),
         "labels": S("labels"),
         "licenses": S("licenses", default=[]),
         "on_update_action": S("onUpdateAction"),
-        "provisioned_iops": S("provisionedIops"),
+        "provisioned_iops": S("provisionedIops") >> AsInt(),
         "resource_manager_tags": S("resourceManagerTags"),
         "resource_policies": S("resourcePolicies", default=[]),
         "source_image": S("sourceImage"),
@@ -2335,12 +2335,12 @@ class GcpAttachedDiskInitializeParams:
     architecture: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
     disk_name: Optional[str] = field(default=None)
-    disk_size_gb: Optional[str] = field(default=None)
+    disk_size_gb: Optional[int] = field(default=None)
     disk_type: Optional[str] = field(default=None)
     labels: Optional[Dict[str, str]] = field(default=None)
     licenses: Optional[List[str]] = field(default=None)
     on_update_action: Optional[str] = field(default=None)
-    provisioned_iops: Optional[str] = field(default=None)
+    provisioned_iops: Optional[int] = field(default=None)
     resource_manager_tags: Optional[Dict[str, str]] = field(default=None)
     resource_policies: Optional[List[str]] = field(default=None)
     source_image: Optional[str] = field(default=None)
@@ -2358,7 +2358,7 @@ class GcpAttachedDisk:
         "boot": S("boot"),
         "device_name": S("deviceName"),
         "disk_encryption_key": S("diskEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
-        "disk_size_gb": S("diskSizeGb"),
+        "disk_size_gb": S("diskSizeGb") >> AsInt(),
         "force_attach": S("forceAttach"),
         "guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
         "index": S("index"),
@@ -2376,7 +2376,7 @@ class GcpAttachedDisk:
     boot: Optional[bool] = field(default=None)
     device_name: Optional[str] = field(default=None)
     disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_size_gb: Optional[str] = field(default=None)
+    disk_size_gb: Optional[int] = field(default=None)
     force_attach: Optional[bool] = field(default=None)
     guest_os_features: Optional[List[str]] = field(default=None)
     index: Optional[int] = field(default=None)
@@ -2664,16 +2664,16 @@ class GcpInstanceTemplate(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "properties": S("properties", default={}) >> Bend(GcpInstanceProperties.mapping),
+        "template_properties": S("properties", default={}) >> Bend(GcpInstanceProperties.mapping),
         "source_instance": S("sourceInstance"),
         "source_instance_params": S("sourceInstanceParams", default={}) >> Bend(GcpSourceInstanceParams.mapping),
     }
-    properties: Optional[GcpInstanceProperties] = field(default=None)
+    template_properties: Optional[GcpInstanceProperties] = field(default=None)
     source_instance: Optional[str] = field(default=None)
     source_instance_params: Optional[GcpSourceInstanceParams] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if p := self.properties:
+        if p := self.template_properties:
             if p.machine_type:
                 builder.add_edge(self, reverse=True, clazz=GcpMachineType, link=p.machine_type)
 
@@ -3186,7 +3186,7 @@ class GcpSavedAttachedDisk:
         "boot": S("boot"),
         "device_name": S("deviceName"),
         "disk_encryption_key": S("diskEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
-        "disk_size_gb": S("diskSizeGb"),
+        "disk_size_gb": S("diskSizeGb") >> AsInt(),
         "disk_type": S("diskType"),
         "guest_os_features": S("guestOsFeatures", default=[]) >> ForallBend(S("type")),
         "index": S("index"),
@@ -3202,7 +3202,7 @@ class GcpSavedAttachedDisk:
     boot: Optional[bool] = field(default=None)
     device_name: Optional[str] = field(default=None)
     disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
-    disk_size_gb: Optional[str] = field(default=None)
+    disk_size_gb: Optional[int] = field(default=None)
     disk_type: Optional[str] = field(default=None)
     guest_os_features: Optional[List[str]] = field(default=None)
     index: Optional[int] = field(default=None)
@@ -3987,8 +3987,8 @@ class GcpLicenseResourceCommitment:
 @define(eq=False, slots=False)
 class GcpAllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk:
     kind: ClassVar[str] = "gcp_allocation_specific_sku_allocation_allocated_instance_properties_reserved_disk"
-    mapping: ClassVar[Dict[str, Bender]] = {"disk_size_gb": S("diskSizeGb"), "interface": S("interface")}
-    disk_size_gb: Optional[str] = field(default=None)
+    mapping: ClassVar[Dict[str, Bender]] = {"disk_size_gb": S("diskSizeGb") >> AsInt(), "interface": S("interface")}
+    disk_size_gb: Optional[int] = field(default=None)
     interface: Optional[str] = field(default=None)
 
 
@@ -5655,7 +5655,7 @@ class GcpSnapshot(GcpResource):
         "snapshot_auto_created": S("autoCreated"),
         "snapshot_chain_name": S("chainName"),
         "snapshot_creation_size_bytes": S("creationSizeBytes"),
-        "snapshot_disk_size_gb": S("diskSizeGb"),
+        "snapshot_disk_size_gb": S("diskSizeGb") >> AsInt(),
         "snapshot_download_bytes": S("downloadBytes"),
         "snapshot_license_codes": S("licenseCodes", default=[]),
         "snapshot_licenses": S("licenses", default=[]),
@@ -5679,7 +5679,7 @@ class GcpSnapshot(GcpResource):
     snapshot_auto_created: Optional[bool] = field(default=None)
     snapshot_chain_name: Optional[str] = field(default=None)
     snapshot_creation_size_bytes: Optional[str] = field(default=None)
-    snapshot_disk_size_gb: Optional[str] = field(default=None)
+    snapshot_disk_size_gb: Optional[int] = field(default=None)
     snapshot_download_bytes: Optional[str] = field(default=None)
     snapshot_license_codes: Optional[List[str]] = field(default=None)
     snapshot_licenses: Optional[List[str]] = field(default=None)
