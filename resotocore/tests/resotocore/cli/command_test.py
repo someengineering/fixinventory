@@ -1336,9 +1336,10 @@ async def test_db(cli: CLI) -> None:
     assert "sqlite://test:check@bla:1234" in str(ex.value)
     assert "?foo=bla&foo2=bla2" in str(ex.value)
 
-    # calling db without command will print the help
-    db_res = await cli.execute_cli_command("db", stream.list)
-    assert "Synchronizes data to an SQL database." in db_res[0][0]
+    # calling db without command will yield an error
+    with pytest.raises(Exception) as ex:
+        db_res = await cli.execute_cli_command("db", stream.list)
+    assert "Execute `help db` to get more information." in str(ex.value)
 
     # make sure argsinfo is available
     assert "sync" in cli.direct_commands["db"].args_info()
