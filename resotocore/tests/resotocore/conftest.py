@@ -8,7 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from typing import AsyncGenerator, Iterator, Dict, Any, Generator, Callable
+from typing import AsyncGenerator, Iterator, Dict, Any, Generator
 from typing import List, Optional
 from typing import Tuple, AsyncIterator, cast
 
@@ -809,15 +809,3 @@ async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataD
     async_db = AsyncArangoDB(test_db)
     yield SystemDataDb(async_db)
     test_db.collection("system_data").delete({"_key": "ca"})
-
-
-async def eventually(
-    predicate: Callable[[], bool],
-    timeout: timedelta = timedelta(seconds=5),
-    interval: timedelta = timedelta(seconds=0.1),
-) -> None:
-    async def wait_for_condition() -> None:
-        while not predicate():
-            await asyncio.sleep(interval.total_seconds())
-
-    await asyncio.wait_for(wait_for_condition(), timeout.total_seconds())

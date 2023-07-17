@@ -8,7 +8,7 @@ from pytest import LogCaptureFixture
 
 from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender
 from resotocore.cli.cli import CLIService
-from tests.resotocore.conftest import eventually
+from tests.resotocore.utils import eventually
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.system_start import empty_config
