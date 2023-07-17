@@ -287,9 +287,9 @@ def get_local_ip_addresses(
     for dst_ip in connect_to_ips:
         try:
             af_inet = socket.AF_INET6 if ":" in dst_ip else socket.AF_INET
-            s = socket.socket(af_inet, socket.SOCK_DGRAM)
-            s.connect((dst_ip, 53))
-            local_address = s.getsockname()[0]
+            with socket.socket(af_inet, socket.SOCK_DGRAM) as s:
+                s.connect((dst_ip, 53))
+                local_address = s.getsockname()[0]
         except Exception:
             pass
         else:
