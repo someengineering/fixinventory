@@ -24,7 +24,10 @@
 			"extensions": [
 				"mhutchie.git-graph",
 				"mutantdino.resourcemonitor",
-				"ms-toolsai.jupyter"
+				"ms-toolsai.jupyter",
+				"ms-python.mypy-type-checker",
+				"ms-python.pylint",
+				"ms-python.flake8"
 			],
 			"settings": {
 				// formatting

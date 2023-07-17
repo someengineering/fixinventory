@@ -27,6 +27,34 @@ from resotocore.worker_task_queue import WorkerTaskQueue
 T = TypeVar("T")
 
 
+class ServiceNames:
+    config = "config"
+    message_bus = "message_bus"
+    event_sender = "event_sender"
+    db_access = "db_access"
+    model_handler = "model_handler"
+    task_handler = "task_handler"
+    worker_task_queue = "worker_task_queue"
+    template_expander = "template_expander"
+    forked_tasks = "forked_tasks"
+    cli = "cli"
+    config_handler = "config_handler"
+    cert_handler = "cert_handler"
+    inspector = "inspector"
+    infra_apps_runtime = "infra_apps_runtime"
+    infra_apps_package_manager = "infra_apps_package_manager"
+    user_management = "user_management"
+    graph_manager = "graph_manager"
+    subscription_handler = "subscription_handler"
+    graph_merger = "graph_merger"
+    config_override = "config_override"
+    http_session = "http_session"
+    scheduler = "scheduler"
+    core_config_handler = "core_config_handler"
+    merge_outer_edges_handler = "merge_outer_edges_handler"
+    event_emitter_periodic = "event_emitter_periodic"
+
+
 class Dependencies(Service):
     def __init__(self, **deps: Any) -> None:
         self.lookup: Dict[str, Any] = deps
@@ -45,93 +73,93 @@ class Dependencies(Service):
 
     @property
     def config(self) -> CoreConfig:
-        return self.lookup["config"]  # type: ignore
+        return self.lookup[ServiceNames.config]  # type: ignore
 
     @property
     def message_bus(self) -> MessageBus:
-        return self.lookup["message_bus"]  # type:ignore
+        return self.lookup[ServiceNames.message_bus]  # type:ignore
 
     @property
     def event_sender(self) -> AnalyticsEventSender:
-        return self.lookup["event_sender"]  # type:ignore
+        return self.lookup[ServiceNames.event_sender]  # type:ignore
 
     @property
     def db_access(self) -> DbAccess:
-        return self.lookup["db_access"]  # type:ignore
+        return self.lookup[ServiceNames.db_access]  # type:ignore
 
     @property
     def model_handler(self) -> ModelHandler:
-        return self.lookup["model_handler"]  # type:ignore
+        return self.lookup[ServiceNames.model_handler]  # type:ignore
 
     @property
     def task_handler(self) -> TaskHandlerService:
-        return self.lookup["task_handler"]  # type:ignore
+        return self.lookup[ServiceNames.task_handler]  # type:ignore
 
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:
-        return self.lookup["worker_task_queue"]  # type:ignore
+        return self.lookup[ServiceNames.worker_task_queue]  # type:ignore
 
     @property
     def template_expander(self) -> TemplateExpander:
-        return self.lookup["template_expander"]  # type:ignore
+        return self.lookup[ServiceNames.template_expander]  # type:ignore
 
     @property
     def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
-        return self.lookup["forked_tasks"]  # type:ignore
+        return self.lookup[ServiceNames.forked_tasks]  # type:ignore
 
     @property
     def cli(self) -> CLI:
-        return self.lookup["cli"]  # type:ignore
+        return self.lookup[ServiceNames.cli]  # type:ignore
 
     @property
     def config_handler(self) -> ConfigHandler:
-        return self.lookup["config_handler"]  # type:ignore
+        return self.lookup[ServiceNames.config_handler]  # type:ignore
 
     @property
     def cert_handler(self) -> CertificateHandler:
-        return self.lookup["cert_handler"]  # type:ignore
+        return self.lookup[ServiceNames.cert_handler]  # type:ignore
 
     @property
     def inspector(self) -> Inspector:
-        return self.lookup["inspector"]  # type:ignore
+        return self.lookup[ServiceNames.inspector]  # type:ignore
 
     @property
     def infra_apps_runtime(self) -> Runtime:
-        return self.lookup["infra_apps_runtime"]  # type:ignore
+        return self.lookup[ServiceNames.infra_apps_runtime]  # type:ignore
 
     @property
     def infra_apps_package_manager(self) -> PackageManager:
-        return self.lookup["infra_apps_package_manager"]  # type:ignore
+        return self.lookup[ServiceNames.infra_apps_package_manager]  # type:ignore
 
     @property
     def user_management(self) -> UserManagement:
-        return self.lookup["user_management"]  # type:ignore
+        return self.lookup[ServiceNames.user_management]  # type:ignore
 
     @property
     def graph_manager(self) -> GraphManager:
-        return self.lookup["graph_manager"]  # type:ignore
+        return self.lookup[ServiceNames.graph_manager]  # type:ignore
 
     @property
     def subscription_handler(self) -> SubscriptionHandler:
-        return self.lookup["subscription_handler"]  # type:ignore
+        return self.lookup[ServiceNames.subscription_handler]  # type:ignore
 
     @property
     def graph_merger(self) -> GraphMerger:
-        return self.lookup["graph_merger"]  # type:ignore
+        return self.lookup[ServiceNames.graph_merger]  # type:ignore
 
     @property
     def config_override(self) -> ConfigOverride:
-        return self.lookup["config_override"]  # type:ignore
+        return self.lookup[ServiceNames.config_override]  # type:ignore
 
     @property
     def http_session(self) -> ClientSession:
-        session: Optional[ClientSession] = self.lookup.get("http_session")
+        session: Optional[ClientSession] = self.lookup.get(ServiceNames.http_session)
         if not session:
             connector = TCPConnector(limit=0, ssl=False, ttl_dns_cache=300)
             session = ClientSession(connector=connector)
-            self.lookup["http_session"] = session
+            self.lookup[ServiceNames.http_session] = session
         return session
 
     async def stop(self) -> None:
-        if "http_session" in self.lookup:
+        if ServiceNames.http_session in self.lookup:
             await self.http_session.close()

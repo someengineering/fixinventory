@@ -27,14 +27,13 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.deferred_edge_db import PendingDeferredEdges
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
-from resotocore.system_start import db_access, setup_process, reset_process_start_method
 from resotocore.error import ImportAborted
 from resotocore.ids import TaskId, GraphName
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.graph_access import GraphBuilder
-from resotocore.model.model import Model
 from resotocore.model.model_handler import ModelHandlerDB, ModelHandler
 from resotocore.service import Service
+from resotocore.system_start import db_access, setup_process, reset_process_start_method
 from resotocore.types import Json
 from resotocore.util import utc, uuid_str, shutdown_process
 
@@ -140,11 +139,20 @@ class DbUpdaterProcess(Process):
     The result is either an exception in case of failure or a graph update in success case.
     """
 
-    def __init__(self, read_queue: Queue[ProcessAction], write_queue: Queue[ProcessAction], config: CoreConfig) -> None:
+    def __init__(
+        self,
+        read_queue: Queue[ProcessAction],
+        write_queue: Queue[ProcessAction],
+        config: CoreConfig,
+        graph_name: GraphName,
+        change_id: str,
+    ) -> None:
         super().__init__(name="merge_update")
         self.read_queue = read_queue
         self.write_queue = write_queue
         self.config = config
+        self.change_id = change_id
+        self.graph_name = graph_name
 
     def next_action(self) -> ProcessAction:
         try:
@@ -155,8 +163,9 @@ class DbUpdaterProcess(Process):
             raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
 
     async def merge_graph(self, db: DbAccess) -> GraphUpdate:  # type: ignore
-        model = Model.from_kinds([kind async for kind in db.model_db.all()])
-        builder = GraphBuilder(model)
+        model_handler = ModelHandlerDB(db)
+        model = await model_handler.load_model(self.graph_name)
+        builder = GraphBuilder(model, self.change_id)
         nxt = self.next_action()
         if isinstance(nxt, ReadFile):
             for element in nxt.jsons():
@@ -177,9 +186,8 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.pending_deferred_edge_db
             await graphdb.insert_usage_data(builder.usage)
-            _, result = await graphdb.merge_graph(builder.graph, model, builder.at, nxt.change_id, nxt.is_batch)
+            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
-            model_handler = ModelHandlerDB(db, "")
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
@@ -317,7 +325,7 @@ class GraphMerger(Service):
             change_id = maybe_batch if maybe_batch else uuid_str()
             write: Queue[ProcessAction] = Queue()
             read: Queue[ProcessAction] = Queue()
-            updater = DbUpdaterProcess(write, read, self.config)  # the process communication queue
+            updater = DbUpdaterProcess(write, read, self.config, db.name, change_id)  # the process communication queue
             stale = timedelta(seconds=5).total_seconds()  # consider dead communication after this amount of time
             dead_adjusted = False
 
