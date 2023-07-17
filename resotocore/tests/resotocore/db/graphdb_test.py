@@ -232,6 +232,7 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
         GraphUpdate(112, 1, 0, 212, 0, 0),
     )
     # check the usage
+    await asyncio.sleep(0.1)
     n = await graph_db.get_node(foo_model, NodeId("0")) or {}
     assert n.get("usage", {}).get("cpu") == {"min": 42, "avg": 42, "max": 42}
     # exactly the same graph is updated: expect no changes
