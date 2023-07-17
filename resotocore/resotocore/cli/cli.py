@@ -328,8 +328,6 @@ class CLIService(CLI, Service):
                     task.cancel()
                 loop.run_until_complete(task)
 
-        await self.dependencies.stop()
-
     async def reap_tasks(self) -> None:
         while True:
             try:

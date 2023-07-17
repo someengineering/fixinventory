@@ -144,8 +144,10 @@ def emergency_shutdown(reason: str = "") -> None:
     psutil.Process().kill()
 
 
-def kill_children(signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3) -> None:
-    procs = psutil.Process().children(recursive=True)
+def kill_children(
+    signal: Signals = SIGTERM, ensure_death: bool = False, timeout: int = 3, process_pid: Optional[int] = None
+) -> None:
+    procs = psutil.Process(process_pid).children(recursive=True)
     num_children = len(procs)
     if num_children == 0:
         return
