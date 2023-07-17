@@ -534,6 +534,20 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     for metric_name in ["VolumeTotalWriteTime", "VolumeIdleTime"]
                 ]
             )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="VolumeQueueLength",
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat=stat,
+                        unit="Count",
+                        VolumeId=volume_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
 
         metric_normalizers = {
             "VolumeWriteBytes": MetricNormalization(name="volume_write_bytes"),
@@ -542,6 +556,9 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
             "VolumeReadOps": MetricNormalization(name="volume_read_ops"),
             "VolumeTotalWriteTime": MetricNormalization(name="volume_total_write_time"),
             "VolumeIdleTime": MetricNormalization(name="volume_idle_time"),
+            "VolumeQueueLength": MetricNormalization(
+                name="volume_queue_length", normalize_value=lambda x: round(x, ndigits=3)
+            ),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
