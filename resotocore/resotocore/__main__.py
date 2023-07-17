@@ -221,8 +221,9 @@ def with_config(
         )
         # queue must be created inside an async function!
         deps.add(ServiceNames.forked_tasks, Queue())
-        for srv in deps.services:
-            await srv.start()
+
+        # start all dependencies
+        await deps.start()
 
         if created:
             docker = inside_docker()
@@ -254,8 +255,7 @@ def with_config(
     async def on_stop() -> None:
         duration = utc() - info.started_at
         await event_sender.core_event(CoreEvent.SystemStopped, total_seconds=int(duration.total_seconds()))
-        for srv in reversed(deps.services):
-            await srv.stop()
+        await deps.stop()
 
     async def async_initializer() -> Application:
         async def clean_all_tasks() -> None:

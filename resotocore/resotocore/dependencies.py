@@ -1,5 +1,5 @@
 from asyncio import Queue, Task
-from typing import Any, Dict, List, Tuple, Optional, TypeVar
+from typing import Any, Dict, List, Tuple, Optional, TypeVar, Type
 
 from aiohttp import ClientSession, TCPConnector
 
@@ -73,35 +73,35 @@ class Dependencies(Service):
 
     @property
     def config(self) -> CoreConfig:
-        return self.lookup[ServiceNames.config]  # type: ignore
+        return self.service(ServiceNames.config, CoreConfig)
 
     @property
     def message_bus(self) -> MessageBus:
-        return self.lookup[ServiceNames.message_bus]  # type:ignore
+        return self.service(ServiceNames.message_bus, MessageBus)
 
     @property
     def event_sender(self) -> AnalyticsEventSender:
-        return self.lookup[ServiceNames.event_sender]  # type:ignore
+        return self.service(ServiceNames.event_sender, AnalyticsEventSender)  # type: ignore
 
     @property
     def db_access(self) -> DbAccess:
-        return self.lookup[ServiceNames.db_access]  # type:ignore
+        return self.service(ServiceNames.db_access, DbAccess)
 
     @property
     def model_handler(self) -> ModelHandler:
-        return self.lookup[ServiceNames.model_handler]  # type:ignore
+        return self.service(ServiceNames.model_handler, ModelHandler)  # type: ignore
 
     @property
     def task_handler(self) -> TaskHandlerService:
-        return self.lookup[ServiceNames.task_handler]  # type:ignore
+        return self.service(ServiceNames.task_handler, TaskHandlerService)
 
     @property
     def worker_task_queue(self) -> WorkerTaskQueue:
-        return self.lookup[ServiceNames.worker_task_queue]  # type:ignore
+        return self.service(ServiceNames.worker_task_queue, WorkerTaskQueue)
 
     @property
     def template_expander(self) -> TemplateExpander:
-        return self.lookup[ServiceNames.template_expander]  # type:ignore
+        return self.service(ServiceNames.template_expander, TemplateExpander)  # type: ignore
 
     @property
     def forked_tasks(self) -> Queue[Tuple[Task[JsonElement], str]]:
@@ -109,47 +109,47 @@ class Dependencies(Service):
 
     @property
     def cli(self) -> CLI:
-        return self.lookup[ServiceNames.cli]  # type:ignore
+        return self.service(ServiceNames.cli, CLI)  # type: ignore
 
     @property
     def config_handler(self) -> ConfigHandler:
-        return self.lookup[ServiceNames.config_handler]  # type:ignore
+        return self.service(ServiceNames.config_handler, ConfigHandler)  # type: ignore
 
     @property
     def cert_handler(self) -> CertificateHandler:
-        return self.lookup[ServiceNames.cert_handler]  # type:ignore
+        return self.service(ServiceNames.cert_handler, CertificateHandler)
 
     @property
     def inspector(self) -> Inspector:
-        return self.lookup[ServiceNames.inspector]  # type:ignore
+        return self.service(ServiceNames.inspector, Inspector)  # type: ignore
 
     @property
     def infra_apps_runtime(self) -> Runtime:
-        return self.lookup[ServiceNames.infra_apps_runtime]  # type:ignore
+        return self.service(ServiceNames.infra_apps_runtime, Runtime)  # type: ignore
 
     @property
     def infra_apps_package_manager(self) -> PackageManager:
-        return self.lookup[ServiceNames.infra_apps_package_manager]  # type:ignore
+        return self.service(ServiceNames.infra_apps_package_manager, PackageManager)
 
     @property
     def user_management(self) -> UserManagement:
-        return self.lookup[ServiceNames.user_management]  # type:ignore
+        return self.service(ServiceNames.user_management, UserManagement)  # type: ignore
 
     @property
     def graph_manager(self) -> GraphManager:
-        return self.lookup[ServiceNames.graph_manager]  # type:ignore
+        return self.service(ServiceNames.graph_manager, GraphManager)
 
     @property
     def subscription_handler(self) -> SubscriptionHandler:
-        return self.lookup[ServiceNames.subscription_handler]  # type:ignore
+        return self.service(ServiceNames.subscription_handler, SubscriptionHandler)
 
     @property
     def graph_merger(self) -> GraphMerger:
-        return self.lookup[ServiceNames.graph_merger]  # type:ignore
+        return self.service(ServiceNames.graph_merger, GraphMerger)
 
     @property
     def config_override(self) -> ConfigOverride:
-        return self.lookup[ServiceNames.config_override]  # type:ignore
+        return self.service(ServiceNames.config_override, ConfigOverride)  # type: ignore
 
     @property
     def http_session(self) -> ClientSession:
@@ -160,6 +160,18 @@ class Dependencies(Service):
             self.lookup[ServiceNames.http_session] = session
         return session
 
+    def service(self, name: str, clazz: Type[T]) -> T:
+        if isinstance(existing := self.lookup.get(name), clazz):
+            return existing
+        else:
+            raise KeyError(f"Service {name} not found")
+
+    async def start(self) -> None:
+        for service in self.services:
+            await service.start()
+
     async def stop(self) -> None:
         if ServiceNames.http_session in self.lookup:
             await self.http_session.close()
+        for service in reversed(self.services):
+            await service.stop()

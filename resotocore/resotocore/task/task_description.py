@@ -628,7 +628,7 @@ class EmitEventState(StepState):
 
 class StartState(StepState):
     def __init__(self, instance: RunningTask):
-        self.event = Event("task_start")
+        self.event = Event("task_start", {"task_id": instance.id, "descriptor_id": instance.descriptor.id})
         super().__init__(Step("task_start", EmitEvent(self.event)), instance)
 
     def commands_to_execute(self) -> Sequence[TaskCommand]:
@@ -641,7 +641,7 @@ class EndState(StepState):
     """
 
     def __init__(self, instance: RunningTask):
-        self.event = Event("task_end")
+        self.event = Event("task_end", {"task_id": instance.id, "descriptor_id": instance.descriptor.id})
         super().__init__(Step("task_end", EmitEvent(self.event)), instance)
 
     def is_error(self) -> bool:
