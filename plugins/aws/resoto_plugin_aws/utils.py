@@ -2,7 +2,7 @@ import uuid
 from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
-from attrs import define
+from attrs import frozen
 
 from boto3.session import Session as BotoSession
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
@@ -194,8 +194,13 @@ def identity(x: T) -> T:
     return x
 
 
-@define(kw_only=True, frozen=True)
+@frozen(kw_only=True)
 class MetricNormalization:
     name: str
-    stat_map: Dict[str, str]
+    stat_map: Dict[str, str] = {
+        "Minimum": "min",
+        "Average": "avg",
+        "Maximum": "max",
+        "Sum": "sum",
+    }
     normalize_value: Callable[[float], float] = identity
