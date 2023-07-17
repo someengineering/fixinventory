@@ -38,21 +38,14 @@ from resoto_plugin_aws.resource import (
     sns,
     sqs,
 )
-from resoto_plugin_aws.resource.base import (
-    AwsAccount,
-    AwsApiSpec,
-    AwsRegion,
-    AwsResource,
-    ExecutorQueue,
-    GatherFutures,
-    GraphBuilder,
-)
+from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph
 from resotolib.proc import set_thread_name
+from resotolib.threading import ExecutorQueue, GatherFutures
 from resotolib.types import Json
 from resotolib.json import value_in_path
 
@@ -166,7 +159,7 @@ class AwsAccountCollector:
             # The shared executor is used to spread work for the whole account.
             # Note: only tasks_per_key threads are running max for each region.
             tpk = self.config.shared_tasks_per_key([r.id for r in self.regions])
-            shared_queue = ExecutorQueue(executor, tasks_per_key=tpk, name=self.account.safe_name)
+            shared_queue = ExecutorQueue(executor, name=self.account.safe_name, tasks_per_key=tpk)
 
             def get_last_run() -> Optional[datetime]:
                 td = self.task_data
@@ -180,7 +173,6 @@ class AwsAccountCollector:
                 return datetime.fromtimestamp(timestamp, timezone.utc)
 
             last_run = get_last_run()
-
             global_builder = GraphBuilder(
                 self.graph,
                 self.cloud,
@@ -189,7 +181,7 @@ class AwsAccountCollector:
                 self.client,
                 shared_queue,
                 self.core_feedback,
-                last_run=last_run,
+                last_run_started_at=last_run,
             )
             global_builder.submit_work("iam", self.update_account)
 

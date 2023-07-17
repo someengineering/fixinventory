@@ -180,7 +180,9 @@ def clazz_model(
 
     def simple_shape(s: Shape) -> Optional[str]:
         if s.get("type") == "string" and (
-            s.get("format") == "google-datetime" or "RFC3339" in s.get("description", "")
+            s.get("format") == "google-datetime"
+            or s.get("format") == "date-time"
+            or "RFC3339" in s.get("description", "")
         ):
             return "datetime"
         elif spl := simple_type_map.get(s.get("type")):

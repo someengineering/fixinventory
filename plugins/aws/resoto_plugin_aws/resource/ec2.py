@@ -1,16 +1,16 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any, Callable, NamedTuple
+from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
-from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
-from resoto_plugin_aws.utils import ToDict, TagsValue, identity
+from resoto_plugin_aws.utils import ToDict, TagsValue, MetricNormalization
 from resotolib.baseresources import (
     BaseInstance,
     EdgeType,
@@ -902,11 +902,6 @@ InstanceStatusMapping = {
 }
 
 
-class MetricNormalization(NamedTuple):
-    name: str
-    normalize_value: Callable[[float], float] = identity
-
-
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
@@ -1056,11 +1051,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             if instance.region().id == builder.region.id and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
-
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-
         for instance_id in instances:
             queries.extend(
                 [
@@ -1076,29 +1069,68 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["NetworkIn", "NetworkOut"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Count",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadOps", "DiskWriteOps"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadBytes", "DiskWriteBytes"]
+                ]
+            )
 
-        metric_normalizers = {"CPUUtilization": MetricNormalization("cpu", lambda x: round(x, ndigits=3))}
+        stat_map = {"Minimum": "min", "Average": "avg", "Maximum": "max", "Sum": "sum"}
 
-        stat_name = {
-            "Minimum": "min",
-            "Average": "avg",
-            "Maximum": "max",
+        metric_normalizers = {
+            "CPUUtilization": MetricNormalization(
+                name="cpu_utilization",
+                stat_map=stat_map,
+                normalize_value=lambda x: round(x, ndigits=3),
+            ),
+            "NetworkIn": MetricNormalization(name="network_in", stat_map=stat_map),
+            "NetworkOut": MetricNormalization(name=("network_out"), stat_map=stat_map),
+            "DiskReadOps": MetricNormalization(name=("disk_read_ops"), stat_map=stat_map),
+            "DiskWriteOps": MetricNormalization(name=("disk_write_ops"), stat_map=stat_map),
+            "DiskReadBytes": MetricNormalization(name=("disk_read_bytes"), stat_map=stat_map),
+            "DiskWriteBytes": MetricNormalization(name=("disk_write_bytes"), stat_map=stat_map),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
 
-        for query, metric in cloudwatch_result.items():
-            instance = instances.get(query.ref_id)
-            if instance is None:
-                continue
-            metric_value = next(iter(metric.metric_values), None)
-            if metric_value is None:
-                continue
-
-            name = metric_normalizers[query.metric_name].name
-            value = metric_normalizers[query.metric_name].normalize_value(metric_value)
-
-            instance._resource_usage[name][stat_name[query.stat]] = value
+        update_resource_metrics(instances, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
