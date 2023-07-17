@@ -17,11 +17,11 @@ from resoto_plugin_aws.resource.base import (
     AwsRegion,
     AwsResource,
     AwsApiSpec,
-    ExecutorQueue,
 )
 from resotolib.baseresources import Cloud
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
+from resotolib.threading import ExecutorQueue
 
 
 class BotoDummyStsClient:

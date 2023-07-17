@@ -154,6 +154,7 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
 
     with FixturedClient(random_builder, fixture_replies) as random_builder:
         res: List[GcpInstance] = GcpInstance.collect_resources(random_builder)  # type: ignore
+        random_builder.executor.wait_for_submitted_work()
         for node, data in random_builder.graph.nodes(data=True):
             node.connect_in_graph(random_builder, data.get("source") or {})
         first_instance: GcpInstance = res[0]

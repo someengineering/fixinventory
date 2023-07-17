@@ -1,0 +1,364 @@
+{
+    "value": [
+        {
+            "resourceType": "virtualMachines",
+            "name": "Standard_PB6s",
+            "tier": "Standard",
+            "size": "PB6s",
+            "family": "standardPBSFamily",
+            "locations": [
+                "westeurope"
+            ],
+            "locationInfo": [
+                {
+                    "location": "westeurope",
+                    "zones": [
+                        "3"
+                    ],
+                    "zoneDetails": []
+                }
+            ],
+            "capabilities": [
+                {
+                    "name": "MaxResourceVolumeMB",
+                    "value": "344064"
+                },
+                {
+                    "name": "OSVhdSizeMB",
+                    "value": "1047552"
+                },
+                {
+                    "name": "vCPUs",
+                    "value": "6"
+                },
+                {
+                    "name": "MemoryPreservingMaintenanceSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "HyperVGenerations",
+                    "value": "V1,V2"
+                },
+                {
+                    "name": "MemoryGB",
+                    "value": "112"
+                },
+                {
+                    "name": "MaxDataDiskCount",
+                    "value": "12"
+                },
+                {
+                    "name": "CpuArchitectureType",
+                    "value": "x64"
+                },
+                {
+                    "name": "LowPriorityCapable",
+                    "value": "False"
+                },
+                {
+                    "name": "PremiumIO",
+                    "value": "True"
+                },
+                {
+                    "name": "VMDeploymentTypes",
+                    "value": "IaaS"
+                },
+                {
+                    "name": "EphemeralOSDiskSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "EncryptionAtHostSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "CapacityReservationSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "AcceleratedNetworkingEnabled",
+                    "value": "True"
+                },
+                {
+                    "name": "RdmaEnabled",
+                    "value": "False"
+                },
+                {
+                    "name": "MaxNetworkInterfaces",
+                    "value": "1"
+                }
+            ],
+            "restrictions": [
+                {
+                    "type": "Location",
+                    "values": [
+                        "westeurope"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westeurope"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                },
+                {
+                    "type": "Zone",
+                    "values": [
+                        "westeurope"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westeurope"
+                        ],
+                        "zones": [
+                            "1",
+                            "2",
+                            "3"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                }
+            ]
+        },
+        {
+            "resourceType": "virtualMachines",
+            "name": "Standard_PB6s",
+            "tier": "Standard",
+            "size": "PB6s",
+            "family": "standardPBSFamily",
+            "locations": [
+                "westeurope"
+            ],
+            "locationInfo": [
+                {
+                    "location": "westeurope",
+                    "zones": [
+                        "2"
+                    ],
+                    "zoneDetails": []
+                }
+            ],
+            "capabilities": [
+                {
+                    "name": "MaxResourceVolumeMB",
+                    "value": "344064"
+                },
+                {
+                    "name": "OSVhdSizeMB",
+                    "value": "1047552"
+                },
+                {
+                    "name": "vCPUs",
+                    "value": "6"
+                },
+                {
+                    "name": "MemoryPreservingMaintenanceSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "HyperVGenerations",
+                    "value": "V1,V2"
+                },
+                {
+                    "name": "MemoryGB",
+                    "value": "112"
+                },
+                {
+                    "name": "MaxDataDiskCount",
+                    "value": "12"
+                },
+                {
+                    "name": "CpuArchitectureType",
+                    "value": "x64"
+                },
+                {
+                    "name": "LowPriorityCapable",
+                    "value": "False"
+                },
+                {
+                    "name": "PremiumIO",
+                    "value": "True"
+                },
+                {
+                    "name": "VMDeploymentTypes",
+                    "value": "IaaS"
+                },
+                {
+                    "name": "EphemeralOSDiskSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "EncryptionAtHostSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "CapacityReservationSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "AcceleratedNetworkingEnabled",
+                    "value": "True"
+                },
+                {
+                    "name": "RdmaEnabled",
+                    "value": "False"
+                },
+                {
+                    "name": "MaxNetworkInterfaces",
+                    "value": "1"
+                }
+            ],
+            "restrictions": [
+                {
+                    "type": "Location",
+                    "values": [
+                        "westeurope"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westeurope"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                },
+                {
+                    "type": "Zone",
+                    "values": [
+                        "westeurope"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westeurope"
+                        ],
+                        "zones": [
+                            "1",
+                            "2",
+                            "3"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                }
+            ]
+        },
+        {
+            "resourceType": "virtualMachines",
+            "name": "Standard_PB6s",
+            "tier": "Standard",
+            "size": "PB6s",
+            "family": "standardPBSFamily",
+            "locations": [
+                "westeurope"
+            ],
+            "locationInfo": [
+                {
+                    "location": "westeurope",
+                    "zones": [
+                        "3"
+                    ],
+                    "zoneDetails": []
+                }
+            ],
+            "capabilities": [
+                {
+                    "name": "MaxResourceVolumeMB",
+                    "value": "344064"
+                },
+                {
+                    "name": "OSVhdSizeMB",
+                    "value": "1047552"
+                },
+                {
+                    "name": "vCPUs",
+                    "value": "6"
+                },
+                {
+                    "name": "MemoryPreservingMaintenanceSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "HyperVGenerations",
+                    "value": "V1,V2"
+                },
+                {
+                    "name": "MemoryGB",
+                    "value": "112"
+                },
+                {
+                    "name": "MaxDataDiskCount",
+                    "value": "12"
+                },
+                {
+                    "name": "CpuArchitectureType",
+                    "value": "x64"
+                },
+                {
+                    "name": "LowPriorityCapable",
+                    "value": "False"
+                },
+                {
+                    "name": "PremiumIO",
+                    "value": "True"
+                },
+                {
+                    "name": "VMDeploymentTypes",
+                    "value": "IaaS"
+                },
+                {
+                    "name": "EphemeralOSDiskSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "EncryptionAtHostSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "CapacityReservationSupported",
+                    "value": "False"
+                },
+                {
+                    "name": "AcceleratedNetworkingEnabled",
+                    "value": "True"
+                },
+                {
+                    "name": "RdmaEnabled",
+                    "value": "False"
+                },
+                {
+                    "name": "MaxNetworkInterfaces",
+                    "value": "1"
+                }
+            ],
+            "restrictions": [
+                {
+                    "type": "Location",
+                    "values": [
+                        "westus2"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westus2"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                },
+                {
+                    "type": "Zone",
+                    "values": [
+                        "westus2"
+                    ],
+                    "restrictionInfo": {
+                        "locations": [
+                            "westus2"
+                        ],
+                        "zones": [
+                            "1",
+                            "2",
+                            "3"
+                        ]
+                    },
+                    "reasonCode": "NotAvailableForSubscription"
+                }
+            ]
+        }
+    ]
+}

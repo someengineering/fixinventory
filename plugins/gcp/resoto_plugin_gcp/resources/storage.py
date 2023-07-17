@@ -53,7 +53,7 @@ class GcpAutoclass:
     kind: ClassVar[str] = "gcp_autoclass"
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime")}
     enabled: Optional[bool] = field(default=None)
-    toggle_time: Optional[str] = field(default=None)
+    toggle_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -107,7 +107,7 @@ class GcpBucketpolicyonly:
     kind: ClassVar[str] = "gcp_bucketpolicyonly"
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[str] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -115,7 +115,7 @@ class GcpUniformbucketlevelaccess:
     kind: ClassVar[str] = "gcp_uniformbucketlevelaccess"
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[str] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -206,7 +206,7 @@ class GcpRetentionpolicy:
         "is_locked": S("isLocked"),
         "retention_period": S("retentionPeriod"),
     }
-    effective_time: Optional[str] = field(default=None)
+    effective_time: Optional[datetime] = field(default=None)
     is_locked: Optional[bool] = field(default=None)
     retention_period: Optional[str] = field(default=None)
 
@@ -264,6 +264,7 @@ class GcpBucket(GcpResource):
         "tags": S("labels", default={}),
         "name": S("name"),
         "ctime": S("creationTimestamp"),
+        "mtime": S("updated"),
         "description": S("description"),
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
@@ -313,8 +314,8 @@ class GcpBucket(GcpResource):
     rpo: Optional[str] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
     storage_class: Optional[str] = field(default=None)
-    time_created: Optional[str] = field(default=None)
-    updated: Optional[str] = field(default=None)
+    time_created: Optional[datetime] = field(default=None)
+    updated: Optional[datetime] = field(default=None)
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
     versioning_enabled: Optional[bool] = field(default=None)

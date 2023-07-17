@@ -1,0 +1,400 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/eastus",
+            "name": "eastus",
+            "type": "Region",
+            "displayName": "East US",
+            "regionalDisplayName": "(US) East US",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United States",
+                "geographyGroup": "US",
+                "longitude": "-79.8164",
+                "latitude": "37.3719",
+                "physicalLocation": "Virginia",
+                "pairedRegion": [
+                    {
+                        "name": "westus",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westus"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "eastus-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "eastus-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "eastus-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/eastus2",
+            "name": "eastus2",
+            "type": "Region",
+            "displayName": "East US 2",
+            "regionalDisplayName": "(US) East US 2",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United States",
+                "geographyGroup": "US",
+                "longitude": "-78.3889",
+                "latitude": "36.6681",
+                "physicalLocation": "Virginia",
+                "pairedRegion": [
+                    {
+                        "name": "centralus",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/centralus"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "eastus2-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "eastus2-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "eastus2-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/southcentralus",
+            "name": "southcentralus",
+            "type": "Region",
+            "displayName": "South Central US",
+            "regionalDisplayName": "(US) South Central US",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United States",
+                "geographyGroup": "US",
+                "longitude": "-98.5",
+                "latitude": "29.4167",
+                "physicalLocation": "Texas",
+                "pairedRegion": [
+                    {
+                        "name": "northcentralus",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/northcentralus"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "southcentralus-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "southcentralus-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "southcentralus-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westus2",
+            "name": "westus2",
+            "type": "Region",
+            "displayName": "West US 2",
+            "regionalDisplayName": "(US) West US 2",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United States",
+                "geographyGroup": "US",
+                "longitude": "-119.852",
+                "latitude": "47.233",
+                "physicalLocation": "Washington",
+                "pairedRegion": [
+                    {
+                        "name": "westcentralus",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westcentralus"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "westus2-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "westus2-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "westus2-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westus3",
+            "name": "westus3",
+            "type": "Region",
+            "displayName": "West US 3",
+            "regionalDisplayName": "(US) West US 3",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United States",
+                "geographyGroup": "US",
+                "longitude": "-112.074036",
+                "latitude": "33.448376",
+                "physicalLocation": "Phoenix",
+                "pairedRegion": [
+                    {
+                        "name": "eastus",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/eastus"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "westus3-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "westus3-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "westus3-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/australiaeast",
+            "name": "australiaeast",
+            "type": "Region",
+            "displayName": "Australia East",
+            "regionalDisplayName": "(Asia Pacific) Australia East",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "Australia",
+                "geographyGroup": "Asia Pacific",
+                "longitude": "151.2094",
+                "latitude": "-33.86",
+                "physicalLocation": "New South Wales",
+                "pairedRegion": [
+                    {
+                        "name": "australiasoutheast",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/australiasoutheast"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "australiaeast-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "australiaeast-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "australiaeast-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/southeastasia",
+            "name": "southeastasia",
+            "type": "Region",
+            "displayName": "Southeast Asia",
+            "regionalDisplayName": "(Asia Pacific) Southeast Asia",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "Asia Pacific",
+                "geographyGroup": "Asia Pacific",
+                "longitude": "103.833",
+                "latitude": "1.283",
+                "physicalLocation": "Singapore",
+                "pairedRegion": [
+                    {
+                        "name": "eastasia",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/eastasia"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "southeastasia-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "southeastasia-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "southeastasia-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/northeurope",
+            "name": "northeurope",
+            "type": "Region",
+            "displayName": "North Europe",
+            "regionalDisplayName": "(Europe) North Europe",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "Europe",
+                "geographyGroup": "Europe",
+                "longitude": "-6.2597",
+                "latitude": "53.3478",
+                "physicalLocation": "Ireland",
+                "pairedRegion": [
+                    {
+                        "name": "westeurope",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westeurope"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "northeurope-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "northeurope-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "northeurope-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/swedencentral",
+            "name": "swedencentral",
+            "type": "Region",
+            "displayName": "Sweden Central",
+            "regionalDisplayName": "(Europe) Sweden Central",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "Sweden",
+                "geographyGroup": "Europe",
+                "longitude": "17.14127",
+                "latitude": "60.67488",
+                "physicalLocation": "G\u00e4vle",
+                "pairedRegion": [
+                    {
+                        "name": "swedensouth",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/swedensouth"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "swedencentral-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "swedencentral-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "swedencentral-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/uksouth",
+            "name": "uksouth",
+            "type": "Region",
+            "displayName": "UK South",
+            "regionalDisplayName": "(Europe) UK South",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "United Kingdom",
+                "geographyGroup": "Europe",
+                "longitude": "-0.799",
+                "latitude": "50.941",
+                "physicalLocation": "London",
+                "pairedRegion": [
+                    {
+                        "name": "ukwest",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/ukwest"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "uksouth-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "uksouth-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "uksouth-az2"
+                }
+            ]
+        },
+        {
+            "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/westeurope",
+            "name": "westeurope",
+            "type": "Region",
+            "displayName": "West Europe",
+            "regionalDisplayName": "(Europe) West Europe",
+            "metadata": {
+                "regionType": "Physical",
+                "regionCategory": "Recommended",
+                "geography": "Europe",
+                "geographyGroup": "Europe",
+                "longitude": "4.9",
+                "latitude": "52.3667",
+                "physicalLocation": "Netherlands",
+                "pairedRegion": [
+                    {
+                        "name": "northeurope",
+                        "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/locations/northeurope"
+                    }
+                ]
+            },
+            "availabilityZoneMappings": [
+                {
+                    "logicalZone": "1",
+                    "physicalZone": "westeurope-az3"
+                },
+                {
+                    "logicalZone": "2",
+                    "physicalZone": "westeurope-az1"
+                },
+                {
+                    "logicalZone": "3",
+                    "physicalZone": "westeurope-az2"
+                }
+            ]
+        }
+    ]
+}
