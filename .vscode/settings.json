@@ -18,5 +18,8 @@
         "**/jupyterlite": true,
         "**/node_modules": true,
     },
-    "search.useParentIgnoreFiles": true
+    "search.useParentIgnoreFiles": true,
+    "python.analysis.extraPaths": [
+        "resotolib",
+    ]
 }

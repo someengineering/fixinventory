@@ -1,14 +1,14 @@
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple
+from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar
 
 from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
+from resoto_plugin_aws.utils import ToDict, MetricNormalization
+from resotolib.baseresources import ModelReference, BaseResource
 from resotolib.graph import Graph
 from resotolib.json import from_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -450,3 +450,27 @@ class AwsCloudwatchMetricData:
 
 
 resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm, AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter]
+
+V = TypeVar("V", bound=BaseResource)
+
+
+def update_resource_metrics(
+    resources_map: Dict[str, V],
+    cloudwatch_result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData],
+    metric_normalizers: Dict[str, MetricNormalization],
+) -> None:
+    for query, metric in cloudwatch_result.items():
+        resource = resources_map.get(query.ref_id)
+        if resource is None:
+            continue
+        metric_value = next(iter(metric.metric_values), None)
+        if metric_value is None:
+            continue
+        normalizer = metric_normalizers.get(query.metric_name)
+        if not normalizer:
+            continue
+
+        name = normalizer.name
+        value = metric_normalizers[query.metric_name].normalize_value(metric_value)
+
+        resource._resource_usage[name][normalizer.stat_map[query.stat]] = value

@@ -47,7 +47,7 @@ dependencies = [
     "typeguard",
     "tzdata",
     "tzlocal",
-    "websocket-client",
+    "websocket-client"
 ]
 
 [project.optional-dependencies]

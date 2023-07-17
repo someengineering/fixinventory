@@ -14,12 +14,12 @@ from math import ceil
 from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
-from resotolib.utils import utc
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.configuration import AwsConfig
 from resoto_plugin_aws.resource.pricing import AwsPricingPrice
 from resoto_plugin_aws.utils import arn_partition
+from resotolib.utils import utc
 from resotolib.baseresources import (
     BaseAccount,
     BaseRegion,
@@ -482,7 +482,7 @@ class GraphBuilder:
         global_instance_types: Optional[Dict[str, Any]] = None,
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
-        last_run: Optional[datetime] = None,
+        last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -495,12 +495,12 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
-        self.last_run_started_at = last_run
+        self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        if self.last_run_started_at:
+        if last_run_started_at:
             now = utc()
-            start = self.last_run_started_at
+            start = last_run_started_at
             delta = now - start
             # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
             delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
