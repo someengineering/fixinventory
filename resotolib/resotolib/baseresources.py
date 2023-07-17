@@ -156,7 +156,7 @@ class BaseResource(ABC):
     _cleaned: bool = False
     _protected: bool = False
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
-    _resource_usage: Dict[MetricName, Any] = field(factory=lambda: defaultdict(dict))
+    _resource_usage: Dict[MetricName, Dict[StatName, float]] = field(factory=lambda: defaultdict(dict))
 
     ctime: Optional[datetime] = field(
         default=None,
