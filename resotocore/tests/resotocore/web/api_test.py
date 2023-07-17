@@ -66,11 +66,7 @@ async def create_core_client(
     additional_args = ["--psk", psk] if psk else []
 
     # wipe and cleanly import the test model
-    await db_access.model_db.create_update_schema()
-    await db_access.model_db.wipe()
-    await db_access.model_db.update_many(foo_kinds)
-
-    for graph_name in [g, "test", "hello", "bonjour", "foo"]:
+    for graph_name in [g, "test", "hello", "bonjour", "foo", "resoto"]:
         db = await db_access.get_graph_model_db(GraphName(graph_name))
         await db.create_update_schema()
         await db.wipe()

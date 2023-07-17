@@ -61,7 +61,10 @@
             },
             "autoReload": {
                 "enable": false
-            }
+            },
+            "pythonArgs": [
+                "-Xfrozen_modules=off"
+            ]
         },
         {
             "name": "resotoshell",

@@ -1469,14 +1469,17 @@ class UsageDatapoint:
     at: `int`
         Timestamp of the datapoint in seconds since epoch.
         Name of the metric.
-    v: `Dict[str, Any]]`
-        Dictionary of metrics.
+    change_id: `str`
+        Id of the import
+    v: `Dict[str, List[float]]]`
+        Dictionary of metric names to lists of values. The values are `min`, `avg` and `max`.
 
     """
 
     id: str
     at: int
-    v: Dict[str, Any]
+    change_id: str
+    v: Dict[str, UsageMetricValues]
 
 
 # register serializer for this class
