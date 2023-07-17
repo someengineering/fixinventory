@@ -473,4 +473,4 @@ def update_resource_metrics(
         name = normalizer.name
         value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
-        resource._resource_usage[name] = value
+        resource._resource_usage[name][normalizer.stat_map[query.stat]] = value

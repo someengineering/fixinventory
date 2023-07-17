@@ -197,5 +197,5 @@ def identity(x: T) -> T:
 @define(kw_only=True, frozen=True)
 class MetricNormalization:
     name: str
-    stat_map: Optional[Dict[str, str]] = None
+    stat_map: Dict[str, str]
     normalize_value: Callable[[float], float] = identity
