@@ -1479,7 +1479,7 @@ class UsageDatapoint:
     id: str
     at: int
     change_id: str
-    v: Dict[str, UsageMetricValues]
+    v: Dict[str, Dict[str, float]]
 
 
 # register serializer for this class

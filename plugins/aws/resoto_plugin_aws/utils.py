@@ -1,7 +1,7 @@
 import uuid
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
 from attrs import define
 
 from boto3.session import Session as BotoSession
@@ -196,7 +196,6 @@ def identity(x: T) -> T:
 
 @define(kw_only=True, frozen=True)
 class MetricNormalization:
-    name: Tuple[str, ...]
+    name: str
     stat_map: Optional[Dict[str, str]] = None
-    unit_map: Optional[Dict[str, str]] = None
     normalize_value: Callable[[float], float] = identity

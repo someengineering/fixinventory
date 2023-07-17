@@ -181,8 +181,8 @@ async def test_update_merge_batched(graph_db: ArangoGraphDB, foo_model: Model, t
     g = create_graph("yes or no")
     await graph_db.insert_usage_data(
         [
-            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}, change_id=batch_id),
-            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}, change_id="foo"),
+            UsageDatapoint("0", at=100, v={"cpu": {"min": 42, "avg": 42, "max": 42}}, change_id=batch_id),
+            UsageDatapoint("0", at=101, v={"cpu": {"min": 0.42, "avg": 0.42, "max": 0.42}}, change_id="foo"),
         ]
     )
 
@@ -220,8 +220,8 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
     await graph_db.insert_usage_data(
         [
-            UsageDatapoint("0", at=100, v={"cpu": UsageMetricValues(42, 42, 42)}, change_id="foo"),
-            UsageDatapoint("0", at=101, v={"cpu": UsageMetricValues(43, 43, 43)}, change_id="bar"),
+            UsageDatapoint("0", at=100, v={"cpu": {"min": 42, "avg": 42, "max": 42}}, change_id="foo"),
+            UsageDatapoint("0", at=101, v={"cpu": {"min": 0.42, "avg": 0.42, "max": 0.42}}, change_id="bar"),
         ]
     )
 
@@ -665,7 +665,7 @@ async def test_no_snapshot_usage(graph_db: ArangoGraphDB, foo_model: Model, db_a
 
     with raises(ValueError) as ex:
         await snapshot_db.insert_usage_data(
-            [UsageDatapoint("foo", 42, "foo", {"cpu": UsageMetricValues(0.42, 0.42, 0.42)})]
+            [UsageDatapoint("foo", 42, "foo", {"cpu": {"min": 0.42, "avg": 0.42, "max": 0.42}})]
         )
 
     assert str(ex.value) == "Cannot insert usage data into a snapshot graph"

@@ -1,7 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple, Any, TypeVar
-from collections import defaultdict
+from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar
 
 from attr import define, field
 
@@ -460,8 +459,6 @@ def update_resource_metrics(
     cloudwatch_result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData],
     metric_normalizers: Dict[str, MetricNormalization],
 ) -> None:
-    metrics_per_resource: Dict[str, Dict[Tuple[str, ...], float]] = defaultdict(dict)
-
     for query, metric in cloudwatch_result.items():
         resource = resources_map.get(query.ref_id)
         if resource is None:
@@ -473,33 +470,7 @@ def update_resource_metrics(
         if not normalizer:
             continue
 
-        name = list(normalizer.name)
-        if sm := normalizer.stat_map:
-            name.append(sm[query.stat])
-        if um := normalizer.unit_map:
-            name.append(um[query.unit])
-
+        name = normalizer.name
         value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
-        normalized_metrics: Dict[Tuple[str, ...], float] = metrics_per_resource[resource.id]
-
-        normalized_metrics[tuple(name)] = value
-
-    # transform (foo, bar, baz) -> 42 into {foo:{bar:{baz:42}}}
-    def mk_nested_dict(key: Tuple[str, ...], value: float, result: Dict[str, Any]) -> Dict[str, Any]:
-        if len(key) == 1:
-            result[key[0]] = value
-        else:
-            head = key[0]
-            tail = key[1:]
-            if head not in result:
-                result[head] = {}
-            mk_nested_dict(tail, value, result[head])
-        return result
-
-    for resource_id, metrics in metrics_per_resource.items():
-        resource_metrics: Dict[str, Any] = {}
-        for name_path, value in metrics.items():
-            mk_nested_dict(name_path, value, resource_metrics)
-
-        resources_map[resource_id]._resource_usage = resource_metrics
+        resource._resource_usage[name] = value

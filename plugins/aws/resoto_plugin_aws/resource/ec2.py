@@ -1112,18 +1112,20 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 ]
             )
 
+        stat_map = {"Minimum": "min", "Average": "avg", "Maximum": "max", "Sum": "sum"}
+
         metric_normalizers = {
             "CPUUtilization": MetricNormalization(
-                name=("cpu", "utilization"),
-                stat_map={"Minimum": "min", "Average": "avg", "Maximum": "max"},
+                name="cpu_utilization",
+                stat_map=stat_map,
                 normalize_value=lambda x: round(x, ndigits=3),
             ),
-            "NetworkIn": MetricNormalization(name=("network", "in"), unit_map={"Bytes": "bytes"}),
-            "NetworkOut": MetricNormalization(name=("network", "out"), unit_map={"Bytes": "bytes"}),
-            "DiskReadOps": MetricNormalization(name=("disk", "read"), unit_map={"Count": "ops"}),
-            "DiskWriteOps": MetricNormalization(name=("disk", "write"), unit_map={"Count": "ops"}),
-            "DiskReadBytes": MetricNormalization(name=("disk", "read"), unit_map={"Bytes": "bytes"}),
-            "DiskWriteBytes": MetricNormalization(name=("disk", "write"), unit_map={"Bytes": "bytes"}),
+            "NetworkIn": MetricNormalization(name="network_in", stat_map=stat_map),
+            "NetworkOut": MetricNormalization(name=("network_out"), stat_map=stat_map),
+            "DiskReadOps": MetricNormalization(name=("disk_read_ops"), stat_map=stat_map),
+            "DiskWriteOps": MetricNormalization(name=("disk_write_ops"), stat_map=stat_map),
+            "DiskReadBytes": MetricNormalization(name=("disk_read_bytes"), stat_map=stat_map),
+            "DiskWriteBytes": MetricNormalization(name=("disk_write_bytes"), stat_map=stat_map),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
