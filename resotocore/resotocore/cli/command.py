@@ -5700,7 +5700,11 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     ) as cursor:
                         await sync_fn(query=query, in_stream=stream.iterate(cursor))
 
-                yield FilePath.user_local(p.database, file_output).json() if file_output else "Database synchronized."
+                if file_output is not None:
+                    assert p.database, "No database name provided. Use the --database <name> argument."
+                    yield FilePath.user_local(p.database, file_output).json()
+                else:
+                    yield "Database synchronized."
 
         async def database_synchronize(
             engine_config: EngineConfig,
@@ -5770,7 +5774,12 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             parser.add_argument("--arg", type=key_value_parser.parse, nargs="+", action="append", default=[])
             parser.add_argument("--complete-schema", action="store_true")
             parser.add_argument("--drop-existing-tables", action="store_true")
-            parser.add_argument("--batch-size", type=int, default=1000)
+            # Batch Size Restrictions:
+            # SQLite before 3.32.0: 999
+            # MySQL/MariaDB: 16MB batch size
+            # Postgres/Snowflake: no limit other than available memory
+            # --> we use 999 as a safe default
+            parser.add_argument("--batch-size", type=int, default=999)
             parsed_args = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
             produces = MediaType.FilePath if parsed_args.db == "sqlite" else MediaType.Json
             if in_source_position:
@@ -5788,7 +5797,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     produces=produces,
                 )
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            raise AttributeError("Wrong or insufficient arguments. Execute `help db` to get more information.")
 
 
 def all_commands(d: Dependencies) -> List[CLICommand]:
