@@ -73,7 +73,7 @@ def core_feedback() -> CoreFeedback:
 
 
 @fixture
-def graph_builder(
+def builder(
     executor_queue: ExecutorQueue,
     azure_subscription: AzureSubscription,
     azure_client: AzureClient,

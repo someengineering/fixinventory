@@ -3052,7 +3052,7 @@ resources: List[Type[AzureResource]] = [
     AzureGallery,
     AzureImage,
     AzureProximityPlacementGroup,
-    AzureResourceSku,
+    # AzureResourceSku, TODO: handle resource skus correctly
     AzureRestorePointCollection,
     AzureSnapshot,
     AzureSshPublicKeyResource,

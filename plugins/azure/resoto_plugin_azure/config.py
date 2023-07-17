@@ -50,6 +50,12 @@ class AzureConfig:
     subscription_pool_size: int = field(
         default=4, metadata={"description": "Number of concurrent subscriptions to collect."}
     )
+
+    resource_pool_size: int = field(
+        default=64,
+        metadata={"description": "Number of shared threads available per subscription."},
+    )
+
     accounts: Optional[Dict[str, AzureAccountConfig]] = field(
         factory=lambda: {"default": AzureAccountConfig()},
         metadata={"description": "Configure accounts to collect subscriptions. You can define multiple accounts here."},

@@ -44,7 +44,7 @@ class AzureSubscriptionCollector:
     def collect(self) -> None:
         with ThreadPoolExecutor(
             thread_name_prefix=f"azure_{self.subscription.subscription_id}",
-            max_workers=self.config.subscription_pool_size,
+            max_workers=self.config.resource_pool_size,
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
