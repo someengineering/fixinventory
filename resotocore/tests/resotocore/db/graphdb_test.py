@@ -3,7 +3,7 @@ import string
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 from random import SystemRandom
-from typing import List, Optional, Any, cast
+from typing import List, Optional, Any, Dict, cast
 
 from arango.database import StandardDatabase
 from arango.typings import Json
@@ -24,6 +24,7 @@ from resotocore.query.model import Query, P, Navigation
 from resotocore.query.query_parser import parse_query
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
+from tests.resotocore.utils import eventually
 
 
 class BaseResource(ABC):
@@ -231,10 +232,16 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
         p,
         GraphUpdate(112, 1, 0, 212, 0, 0),
     )
+
     # check the usage
-    await asyncio.sleep(0.1)
-    n = await graph_db.get_node(foo_model, NodeId("0")) or {}
-    assert n.get("usage", {}).get("cpu") == {"min": 42, "avg": 42, "max": 42}
+    async def check_usage() -> bool:
+        n = await graph_db.get_node(foo_model, NodeId("0")) or {}
+        node_usage: Dict[str, float] = n.get("usage", {}).get("cpu", {})
+        expected = {"min": 42, "avg": 42, "max": 42}
+        return node_usage == expected
+
+    await eventually(check_usage)
+
     # exactly the same graph is updated: expect no changes
     assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # all bla entries have different content: expect 100 node updates, but no inserts or deletions
