@@ -2,7 +2,7 @@ from typing import List, Optional, Dict
 
 from resotocore.task import TaskHandler, RunningTaskInfo
 from resotocore.task.task_description import RunningTask, Job, Workflow
-from resotocore.ids import TaskDescriptorId
+from resotocore.ids import TaskDescriptorId, TaskId
 from resotocore.util import first
 
 
@@ -10,6 +10,9 @@ class InMemJobHandler(TaskHandler):
     def __init__(self) -> None:
         self.jobs: List[Job] = []
         self.started_tasks: List[TaskDescriptorId] = []
+
+    async def stop_task(self, uid: TaskId) -> Optional[RunningTask]:
+        return None
 
     async def list_jobs(self) -> List[Job]:
         return self.jobs

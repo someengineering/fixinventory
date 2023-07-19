@@ -4,7 +4,7 @@ from typing import Optional, List
 from attr import define
 
 from resotocore.task.task_description import Job, RunningTask, Workflow
-from resotocore.ids import TaskDescriptorId
+from resotocore.ids import TaskDescriptorId, TaskId
 
 
 @define(frozen=True)
@@ -47,4 +47,8 @@ class TaskHandler(ABC):
 
     @abstractmethod
     async def running_tasks(self) -> List[RunningTask]:
+        pass
+
+    @abstractmethod
+    async def stop_task(self, uid: TaskId) -> Optional[RunningTask]:
         pass

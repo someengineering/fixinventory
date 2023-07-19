@@ -71,6 +71,9 @@ class Message(ABC):
         elif kind == "action":
             res_data = pop_keys(data, ["task", "step", "subscriber_id"])
             return Action(message_type, data["task"], data["step"], res_data)
+        elif kind == "action_abort":
+            res_data = pop_keys(data, ["task", "step", "subscriber_id"])
+            return ActionAbort(message_type, data["task"], data["step"], res_data)
         elif kind == "action_done":
             res_data = pop_keys(data, ["task", "step", "subscriber_id"])
             return ActionDone(message_type, data["task"], data["step"], data["subscriber_id"], res_data)
@@ -107,6 +110,13 @@ class Message(ABC):
             extra_data = {"task": o.task_id, "step": o.step_name}
             return {
                 "kind": "action",
+                "message_type": o.message_type,
+                "data": {**o.data, **extra_data},
+            }
+        elif isinstance(o, ActionAbort):
+            extra_data = {"task": o.task_id, "step": o.step_name}
+            return {
+                "kind": "action_abort",
                 "message_type": o.message_type,
                 "data": {**o.data, **extra_data},
             }
@@ -158,6 +168,10 @@ class ActionMessage(Message):
 class Action(ActionMessage):
     def done(self, subscriber_id: SubscriberId) -> ActionDone:
         return ActionDone(self.message_type, self.task_id, self.step_name, subscriber_id, dict(self.data))
+
+
+class ActionAbort(ActionMessage):
+    pass
 
 
 class ActionDone(ActionMessage):

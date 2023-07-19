@@ -15,7 +15,7 @@ from resotocore.system_start import empty_config
 from resotocore.ids import SubscriberId, TaskDescriptorId
 from resotocore.message_bus import MessageBus, Event, Message, ActionDone, Action, ActionInfo, ActionError, CoreMessage
 from resotocore.model.db_updater import GraphMerger
-from resotocore.task.scheduler import Scheduler
+from resotocore.task.scheduler import APScheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     Workflow,
@@ -58,7 +58,7 @@ async def test_recover_workflow(
             event_sender,
             subscription_handler,
             graph_merger,
-            Scheduler(),
+            APScheduler(),
             cli,
             empty_config(),
         )

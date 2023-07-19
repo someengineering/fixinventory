@@ -51,7 +51,7 @@ from resotocore.model.model_handler import ModelHandlerDB
 from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander_service import TemplateExpanderService
 from resotocore.report.inspector_service import InspectorService
-from resotocore.task.scheduler import Scheduler
+from resotocore.task.scheduler import APScheduler, NoScheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.user.user_management import UserManagementService
@@ -148,7 +148,7 @@ def with_config(
 
     async def on_start() -> None:
         message_bus = deps.add(ServiceNames.message_bus, MessageBus())
-        scheduler = deps.add(ServiceNames.scheduler, Scheduler())
+        scheduler = deps.add(ServiceNames.scheduler, APScheduler() if not config.args.no_scheduling else NoScheduler())
         model = deps.add(ServiceNames.model_handler, ModelHandlerDB(db, config.runtime.plantuml_server))
 
         worker_task_queue = deps.add(ServiceNames.worker_task_queue, WorkerTaskQueue())

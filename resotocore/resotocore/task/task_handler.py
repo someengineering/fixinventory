@@ -16,7 +16,7 @@ from resotocore.cli.model import CLIContext, CLI
 from resotocore.core_config import CoreConfig
 from resotocore.db.jobdb import JobDb
 from resotocore.db.runningtaskdb import RunningTaskData, RunningTaskDb
-from resotocore.ids import SubscriberId, TaskDescriptorId
+from resotocore.ids import SubscriberId, TaskDescriptorId, TaskId
 from resotocore.message_bus import (
     MessageBus,
     Event,
@@ -90,7 +90,7 @@ class TaskHandlerService(TaskHandler, Service):
 
         # Step1: define all workflows and jobs in code: later it will be persisted and read from database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(config), *self.known_jobs()]
-        self.tasks: Dict[str, RunningTask] = {}
+        self.tasks: Dict[TaskId, RunningTask] = {}
         self.message_bus_watcher: Optional[Task[None]] = None
         self.initial_start_workflow_task: Optional[Task[None]] = None
         self.timeout_watcher = Periodic("task_watcher", self.check_running_tasks, timedelta(seconds=10))
@@ -257,7 +257,8 @@ class TaskHandlerService(TaskHandler, Service):
         self.task_descriptions = [*self.task_descriptions, *db_jobs]
 
         # load and restore all tasks
-        self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
+        if not self.config.args.ignore_interrupted_tasks:
+            self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
 
         await self.timeout_watcher.start()
 
@@ -357,6 +358,14 @@ class TaskHandlerService(TaskHandler, Service):
         descriptions.append(job)
         self.task_descriptions = descriptions
         await self.update_trigger(job)
+
+    async def stop_task(self, uid: TaskId) -> Optional[RunningTask]:
+        if task := self.tasks.get(uid):
+            commands = task.current_state.abort()  # abort current step
+            task.end()  # mark task as done
+            await self.execute_task_commands(task, commands)
+            return task
+        return None
 
     async def delete_running_task(self, task: RunningTask) -> None:
         # send analytics event

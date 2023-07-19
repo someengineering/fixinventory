@@ -77,7 +77,7 @@ from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.model import Subscriber, Subscription
-from resotocore.task.scheduler import Scheduler
+from resotocore.task.scheduler import APScheduler
 from resotocore.task.subscribers import SubscriptionHandler
 from resotocore.task.task_description import (
     Step,
@@ -733,7 +733,15 @@ async def task_handler(
 ) -> AsyncGenerator[TaskHandlerService, None]:
     config = empty_config()
     task_handler = TaskHandlerService(
-        running_task_db, job_db, message_bus, event_sender, subscription_handler, graph_merger, Scheduler(), cli, config
+        running_task_db,
+        job_db,
+        message_bus,
+        event_sender,
+        subscription_handler,
+        graph_merger,
+        APScheduler(),
+        cli,
+        config,
     )
     task_handler.task_descriptions = additional_workflows + [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler
