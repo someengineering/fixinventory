@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto  # Target coverage is auto-detected based on the base commit
+        threshold: 1%  # Allow coverage to drop by up to 1% compared to base commit
+    patch:
+      default:
+        target: 90%  # Require each patch to have at least 90% coverage
+        threshold: 1%  # Allow coverage to drop by up to 1% for the patch compared to base commit
