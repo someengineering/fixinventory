@@ -6,7 +6,7 @@ from deepdiff import DeepDiff
 from frozendict import frozendict
 
 from resotocore.ids import SubscriberId, TaskDescriptorId
-from resotocore.message_bus import Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo
+from resotocore.message_bus import Action, ActionDone, ActionError, Event, ActionProgress, ActionInfo, ActionAbort
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.model import Subscriber, Subscription
@@ -241,3 +241,12 @@ def test_emitting_task_progress(
     # no progress update, nothing to emit
     assert task.not_emitted_progress() is None
     assert task.not_emitted_progress() is None
+
+
+def test_abort(workflow_instance: Tuple[RunningTask, Subscriber, Subscriber, Dict[str, List[Subscriber]]]) -> None:
+    task, _, _, _ = workflow_instance
+    result = task.current_state.abort()
+    assert len(result) == 1
+    assert isinstance(result[0], SendMessage)
+    # noinspection PyUnresolvedReferences
+    assert isinstance(result[0].message, ActionAbort)

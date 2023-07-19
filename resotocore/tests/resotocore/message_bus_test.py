@@ -15,7 +15,8 @@ from resotocore.message_bus import (
     ActionDone,
     ActionError,
     ActionInfo,
-    ActionProgress, ActionAbort,
+    ActionProgress,
+    ActionAbort,
 )
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.util import AnyT, utc, first
