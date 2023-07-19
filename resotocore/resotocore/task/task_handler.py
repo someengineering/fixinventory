@@ -225,23 +225,28 @@ class TaskHandlerService(TaskHandler, Service):
             wi.move_to_next_state()
             return wi
 
-        instances: List[RunningTask] = []
+        started_instances: Dict[TaskDescriptorId, RunningTask] = {}
         async for data in self.running_task_db.all_running():
             descriptor = descriptions.get(data.task_descriptor_id)
-            if descriptor:
-                # we have captured the timestamp when the task has been started
-                updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
-                rt = RunningTask(data.id, updated, self.task_dependencies)
-                instance = reset_state(rt, data)
-                if isinstance(instance.current_step.action, RestartAgainStepAction):
-                    log.info(f"Restart interrupted action: {instance.current_step.action}")
-                    await self.execute_task_commands(instance, instance.current_state.commands_to_execute())
-                instances.append(instance)
-
-            else:
+            if descriptor is None:
                 log.warning(f"No task description with this id found: {data.task_descriptor_id}. Remove instance data.")
                 await self.running_task_db.delete(data.id)
-        return instances
+                continue
+
+            if descriptor.id in started_instances and descriptor.on_surpass != TaskSurpassBehaviour.Parallel:
+                log.warning(f"Already started task for: {data.task_descriptor_id}: {data.id}. Remove instance data.")
+                await self.running_task_db.delete(data.id)
+                continue
+
+            # we have captured the timestamp when the task has been started
+            updated = self.evaluate_task_definition(descriptor, now=utc_str(data.task_started_at))
+            rt = RunningTask(data.id, updated, self.task_dependencies)
+            instance = reset_state(rt, data)
+            if isinstance(instance.current_step.action, RestartAgainStepAction):
+                log.info(f"Restart interrupted action: {instance.current_step.action}")
+                await self.execute_task_commands(instance, instance.current_state.commands_to_execute())
+            started_instances[descriptor.id] = instance
+        return list(started_instances.values())
 
     async def __aenter__(self) -> TaskHandlerService:
         return await self.start()
