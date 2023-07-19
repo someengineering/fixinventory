@@ -15,7 +15,7 @@ from resotocore.message_bus import (
     ActionDone,
     ActionError,
     ActionInfo,
-    ActionProgress,
+    ActionProgress, ActionAbort,
 )
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.util import AnyT, utc, first
@@ -85,6 +85,7 @@ def test_message_serialization() -> None:
     roundtrip(ActionError("test", task_id, "step_name", subsctiber_id, "oops", {"test": 23}))
     roundtrip(ActionInfo("test", task_id, "step_name", subsctiber_id, "error", "Error message"))
     roundtrip(ActionProgress("test", task_id, "step_name", subsctiber_id, ProgressDone("region", 1, 2), now))
+    roundtrip(ActionAbort("test", task_id, "step_name", {"test": 1}))
     nested = Progress.from_progresses("account1", [ProgressDone("region", 1, 2)])
     pg = ActionProgress("test", task_id, "step_name", subsctiber_id, nested, now)
     assert to_js(pg) == to_js(from_js(to_js(pg), ActionProgress))
