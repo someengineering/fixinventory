@@ -7,6 +7,7 @@ import resotolib.proc
 from time import time
 from concurrent import futures
 from threading import Lock
+from multiprocessing.managers import SyncManager
 from resotoworker.exceptions import DuplicateMessageError
 from resotoworker.resotocore import Resotocore
 from resotolib.baseplugin import BaseCollectorPlugin
@@ -134,7 +135,9 @@ class Collector:
                     raise DuplicateMessageError(f"Already processing {processing_id} - ignoring message")
                 self.processing.add(processing_id)
 
-            mp_manager = multiprocessing.Manager()
+            ctx = multiprocessing.get_context("spawn")
+            mp_manager = SyncManager(ctx=ctx)
+            mp_manager.start(initializer=resotolib.proc.increase_limits)
             graph_queue: Queue[Optional[Graph]] = mp_manager.Queue()
             graph_sender_threads = []
             graph_sender_pool_size = self._config.resotoworker.graph_sender_pool_size
