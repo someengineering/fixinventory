@@ -87,6 +87,7 @@ class AwsEc2ProcessorInfo:
     }
     supported_architectures: List[str] = field(factory=list)
     sustained_clock_speed_in_ghz: Optional[float] = field(default=None)
+    physical_processor: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -232,6 +233,7 @@ class AwsEc2GpuInfo:
     }
     gpus: List[AwsEc2GpuDeviceInfo] = field(factory=list)
     total_gpu_memory_in_mi_b: Optional[int] = field(default=None)
+    gpu_model: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -327,6 +329,8 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
         "auto_recovery_supported": S("AutoRecoverySupported"),
         "supported_boot_modes": S("SupportedBootModes", default=[]),
     }
+    pretty_name: Optional[str] = field(default=None)
+    ecu: Optional[float] = field(default=None)
     current_generation: Optional[bool] = field(default=None)
     free_tier_eligible: Optional[bool] = field(default=None)
     supported_usage_classes: List[str] = field(factory=list)

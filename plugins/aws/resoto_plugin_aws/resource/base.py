@@ -471,7 +471,16 @@ class GraphBuilder:
             return None  # instance type not found
 
         price = value_in_path(cloud_instance_data, ["aws", instance_type, "pricing", region.id, "linux", "ondemand"])
-        result = evolve(it, region=region, ondemand_cost=price)
+        physical_processor = value_in_path(cloud_instance_data, ["aws", instance_type, "physical_processor"])
+        gpu_model = value_in_path(cloud_instance_data, ["aws", instance_type, "GPU_model"])
+        pretty_name = value_in_path(cloud_instance_data, ["aws", instance_type, "pretty_name"])
+        ecu = value_in_path(cloud_instance_data, ["aws", instance_type, "ECU"])
+        ecu = float(ecu) if isinstance(ecu, (int, float)) else None
+        result = evolve(it, region=region, ondemand_cost=price, pretty_name=pretty_name, ecu=ecu)
+        if hasattr(result, "instance_type_processor_info"):
+            result.instance_type_processor_info.physical_processor = physical_processor
+        if hasattr(result, "instance_type_gpu_info"):
+            result.instance_type_gpu_info.gpu_model = gpu_model
         # add this instance type to the graph
         self.add_node(result, region=region)
         self.add_edge(region, node=result)
