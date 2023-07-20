@@ -81,10 +81,16 @@ class AzureProperty:
     def mapping(self) -> str:
         # in case an extractor is defined explicitly
         if self.extractor:
-            return f'"{self.name}": {self.extractor}'
+            return f'"{self.name}": ' + self.mapping_from()
+        return f'"{self.name}": ' + self.mapping_from()
+
+    def mapping_from(self) -> str:
+        # in case an extractor is defined explicitly
+        if self.extractor:
+            return self.extractor
         from_p = self.from_name if isinstance(self.from_name, list) else [self.from_name]
         from_p_path = ",".join(f'"{p}"' for p in from_p)
-        base = f'"{self.name}": S({from_p_path}'
+        base = f"S({from_p_path}"
         if self.is_array and self.is_complex:
             base += f") >> ForallBend({self.type_name}.mapping)"
         elif self.is_array:
@@ -131,17 +137,17 @@ class AzureClassModel:
             elif bp == "ctime":
                 for candidate in ["created_at", "time_created"]:
                     if (p := self.props.get(candidate)) and p.type == "datetime":
-                        base_mappings[bp] = f'S("{candidate}")'
+                        base_mappings[bp] = p.mapping_from()
                         break
             elif bp == "mtime":
                 for candidate in ["last_modified_at"]:
                     if (p := self.props.get(candidate)) and p.type == "datetime":
-                        base_mappings[bp] = f'S("{candidate}")'
+                        base_mappings[bp] = p.mapping_from()
                         break
             elif bp == "atime":
                 for candidate in ["last_accessed_at"]:
                     if (p := self.props.get(candidate)) and p.type == "datetime":
-                        base_mappings[bp] = f'S("{candidate}")'
+                        base_mappings[bp] = p.mapping_from()
                         break
 
             if bp not in base_mappings:
@@ -575,8 +581,8 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"resources"}), key=lambda x: x.name)}
-    models = classes_from_model(shapes, {"Location"})
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"compute"}), key=lambda x: x.name)}
+    models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":
             print(model.to_class())
