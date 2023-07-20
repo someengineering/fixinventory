@@ -209,8 +209,8 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
-    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     mp_manager.shutdown()
+    resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
 
