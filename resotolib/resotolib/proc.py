@@ -123,6 +123,7 @@ def handler(sig, frame) -> None:
 def initializer() -> None:
     signal(SIGINT, handler)
     signal(SIGTERM, handler)
+    increase_limits()
 
 
 def collector_initializer(nice_level: int = 5) -> None:
