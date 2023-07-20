@@ -363,7 +363,7 @@ class AzureRestSpec:
                 parameters = method.get("parameters", [])
                 required_params = [p for p in parameters if p.get("required", False) is True]
                 # api-version and subscriptionId are always there
-                param_names = {p["name"] for p in required_params} - {"api-version", "subscriptionId"}
+                param_names = {p["name"] for p in required_params} - {"api-version", "subscriptionId", "location"}
                 if len(param_names) == 0:
                     schema = method["responses"]["200"]["schema"]
                     access_path: Optional[str] = None
@@ -401,7 +401,7 @@ class AzureModel:
         assert path_to_repo.is_dir()
         self.path_to_spec = path_to_repo / "specification"
 
-    def list_specs(self, allowed_services: Optional[Set[str]] = None) -> Iterator[AzureRestSpec]:
+    def list_all_specs(self, allowed_services: Optional[Set[str]] = None) -> Iterator[AzureRestSpec]:
         def is_spec_dir(path: Path) -> Dict[str, Path]:
             if path.is_dir():
                 return {p.name: p for p in path.iterdir() if p.is_dir() and p.name in ("preview", "stable")}
@@ -427,6 +427,14 @@ class AzureModel:
             if allowed_services and srv_spec.name not in allowed_services:
                 continue
             yield from walk_dir(srv_spec.name, srv_spec)
+
+    def list_specs(self, allowed_services: Optional[Set[str]] = None) -> List[AzureRestSpec]:
+        result = {}
+        for spec in self.list_all_specs(allowed_services):
+            if spec.name in result:  # in case there is a spec with the same name: take the one with less parameters
+                spec = min(result[spec.name], spec, key=lambda s: len(s.api_info.path_parameters))
+            result[spec.name] = spec
+        return list(result.values())
 
 
 # region keep resolver
@@ -569,15 +577,14 @@ def path_set(obj, path, value, **options):
 # endregion
 
 if __name__ == "__main__":
-    specs_path = os.environ.get("AZURE_REST_API_SPECS")
+    specs_path = os.environ.get("AZURE_REST_API_SPECS", "../../../../azure-rest-api-specs")
     assert specs_path, (
         "AZURE_REST_API_SPECS need to be defined! "
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"resources"}), key=lambda x: x.name)}
-    models = classes_from_model(shapes, {"Location"})
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"compute"}), key=lambda x: x.name)}
+    models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":
             print(model.to_class())
-            # print(model.name)

@@ -33,7 +33,7 @@ class StaticFileAzureClient(AzureClient):
     def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
         return StaticFileAzureClient()
 
-    def for_resource_group(self, resource_group: str) -> AzureClient:
+    def for_location(self, location: str) -> AzureClient:
         return self
 
 
