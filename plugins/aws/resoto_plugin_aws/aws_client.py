@@ -352,7 +352,7 @@ class AwsClient:
         else:
             log.error(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
-                f"account {self.account_id} region {self.region} - skipping single resource (part): {e}"
+                f"account {self.account_id} region {self.region} - skipping single resource: {e}"
             )
             accumulate(code, f"An AWS API error occurred during resource collection: {code}. Skipping resources.")
 
