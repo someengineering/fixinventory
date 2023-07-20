@@ -160,10 +160,10 @@ class Collector:
                 for _ in range(graph_sender_pool_size):
                     graph_queue.put(None)
                 for t in graph_sender_threads:
-                    t.join(self._config.resotoworker.timeout)
+                    t.join(300)
+                mp_manager.shutdown()
                 if not self._config.resotoworker.debug_dump_json:
                     rmtree(tempdir, ignore_errors=True)
-
         finally:
             with self.processing_lock:
                 if processing_id in self.processing:
