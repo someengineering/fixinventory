@@ -42,11 +42,12 @@ class MergeOuterEdgesHandler(Service):
         self.model_handler = model_handler
 
     async def merge_outer_edges(self, task_id: TaskId) -> Tuple[int, int]:
-        pending_outer_edge_db = self.db_access.pending_deferred_edge_db
-        pending_edges = await pending_outer_edge_db.get(task_id)
+        deferred_outer_edge_db = self.db_access.deferred_outer_edge_db
+        pending_edges = await deferred_outer_edge_db.all_for_task(task_id)
         if pending_edges:
-            graph_db = self.db_access.get_graph_db(pending_edges.graph)
-            model = await self.model_handler.load_model(pending_edges.graph)
+            first = pending_edges[0]
+            graph_db = self.db_access.get_graph_db(first.graph)
+            model = await self.model_handler.load_model(first.graph)
 
             async def find_node_id(selector: NodeSelector) -> Optional[NodeId]:
                 try:
@@ -70,28 +71,29 @@ class MergeOuterEdgesHandler(Service):
                     return None
 
             edges: List[Tuple[NodeId, NodeId, str]] = []
-            for edge in pending_edges.edges:
-                from_id = await find_node_id(edge.from_node)
-                to_id = await find_node_id(edge.to_node)
-                if from_id and to_id:
-                    edges.append((from_id, to_id, edge.edge_type))
+            for pending_edge in pending_edges:
+                for edge in pending_edge.edges:
+                    from_id = await find_node_id(edge.from_node)
+                    to_id = await find_node_id(edge.to_node)
+                    if from_id and to_id:
+                        edges.append((from_id, to_id, edge.edge_type))
 
-            updated, deleted = await graph_db.update_deferred_edges(edges, pending_edges.created_at)
+            updated, deleted = await graph_db.update_deferred_edges(edges, first.created_at)
 
             log.info(
-                f"MergeOuterEdgesHandler: updated {updated}/{len(pending_edges.edges)},"
+                f"MergeOuterEdgesHandler: updated {updated}/{len(edges)},"
                 f"  deleted {deleted} edges in task id {task_id}"
             )
 
-            return (updated, deleted)
+            return updated, deleted
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
 
-            return (0, 0)
+            return 0, 0
 
     async def mark_done(self, task_id: TaskId) -> None:
-        pending_outer_edge_db = self.db_access.pending_deferred_edge_db
-        await pending_outer_edge_db.delete(task_id)
+        deferred_outer_edge_db = self.db_access.deferred_outer_edge_db
+        await deferred_outer_edge_db.delete_for_task(task_id)
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:
         async with self.message_bus.subscribe(subscriber_id, [merge_outer_edges]) as events:

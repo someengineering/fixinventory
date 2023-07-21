@@ -5,7 +5,7 @@ import pytest
 
 from resotocore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
 from resotocore.db.db_access import DbAccess
-from resotocore.db.deferred_edge_db import PendingDeferredEdges
+from resotocore.db.deferredouteredgedb import DeferredOuterEdges
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import QueryModel
 from resotocore.ids import TaskId, NodeId
@@ -62,17 +62,11 @@ async def test_merge_outer_edges(
     await graph_db.create_node(foo_model, id1, to_json(Foo("id1", "foo")), NodeId("root"))
     await graph_db.create_node(foo_model, id3, to_json(Foo("id3", "foo")), NodeId("root"))
     await graph_db.create_node(foo_model, id2, to_json(Bla("id2", "bla")), NodeId("root"))
-    await db_access.pending_deferred_edge_db.create_update_schema()
+    await db_access.deferred_outer_edge_db.create_update_schema()
 
-    await db_access.pending_deferred_edge_db.update(
-        PendingDeferredEdges(
-            TaskId("task123"),
-            now,
-            graph_db.name,
-            [
-                DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeTypes.default),
-            ],
-        )
+    e1 = DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeTypes.default)
+    await db_access.deferred_outer_edge_db.update(
+        DeferredOuterEdges("t0", "c0", TaskId("task123"), now, graph_db.name, [e1])
     )
     await merge_handler.merge_outer_edges(TaskId("task123"))
 
@@ -84,15 +78,9 @@ async def test_merge_outer_edges(
 
     new_now = now + timedelta(minutes=10)
 
-    await db_access.pending_deferred_edge_db.update(
-        PendingDeferredEdges(
-            TaskId("task456"),
-            new_now,
-            graph_db.name,
-            [
-                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default),
-            ],
-        )
+    e2 = DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default)
+    await db_access.deferred_outer_edge_db.update(
+        DeferredOuterEdges("t1", "c1", TaskId("task456"), new_now, graph_db.name, [e2])
     )
     await merge_handler.merge_outer_edges(TaskId("task456"))
 
@@ -105,15 +93,8 @@ async def test_merge_outer_edges(
 
     new_now_2 = now + timedelta(minutes=10)
 
-    await db_access.pending_deferred_edge_db.update(
-        PendingDeferredEdges(
-            TaskId("task789"),
-            new_now_2,
-            graph_db.name,
-            [
-                DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default),
-            ],
-        )
+    await db_access.deferred_outer_edge_db.update(
+        DeferredOuterEdges("t2", "c4", TaskId("task789"), new_now_2, graph_db.name, [e2])
     )
     updated, deleted = await merge_handler.merge_outer_edges(TaskId("task789"))
     # here we also implicitly test that the timestamp was updated, because otherwise the edge
