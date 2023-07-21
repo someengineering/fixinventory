@@ -493,7 +493,7 @@ class GraphBuilder:
             id=volume_type,
             name=volume_type,
             volume_type=volume_type,
-            ondemand_cost=price.on_demand_price_usd,
+            ondemand_cost=price.on_demand_price_usd if price else None,
             region=self.region,
         )
         self.add_node(vt, {})

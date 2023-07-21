@@ -63,6 +63,7 @@ def test_disk_type_ondemand_cost(random_builder: GraphBuilder) -> None:
         assert disk_type
         disk_type._region = region
         disk_type.connect_in_graph(random_builder, {"Dummy": "Source"})
+        assert disk_type.ondemand_cost is not None
         assert disk_type.ondemand_cost > 0.0
         assert round(disk_type.ondemand_cost, 5) == price[2]
 
