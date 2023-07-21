@@ -38,7 +38,7 @@ class AzureClient(ABC):
         pass
 
     @abstractmethod
-    def for_resource_group(self, resource_group: str) -> AzureClient:
+    def for_location(self, location: str) -> AzureClient:
         pass
 
     @staticmethod
@@ -51,16 +51,20 @@ class AzureClient(ABC):
 
 
 class AzureResourceManagementClient(AzureClient):
-    def __init__(
-        self, credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
-    ) -> None:
+    def __init__(self, credential: AzureCredentials, subscription_id: str, location: Optional[str] = None) -> None:
         self.credential = credential
         self.subscription_id = subscription_id
-        self.resource_group = resource_group
+        self.location = location
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        return self._call(spec, **kwargs)
+        try:
+            return self._call(spec, **kwargs)
+        except HttpResponseError as e:
+            if e.error and e.error.code == "NoRegisteredProviderFound":
+                return []  # API not available in this region
+            else:
+                raise e
 
     def delete(self, resource_id: str) -> None:
         self.client.resources.delete_by_id(resource_id)
@@ -83,9 +87,7 @@ class AzureResourceManagementClient(AzureClient):
         params["api-version"] = _SERIALIZER.query("api_version", spec.version, "str")  # type: ignore
 
         # Construct url
-        path = spec.path.format_map(
-            {"subscriptionId": self.subscription_id, "resourceGroupName": self.resource_group, **params}
-        )
+        path = spec.path.format_map({"subscriptionId": self.subscription_id, "location": self.location, **params})
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
         # Construct and send request
@@ -110,5 +112,5 @@ class AzureResourceManagementClient(AzureClient):
         else:
             return [js]  # type: ignore
 
-    def for_resource_group(self, resource_group: str) -> AzureClient:
-        return AzureClient.create(self.credential, self.subscription_id, resource_group)
+    def for_location(self, location: str) -> AzureClient:
+        return AzureClient.create(self.credential, self.subscription_id, location)

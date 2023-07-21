@@ -940,7 +940,6 @@ class AzureGallery(AzureResource):
     soft_delete_policy: Optional[bool] = field(default=None, metadata={'description': 'Contains information about the soft deletion policy of the gallery.'})  # fmt: skip
 
 
-@define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
@@ -3040,6 +3039,38 @@ class AzureVirtualMachineScaleSet(AzureResource):
     zone_balance: Optional[bool] = field(default=None, metadata={'description': 'Whether to force strictly even virtual machine distribution cross x-zones in case there is zone outage. Zonebalance property can only be set if the zones property of the scale set contains more than one zone. If there are no zones or only one zone specified, then zonebalance property should not be set.'})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AzureVirtualMachineSize(AzureResource):
+    kind: ClassVar[str] = "azure_virtual_machine_size"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="compute",
+        version="2023-03-01",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
+        path_parameters=["location", "subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
+        "max_data_disk_count": S("maxDataDiskCount"),
+        "memory_in_mb": S("memoryInMB"),
+        "number_of_cores": S("numberOfCores"),
+        "os_disk_size_in_mb": S("osDiskSizeInMB"),
+        "resource_disk_size_in_mb": S("resourceDiskSizeInMB"),
+    }
+    max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
+    memory_in_mb: Optional[int] = field(default=None, metadata={'description': 'The amount of memory, in mb, supported by the virtual machine size.'})  # fmt: skip
+    number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
+    os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
+    resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
+
+
 resources: List[Type[AzureResource]] = [
     AzureAvailabilitySet,
     AzureCapacityReservationGroup,
@@ -3058,4 +3089,5 @@ resources: List[Type[AzureResource]] = [
     AzureSshPublicKeyResource,
     AzureVirtualMachine,
     AzureVirtualMachineScaleSet,
+    AzureVirtualMachineSize,
 ]
