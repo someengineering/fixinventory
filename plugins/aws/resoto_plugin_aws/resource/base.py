@@ -29,12 +29,13 @@ from resotolib.baseresources import (
 from resotolib.config import Config, current_config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
-from resotolib.json import from_json
+from resotolib.json import from_json, value_in_path
 from resotolib.json_bender import Bender, bend
 from resotolib.lock import RWLock
 from resotolib.proc import set_thread_name
 from resotolib.threading import ExecutorQueue
 from resotolib.types import Json
+from resotodata.cloud import instances as cloud_instance_data
 
 log = logging.getLogger("resoto.plugins.aws")
 
@@ -469,8 +470,17 @@ class GraphBuilder:
         if (it := self.global_instance_types.get(instance_type)) is None:
             return None  # instance type not found
 
-        price = AwsPricingPrice.instance_type_price(self.client.for_region(region.id), instance_type, region.safe_name)
-        result = evolve(it, region=region, ondemand_cost=price.on_demand_price_usd if price else None)
+        price = value_in_path(cloud_instance_data, ["aws", instance_type, "pricing", region.id, "linux", "ondemand"])
+        physical_processor = value_in_path(cloud_instance_data, ["aws", instance_type, "physical_processor"])
+        gpu_model = value_in_path(cloud_instance_data, ["aws", instance_type, "GPU_model"])
+        pretty_name = value_in_path(cloud_instance_data, ["aws", instance_type, "pretty_name"])
+        ecu = value_in_path(cloud_instance_data, ["aws", instance_type, "ECU"])
+        ecu = float(ecu) if isinstance(ecu, (int, float)) else None
+        result = evolve(it, region=region, ondemand_cost=price, pretty_name=pretty_name, ecu=ecu)
+        if getattr(result, "instance_type_processor_info", None):
+            result.instance_type_processor_info.physical_processor = physical_processor
+        if getattr(result, "instance_type_gpu_info", None):
+            result.instance_type_gpu_info.gpu_model = gpu_model
         # add this instance type to the graph
         self.add_node(result, region=region)
         self.add_edge(region, node=result)
@@ -483,7 +493,7 @@ class GraphBuilder:
             id=volume_type,
             name=volume_type,
             volume_type=volume_type,
-            ondemand_cost=price.on_demand_price_usd if price else 0,
+            ondemand_cost=price.on_demand_price_usd if price else None,
             region=self.region,
         )
         self.add_node(vt, {})

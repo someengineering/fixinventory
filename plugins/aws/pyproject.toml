@@ -28,6 +28,7 @@ readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
     "resotolib==3.6.2",
+    "resotodata",
     "retrying",
     "boto3",
     "botocore",
@@ -43,5 +44,3 @@ Source = "https://github.com/someengineering/resoto/tree/main/plugins/aws"
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]
 build-backend = "setuptools.build_meta"
-
-
