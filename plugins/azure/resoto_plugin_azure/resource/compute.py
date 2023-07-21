@@ -298,7 +298,7 @@ class AzureCloudService(AzureResource):
     start_cloud_service: Optional[bool] = field(default=None, metadata={'description': '(optional) indicates whether to start the cloud service immediately after it is created. The default value is `true`. If false, the service model is still deployed, but the code is not run immediately. Instead, the service is poweredoff until you call start, at which time the service will be started. A deployed service still incurs charges, even if it is poweredoff.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'The system meta data relating to this resource.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'The unique identifier for the cloud service.'})  # fmt: skip
-    upgrade_mode: Optional[str] = field(default=None, metadata={'description': 'Update mode for the cloud service. Role instances are allocated to update domains when the service is deployed. Updates can be initiated manually in each update domain or initiated automatically in all update domains. Possible values are **auto** **manual** **simultaneous** if not specified, the default value is auto. If set to manual, put updatedomain must be called to apply the update. If set to auto, the update is automatically applied to each update domain in sequence.'})  # fmt: skip
+    upgrade_mode: Optional[str] = field(default=None, metadata={'description': 'Upgrade mode for the cloud service. Role instances are allocated to update domains when the service is deployed. Updates can be initiated manually in each update domain or initiated automatically in all update domains. Possible values are **auto** **manual** **simultaneous** if not specified, the default value is auto. If set to manual, put updatedomain must be called to apply the update. If set to auto, the update is automatically applied to each update domain in sequence.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -598,7 +598,7 @@ class AzureDisk(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": S("time_created"),
+        "ctime": S("properties", "timeCreated"),
         "mtime": K(None),
         "atime": K(None),
         "bursting_enabled": S("properties", "burstingEnabled"),
@@ -1758,7 +1758,7 @@ class AzureSnapshot(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": S("time_created"),
+        "ctime": S("properties", "timeCreated"),
         "mtime": K(None),
         "atime": K(None),
         "completion_percent": S("properties", "completionPercent"),
@@ -2463,7 +2463,7 @@ class AzureVirtualMachine(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": S("time_created"),
+        "ctime": S("properties", "timeCreated"),
         "mtime": K(None),
         "atime": K(None),
         "virtual_machine_capabilities": S("properties", "additionalCapabilities")
@@ -2985,7 +2985,7 @@ class AzureVirtualMachineScaleSet(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": S("time_created"),
+        "ctime": S("properties", "timeCreated"),
         "mtime": K(None),
         "atime": K(None),
         "scale_set_capabilities": S("properties", "additionalCapabilities")
