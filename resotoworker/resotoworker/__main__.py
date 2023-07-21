@@ -1,17 +1,16 @@
-import multiprocessing
 import os
 import sys
 import threading
+import multiprocessing
 import cherrypy  # type: ignore
 import time
+import requests
+import resotolib.proc
 from functools import partial
 from queue import Queue
 from signal import SIGTERM
 from typing import List, Dict, Type, Optional, Any, Callable
-
-import requests
-
-import resotolib.proc
+from multiprocessing.managers import SyncManager
 from resotolib.args import ArgumentParser
 from resotolib.baseplugin import BaseActionPlugin, BaseCollectorPlugin, PluginType
 from resotolib.config import Config
@@ -27,7 +26,7 @@ from resotolib.event import (
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.core.custom_command import command_definitions
-from resotolib.proc import log_stats, increase_limits
+from resotolib.proc import log_stats
 from resotolib.types import Json
 from resotolib.web import WebServer
 from resotolib.web.metrics import WebApp
@@ -115,7 +114,9 @@ def main() -> None:
     core = Resotocore(send_request, config)
 
     # the multiprocessing manager is used to share data between processes
-    mp_manager = multiprocessing.Manager()
+    ctx = multiprocessing.get_context("spawn")
+    mp_manager = SyncManager(ctx=ctx)
+    mp_manager.start(initializer=resotolib.proc.increase_limits)
     core_messages: Queue[Json] = mp_manager.Queue()
 
     collector = Collector(config, core, core_messages)
@@ -123,9 +124,6 @@ def main() -> None:
     # Handle Ctrl+c and other means of termination/shutdown
     resotolib.proc.initializer()
     add_event_listener(EventType.SHUTDOWN, shutdown, blocking=False)
-
-    # Try to increase nofile and nproc limits
-    increase_limits()
 
     web_server_args = {}
     if tls_data and not Config.resotoworker.no_tls:
@@ -211,6 +209,7 @@ def main() -> None:
     shutdown_event.wait()
     web_server.shutdown()
     time.sleep(1)  # everything gets 1000ms to shutdown gracefully before we force it
+    mp_manager.shutdown()
     resotolib.proc.kill_children(SIGTERM, ensure_death=True)
     log.info("Shutdown complete")
     os._exit(0)
