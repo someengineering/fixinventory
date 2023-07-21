@@ -264,7 +264,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
-            tags = builder.client.get(service_name, "list-tags", "Tags", Resource=function.arn)
+            tags = builder.client.get(
+                service_name, "list-tags", "Tags", Resource=function.arn, expected_errors=["ResourceNotFoundException"]
+            )
             if tags:
                 function.tags = tags
 

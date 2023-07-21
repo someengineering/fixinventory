@@ -160,7 +160,7 @@ class AwsSnsSubscription(AwsResource):
                 "get-subscription-attributes",
                 SubscriptionArn=entry["SubscriptionArn"],
                 result_name="Attributes",
-                expected_errors=["InvalidParameter"],
+                expected_errors=["InvalidParameter", "NotFound"],
             )
             if subscription:
                 if subscription_instance := cls.from_api(subscription, builder):
