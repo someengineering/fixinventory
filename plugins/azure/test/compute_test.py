@@ -81,3 +81,8 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
 def test_scale_set(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineScaleSet, builder)
     assert len(collected) == 1
+
+
+def test_virtual_machine_size(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureVirtualMachineSize, builder)
+    assert len(collected) == 2

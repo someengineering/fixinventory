@@ -97,6 +97,8 @@ l1:
                 "test",
                 "--debug",
                 "--analytics-opt-out",
+                "--no-scheduling",
+                "--ignore-interrupted-tasks",
                 "--override",
                 f"resotocore.api.https_port=null",
                 f"resotocore.api.http_port={http_port}",

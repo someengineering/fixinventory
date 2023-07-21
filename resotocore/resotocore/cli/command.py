@@ -4029,6 +4029,7 @@ class WorkflowsCommand(CLICommand):
     workflows list
     workflows show <id>
     workflows run <id>
+    workflows stop <task_id>
     workflows running
     workflows history
     workflows history <id> --started-before <date> --started-after <date> --has-errors --limit <num>
@@ -4038,6 +4039,7 @@ class WorkflowsCommand(CLICommand):
     - `workflows list`: get the list of all workflows in the system
     - `workflows show <id>`: show the current definition of the workflow defined by given identifier.
     - `workflows run <id>`: run the workflow as if the trigger would be triggered.
+    - `workflows stop <task_id>`: stop a running workflow execution.
     - `workflows running`: show all currently running workflows.
     - `workflows history`: aggregated history of all workflows.
     - `workflows history <id>`: show all runs of this workflow based on defined filter criteria.
@@ -4168,6 +4170,7 @@ class WorkflowsCommand(CLICommand):
             "show": [ArgInfo(None, help_text="<workflow-id>")],
             "list": [],
             "run": [ArgInfo(None, help_text="<workflow-id>")],
+            "stop": [ArgInfo(None, help_text="<task-id>")],
             "running": [],
             "history": [
                 ArgInfo(None, help_text="<workflow-id>"),
@@ -4282,6 +4285,12 @@ class WorkflowsCommand(CLICommand):
             finally:
                 cursor.close()
 
+        async def stop_workflow(task_id: TaskId) -> AsyncIterator[str]:
+            if await self.dependencies.task_handler.stop_task(task_id) is not None:
+                yield f"Workflow Task {task_id} stopped."
+            else:
+                yield "No running workflow with this id."
+
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
             return CLISource.single(partial(show_workflow, args[1].strip()))
@@ -4293,6 +4302,8 @@ class WorkflowsCommand(CLICommand):
             return CLISource(partial(show_log, args[1].strip()))
         elif arg and len(args) == 2 and args[0] == "run":
             return CLISource.single(partial(run_workflow, args[1].strip()))
+        elif arg and len(args) == 2 and args[0] == "stop":
+            return CLISource.single(partial(stop_workflow, args[1].strip()))
         elif arg and len(args) == 1 and args[0] == "running":
             return CLISource(running_workflows)
         elif arg and len(args) == 1 and args[0] == "list":

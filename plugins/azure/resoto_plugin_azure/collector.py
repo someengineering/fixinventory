@@ -23,6 +23,8 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
 
 
 all_resources: List[Type[AzureResource]] = compute_resources
+global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
+regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 
 
 class AzureSubscriptionCollector:
@@ -51,9 +53,13 @@ class AzureSubscriptionCollector:
             client = AzureClient.create(self.credentials, self.subscription.subscription_id)
             builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
             # collect all locations
-            builder.fetch_locations()
-            # collect all resources
-            self.collect_resource_list("subscription", builder, all_resources)
+            locations = builder.fetch_locations()
+            # collect all global resources
+            self.collect_resource_list("subscription", builder, global_resources)
+            # collect all regional resources
+            for location in locations:
+                self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
+
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes

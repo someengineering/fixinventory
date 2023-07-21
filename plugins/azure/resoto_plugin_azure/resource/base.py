@@ -260,7 +260,7 @@ class GraphBuilder:
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         location_lookup: Optional[Dict[str, AzureLocation]] = None,
-        resource_group: Optional[AzureResourceGroup] = None,
+        location: Optional[AzureLocation] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
     ) -> None:
@@ -271,7 +271,7 @@ class GraphBuilder:
         self.executor = executor
         self.core_feedback = core_feedback
         self.location_lookup = location_lookup or {}
-        self.resource_group = resource_group
+        self.location = location
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
         self.name = f"Azure:{subscription.name}"
@@ -331,11 +331,10 @@ class GraphBuilder:
 
         last_edge_key: Optional[EdgeKey] = None  # indicates if this node has been connected
 
-        # add edge from resource group to resource
-        if self.resource_group:
-            last_edge_key = self.add_edge(self.resource_group, node=node)
-
-        if source and "location" in source:
+        # add edge from location to resource
+        if self.location:
+            last_edge_key = self.add_edge(self.location, node=node)
+        elif source and "location" in source:
             # reference the location node if available
             if location := self.location_lookup.get(source["location"]):
                 node._region = location
@@ -425,16 +424,16 @@ class GraphBuilder:
         self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
         return locations
 
-    def with_resource_group(self, group: AzureResourceGroup) -> GraphBuilder:
+    def with_location(self, location: AzureLocation) -> GraphBuilder:
         return GraphBuilder(
             graph=self.graph,
             cloud=self.cloud,
             subscription=self.subscription,
-            client=self.client.for_resource_group(group.safe_name),
+            client=self.client.for_location(location.safe_name),
             executor=self.executor,
             core_feedback=self.core_feedback,
             location_lookup=self.location_lookup,
-            resource_group=group,
+            location=location,
             graph_nodes_access=self.graph_nodes_access,
             graph_edges_access=self.graph_edges_access,
         )
