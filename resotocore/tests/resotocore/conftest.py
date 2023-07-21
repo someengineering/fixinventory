@@ -29,6 +29,7 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
+from resotocore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from resotocore.dependencies import Dependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
@@ -44,7 +45,7 @@ from resotocore.core_config import (
     SnapshotsScheduleConfig,
     RunConfig,
 )
-from resotocore.db import runningtaskdb, SystemData
+from resotocore.db import runningtaskdb, SystemData, deferredouteredgedb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.db_access import DbAccess
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
@@ -198,6 +199,14 @@ async def running_task_db(async_db: AsyncArangoDB) -> RunningTaskDb:
     await task_db.create_update_schema()
     await task_db.wipe()
     return task_db
+
+
+@fixture
+async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredOuterEdgeDb:
+    edges_db = deferredouteredgedb.deferred_outer_edge_db(async_db, "pending_deferred_edge")
+    await edges_db.create_update_schema()
+    await edges_db.wipe()
+    return edges_db
 
 
 @fixture()

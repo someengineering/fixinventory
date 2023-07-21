@@ -24,7 +24,7 @@ from resotocore.analytics import AnalyticsEventSender, InMemoryEventSender, Anal
 from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
-from resotocore.db.deferred_edge_db import PendingDeferredEdges
+from resotocore.db.deferredouteredgedb import DeferredOuterEdges
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import GraphUpdate
 from resotocore.error import ImportAborted
@@ -184,13 +184,15 @@ class DbUpdaterProcess(Process):
             log.debug("Graph read into memory")
             builder.check_complete()
             graphdb = db.get_graph_db(nxt.graph)
-            outer_edge_db = db.pending_deferred_edge_db
+            outer_edge_db = db.deferred_outer_edge_db
             await graphdb.insert_usage_data(builder.usage)
             _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             await model_handler.update_model(graphdb.name, list(model.kinds.values()))
             if nxt.task_id and builder.deferred_edges:
-                await outer_edge_db.update(PendingDeferredEdges(nxt.task_id, utc(), nxt.graph, builder.deferred_edges))
+                await outer_edge_db.update(
+                    DeferredOuterEdges(uuid_str(), nxt.change_id, nxt.task_id, utc(), nxt.graph, builder.deferred_edges)
+                )
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
             return result
 

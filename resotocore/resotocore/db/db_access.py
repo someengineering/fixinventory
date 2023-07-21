@@ -17,7 +17,7 @@ from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.configdb import config_entity_db, config_validation_entity_db
-from resotocore.db.deferred_edge_db import pending_deferred_edge_db
+from resotocore.db.deferredouteredgedb import deferred_outer_edge_db
 from resotocore.db.entitydb import EventEntityDb
 from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
@@ -49,7 +49,7 @@ class DbAccess(Service):
         subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
-        deferred_edge_name: str = "deferred_outer_edges",
+        deferred_outer_edge_name: str = "deferred_outer_edges",
         config_entity: str = "configs",
         config_validation_entity: str = "config_validation",
         configs_model: str = "configs_model",
@@ -64,7 +64,7 @@ class DbAccess(Service):
         self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.system_data_db = SystemDataDb(self.db)
         self.running_task_db = running_task_db(self.db, running_task_name)
-        self.pending_deferred_edge_db = pending_deferred_edge_db(self.db, deferred_edge_name)
+        self.deferred_outer_edge_db = deferred_outer_edge_db(self.db, deferred_outer_edge_name)
         self.job_db = job_db(self.db, job_name)
         self.config_entity_db = config_entity_db(self.db, config_entity)
         self.config_validation_entity_db = config_validation_entity_db(self.db, config_validation_entity)
@@ -83,7 +83,7 @@ class DbAccess(Service):
         await self.config_validation_entity_db.create_update_schema()
         await self.configs_model_db.create_update_schema()
         await self.template_entity_db.create_update_schema()
-        await self.pending_deferred_edge_db.create_update_schema()
+        await self.deferred_outer_edge_db.create_update_schema()
         await self.package_entity_db.create_update_schema()
         for graph in cast(List[Json], self.database.graphs()):
             graph_name = GraphName(graph["name"])

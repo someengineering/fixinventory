@@ -7,16 +7,16 @@ from typing import List, AsyncGenerator, Any
 import pytest
 
 from resotocore.analytics import AnalyticsEventSender
-from resotocore.db.deferred_edge_db import pending_deferred_edge_db
+from resotocore.db.deferredouteredgedb import deferred_outer_edge_db
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.model import GraphUpdate
+from resotocore.model.graph_access import DeferredEdge, ByNodeId
 from resotocore.system_start import empty_config
-from resotocore.ids import TaskId
+from resotocore.ids import TaskId, NodeId
 from resotocore.message_bus import MessageBus
 from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_js
-from resotocore.types import Json
 from tests.resotocore.db.graphdb_test import create_graph
 from tests.resotocore.model import ModelHandlerStatic
 
@@ -36,8 +36,9 @@ async def test_merge_process(
     config = empty_config(["--graphdb-username", "test", "--graphdb-password", "test", "--graphdb-database", "test"])
     # create sample graph data to insert
     graph = create_graph("test")
-
-    await pending_deferred_edge_db(graph_db.db, "deferred_outer_edges").create_update_schema()
+    outer_edge_db = deferred_outer_edge_db(graph_db.db, "deferred_outer_edges")
+    await outer_edge_db.create_update_schema()
+    await outer_edge_db.wipe()
 
     async def iterator() -> AsyncGenerator[bytes, None]:
         def to_b(a: Any) -> bytes:
@@ -53,18 +54,16 @@ async def test_merge_process(
 
     model_handler = ModelHandlerStatic(Model.from_kinds(foo_kinds))
     async with GraphMerger(model_handler, event_sender, config, message_bus) as merger:
+        task_id = TaskId("test_task_123")
         result = await merger.merge_graph(
-            graph_db, iterator(), timedelta(seconds=30), None, TaskId("test_task_123"), wait_for_result=True
+            graph_db, iterator(), timedelta(seconds=30), None, task_id, wait_for_result=True
         )
         assert result == GraphUpdate(112, 1, 0, 212, 0, 0)
-        elem: Json = graph_db.db.collection("deferred_outer_edges").get("test_task_123")  # type: ignore
-        assert elem["_key"] == "test_task_123"
-        assert elem["task_id"] == "test_task_123"
-        assert elem["edges"][0] == {
-            "from_node": {"value": "id_123"},
-            "to_node": {"value": "id_456"},
-            "edge_type": "delete",
-        }
+        edges = await outer_edge_db.all_for_task(task_id)
+        assert len(edges) == 1
+        elem = edges[0]
+        assert elem.task_id == "test_task_123"
+        assert elem.edges[0] == DeferredEdge(ByNodeId(NodeId("id_123")), ByNodeId(NodeId("id_456")), "delete")
 
         # make another update without wait
         current_count = graph_db.db.collection("ns").count()
