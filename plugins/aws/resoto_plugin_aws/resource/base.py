@@ -477,9 +477,9 @@ class GraphBuilder:
         ecu = value_in_path(cloud_instance_data, ["aws", instance_type, "ECU"])
         ecu = float(ecu) if isinstance(ecu, (int, float)) else None
         result = evolve(it, region=region, ondemand_cost=price, pretty_name=pretty_name, ecu=ecu)
-        if hasattr(result, "instance_type_processor_info"):
+        if getattr(result, "instance_type_processor_info", None):
             result.instance_type_processor_info.physical_processor = physical_processor
-        if hasattr(result, "instance_type_gpu_info"):
+        if getattr(result, "instance_type_gpu_info", None):
             result.instance_type_gpu_info.gpu_model = gpu_model
         # add this instance type to the graph
         self.add_node(result, region=region)
