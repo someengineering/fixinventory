@@ -480,6 +480,91 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
 
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        volumes = {
+            volume.id: volume
+            for volume in builder.nodes(clazz=AwsEc2Volume)
+            if volume.region().id == builder.region.id and volume
+        }
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+        for volume_id in volumes:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeWriteBytes", "VolumeReadBytes"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Count",
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeWriteOps", "VolumeReadOps"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Seconds",
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeTotalWriteTime", "VolumeIdleTime"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="VolumeQueueLength",
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat=stat,
+                        unit="Count",
+                        VolumeId=volume_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+
+        metric_normalizers = {
+            "VolumeWriteBytes": MetricNormalization(name="volume_write_bytes"),
+            "VolumeReadBytes": MetricNormalization(name="volume_read_bytes"),
+            "VolumeWriteOps": MetricNormalization(name="volume_write_ops"),
+            "VolumeReadOps": MetricNormalization(name="volume_read_ops"),
+            "VolumeTotalWriteTime": MetricNormalization(name="volume_total_write_time"),
+            "VolumeIdleTime": MetricNormalization(name="volume_idle_time"),
+            "VolumeQueueLength": MetricNormalization(
+                name="volume_queue_length", normalize_value=lambda x: round(x, ndigits=3)
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(volumes, cloudwatch_result, metric_normalizers)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         for attachment in self.volume_attachments:
@@ -1112,20 +1197,17 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 ]
             )
 
-        stat_map = {"Minimum": "min", "Average": "avg", "Maximum": "max", "Sum": "sum"}
-
         metric_normalizers = {
             "CPUUtilization": MetricNormalization(
                 name="cpu_utilization",
-                stat_map=stat_map,
                 normalize_value=lambda x: round(x, ndigits=3),
             ),
-            "NetworkIn": MetricNormalization(name="network_in", stat_map=stat_map),
-            "NetworkOut": MetricNormalization(name=("network_out"), stat_map=stat_map),
-            "DiskReadOps": MetricNormalization(name=("disk_read_ops"), stat_map=stat_map),
-            "DiskWriteOps": MetricNormalization(name=("disk_write_ops"), stat_map=stat_map),
-            "DiskReadBytes": MetricNormalization(name=("disk_read_bytes"), stat_map=stat_map),
-            "DiskWriteBytes": MetricNormalization(name=("disk_write_bytes"), stat_map=stat_map),
+            "NetworkIn": MetricNormalization(name="network_in"),
+            "NetworkOut": MetricNormalization(name="network_out"),
+            "DiskReadOps": MetricNormalization(name="disk_read_ops"),
+            "DiskWriteOps": MetricNormalization(name="disk_write_ops"),
+            "DiskReadBytes": MetricNormalization(name="disk_read_bytes"),
+            "DiskWriteBytes": MetricNormalization(name="disk_write_bytes"),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
