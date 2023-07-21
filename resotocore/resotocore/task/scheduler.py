@@ -1,4 +1,6 @@
+import logging
 import warnings
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Callable, Any, List
 
@@ -11,6 +13,8 @@ from apscheduler.triggers.cron import CronTrigger
 from resotocore.service import Service
 from resotolib.utils import get_local_tzinfo
 
+log = logging.getLogger("resotocore")
+
 
 warnings.filterwarnings(
     "ignore",
@@ -18,7 +22,19 @@ warnings.filterwarnings(
 )
 
 
-class Scheduler(Service):
+class Scheduler(Service, ABC):
+    @abstractmethod
+    def cron(
+        self, job_id: str, name: str, cron_string: str, func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def list_jobs(self) -> List[Job]:
+        pass
+
+
+class APScheduler(Scheduler):
     def __init__(self) -> None:
         self.scheduler = AsyncIOScheduler(
             jobstores={"default": MemoryJobStore()},
@@ -52,3 +68,20 @@ class Scheduler(Service):
 
     def list_jobs(self) -> List[Job]:
         return self.scheduler.get_jobs(jobstore="default")  # type: ignore
+
+
+class NoScheduler(Scheduler):
+    """
+    A scheduler that does not schedule anything.
+    """
+
+    def __init__(self) -> None:
+        log.info("Scheduling disabled")
+
+    def cron(
+        self, job_id: str, name: str, cron_string: str, func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> None:
+        pass
+
+    def list_jobs(self) -> List[Job]:
+        return []

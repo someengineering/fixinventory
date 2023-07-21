@@ -318,12 +318,18 @@ async def test_workflows_command(cli: CLIService, task_handler: TaskHandlerServi
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
     wf = await execute("workflows run test_workflow")
     assert wf[0].startswith("Workflow test_workflow started with id")  # type: ignore
-    assert len(await execute("workflows running")) == 1
+    running = await execute("workflows running")
+    assert len(running) == 1
 
     # executing an already running workflow will give a specific message
     await execute("workflows run sleep_workflow")
     sf = await execute("workflows run sleep_workflow")
     assert sf[0].startswith("Workflow sleep_workflow already running with id ")  # type: ignore
+
+    # a workflow task can be stopped
+    task_id = running[0]["task-id"]  # type: ignore
+    af = await execute(f"workflows stop {task_id}")
+    assert af[0] == f"Workflow Task {task_id} stopped."
 
     # make sure to wait for all tasks to finish
     for rt in await task_handler.running_tasks():

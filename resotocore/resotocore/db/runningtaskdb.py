@@ -164,7 +164,7 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
             )
 
     async def all_running(self) -> AsyncGenerator[RunningTaskData, None]:
-        aql = f"""FOR doc IN {self.collection_name} FILTER doc.done == false RETURN doc"""
+        aql = f"""FOR doc IN {self.collection_name} FILTER doc.done==false SORT doc.task_started_at DESC  RETURN doc"""
         async with await self.db.aql_cursor(aql) as cursor:
             async for element in cursor:
                 try:

@@ -205,6 +205,15 @@ resoto.worker:
     )
     parser.add_argument("--ui-path", help=argparse.SUPPRESS)  # no effect any longer, only here to not break anything
     parser.add_argument("--analytics-opt-out", default=None, action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--no-scheduling", default=False, action="store_true", help="Disable scheduling of jobs and workflows."
+    )
+    parser.add_argument(
+        "--ignore-interrupted-tasks",
+        default=False,
+        action="store_true",
+        help="Do not load and continue interrupted tasks.",
+    )
 
     parsed: Namespace = parser.parse_args(args if args else [])
 

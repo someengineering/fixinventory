@@ -25,6 +25,7 @@ from resotocore.message_bus import (
     ActionInfo,
     ActionProgress,
     CoreMessage,
+    ActionAbort,
 )
 from resotocore.model.typed_model import to_json, from_js, to_js
 from resotocore.task.model import Subscriber
@@ -410,6 +411,12 @@ class StepState(State):
         :param progress: the progress tree to update.
         """
 
+    def abort(self) -> Sequence[TaskCommand]:
+        """
+        Override this method in deriving classes to define behaviour when the task is aborted.
+        """
+        return []
+
     @staticmethod
     def from_step(step: Step, instance: RunningTask) -> StepState:
         """
@@ -532,6 +539,11 @@ class PerformActionState(StepState):
         super().initial_progress(progress)
         if self.wait_for():
             progress.add_progress(ProgressDone(self.step.name, 0, 1))
+
+    def abort(self) -> Sequence[TaskCommand]:
+        result = list(super().abort())
+        result.append(SendMessage(ActionAbort(self.perform.message_type, self.instance.id, self.step.name)))
+        return result
 
 
 class WaitForEventState(StepState):
