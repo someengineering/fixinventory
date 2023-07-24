@@ -456,23 +456,53 @@ def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str
 
 def set_account_names(accounts: List[AwsAccount]) -> None:
     def set_account_name(account: AwsAccount) -> None:
-        try:
-            account_aliases = (
-                aws_session(account=account.id, role=account.role, profile=account.profile, partition=account.partition)
-                .client("iam")
-                .list_account_aliases()
-                .get("AccountAliases", [])
-            )
-            if len(account_aliases) > 0:
-                account.name = account_aliases[0]
-        except Exception:
-            pass
+        def set_name_from_account_alias() -> bool:
+            try:
+                account_aliases = (
+                    aws_session(
+                        account=account.id, role=account.role, profile=account.profile, partition=account.partition
+                    )
+                    .client("iam")
+                    .list_account_aliases()
+                    .get("AccountAliases", [])
+                )
+                if len(account_aliases) > 0:
+                    account.name = account_aliases[0]
+                    log.debug(f"Set name for {account.kdname} from account alias")
+                    return True
+            except Exception:
+                pass
+            return False
+
+        def set_name_from_org() -> bool:
+            try:
+                scrape_org_role_arn = Config.aws.scrape_org_role_arn
+                if scrape_org_role_arn is not None and len(str(scrape_org_role_arn).strip()) == 0:
+                    scrape_org_role_arn = None
+                account_name = (
+                    aws_session(profile=account.profile, partition=account.partition, role_arn=scrape_org_role_arn)
+                    .client("organizations")
+                    .describe_account(AccountId=account.id)["Account"]["Name"]
+                )
+                account.name = account_name
+                log.debug(f"Set name for {account.kdname} from organization")
+                return True
+            except Exception:
+                pass
+            return False
+
+        if Config.aws.prefer_account_alias_as_name:
+            if not set_name_from_account_alias():
+                set_name_from_org()
+        else:
+            if not set_name_from_org():
+                set_name_from_account_alias()
 
     if len(accounts) == 0:
         return
 
     max_workers = len(accounts) if len(accounts) < Config.aws.account_pool_size else Config.aws.account_pool_size
-    with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="aws_account_name_finder") as executor:
         executor.map(set_account_name, accounts)
 
 
