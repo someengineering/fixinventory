@@ -53,7 +53,7 @@ class ConfigOverrideService(ConfigOverride, Service):
             if key in model:
                 try:
                     value_kind = model[key]
-                    coerced = value_kind.check_valid(value, normalize=False, config_context=True)
+                    coerced = value_kind.check_valid(value, normalize=False, config_context=True, ignore_missing=True)
                     final_config[key] = value_kind.sort_json(coerced or value)
                 except Exception as ex:
                     raise AttributeError(f"Error validating section {key}: {ex}") from ex
@@ -75,9 +75,12 @@ class ConfigOverrideService(ConfigOverride, Service):
                     [file for file in path.iterdir() if file.is_file() and file.suffix in (".yml", ".yaml", ".json")]
                 )
             elif path.suffix in (".yml", ".yaml", ".json"):
-                config_files.append(path)
+                config_files.append(path.expanduser())
             else:
                 log.warning(f"Config override path {path} is neither a directory nor a yaml/json file, skipping.")
+
+        if config_files:
+            log.info("Loading config overrides from: %s", ", ".join(str(file) for file in config_files))
 
         # json with all merged overrides for all components such as resotocore, resotoworker, etc.
         overrides_json: Json = {}
@@ -118,6 +121,7 @@ class ConfigOverrideService(ConfigOverride, Service):
                 log.warning("No config overrides found.")
             return {}
 
+        log.info("Loaded config overrides for: %s", ", ".join(str(config_id) for config_id in all_config_overrides))
         return all_config_overrides
 
     def get_override(self, config_id: ConfigId) -> Optional[Json]:
