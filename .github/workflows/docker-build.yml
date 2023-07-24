@@ -12,16 +12,34 @@ on:
       - "docker/**"
       - "dockerV2/**"
       - ".github/workflows/docker-build.yml"
-      - 'requirements-all.txt'
+      - "requirements-all.txt"
+  workflow_dispatch:
 
 jobs:
   split-build:
-    name: "Build x86_64 Docker images" # Do not rename without updating workflow defined in publish.yml
+    name: "Build split Docker images" # Do not rename without updating workflow defined in publish.yml
     runs-on: ubuntu-latest
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 1024
+          swap-size-mb: 20000
+          overprovision-lvm: 'true'
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-docker-images: 'true'
+          remove-codeql: 'true'
+
       - name: Check out repository
         uses: actions/checkout@v3
+
+      - name: Check free space before build
+        run: |
+          echo "Free space:"
+          df -h
 
       - name: Get short commit SHA
         id: sha
@@ -33,7 +51,7 @@ jobs:
           GITHUB_REF="${{ github.ref }}"
           GITHUB_TAG=${GITHUB_REF##*/}
           if [ "${{ github.ref_type }}" = tag ]; then
-              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
+              echo "targets=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
               echo "uitag=latest" >> $GITHUB_OUTPUT
               if [[ "$GITHUB_TAG" =~ [0-9]([ab]|rc)[0-9]* ]]; then
                 echo "latest=false" >> $GITHUB_OUTPUT
@@ -41,9 +59,13 @@ jobs:
                 echo "latest=true" >> $GITHUB_OUTPUT
               fi
           else
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              echo "targets=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+            else
               echo "targets=linux/amd64" >> $GITHUB_OUTPUT
-              echo "uitag=edge" >> $GITHUB_OUTPUT
-              echo "latest=false" >> $GITHUB_OUTPUT
+            fi
+            echo "uitag=edge" >> $GITHUB_OUTPUT
+            echo "latest=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Check short commit SHA and build targets
@@ -254,3 +276,8 @@ jobs:
           tags: ${{ steps.shellmeta.outputs.tags }}
           labels: ${{ steps.shellmeta.outputs.labels }}
           provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
+
+      - name: Check free space after build
+        run: |
+          echo "Free space:"
+          df -h
