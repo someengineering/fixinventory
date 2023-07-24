@@ -125,10 +125,12 @@ foo:
             encoding="utf-8",
         )
 
-        foo = ComplexKind("foo", [], [Property("bar", "int32"), Property("kind", "string")])
+        foo_kinds = ComplexKind(
+            "foo", [], [Property("bar", "int32", required=True), Property("kind", "string", required=True)]
+        )
 
         async def get_configs_model() -> Model:
-            return Model.from_kinds([foo])
+            return Model.from_kinds([foo_kinds])
 
         override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
         await override_service.load()
@@ -153,6 +155,22 @@ foo:
 
         # invalid config should be ignored
         assert override_service.get_override(ConfigId("resoto.core")) is None
+
+        resotocore_1_conf.write_text(
+            """
+foo:
+    bar: 42""",
+            encoding="utf-8",
+        )
+        override_service = ConfigOverrideService([Path(tmp)], get_configs_model)
+        await override_service.load()
+
+        # missing keys are allowed for overrides
+        assert override_service.get_override(ConfigId("resoto.core")) == {
+            "foo": {
+                "bar": 42,
+            }
+        }
 
 
 @pytest.mark.asyncio
