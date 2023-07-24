@@ -14,6 +14,7 @@ org_list_policy = {
                 "Resource": "*",
                 "Action": [
                     "organizations:ListAccounts",
+                    "organizations:DescribeAccount",
                     "ec2:DescribeRegions",
                     "iam:ListAccountAliases",
                 ],

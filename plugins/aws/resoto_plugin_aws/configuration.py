@@ -163,6 +163,14 @@ class AwsConfig:
             " default credentials it was started with to call organizations:ListAccounts"
         },
     )
+    prefer_account_alias_as_name: bool = field(
+        default=True,
+        metadata={
+            "description": "Prefer the account alias as the account name instead of organization."
+            " If set to false, Resoto will try to use the organization name. If scrape_org_role_arn is defined,"
+            " the role will be assumed when calling organizations:DescribeAccount."
+        },
+    )
     fork_process: bool = field(
         default=True,
         metadata={
