@@ -98,7 +98,7 @@ jobs:
       - name: Docker resotocore meta
         if: github.event_name != 'pull_request'
         id: coremeta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: |
             someengineering/resotocore
