@@ -11,12 +11,11 @@ on:
       - "Dockerfile*"
       - "docker/**"
       - "dockerV2/**"
-      - ".github/workflows/docker-build.yml"
-      - 'requirements-all.txt'
+      - ".github/workflows/docker-build-arm.yml"
 
 jobs:
   split-build:
-    name: "Build x86_64 Docker images" # Do not rename without updating workflow defined in publish.yml
+    name: "Build ARM64 Docker images"
     runs-on: ubuntu-latest
 
     steps:
@@ -27,13 +26,29 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
+      - name: Create swap for ARM builds
+        if: github.ref_type == 'tag' # on tagging of releases and prereleases
+        run: |
+          echo "Creating 20GB swap files for ARM builds"
+          sudo swapoff -a
+          sudo rm -f /mnt/swapfile
+          time sudo dd if=/dev/zero of=/mnt/swapfile bs=13M count=1000
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          time sudo dd if=/dev/zero of=/swapfile bs=7M count=1000
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -m
+
       - name: Set build platforms
         id: platform
         run: |
           GITHUB_REF="${{ github.ref }}"
           GITHUB_TAG=${GITHUB_REF##*/}
           if [ "${{ github.ref_type }}" = tag ]; then
-              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
+              echo "targets=linux/arm64" >> $GITHUB_OUTPUT
               echo "uitag=latest" >> $GITHUB_OUTPUT
               if [[ "$GITHUB_TAG" =~ [0-9]([ab]|rc)[0-9]* ]]; then
                 echo "latest=false" >> $GITHUB_OUTPUT
@@ -41,7 +56,7 @@ jobs:
                 echo "latest=true" >> $GITHUB_OUTPUT
               fi
           else
-              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
+              echo "targets=linux/arm64" >> $GITHUB_OUTPUT
               echo "uitag=edge" >> $GITHUB_OUTPUT
               echo "latest=false" >> $GITHUB_OUTPUT
           fi

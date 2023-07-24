@@ -83,7 +83,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: Build split Docker images
+          check-name: Build x86_64 Docker images
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update resource data models
@@ -257,7 +257,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: Build split Docker images
+          check-name: Build x86_64 Docker images
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update resource data models
