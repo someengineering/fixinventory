@@ -1173,7 +1173,9 @@ class EchoCommand(CLICommand):
         return [ArgInfo(expects_value=True, help_text="message to send downstream")]
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        return CLISource.single(lambda: stream.just(strip_quotes(arg if arg else "")))
+        return CLISource.single(
+            lambda: stream.just(strip_quotes(arg if arg else "")), required_permissions={Permission.Read}
+        )
 
 
 class JsonCommand(CLICommand):
@@ -1233,7 +1235,9 @@ class JsonCommand(CLICommand):
             elements = [js]
         else:
             raise AttributeError(f"json does not understand {arg}.")
-        return CLISource.with_count(lambda: stream.iterate(elements), len(elements))
+        return CLISource.with_count(
+            lambda: stream.iterate(elements), len(elements), required_permissions={Permission.Read}
+        )
 
 
 class SleepCommand(CLICommand):
@@ -1276,7 +1280,7 @@ class SleepCommand(CLICommand):
                     await asyncio.sleep(sleep_time)
                     yield ""
 
-            return CLISource.single(sleep)
+            return CLISource.single(sleep, required_permissions={Permission.Read})
         except Exception as ex:
             raise AttributeError("Sleep needs the time in seconds as arg.") from ex
 
@@ -1474,7 +1478,11 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
 
             return cursor.count(), iterate_and_close()
 
-        return CLISource.single(explain_search) if explain else CLISource(prepare)
+        return (
+            CLISource.single(explain_search, required_permissions={Permission.Read})
+            if explain
+            else CLISource(prepare, required_permissions={Permission.Read})
+        )
 
 
 class EnvCommand(CLICommand):
@@ -1514,7 +1522,7 @@ class EnvCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env))
+        return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env), required_permissions={Permission.Read})
 
 
 class ChunkCommand(CLICommand):
@@ -1563,7 +1571,7 @@ class ChunkCommand(CLICommand):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         size = int(arg) if arg else 100
-        return CLIFlow(lambda in_stream: stream.chunks(in_stream, size))
+        return CLIFlow(lambda in_stream: stream.chunks(in_stream, size), required_permissions={Permission.Read})
 
 
 class FlattenCommand(CLICommand):
@@ -1616,7 +1624,7 @@ class FlattenCommand(CLICommand):
         def iterate(it: Any) -> Stream:
             return stream.iterate(it) if is_async_iterable(it) or iterable(it) else stream.just(it)
 
-        return CLIFlow(lambda in_stream: stream.flatmap(in_stream, iterate))
+        return CLIFlow(lambda in_stream: stream.flatmap(in_stream, iterate), required_permissions={Permission.Read})
 
 
 class UniqCommand(CLICommand):
@@ -1673,7 +1681,7 @@ class UniqCommand(CLICommand):
                 visited.add(item)
                 return True
 
-        return CLIFlow(lambda in_stream: stream.filter(in_stream, has_not_seen))
+        return CLIFlow(lambda in_stream: stream.filter(in_stream, has_not_seen), required_permissions={Permission.Read})
 
 
 class JqCommand(CLICommand, OutputTransformer):
@@ -1773,7 +1781,7 @@ class JqCommand(CLICommand, OutputTransformer):
             result = out[0] if len(out) == 1 else out
             return cast(Json, result)
 
-        return CLIFlow(lambda in_stream: stream.map(in_stream, process))
+        return CLIFlow(lambda in_stream: stream.map(in_stream, process), required_permissions={Permission.Read})
 
 
 class KindsCommand(CLICommand, PreserveOutputFormat):
@@ -1935,7 +1943,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 result = sorted([k.fqn for k in model.kinds.values() if isinstance(k, ComplexKind) and show(k)])
                 return len(model.kinds), stream.iterate(result)
 
-        return CLISource(source)
+        return CLISource(source, required_permissions={Permission.Read})
 
 
 class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
@@ -1947,7 +1955,10 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
-        return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
+        return CLIFlow(
+            lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func),
+            required_permissions={Permission.Write},
+        )
 
     async def set_desired(
         self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
@@ -2083,7 +2094,10 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
-        return CLIFlow(lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func))
+        return CLIFlow(
+            lambda in_stream: stream.flatmap(stream.chunks(in_stream, buffer_size), func),
+            required_permissions={Permission.Write},
+        )
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
@@ -2307,7 +2321,7 @@ class FormatCommand(CLICommand, OutputTransformer):
                 return in_stream
 
         produces = MediaType.Markdown if use == "benchmark_result" else MediaType.String
-        return CLIFlow(format_stream, produces=produces)
+        return CLIFlow(format_stream, produces=produces, required_permissions={Permission.Read})
 
 
 @make_parser
@@ -2390,7 +2404,7 @@ class DumpCommand(CLICommand, OutputTransformer):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         # Dump returns the same stream as provided without changing anything.
         # Since it is an OutputTransformer, the resulting transformer will be dump (not list).
-        return CLIFlow(identity)
+        return CLIFlow(identity, required_permissions={Permission.Read})
 
 
 class ListCommand(CLICommand, OutputTransformer):
@@ -2714,7 +2728,7 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
-        return CLIFlow(fmt, produces=MediaType.String)
+        return CLIFlow(fmt, produces=MediaType.String, required_permissions={Permission.Read})
 
 
 class JobsCommand(CLICommand, PreserveOutputFormat):
@@ -2973,25 +2987,31 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
             is_update = args[0] == "update"
-            return CLISource.single(partial(put_job, args[1].strip(), is_update))
+            return CLISource.single(
+                partial(put_job, args[1].strip(), is_update), required_permissions={Permission.Write}
+            )
         elif arg and len(args) == 2 and args[0] == "delete":
-            return CLISource.single(partial(delete_job, args[1].strip()))
+            return CLISource.single(partial(delete_job, args[1].strip()), required_permissions={Permission.Write})
         elif arg and len(args) == 2 and args[0] == "show":
-            return CLISource.single(partial(show_job, args[1].strip()))
+            return CLISource.single(partial(show_job, args[1].strip()), required_permissions={Permission.Read})
         elif arg and len(args) == 2 and args[0] == "run":
-            return CLISource.single(partial(run_job, args[1].strip()))
+            return CLISource.single(partial(run_job, args[1].strip()), required_permissions={Permission.Write})
         elif arg and len(args) == 2 and args[0] == "activate":
-            return CLISource.single(partial(activate_deactivate_job, args[1].strip(), True))
+            return CLISource.single(
+                partial(activate_deactivate_job, args[1].strip(), True), required_permissions={Permission.Write}
+            )
         elif arg and len(args) == 2 and args[0] == "deactivate":
-            return CLISource.single((partial(activate_deactivate_job, args[1].strip(), False)))
+            return CLISource.single(
+                (partial(activate_deactivate_job, args[1].strip(), False)), required_permissions={Permission.Write}
+            )
         elif arg and len(args) == 2:
             raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete.")
         elif arg and len(args) == 1 and args[0] == "running":
-            return CLISource(running_jobs)
+            return CLISource(running_jobs, required_permissions={Permission.Read})
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_jobs)
+            return CLISource(list_jobs, required_permissions={Permission.Read})
         else:
-            return CLISource.single(show_help)
+            return CLISource.single(show_help, required_permissions={Permission.Read})
 
 
 class SendWorkerTaskCommand(CLICommand, ABC):
@@ -3208,7 +3228,11 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
             arg = {"args": args_parts_unquoted_parser.parse(formatter({}))}
             return self.send_to_queue_stream(stream.just((command_name, {}, arg)), self.no_update, True)
 
-        return CLISource.single(setup_source) if ctx.query is None else CLIFlow(setup_stream)
+        return (
+            CLISource.single(setup_source, required_permissions={Permission.Write})
+            if ctx.query is None
+            else CLIFlow(setup_stream, required_permissions={Permission.Write})
+        )
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parser = NoExitArgumentParser()
@@ -3328,7 +3352,7 @@ class TagCommand(SendWorkerTaskCommand):
             dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
 
-        return CLIFlow(setup_stream)
+        return CLIFlow(setup_stream, required_permissions={Permission.Write})
 
 
 class FileCommand(CLICommand, InternalPart):
@@ -3341,7 +3365,7 @@ class FileCommand(CLICommand, InternalPart):
             else:
                 return stream.just(arg if arg else "")
 
-        return CLISource.single(file_command, MediaType.FilePath)
+        return CLISource.single(file_command, MediaType.FilePath, required_permissions={Permission.Admin})
 
     @property
     def name(self) -> str:
@@ -3367,7 +3391,9 @@ class UploadCommand(CLICommand, InternalPart):
             else:
                 raise AttributeError(f"file was not uploaded: {arg}!")
 
-        return CLISource.single(upload_command, MediaType.Json, [CLIFileRequirement(file_id, arg)])
+        return CLISource.single(
+            upload_command, MediaType.Json, [CLIFileRequirement(file_id, arg)], required_permissions={Permission.Admin}
+        )
 
     @property
     def name(self) -> str:
@@ -3605,7 +3631,7 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             def backup() -> AsyncIterator[JsonElement]:
                 return self.create_backup(" ".join(rest) if rest else None)
 
-            return CLISource.single(backup, MediaType.FilePath)
+            return CLISource.single(backup, MediaType.FilePath, required_permissions={Permission.Admin})
 
         elif len(parts) == 3 and parts[0] == "backup" and parts[1] == "restore":
             backup_file = parts[2]
@@ -3613,9 +3639,14 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             def restore() -> AsyncIterator[JsonElement]:
                 return self.restore_backup(ctx.uploaded_files.get("backup"), ctx)
 
-            return CLISource.single(restore, MediaType.Json, [CLIFileRequirement("backup", backup_file)])
+            return CLISource.single(
+                restore,
+                MediaType.Json,
+                [CLIFileRequirement("backup", backup_file)],
+                required_permissions={Permission.Admin},
+            )
         elif len(parts) == 1 and parts[0] == "info":
-            return CLISource.single(self.show_system_info)
+            return CLISource.single(self.show_system_info, required_permissions={Permission.Read})
         else:
             raise CLIParseError(f"system: Can not parse {arg}")
 
@@ -3679,7 +3710,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
             fn = self.already_file_stream
         else:
             fn = self.write_result_to_file
-        return CLIFlow(lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath)
+        return CLIFlow(
+            lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath, required_permissions={Permission.Read}
+        )
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):
@@ -3789,17 +3822,19 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] in ("add", "update"):
             nm, tpl = re.split("\\s+", args[1], maxsplit=1)
-            return CLISource.single(partial(put_template, nm.strip(), tpl.strip()))
+            return CLISource.single(
+                partial(put_template, nm.strip(), tpl.strip()), required_permissions={Permission.Admin}
+            )
         elif arg and len(args) == 2 and args[0] == "delete":
-            return CLISource.single(partial(delete_template, args[1].strip()))
+            return CLISource.single(partial(delete_template, args[1].strip()), required_permissions={Permission.Admin})
         elif arg and len(args) == 2 and args[0] == "test":
-            return CLISource.single(partial(expand_template, args[1].strip()))
+            return CLISource.single(partial(expand_template, args[1].strip()), required_permissions={Permission.Read})
         elif arg and len(args) == 2:
             raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete, test.")
         elif arg and len(args) == 1:
-            return CLISource.single(partial(get_template, arg.strip()))
+            return CLISource.single(partial(get_template, arg.strip()), required_permissions={Permission.Read})
         elif not arg:
-            return CLISource(list_templates)
+            return CLISource(list_templates, required_permissions={Permission.Read})
         else:
             raise CLIParseError(f"Can not parse arguments: {arg}")
 
@@ -4021,7 +4056,7 @@ class HttpCommand(CLICommand):
         # command name is the default scheme: http, https etc.
         default_scheme = kwargs.get("cmd_name", "http")
         template = self.parse_args(default_scheme, arg)
-        return CLIFlow(self.perform_requests(template))
+        return CLIFlow(self.perform_requests(template), required_permissions={Permission.Read})
 
 
 class WorkflowsCommand(CLICommand):
@@ -4294,23 +4329,25 @@ class WorkflowsCommand(CLICommand):
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "show":
-            return CLISource.single(partial(show_workflow, args[1].strip()))
+            return CLISource.single(partial(show_workflow, args[1].strip()), required_permissions={Permission.Read})
         elif arg and len(args) == 1 and args[0] == "history":
-            return CLISource.single(history_aggregation)
+            return CLISource.single(history_aggregation, required_permissions={Permission.Read})
         elif arg and len(args) == 2 and args[0] == "history":
-            return CLISource(partial(history_of, re.split("\\s+", args[1])))
+            return CLISource(partial(history_of, re.split("\\s+", args[1])), required_permissions={Permission.Read})
         elif arg and len(args) == 2 and args[0] == "log":
-            return CLISource(partial(show_log, args[1].strip()))
+            return CLISource(partial(show_log, args[1].strip()), required_permissions={Permission.Read})
         elif arg and len(args) == 2 and args[0] == "run":
-            return CLISource.single(partial(run_workflow, args[1].strip()))
+            return CLISource.single(partial(run_workflow, args[1].strip()), required_permissions={Permission.Admin})
         elif arg and len(args) == 2 and args[0] == "stop":
-            return CLISource.single(partial(stop_workflow, args[1].strip()))
+            return CLISource.single(partial(stop_workflow, args[1].strip()), required_permissions={Permission.Admin})
         elif arg and len(args) == 1 and args[0] == "running":
-            return CLISource(running_workflows)
+            return CLISource(running_workflows, required_permissions={Permission.Read})
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_workflows)
+            return CLISource(list_workflows, required_permissions={Permission.Read})
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 @make_parser
@@ -4485,21 +4522,22 @@ class ConfigsCommand(CLICommand):
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if arg and len(args) == 2 and (args[0] == "show" or args[0] == "get"):
-            return CLISource.single(partial(show_config, args[1]))
+            return CLISource.single(partial(show_config, args[1]), required_permissions={Permission.Admin})
         elif arg and len(args) == 2 and args[0] == "delete":
-            return CLISource.single(partial(delete_config, args[1]))
+            return CLISource.single(partial(delete_config, args[1]), required_permissions={Permission.Admin})
         elif arg and len(args) == 3 and args[0] == "set":
             update = path_values_parser.parse(args[2])
-            return CLISource.single(partial(set_config, args[1], update))
+            return CLISource.single(partial(set_config, args[1], update), required_permissions={Permission.Admin})
         elif arg and len(args) == 2 and args[0] == "edit":
             config_id = args[1]
             return CLISource.single(
                 partial(edit_config, config_id),
                 produces=MediaType.FilePath,
                 envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"configs update {config_id}"},
+                required_permissions={Permission.Admin},
             )
         elif arg and len(args) == 3 and args[0] == "copy":
-            return CLISource.single(partial(copy_config, args[1], args[2]))
+            return CLISource.single(partial(copy_config, args[1], args[2]), required_permissions={Permission.Admin})
         elif arg and len(args) == 3 and args[0] == "update":
             config_id = args[1]
             return CLISource.single(
@@ -4507,11 +4545,14 @@ class ConfigsCommand(CLICommand):
                 produces=MediaType.FilePath,
                 envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"configs update {config_id}"},
                 requires=[CLIFileRequirement("config.yaml", args[2])],
+                required_permissions={Permission.Admin},
             )
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_configs)
+            return CLISource(list_configs, required_permissions={Permission.Read})
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 @lru_cache(maxsize=1024)
@@ -4599,7 +4640,7 @@ class WelcomeCommand(CLICommand, InternalPart):
             res = ctx.render_console(grid)
             return res
 
-        return CLISource.single(lambda: stream.just(welcome()))
+        return CLISource.single(lambda: stream.just(welcome()), required_permissions={Permission.Read})
 
 
 class TipOfTheDayCommand(CLICommand):
@@ -4636,7 +4677,7 @@ class TipOfTheDayCommand(CLICommand):
             res = ctx.render_console(info)
             return res
 
-        return CLISource.single(lambda: stream.just(totd()))
+        return CLISource.single(lambda: stream.just(totd()), required_permissions={Permission.Read})
 
 
 class CertificateCommand(CLICommand):
@@ -4710,9 +4751,12 @@ class CertificateCommand(CLICommand):
                 ),
                 2,
                 produces=MediaType.FilePath,
+                required_permissions={Permission.Admin},
             )
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 class ReportCommand(CLICommand, EntityProvider):
@@ -4901,21 +4945,21 @@ class ReportCommand(CLICommand, EntityProvider):
         action = self.action_from_arg(arg)
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []
         if action == "benchmark_list":
-            return CLISource.no_count(list_benchmarks)
+            return CLISource.no_count(list_benchmarks, required_permissions={Permission.Read})
         elif action == "benchmark_show":
-            return CLISource.no_count(partial(show_benchmark, args[2].strip()))
+            return CLISource.no_count(partial(show_benchmark, args[2].strip()), required_permissions={Permission.Read})
         elif action == "benchmark_run":
             parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
-            return CLISource.no_count(partial(run_benchmark, parsed))
+            return CLISource.no_count(partial(run_benchmark, parsed), required_permissions={Permission.Read})
         elif action == "check_list":
-            return CLISource.no_count(list_checks)
+            return CLISource.no_count(list_checks, required_permissions={Permission.Read})
         elif action == "check_show":
-            return CLISource.no_count(partial(show_check, args[2].strip()))
+            return CLISource.no_count(partial(show_check, args[2].strip()), required_permissions={Permission.Read})
         elif action == "check_run":
             parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
-            return CLISource.no_count(partial(run_check, parsed))
+            return CLISource.no_count(partial(run_check, parsed), required_permissions={Permission.Read})
         else:
-            return CLISource.single(show_help)
+            return CLISource.single(show_help, required_permissions={Permission.Read})
 
 
 class AppsCommand(CLICommand):
@@ -5099,21 +5143,25 @@ class AppsCommand(CLICommand):
             parser.add_argument("command", type=str)
             parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(apps_search, None, parsed.url))
+            return CLISource.single(partial(apps_search, None, parsed.url), required_permissions={Permission.Read})
         elif len(args) >= 2 and args[0] == "search":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("pattern", type=str, nargs="*")
             parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(apps_search, " ".join(parsed.pattern), parsed.url))
+            return CLISource.single(
+                partial(apps_search, " ".join(parsed.pattern), parsed.url), required_permissions={Permission.Read}
+            )
         elif len(args) == 2 and args[0] == "info":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("app_name", type=str)
             parser.add_argument("--index-url", dest="url", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(app_info, InfraAppName(parsed.app_name), parsed.url))
+            return CLISource.single(
+                partial(app_info, InfraAppName(parsed.app_name), parsed.url), required_permissions={Permission.Read}
+            )
         elif len(args) >= 2 and args[0] == "install":
             parser = NoExitArgumentParser()
             source_group = parser.add_mutually_exclusive_group()
@@ -5128,7 +5176,7 @@ class AppsCommand(CLICommand):
                     InfraAppName(parsed.app_name),
                     parsed.url,
                 ),
-                required_permissions={Permission.Write},
+                required_permissions={Permission.Admin},
             )
         elif arg and len(args) == 2 and args[0] == "edit":
             app_name = InfraAppName(args[1])
@@ -5136,6 +5184,7 @@ class AppsCommand(CLICommand):
                 partial(edit_app, app_name),
                 produces=MediaType.FilePath,
                 envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"apps update {app_name}"},
+                required_permissions={Permission.Admin},
             )
         elif arg and len(args) == 3 and args[0] == "update":
             app_name = InfraAppName(args[1])
@@ -5144,15 +5193,18 @@ class AppsCommand(CLICommand):
                 produces=MediaType.FilePath,
                 envelope={CLIEnvelope.action: "edit", CLIEnvelope.command: f"apps update {app_name}"},
                 requires=[CLIFileRequirement("manifest.yaml", args[2])],
+                required_permissions={Permission.Admin},
             )
         elif len(args) == 2 and args[0] == "uninstall":
-            return CLISource.single(partial(app_uninstall, InfraAppName(args[1])))
+            return CLISource.single(
+                partial(app_uninstall, InfraAppName(args[1])), required_permissions={Permission.Admin}
+            )
         elif len(args) == 2 and args[0] == "update" and args[1] == "all":
-            return CLISource.single(app_update_all)
+            return CLISource.single(app_update_all, required_permissions={Permission.Admin})
         elif len(args) == 2 and args[0] == "update":
-            return CLISource.single(partial(app_update, InfraAppName(args[1])))
+            return CLISource.single(partial(app_update, InfraAppName(args[1])), required_permissions={Permission.Admin})
         elif len(args) == 1 and args[0] == "list":
-            return CLISource.single(apps_list)
+            return CLISource.single(apps_list, required_permissions={Permission.Read})
         elif len(args) >= 2 and args[0] == "run":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
@@ -5172,7 +5224,8 @@ class AppsCommand(CLICommand):
                         dry_run=parsed.dry_run,
                         config=parsed.config,
                         argv=argv,
-                    )
+                    ),
+                    required_permissions={Permission.Read},
                 )
             else:
                 return CLIFlow(
@@ -5182,10 +5235,13 @@ class AppsCommand(CLICommand):
                         dry_run=parsed.dry_run,
                         config=parsed.config,
                         argv=argv,
-                    )
+                    ),
+                    required_permissions={Permission.Read},
                 )
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 class UserCommand(CLICommand):
@@ -5362,24 +5418,33 @@ class UserCommand(CLICommand):
             return CLISource.single(
                 partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role),
                 envelope={CLIEnvelope.no_history: "yes"},
+                required_permissions={Permission.Admin},
             )
         elif len(args) == 2 and args[0].startswith("del"):
-            return CLISource.single(partial(self.delete_user, Email(args[1])))
+            return CLISource.single(partial(self.delete_user, Email(args[1])), required_permissions={Permission.Admin})
         elif len(args) > 3 and args[0] == "role" and args[1] == "add":
-            return CLISource.single(partial(self.add_roles, Email(args[2]), args[3]))
+            return CLISource.single(
+                partial(self.add_roles, Email(args[2]), args[3]), required_permissions={Permission.Admin}
+            )
         elif len(args) > 3 and args[0] == "role" and args[1].startswith("del"):
-            return CLISource.single(partial(self.delete_role, Email(args[2]), args[3]))
+            return CLISource.single(
+                partial(self.delete_role, Email(args[2]), args[3]), required_permissions={Permission.Admin}
+            )
         elif len(args) >= 3 and args[0] in ("passwd", "password"):
+            # fixme: this should require Read for myself and Admin for anyone else
             return CLISource.single(
                 partial(self.change_password, Email(args[1]), Password(args[2])),
                 envelope={CLIEnvelope.no_history: "yes"},
+                required_permissions={Permission.Admin},
             )
         elif len(args) == 1 and args[0] == "list":
-            return CLISource.no_count(self.list_users)
+            return CLISource.no_count(self.list_users, required_permissions={Permission.Read})
         elif len(args) == 2 and args[0] == "show":
-            return CLISource.no_count(partial(self.show_user, args[1]))
+            return CLISource.no_count(partial(self.show_user, args[1]), required_permissions={Permission.Read})
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 class GraphCommand(CLICommand):
@@ -5513,7 +5578,7 @@ class GraphCommand(CLICommand):
             parser.add_argument("command", type=str)
             parser.add_argument("pattern", type=str, nargs="?", default=None)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(graph_list, parsed.pattern))
+            return CLISource.single(partial(graph_list, parsed.pattern), required_permissions={Permission.Read})
         elif args[0] == "copy":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
@@ -5522,7 +5587,8 @@ class GraphCommand(CLICommand):
             parser.add_argument("--force", action="store_true")
             parsed = parser.parse_args(strip_quotes(arg or "").split())
             return CLISource.single(
-                partial(graph_copy, GraphName(parsed.source), GraphName(parsed.destination), parsed.force)
+                partial(graph_copy, GraphName(parsed.source), GraphName(parsed.destination), parsed.force),
+                required_permissions={Permission.Admin},
             )
         elif args[0] == "snapshot":
             parser = NoExitArgumentParser()
@@ -5530,13 +5596,17 @@ class GraphCommand(CLICommand):
             parser.add_argument("source", type=str, nargs="?", default=None)
             parser.add_argument("label", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(graph_snapshot, parsed.source, parsed.label))
+            return CLISource.single(
+                partial(graph_snapshot, parsed.source, parsed.label), required_permissions={Permission.Admin}
+            )
         elif args[0] == "delete":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
             parser.add_argument("graph_name", type=str)
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(graph_delete, GraphName(parsed.graph_name)))
+            return CLISource.single(
+                partial(graph_delete, GraphName(parsed.graph_name)), required_permissions={Permission.Admin}
+            )
         elif args[0] == "export":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
@@ -5544,7 +5614,11 @@ class GraphCommand(CLICommand):
             parser.add_argument("file_name", type=str)
             parser.add_argument("--force", action="store_true")
             parsed = parser.parse_args(strip_quotes(arg or "").split())
-            return CLISource.single(partial(graph_export, parsed.graph_name, parsed.file_name), MediaType.FilePath)
+            return CLISource.single(
+                partial(graph_export, parsed.graph_name, parsed.file_name),
+                MediaType.FilePath,
+                required_permissions={Permission.Read},
+            )
         elif args[0] == "import":
             parser = NoExitArgumentParser()
             parser.add_argument("command", type=str)
@@ -5557,10 +5631,13 @@ class GraphCommand(CLICommand):
                 partial(graph_import, parsed.graph_name, parsed.file_name, parsed.force),
                 MediaType.Json,
                 [CLIFileRequirement("dump", parsed.file_name)],
+                required_permissions={Permission.Admin},
             )
 
         else:
-            return CLISource.single(lambda: stream.just(self.rendered_help(ctx)))
+            return CLISource.single(
+                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.Read}
+            )
 
 
 class DbCommand(CLICommand, PreserveOutputFormat):
@@ -5801,6 +5878,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     fn=partial(sync_database_result, parsed_args, None),
                     envelope={CLIEnvelope.no_history: "yes"},
                     produces=produces,
+                    required_permissions={Permission.Read},
                 )
             else:
                 # sync = partial(database_synchronize, db_config, p.complete_schema, p.drop_existing_tables, ctx.query)
@@ -5808,6 +5886,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     fn=partial(sync_database_result, parsed_args),
                     envelope={CLIEnvelope.no_history: "yes"},
                     produces=produces,
+                    required_permissions={Permission.Read},
                 )
         else:
             raise AttributeError("Wrong or insufficient arguments. Execute `help db` to get more information.")
