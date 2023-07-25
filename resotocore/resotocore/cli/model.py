@@ -206,13 +206,24 @@ class CLIFileRequirement(CLICommandRequirement):
     path: str  # local client path
 
 
+class Permission(Enum):
+    Read = "Read"  # can read all resource data
+    Write = "Write"  # can change all resource data
+    Admin = "Admin"  # can change configuration
+
+
 class CLIAction(ABC):
     def __init__(
-        self, produces: MediaType, requires: Optional[List[CLICommandRequirement]], envelope: Optional[Dict[str, str]]
+        self,
+        produces: MediaType,
+        requires: Optional[List[CLICommandRequirement]],
+        envelope: Optional[Dict[str, str]],
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> None:
         self.produces = produces
         self.required = requires or []
         self.envelope: Dict[str, str] = envelope or {}
+        self.required_permissions = required_permissions or set()
 
     @staticmethod
     def make_stream(in_stream: JsGen) -> Stream:
@@ -226,8 +237,9 @@ class CLISource(CLIAction):
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> None:
-        super().__init__(produces, requires, envelope)
+        super().__init__(produces, requires, envelope, required_permissions)
         self._fn = fn
 
     async def source(self) -> Tuple[Optional[int], Stream]:
@@ -241,8 +253,9 @@ class CLISource(CLIAction):
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> CLISource:
-        return CLISource.with_count(fn, None, produces, requires, envelope)
+        return CLISource.with_count(fn, None, produces, requires, envelope, required_permissions)
 
     @staticmethod
     def with_count(
@@ -251,13 +264,14 @@ class CLISource(CLIAction):
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> CLISource:
         async def combine() -> Tuple[Optional[int], JsGen]:
             res = fn()
             gen = await res if iscoroutine(res) else res
             return count, gen
 
-        return CLISource(combine, produces, requires, envelope)
+        return CLISource(combine, produces, requires, envelope, required_permissions)
 
     @staticmethod
     def single(
@@ -265,8 +279,9 @@ class CLISource(CLIAction):
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> CLISource:
-        return CLISource.with_count(fn, 1, produces, requires, envelope)
+        return CLISource.with_count(fn, 1, produces, requires, envelope, required_permissions)
 
     @staticmethod
     def empty() -> CLISource:
@@ -280,8 +295,9 @@ class CLIFlow(CLIAction):
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
     ) -> None:
-        super().__init__(produces, requires, envelope)
+        super().__init__(produces, requires, envelope, required_permissions)
         self._fn = fn
 
     async def flow(self, in_stream: JsGen) -> Stream:

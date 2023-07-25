@@ -95,6 +95,7 @@ from resotocore.cli.model import (
     ArgInfo,
     EntityProvider,
     FilePath,
+    Permission,
 )
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
@@ -5126,7 +5127,8 @@ class AppsCommand(CLICommand):
                     app_install,
                     InfraAppName(parsed.app_name),
                     parsed.url,
-                )
+                ),
+                required_permissions={Permission.Write},
             )
         elif arg and len(args) == 2 and args[0] == "edit":
             app_name = InfraAppName(args[1])
