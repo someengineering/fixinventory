@@ -29,6 +29,7 @@ PredefineRoles = {
         Role("service", {Permission.Admin, Permission.Read, Permission.Write}),
     ]
 }
+AllowedRoleNames = set(PredefineRoles.keys()) - {"service"}
 
 
 @define

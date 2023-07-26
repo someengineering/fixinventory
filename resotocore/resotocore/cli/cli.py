@@ -59,7 +59,6 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
     AliasTemplateParameter,
-    Permission,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -79,6 +78,7 @@ from resotocore.query.model import (
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
 from resotocore.service import Service
 from resotocore.types import JsonElement
+from resotocore.user.model import Permission
 from resotocore.util import group_by
 from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 

@@ -96,7 +96,7 @@ from resotocore.cli.model import (
     EntityProvider,
     FilePath,
 )
-from resotocore.user.model import Permission, PredefineRoles
+from resotocore.user.model import Permission, AllowedRoleNames
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
@@ -5344,7 +5344,7 @@ class UserCommand(CLICommand):
                     "--role",
                     True,
                     help_text="<role>",
-                    possible_values=list(PredefineRoles),
+                    possible_values=list(AllowedRoleNames),
                     can_occur_multiple_times=True,
                 ),
             ],
@@ -5424,7 +5424,7 @@ class UserCommand(CLICommand):
             parser.add_argument("email", type=str)
             parser.add_argument("--fullname", type=str, required=True)
             parser.add_argument("--password", type=str, required=True)
-            parser.add_argument("--role", type=str, action="append", required=True)
+            parser.add_argument("--role", type=str, action="append", required=True, choices=AllowedRoleNames)
             parsed = parser.parse_args(args[1:])
             return CLISource.single(
                 partial(self.add_user, Email(parsed.email), parsed.fullname, Password(parsed.password), parsed.role),
@@ -5434,6 +5434,7 @@ class UserCommand(CLICommand):
         elif len(args) == 2 and args[0].startswith("del"):
             return CLISource.single(partial(self.delete_user, Email(args[1])), required_permissions={Permission.Admin})
         elif len(args) > 3 and args[0] == "role" and args[1] == "add":
+            assert args[3] in AllowedRoleNames, "Role must be one of: " + ", ".join(AllowedRoleNames)
             return CLISource.single(
                 partial(self.add_roles, Email(args[2]), args[3]), required_permissions={Permission.Admin}
             )
@@ -5442,7 +5443,6 @@ class UserCommand(CLICommand):
                 partial(self.delete_role, Email(args[2]), args[3]), required_permissions={Permission.Admin}
             )
         elif len(args) >= 3 and args[0] in ("passwd", "password"):
-            # fixme: this should require Read for myself and Admin for anyone else
             user_email = ctx.user.email if ctx.user else None
             email = Email(args[1])
             return CLISource.single(
