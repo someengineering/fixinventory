@@ -71,7 +71,6 @@ disable=
     too-many-statements,
     invalid-overridden-method,
     unsubscriptable-object,
-    duplicate-code, # pylint also checks duplicated import statements - does not make any sense
     too-many-boolean-expressions,
     no-member,
     unsupported-binary-operation,
@@ -79,7 +78,8 @@ disable=
     use-dict-literal,
     too-many-return-statements,
     not-an-iterable,
-    too-many-instance-attributes
+    too-many-instance-attributes,
+    too-many-ancestors
 
 
 [REPORTS]

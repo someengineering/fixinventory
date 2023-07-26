@@ -95,8 +95,8 @@ from resotocore.cli.model import (
     ArgInfo,
     EntityProvider,
     FilePath,
-    Permission,
 )
+from resotocore.user.model import Permission, PredefineRoles
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
@@ -104,7 +104,7 @@ from resotocore.db.graphdb import HistoryChange, GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
 from resotocore.system_start import system_info
-from resotocore.error import CLIParseError, ClientError, CLIExecutionError
+from resotocore.error import CLIParseError, ClientError, CLIExecutionError, NotEnoughPermissions
 from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
 from resotocore.infra_apps.manifest import AppManifest
 from resotocore.infra_apps.package_manager import Failure
@@ -142,7 +142,7 @@ from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
 from resotocore.report.benchmark_renderer import respond_benchmark_result
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
-from resotocore.user import ResotoUser, ValidRoles
+from resotocore.user import ResotoUser
 from resotocore.util import (
     uuid_str,
     utc,
@@ -2926,8 +2926,19 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             parsed, rest = arg_parser.parse_known_args(list(args_parts_parser.parse(arg_str)))
             uid = parsed.id
             command = " ".join(rest)
-            # only here to make sure the command can be executed
-            await self.dependencies.cli.evaluate_cli_command(command, ctx)
+            # make sure the command can be executed
+            cmd_lines = await self.dependencies.cli.evaluate_cli_command(command, ctx)
+            # check that the permission required for the job exist for the current user
+            if self.dependencies.config.args.psk is not None and not all(
+                cmd_line.is_allowed_to_execute() for cmd_line in cmd_lines
+            ):
+                required = {
+                    p
+                    for cmd_line in cmd_lines
+                    for cmd in cmd_line.executable_commands
+                    for p in cmd.action.required_permissions
+                }
+                raise NotEnoughPermissions(ctx.user_permissions, required)
 
             timeout: timedelta = parsed.timeout
             if parsed.schedule and parsed.event:
@@ -5333,7 +5344,7 @@ class UserCommand(CLICommand):
                     "--role",
                     True,
                     help_text="<role>",
-                    possible_values=list(ValidRoles),
+                    possible_values=list(PredefineRoles),
                     can_occur_multiple_times=True,
                 ),
             ],
@@ -5432,10 +5443,12 @@ class UserCommand(CLICommand):
             )
         elif len(args) >= 3 and args[0] in ("passwd", "password"):
             # fixme: this should require Read for myself and Admin for anyone else
+            user_email = ctx.user.email if ctx.user else None
+            email = Email(args[1])
             return CLISource.single(
-                partial(self.change_password, Email(args[1]), Password(args[2])),
+                partial(self.change_password, email, Password(args[2])),
                 envelope={CLIEnvelope.no_history: "yes"},
-                required_permissions={Permission.Admin},
+                required_permissions={Permission.Read} if user_email == email else {Permission.Admin},
             )
         elif len(args) == 1 and args[0] == "list":
             return CLISource.no_count(self.list_users, required_permissions={Permission.Read})
@@ -5460,16 +5473,16 @@ class GraphCommand(CLICommand):
 
     - `graph list [pattern]`: Lists all graphs. Supports filtering by pattern.
     - `graph copy [--force] [from_graph_name] <to_graph_name>`: Copies the graph.
-       If the target graph alearly exists, and a --force flag is provided, the graph will be overwritten.
+       If the target graph already exists, and a --force flag is provided, the graph will be overwritten.
     - `graph snapshot [from_graph_name] <snapshot_label>`: Make a graph snapshot.
     - `graph delete <graph_name>`: Delete a graph.
     - `graph export [--force] [graph_name] <file_name>`: Export the graph into a file. If the file already exists,
        and a --force flag is provided, the file will be overwritten.
-    - `graph import [--force] [graph_name] <file_name>`: Impor the graph from a file. If the graph already exists,
+    - `graph import [--force] [graph_name] <file_name>`: Import the graph from a file. If the graph already exists,
        and a --force flag is provided, the graph will be overwritten.
 
     ## Parameters
-    - `pattern` [optional]: Pattern for searching for graps. Supports regex.
+    - `pattern` [optional]: Pattern for searching for graphs. Supports regex.
     - `from_graph_name` [required]: The name of the graph to make a copy or snapshot from.
     - `to_graph_name` [optional]: The name of the target graph to make a copy.
        If not specified, the name of the current graph is used.

@@ -1,3 +1,7 @@
+from typing import Set, Any
+
+from aiohttp import web
+
 from resotocore.ids import GraphName
 
 
@@ -96,3 +100,13 @@ class RestartService(SystemExit):
     def __init__(self, reason: str) -> None:
         super().__init__(f"RestartService due to: {reason}")
         self.reason = reason
+
+
+class NotEnoughPermissions(web.HTTPForbidden):
+    def __init__(self, user_permissions: Set[Any], required_permissions: Set[Any]) -> None:
+        super().__init__(
+            text=f"Not allowed to perform this operation. "
+            f"Missing permission: {', '.join(a.name for a in (required_permissions-user_permissions))}"
+        )
+        self.user_permissions = user_permissions
+        self.required_permissions = required_permissions

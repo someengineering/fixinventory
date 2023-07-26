@@ -13,9 +13,6 @@ UsersConfigRoot = "resoto_users"
 UsersConfigId = ConfigId("resoto.users")
 
 
-ValidRoles = {"admin", "readwrite", "readonly"}
-
-
 @define
 class ResotoUser:
     kind: ClassVar[str] = "resoto_user"

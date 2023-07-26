@@ -37,6 +37,7 @@ from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.error import CLIParseError
 from resotocore.ids import GraphName
+from resotocore.user.model import Permission, AuthorizedUser
 from resotocore.query.model import Query, variable_to_absolute, PathRoot
 from resotocore.query.template_expander import render_template
 from resotocore.types import Json, JsonElement
@@ -108,10 +109,15 @@ class CLIContext:
     commands: List[ExecutableCommand] = field(factory=list)
     console_renderer: Optional[ConsoleRenderer] = None
     source: Optional[str] = None  # who is calling
+    user: Optional[AuthorizedUser] = None
 
     @property
     def graph_name(self) -> GraphName:
         return GraphName(self.env["graph"])
+
+    @property
+    def user_permissions(self) -> Set[Permission]:
+        return self.user.permissions if self.user else set()
 
     def variable_in_section(self, variable: str) -> str:
         # if there is no entity provider, always assume the root section
@@ -204,12 +210,6 @@ class CLICommandRequirement:
 @define
 class CLIFileRequirement(CLICommandRequirement):
     path: str  # local client path
-
-
-class Permission(Enum):
-    Read = "Read"  # can read all resource data
-    Write = "Write"  # can change all resource data
-    Admin = "Admin"  # can change configuration
 
 
 class CLIAction(ABC):
@@ -689,6 +689,11 @@ class ParsedCommandLine:
     def produces(self) -> MediaType:
         # the last command in the chain defines the resulting media type
         return self.executable_commands[-1].action.produces if self.executable_commands else MediaType.Json
+
+    def is_allowed_to_execute(self) -> bool:
+        if self.ctx.user is None:
+            return False
+        return all(self.ctx.user.has_permission(cmd.action.required_permissions) for cmd in self.executable_commands)
 
     async def execute(self) -> Tuple[Optional[int], Stream]:
         if self.executable_commands:
