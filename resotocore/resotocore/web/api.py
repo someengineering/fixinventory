@@ -180,9 +180,9 @@ class Api(Service):
         if not jupyterlite_path.exists():
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
         require = self.auth_handler.allow_with
-        r = Permission.Read
-        w = Permission.Write
-        a = Permission.Admin
+        r = Permission.read
+        w = Permission.write
+        a = Permission.admin
 
         self.app.add_routes(
             [

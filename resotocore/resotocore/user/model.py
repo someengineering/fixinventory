@@ -6,9 +6,9 @@ from attr import define
 
 
 class Permission(Enum):
-    Read = "Read"  # can read all resource data
-    Write = "Write"  # can change all resource data
-    Admin = "Admin"  # can change configuration
+    read = "read"  # can read all resource data
+    write = "write"  # can change all resource data
+    admin = "admin"  # can change configuration
 
 
 @define
@@ -23,10 +23,10 @@ class Role:
 PredefineRoles = {
     r.name: r
     for r in [
-        Role("admin", {Permission.Admin, Permission.Read, Permission.Write}),
-        Role("readwrite", {Permission.Read, Permission.Write}),
-        Role("readonly", {Permission.Read}),
-        Role("service", {Permission.Admin, Permission.Read, Permission.Write}),
+        Role("admin", {Permission.admin, Permission.read, Permission.write}),
+        Role("readwrite", {Permission.read, Permission.write}),
+        Role("readonly", {Permission.read}),
+        Role("service", {Permission.admin, Permission.read, Permission.write}),
     ]
 }
 AllowedRoleNames = set(PredefineRoles.keys()) - {"service"}

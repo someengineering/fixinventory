@@ -210,7 +210,7 @@ class HelpCommand(CLICommand):
 
             return stream.just(result)
 
-        return CLISource.single(help_command, required_permissions={Permission.Read})
+        return CLISource.single(help_command, required_permissions={Permission.read})
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]

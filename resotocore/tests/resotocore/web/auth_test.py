@@ -27,8 +27,8 @@ async def app_with_auth(auth_handler: AuthHandler) -> Application:
 
     app = Application(middlewares=[auth_handler.middleware()])
     app.router.add_get("/", hello)
-    app.router.add_get("/with_read", auth_handler.allow_with(hello, Permission.Read))
-    app.router.add_get("/with_write", auth_handler.allow_with(hello, Permission.Write))
+    app.router.add_get("/with_read", auth_handler.allow_with(hello, Permission.read))
+    app.router.add_get("/with_write", auth_handler.allow_with(hello, Permission.write))
     return app
 
 

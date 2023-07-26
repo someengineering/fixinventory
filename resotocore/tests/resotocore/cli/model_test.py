@@ -133,14 +133,14 @@ async def test_is_allowed(cli: CLIService) -> None:
     res = (await cli.evaluate_cli_command("search all"))[0]
     assert res.is_allowed_to_execute() is False
     # user with read access
-    readonly = CLIContext(user=AuthorizedUser("test@test.de", {"readonly"}, {Permission.Read}, True))
+    readonly = CLIContext(user=AuthorizedUser("test@test.de", {"readonly"}, {Permission.read}, True))
     res = (await cli.evaluate_cli_command("config show resoto.core", context=readonly))[0]
     assert res.is_allowed_to_execute() is False
     res = (await cli.evaluate_cli_command("search all", context=readonly))[0]
     assert res.is_allowed_to_execute() is True
     # admin with all access
     admin = CLIContext(
-        user=AuthorizedUser("test@test.de", {"admin"}, {Permission.Read, Permission.Write, Permission.Admin}, True)
+        user=AuthorizedUser("test@test.de", {"admin"}, {Permission.read, Permission.write, Permission.admin}, True)
     )
     res = (await cli.evaluate_cli_command("config show resoto.core", context=admin))[0]
     assert res.is_allowed_to_execute() is True
