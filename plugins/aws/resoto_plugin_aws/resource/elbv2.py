@@ -4,7 +4,8 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
-from resoto_plugin_aws.utils import ToDict
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
+from resoto_plugin_aws.utils import ToDict, MetricNormalization
 from resotolib.baseresources import BaseLoadBalancer, ModelReference
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
@@ -333,6 +334,79 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     if listener := parse_json(mapped, AwsAlbListener, builder):
                         lb.alb_listener.append(listener)
                 builder.add_node(lb, js)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        albs = {alb.id: alb for alb in builder.nodes(clazz=AwsAlb) if alb.region().id == builder.region.id}
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+        for alb_id, alb in albs.items():
+            lb_id = "/".join((alb.arn or "").split("/")[-3:])
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/ApplicationELB",
+                        period=delta,
+                        ref_id=alb_id,
+                        stat="Sum",
+                        unit="Count",
+                        LoadBalancer=lb_id,
+                    )
+                    for metric in [
+                        "RequestCount",
+                        "ActiveConnectionCount",
+                        "HTTPCode_Target_2XX_Count",
+                        "HTTPCode_Target_4XX_Count",
+                        "HTTPCode_Target_5XX_Count",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="TargetResponseTime",
+                        namespace="AWS/ApplicationELB",
+                        period=delta,
+                        ref_id=alb_id,
+                        stat=stat,
+                        unit="Seconds",
+                        LoadBalancer=lb_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="ProcessedBytes",
+                        namespace="AWS/ApplicationELB",
+                        period=delta,
+                        ref_id=alb_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        LoadBalancer=lb_id,
+                    )
+                ]
+            )
+
+        metric_normalizers = {
+            "RequestCount": MetricNormalization(name="request_count"),
+            "ActiveConnectionCount": MetricNormalization(name="active_connection_count"),
+            "HTTPCode_Target_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
+            "HTTPCode_Target_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
+            "HTTPCode_Target_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
+            "TargetResponseTime": MetricNormalization(name="target_response_seconds"),
+            "ProcessedBytes": MetricNormalization(
+                name="processed_bytes", normalize_value=lambda x: round(x, ndigits=3)
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(albs, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
