@@ -59,6 +59,7 @@ from resotocore.cli.model import (
     ArgsInfo,
     ArgInfo,
     AliasTemplateParameter,
+    Permission,
 )
 from resotocore.console_renderer import ConsoleRenderer
 from resotocore.error import CLIParseError
@@ -209,7 +210,7 @@ class HelpCommand(CLICommand):
 
             return stream.just(result)
 
-        return CLISource.single(help_command)
+        return CLISource.single(help_command, required_permissions={Permission.Read})
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]
