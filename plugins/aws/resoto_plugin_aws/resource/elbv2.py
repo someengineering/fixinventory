@@ -398,10 +398,10 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
             "HTTPCode_Target_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
             "HTTPCode_Target_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
             "HTTPCode_Target_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
-            "TargetResponseTime": MetricNormalization(name="target_response_seconds"),
-            "ProcessedBytes": MetricNormalization(
-                name="processed_bytes", normalize_value=lambda x: round(x, ndigits=3)
+            "TargetResponseTime": MetricNormalization(
+                name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
             ),
+            "ProcessedBytes": MetricNormalization(name="processed_bytes"),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)

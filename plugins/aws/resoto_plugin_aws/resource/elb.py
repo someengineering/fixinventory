@@ -4,7 +4,8 @@ from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
-from resoto_plugin_aws.utils import ToDict
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
+from resoto_plugin_aws.utils import ToDict, MetricNormalization
 from resotolib.baseresources import BaseLoadBalancer, ModelReference
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
@@ -224,6 +225,80 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        elbs = {elb.id: elb for elb in builder.nodes(clazz=AwsElb) if elb.region().id == builder.region.id}
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+        for elb_id, elb in elbs.items():
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/ELB",
+                        period=delta,
+                        ref_id=elb_id,
+                        stat="Sum",
+                        unit="Count",
+                        LoadBalancerName=elb.name or "",
+                    )
+                    for metric in [
+                        "RequestCount",
+                        "HealthyHostCount",
+                        "UnHealthyHostCount",
+                        "EstimatedALBActiveConnectionCount",
+                        "HTTPCode_Backend_2XX_Count",
+                        "HTTPCode_Backend_4XX_Count",
+                        "HTTPCode_Backend_5XX_Count",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="Latency",
+                        namespace="AWS/ELB",
+                        period=delta,
+                        ref_id=elb_id,
+                        stat=stat,
+                        unit="Seconds",
+                        LoadBalancerName=elb.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="EstimatedProcessedBytes",
+                        namespace="AWS/ELB",
+                        period=delta,
+                        ref_id=elb_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        LoadBalancerName=elb.name or "",
+                    )
+                ]
+            )
+
+        metric_normalizers = {
+            "RequestCount": MetricNormalization(name="request_count"),
+            "EstimatedALBActiveConnectionCount": MetricNormalization(name="active_connection_count"),
+            "HTTPCode_Backend_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
+            "HTTPCode_Backend_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
+            "HTTPCode_Backend_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
+            "HealthyHostCount": MetricNormalization(name="healthy_host_count"),
+            "UnHealthyHostCount": MetricNormalization(name="unhealthy_host_count"),
+            "Latency": MetricNormalization(name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)),
+            "EstimatedProcessedBytes": MetricNormalization(name="processed_bytes"),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(elbs, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
