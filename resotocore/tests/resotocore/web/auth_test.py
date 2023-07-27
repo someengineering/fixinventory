@@ -64,4 +64,4 @@ async def test_permission(aiohttp_client: Any, app_with_auth: Application) -> No
     assert (await client.get("/with_read", headers=headers)).status == 200
     failing = await client.get("/with_write", headers=headers)
     assert failing.status == 403
-    assert await failing.text() == "Not allowed to perform this operation. Missing permission: Write"
+    assert await failing.text() == "Not allowed to perform this operation. Missing permission: write"
