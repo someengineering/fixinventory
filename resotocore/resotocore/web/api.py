@@ -255,7 +255,7 @@ class Api(Service):
                 # metrics
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
-                web.get(prefix + "/configs", require(self.list_configs, a)),
+                web.get(prefix + "/configs", require(self.list_configs, r)),
                 web.patch(prefix + "/config/{config_id:[^{}]+}", require(self.patch_config, a)),
                 web.delete(prefix + "/config/{config_id:[^{}]+}", require(self.delete_config, a)),
                 # config model operations
