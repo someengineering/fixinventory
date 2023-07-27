@@ -55,7 +55,7 @@ class AuthorizedUser:
             is_user = True
         else:  # This is a service token
             email = "service@resoto.com"
-            roles = set("service")
+            roles = {"service"}
             is_user = False
         return AuthorizedUser(
             email=email,
