@@ -100,6 +100,7 @@ from resotocore.types import Json
 from resotocore.user import UserManagement
 from resotocore.user.user_management import UserManagementService
 from resotocore.util import value_in_path, uuid_str, utc
+from resotocore.web.auth import AuthHandler
 from resotocore.web.certificate_handler import CertificateHandler
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTask, WorkerTaskName
 from resotolib.x509 import bootstrap_ca
@@ -826,3 +827,12 @@ async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataD
     async_db = AsyncArangoDB(test_db)
     yield SystemDataDb(async_db)
     test_db.collection("system_data").delete({"_key": "ca"})
+
+
+@fixture
+async def auth_handler(
+    system_data_db: SystemDataDb, default_config: CoreConfig, cert_handler: CertificateHandler
+) -> AsyncIterator[AuthHandler]:
+    config = evolve(default_config, args=parse_args(["--psk", "test"]))
+    async with AuthHandler(system_data_db, config, cert_handler, set()) as auth:
+        yield auth

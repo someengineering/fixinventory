@@ -78,6 +78,7 @@ from resotocore.query.model import (
 from resotocore.query.query_parser import aggregate_parameter_parser, sort_args_p, limit_parser_direct
 from resotocore.service import Service
 from resotocore.types import JsonElement
+from resotocore.user.model import Permission
 from resotocore.util import group_by
 from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 
@@ -209,7 +210,7 @@ class HelpCommand(CLICommand):
 
             return stream.just(result)
 
-        return CLISource.single(help_command)
+        return CLISource.single(help_command, required_permissions={Permission.read})
 
 
 CLIArg = Tuple[CLICommand, Optional[str]]

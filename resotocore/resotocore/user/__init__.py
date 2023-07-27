@@ -13,14 +13,11 @@ UsersConfigRoot = "resoto_users"
 UsersConfigId = ConfigId("resoto.users")
 
 
-ValidRoles = {"admin", "readwrite", "readonly"}
-
-
 @define
 class ResotoUser:
     kind: ClassVar[str] = "resoto_user"
     fullname: str = field(metadata={"description": "The full name of the user."})
-    password_hash: str = field(metadata={"description": "The sha256 hash of the user's password."})
+    password_hash: str = field(metadata={"description": "The hash of the user's password."})
     roles: Set[str] = field(factory=set, metadata={"description": "The roles of the user."})
 
 

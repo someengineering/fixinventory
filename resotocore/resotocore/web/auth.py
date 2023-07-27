@@ -19,6 +19,9 @@ from jwt import PyJWTError
 
 from resotocore.core_config import CoreConfig
 from resotocore.db.system_data_db import SystemDataDb
+from resotocore.error import NotEnoughPermissions
+from resotocore.service import Service
+from resotocore.user.model import AuthorizedUser, Permission
 from resotocore.util import uuid_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotolib import jwt as ck_jwt
@@ -30,12 +33,12 @@ from resotolib.x509 import gen_rsa_key, gen_csr, key_to_bytes, cert_to_bytes, lo
 
 log = logging.getLogger(__name__)
 JWT = Dict[str, Any]
-_JWT_Context: ContextVar[JWT] = ContextVar("JWT", default={})
+_AuthorizedUserContext: ContextVar[Optional[AuthorizedUser]] = ContextVar("JWT", default=None)
 CodeLifeTime = timedelta(minutes=5)
 
 
 @define
-class AuthorizedUser:
+class LoginWithCode:
     email: str
     roles: Set[str]
     authorized_at: datetime
@@ -44,11 +47,11 @@ class AuthorizedUser:
         return utc() - self.authorized_at < CodeLifeTime
 
 
-async def jwt_from_context() -> JWT:
+async def authorized_user_from_context() -> Optional[AuthorizedUser]:
     """
-    Inside a request handler, this value retrieves the current jwt.
+    Inside a request handler, this value retrieves the current authorized user.
     """
-    return _JWT_Context.get()
+    return _AuthorizedUserContext.get()
 
 
 def raw_jwt_from_auth_message(msg: str) -> Optional[str]:
@@ -71,7 +74,7 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
     return await handler(request)
 
 
-class AuthHandler:
+class AuthHandler(Service):
     def __init__(
         self,
         system_db: SystemDataDb,
@@ -86,7 +89,7 @@ class AuthHandler:
         self.cert_handler = cert_handler
         self.always_allowed_paths = always_allowed_paths
         self.not_allowed = not_allowed
-        self.authorization_codes: Dict[str, AuthorizedUser] = {}
+        self.authorization_codes: Dict[str, LoginWithCode] = {}
         self.signing_key_private: Optional[RSAPrivateKey] = None  # set on start
         self.signing_key_certificate: Optional[Certificate] = None  # set on start
         self.signing_key_jwk: Optional[Json] = None  # set on start
@@ -131,9 +134,11 @@ class AuthHandler:
             except PyJWTError:
                 return None
             if jwt_token:
+                user = AuthorizedUser.from_jwt(jwt_token)
+                _AuthorizedUserContext.set(user)
                 request["authorized"] = True  # deferred check in websocket handler
                 request["jwt"] = jwt_token
-                _JWT_Context.set(jwt_token)
+                request["user"] = user
             return jwt_token
 
         assert self.signing_key_certificate is not None, "AuthHandler not started"
@@ -146,7 +151,7 @@ class AuthHandler:
         return authorized
 
     async def validate_code(self, code: str, request: Request) -> bool:
-        if (user := await self.authorized_user(code)) and user.is_valid():
+        if (user := await self.login_with_code(code)) and user.is_valid():
             jwt_token, data = self.user_jwt(user)
             # this will be picked up in on_response_prepare and sent as a header
             request["send_auth_response_header"] = f"Bearer {jwt_token}"
@@ -184,7 +189,9 @@ class AuthHandler:
             elif always_allowed(request):
                 allowed = True
             if allowed:
-                return await handler(request)
+                result = await handler(request)
+                _AuthorizedUserContext.set(None)  # unset the context
+                return result
             else:
                 if self.not_allowed:
                     return await self.not_allowed(request)
@@ -193,17 +200,40 @@ class AuthHandler:
 
         return valid_auth_handler
 
-    async def authorized_user(self, code: str) -> Optional[AuthorizedUser]:
+    async def requires_permission(self, request: Request, *permission: Union[Permission, Set[Permission]]) -> None:
+        if self.psk:  # only require permissions if authentication is enabled
+            required_permissions = set()
+            for p in permission:
+                if isinstance(p, Permission):
+                    required_permissions.add(p)
+                elif isinstance(p, set):
+                    required_permissions.update(p)
+                else:
+                    raise ValueError(f"Invalid permission {p}")
+            if current_user := request.get("user"):
+                if not current_user.has_permission(required_permissions):
+                    raise NotEnoughPermissions(current_user.permissions, required_permissions)
+            else:
+                raise web.HTTPUnauthorized()
+
+    def allow_with(self, handler: RequestHandler, *permission: Union[Permission, Set[Permission]]) -> RequestHandler:
+        async def wrapper(request: Request) -> StreamResponse:
+            await self.requires_permission(request, *permission)
+            return await handler(request)
+
+        return wrapper
+
+    async def login_with_code(self, code: str) -> Optional[LoginWithCode]:
         for invalid_code in [k for k, v in self.authorization_codes.items() if not v.is_valid()]:
             self.authorization_codes.pop(invalid_code, None)
         return self.authorization_codes.get(code)
 
-    async def add_authorized_user(self, user: AuthorizedUser) -> str:
+    async def add_login_with_code(self, user: LoginWithCode) -> str:
         code = str(uuid_str())
         self.authorization_codes[code] = user
         return code
 
-    def user_jwt(self, user: AuthorizedUser) -> Tuple[str, Json]:
+    def user_jwt(self, user: LoginWithCode) -> Tuple[str, Json]:
         assert self.signing_key_private is not None, "AuthHandler not started"
         assert self.signing_key_certificate is not None, "AuthHandler not started"
         exp = int(time.time() + self.config.api.access_token_expiration_seconds)

@@ -1,5 +1,8 @@
 from textwrap import dedent
 
+import pytest
+
+from resotocore.cli.cli import CLIService
 from resotocore.cli.model import (
     CLIContext,
     AliasTemplate,
@@ -8,6 +11,7 @@ from resotocore.cli.model import (
     InfraAppAliasParameter,
 )
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
+from resotocore.user.model import AuthorizedUser, Permission
 
 
 def test_format() -> None:
@@ -119,3 +123,26 @@ def test_infra_app_alias() -> None:
         - `--param-a` [required]: some a
         - `--param-b` [default: default_b]: some b"""
     )
+
+
+@pytest.mark.asyncio
+async def test_is_allowed(cli: CLIService) -> None:
+    # no user provided
+    res = (await cli.evaluate_cli_command("config show resoto.core"))[0]
+    assert res.is_allowed_to_execute() is False
+    res = (await cli.evaluate_cli_command("search all"))[0]
+    assert res.is_allowed_to_execute() is False
+    # user with read access
+    readonly = CLIContext(user=AuthorizedUser("test@test.de", {"readonly"}, {Permission.read}, True))
+    res = (await cli.evaluate_cli_command("config show resoto.core", context=readonly))[0]
+    assert res.is_allowed_to_execute() is False
+    res = (await cli.evaluate_cli_command("search all", context=readonly))[0]
+    assert res.is_allowed_to_execute() is True
+    # admin with all access
+    admin = CLIContext(
+        user=AuthorizedUser("test@test.de", {"admin"}, {Permission.read, Permission.write, Permission.admin}, True)
+    )
+    res = (await cli.evaluate_cli_command("config show resoto.core", context=admin))[0]
+    assert res.is_allowed_to_execute() is True
+    res = (await cli.evaluate_cli_command("search all", context=admin))[0]
+    assert res.is_allowed_to_execute() is True

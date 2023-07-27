@@ -1136,21 +1136,21 @@ async def test_user(cli: CLI) -> None:
     await cli.dependencies.config_handler.delete_config(UsersConfigId)
 
     # create new user
-    result = await execute('user add john@test.de --fullname "John Doe" --password test --role test')
-    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+    result = await execute('user add john@test.de --fullname "John Doe" --password test --role readonly')
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["readonly"]}]
 
     # get user
     result = await execute("user show john@test.de")
-    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["readonly"]}]
 
     # add role to user
-    result = await execute("user role add john@test.de test2")
+    result = await execute("user role add john@test.de readwrite")
     roles = set(result[0]["roles"])  # type: ignore
-    assert roles == {"test", "test2"}
+    assert roles == {"readonly", "readwrite"}
 
     # remove role from user
-    result = await execute("user role delete john@test.de test2")
-    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["test"]}]
+    result = await execute("user role delete john@test.de readwrite")
+    assert result == [{"email": "john@test.de", "fullname": "John Doe", "roles": ["readonly"]}]
 
     # Change password
     result = await execute("user password john@test.de bombproof")

@@ -73,7 +73,7 @@ from resotocore.config import ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
-from resotocore.error import NotFoundError
+from resotocore.error import NotFoundError, NotEnoughPermissions
 from resotocore.ids import TaskId, ConfigId, NodeId, SubscriberId, WorkerId, GraphName, Email, Password
 from resotocore.message_bus import Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.metrics import timed
@@ -84,8 +84,9 @@ from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.service import Service
 from resotocore.task.model import Subscription
 from resotocore.types import Json, JsonElement
+from resotocore.user.model import Permission, AuthorizedUser
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
-from resotocore.web.auth import raw_jwt_from_auth_message, AuthorizedUser, AuthHandler
+from resotocore.web.auth import raw_jwt_from_auth_message, LoginWithCode, AuthHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
     metrics_handler,
@@ -178,68 +179,74 @@ class Api(Service):
         jupyterlite_path = Path(os.path.abspath(os.path.dirname(__file__) + "/../jupyterlite"))
         if not jupyterlite_path.exists():
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
+        require = self.auth_handler.allow_with
+        r = Permission.read
+        a = Permission.admin
+
         self.app.add_routes(
             [
                 # Model operations (backwards compatible)
-                web.get(prefix + "/model", self.get_model),
-                web.patch(prefix + "/model", self.update_model),
-                web.get(prefix + "/model/uml", self.model_uml),
+                web.get(prefix + "/model", require(self.get_model, r)),
+                web.patch(prefix + "/model", require(self.update_model, a)),
+                web.get(prefix + "/model/uml", require(self.model_uml, r)),
                 # Graph based model operations
-                web.get(prefix + "/graph/{graph_id}/model", self.get_model),
-                web.patch(prefix + "/graph/{graph_id}/model", self.update_model),
-                web.get(prefix + "/graph/{graph_id}/model/uml", self.model_uml),
+                web.get(prefix + "/graph/{graph_id}/model", require(self.get_model, r)),
+                web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
+                web.get(prefix + "/graph/{graph_id}/model/uml", require(self.model_uml, r)),
                 # CRUD Graph operations
-                web.get(prefix + "/graph", self.list_graphs),
-                web.get(prefix + "/graph/{graph_id}", self.get_node),
-                web.post(prefix + "/graph/{graph_id}", self.create_graph),
-                web.delete(prefix + "/graph/{graph_id}", self.wipe),
+                web.get(prefix + "/graph", require(self.list_graphs, r)),
+                web.get(prefix + "/graph/{graph_id}", require(self.get_node, r)),
+                web.post(prefix + "/graph/{graph_id}", require(self.create_graph, a)),
+                web.delete(prefix + "/graph/{graph_id}", require(self.wipe, a)),
                 # search the graph
-                web.post(prefix + "/graph/{graph_id}/search/raw", self.raw),
-                web.post(prefix + "/graph/{graph_id}/search/structure", self.query_structure),
-                web.post(prefix + "/graph/{graph_id}/search/explain", self.explain),
-                web.post(prefix + "/graph/{graph_id}/search/list", self.query_list),
-                web.post(prefix + "/graph/{graph_id}/search/graph", self.query_graph_stream),
-                web.post(prefix + "/graph/{graph_id}/search/aggregate", self.query_aggregation),
-                web.post(prefix + "/graph/{graph_id}/search/history/list", self.query_history),
-                web.post(prefix + "/graph/{graph_id}/search/history/aggregate", self.query_history),
+                web.post(prefix + "/graph/{graph_id}/search/raw", require(self.raw, r)),
+                web.post(prefix + "/graph/{graph_id}/search/structure", require(self.query_structure, r)),
+                web.post(prefix + "/graph/{graph_id}/search/explain", require(self.explain, r)),
+                web.post(prefix + "/graph/{graph_id}/search/list", require(self.query_list, r)),
+                web.post(prefix + "/graph/{graph_id}/search/graph", require(self.query_graph_stream, r)),
+                web.post(prefix + "/graph/{graph_id}/search/aggregate", require(self.query_aggregation, r)),
+                web.post(prefix + "/graph/{graph_id}/search/history/list", require(self.query_history, r)),
+                web.post(prefix + "/graph/{graph_id}/search/history/aggregate", require(self.query_history, r)),
                 # maintain the graph
-                web.patch(prefix + "/graph/{graph_id}/nodes", self.update_nodes),
-                web.post(prefix + "/graph/{graph_id}/merge", self.merge_graph),
-                web.post(prefix + "/graph/{graph_id}/batch/merge", self.update_merge_graph_batch),
-                web.get(prefix + "/graph/{graph_id}/batch", self.list_batches),
-                web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", self.commit_batch),
-                web.delete(prefix + "/graph/{graph_id}/batch/{batch_id}", self.abort_batch),
+                web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, a)),
+                web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, a)),
+                web.post(prefix + "/graph/{graph_id}/batch/merge", require(self.update_merge_graph_batch, a)),
+                web.get(prefix + "/graph/{graph_id}/batch", require(self.list_batches, a)),
+                web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.commit_batch, a)),
+                web.delete(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.abort_batch, a)),
                 # node specific actions
-                web.post(prefix + "/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", self.create_node),
-                web.get(prefix + "/graph/{graph_id}/node/{node_id}", self.get_node),
-                web.patch(prefix + "/graph/{graph_id}/node/{node_id}", self.update_node),
-                web.delete(prefix + "/graph/{graph_id}/node/{node_id}", self.delete_node),
-                web.patch(prefix + "/graph/{graph_id}/node/{node_id}/section/{section}", self.update_node),
+                web.post(
+                    prefix + "/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", require(self.create_node, a)
+                ),
+                web.get(prefix + "/graph/{graph_id}/node/{node_id}", require(self.get_node, r)),
+                web.patch(prefix + "/graph/{graph_id}/node/{node_id}", require(self.update_node, a)),
+                web.delete(prefix + "/graph/{graph_id}/node/{node_id}", require(self.delete_node, a)),
+                web.patch(prefix + "/graph/{graph_id}/node/{node_id}/section/{section}", require(self.update_node, a)),
                 # Subscriptions
-                web.get(prefix + "/subscribers", self.list_all_subscriptions),
-                web.get(prefix + "/subscribers/for/{event_type}", self.list_subscription_for_event),
+                web.get(prefix + "/subscribers", require(self.list_all_subscriptions, a)),
+                web.get(prefix + "/subscribers/for/{event_type}", require(self.list_subscription_for_event, a)),
                 # Subscription
-                web.get(prefix + "/subscriber/{subscriber_id}", self.get_subscriber),
-                web.put(prefix + "/subscriber/{subscriber_id}", self.update_subscriber),
-                web.delete(prefix + "/subscriber/{subscriber_id}", self.delete_subscriber),
-                web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", self.add_subscription),
-                web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", self.delete_subscription),
-                web.get(prefix + "/subscriber/{subscriber_id}/handle", self.handle_subscribed),
+                web.get(prefix + "/subscriber/{subscriber_id}", require(self.get_subscriber, a)),
+                web.put(prefix + "/subscriber/{subscriber_id}", require(self.update_subscriber, a)),
+                web.delete(prefix + "/subscriber/{subscriber_id}", require(self.delete_subscriber, a)),
+                web.post(prefix + "/subscriber/{subscriber_id}/{event_type}", require(self.add_subscription, a)),
+                web.delete(prefix + "/subscriber/{subscriber_id}/{event_type}", require(self.delete_subscription, a)),
+                web.get(prefix + "/subscriber/{subscriber_id}/handle", require(self.handle_subscribed, a)),
                 # report checks
-                web.get(prefix + "/report/checks", self.inspection_checks),
-                web.get(prefix + "/report/checks/graph/{graph_id}", self.perform_benchmark_on_checks),
-                web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", self.inspection_results),
-                web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", self.perform_benchmark),
+                web.get(prefix + "/report/checks", require(self.inspection_checks, r)),
+                web.get(prefix + "/report/checks/graph/{graph_id}", require(self.perform_benchmark_on_checks, r)),
+                web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", require(self.inspection_results, r)),
+                web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", require(self.perform_benchmark, r)),
                 # CLI
-                web.post(prefix + "/cli/evaluate", self.evaluate),
-                web.post(prefix + "/cli/execute", self.execute),
-                web.get(prefix + "/cli/info", self.cli_info),
+                web.post(prefix + "/cli/evaluate", require(self.evaluate, r)),
+                web.post(prefix + "/cli/execute", require(self.execute, r)),
+                web.get(prefix + "/cli/info", require(self.cli_info, r)),
                 # Event operations
-                web.get(prefix + "/events", self.handle_events),
+                web.get(prefix + "/events", require(self.handle_events, a)),
                 web.post(prefix + "/analytics", self.send_analytics_events),
                 # Worker operations
-                web.get(prefix + "/work/queue", self.handle_work_tasks),
-                web.get(prefix + "/work/list", self.list_work),
+                web.get(prefix + "/work/queue", require(self.handle_work_tasks, a)),
+                web.get(prefix + "/work/list", require(self.list_work, a)),
                 # Serve static filed
                 web.get(prefix, self.forward("/ui/index.html")),
                 web.static(prefix + "/static", static_path),
@@ -248,23 +255,23 @@ class Api(Service):
                 # metrics
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
-                web.get(prefix + "/configs", self.list_configs),
-                web.patch(prefix + "/config/{config_id:[^{}]+}", self.patch_config),
-                web.delete(prefix + "/config/{config_id:[^{}]+}", self.delete_config),
+                web.get(prefix + "/configs", require(self.list_configs, r)),
+                web.patch(prefix + "/config/{config_id:[^{}]+}", require(self.patch_config, a)),
+                web.delete(prefix + "/config/{config_id:[^{}]+}", require(self.delete_config, a)),
                 # config model operations
-                web.get(prefix + "/configs/validation", self.list_config_models),
-                web.get(prefix + "/configs/model", self.get_configs_model),
-                web.patch(prefix + "/configs/model", self.update_configs_model),
-                web.put(prefix + "/config_validation/{config_id:[^{}]+}", self.put_config_validation),
-                web.get(prefix + "/config_validation/{config_id:[^{}]+}", self.get_config_validation),
-                web.put(prefix + "/config/{config_id:[^{}]+}/validation", self.put_config_validation),
-                web.get(prefix + "/config/{config_id:[^{}]+}/validation", self.get_config_validation),
+                web.get(prefix + "/configs/validation", require(self.list_config_models, r)),
+                web.get(prefix + "/configs/model", require(self.get_configs_model, r)),
+                web.patch(prefix + "/configs/model", require(self.update_configs_model, a)),
+                web.put(prefix + "/config_validation/{config_id:[^{}]+}", require(self.put_config_validation, a)),
+                web.get(prefix + "/config_validation/{config_id:[^{}]+}", require(self.get_config_validation, a)),
+                web.put(prefix + "/config/{config_id:[^{}]+}/validation", require(self.put_config_validation, a)),
+                web.get(prefix + "/config/{config_id:[^{}]+}/validation", require(self.get_config_validation, a)),
                 # config operations, moved here to avoid early matching
-                web.put(prefix + "/config/{config_id:[^{}]+}", self.put_config),
-                web.get(prefix + "/config/{config_id:[^{}]+}", self.get_config),
+                web.put(prefix + "/config/{config_id:[^{}]+}", require(self.put_config, a)),
+                web.get(prefix + "/config/{config_id:[^{}]+}", require(self.get_config, a)),
                 # ca operations
                 web.get(prefix + "/ca/cert", self.certificate),
-                web.post(prefix + "/ca/sign", self.sign_certificate),
+                web.post(prefix + "/ca/sign", require(self.sign_certificate, a)),
                 # system operations
                 web.get(prefix + "/system/ping", self.ping),
                 web.get(prefix + "/system/ready", self.ready),
@@ -370,7 +377,7 @@ class Api(Service):
         if email and password and (user := await self.deps.user_management.login(email, password)):
             params: Dict[str, List[str]] = {}
             if self.deps.config.args.psk:
-                code = await self.auth_handler.add_authorized_user(AuthorizedUser(email, user.roles, utc()))
+                code = await self.auth_handler.add_login_with_code(LoginWithCode(email, user.roles, utc()))
                 params["code"] = [code]
             if redirect:
                 if params:
@@ -397,7 +404,7 @@ class Api(Service):
     async def renew_authorization(self, request: Request) -> StreamResponse:
         if jwt_raw := request.get("jwt"):
             exp = datetime.fromtimestamp(int(jwt_raw["exp"]), tz=timezone.utc)
-            user = AuthorizedUser(jwt_raw["email"], set(jwt_raw["roles"].split(",")), exp)
+            user = LoginWithCode(jwt_raw["email"], set(jwt_raw["roles"].split(",")), exp)
             renewed, data = self.auth_handler.user_jwt(user)
             return web.json_response(data, headers={"Authorization": f"Bearer {renewed}"})
         else:
@@ -1082,7 +1089,8 @@ class Api(Service):
             terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
             colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
             renderer = ConsoleRenderer(width=columns, height=rows, color_system=colors, terminal=terminal)
-            return CLIContext(env=dict(request.query), console_renderer=renderer, source="api")
+            user = request.get("user", None)
+            return CLIContext(env=dict(request.query), console_renderer=renderer, source="api", user=user)
         except Exception as ex:
             log.debug("Could not create CLI context.", exc_info=ex)
             return CLIContext(
@@ -1137,8 +1145,6 @@ class Api(Service):
     async def execute_parsed(
         self, request: Request, command: str, parsed: List[ParsedCommandLine], ctx: CLIContext
     ) -> StreamResponse:
-        # make sure, all requirements are fulfilled
-        not_met_requirements = [not_met for line in parsed for not_met in line.unmet_requirements]
         # what is the accepted content type
         # only required for multipart requests
         boundary = "cli-part"
@@ -1146,7 +1152,11 @@ class Api(Service):
             status=200, reason="OK", headers={"Content-Type": f"multipart/mixed;boundary={boundary}"}
         )
 
-        if not_met_requirements:
+        if self.auth_handler.psk is not None and not all(line.is_allowed_to_execute() for line in parsed):
+            user: Optional[AuthorizedUser] = request.get("user", None)
+            required = {d for line in parsed for c in line.executable_commands for d in c.action.required_permissions}
+            raise NotEnoughPermissions(user.permissions if user else set(), required)
+        elif [not_met for line in parsed for not_met in line.unmet_requirements]:
             requirements = [req for line in parsed for cmd in line.executable_commands for req in cmd.action.required]
             data = {"command": command, "env": dict(request.query), "required": to_json(requirements)}
             return web.json_response(data, status=424)

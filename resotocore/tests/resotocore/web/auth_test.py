@@ -1,17 +1,18 @@
 import asyncio
-from datetime import timedelta
 from typing import Any
 
 import pytest
-from aiohttp.test_utils import TestClient
-from multidict import CIMultiDict
-from pytest import mark
-from aiohttp.web import Application, Request, Response
-from resotolib.asynchronous.web.auth import check_auth, jwt_from_context
-from resotolib.jwt import encode_jwt
 
 # noinspection PyUnresolvedReferences
 from aiohttp.pytest_plugin import aiohttp_client
+from aiohttp.test_utils import TestClient
+from aiohttp.web import Application, Request, Response
+from multidict import CIMultiDict
+from pytest import mark
+
+from resotocore.user.model import Permission
+from resotocore.web.auth import AuthHandler
+from resotolib.jwt import encode_jwt
 
 
 @pytest.fixture
@@ -20,16 +21,14 @@ async def loop() -> Any:
 
 
 @pytest.fixture
-async def app_with_auth() -> Application:
+async def app_with_auth(auth_handler: AuthHandler) -> Application:
     async def hello(_: Request) -> Response:
-        jwt = await jwt_from_context()
-        # make sure, the context variable is set
-        assert jwt["foo"] == "bla"
-        assert "exp" in jwt
         return Response(text="Hello, world")
 
-    app = Application(middlewares=[check_auth("test", timedelta(minutes=5), set())])
+    app = Application(middlewares=[auth_handler.middleware()])
     app.router.add_get("/", hello)
+    app.router.add_get("/with_read", auth_handler.allow_with(hello, Permission.read))
+    app.router.add_get("/with_write", auth_handler.allow_with(hello, Permission.write))
     return app
 
 
@@ -54,3 +53,15 @@ async def test_no_psk(aiohttp_client: Any, app_with_auth: Application) -> None:
     client: TestClient = await aiohttp_client(app_with_auth)
     resp = await client.get("/")
     assert resp.status == 401
+
+
+@mark.asyncio
+async def test_permission(aiohttp_client: Any, app_with_auth: Application) -> None:
+    client: TestClient = await aiohttp_client(app_with_auth)
+    jwt = encode_jwt({"email": "batman@gotham", "roles": "readonly"}, "test")
+    headers = CIMultiDict({"Authorization": f"Bearer {jwt}"})
+    assert (await client.get("/", headers=headers)).status == 200
+    assert (await client.get("/with_read", headers=headers)).status == 200
+    failing = await client.get("/with_write", headers=headers)
+    assert failing.status == 403
+    assert await failing.text() == "Not allowed to perform this operation. Missing permission: write"
