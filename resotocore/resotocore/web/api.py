@@ -181,18 +181,17 @@ class Api(Service):
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
         require = self.auth_handler.allow_with
         r = Permission.read
-        w = Permission.write
         a = Permission.admin
 
         self.app.add_routes(
             [
                 # Model operations (backwards compatible)
                 web.get(prefix + "/model", require(self.get_model, r)),
-                web.patch(prefix + "/model", require(self.update_model, w)),
+                web.patch(prefix + "/model", require(self.update_model, a)),
                 web.get(prefix + "/model/uml", require(self.model_uml, r)),
                 # Graph based model operations
                 web.get(prefix + "/graph/{graph_id}/model", require(self.get_model, r)),
-                web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, w)),
+                web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
                 web.get(prefix + "/graph/{graph_id}/model/uml", require(self.model_uml, r)),
                 # CRUD Graph operations
                 web.get(prefix + "/graph", require(self.list_graphs, r)),
