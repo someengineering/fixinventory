@@ -108,7 +108,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
         it and our own graph root.
         """
         if isinstance(self.root, BaseResource) and isinstance(getattr(graph, "root", None), BaseResource):
-            log.debug(f"Merging graph of {graph.root.rtdname} into graph of {self.root.rtdname}")  # type: ignore
+            log.debug(f"Merging graph of {graph.root.kdname} into graph of {self.root.kdname}")  # type: ignore
             self.add_edge(self.root, graph.root)  # type: ignore
         else:
             log.warning("Merging graphs with no valid roots")
@@ -187,21 +187,18 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
             return None
         return_key = super().add_edge(src, dst, key=key, **attr)
         if self._log_edge_creation and isinstance(src, BaseResource) and isinstance(dst, BaseResource):
-            log.debug(f"Added edge from {src.rtdname} to {dst.rtdname} (type: {edge_type.value})")
+            log.debug(f"Added edge from {src.kdname} to {dst.kdname} (type: {edge_type.value})")
             try:
                 src.successor_added(dst, self)
             except Exception:
                 log.exception(
-                    (f"Unhandled exception while telling {src.rtdname}" f" that {dst.rtdname} was added as a successor")
+                    (f"Unhandled exception while telling {src.kdname}" f" that {dst.kdname} was added as a successor")
                 )
             try:
                 dst.predecessor_added(src, self)
             except Exception:
                 log.exception(
-                    (
-                        f"Unhandled exception while telling {dst.rtdname}"
-                        f" that {src.rtdname} was added as a predecessor"
-                    )
+                    (f"Unhandled exception while telling {dst.kdname}" f" that {src.kdname} was added as a predecessor")
                 )
         return return_key  # type: ignore
 
@@ -419,9 +416,9 @@ def validate_dataclass(node: BaseResource) -> None:
         value = getattr(node, field.name)
         try:
             check_type(value, field.type)
-        except TypeError:
-            log.exception(
-                f"In {node.rtdname} expected {field.name}"
+        except Exception:
+            log.error(
+                f"In {node.kdname} expected {field.name}"
                 f" type {field.type} ({type(field.type)})"
                 f" for value {value} ({type(value)})"
             )
@@ -432,18 +429,21 @@ def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
     node_chksums = {}
     for node in graph.nodes:
         if isinstance(node, BaseResource):
-            validate_dataclass(node)
+            try:
+                validate_dataclass(node)
+            except Exception:
+                log.error(f"Failed to validate dataclass {node.kdname}")
             if node.chksum not in node_chksums:
                 node_chksums[node.chksum] = node
             else:
                 log.error(
-                    f"Duplicate checksum {node.chksum} for node {node.rtdname} in graph!\n"
+                    f"Duplicate checksum {node.chksum} for node {node.kdname} in graph!\n"
                     f"Previous node: {get_resource_attributes(node_chksums[node.chksum])}\n"
-                    f"Previous predecessor nodes: {[n.rtdname for n in node_chksums[node.chksum].predecessors()]}\n"
-                    f"Previous successor nodes: {[n.rtdname for n in node_chksums[node.chksum].successors()]}\n"
+                    f"Previous predecessor nodes: {[n.kdname for n in node_chksums[node.chksum].predecessors()]}\n"
+                    f"Previous successor nodes: {[n.kdname for n in node_chksums[node.chksum].successors()]}\n"
                     f"New node: {get_resource_attributes(node)}\n"
-                    f"New predecessor nodes: {[n.rtdname for n in node.predecessors()]}\n"
-                    f"New successor nodes: {[n.rtdname for n in node.successors()]}\n"
+                    f"New predecessor nodes: {[n.kdname for n in node.predecessors()]}\n"
+                    f"New successor nodes: {[n.kdname for n in node.successors()]}\n"
                 )
 
 
@@ -592,13 +592,13 @@ class GraphExportIterator:
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
                 if isinstance(node, self.graph_merge_kind):
-                    log.debug(f"Replacing sub graph below {node.rtdname}")
+                    log.debug(f"Replacing sub graph below {node.kdname}")
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
                     self.found_replace_node = True
                 if isinstance(node, BaseAccount):
-                    log.debug(f"Setting export time on {node.rtdname}")
+                    log.debug(f"Setting export time on {node.kdname}")
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["exported_at"] = utc_str()
