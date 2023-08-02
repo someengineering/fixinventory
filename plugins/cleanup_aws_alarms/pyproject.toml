@@ -1,6 +1,6 @@
 [project]
 name = "resoto-plugin-cleanup-aws-alarms"
-version = "3.6.5"
+version = "3.7.0"
 authors = [{name="Some Engineering Inc."}]
 description = "AWS Cloudwatch Alarms Cleaner Plugin"
 license = {file="LICENSE"}
@@ -26,7 +26,7 @@ classifiers = [
 ]
 readme = {file="README.md", content-type="text/markdown"}
 
-dependencies = [ "resotolib==3.6.5" ]
+dependencies = [ "resotolib==3.7.0" ]
 
 [project.entry-points."resoto.plugins"]
 cleanup_aws_alarms = "resoto_plugin_cleanup_aws_alarms:CleanupAWSAlarmsPlugin"
