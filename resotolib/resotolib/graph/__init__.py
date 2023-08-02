@@ -410,7 +410,7 @@ def resolve_type(clazz: Type[Any]) -> None:
     resolve_types(clazz)  # type: ignore
 
 
-def validate_dataclass(node: BaseResource) -> None:
+def validate_dataclass(node: BaseResource) -> bool:
     resolve_type(type(node))  # make sure all type annotations are resolved
     for field in fields(type(node)):
         value = getattr(node, field.name)
@@ -422,15 +422,19 @@ def validate_dataclass(node: BaseResource) -> None:
                 f" type {field.type} ({type(field.type)})"
                 f" for value {value} ({type(value)})"
             )
+            return False
+    return True
 
 
 def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
     log.debug("Validating attribute types of all graph dataclasses")
     node_chksums = {}
+    invalid_nodes = []
     for node in graph.nodes:
         if isinstance(node, BaseResource):
             try:
-                validate_dataclass(node)
+                if not validate_dataclass(node):
+                    invalid_nodes.append(node)
             except Exception:
                 log.error(f"Failed to validate dataclass {node.kdname}")
             if node.chksum not in node_chksums:
@@ -445,6 +449,9 @@ def validate_graph_dataclasses_and_nodes(graph: Graph) -> None:
                     f"New predecessor nodes: {[n.kdname for n in node.predecessors()]}\n"
                     f"New successor nodes: {[n.kdname for n in node.successors()]}\n"
                 )
+    for node in invalid_nodes:
+        log.error(f"Removing invalid node {node.kdname} from graph")
+        graph.remove_node(node)
 
 
 def update_graph_ref(graph: Graph) -> None:
