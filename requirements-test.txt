@@ -35,7 +35,7 @@ cherrypy==18.8.0
 click==8.1.6
 colorama==0.4.6
 coverage[toml]==7.2.7
-cryptography==40.0.2
+cryptography==41.0.3
 deepdiff==6.3.1
 defusedxml==0.7.1
 deprecated==1.2.14
