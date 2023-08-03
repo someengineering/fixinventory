@@ -1,13 +1,18 @@
 import logging
 import math
 from pprint import pformat
-from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
+from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast, DefaultDict
+from datetime import datetime, timedelta, timezone
+from concurrent import futures
+from collections import defaultdict
+import statistics
 
 from prometheus_client import Summary
 
 from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
+from resotolib.utils import utc
 from hashlib import sha256
 from .client import StreamingWrapper
 from .resources import (
@@ -171,9 +176,10 @@ class DigitalOceanTeamCollector:
     all DigitalOcean resources
     """
 
-    def __init__(self, team: DigitalOceanTeam, client: StreamingWrapper) -> None:
+    def __init__(self, team: DigitalOceanTeam, client: StreamingWrapper, last_run_started_at: datetime) -> None:
         self.client = client
         self.team = team
+        self.last_run_started_at = last_run_started_at
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
@@ -440,6 +446,77 @@ class DigitalOceanTeamCollector:
                     seen_ids.add(resource[id_field])
             return unique
 
+        droplet_ids: List[int] = [droplet["id"] for droplet in instances]
+        start_time = self.last_run_started_at
+        end_time = utc()
+        if end_time - start_time < timedelta(minutes=4):
+            start_time = end_time - timedelta(minutes=4)
+
+        cpu_usage_metrics_results: Dict[int, Json] = {}
+
+        with futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futuru_to_droplet_id = {
+                executor.submit(
+                    self.client.get_droplet_cpu_usage,
+                    str(d_id),
+                    start_time,
+                    end_time,  # todo: make this configurable
+                ): d_id
+                for d_id in droplet_ids
+            }
+
+            for f in futures.as_completed(futuru_to_droplet_id):
+                d_id = futuru_to_droplet_id[f]
+                results = f.result()
+                if results:
+                    cpu_usage_metrics_results[d_id] = results[0]
+
+        def get_cpu_utilization(metric_json: Json, num_cpu_cores: float) -> Dict[str, float]:
+            result: DefaultDict[datetime, Dict[str, float]] = defaultdict(dict)
+
+            for item in metric_json["result"]:
+                mode = item["metric"]["mode"]
+                if mode != "idle":
+                    continue
+
+                for values in item["values"]:
+                    time = datetime.fromtimestamp(values[0], tz=timezone.utc)
+                    value = float(values[1])
+                    result[time][mode] = value
+
+            delta = 0.0
+            previous_data: Dict[str, float] = {}
+            previous_time = None
+
+            utilization_data: List[float] = []
+
+            for timestamp, data in result.items():
+                delta_total = 0.0
+                for mode, value in data.items():
+                    delta = value - previous_data.get(mode, value)
+                    delta_total += delta
+                    if previous_time is not None:
+                        interval_seconds = (timestamp - previous_time).total_seconds()
+                        utilization = (1 - delta / (interval_seconds * num_cpu_cores)) * 100
+                        utilization_data.append(round(utilization, 3))
+                previous_data = data
+                previous_time = timestamp
+
+            return {
+                "min": min(utilization_data),
+                "avg": statistics.mean(utilization_data),
+                "max": max(utilization_data),
+            }
+
+        resource_usage: Dict[int, Dict[str, Dict[str, float]]] = {}
+
+        for d in instances:
+            try:
+                cpu_utilizaton = get_cpu_utilization(cpu_usage_metrics_results[d["id"]], d["vcpus"])
+                resource_usage[d["id"]] = {"cpu_utilization": cpu_utilizaton}
+            except Exception as e:
+                log.warning("Failed to get utilization metrics for droplet %s: %s", d["id"], e)
+
         images = [get_image(instance) for instance in instances]
         images = remove_duplicates(images, "id")
 
@@ -509,6 +586,7 @@ class DigitalOceanTeamCollector:
                 "droplet_features": "features",
                 "droplet_image": lambda d: d["image"]["slug"],
                 "tags": lambda instance: parse_tags(instance.get("tags", []) or []),
+                "_resource_usage": lambda d: resource_usage.get(d["id"], {}),
             },
             search_map={
                 "_region": [

@@ -15,7 +15,9 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.logger import log
 from resotolib.graph import Graph
 from resotolib.baseresources import BaseResource
+from resotolib.json import value_in_path
 import time
+from datetime import datetime, timezone, timedelta
 
 
 class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
@@ -36,6 +38,20 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         """
 
         assert self.core_feedback, "core_feedback is not set"  # will be set by the outer collector plugin
+
+        def get_last_run() -> datetime:
+            one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+            td = self.task_data
+            if not td:
+                return one_hour_ago
+            timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
+
+            if timestamp is None:
+                return one_hour_ago
+
+            return datetime.fromtimestamp(timestamp, timezone.utc)
+
+        last_run_started_at = get_last_run()
 
         def from_legacy_config() -> List[DigitalOceanTeamCredentials]:
             tokens: List[str] = Config.digitalocean.api_tokens
@@ -85,11 +101,11 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
                 c.spaces_keys.access_key if c.spaces_keys else None,
                 c.spaces_keys.secret_key if c.spaces_keys else None,
             )
-            team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"))
+            team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"), last_run_started_at)
             if team_graph:
                 self.send_account_graph(team_graph)
 
-    def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback) -> Optional[Graph]:
+    def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback, last_run: datetime) -> Optional[Graph]:
         """Collects an individual team."""
         team_id = client.get_team_id()
         team = DigitalOceanTeam(id=team_id, tags={}, urn=f"do:team:{team_id}")
@@ -97,7 +113,7 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         try:
             feedback.progress_done(team_id, 0, 1)
             team_feedback = feedback.with_context("digitalocean", client.get_team_id())
-            dopc = DigitalOceanTeamCollector(team, client.with_feedback(team_feedback))
+            dopc = DigitalOceanTeamCollector(team, client.with_feedback(team_feedback), last_run)
             dopc.collect()
             feedback.progress_done(team_id, 1, 1)
         except Exception:
