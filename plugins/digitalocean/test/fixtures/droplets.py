@@ -2,7 +2,7 @@ droplets = [
     {
         "id": 289110074,
         "name": "ubuntu-s-1vcpu-1gb-fra1-01",
-        "memory": 1024,
+        "memory": 8096,
         "vcpus": 1,
         "disk": 25,
         "locked": False,
@@ -180,7 +180,7 @@ droplets = [
     {
         "id": 290075243,
         "name": "pool-1g2g56zow-u9fs4",
-        "memory": 2048,
+        "memory": 8096,
         "vcpus": 1,
         "disk": 50,
         "locked": False,

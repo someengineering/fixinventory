@@ -358,6 +358,10 @@ class StreamingWrapper:
         query_params = {"host_id": droplet_id, "start": str(start.timestamp()), "end": str(end.timestamp())}
         return self._fetch("/monitoring/metrics/droplet/cpu", "data", query_params)
 
+    def get_droplet_memory_available(self, droplet_id: str, start: datetime, end: datetime) -> List[Json]:
+        query_params = {"host_id": droplet_id, "start": str(start.timestamp()), "end": str(end.timestamp())}
+        return self._fetch("/monitoring/metrics/droplet/memory_available", "data", query_params)
+
 
 TeamId = str
 

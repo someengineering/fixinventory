@@ -453,9 +453,10 @@ class DigitalOceanTeamCollector:
             start_time = end_time - timedelta(minutes=4)
 
         cpu_usage_metrics_results: Dict[int, Json] = {}
+        memory_usage_metrics_results: Dict[int, Json] = {}
 
         with futures.ThreadPoolExecutor(max_workers=10) as executor:
-            futuru_to_droplet_id = {
+            cpu_future_to_droplet_id = {
                 executor.submit(
                     self.client.get_droplet_cpu_usage,
                     str(d_id),
@@ -464,12 +465,26 @@ class DigitalOceanTeamCollector:
                 ): d_id
                 for d_id in droplet_ids
             }
+            memory_future_to_droplet_id = {
+                executor.submit(
+                    self.client.get_droplet_memory_available,
+                    str(d_id),
+                    start_time,
+                    end_time,  # todo: make this configurable
+                ): d_id
+                for d_id in droplet_ids
+            }
 
-            for f in futures.as_completed(futuru_to_droplet_id):
-                d_id = futuru_to_droplet_id[f]
+            for f in futures.as_completed(cpu_future_to_droplet_id):
+                d_id = cpu_future_to_droplet_id[f]
                 results = f.result()
                 if results:
                     cpu_usage_metrics_results[d_id] = results[0]
+            for f in futures.as_completed(memory_future_to_droplet_id):
+                d_id = memory_future_to_droplet_id[f]
+                results = f.result()
+                if results:
+                    memory_usage_metrics_results[d_id] = results[0]
 
         def get_cpu_utilization(metric_json: Json, num_cpu_cores: float) -> Dict[str, float]:
             result: DefaultDict[datetime, Dict[str, float]] = defaultdict(dict)
@@ -504,8 +519,24 @@ class DigitalOceanTeamCollector:
 
             return {
                 "min": min(utilization_data),
-                "avg": statistics.mean(utilization_data),
+                "avg": round(statistics.mean(utilization_data), 3),
                 "max": max(utilization_data),
+            }
+
+        def get_memory_utilization(metric_json: Json, total_mbytes: int) -> Dict[str, float]:
+            total_bytes = total_mbytes * 1024 * 1024
+            mem_utilization: List[float] = []
+
+            for item in metric_json["result"]:
+                for values in item["values"]:
+                    value = int(values[1])
+                    utilizaton = (value / total_bytes) * 100
+                    mem_utilization.append(round(utilizaton, 3))
+
+            return {
+                "min": min(mem_utilization),
+                "avg": round(statistics.mean(mem_utilization), 3),
+                "max": max(mem_utilization),
             }
 
         resource_usage: Dict[int, Dict[str, Dict[str, float]]] = {}
@@ -513,7 +544,11 @@ class DigitalOceanTeamCollector:
         for d in instances:
             try:
                 cpu_utilizaton = get_cpu_utilization(cpu_usage_metrics_results[d["id"]], d["vcpus"])
-                resource_usage[d["id"]] = {"cpu_utilization": cpu_utilizaton}
+                mem_utilization = get_memory_utilization(memory_usage_metrics_results[d["id"]], d["memory"])
+                resource_usage[d["id"]] = {
+                    "cpu_utilization": cpu_utilizaton,
+                    "memory_utilization": mem_utilization,
+                }
             except Exception as e:
                 log.warning("Failed to get utilization metrics for droplet %s: %s", d["id"], e)
 

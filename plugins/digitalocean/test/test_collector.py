@@ -63,6 +63,7 @@ from .fixtures import (
     firewalls,
     alerts,
     cpu_metrics,
+    memory_available,
 )
 
 
@@ -175,6 +176,7 @@ def test_collect_droplets() -> None:
             "list_tags": tags,
             "list_droplets_neighbors_ids": neighbor_ids,
             "get_droplet_cpu_usage": cpu_metrics,
+            "get_droplet_memory_available": memory_available,
         }
     )
     graph = prepare_graph(do_client)
@@ -205,14 +207,14 @@ def test_collect_droplets() -> None:
     assert size.urn == "do:size:s-1vcpu-1gb"
     assert size.instance_type == "s-1vcpu-1gb"
     assert size.instance_cores == 1
-    assert size.instance_memory == 1
+    assert size.instance_memory == 1.0
     assert size.ondemand_cost == 0.00744
 
     droplet: DigitalOceanDroplet = graph.search_first("urn", "do:droplet:289110074")  # type: ignore
     assert droplet.urn == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
     assert droplet.instance_type == "s-1vcpu-1gb"
-    assert droplet.instance_memory == 1
+    assert droplet.instance_memory == 7.90625
     assert droplet.instance_cores == 1
     assert droplet.instance_status == InstanceStatus.RUNNING
     assert droplet.region().urn == "do:region:fra1"  # type: ignore
@@ -222,7 +224,12 @@ def test_collect_droplets() -> None:
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
     assert droplet._resource_usage == {
-        "cpu_utilization": {"min": 0.1, "avg": 0.1585, "max": 0.217},
+        "cpu_utilization": {"min": 0.1, "avg": 0.159, "max": 0.217},
+        "memory_utilization": {
+            "min": 45.074,
+            "avg": 45.301,
+            "max": 45.529,
+        },
     }
 
     neighborhood: DigitalOceanDropletNeighborhood = graph.search_first(
