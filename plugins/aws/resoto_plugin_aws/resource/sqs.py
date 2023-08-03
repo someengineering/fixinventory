@@ -46,7 +46,7 @@ class AwsSqsQueue(AwsResource):
         "sqs_approximate_number_of_messages_delayed": S("ApproximateNumberOfMessagesDelayed") >> AsInt(),
         "sqs_policy": S("Policy") >> ParseJson(keys_to_snake=True),
         "sqs_redrive_policy": S("RedrivePolicy") >> ParseJson() >> Bend(AwsSqsRedrivePolicy.mapping),
-        "sqs_fifo_queue": S("FifoQueue"),
+        "sqs_fifo_queue": S("FifoQueue") >> AsBool(),
         "sqs_content_based_deduplication": S("ContentBasedDeduplication") >> AsBool(),
         "sqs_kms_master_key_id": S("KmsMasterKeyId"),
         "sqs_kms_data_key_reuse_period_seconds": S("KmsDataKeyReusePeriodSeconds") >> AsInt(),
