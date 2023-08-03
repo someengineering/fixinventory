@@ -644,8 +644,8 @@ class DigitalOceanTeamCollector:
             m = sha256()
             neighbors = sorted(neighbors)
             m.update(DigitalOceanDropletNeighborhood.kind.encode())
-            for droplet in neighbors or []:
-                m.update(droplet.encode())
+            for n in neighbors or []:
+                m.update(n.encode())
             id = m.hexdigest()[0:16]
             neighbors_json.append(
                 {

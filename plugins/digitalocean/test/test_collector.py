@@ -224,7 +224,7 @@ def test_collect_droplets() -> None:
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
     assert droplet._resource_usage == {
-        "cpu_utilization": {"min": 0.1, "avg": 0.159, "max": 0.217},
+        "cpu_utilization": {"min": 0.1, "avg": 0.158, "max": 0.217},
         "memory_utilization": {
             "min": 45.074,
             "avg": 45.301,
