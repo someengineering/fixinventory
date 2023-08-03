@@ -430,7 +430,7 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_droplets.time()
     def collect_droplets(self) -> None:
-        instances = self.client.list_droplets()
+        droplets = self.client.list_droplets()
 
         def get_image(droplet: Json) -> Json:
             image = droplet["image"]
@@ -446,7 +446,7 @@ class DigitalOceanTeamCollector:
                     seen_ids.add(resource[id_field])
             return unique
 
-        droplet_ids: List[int] = [droplet["id"] for droplet in instances]
+        droplet_ids: List[int] = [droplet["id"] for droplet in droplets]
         start_time = self.last_run_started_at
         end_time = utc()
         if end_time - start_time < timedelta(minutes=4):
@@ -513,14 +513,14 @@ class DigitalOceanTeamCollector:
                     if previous_time is not None:
                         interval_seconds = (timestamp - previous_time).total_seconds()
                         utilization = (1 - delta / (interval_seconds * num_cpu_cores)) * 100
-                        utilization_data.append(round(utilization, 3))
+                        utilization_data.append(utilization)
                 previous_data = data
                 previous_time = timestamp
 
             return {
-                "min": min(utilization_data),
+                "min": round(min(utilization_data), 3),
                 "avg": round(statistics.mean(utilization_data), 3),
-                "max": max(utilization_data),
+                "max": round(max(utilization_data), 3),
             }
 
         def get_memory_utilization(metric_json: Json, total_mbytes: int) -> Dict[str, float]:
@@ -531,28 +531,28 @@ class DigitalOceanTeamCollector:
                 for values in item["values"]:
                     value = int(values[1])
                     utilizaton = (value / total_bytes) * 100
-                    mem_utilization.append(round(utilizaton, 3))
+                    mem_utilization.append(utilizaton)
 
             return {
-                "min": min(mem_utilization),
+                "min": round(min(mem_utilization), 3),
                 "avg": round(statistics.mean(mem_utilization), 3),
-                "max": max(mem_utilization),
+                "max": round(max(mem_utilization), 3),
             }
 
         resource_usage: Dict[int, Dict[str, Dict[str, float]]] = {}
 
-        for d in instances:
+        for droplet in droplets:
             try:
-                cpu_utilizaton = get_cpu_utilization(cpu_usage_metrics_results[d["id"]], d["vcpus"])
-                mem_utilization = get_memory_utilization(memory_usage_metrics_results[d["id"]], d["memory"])
-                resource_usage[d["id"]] = {
+                cpu_utilizaton = get_cpu_utilization(cpu_usage_metrics_results[droplet["id"]], droplet["vcpus"])
+                mem_utilization = get_memory_utilization(memory_usage_metrics_results[droplet["id"]], droplet["memory"])
+                resource_usage[droplet["id"]] = {
                     "cpu_utilization": cpu_utilizaton,
                     "memory_utilization": mem_utilization,
                 }
             except Exception as e:
-                log.warning("Failed to get utilization metrics for droplet %s: %s", d["id"], e)
+                log.warning("Failed to get utilization metrics for droplet %s: %s", droplet["id"], e)
 
-        images = [get_image(instance) for instance in instances]
+        images = [get_image(instance) for instance in droplets]
         images = remove_duplicates(images, "id")
 
         self.collect_resource(
@@ -581,7 +581,7 @@ class DigitalOceanTeamCollector:
             size["region"] = droplet["region"]["slug"]
             return cast(Json, size)
 
-        sizes = [get_size(instance) for instance in instances]
+        sizes = [get_size(instance) for instance in droplets]
         sizes = remove_duplicates(sizes, "slug")
 
         self.collect_resource(
@@ -607,7 +607,7 @@ class DigitalOceanTeamCollector:
             "archive": InstanceStatus.TERMINATED,
         }
         self.collect_resource(
-            instances,
+            droplets,
             resource_class=DigitalOceanDroplet,
             attr_map={
                 "id": lambda i: str(i["id"]),
@@ -653,7 +653,7 @@ class DigitalOceanTeamCollector:
                     "id": id,
                 }
             )
-        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in instances}
+        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in droplets}
         self.collect_resource(
             neighbors_json,
             resource_class=DigitalOceanDropletNeighborhood,

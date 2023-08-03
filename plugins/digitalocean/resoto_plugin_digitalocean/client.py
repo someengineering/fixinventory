@@ -7,7 +7,7 @@ import boto3
 import requests
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 from datetime import datetime
 
 from resoto_plugin_digitalocean.utils import RetryableHttpError
@@ -87,7 +87,12 @@ class StreamingWrapper:
     def _fetch(self, path: str, payload_object_name: str, query: Optional[Mapping[str, str]] = None) -> List[Json]:
         result: List[Json] = []
 
-        url = f"{self.do_api_endpoint}{path}?page=1&per_page=200"
+        url = f"{self.do_api_endpoint}{path}"
+        params = {"page": "1", "per_page": "200"}
+        params.update(query or {})
+
+        url = f"{url}?{urlencode(params)}"
+
         if query:
             query_string = "&".join([f"{k}={v}" for k, v in query.items()])
             url = f"{url}&{query_string}"
