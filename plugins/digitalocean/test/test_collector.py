@@ -207,7 +207,7 @@ def test_collect_droplets() -> None:
     assert size.urn == "do:size:s-1vcpu-1gb"
     assert size.instance_type == "s-1vcpu-1gb"
     assert size.instance_cores == 1
-    assert size.instance_memory == 1.0
+    assert size.instance_memory == 1
     assert size.ondemand_cost == 0.00744
 
     droplet: DigitalOceanDroplet = graph.search_first("urn", "do:droplet:289110074")  # type: ignore
