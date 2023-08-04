@@ -1,13 +1,14 @@
 import logging
 from attrs import define
 from functools import lru_cache
-from typing import List, Any, Optional, Union, TypeVar, Callable
+from typing import List, Any, Optional, Union, TypeVar, Callable, Mapping
 
 import boto3
 import requests
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
+from datetime import datetime
 
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error
@@ -83,10 +84,15 @@ class StreamingWrapper:
         return False
 
     @retry
-    def _fetch(self, path: str, payload_object_name: str) -> List[Json]:
+    def _fetch(self, path: str, payload_object_name: str, query: Optional[Mapping[str, str]] = None) -> List[Json]:
         result: List[Json] = []
 
-        url = f"{self.do_api_endpoint}{path}?page=1&per_page=200"
+        url = f"{self.do_api_endpoint}{path}"
+        params = {"page": "1", "per_page": "200"}
+        params.update(query or {})
+
+        url = f"{url}?{urlencode(params)}"
+
         log.debug(f"fetching {url}")
 
         def validate_status(response: requests.Response) -> requests.Response:
@@ -348,6 +354,14 @@ class StreamingWrapper:
 
     def list_alert_policies(self) -> List[Json]:
         return self._fetch("/monitoring/alerts", "policies")
+
+    def get_droplet_cpu_usage(self, droplet_id: str, start: datetime, end: datetime) -> List[Json]:
+        query_params = {"host_id": droplet_id, "start": str(start.timestamp()), "end": str(end.timestamp())}
+        return self._fetch("/monitoring/metrics/droplet/cpu", "data", query_params)
+
+    def get_droplet_memory_available(self, droplet_id: str, start: datetime, end: datetime) -> List[Json]:
+        query_params = {"host_id": droplet_id, "start": str(start.timestamp()), "end": str(end.timestamp())}
+        return self._fetch("/monitoring/metrics/droplet/memory_available", "data", query_params)
 
 
 TeamId = str

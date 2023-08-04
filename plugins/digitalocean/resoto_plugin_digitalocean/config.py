@@ -42,6 +42,7 @@ class DigitalOceanCollectorConfig:
         metadata={
             "description": (
                 "DigitalOcean credentials for the teams to be collected. "
+                "Expected format: [{ 'api_token': 'foo', 'spaces_keys': {'access_key': 'bar', 'secret_key': 'baz'}}]. "
                 "If provided, api_tokens and spaces_access_keys will be ignored"
             )
         },

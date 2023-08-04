@@ -33,6 +33,7 @@ from resoto_plugin_digitalocean.resources import (
 )
 from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from resotolib.core.actions import CoreFeedback
+from resotolib.utils import utc
 from resotolib.graph import Graph
 from resotolib.graph import sanitize
 from .fixtures import (
@@ -61,6 +62,8 @@ from .fixtures import (
     domain_records,
     firewalls,
     alerts,
+    cpu_metrics,
+    memory_available,
 )
 
 
@@ -84,7 +87,7 @@ class ClientMock(StreamingWrapper, object):
 def prepare_graph(do_client: StreamingWrapper) -> Graph:
     cloud = Cloud(id="do")
     team = DigitalOceanTeam(id="test_team", urn="do:team:test_team")
-    plugin_instance = DigitalOceanTeamCollector(team, do_client)
+    plugin_instance = DigitalOceanTeamCollector(team, do_client, last_run_started_at=utc())
     plugin_instance.collect()
     cloud_graph = Graph(root=cloud)
     graph = Graph(root=GraphRoot(id="root", tags={}))
@@ -172,6 +175,8 @@ def test_collect_droplets() -> None:
             "list_vpcs": vpcs,
             "list_tags": tags,
             "list_droplets_neighbors_ids": neighbor_ids,
+            "get_droplet_cpu_usage": cpu_metrics,
+            "get_droplet_memory_available": memory_available,
         }
     )
     graph = prepare_graph(do_client)
@@ -209,7 +214,7 @@ def test_collect_droplets() -> None:
     assert droplet.urn == "do:droplet:289110074"
     assert droplet.name == "ubuntu-s-1vcpu-1gb-fra1-01"
     assert droplet.instance_type == "s-1vcpu-1gb"
-    assert droplet.instance_memory == 1
+    assert droplet.instance_memory == 7.90625
     assert droplet.instance_cores == 1
     assert droplet.instance_status == InstanceStatus.RUNNING
     assert droplet.region().urn == "do:region:fra1"  # type: ignore
@@ -218,6 +223,14 @@ def test_collect_droplets() -> None:
     assert droplet.is_locked is False
     assert droplet.ctime == datetime.datetime(2022, 3, 3, 16, 26, 55, tzinfo=datetime.timezone.utc)
     assert droplet.tags == {"droplet_tag": None}
+    assert droplet._resource_usage == {
+        "cpu_utilization": {"min": 0.1, "avg": 0.158, "max": 0.217},
+        "memory_utilization": {
+            "min": 45.074,
+            "avg": 45.301,
+            "max": 45.529,
+        },
+    }
 
     neighborhood: DigitalOceanDropletNeighborhood = graph.search_first(
         "kind", DigitalOceanDropletNeighborhood.kind

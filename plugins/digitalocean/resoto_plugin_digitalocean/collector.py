@@ -1,13 +1,18 @@
 import logging
 import math
 from pprint import pformat
-from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast
+from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast, DefaultDict
+from datetime import datetime, timedelta, timezone
+from concurrent import futures
+from collections import defaultdict
+import statistics
 
 from prometheus_client import Summary
 
 from resotolib.baseresources import BaseResource, EdgeType, InstanceStatus, VolumeStatus
 from resotolib.graph import Graph
 from resotolib.types import Json
+from resotolib.utils import utc
 from hashlib import sha256
 from .client import StreamingWrapper
 from .resources import (
@@ -171,9 +176,10 @@ class DigitalOceanTeamCollector:
     all DigitalOcean resources
     """
 
-    def __init__(self, team: DigitalOceanTeam, client: StreamingWrapper) -> None:
+    def __init__(self, team: DigitalOceanTeam, client: StreamingWrapper, last_run_started_at: datetime) -> None:
         self.client = client
         self.team = team
+        self.last_run_started_at = last_run_started_at
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
@@ -424,7 +430,7 @@ class DigitalOceanTeamCollector:
 
     @metrics_collect_droplets.time()
     def collect_droplets(self) -> None:
-        instances = self.client.list_droplets()
+        droplets = self.client.list_droplets()
 
         def get_image(droplet: Json) -> Json:
             image = droplet["image"]
@@ -440,7 +446,113 @@ class DigitalOceanTeamCollector:
                     seen_ids.add(resource[id_field])
             return unique
 
-        images = [get_image(instance) for instance in instances]
+        droplet_ids: List[int] = [droplet["id"] for droplet in droplets]
+        start_time = self.last_run_started_at
+        end_time = utc()
+        if end_time - start_time < timedelta(minutes=4):
+            start_time = end_time - timedelta(minutes=4)
+
+        cpu_usage_metrics_results: Dict[int, Json] = {}
+        memory_usage_metrics_results: Dict[int, Json] = {}
+
+        with futures.ThreadPoolExecutor(max_workers=10) as executor:
+            cpu_future_to_droplet_id = {
+                executor.submit(
+                    self.client.get_droplet_cpu_usage,
+                    str(d_id),
+                    start_time,
+                    end_time,  # todo: make this configurable
+                ): d_id
+                for d_id in droplet_ids
+            }
+            memory_future_to_droplet_id = {
+                executor.submit(
+                    self.client.get_droplet_memory_available,
+                    str(d_id),
+                    start_time,
+                    end_time,  # todo: make this configurable
+                ): d_id
+                for d_id in droplet_ids
+            }
+
+            for f in futures.as_completed(cpu_future_to_droplet_id):
+                d_id = cpu_future_to_droplet_id[f]
+                results = f.result()
+                if results:
+                    cpu_usage_metrics_results[d_id] = results[0]
+            for f in futures.as_completed(memory_future_to_droplet_id):
+                d_id = memory_future_to_droplet_id[f]
+                results = f.result()
+                if results:
+                    memory_usage_metrics_results[d_id] = results[0]
+
+        def get_cpu_utilization(metric_json: Json, num_cpu_cores: float) -> Dict[str, float]:
+            result: DefaultDict[datetime, Dict[str, float]] = defaultdict(dict)
+
+            for item in metric_json["result"]:
+                mode = item["metric"]["mode"]
+                if mode != "idle":
+                    continue
+
+                for values in item["values"]:
+                    time = datetime.fromtimestamp(values[0], tz=timezone.utc)
+                    value = float(values[1])
+                    result[time][mode] = value
+
+            delta = 0.0
+            previous_data: Dict[str, float] = {}
+            previous_time = None
+
+            utilization_data: List[float] = []
+
+            for timestamp, data in result.items():
+                delta_total = 0.0
+                for mode, value in data.items():
+                    delta = value - previous_data.get(mode, value)
+                    delta_total += delta
+                    if previous_time is not None:
+                        interval_seconds = (timestamp - previous_time).total_seconds()
+                        utilization = (1 - delta / (interval_seconds * num_cpu_cores)) * 100
+                        utilization_data.append(utilization)
+                previous_data = data
+                previous_time = timestamp
+
+            return {
+                "min": round(min(utilization_data), 3),
+                "avg": round(statistics.mean(utilization_data), 3),
+                "max": round(max(utilization_data), 3),
+            }
+
+        def get_memory_utilization(metric_json: Json, total_mbytes: int) -> Dict[str, float]:
+            total_bytes = total_mbytes * 1024 * 1024
+            mem_utilization: List[float] = []
+
+            for item in metric_json["result"]:
+                for values in item["values"]:
+                    value = int(values[1])
+                    utilizaton = (value / total_bytes) * 100
+                    mem_utilization.append(utilizaton)
+
+            return {
+                "min": round(min(mem_utilization), 3),
+                "avg": round(statistics.mean(mem_utilization), 3),
+                "max": round(max(mem_utilization), 3),
+            }
+
+        resource_usage: Dict[int, Dict[str, Dict[str, float]]] = {}
+
+        for droplet in droplets:
+            try:
+                cpu_utilizaton = get_cpu_utilization(cpu_usage_metrics_results[droplet["id"]], droplet["vcpus"])
+                mem_utilization = get_memory_utilization(memory_usage_metrics_results[droplet["id"]], droplet["memory"])
+                resource_usage[droplet["id"]] = {
+                    "cpu_utilization": cpu_utilizaton,
+                    "memory_utilization": mem_utilization,
+                }
+            except Exception as e:
+                log.warning("Failed to get utilization metrics for droplet %s: %s", droplet["id"], e)
+
+        images = [get_image(instance) for instance in droplets]
         images = remove_duplicates(images, "id")
 
         self.collect_resource(
@@ -469,7 +581,7 @@ class DigitalOceanTeamCollector:
             size["region"] = droplet["region"]["slug"]
             return cast(Json, size)
 
-        sizes = [get_size(instance) for instance in instances]
+        sizes = [get_size(instance) for instance in droplets]
         sizes = remove_duplicates(sizes, "slug")
 
         self.collect_resource(
@@ -495,7 +607,7 @@ class DigitalOceanTeamCollector:
             "archive": InstanceStatus.TERMINATED,
         }
         self.collect_resource(
-            instances,
+            droplets,
             resource_class=DigitalOceanDroplet,
             attr_map={
                 "id": lambda i: str(i["id"]),
@@ -509,6 +621,7 @@ class DigitalOceanTeamCollector:
                 "droplet_features": "features",
                 "droplet_image": lambda d: d["image"]["slug"],
                 "tags": lambda instance: parse_tags(instance.get("tags", []) or []),
+                "_resource_usage": lambda d: resource_usage.get(d["id"], {}),
             },
             search_map={
                 "_region": [
@@ -531,8 +644,8 @@ class DigitalOceanTeamCollector:
             m = sha256()
             neighbors = sorted(neighbors)
             m.update(DigitalOceanDropletNeighborhood.kind.encode())
-            for droplet in neighbors or []:
-                m.update(droplet.encode())
+            for n in neighbors or []:
+                m.update(n.encode())
             id = m.hexdigest()[0:16]
             neighbors_json.append(
                 {
@@ -540,7 +653,7 @@ class DigitalOceanTeamCollector:
                     "id": id,
                 }
             )
-        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in instances}
+        instances_to_region = {str(droplet["id"]): region_id(droplet["region"]["slug"]) for droplet in droplets}
         self.collect_resource(
             neighbors_json,
             resource_class=DigitalOceanDropletNeighborhood,

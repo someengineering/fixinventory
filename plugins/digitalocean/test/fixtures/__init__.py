@@ -26,3 +26,5 @@ from .domains import domains as domains
 from .domain_records import domain_records as domain_records
 from .firewalls import firewalls as firewalls
 from .alerts import alerts as alerts
+from .cpu_metrics import cpu_metrics as cpu_metrics
+from .memory_available import memory_available as memory_available
