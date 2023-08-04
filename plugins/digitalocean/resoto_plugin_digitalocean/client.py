@@ -93,10 +93,6 @@ class StreamingWrapper:
 
         url = f"{url}?{urlencode(params)}"
 
-        if query:
-            query_string = "&".join([f"{k}={v}" for k, v in query.items()])
-            url = f"{url}&{query_string}"
-
         log.debug(f"fetching {url}")
 
         def validate_status(response: requests.Response) -> requests.Response:
