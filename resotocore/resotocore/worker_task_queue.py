@@ -87,6 +87,7 @@ class WorkerTaskQueue(Service):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         # key is the task_name, value is the list of worker subscriptions
         self.worker_by_task_name: Dict[str, List[WorkerTaskSubscription]] = defaultdict(list)
         self.work_count: Dict[str, int] = defaultdict(lambda: 0)

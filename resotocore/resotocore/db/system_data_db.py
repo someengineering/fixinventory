@@ -1,12 +1,37 @@
+from abc import ABC, abstractmethod
 from typing import Tuple, Dict, Optional
 
 from resotocore.db import SystemData, drop_arango_props
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.model.typed_model import from_js
 from resotocore.util import if_set
+from resotolib.x509 import bootstrap_ca, key_to_bytes, cert_to_bytes
 
 
-class SystemDataDb:
+class JwtSigningKeyHolder(ABC):
+    @abstractmethod
+    async def jwt_signing_keys(self) -> Optional[Tuple[str, str]]:
+        pass
+
+    @abstractmethod
+    async def update_jwt_signing_keys(self, key: str, certificate: str) -> Tuple[str, str]:
+        pass
+
+
+class EphemeralJwtSigningKey(JwtSigningKeyHolder):
+    def __init__(self) -> None:
+        key, cert = bootstrap_ca()
+        self.key_certificate = (key_to_bytes(key).decode("utf-8"), cert_to_bytes(cert).decode("utf-8"))
+
+    async def jwt_signing_keys(self) -> Tuple[str, str]:
+        return self.key_certificate
+
+    async def update_jwt_signing_keys(self, key: str, certificate: str) -> Tuple[str, str]:
+        self.key_certificate = (key, certificate)
+        return key, certificate
+
+
+class SystemDataDb(JwtSigningKeyHolder):
     def __init__(self, db: AsyncArangoDB):
         self.db = db
         self.collection_name = "system_data"

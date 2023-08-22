@@ -66,6 +66,7 @@ class CheckContext:
 
 class InspectorService(Inspector, Service):
     def __init__(self, cli: CLI) -> None:
+        super().__init__()
         self.config_handler: ConfigHandler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli

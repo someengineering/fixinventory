@@ -94,6 +94,7 @@ class InMemoryEventSender(AnalyticsEventSender):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self.events: List[AnalyticsEvent] = []
 
     async def capture(self, event: List[AnalyticsEvent]) -> None:

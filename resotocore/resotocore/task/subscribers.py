@@ -24,6 +24,7 @@ class SubscriptionHandler(Service):
     """
 
     def __init__(self, db: SubscriberDb, message_bus: MessageBus) -> None:
+        super().__init__()
         self.db = db
         self.message_bus = message_bus
         self._subscribers_by_id: Dict[SubscriberId, Subscriber] = {}

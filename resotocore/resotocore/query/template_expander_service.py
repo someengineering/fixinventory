@@ -15,6 +15,7 @@ class TemplateExpanderService(TemplateExpanderBase, Service):
     """
 
     def __init__(self, db: TemplateEntityDb, cli: CLI) -> None:
+        super().__init__()
         self.db = db
         self.cli = cli
 

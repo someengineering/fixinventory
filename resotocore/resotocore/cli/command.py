@@ -36,6 +36,7 @@ from typing import (
     Set,
     FrozenSet,
     Union,
+    TYPE_CHECKING,
 )
 from urllib.parse import urlparse, urlunparse
 
@@ -76,7 +77,6 @@ from resotocore.cli import (
     strip_quotes,
     key_value_parser,
 )
-from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     CLICommand,
     CLIContext,
@@ -179,6 +179,9 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+
+if TYPE_CHECKING:
+    from resotocore.dependencies import TenantDependencies
 
 log = logging.getLogger(__name__)
 
@@ -5905,7 +5908,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             raise AttributeError("Wrong or insufficient arguments. Execute `help db` to get more information.")
 
 
-def all_commands(d: Dependencies) -> List[CLICommand]:
+def all_commands(d: TenantDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
         AggregateToCountCommand(d, "search"),

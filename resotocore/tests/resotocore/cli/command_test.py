@@ -21,7 +21,7 @@ from resotocore import version
 from resotocore.cli import is_node
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
-from resotocore.dependencies import Dependencies
+from resotocore.dependencies import TenantDependencies
 from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI, FilePath
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -52,7 +52,7 @@ def json_source() -> str:
     return "json [" + nums + "," + nums + "]"
 
 
-def test_known_category(dependencies: Dependencies) -> None:
+def test_known_category(dependencies: TenantDependencies) -> None:
     allowed_categories = {"search", "format", "action", "setup", "misc"}
     for cmd in all_commands(dependencies):
         assert cmd.category in allowed_categories, f"Unknown category {cmd.category} for command {cmd.name}"
@@ -267,7 +267,7 @@ async def test_protect_command(cli: CLI) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_sink(cli: CLI, dependencies: Dependencies) -> None:
+async def test_list_sink(cli: CLI, dependencies: TenantDependencies) -> None:
     result = await cli.execute_cli_command("json [1,2,3] | dump", stream.list)
     assert result == [[1, 2, 3]]
 
@@ -994,7 +994,7 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
 
 
 @pytest.mark.asyncio
-async def test_aggregate(dependencies: Dependencies) -> None:
+async def test_aggregate(dependencies: TenantDependencies) -> None:
     in_stream = stream.iterate(
         [{"a": 1, "b": 1, "c": 1}, {"a": 2, "b": 1, "c": 1}, {"a": 3, "b": 2, "c": 1}, {"a": 4, "b": 2, "c": 1}]
     )

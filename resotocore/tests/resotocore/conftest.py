@@ -29,8 +29,6 @@ from resotocore.cli.command import (
     alias_names,
     all_commands,
 )
-from resotocore.db.deferredouteredgedb import DeferredOuterEdgeDb
-from resotocore.dependencies import Dependencies
 from resotocore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -48,13 +46,14 @@ from resotocore.core_config import (
 from resotocore.db import runningtaskdb, SystemData, deferredouteredgedb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.db_access import DbAccess
+from resotocore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.system_data_db import SystemDataDb
+from resotocore.dependencies import DirectTenantDependencyProvider, TenantDependencies
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.system_start import empty_config, parse_args
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
@@ -76,10 +75,11 @@ from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
 from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import BenchmarkConfig
-from resotocore.task.task_dependencies import TaskDependencies
+from resotocore.system_start import empty_config, parse_args
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import APScheduler
 from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.task_description import (
     Step,
     PerformAction,
@@ -101,7 +101,7 @@ from resotocore.user import UserManagement
 from resotocore.user.user_management import UserManagementService
 from resotocore.util import value_in_path, uuid_str, utc
 from resotocore.web.auth import AuthHandler
-from resotocore.web.certificate_handler import CertificateHandler
+from resotocore.web.certificate_handler import CertificateHandler, CertificateHandlerWithCA
 from resotocore.worker_task_queue import WorkerTaskQueue, WorkerTaskDescription, WorkerTask, WorkerTaskName
 from resotolib.x509 import bootstrap_ca
 from tests.resotocore import create_graph
@@ -129,7 +129,7 @@ def default_config() -> CoreConfig:
 
 
 @fixture
-def message_bus() -> MessageBus:
+async def message_bus() -> MessageBus:
     return MessageBus()
 
 
@@ -296,7 +296,7 @@ def person_model() -> Model:
         [],
         [
             Property("id", "string", required=True, description="Some identifier"),
-            Property("kind", "string", required=True, description="Kind if this node."),
+            Property("kind", "string", required=True, description="Kind of this node."),
             Property("list", "string[]", description="A list of strings."),
             Property("tags", "dictionary[string, string]", description="Key/value pairs."),
             Property("mtime", "datetime", description="Modification time of this node."),
@@ -448,9 +448,10 @@ async def worker(
 @fixture
 def cert_handler() -> Iterator[CertificateHandler]:
     config = empty_config()
-    key, certificate = bootstrap_ca()
+    ca_key, ca_cert = bootstrap_ca()
     temp = TemporaryDirectory()
-    yield CertificateHandler(config, key, certificate, Path(temp.name))
+    key, cert = CertificateHandlerWithCA._create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
+    yield CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp.name))
     temp.cleanup()
 
 
@@ -508,11 +509,11 @@ async def dependencies(
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
     user_management: UserManagement,
-) -> AsyncIterator[Dependencies]:
+) -> AsyncIterator[TenantDependencies]:
     db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
     model_handler = ModelHandlerStatic(foo_model)
     config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
-    deps = Dependencies(
+    deps = TenantDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
         db_access=db_access,
@@ -545,7 +546,7 @@ async def task_dependencies(graph_merger: GraphMerger, subscription_handler: Sub
 
 
 @fixture
-def cli(dependencies: Dependencies) -> CLIService:
+def cli(dependencies: TenantDependencies) -> CLIService:
     env = {"graph": "ns", "section": "reported"}
     return CLIService(dependencies, all_commands(dependencies), env, alias_names())
 
@@ -831,8 +832,12 @@ async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataD
 
 @fixture
 async def auth_handler(
-    system_data_db: SystemDataDb, default_config: CoreConfig, cert_handler: CertificateHandler
+    system_data_db: SystemDataDb,
+    default_config: CoreConfig,
+    cert_handler: CertificateHandler,
+    dependencies: TenantDependencies,
 ) -> AsyncIterator[AuthHandler]:
     config = evolve(default_config, args=parse_args(["--psk", "test"]))
-    async with AuthHandler(system_data_db, config, cert_handler, set()) as auth:
+    provider = DirectTenantDependencyProvider(dependencies)
+    async with AuthHandler(system_data_db, config, cert_handler, provider, set()) as auth:
         yield auth

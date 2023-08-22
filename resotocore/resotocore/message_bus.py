@@ -247,6 +247,7 @@ class MessageBus(Service):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         # key is the channel name, value is the list of queues
         self.listeners: Dict[str, List[Queue[Message]]] = {}
         # key is the subscriber id, value is the list of queue names

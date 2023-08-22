@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict, Tuple, Type, Optional, Any
+from typing import List, Dict, Tuple, Type, Optional, Any, Set
 
 from attrs import define
 
@@ -96,16 +96,7 @@ def check_overlap_for(models: List[Json]) -> None:
                         raise AttributeError(f"Successor kind {kind} does not exist")
 
 
-def check_overlap(*base: Type[BaseResource]) -> None:
-    """
-    Call this method from your collector plugin to check for overlapping properties.
-    This will try to load all models from all known plugins.
-    The call will fail if the imports are not working - make sure the calling side has all those plugins installed.
-
-    @param base: additional base classes to check for overlapping properties. All existing known plugins are added.
-    :raise Exception: if there is an overlap
-    """
-
+def load_plugin_classes(*base: Type[BaseResource]) -> Set[Type[BaseResource]]:
     def dynamic_import(name: str) -> List[Type[Any]]:
         components = name.split(".")
         mod = __import__(components[0])
@@ -119,7 +110,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
             raise AttributeError(f"Import {name}: expected type or list of types, got {type(mod)}")
 
     # List of all plugin classes that need to be imported.
-    model_classes = {
+    return {
         *dynamic_import("resoto_plugin_aws.collector.all_resources"),
         *dynamic_import("resoto_plugin_azure.collector.all_resources"),
         *dynamic_import("resoto_plugin_digitalocean.resources.DigitalOceanResource"),
@@ -137,5 +128,17 @@ def check_overlap(*base: Type[BaseResource]) -> None:
         *dynamic_import("resoto_plugin_vsphere.resources.VSphereResource"),
         *base,
     }
-    # check overlap for all plugin classes
+
+
+def check_overlap(*base: Type[BaseResource]) -> None:
+    """
+    Call this method from your collector plugin to check for overlapping properties.
+    This will try to load all models from all known plugins.
+    The call will fail if the imports are not working - make sure the calling side has all those plugins installed.
+
+    @param base: additional base classes to check for overlapping properties. All existing known plugins are added.
+    :raise Exception: if there is an overlap
+    """
+
+    model_classes = load_plugin_classes(*base)
     check_overlap_for(resource_classes_to_resotocore_model(model_classes, aggregate_root=BaseResource))

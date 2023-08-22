@@ -15,6 +15,7 @@ from resotocore.core_config import CoreConfig, CertificateConfig
 from resotocore.service import Service
 from resotocore.types import Json
 from resotocore.util import Periodic
+from resotolib.core.ca import TLSData
 from resotolib.utils import get_local_ip_addresses, get_local_hostnames
 from resotolib.x509 import (
     bootstrap_ca,
@@ -38,18 +39,21 @@ log = logging.getLogger(__name__)
 
 
 class CertificateHandler(Service):
-    def __init__(self, config: CoreConfig, ca_key: RSAPrivateKey, ca_cert: Certificate, temp_dir: Path) -> None:
+    def __init__(
+        self, config: CoreConfig, ca_cert: Certificate, host_key: RSAPrivateKey, host_cert: Certificate, temp_dir: Path
+    ) -> None:
+        super().__init__()
         self.config = config
-        self._ca_key = ca_key
         self._ca_cert = ca_cert
         self._ca_cert_bytes = cert_to_bytes(ca_cert)
         self._ca_cert_fingerprint = cert_fingerprint(ca_cert)
-        self._host_key, self._host_cert = self.__create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
-        self._host_context = self._create_host_context(config, self._host_cert, self._host_key)
-        self._client_context = self.__create_client_context(config, ca_cert)
         self._ca_bundle = temp_dir / "ca-bundle.crt"
+        self._host_key = host_key
+        self._host_cert = host_cert
         self.__recreate_ca_file()  # write the CA bundle to the temp dir
         self._ca_cert_recreate = Periodic("recreate ca bundle file", self.__recreate_ca_file, timedelta(hours=1))
+        self._host_context = self._create_host_context(config, self._host_cert, self._host_key)
+        self._client_context = self.__create_client_context(config, ca_cert)
 
     async def start(self) -> None:
         await self._ca_cert_recreate.start()
@@ -79,18 +83,7 @@ class CertificateHandler(Service):
     def create_key_and_cert(
         self, common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
     ) -> Tuple[RSAPrivateKey, Certificate]:
-        key = gen_rsa_key()
-        csr = gen_csr(
-            key,
-            include_loopback=False,
-            common_name=common_name,
-            san_dns_names=dns_names,
-            san_ip_addresses=ip_addresses,
-            discover_local_dns_names=False,
-            discover_local_ip_addresses=False,
-        )
-        cert = sign_csr(csr, self._ca_key, self._ca_cert, days_valid)
-        return key, cert
+        raise NotImplementedError("Signing is not implemented!")
 
     def sign(
         self,
@@ -100,9 +93,7 @@ class CertificateHandler(Service):
         client_auth: bool = True,
         key_usage: Optional[Dict[str, bool]] = None,
     ) -> Tuple[Certificate, str]:
-        csr = load_csr_from_bytes(csr_or_bytes) if isinstance(csr_or_bytes, bytes) else csr_or_bytes
-        certificate = sign_csr(csr, self._ca_key, self._ca_cert, days_valid, server_auth, client_auth, key_usage)
-        return certificate, cert_fingerprint(certificate)
+        raise NotImplementedError("Signing is not implemented!")
 
     @property
     def host_context(self) -> Optional[SSLContext]:
@@ -111,28 +102,6 @@ class CertificateHandler(Service):
     @property
     def client_context(self) -> SSLContext:
         return self._client_context
-
-    @staticmethod
-    def __create_host_certificate(
-        cfg: CertificateConfig, ca_key: RSAPrivateKey, ca_cert: Certificate
-    ) -> Tuple[RSAPrivateKey, Certificate]:
-        key = gen_rsa_key()
-        host_names = get_local_hostnames(
-            include_loopback=cfg.include_loopback,
-            san_ip_addresses=cfg.san_ip_addresses,
-            san_dns_names=cfg.san_dns_names,
-        )
-        host_ips = get_local_ip_addresses(include_loopback=cfg.include_loopback, san_ip_addresses=cfg.san_ip_addresses)
-        log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
-        csr = gen_csr(
-            key,
-            common_name=cfg.common_name,
-            san_dns_names=list(host_names),
-            san_ip_addresses=list(host_ips),
-            include_loopback=cfg.include_loopback,
-        )
-        cert = sign_csr(csr, ca_key, ca_cert)
-        return key, cert
 
     @staticmethod
     def _create_host_context(config: CoreConfig, host_cert: Certificate, host_key: RSAPrivateKey) -> SSLContext:
@@ -165,15 +134,136 @@ class CertificateHandler(Service):
             ctx.load_verify_locations(cadata=ca_bytes)
         return ctx
 
+
+class CertificateHandlerNoCA(CertificateHandler):
+    """
+    This certificate handler is using a CA that is outside the control of resoto core.
+    As a consequence it is not possible to create new certificates or to sign CSRs.
+    This functionality is only available in CertificateHandlerWithCA.
+
+    All certificates can be provided via command line.
+    If one part is missing, all of them get ignored.
+
+    If not provided via command line, the CA certificate is retrieved from the CA.
+    """
+
     @staticmethod
-    def lookup(config: CoreConfig, db: StandardDatabase, temp_dir: Path) -> CertificateHandler:
+    def lookup(config: CoreConfig, temp_dir: Path) -> CertificateHandlerNoCA:
+        args = config.args
+
+        # if we get a ca certificate from the command line, use it
+        if args.ca_cert and args.ca_cert_key and args.cert and args.cert_key:
+            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
+            host_cert = load_cert_from_file(args.ca_cert_cert)
+            log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
+            return CertificateHandlerNoCA(config, ca_cert, host_key, host_cert, temp_dir)
+
+        # otherwise, retrieve the CA certificate from the CA
+        assert config.args.ca_url is not None, "CA URL must be set! Use --ca-url <url> to set it."
+        cfg = config.api.host_certificate
+        tls_data = TLSData(
+            common_name=cfg.common_name,
+            san_dns_names=get_local_hostnames(
+                include_loopback=cfg.include_loopback,
+                san_ip_addresses=cfg.san_ip_addresses,
+                san_dns_names=cfg.san_dns_names,
+            ),
+            san_ip_addresses=get_local_ip_addresses(
+                include_loopback=cfg.include_loopback, san_ip_addresses=cfg.san_ip_addresses
+            ),
+            resotocore_uri=config.args.ca_url,
+            tempdir=str(temp_dir),
+            psk=config.args.psk,
+        )
+        tls_data.load()
+        return CertificateHandlerNoCA(config, tls_data.ca_cert, tls_data.key, tls_data.cert, temp_dir)
+
+
+class CertificateHandlerWithCA(CertificateHandler):
+    """
+    This certificate handler is implementing the CA.
+    It can create new certificates and sign CSRs.
+    """
+
+    def __init__(
+        self,
+        config: CoreConfig,
+        ca_key: RSAPrivateKey,
+        ca_cert: Certificate,
+        host_key: RSAPrivateKey,
+        host_cert: Certificate,
+        temp_dir: Path,
+    ) -> None:
+        super().__init__(config, ca_cert, host_key, host_cert, temp_dir)
+        self._ca_key = ca_key
+
+    def create_key_and_cert(
+        self, common_name: str, dns_names: List[str], ip_addresses: List[str], days_valid: int
+    ) -> Tuple[RSAPrivateKey, Certificate]:
+        key = gen_rsa_key()
+        csr = gen_csr(
+            key,
+            include_loopback=False,
+            common_name=common_name,
+            san_dns_names=dns_names,
+            san_ip_addresses=ip_addresses,
+            discover_local_dns_names=False,
+            discover_local_ip_addresses=False,
+        )
+        cert = sign_csr(csr, self._ca_key, self._ca_cert, days_valid)
+        return key, cert
+
+    def sign(
+        self,
+        csr_or_bytes: Union[CertificateSigningRequest, bytes],
+        days_valid: int = 365,
+        server_auth: bool = True,
+        client_auth: bool = True,
+        key_usage: Optional[Dict[str, bool]] = None,
+    ) -> Tuple[Certificate, str]:
+        csr = load_csr_from_bytes(csr_or_bytes) if isinstance(csr_or_bytes, bytes) else csr_or_bytes
+        certificate = sign_csr(csr, self._ca_key, self._ca_cert, days_valid, server_auth, client_auth, key_usage)
+        return certificate, cert_fingerprint(certificate)
+
+    @staticmethod
+    def _create_host_certificate(
+        cfg: CertificateConfig, ca_key: RSAPrivateKey, ca_cert: Certificate
+    ) -> Tuple[RSAPrivateKey, Certificate]:
+        key = gen_rsa_key()
+        host_names = get_local_hostnames(
+            include_loopback=cfg.include_loopback,
+            san_ip_addresses=cfg.san_ip_addresses,
+            san_dns_names=cfg.san_dns_names,
+        )
+        host_ips = get_local_ip_addresses(include_loopback=cfg.include_loopback, san_ip_addresses=cfg.san_ip_addresses)
+        log.info(f'Create host certificate for hostnames:{", ".join(host_names)} and ips:{", ".join(host_ips)}')
+        csr = gen_csr(
+            key,
+            common_name=cfg.common_name,
+            san_dns_names=list(host_names),
+            san_ip_addresses=list(host_ips),
+            include_loopback=cfg.include_loopback,
+        )
+        cert = sign_csr(csr, ca_key, ca_cert)
+        return key, cert
+
+    @staticmethod
+    def lookup(config: CoreConfig, db: StandardDatabase, temp_dir: Path) -> CertificateHandlerWithCA:
         args = config.args
         # if we get a ca certificate from the command line, use it
         if args.ca_cert and args.ca_cert_key:
             ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
             ca_cert = load_cert_from_file(args.ca_cert_cert)
+            if args.cert and args.cert_key:
+                host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
+                host_cert = load_cert_from_file(args.ca_cert_cert)
+            else:
+                host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
+                    config.api.host_certificate, ca_key, ca_cert
+                )
             log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
-            return CertificateHandler(config, ca_key, ca_cert, temp_dir)
+            return CertificateHandlerWithCA(config, ca_key, ca_cert, host_key, host_cert, temp_dir)
 
         # otherwise, load from database or create it
         sd = db.collection("system_data")
@@ -183,7 +273,10 @@ class CertificateHandler(Service):
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
             certificate = load_cert_from_bytes(maybe_ca["certificate"].encode("utf-8"))
             log.info(f"Using CA certificate from database. fingerprint:{cert_fingerprint(certificate)}")
-            return CertificateHandler(config, key, certificate, temp_dir)
+            host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
+                config.api.host_certificate, key, certificate
+            )
+            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir)
         else:
             wo = "with" if args.ca_cert_key_pass else "without"
             key, certificate = bootstrap_ca()
@@ -193,4 +286,7 @@ class CertificateHandler(Service):
             key_string = key_to_bytes(key, args.ca_cert_key_pass).decode("utf-8")
             certificate_string = cert_to_bytes(certificate).decode("utf-8")
             sd.insert({"_key": "ca", "key": key_string, "certificate": certificate_string})
-            return CertificateHandler(config, key, certificate, temp_dir)
+            host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
+                config.api.host_certificate, key, certificate
+            )
+            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir)

@@ -52,6 +52,7 @@ class CoreConfigHandler(Service):
         inspector: Inspector,
         exit_fn: Callable[[], None] = partial(restart_service, "resotocore config changed."),
     ):
+        super().__init__()
         self.message_bus = message_bus
         self.worker_task_queue = worker_task_queue
         self.config_updated_listener: Optional[Task[None]] = None

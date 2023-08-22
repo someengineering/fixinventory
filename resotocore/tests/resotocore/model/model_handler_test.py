@@ -2,7 +2,7 @@ import pytest
 
 from resotocore.db.db_access import DbAccess
 from resotocore.ids import GraphName
-from resotocore.model.model_handler import ModelHandlerDB
+from resotocore.model.model_handler import ModelHandlerDB, code_model
 
 
 @pytest.mark.asyncio
@@ -26,3 +26,8 @@ async def test_uml_generation(db_access: DbAccess) -> None:
         sort_props=False,
     )
     assert b"class graph_root [[#graph_root]] {\n\n}" in image2
+
+
+def test_code_model() -> None:
+    model = code_model()
+    assert len(model.kinds) > 1000

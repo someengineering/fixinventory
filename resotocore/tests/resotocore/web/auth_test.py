@@ -10,6 +10,7 @@ from aiohttp.web import Application, Request, Response
 from multidict import CIMultiDict
 from pytest import mark
 
+from resotocore.dependencies import TenantDependencies
 from resotocore.user.model import Permission
 from resotocore.web.auth import AuthHandler
 from resotolib.jwt import encode_jwt
@@ -22,11 +23,11 @@ async def loop() -> Any:
 
 @pytest.fixture
 async def app_with_auth(auth_handler: AuthHandler) -> Application:
-    async def hello(_: Request) -> Response:
+    async def hello(_: Request, deps: TenantDependencies) -> Response:
         return Response(text="Hello, world")
 
     app = Application(middlewares=[auth_handler.middleware()])
-    app.router.add_get("/", hello)
+    app.router.add_get("/", auth_handler.allow_with(hello))
     app.router.add_get("/with_read", auth_handler.allow_with(hello, Permission.read))
     app.router.add_get("/with_write", auth_handler.allow_with(hello, Permission.write))
     return app

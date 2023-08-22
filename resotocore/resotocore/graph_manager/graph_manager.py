@@ -36,6 +36,7 @@ class GraphManager(Service):
         config_handler: CoreConfigHandler,
         task_handler: TaskHandler,
     ) -> None:
+        super().__init__()
         self.db_access = db_access
         self.lock: Optional[Lock] = None
         self.task_handler = task_handler

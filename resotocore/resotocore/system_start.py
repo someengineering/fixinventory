@@ -214,6 +214,15 @@ aws:
         action="store_true",
         help="Do not load and continue interrupted tasks.",
     )
+    parser.add_argument(
+        "--ca-url", type=str, help="CA for getting and signing certificates. Only available in multi tenant setup."
+    )
+    parser.add_argument(
+        "--multi-tenant-setup",
+        default=False,
+        action="store_true",
+        help="Launch in multi tenant setup.",
+    )
 
     parsed: Namespace = parser.parse_args(args if args else [])
 

@@ -56,6 +56,7 @@ class DbAccess(Service):
         template_entity: str = "templates",
         infra_app_packages: str = "infra_app_packages",
     ):
+        super().__init__()
         self.event_sender = event_sender
         self.database = arango_database
         self.db = AsyncArangoDB(arango_database)

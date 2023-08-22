@@ -80,6 +80,7 @@ class PackageManager(Service):
             repos_cache_directory: Directory where the infra apps repos are cloned
         """
 
+        super().__init__()
         self.entity_db = entity_db
         self.config_handler = config_handler
         self.update_lock: Optional[Lock] = None
