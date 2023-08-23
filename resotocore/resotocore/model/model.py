@@ -1392,7 +1392,7 @@ class Model:
         def update_is_valid(from_kind: Kind, to_kind: Kind) -> None:
             # Allowed changes: The update
             # - does not change it's type (e.g. going from SimpleKind to ComplexKind)
-            if type(from_kind) != type(to_kind):  # pylint: disable=unidiomatic-typecheck
+            if type(from_kind) is not type(to_kind):  # pylint: disable=unidiomatic-typecheck
                 raise AttributeError(f"Update {from_kind.fqn} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
