@@ -72,7 +72,9 @@ class ArgumentParser(argparse.ArgumentParser):
             for option_string in action.option_strings:
                 print(option_string)
 
-    def parse_known_args(self, args: Any = None, namespace: Any = None) -> Tuple[Namespace, List[str]]:
+    def parse_known_args(  # type: ignore
+        self, args: Optional[Sequence[str]] = None, namespace: Optional[Namespace] = None
+    ) -> Tuple[Namespace, List[str]]:
         for action in self._actions:
             env_name = None
             for option_string in action.option_strings:
