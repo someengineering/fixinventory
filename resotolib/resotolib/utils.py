@@ -1,11 +1,10 @@
-import sys
-import select
 import hashlib
 import os
 import random
 import re
 import socket
 import string
+import sys
 import time
 from argparse import ArgumentParser
 from contextlib import closing
@@ -29,10 +28,9 @@ from typing import (
     Sequence,
 )
 from zoneinfo import ZoneInfo
-from frozendict import frozendict
 
-import pkg_resources
-import requests
+import select
+from frozendict import frozendict
 from tzlocal import get_localzone_name
 
 from resotolib.logger import log
@@ -50,7 +48,8 @@ def utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def utc_str(dt: datetime = utc()) -> str:
+def utc_str(dto: Optional[datetime] = None) -> str:
+    dt = dto if dto is not None else utc()
     if dt.tzinfo is not None and dt.tzname() != "UTC":
         offset = dt.tzinfo.utcoffset(dt)
         if offset is not None and offset.total_seconds() != 0:
@@ -79,29 +78,6 @@ def make_valid_timestamp(timestamp: datetime) -> Optional[datetime]:
     else:
         timestamp = None
     return timestamp
-
-
-def str2timedelta(td: str) -> timedelta:
-    if "day" in td:
-        m = re.match(
-            r"(?P<days>[-\d]+) day[s]*, (?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)",
-            td,
-        )
-    else:
-        m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", td)
-    args = {key: float(val) for key, val in m.groupdict().items()}  # type: ignore
-    return timedelta(**args)
-
-
-def str2timezone(tz: str) -> timezone:
-    mult = 1
-    if not tz.startswith("UTC") or len(tz) != 9:
-        raise ValueError(f"Invalid timezone string {tz}")
-    if tz[3] == "-":
-        mult = -1
-    hours = int(tz[4:6]) * mult
-    minutes = int(tz[7:9])
-    return timezone(offset=timedelta(hours=hours, minutes=minutes))
 
 
 def get_local_tzinfo() -> ZoneInfo:
@@ -338,69 +314,6 @@ def get_local_hostnames(
 def ordinal(num: int) -> str:
     suffix = "tsnrhtdd"[(num // 10 % 10 != 1) * (num % 10 < 4) * num % 10 :: 4]
     return f"{num}{suffix}"
-
-
-def component_version(component: str = "resotolib") -> str:
-    return pkg_resources.get_distribution(component).version
-
-
-def update_check(
-    package_name: str = "resotolib",
-    current_version: Optional[str] = None,
-    no_prerelease: bool = True,
-    github_project: str = "someengineering/resoto",
-) -> Optional[str]:
-    """Check for new Resoto releases.
-
-    :param package_name: The name of the Python package to retrieve the version number for.
-    :param current_version: Alternatively define a version number to check against.
-    :param no_prerelease: If True, only stable releases will be considered.
-    :param github_project: The name of the GitHub project to check for new releases.
-    :return: None if no new release was found or an info string if a new release was found.
-    """
-    if current_version is None:
-        current_version = component_version(package_name)
-
-    # We are assuming that there is a stable release within the first 100 releases returned.
-    # If that is not the case need to implement paging.
-    releases_uri = f"https://api.github.com/repos/{github_project}/releases?per_page=100"
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    releases_response = requests.get(releases_uri, headers=headers)
-    if releases_response.status_code != 200:
-        raise RuntimeError(f"Unable to get releases from {releases_uri}:" f" {releases_response.status_code}")
-    latest_version = None
-    latest_version_ctime = None
-    for release in releases_response.json():
-        release_tag = release["tag_name"]
-        release_date = make_valid_timestamp(datetime.strptime(release["published_at"], "%Y-%m-%dT%H:%M:%SZ"))
-        if not no_prerelease or not pkg_resources.parse_version(release_tag).is_prerelease:
-            latest_version = release_tag
-            latest_version_ctime = release_date
-            break
-
-    if latest_version is None:
-        release_kind = "stable " if no_prerelease else ""
-        raise RuntimeError(f"Unable to find a {release_kind}release for {github_project}")
-
-    # If the current version is equal or newer than the remote version return None
-    if pkg_resources.parse_version(current_version) >= pkg_resources.parse_version(latest_version):
-        return None
-
-    msg = f"Current version {current_version} is out of date. Latest version is {latest_version}!"
-
-    current_release_uri = f"https://api.github.com/repos/someengineering/resoto/releases/tags/{current_version}"
-    current_release_response = requests.get(current_release_uri, headers=headers)
-    if current_release_response.status_code == 200:
-        current_version_ctime = make_valid_timestamp(
-            datetime.strptime(current_release_response.json()["published_at"], "%Y-%m-%dT%H:%M:%SZ")
-        )
-        current_version_age = latest_version_ctime - current_version_ctime  # type: ignore
-        msg = (
-            f"Current version {current_version} is {current_version_age.days} days out of date."
-            f" Latest version is {latest_version}!"
-        )
-
-    return msg
 
 
 def safe_members_in_tarfile(tarfile: TarFile) -> List[Any]:
