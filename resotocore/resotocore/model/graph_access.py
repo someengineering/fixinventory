@@ -238,6 +238,10 @@ class GraphBuilder:
         coerced = self.model.check_valid(reported)
         reported = reported if coerced is None else coerced
         kind = self.model[reported]
+        # if replace is defined, make it part of metadata
+        if replace:
+            metadata = metadata or {}
+            metadata["replace"] = True
         # create content hash
         sha = GraphBuilder.content_hash(reported, desired, metadata)
         # flat all properties into a single string for search
@@ -253,7 +257,7 @@ class GraphBuilder:
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
-            replace=replace | metadata.get("replace", False) is True if metadata else False,
+            replace=metadata.get("replace", False) is True if metadata else False,
         )
         # update property sizes
         self.__update_property_size(kind, reported)

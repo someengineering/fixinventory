@@ -123,7 +123,7 @@ async def test_search(cli: CLI) -> None:
     g = cli.env["graph"]
     lines = [line async for line in runtime.generate_template(g, manifest, {}, stdin(), [])]
 
-    assert lines == ["sub_root", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    assert lines == ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 
 async def stdin() -> AsyncIterator[Optional[str]]:
