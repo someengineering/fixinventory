@@ -663,7 +663,15 @@ class EndState(StepState):
         return False
 
     def commands_to_execute(self) -> Sequence[TaskCommand]:
-        return [SendMessage(self.event)]
+        messages = []
+        task = self.instance
+        # make sure to send the remaining progress message before the end message
+        if task.not_emitted_progress() is not None:
+            pr = task.progress_json()
+            data = dict(workflow=task.descriptor.name, task=task.id, message=pr)
+            messages.append(SendMessage(Event(CoreMessage.ProgressMessage, freeze(data))))
+        messages.append(SendMessage(self.event))
+        return messages
 
     def step_started(self) -> None:
         super().step_started()
