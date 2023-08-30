@@ -583,6 +583,10 @@ class CoreConfig(ConfigObject):
     run: RunConfig
 
     @property
+    def multi_tenant_setup(self) -> bool:
+        return cast(bool, self.args.multi_tenant_setup)
+
+    @property
     def editable(self) -> "EditableConfig":
         return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows)
 

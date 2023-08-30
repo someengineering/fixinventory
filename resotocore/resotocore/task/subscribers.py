@@ -1,22 +1,63 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from asyncio import Lock
 from collections import defaultdict
 from datetime import timedelta, datetime
 from typing import Optional, Iterable, Dict, List
 
 from resotocore.db.subscriberdb import SubscriberDb
-from resotocore.message_bus import MessageBus
-from resotocore.util import utc, Periodic
-from resotocore.task.model import Subscriber, Subscription
 from resotocore.ids import SubscriberId
+from resotocore.message_bus import MessageBus
 from resotocore.service import Service
+from resotocore.task.model import Subscriber, Subscription
+from resotocore.util import utc, Periodic
 
 log = logging.getLogger(__name__)
 
 
-class SubscriptionHandler(Service):
+class SubscriptionHandler(Service, ABC):
+    @abstractmethod
+    async def all_subscribers(self) -> Iterable[Subscriber]:
+        pass
+
+    @abstractmethod
+    async def get_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
+        pass
+
+    @abstractmethod
+    async def list_subscriber_for(self, event_type: str) -> List[Subscriber]:
+        pass
+
+    @abstractmethod
+    async def add_subscription(
+        self, subscriber_id: SubscriberId, event_type: str, wait_for_completion: bool, timeout: timedelta
+    ) -> Subscriber:
+        pass
+
+    @abstractmethod
+    async def remove_subscription(self, subscriber_id: SubscriberId, event_type: str) -> Subscriber:
+        pass
+
+    @abstractmethod
+    async def update_subscriptions(self, subscriber_id: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
+        pass
+
+    @abstractmethod
+    async def remove_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
+        pass
+
+    @abstractmethod
+    def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
+        pass
+
+    @abstractmethod
+    def update_subscriber_by_event(self, subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
+        pass
+
+
+class SubscriptionHandlerService(SubscriptionHandler):
     """
     SubscriptionHandler maintains all subscriptions in memory and syncs its internal state with the underlying db.
     Only reason for persistence is recovery of all subscriptions after restart.
@@ -101,8 +142,7 @@ class SubscriptionHandler(Service):
     def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
         return self._subscribers_by_event
 
-    @staticmethod
-    def update_subscriber_by_event(subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
+    def update_subscriber_by_event(self, subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
         result: Dict[str, List[Subscriber]] = defaultdict(list)
         for subscriber in subscribers:
             for subscription in subscriber.subscriptions.values():
@@ -134,3 +174,34 @@ class SubscriptionHandler(Service):
                     pass
                 else:
                     self.not_connected_since[subscriber] = now
+
+
+class NoSubscriptionHandler(SubscriptionHandler):
+    async def all_subscribers(self) -> Iterable[Subscriber]:
+        return []
+
+    async def get_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
+        return None
+
+    async def list_subscriber_for(self, event_type: str) -> List[Subscriber]:
+        return []
+
+    async def add_subscription(
+        self, subscriber_id: SubscriberId, event_type: str, wait_for_completion: bool, timeout: timedelta
+    ) -> Subscriber:
+        return Subscriber(subscriber_id, {})
+
+    async def remove_subscription(self, subscriber_id: SubscriberId, event_type: str) -> Subscriber:
+        return Subscriber(subscriber_id, {})
+
+    async def update_subscriptions(self, subscriber_id: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
+        return Subscriber(subscriber_id, {})
+
+    async def remove_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
+        return None
+
+    def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
+        return {}
+
+    def update_subscriber_by_event(self, subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
+        return {}

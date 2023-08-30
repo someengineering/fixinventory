@@ -257,7 +257,7 @@ class TaskHandlerService(TaskHandler, Service):
         self.task_descriptions = [*self.task_descriptions, *db_jobs]
 
         # load and restore all tasks
-        if not self.config.args.ignore_interrupted_tasks:
+        if not self.config.args.ignore_interrupted_tasks and not self.config.multi_tenant_setup:
             self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
 
         await self.timeout_watcher.start()

@@ -760,7 +760,7 @@ class CLI(ABC):
 
     @property
     @abstractmethod
-    def dependencies(self) -> Any:  # CliDependencies, but we can't import it here
+    def dependencies(self) -> TenantDependencies:
         pass
 
     @property

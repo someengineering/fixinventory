@@ -77,27 +77,28 @@ class DbAccess(Service):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        await self.subscribers_db.create_update_schema()
-        await self.running_task_db.create_update_schema()
-        await self.job_db.create_update_schema()
-        await self.config_entity_db.create_update_schema()
-        await self.config_validation_entity_db.create_update_schema()
-        await self.configs_model_db.create_update_schema()
-        await self.template_entity_db.create_update_schema()
-        await self.deferred_outer_edge_db.create_update_schema()
-        await self.package_entity_db.create_update_schema()
-        for graph in cast(List[Json], self.database.graphs()):
-            graph_name = GraphName(graph["name"])
+        if not self.config.multi_tenant_setup:
+            await self.subscribers_db.create_update_schema()
+            await self.running_task_db.create_update_schema()
+            await self.job_db.create_update_schema()
+            await self.config_entity_db.create_update_schema()
+            await self.config_validation_entity_db.create_update_schema()
+            await self.configs_model_db.create_update_schema()
+            await self.template_entity_db.create_update_schema()
+            await self.deferred_outer_edge_db.create_update_schema()
+            await self.package_entity_db.create_update_schema()
+            for graph in cast(List[Json], self.database.graphs()):
+                graph_name = GraphName(graph["name"])
 
-            # snapshot graphs do not need any schema migrations,
-            # we can skip them
-            if str(graph_name).startswith("snapshot"):
-                continue
+                # snapshot graphs do not need any schema migrations,
+                # we can skip them
+                if str(graph_name).startswith("snapshot"):
+                    continue
 
-            log.info(f"Found graph: {graph_name}")
-            db = self.get_graph_db(graph_name)
-            await db.create_update_schema()
-            await self.get_graph_model_db(graph_name)
+                log.info(f"Found graph: {graph_name}")
+                db = self.get_graph_db(graph_name)
+                await db.create_update_schema()
+                await self.get_graph_model_db(graph_name)
         await self.cleaner.start()
 
     async def stop(self) -> None:

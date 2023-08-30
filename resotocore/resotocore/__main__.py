@@ -58,7 +58,7 @@ from resotocore.query.template_expander_service import TemplateExpanderService
 from resotocore.report.inspector_service import InspectorService
 from resotocore.system_start import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.task.scheduler import APScheduler, NoScheduler
-from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.subscribers import SubscriptionHandlerService
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.user.user_management import UserManagementService
 from resotocore.util import shutdown_process, utc
@@ -198,7 +198,9 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     cli = deps.add(ServiceNames.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
     deps.add(ServiceNames.template_expander, TemplateExpanderService(db.template_entity_db, cli))
     inspector = deps.add(ServiceNames.inspector, InspectorService(cli))
-    subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandler(db.subscribers_db, message_bus))
+    subscriptions = deps.add(
+        ServiceNames.subscription_handler, SubscriptionHandlerService(db.subscribers_db, message_bus)
+    )
     core_config_handler = deps.add(
         ServiceNames.core_config_handler,
         CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
@@ -225,7 +227,7 @@ async def direct_tenant(deps: TenantDependencies) -> None:
             config,
         ),
     )
-    deps.add(ServiceNames.graph_manager, GraphManager(db, config.snapshots, core_config_handler, task_handler))
+    deps.add(ServiceNames.graph_manager, GraphManager(db, config, core_config_handler, task_handler))
     deps.add(
         ServiceNames.merge_outer_edges_handler,
         MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model),
@@ -261,7 +263,7 @@ def with_config(
 
     async def on_start() -> None:
         # fill all dependencies
-        if config.args.multi_tenant_setup:
+        if config.multi_tenant_setup:
             await multi_tenancy(deps)
         else:
             await direct_tenant(cast(TenantDependencies, deps))

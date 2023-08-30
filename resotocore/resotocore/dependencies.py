@@ -9,35 +9,33 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional, TypeVar, Type, cast
-from typing import Union, Callable, Awaitable
+from typing import Callable, Awaitable
 
 from aiohttp import ClientSession, TCPConnector
 from aiohttp.web import Request
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
-from attr import evolve, define
+from attr import define
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.async_extensions import run_async
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import all_commands, alias_names
 from resotocore.cli.model import CLI
-from resotocore.config import ConfigHandler, ConfigOverride
+from resotocore.config import ConfigHandler, ConfigOverride, NoConfigOverride
 from resotocore.config.config_handler_service import ConfigHandlerService
-from resotocore.config.config_override_service import ConfigOverrideService
 from resotocore.config.core_config_handler import CoreConfigHandler
 from resotocore.core_config import CoreConfig
-from resotocore.core_config import config_from_db, RunConfig
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.db_access import DbAccess
 from resotocore.db.system_data_db import JwtSigningKeyHolder
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.ids import GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.message_bus import MessageBus
+from resotocore.metrics import timed
 from resotocore.model.adjust_node import NoAdjust
 from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model_handler import ModelHandler, ModelHandlerFromCodeAndDB
@@ -48,7 +46,7 @@ from resotocore.report.inspector_service import InspectorService
 from resotocore.service import Service
 from resotocore.system_start import SystemInfo
 from resotocore.task.scheduler import NoScheduler
-from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.subscribers import SubscriptionHandler, NoSubscriptionHandler
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement
 from resotocore.user import UserManagement
@@ -207,7 +205,7 @@ class TenantDependencies(Dependencies):
 
     @property
     def subscription_handler(self) -> SubscriptionHandler:
-        return self.service(ServiceNames.subscription_handler, SubscriptionHandler)
+        return self.service(ServiceNames.subscription_handler, SubscriptionHandler)  # type: ignore
 
     @property
     def config_handler(self) -> ConfigHandler:
@@ -369,6 +367,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
     async def stop(self) -> None:
         await self._cache.stop()
 
+    @timed("tenant_dependency_provider", "dependencies")
     async def dependencies(self, request: Request) -> TenantDependencies:
         db_access = GraphDbAccess(
             request.headers.get("FixGraphDbServer", ""),
@@ -377,13 +376,13 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
             request.headers.get("FixGraphDbPassword", ""),
         )
         if not db_access.is_valid():
-            raise ValueError("Invalid graph db access data provided!")
+            raise ValueError("Invalid graph db access data provided for multi tenant requests!")
         key = db_access.hash()
-
         return await self._cache.get(key, partial(self.create_tenant_dependencies, key, db_access))
 
     async def create_tenant_dependencies(self, tenant_hash: str, access: GraphDbAccess) -> TenantDependencies:
         dp = self._dependencies
+        config = dp.config
         args = dp.config.args
         message_bus = dp.message_bus
         event_sender = dp.event_sender
@@ -391,26 +390,18 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         def standard_database() -> StandardDatabase:
             http_client = ArangoHTTPClient(args.graphdb_request_timeout, verify=dp.config.run.verify)
             client = ArangoClient(hosts=access.server, http_client=http_client)
-            # verify=True: connects to the database and sends a ping request
-            return client.db(name=access.database, username=access.username, password=access.password, verify=True)
+            return client.db(name=access.database, username=access.username, password=access.password)
 
         deps = self._dependencies.tenant_dependencies(tenant_hash=tenant_hash, access=access)
         # direct db access
         sdb = deps.add(ServiceNames.system_database, await run_async(standard_database))
-        # config
-        config = await run_async(config_from_db, dp.config.args, sdb, lambda: None)
-        verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(dp.cert_handler.ca_bundle)
-        deps.add(ServiceNames.config, evolve(config, run=RunConfig(dp.temp_dir, verify)))
         db = deps.add(ServiceNames.db_access, DbAccess(sdb, dp.event_sender, NoAdjust(), config))
         # no scheduler required in multi-tenant mode
         scheduler = deps.add(ServiceNames.scheduler, NoScheduler())
         # all tenants use the same model (derived from code)
         model = deps.add(ServiceNames.model_handler, ModelHandlerFromCodeAndDB(db, config.runtime.plantuml_server))
         worker_task_queue = deps.add(ServiceNames.worker_task_queue, WorkerTaskQueue())
-        config_override_service = deps.add(
-            ServiceNames.config_override,
-            ConfigOverrideService(config.args.config_override_path, partial(model.load_model, GraphName("resoto"))),
-        )
+        config_override_service = deps.add(ServiceNames.config_override, NoConfigOverride())
         config_handler = deps.add(
             ServiceNames.config_handler,
             ConfigHandlerService(
@@ -429,7 +420,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         cli = deps.add(ServiceNames.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
         deps.add(ServiceNames.template_expander, TemplateExpanderService(db.template_entity_db, cli))
         inspector = deps.add(ServiceNames.inspector, InspectorService(cli))
-        subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandler(db.subscribers_db, message_bus))
+        subscriptions = deps.add(ServiceNames.subscription_handler, NoSubscriptionHandler())
         core_config_handler = deps.add(
             ServiceNames.core_config_handler,
             CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
@@ -456,10 +447,5 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
                 config,
             ),
         )
-        deps.add(ServiceNames.graph_manager, GraphManager(db, config.snapshots, core_config_handler, task_handler))
-        # not required in multi-tenant mode
-        # deps.add(
-        #     ServiceNames.merge_outer_edges_handler,
-        #     MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model),
-        # )
+        deps.add(ServiceNames.graph_manager, GraphManager(db, config, core_config_handler, task_handler))
         return deps

@@ -256,8 +256,9 @@ class CoreConfigHandler(Service):
             log.error(f"Could not update resoto core config model: {ex}", exc_info=ex)
 
     async def start(self) -> None:
-        await self.__update_model()
-        await self.__update_config()
+        if not self.config.multi_tenant_setup:
+            await self.__update_model()
+            await self.__update_config()
         self.config_updated_listener = asyncio.create_task(self.__handle_events())
         self.config_validator = asyncio.create_task(self.__validate_config())
 

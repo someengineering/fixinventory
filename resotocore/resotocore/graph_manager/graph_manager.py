@@ -15,7 +15,7 @@ from resotocore.model.typed_model import from_js, to_js_str
 from resotocore.model.graph_access import EdgeTypes
 from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.config.core_config_handler import CoreConfigHandler
-from resotocore.core_config import SnapshotsScheduleConfig, ResotoCoreSnapshotsConfigId
+from resotocore.core_config import SnapshotsScheduleConfig, ResotoCoreSnapshotsConfigId, CoreConfig
 from resotocore.task import TaskHandler
 from resotocore.task.task_description import Job, ExecuteCommand, TimeTrigger
 from json import loads, dumps
@@ -32,7 +32,7 @@ class GraphManager(Service):
     def __init__(
         self,
         db_access: DbAccess,
-        default_snapshots_config: SnapshotsScheduleConfig,
+        config: CoreConfig,
         config_handler: CoreConfigHandler,
         task_handler: TaskHandler,
     ) -> None:
@@ -40,7 +40,7 @@ class GraphManager(Service):
         self.db_access = db_access
         self.lock: Optional[Lock] = None
         self.task_handler = task_handler
-        self.default_snapshots_config = default_snapshots_config
+        self.config = config
         self.config_handler = config_handler
         self.snapshot_cleanup_worker: Optional[Periodic] = None
 
@@ -102,11 +102,12 @@ class GraphManager(Service):
 
     async def start(self) -> None:
         self.lock = Lock()
-        # initialize the snapshot schedule
-        await self._on_config_updated(ResotoCoreSnapshotsConfigId)
+        if not self.config.multi_tenant_setup:
+            # initialize the snapshot schedule
+            await self._on_config_updated(ResotoCoreSnapshotsConfigId)
+            await self.__setup_cleanup_old_snapshots_worker(self.config.snapshots)
         # subscribe to config updates to update the snapshot schedule
         self.config_handler.add_callback(self._on_config_updated)
-        await self.__setup_cleanup_old_snapshots_worker(self.default_snapshots_config)
 
     async def stop(self) -> None:
         if self.snapshot_cleanup_worker:

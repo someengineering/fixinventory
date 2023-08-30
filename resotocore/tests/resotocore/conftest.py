@@ -78,7 +78,7 @@ from resotocore.report.report_config import BenchmarkConfig
 from resotocore.system_start import empty_config, parse_args
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import APScheduler
-from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.task.subscribers import SubscriptionHandler, SubscriptionHandlerService
 from resotocore.task.task_dependencies import TaskDependencies
 from resotocore.task.task_description import (
     Step,
@@ -569,9 +569,13 @@ async def package_manager(
 
 @fixture
 async def graph_manager(
-    cli: CLIService, db_access: DbAccess, core_config_handler: CoreConfigHandler, task_handler: TaskHandlerService
+    cli: CLIService,
+    db_access: DbAccess,
+    default_config: CoreConfig,
+    core_config_handler: CoreConfigHandler,
+    task_handler: TaskHandlerService,
 ) -> GraphManager:
-    async with GraphManager(db_access, SnapshotsScheduleConfig({}), core_config_handler, task_handler) as service:
+    async with GraphManager(db_access, default_config, core_config_handler, task_handler) as service:
         cli.dependencies.lookup["graph_manager"] = service
         return service
 
@@ -724,9 +728,9 @@ def workflow_instance(
 
 
 @fixture
-async def subscription_handler(message_bus: MessageBus) -> AsyncIterator[SubscriptionHandler]:
+async def subscription_handler(message_bus: MessageBus) -> AsyncIterator[SubscriptionHandlerService]:
     in_mem = InMemoryDb(Subscriber, lambda x: x.id)
-    async with SubscriptionHandler(in_mem, message_bus) as handler:
+    async with SubscriptionHandlerService(in_mem, message_bus) as handler:
         yield handler
 
 

@@ -1,4 +1,7 @@
 from typing import AsyncIterator, List, cast
+
+from attr import evolve
+
 from resotocore.graph_manager.graph_manager import GraphManager, _compress_timestamps
 from resotocore.ids import GraphName
 from resotocore.db.db_access import DbAccess
@@ -46,7 +49,8 @@ async def test_graph_manager(
     assert info == GraphUpdate(110, 1, 0, 218, 0, 0)
     assert len(nodes) == 8
 
-    graph_manager = GraphManager(db_access, SnapshotsScheduleConfig(snapshots={}), core_config_handler, task_handler)
+    config = evolve(core_config_handler.config, snapshots=SnapshotsScheduleConfig(snapshots={}))
+    graph_manager = GraphManager(db_access, config, core_config_handler, task_handler)
     await graph_manager.start()
 
     # list
