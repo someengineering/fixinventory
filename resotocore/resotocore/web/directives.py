@@ -79,6 +79,7 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         raise ex
     finally:
         resp_time = perf_now() - request["start_time"]
+        log.debug(f"Request {request} took {resp_time} ms")
         RequestLatency.labels(request.path).observe(resp_time)
         RequestInProgress.labels(request.path, request.method).dec()
 

@@ -118,6 +118,7 @@ class Benchmark(CheckCollection):
 class CheckResult:
     check: ReportCheck
     number_of_resources_failing_by_account: Dict[str, int]
+    resources_failing_by_account: Dict[str, List[Json]]
     node_id: str = field(init=False, factory=uuid_str)
 
     @property
@@ -134,6 +135,7 @@ class CheckResult:
         reported["number_of_resources_failing"] = self.number_of_resources_failing
         if self.number_of_resources_failing_by_account:
             reported["number_of_resources_failing_by_account"] = self.number_of_resources_failing_by_account
+            reported["resources_failing_by_account"] = self.resources_failing_by_account
         return dict(id=self.node_id, kind="report_check_result", type="node", reported=reported)
 
     @staticmethod
@@ -156,6 +158,7 @@ class CheckResult:
                 related=reported.get("related", []),
             ),
             number_of_resources_failing_by_account=reported.get("number_of_resources_failing_by_account", {}),
+            resources_failing_by_account=reported.get("resources_failing_by_account", {}),
         )
 
 

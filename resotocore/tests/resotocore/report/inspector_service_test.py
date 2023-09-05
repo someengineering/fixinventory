@@ -108,7 +108,9 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
     assert result.checks[1].number_of_resources_failing == 11
     filtered = result.filter_result(filter_failed=True)
     assert filtered.checks[0].number_of_resources_failing == 11
+    assert len(filtered.checks[0].resources_failing_by_account["sub_root"]) == 11
     assert filtered.checks[1].number_of_resources_failing == 11
+    assert len(filtered.checks[1].resources_failing_by_account["sub_root"]) == 11
     passing, failing = result.passing_failing_checks_for_account("sub_root")
     assert len(passing) == 0
     assert len(failing) == 2
