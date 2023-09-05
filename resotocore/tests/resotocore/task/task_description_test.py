@@ -146,7 +146,7 @@ def test_complete_workflow(
     assert len(events) == 0
     assert wi.current_step.name == "done"
     events = wi.handle_done(ActionDone("done", wi.id, "done", s2.id))
-    assert len(events) == 1
+    assert len(events) == 2
     assert wi.progress.percentage == 100
     assert wi.is_active is False
 

@@ -310,9 +310,10 @@ async def test_graph_api(core_client: ResotoClient) -> None:
     # aggregate
     result_aggregate = core_client.search_aggregate("aggregate(kind as kind: sum(1) as count): all", graph=g)
     assert {r["group"]["kind"]: r["count"] async for r in result_aggregate} == {
+        "account": 1,
         "bla": 100,
         "cloud": 1,
-        "foo": 11,
+        "foo": 10,
         "graph_root": 1,
     }
 
@@ -375,8 +376,10 @@ async def test_cli(core_client: ResotoClient) -> None:
     assert (to_execute[0].get("cmd"), to_execute[1].get("cmd")) == ("execute_search", "aggregate_to_count")
 
     # execute search with count
-    executed = [result async for result in core_client.cli_execute("search is(foo) or is(bla) | count kind", g)]
-    assert executed == ["cloud: 1", "foo: 11", "bla: 100", "total matched: 112", "total unmatched: 0"]
+    executed = [
+        result async for result in core_client.cli_execute("search (is(foo, bla)) and not is(account) | count kind", g)
+    ]
+    assert executed == ["cloud: 1", "foo: 10", "bla: 100", "total matched: 111", "total unmatched: 0"]
 
     # execute multiple commands
     response = await core_client.cli_execute_raw("echo foo; echo bar; echo bla")

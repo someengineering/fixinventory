@@ -17,6 +17,8 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
 
     def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
         reported = {**(node if node else to_js(Foo(uid))), "kind": kind}
+        refs = {"cloud_id": "collector", "account_id": "sub_root"} if kind not in ("graph_root", "cloud") else {}
+
         graph.add_node(
             uid,
             id=uid,
@@ -29,16 +31,13 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
                 "cloud": {"reported": {"name": "collector", "id": "collector"}},
                 "account": {"reported": {"name": "sub_root", "id": "sub_root"}},
             },
-            refs={
-                "cloud_id": "collector",
-                "account_id": "sub_root",
-            },
+            refs=refs,
         )
 
     # root -> collector -> sub_root -> **rest
     add_node("root", "graph_root")
     add_node("collector", "cloud", replace=True)
-    add_node("sub_root", "foo")
+    add_node("sub_root", "account")
     add_edge("root", "collector")
     add_edge("collector", "sub_root")
 

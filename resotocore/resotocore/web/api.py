@@ -845,12 +845,13 @@ class Api(Service):
         return await single_result(request, node)
 
     async def delete_node(self, request: Request) -> StreamResponse:
-        graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
+        graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "some_existing"))
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
-        graph = self.deps.db_access.get_graph_db(graph_id)
-        await graph.delete_node(node_id)
+        graph = self.deps.db_access.get_graph_db(graph_name)
+        model = await self.deps.model_handler.load_model(graph_name)
+        await graph.delete_node(node_id, model)
         return web.HTTPNoContent()
 
     async def update_nodes(self, request: Request) -> StreamResponse:

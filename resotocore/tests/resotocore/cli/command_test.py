@@ -237,7 +237,7 @@ async def test_uniq_command(cli: CLI, json_source: str) -> None:
 @pytest.mark.asyncio
 async def test_set_desired_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('search is("foo") | set_desired a="test" b=1 c=true | dump', stream.list)
-    assert len(result[0]) == 11
+    assert len(result[0]) == 10
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["desired"].items()
 
@@ -245,7 +245,7 @@ async def test_set_desired_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_set_metadata_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('search is("foo") | set_metadata a="test" b=1 c=true | dump', stream.list)
-    assert len(result[0]) == 11
+    assert len(result[0]) == 10
     for elem in result[0]:
         assert {"a": "test", "b": 1, "c": True}.items() <= elem["metadata"].items()
 
@@ -253,7 +253,7 @@ async def test_set_metadata_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_clean_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('search is("foo") | clean | dump', stream.list)
-    assert len(result[0]) == 11
+    assert len(result[0]) == 10
     for elem in result[0]:
         assert {"clean": True}.items() <= elem["desired"].items()
 
@@ -261,7 +261,7 @@ async def test_clean_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_protect_command(cli: CLI) -> None:
     result = await cli.execute_cli_command('search is("foo") | protect | dump', stream.list)
-    assert len(result[0]) == 11
+    assert len(result[0]) == 10
     for elem in result[0]:
         assert {"protected": True}.items() <= elem["metadata"].items()
 
@@ -458,14 +458,14 @@ async def test_tag_command(
     assert not data.node.ancestors.cloud.reported.is_none  # the ancestors cloud section is defineda
     assert data["update"].foo == "bla_0"  # using the renderer bla_{reported.some_int}
     res2 = await cli.execute_cli_command('search is("foo") | tag update foo bla', stream.list)
-    assert nr_of_performed() == 11
-    assert len(res2[0]) == 11
+    assert nr_of_performed() == 10
+    assert len(res2[0]) == 10
     res2_tag_no_val = await cli.execute_cli_command('search is("foo") | tag update foobar', stream.list)
-    assert nr_of_performed() == 11
-    assert len(res2_tag_no_val[0]) == 11
+    assert nr_of_performed() == 10
+    assert len(res2_tag_no_val[0]) == 10
     res3 = await cli.execute_cli_command('search is("foo") | tag delete foo', stream.list)
-    assert nr_of_performed() == 11
-    assert len(res3[0]) == 11
+    assert nr_of_performed() == 10
+    assert len(res3[0]) == 10
     with caplog.at_level(logging.WARNING):
         caplog.clear()
         res4 = await cli.execute_cli_command('search is("bla") limit 2 | tag delete foo', stream.list)
@@ -645,13 +645,29 @@ async def test_execute_search_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_aggregation_to_count_command(cli: CLI) -> None:
     r = await cli.execute_cli_command("search all | count kind", stream.list)
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "account: 1",
+        "foo: 10",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
     # exactly the same command as above (above search would be rewritten as this)
     r = await cli.execute_cli_command(
         "execute_search aggregate(reported.kind as name: sum(1) as count):all sort count asc | aggregate_to_count",
         stream.list,
     )
-    assert set(r[0]) == {"graph_root: 1", "cloud: 1", "foo: 11", "bla: 100", "total matched: 113", "total unmatched: 0"}
+    assert set(r[0]) == {
+        "graph_root: 1",
+        "cloud: 1",
+        "account: 1",
+        "foo: 10",
+        "bla: 100",
+        "total matched: 113",
+        "total unmatched: 0",
+    }
 
 
 @pytest.mark.skipif(not_in_path("arangodump"), reason="requires arangodump to be in path")
@@ -988,9 +1004,9 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
     assert await history_count(f"history --change node_updated") == 1
     assert await history_count(f"history --change node_deleted") == 0
     assert await history_count(f"history --change node_deleted") == 0
-    assert await history_count(f"history is(foo)") == 11
+    assert await history_count(f"history is(foo)") == 10
     # combine all selectors
-    assert await history_count(f"history --after 5m --before {five_min_later} --change node_created is(foo)") == 11
+    assert await history_count(f"history --after 5m --before {five_min_later} --change node_created is(foo)") == 10
 
 
 @pytest.mark.asyncio
