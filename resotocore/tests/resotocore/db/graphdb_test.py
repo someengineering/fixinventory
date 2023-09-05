@@ -169,8 +169,8 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
     return graph
 
 
-async def load_graph(db: GraphDB, model: Model, base_id: str = "sub_root") -> MultiDiGraph:
-    blas = Query.by("foo", P("identifier") == base_id).traverse_out(0, Navigation.Max)
+async def load_graph(db: GraphDB, model: Model) -> MultiDiGraph:
+    blas = Query.by(P("identifier") == "sub_root").traverse_out(0, Navigation.Max)
     return await db.search_graph(QueryModel(blas.on_section("reported"), model))
 
 
@@ -303,7 +303,7 @@ async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> N
     foos_or_blas = parse_query("is([foo, bla])")
     async with await filled_graph_db.search_list(QueryModel(foos_or_blas.on_section("reported"), foo_model)) as gen:
         result = [x async for x in gen]
-        assert len(result) == 111  # 113 minus 1 graph_root, minus one cloud
+        assert len(result) == 110  # 113 minus 1 graph_root, minus one cloud
 
 
 @mark.asyncio
@@ -312,7 +312,7 @@ async def test_query_not(filled_graph_db: ArangoGraphDB, foo_model: Model) -> No
     blas = Query.by(Query.mk_term("foo").not_term())
     async with await filled_graph_db.search_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
-        assert len(result) == 102
+        assert len(result) == 103
 
 
 @mark.asyncio
@@ -323,10 +323,10 @@ async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -
 
     now = utc()
     five_min_ago = now - timedelta(minutes=5)
-    assert len(await nodes(Query.by("foo"))) == 11
-    assert len(await nodes(Query.by("foo"), after=five_min_ago)) == 11
+    assert len(await nodes(Query.by("foo"))) == 10
+    assert len(await nodes(Query.by("foo"), after=five_min_ago)) == 10
     assert len(await nodes(Query.by("foo"), before=five_min_ago)) == 0
-    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_created)) == 11
+    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_created)) == 10
     assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_deleted)) == 0
 
 
@@ -394,14 +394,14 @@ async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) ->
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
     agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)").on_section("reported")
     async with await filled_graph_db.search_aggregation(QueryModel(agg_query, foo_model)) as gen:
-        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 11}]
+        assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 10}]
 
     agg_combined_var_query = parse_query(
         'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
     ).on_section("reported")
 
     async with await filled_graph_db.search_aggregation(QueryModel(agg_combined_var_query, foo_model)) as g:
-        assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 11}]
+        assert [x async for x in g] == [{"group": {"kind": "test_foo_0_"}, "instances": 10}]
 
     agg_multi_fn_same_prop = parse_query('aggregate(sum(f) as a, max(f) as b): is("bla")').on_section("reported")
     async with await filled_graph_db.search_aggregation(QueryModel(agg_multi_fn_same_prop, foo_model)) as g:
@@ -438,7 +438,7 @@ async def test_query_merge(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
             assert b.reported.kind == "bla"
             assert len(b.foo.bar.parents) == 4
             for parent in b.foo.bar.parents:
-                assert parent.reported.kind in ["foo", "cloud", "graph_root"]
+                assert parent.reported.kind in ["foo", "cloud", "graph_root", "account"]
             assert b.walk.reported.kind == "bla"
             assert b.foo.child == AccessNone()
             assert b.bla.agg == [{"count": 5}]
@@ -570,18 +570,22 @@ async def test_update_nodes(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @mark.asyncio
-async def test_delete_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    await graph_db.wipe()
-    await graph_db.create_node(foo_model, NodeId("sub_root"), to_json(Foo("sub_root", "foo")), NodeId("root"))
-    await graph_db.create_node(
-        foo_model, NodeId("some_other_child"), to_json(Foo("some_other_child", "foo")), NodeId("sub_root")
-    )
-    await graph_db.create_node(foo_model, NodeId("born_to_die"), to_json(Foo("born_to_die", "foo")), NodeId("sub_root"))
-    await graph_db.delete_node(NodeId("born_to_die"))
-    assert await graph_db.get_node(foo_model, NodeId("born_to_die")) is None
-    with raises(AttributeError) as not_allowed:
-        await graph_db.delete_node(NodeId("sub_root"))
-    assert str(not_allowed.value) == "Can not delete node, since it has 1 child(ren)!"
+async def test_delete_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def all_nodes() -> List[Json]:
+        async with await filled_graph_db.search_list(QueryModel(parse_query("all"), foo_model)) as crsr:
+            return [x async for x in crsr]
+
+    # Deleting a leaf node will remove the node and edge to parent
+    assert len(await all_nodes()) == 113
+    assert await filled_graph_db.get_node(foo_model, NodeId("3_2")) is not None
+    await filled_graph_db.delete_node(NodeId("3_2"), foo_model)
+    assert await filled_graph_db.get_node(foo_model, NodeId("3_2")) is None
+    assert len(await all_nodes()) == 112
+
+    # Deleting a node with children will remove the node and all edges to children
+    await filled_graph_db.delete_node(NodeId("sub_root"), foo_model)
+    assert await filled_graph_db.get_node(foo_model, NodeId("sub_root")) is None
+    assert len(await all_nodes()) == 2
 
 
 @mark.asyncio
@@ -590,7 +594,7 @@ async def test_events(
 ) -> None:
     await event_graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
     await event_graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
-    await event_graph_db.delete_node(NodeId("some_other"))
+    await event_graph_db.delete_node(NodeId("some_other"), foo_model)
     await event_graph_db.merge_graph(create_graph("yes or no", width=1), foo_model)
     await event_graph_db.merge_graph(create_graph("maybe", width=1), foo_model, "batch1", True)
     copy_graph_name = GraphName("graph_copy_for_event")
