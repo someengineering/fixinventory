@@ -99,8 +99,8 @@ class AzureResourceManagementClient(AzureClient):
 
         # Handle error responses
         if response.status_code not in [200]:
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response, error_format=ARMErrorFormat)  # type: ignore
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response, error_format=ARMErrorFormat)
 
         # Parse json content
         # TODO: handle pagination

@@ -557,13 +557,6 @@ class TaskHandlerService(TaskHandler, Service):
         In case there is progress not emitted, it is send to the message bus.
         """
         for task in list(self.tasks.values()):
-            # check if there is any pending progress update to emit
-            if task.not_emitted_progress() is not None:
-                await self.message_bus.emit_event(
-                    CoreMessage.ProgressMessage,
-                    {"workflow": task.descriptor.name, "task": task.id, "message": task.progress_json()},
-                )
-
             # check if active tasks are overdue
             if task.is_active:
                 if task.current_state.check_timeout():

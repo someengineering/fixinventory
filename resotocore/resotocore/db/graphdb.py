@@ -92,7 +92,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def delete_node(self, node_id: NodeId) -> None:
+    async def delete_node(self, node_id: NodeId, model: Model) -> None:
         pass
 
     @abstractmethod
@@ -391,17 +391,20 @@ class ArangoGraphDB(GraphDB):
             for element in cursor:
                 yield trafo(element)
 
-    async def delete_node(self, node_id: NodeId) -> None:
-        with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
-            count = cursor.next()
-            if count > 0:
-                raise AttributeError(f"Can not delete node, since it has {count} child(ren)!")
+    async def delete_node(self, node_id: NodeId, model: Model) -> None:
+        async def delete_children(element: Json) -> None:
+            with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
+                count = cursor.next()
+                if count > 0:
+                    # Merge a graph with a single node -> logic will remove all children.
+                    # Note: this will only work for nodes that are resolved (cloud, account, region, zone...)
+                    builder = GraphBuilder(model, node_id)
+                    builder.add_node(node_id, reported=element[Section.reported], replace=True)
+                    await self.merge_graph(builder.graph, model, node_id)
 
-        with await self.db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
-            if not cursor.empty():
-                await self.db.delete_vertex(self.name, cursor.next())
-            else:
-                return None
+        if node := await self.get_node(model, node_id):
+            await delete_children(node)
+            await self.db.delete_vertex(self.name, {"_id": f'{self.vertex_name}/{node["id"]}'})
 
     async def by_id(self, node_id: NodeId) -> Optional[Json]:
         return await self.by_id_with(self.db, node_id)
@@ -1278,8 +1281,8 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
         return result
 
-    async def delete_node(self, node_id: NodeId) -> None:
-        await self.real.delete_node(node_id)
+    async def delete_node(self, node_id: NodeId, model: Model) -> None:
+        await self.real.delete_node(node_id, model)
         await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name})
 
     def update_nodes(

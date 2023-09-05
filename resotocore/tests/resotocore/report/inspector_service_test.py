@@ -104,11 +104,11 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
     result = await inspector.perform_benchmark(inspector.cli.env["graph"], "test")
-    assert result.checks[0].number_of_resources_failing == 11
-    assert result.checks[1].number_of_resources_failing == 11
+    assert result.checks[0].number_of_resources_failing == 10
+    assert result.checks[1].number_of_resources_failing == 10
     filtered = result.filter_result(filter_failed=True)
-    assert filtered.checks[0].number_of_resources_failing == 11
-    assert filtered.checks[1].number_of_resources_failing == 11
+    assert filtered.checks[0].number_of_resources_failing == 10
+    assert filtered.checks[1].number_of_resources_failing == 10
     passing, failing = result.passing_failing_checks_for_account("sub_root")
     assert len(passing) == 0
     assert len(failing) == 2
@@ -150,9 +150,9 @@ async def test_list_failing(inspector_service_with_test_benchmark: InspectorServ
     inspector = inspector_service_with_test_benchmark
     graph = inspector.cli.env["graph"]
     search_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_search")]
-    assert len(search_res) == 11
+    assert len(search_res) == 10
     cmd_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd")]
-    assert len(cmd_res) == 11
+    assert len(cmd_res) == 10
     search_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_search", ["n/a"])]
     assert len(search_res_account) == 0
     cmd_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
