@@ -21,6 +21,7 @@ from resotocore.message_bus import (
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.util import AnyT, utc, first
 from resotolib.core.progress import ProgressDone, Progress
+from resotolib.utils import freeze
 
 
 async def wait_for_message(
@@ -78,6 +79,7 @@ def test_message_serialization() -> None:
     subsctiber_id = SubscriberId("sub")
     now = datetime(2022, 10, 23, 12, 0, 0, 0, timezone.utc)
     roundtrip(Event("test", {"a": "b", "c": 1, "d": "bla"}))
+    roundtrip(Event("test", freeze({"a": "b", "c": {"a": 1, "d": "bla"}})))
     roundtrip(Action("test", task_id, "step_name"))
     roundtrip(Action("test", task_id, "step_name", {"test": 1}))
     roundtrip(ActionDone("test", task_id, "step_name", subsctiber_id))
