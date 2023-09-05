@@ -66,6 +66,7 @@ class CheckContext:
 
 class InspectorService(Inspector, Service):
     def __init__(self, cli: CLI) -> None:
+        super().__init__()
         self.config_handler: ConfigHandler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli
@@ -74,22 +75,20 @@ class InspectorService(Inspector, Service):
         self.event_sender = cli.dependencies.event_sender
 
     async def start(self) -> None:
-        # TODO: we need a migration path for checks added in existing configs
-        config_ids = {i async for i in self.config_handler.list_config_ids()}
-        overwrite = False  # only here to simplify development. True until we reach a stable version.
-        # we renamed this config in 3.2.6 - old installations still might have it
-        # this line can be removed in a future version
-        await self.config_handler.delete_config(ConfigId("resoto.report.benchmark.aws_cis_1.5"))
-        for name, js in BenchmarkConfig.from_files().items():
-            if overwrite or benchmark_id(name) not in config_ids:
-                cid = benchmark_id(name)
-                log.info(f"Creating benchmark config {cid}")
-                await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}), validate=False)
-        for name, js in ReportCheckCollectionConfig.from_files().items():
-            if overwrite or check_id(name) not in config_ids:
-                cid = check_id(name)
-                log.info(f"Creating check collection config {cid}")
-                await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
+        if not self.cli.dependencies.config.multi_tenant_setup:
+            # TODO: we need a migration path for checks added in existing configs
+            config_ids = {i async for i in self.config_handler.list_config_ids()}
+            overwrite = False  # Only here to simplify development. True until we reach a stable version.
+            for name, js in BenchmarkConfig.from_files().items():
+                if overwrite or benchmark_id(name) not in config_ids:
+                    cid = benchmark_id(name)
+                    log.info(f"Creating benchmark config {cid}")
+                    await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}), validate=False)
+            for name, js in ReportCheckCollectionConfig.from_files().items():
+                if overwrite or check_id(name) not in config_ids:
+                    cid = check_id(name)
+                    log.info(f"Creating check collection config {cid}")
+                    await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
 
     async def list_benchmarks(self) -> List[Benchmark]:
         return [

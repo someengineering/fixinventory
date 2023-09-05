@@ -31,6 +31,7 @@ class ConfigOverrideService(ConfigOverride, Service):
     def __init__(
         self, override_paths: List[Path], get_configs_model: Callable[[], Awaitable[Model]], sleep_time: float = 10.0
     ):
+        super().__init__()
         self.override_paths = override_paths
         self._get_configs_model = get_configs_model
 

@@ -76,6 +76,7 @@ class TaskHandlerService(TaskHandler, Service):
         cli: CLI,
         config: CoreConfig,
     ):
+        super().__init__()
         self.running_task_db = running_task_db
         self.job_db = job_db
         self.message_bus = message_bus
@@ -248,12 +249,6 @@ class TaskHandlerService(TaskHandler, Service):
             started_instances[descriptor.id] = instance
         return list(started_instances.values())
 
-    async def __aenter__(self) -> TaskHandlerService:
-        return await self.start()
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        return await self.stop()
-
     async def start(self) -> TaskHandlerService:
         log.debug("TaskHandlerService is starting up!")
 
@@ -262,7 +257,7 @@ class TaskHandlerService(TaskHandler, Service):
         self.task_descriptions = [*self.task_descriptions, *db_jobs]
 
         # load and restore all tasks
-        if not self.config.args.ignore_interrupted_tasks:
+        if not self.config.args.ignore_interrupted_tasks and not self.config.multi_tenant_setup:
             self.tasks = {wi.id: wi for wi in await self.start_interrupted_tasks()}
 
         await self.timeout_watcher.start()
@@ -286,9 +281,6 @@ class TaskHandlerService(TaskHandler, Service):
                             await self.handle_action(message)
                         elif isinstance(message, (ActionDone, ActionError)):
                             log.info(f"Ignore message via event bus: {message}")
-                    except asyncio.CancelledError as ex:
-                        # if we outer task is cancelled, give up
-                        raise ex
                     except Exception as ex:
                         log.error(f"Could not handle event {message} - give up.", exc_info=ex)
 
@@ -305,12 +297,14 @@ class TaskHandlerService(TaskHandler, Service):
         await self.timeout_watcher.stop()
 
         # stop event listener
-        if self.message_bus_watcher:
+        if self.message_bus_watcher and not self.message_bus_watcher.done():
             self.message_bus_watcher.cancel()
             try:
                 await self.message_bus_watcher
             except CancelledError:
                 log.info("task has been cancelled")
+            except Exception:
+                log.error("Error while waiting for message bus watcher to stop.", exc_info=True)
 
         # wait for all running commands to complete
         for task in list(self.tasks.values()):

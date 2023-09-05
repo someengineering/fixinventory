@@ -4,7 +4,7 @@ import asyncio
 import logging
 from collections import deque
 from datetime import timedelta, datetime
-from typing import Any, MutableSequence, Optional, List
+from typing import MutableSequence, Optional, List
 
 from aiohttp import ClientSession
 from posthog import Client
@@ -39,6 +39,7 @@ class PostHogEventSender(AnalyticsEventSender):
         :param client_flush_interval: only here for testing purposes.
         :param client_retries: only here for testing purposes.
         """
+        super().__init__()
         # Note: the client also has the ability to queue events with a flush interval.
         # Sadly: in order to shutdown one has to wait the full interval in worst case!
         # In order to circumvent this behaviour, the queue is maintained here with a configurable interval.
@@ -111,12 +112,6 @@ class PostHogEventSender(AnalyticsEventSender):
                     timestamp=event.at,
                 )
             self.queue.clear()
-
-    async def __aenter__(self) -> PostHogEventSender:
-        return await self.start()
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        return await self.stop()
 
     async def start(self) -> PostHogEventSender:
         await self.flusher.start()

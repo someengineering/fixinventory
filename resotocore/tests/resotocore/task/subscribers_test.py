@@ -5,12 +5,11 @@ from deepdiff import DeepDiff
 from pytest import fixture, mark
 
 from resotocore.db.subscriberdb import SubscriberDb
+from resotocore.ids import SubscriberId
 from resotocore.message_bus import MessageBus
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.task.model import Subscription, Subscriber
-from resotocore.task.subscribers import SubscriptionHandler
-from resotocore.ids import SubscriberId
-
+from resotocore.task.subscribers import SubscriptionHandler, SubscriptionHandlerService
 from tests.resotocore.db.entitydb import InMemoryDb
 
 
@@ -20,8 +19,8 @@ def in_mem_db() -> SubscriberDb:
 
 
 @fixture
-async def handler(in_mem_db: SubscriberDb) -> AsyncIterator[SubscriptionHandler]:
-    async with SubscriptionHandler(in_mem_db, MessageBus()) as handler:
+async def handler(in_mem_db: SubscriberDb) -> AsyncIterator[SubscriptionHandlerService]:
+    async with SubscriptionHandlerService(in_mem_db, MessageBus()) as handler:
         await handler.add_subscription(SubscriberId("sub_1"), "test", True, timedelta(seconds=3))
         yield handler
 

@@ -27,6 +27,7 @@ class LocalResotocoreAppRuntime(Runtime, Service):
     """
 
     def __init__(self, cli: CLI) -> None:
+        super().__init__()
         self.cli = cli
         self.dbaccess = cli.dependencies.db_access
         self.model_handler = cli.dependencies.model_handler

@@ -246,6 +246,7 @@ class GraphMerger(Service):
         config: CoreConfig,
         message_bus: MessageBus,
     ) -> None:
+        super().__init__()
         self.model_handler = model_handler
         self.event_sender = event_sender
         self.config = config

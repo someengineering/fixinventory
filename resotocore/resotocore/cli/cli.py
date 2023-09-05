@@ -8,7 +8,7 @@ from itertools import takewhile
 from operator import attrgetter
 from textwrap import dedent
 from typing import Dict, List, Tuple, Union, Sequence
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -39,7 +39,6 @@ from resotocore.cli.command import (
     ReportCommand,
     WriteCommand,
 )
-from resotocore.dependencies import Dependencies
 from resotocore.cli.model import (
     ParsedCommand,
     ParsedCommands,
@@ -82,6 +81,9 @@ from resotocore.user.model import Permission
 from resotocore.util import group_by
 from resotolib.parse_util import make_parser, pipe_p, semicolon_p
 
+if TYPE_CHECKING:
+    from resotocore.dependencies import TenantDependencies
+
 log = logging.getLogger(__name__)
 
 
@@ -119,7 +121,7 @@ class HelpCommand(CLICommand):
 
     def __init__(
         self,
-        dependencies: Dependencies,
+        dependencies: TenantDependencies,
         parts: List[CLICommand],
         alias_names: Dict[str, str],
         alias_templates: Dict[str, AliasTemplate],
@@ -159,7 +161,7 @@ class HelpCommand(CLICommand):
             sorted_infra_app_aliases = list(sorted(self.infra_app_aliases.values(), key=attrgetter("name")))
             infra_app_aliases = "\n".join(f"- `{a.name}` - {a.description}" for a in sorted_infra_app_aliases)
 
-            result = f"## Custom Commands \n{alias_templates}\n ## Infrastucture Apps \n{infra_app_aliases}\n"
+            result = f"## Custom Commands \n{alias_templates}\n ## Infrastructure Apps \n{infra_app_aliases}\n"
             for category in ["search", "format", "action", "setup", "misc"]:
                 result += f"\n\n## {category.capitalize()} Commands\n"
                 for part in parts:
@@ -227,8 +229,13 @@ class CLIService(CLI, Service):
     """
 
     def __init__(
-        self, dependencies: Dependencies, parts: List[CLICommand], env: Dict[str, Any], alias_names: Dict[str, str]
+        self,
+        dependencies: TenantDependencies,
+        parts: List[CLICommand],
+        env: Dict[str, Any],
+        alias_names: Dict[str, str],
     ):
+        super().__init__()
         dependencies.extend(cli=self)
         alias_templates_list = [AliasTemplate.from_config(cmd) for cmd in dependencies.config.custom_commands.commands]
         alias_templates = {a.name: a for a in alias_templates_list}
@@ -269,7 +276,7 @@ class CLIService(CLI, Service):
         return self.cli_env
 
     @property
-    def dependencies(self) -> Dependencies:
+    def dependencies(self) -> TenantDependencies:
         return self.__dependencies
 
     @property

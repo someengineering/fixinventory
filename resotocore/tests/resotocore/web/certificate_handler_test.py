@@ -8,7 +8,7 @@ from attr import evolve
 from resotocore.core_config import CoreConfig
 from resotocore.system_start import empty_config, parse_args
 from resotocore.types import Json
-from resotocore.web.certificate_handler import CertificateHandler
+from resotocore.web.certificate_handler import CertificateHandler, CertificateHandlerWithCA
 from resotolib.x509 import (
     load_cert_from_bytes,
     cert_fingerprint,
@@ -39,14 +39,14 @@ def test_bootstrap(test_db: StandardDatabase) -> None:
         config = empty_config()
         # Delete any existing entry, so a new certificate needs to be created
         sd.delete("ca", ignore_missing=True)
-        handler = CertificateHandler.lookup(config, test_db, tmp)
+        handler = CertificateHandlerWithCA.lookup(config, test_db, tmp)
         ca = cast(Optional[Json], sd.get("ca"))
         assert ca is not None
         # ensure the certificate in the database is the same as exposed by the handler
         ca_bytes, fingerprint = handler.authority_certificate
         assert ca_bytes == ca["certificate"].encode("utf-8")
         # a new handler will use the existing certificate
-        handler2 = CertificateHandler.lookup(config, test_db, tmp)
+        handler2 = CertificateHandlerWithCA.lookup(config, test_db, tmp)
         assert handler.authority_certificate == handler2.authority_certificate
         # but the host certificate will be different
         assert handler.host_certificate != handler2.host_certificate

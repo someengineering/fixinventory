@@ -90,9 +90,9 @@ async def test_recover_workflow(
         assert len(wf2.tasks) == 1
         wfi = list(wf2.tasks.values())[0]
         assert wfi.current_state.name == "act"
-        s1 = await wf2.list_all_pending_actions_for(sub1)
-        s2 = await wf2.list_all_pending_actions_for(sub2)
-        s3 = await wf2.list_all_pending_actions_for(sub3)
+        await wf2.list_all_pending_actions_for(sub1)
+        await wf2.list_all_pending_actions_for(sub2)
+        await wf2.list_all_pending_actions_for(sub3)
         assert (await wf2.list_all_pending_actions_for(sub1)) == []
         assert (await wf2.list_all_pending_actions_for(sub2)) == [Action("collect", wfi.id, "act", {})]
         assert (await wf2.list_all_pending_actions_for(sub3)) == []
@@ -213,31 +213,30 @@ async def test_validate_add_delete_job(task_handler: TaskHandlerService) -> None
 async def test_wait_for_collect_done(
     task_handler: TaskHandlerService, message_bus: MessageBus, graph_merger: GraphMerger
 ) -> None:
-    async with task_handler:
-        # Test 1: start a task without any ongoing graph merges
-        # start task
-        task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
-        assert task is not None
-        rt: RunningTask = task.running_task
-        assert rt in await task_handler.running_tasks()
-        # no collect is in progress. The task should be finished immediately.
-        await message_bus.emit_event("collected", {})
-        await eventually(lambda: rt.current_step.name == "task_end")
+    # Test 1: start a task without any ongoing graph merges
+    # start task
+    task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
+    assert task is not None
+    rt: RunningTask = task.running_task
+    assert rt in await task_handler.running_tasks()
+    # no collect is in progress. The task should be finished immediately.
+    await message_bus.emit_event("collected", {})
+    await eventually(lambda: rt.current_step.name == "task_end")
 
-        # Test 2: start a task with an ongoing graph merge operations. The task should wait for the merge to finish.
-        # start task
-        task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
-        assert task is not None
-        rt = task.running_task
-        assert rt in await task_handler.running_tasks()
-        # fake some ongoing imports in graph merger
-        graph_merger.running_imports[rt.id] = 42
-        # send event to finish task
-        await message_bus.emit_event("collected", {})
-        # sleep a little bit to make sure the task is not finished
-        await asyncio.sleep(0.1)
-        await eventually(lambda: rt.current_step.name == "wait_for_collect_done")
-        # signal, that the import is finished
-        await message_bus.emit_event(CoreMessage.GraphMergeCompleted, dict(task_id=rt.id))
-        # make sure the task finishes
-        await eventually(lambda: rt.current_step.name == "task_end")
+    # Test 2: start a task with an ongoing graph merge operations. The task should wait for the merge to finish.
+    # start task
+    task = await task_handler.start_task_by_descriptor_id(TaskDescriptorId("wait_for_collect_done"))
+    assert task is not None
+    rt = task.running_task
+    assert rt in await task_handler.running_tasks()
+    # fake some ongoing imports in graph merger
+    graph_merger.running_imports[rt.id] = 42
+    # send event to finish task
+    await message_bus.emit_event("collected", {})
+    # sleep a little bit to make sure the task is not finished
+    await asyncio.sleep(0.1)
+    await eventually(lambda: rt.current_step.name == "wait_for_collect_done")
+    # signal, that the import is finished
+    await message_bus.emit_event(CoreMessage.GraphMergeCompleted, dict(task_id=rt.id))
+    # make sure the task finishes
+    await eventually(lambda: rt.current_step.name == "task_end")

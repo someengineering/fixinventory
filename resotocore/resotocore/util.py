@@ -57,6 +57,7 @@ class Periodic(Service):
         first_run: Optional[timedelta] = None,
         loop: Optional[AbstractEventLoop] = None,
     ):
+        super().__init__()
         self.name = name
         self.func = func
         self.frequency = frequency
@@ -71,15 +72,19 @@ class Periodic(Service):
     async def start(self) -> None:
         if self._task is None:
             # Start task to call func periodically:
-            self._task = asyncio.ensure_future(self._run(), loop=self._loop)
+            self._task = asyncio.create_task(self._run())
             log.debug(f"Periodic task {self.name} has been started.")
 
     async def stop(self) -> None:
         # Stop task and await it stopped:
-        if self._task is not None:
+        if self._task is not None and not self._task.done():
             self._task.cancel()
-            with suppress(asyncio.CancelledError):
+            try:
                 await self._task
+            except asyncio.CancelledError:
+                log.debug(f"Periodic task {self.name} has been cancelled")
+            except Exception:
+                log.error(f"Periodic task {self.name} error", exc_info=True)
 
     async def _run(self) -> None:
         await asyncio.sleep(self.first_run.total_seconds())
@@ -89,6 +94,8 @@ class Periodic(Service):
                 result = self.func()
                 if isinstance(result, Awaitable):
                     await result
+            except asyncio.CancelledError:
+                pass
             except Exception as ex:
                 log.error(
                     f"Periodic function {self.name} caught an exception: {ex}",

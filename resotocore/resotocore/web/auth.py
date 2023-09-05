@@ -18,14 +18,15 @@ from cryptography.x509 import Certificate
 from jwt import PyJWTError
 
 from resotocore.core_config import CoreConfig
-from resotocore.db.system_data_db import SystemDataDb
+from resotocore.db.system_data_db import JwtSigningKeyHolder
+from resotocore.dependencies import TenantDependencyProvider
 from resotocore.error import NotEnoughPermissions
 from resotocore.service import Service
 from resotocore.user.model import AuthorizedUser, Permission
 from resotocore.util import uuid_str
 from resotocore.web.certificate_handler import CertificateHandler
 from resotolib import jwt as ck_jwt
-from resotolib.asynchronous.web import RequestHandler, Middleware
+from resotolib.asynchronous.web import RequestHandler, Middleware, TenantRequestHandler
 from resotolib.jwt import encode_jwt, create_jwk_dict
 from resotolib.types import Json
 from resotolib.utils import utc
@@ -77,16 +78,19 @@ async def no_check(request: Request, handler: RequestHandler) -> StreamResponse:
 class AuthHandler(Service):
     def __init__(
         self,
-        system_db: SystemDataDb,
+        jwt_signing_keys: JwtSigningKeyHolder,
         config: CoreConfig,
         cert_handler: CertificateHandler,
+        tenant_dependency_provider: TenantDependencyProvider,
         always_allowed_paths: Set[str],
         not_allowed: Optional[Callable[[Request], Awaitable[StreamResponse]]] = None,
     ) -> None:
-        self.system_db = system_db
+        super().__init__()
+        self.jwt_signing_keys = jwt_signing_keys
         self.config = config
         self.psk = config.args.psk
         self.cert_handler = cert_handler
+        self.tenant_dependency_provider = tenant_dependency_provider
         self.always_allowed_paths = always_allowed_paths
         self.not_allowed = not_allowed
         self.authorization_codes: Dict[str, LoginWithCode] = {}
@@ -95,7 +99,7 @@ class AuthHandler(Service):
         self.signing_key_jwk: Optional[Json] = None  # set on start
 
     async def start(self) -> None:
-        keys = await self.system_db.jwt_signing_keys()
+        keys = await self.jwt_signing_keys.jwt_signing_keys()
         # check if the signing key is already in the database
         if keys is None:
             signing_key = gen_rsa_key()
@@ -104,7 +108,7 @@ class AuthHandler(Service):
                 gen_csr(signing_key), days_valid=3650, key_usage={"key_cert_sign": True, "key_agreement": True}
             )
             key_string = key_to_bytes(signing_key).decode("utf-8")
-            await self.system_db.update_jwt_signing_keys(key_string, cert_to_bytes(cert).decode("utf-8"))
+            await self.jwt_signing_keys.update_jwt_signing_keys(key_string, cert_to_bytes(cert).decode("utf-8"))
             self.signing_key_private = signing_key
             self.signing_key_certificate = cert
             self.signing_key_jwk = {"keys": [create_jwk_dict(cert)]}
@@ -210,16 +214,23 @@ class AuthHandler(Service):
                     required_permissions.update(p)
                 else:
                     raise ValueError(f"Invalid permission {p}")
+            # If no permissions are required, we can skip the check
+            if not required_permissions:
+                return
+            # Make sure, the current user has the required permissions
             if current_user := request.get("user"):
                 if not current_user.has_permission(required_permissions):
                     raise NotEnoughPermissions(current_user.permissions, required_permissions)
             else:
                 raise web.HTTPUnauthorized()
 
-    def allow_with(self, handler: RequestHandler, *permission: Union[Permission, Set[Permission]]) -> RequestHandler:
+    def allow_with(
+        self, handler: TenantRequestHandler, *permission: Union[Permission, Set[Permission]]
+    ) -> RequestHandler:
         async def wrapper(request: Request) -> StreamResponse:
             await self.requires_permission(request, *permission)
-            return await handler(request)
+            tenant_dependencies = await self.tenant_dependency_provider.dependencies(request)
+            return await handler(request, tenant_dependencies)
 
         return wrapper
 

@@ -156,13 +156,16 @@ class ConfigOverride(ABC):
     def get_all_overrides(self) -> Dict[ConfigId, Json]:
         pass
 
-    @abstractmethod
-    async def start(self) -> None:
-        pass
 
-    @abstractmethod
-    async def stop(self) -> None:
-        pass
+class NoConfigOverride(ConfigOverride):
+    def add_override_change_hook(self, hook: Callable[[Dict[ConfigId, Json]], Awaitable[Any]]) -> None:
+        return None
+
+    def get_override(self, config_id: ConfigId) -> Optional[Json]:
+        return None
+
+    def get_all_overrides(self) -> Dict[ConfigId, Json]:
+        return {}
 
 
 # register serializer for this class

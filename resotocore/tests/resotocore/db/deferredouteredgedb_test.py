@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from pytest import fixture
@@ -16,7 +16,7 @@ def instances() -> List[DeferredOuterEdges]:
             id="1",
             change_id="c1",
             task_id=TaskId("t1"),
-            created_at=datetime(2021, 1, 1),
+            created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
             edges=[DeferredEdge(ByNodeId(NodeId("e1")), ByNodeId(NodeId("e2")), EdgeTypes.default)],
         ),
@@ -24,7 +24,7 @@ def instances() -> List[DeferredOuterEdges]:
             id="2",
             change_id="c1",
             task_id=TaskId("t1"),
-            created_at=datetime(2021, 1, 1),
+            created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
             edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default)],
         ),
@@ -32,7 +32,7 @@ def instances() -> List[DeferredOuterEdges]:
             id="3",
             change_id="c2",
             task_id=TaskId("t2"),
-            created_at=datetime(2021, 1, 1),
+            created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
             edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default)],
         ),

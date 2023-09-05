@@ -6,23 +6,20 @@ import pytest
 from resotocore.analytics import InMemoryEventSender, CoreEvent
 from resotocore.analytics.recurrent_events import emit_recurrent_events
 from resotocore.message_bus import MessageBus
-from resotocore.task.model import Subscriber
-from resotocore.worker_task_queue import WorkerTaskQueue
-from tests.resotocore.db.entitydb import InMemoryDb
 from resotocore.model.model import Model
 from resotocore.task.subscribers import SubscriptionHandler
+from resotocore.worker_task_queue import WorkerTaskQueue
 from tests.resotocore.model import ModelHandlerStatic
 
 
 @pytest.mark.asyncio
-async def test_emit_recurrent_events() -> None:
+async def test_emit_recurrent_events(subscription_handler: SubscriptionHandler) -> None:
     message_bus = MessageBus()
     sender = InMemoryEventSender()
     model = ModelHandlerStatic(Model.empty())
-    sub = SubscriptionHandler(InMemoryDb(Subscriber, lambda x: x.id), message_bus)
     queue = WorkerTaskQueue()
     fast = timedelta(seconds=0.001)
-    periodic = emit_recurrent_events(sender, model, sub, queue, message_bus, fast, fast)
+    periodic = emit_recurrent_events(sender, model, subscription_handler, queue, message_bus, fast, fast)
     await periodic.start()
     while len(sender.events) < 3:
         await asyncio.sleep(0.01)

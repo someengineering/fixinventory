@@ -36,6 +36,7 @@ class Scheduler(Service, ABC):
 
 class APScheduler(Scheduler):
     def __init__(self) -> None:
+        super().__init__()
         self.scheduler = AsyncIOScheduler(
             jobstores={"default": MemoryJobStore()},
             executors={"default": AsyncIOExecutor()},
@@ -76,6 +77,7 @@ class NoScheduler(Scheduler):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         log.info("Scheduling disabled")
 
     def cron(

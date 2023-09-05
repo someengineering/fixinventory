@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import logging
 import re
 from abc import ABC, abstractmethod
-from functools import reduce
+from functools import reduce, lru_cache
 from typing import Optional, List, Set, Callable, Dict, Iterator
 
 from plantuml import PlantUML
 
 from resotocore.async_extensions import run_async
 from resotocore.db.db_access import DbAccess
-from resotocore.ids import GraphName
+from resotocore.ids import GraphName, valid_root_graph_name
 from resotocore.model.model import Model, Kind, ComplexKind, Property
+from resotocore.model.typed_model import from_js
 from resotocore.service import Service
 from resotocore.types import EdgeType
 from resotocore.util import exist
+from resotolib.core.model_check import load_plugin_classes
+from resotolib.graph import export_model
 
 log = logging.getLogger(__name__)
 
@@ -93,10 +98,10 @@ PlantUmlAttrs = (
 
 class ModelHandlerDB(ModelHandler, Service):
     def __init__(self, db_access: DbAccess, plantuml_server: str = "https://plantuml.resoto.org"):
+        super().__init__()
         self.db_access = db_access
         self.plantuml_server = plantuml_server
         self.__loaded_model: Dict[GraphName, Model] = {}
-        self.default_legacy_graph_name = GraphName("resoto")
 
     async def load_model(self, graph_name: GraphName, *, force: bool = False) -> Model:
         if not force and (model := self.__loaded_model.get(graph_name)) is not None:
@@ -235,3 +240,20 @@ class ModelHandlerDB(ModelHandler, Service):
         # unset loaded model
         self.__loaded_model[graph_name] = updated
         return updated
+
+
+@lru_cache
+def code_model() -> Model:
+    """
+    The model is only loaded on demand and only once.
+    """
+    load_plugin_classes()
+    return Model.from_kinds([from_js(m, Kind) for m in export_model()])  # type: ignore
+
+
+class ModelHandlerFromCodeAndDB(ModelHandlerDB):
+    async def load_model(self, graph_name: GraphName, *, force: bool = False) -> Model:
+        if valid_root_graph_name(graph_name):
+            return code_model()
+        else:
+            return await super().load_model(graph_name, force=force)

@@ -52,6 +52,7 @@ class CoreConfigHandler(Service):
         inspector: Inspector,
         exit_fn: Callable[[], None] = partial(restart_service, "resotocore config changed."),
     ):
+        super().__init__()
         self.message_bus = message_bus
         self.worker_task_queue = worker_task_queue
         self.config_updated_listener: Optional[Task[None]] = None
@@ -255,8 +256,9 @@ class CoreConfigHandler(Service):
             log.error(f"Could not update resoto core config model: {ex}", exc_info=ex)
 
     async def start(self) -> None:
-        await self.__update_model()
-        await self.__update_config()
+        if not self.config.multi_tenant_setup:
+            await self.__update_model()
+            await self.__update_config()
         self.config_updated_listener = asyncio.create_task(self.__handle_events())
         self.config_validator = asyncio.create_task(self.__validate_config())
 

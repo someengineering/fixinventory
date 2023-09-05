@@ -46,7 +46,7 @@ from resotolib.parse_util import l_curly_dp, r_curly_dp
 from resotolib.utils import get_local_tzinfo
 
 if TYPE_CHECKING:
-    from resotocore.dependencies import Dependencies
+    from resotocore.dependencies import TenantDependencies
 
 
 class MediaType(Enum):
@@ -353,7 +353,7 @@ class CLICommand(ABC):
     """
 
     def __init__(
-        self, dependencies: Dependencies, category: str = "misc", allowed_in_source_position: bool = False
+        self, dependencies: TenantDependencies, category: str = "misc", allowed_in_source_position: bool = False
     ) -> None:
         self.dependencies = dependencies
         self.category = category
@@ -760,7 +760,7 @@ class CLI(ABC):
 
     @property
     @abstractmethod
-    def dependencies(self) -> Any:  # CliDependencies, but we can't import it here
+    def dependencies(self) -> TenantDependencies:
         pass
 
     @property

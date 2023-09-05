@@ -37,6 +37,7 @@ class ConfigHandlerService(ConfigHandler, Service):
         core_config: CoreConfig,
         override_service: ConfigOverride,
     ) -> None:
+        super().__init__()
         self.cfg_db = cfg_db
         self.validation_db = validation_db
         self.model_db = model_db

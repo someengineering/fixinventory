@@ -21,6 +21,7 @@ T = TypeVar("T")
 
 class UserManagementService(UserManagement):
     def __init__(self, db_access: DbAccess, config_handler: ConfigHandler, event_sender: AnalyticsEventSender):
+        super().__init__()
         self.db_access = db_access
         self.config_handler = config_handler
         self.event_sender = event_sender

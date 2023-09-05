@@ -33,6 +33,7 @@ class MergeOuterEdgesHandler(Service):
         db_access: DbAccess,
         model_handler: ModelHandler,
     ):
+        super().__init__()
         self.message_bus = message_bus
         self.merge_outer_edges_listener: Optional[Task[None]] = None
         self.subscription_handler = subscription_handler
