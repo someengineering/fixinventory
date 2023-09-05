@@ -867,7 +867,7 @@ class Api(Service):
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
         graph = deps.db_access.get_graph_db(graph_name)
-        model = await self.deps.model_handler.load_model(graph_name)
+        model = await deps.model_handler.load_model(graph_name)
         await graph.delete_node(node_id, model)
         return web.HTTPNoContent()
 
