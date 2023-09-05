@@ -5,7 +5,15 @@ from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import AzureResource
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K
+from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
+from resotolib.baseresources import (
+    BaseInstance,
+    BaseVolume,
+    BaseInstanceType,
+    BaseSnapshot,
+    VolumeStatus,
+    BaseAutoScalingGroup,
+)
 
 
 @define(eq=False, slots=False)
@@ -582,8 +590,20 @@ class AzureDiskSecurityProfile:
     security_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the securitytype of the vm. Applicable for os disks only.'})  # fmt: skip
 
 
+VolumeStatusMapping = {
+    "ActiveSAS": VolumeStatus.IN_USE,
+    "ActiveSASFrozen": VolumeStatus.BUSY,
+    "ActiveUpload": VolumeStatus.DELETED,
+    "Attached": VolumeStatus.IN_USE,
+    "Frozen": VolumeStatus.BUSY,
+    "ReadyToUpload": VolumeStatus.DELETED,
+    "Reserved": VolumeStatus.ERROR,
+    "Unattached": VolumeStatus.UNKNOWN,
+}
+
+
 @define(eq=False, slots=False)
-class AzureDisk(AzureResource):
+class AzureDisk(AzureResource, BaseVolume):
     kind: ClassVar[str] = "azure_disk"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
@@ -637,6 +657,12 @@ class AzureDisk(AzureResource):
         "tier": S("properties", "tier"),
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
+        "volume_size": S("properties", "diskSizeGB"),
+        "volume_type": S("properties", "type"),
+        "volume_status": S("properties", "diskState") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
+        "volume_iops": S("properties", "diskMBpsReadWrite"),
+        "volume_throughput": S("properties", "diskMBpsReadOnly"),
+        "volume_encrypted": S("properties", "encryptionSettingsCollection", "enabled"),
     }
     bursting_enabled: Optional[bool] = field(default=None, metadata={'description': 'Set to true to enable bursting beyond the provisioned performance target of the disk. Bursting is disabled by default. Does not apply to ultra disks.'})  # fmt: skip
     bursting_enabled_time: Optional[datetime] = field(default=None, metadata={'description': 'Latest time when bursting was last enabled on a disk.'})  # fmt: skip
@@ -1742,7 +1768,7 @@ class AzureCopyCompletionError:
 
 
 @define(eq=False, slots=False)
-class AzureSnapshot(AzureResource):
+class AzureSnapshot(AzureResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_snapshot"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
@@ -1787,6 +1813,11 @@ class AzureSnapshot(AzureResource):
         "supports_hibernation": S("properties", "supportsHibernation"),
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
+        "snapshot_status": S("properties", "diskState"),
+        "volume_id": S("properties", "diskAccessId"),
+        "volume_size": S("properties", "diskSizeGB"),
+        "encrypted": S("properties", "encryptionSettingsCollection", "enabled"),
+        "owner_id": S("creationData", "storageAccountId"),
     }
     completion_percent: Optional[float] = field(default=None, metadata={'description': 'Percentage complete for the background copy when a resource is created via the copystart operation.'})  # fmt: skip
     copy_completion_error: Optional[AzureCopyCompletionError] = field(default=None, metadata={'description': 'Indicates the error details if the background copy of a resource created via the copystart operation fails.'})  # fmt: skip
@@ -2447,7 +2478,7 @@ class AzureVirtualMachineIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachine(AzureResource):
+class AzureVirtualMachine(AzureResource, BaseInstance):
     kind: ClassVar[str] = "azure_virtual_machine"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
@@ -2499,6 +2530,9 @@ class AzureVirtualMachine(AzureResource):
         "user_data": S("properties", "userData"),
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
+        "instance_cores": S("properties", "hardwareProfile", "vmSizeProperties", "vCPUsAvailable", default=0.0)
+        >> F(lambda x: float(x)),
+        "instance_type": S("type"),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
@@ -2969,7 +3003,7 @@ class AzureVirtualMachineScaleSetIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineScaleSet(AzureResource):
+class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "azure_virtual_machine_scale_set"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
@@ -3040,7 +3074,7 @@ class AzureVirtualMachineScaleSet(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSize(AzureResource):
+class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
@@ -3063,6 +3097,8 @@ class AzureVirtualMachineSize(AzureResource):
         "number_of_cores": S("numberOfCores"),
         "os_disk_size_in_mb": S("osDiskSizeInMB"),
         "resource_disk_size_in_mb": S("resourceDiskSizeInMB"),
+        "instance_cores": S("numberOfCores"),
+        "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
     }
     max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
     memory_in_mb: Optional[int] = field(default=None, metadata={'description': 'The amount of memory, in mb, supported by the virtual machine size.'})  # fmt: skip
