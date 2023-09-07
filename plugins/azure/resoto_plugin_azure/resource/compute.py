@@ -13,6 +13,7 @@ from resotolib.baseresources import (
     BaseSnapshot,
     VolumeStatus,
     BaseAutoScalingGroup,
+    InstanceStatus,
 )
 
 
@@ -2477,6 +2478,16 @@ class AzureVirtualMachineIdentity:
     user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
 
 
+InstanceStatusMapping = {
+    "Creating": InstanceStatus.BUSY,
+    "Updating": InstanceStatus.BUSY,
+    "Succeeded": InstanceStatus.RUNNING,
+    "Failed": InstanceStatus.STOPPED,
+    "Deleting": InstanceStatus.BUSY,
+    "Migrating": InstanceStatus.BUSY,
+}
+
+
 @define(eq=False, slots=False)
 class AzureVirtualMachine(AzureResource, BaseInstance):
     kind: ClassVar[str] = "azure_virtual_machine"
@@ -2531,7 +2542,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
-        "instance_status": S("properties", "diskState") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
+        "instance_status": S("properties", "provisioningState") >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
