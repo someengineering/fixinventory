@@ -592,13 +592,13 @@ class AzureDiskSecurityProfile:
 
 VolumeStatusMapping = {
     "ActiveSAS": VolumeStatus.IN_USE,
-    "ActiveSASFrozen": VolumeStatus.BUSY,
-    "ActiveUpload": VolumeStatus.DELETED,
+    "ActiveSASFrozen": VolumeStatus.IN_USE,
+    "ActiveUpload": VolumeStatus.BUSY,
     "Attached": VolumeStatus.IN_USE,
-    "Frozen": VolumeStatus.BUSY,
+    "Frozen": VolumeStatus.IN_USE,
     "ReadyToUpload": VolumeStatus.DELETED,
-    "Reserved": VolumeStatus.ERROR,
-    "Unattached": VolumeStatus.UNKNOWN,
+    "Reserved": VolumeStatus.IN_USE,
+    "Unattached": VolumeStatus.AVAILABLE,
 }
 
 
@@ -658,10 +658,10 @@ class AzureDisk(AzureResource, BaseVolume):
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
         "volume_size": S("properties", "diskSizeGB"),
-        "volume_type": S("properties", "type"),
+        "volume_type": S("sku", "name"),
         "volume_status": S("properties", "diskState") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
-        "volume_iops": S("properties", "diskMBpsReadWrite"),
-        "volume_throughput": S("properties", "diskMBpsReadOnly"),
+        "volume_iops": S("properties", "diskIOPSReadWrite"),
+        "volume_throughput": S("properties", "diskMBpsReadWrite"),
         "volume_encrypted": S("properties", "encryptionSettingsCollection", "enabled"),
     }
     bursting_enabled: Optional[bool] = field(default=None, metadata={'description': 'Set to true to enable bursting beyond the provisioned performance target of the disk. Bursting is disabled by default. Does not apply to ultra disks.'})  # fmt: skip
@@ -2530,9 +2530,8 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "user_data": S("properties", "userData"),
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
-        "instance_cores": S("properties", "hardwareProfile", "vmSizeProperties", "vCPUsAvailable", default=0.0)
-        >> F(lambda x: float(x)),
         "instance_type": S("type"),
+        "instance_status": S("properties", "diskState") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
