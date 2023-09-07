@@ -14,6 +14,7 @@ from resotolib.baseresources import (
     VolumeStatus,
     BaseAutoScalingGroup,
     InstanceStatus,
+    InstanceStatus,
 )
 
 
