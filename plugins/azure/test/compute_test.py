@@ -30,7 +30,7 @@ def test_dedicated_host_group(builder: GraphBuilder) -> None:
 
 def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)
-    assert len(collected) == 3
+    assert len(collected) == 9
 
 
 def test_disk_access(builder: GraphBuilder) -> None:
@@ -75,7 +75,7 @@ def test_ssh_key(builder: GraphBuilder) -> None:
 
 def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
-    assert len(collected) == 2
+    assert len(collected) == 4
 
 
 def test_scale_set(builder: GraphBuilder) -> None:
@@ -85,4 +85,4 @@ def test_scale_set(builder: GraphBuilder) -> None:
 
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
-    assert len(collected) == 2
+    assert len(collected) == 4
