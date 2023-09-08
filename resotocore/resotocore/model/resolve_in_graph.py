@@ -25,6 +25,7 @@ class NodePath:
     to_node = ["to"]
     edge_type = ["edge_type"]
     ancestor_account_name = ["ancestors", "account", "reported", "name"]
+    ancestor_account_id = ["ancestors", "account", "reported", "id"]
 
 
 @define(frozen=True)
