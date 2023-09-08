@@ -2542,7 +2542,8 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
-        "instance_status": S("properties", "provisioningState") >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
+        "instance_status": S("properties", "provisioningState")
+        >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip

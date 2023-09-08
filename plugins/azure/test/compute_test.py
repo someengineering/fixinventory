@@ -33,6 +33,16 @@ def test_disks(builder: GraphBuilder) -> None:
     assert len(collected) == 3
 
 
+def test_disks_resource(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
+    assert collected.volume_size == 200
+    assert collected.volume_type == "Premium_LRS"
+    assert collected.volume_status == VolumeStatus.UNKNOWN
+    assert collected.volume_iops == 120
+    assert collected.volume_throughput == 25
+    assert collected.volume_encrypted is True
+
+
 def test_disk_access(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDiskAccess, builder)
     assert len(collected) == 2
@@ -80,8 +90,6 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)[0]
-    assert collected.instance_cores == 0.0
-    assert collected.instance_memory == 0.0
     assert collected.instance_type == "Standard_A0"
     assert collected.instance_status == InstanceStatus.RUNNING
 
@@ -94,3 +102,10 @@ def test_scale_set(builder: GraphBuilder) -> None:
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
     assert len(collected) == 2
+
+
+def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureVirtualMachineSize, builder)[0]
+    assert collected.instance_type == "Standard_A1_V2"
+    assert collected.instance_cores == 1.0
+    assert collected.instance_memory == 2.0
