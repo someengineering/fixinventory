@@ -252,12 +252,16 @@ class InspectorService(Inspector, Service):
             for result in cli_result[0]:
                 yield result
 
+        async def empty() -> AsyncIterator[Json]:
+            if False:  # pylint: disable=using-constant-test
+                yield {}  # noqa
+
         if resoto_search := inspection.detect.get("resoto"):
             return perform_search(resoto_search)
         elif resoto_cmd := inspection.detect.get("resoto_cmd"):
             return perform_cmd(resoto_cmd)
         else:
-            return stream.empty()  # type: ignore
+            return empty()
 
     async def __perform_benchmark(
         self, benchmark: Benchmark, graph: GraphName, context: CheckContext
