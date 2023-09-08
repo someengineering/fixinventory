@@ -597,7 +597,7 @@ VolumeStatusMapping = {
     "ActiveUpload": VolumeStatus.BUSY,
     "Attached": VolumeStatus.IN_USE,
     "Frozen": VolumeStatus.IN_USE,
-    "ReadyToUpload": VolumeStatus.DELETED,
+    "ReadyToUpload": VolumeStatus.BUSY,
     "Reserved": VolumeStatus.IN_USE,
     "Unattached": VolumeStatus.AVAILABLE,
 }
@@ -3107,6 +3107,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         "number_of_cores": S("numberOfCores"),
         "os_disk_size_in_mb": S("osDiskSizeInMB"),
         "resource_disk_size_in_mb": S("resourceDiskSizeInMB"),
+        "instance_type": S("name"),
         "instance_cores": S("numberOfCores"),
         "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
     }
