@@ -7,8 +7,22 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import partial
 from numbers import Number
-from typing import DefaultDict, Optional, Callable, AsyncGenerator, Any, Iterable, Dict, List, Tuple, TypeVar, cast
+from typing import (
+    DefaultDict,
+    Optional,
+    Callable,
+    AsyncGenerator,
+    Any,
+    Iterable,
+    Dict,
+    List,
+    Tuple,
+    TypeVar,
+    cast,
+    AsyncIterator,
+)
 
+from aiostream import stream
 from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -17,6 +31,7 @@ from attr import evolve
 from networkx import MultiDiGraph
 
 from resotocore.analytics import CoreEvent, AnalyticsEventSender
+from resotocore.async_extensions import run_async
 from resotocore.core_config import GraphUpdateConfig
 from resotocore.db import arango_query, EstimatedSearchCost
 from resotocore.db.arango_query import fulltext_delimiter
@@ -89,6 +104,12 @@ class GraphDB(ABC):
     def update_nodes_metadata(
         self, model: Model, patch: Json, node_ids: List[NodeId], **kwargs: Any
     ) -> AsyncGenerator[Json, None]:
+        pass
+
+    @abstractmethod
+    async def update_security_section(
+        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, str, Json]], model: Model
+    ) -> int:
         pass
 
     @abstractmethod
@@ -183,6 +204,7 @@ class ArangoGraphDB(GraphDB):
         self.vertex_name = name
         self.in_progress = f"{name}_in_progress"
         self.node_history = f"{name}_node_history"
+        self.security_history = f"{name}_security_history"
         self.usage_db = resource_usage_db(db, f"{name}_usage")
         self.db = db
         self.config = config
@@ -406,6 +428,69 @@ class ArangoGraphDB(GraphDB):
             await delete_children(node)
             await self.db.delete_vertex(self.name, {"_id": f'{self.vertex_name}/{node["id"]}'})
 
+    async def update_security_section(
+        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, str, Json]], model: Model
+    ) -> int:
+        temp_collection = await self.get_tmp_collection(report_run_id)
+        now = utc_str()
+
+        async def update_chunk(chunk: List[Tuple[NodeId, str, Json]]) -> None:
+            lookup = {c[0]: c for c in chunk}
+            async with await self.search_list(QueryModel(Query.by(P.with_id([c[0] for c in chunk])), model)) as ctx:
+                nodes_to_insert = []
+                async for node in ctx:
+                    node_id = NodeId(value_in_path_get(node, NodePath.node_id, ""))
+                    hash_value = value_in_path(node, NodePath.security_hash)
+                    issues = value_in_path(node, NodePath.security_issues)
+                    _, new_hash, security_section = lookup[node_id]
+                    security_section["opened_at"] = value_in_path_get(node, NodePath.security_opened_at, now)
+                    security_section["reopen_counter"] = value_in_path_get(node, NodePath.security_reopen_counter, -1)
+                    security_section["hash"] = new_hash
+                    security_section["run_id"] = report_run_id
+                    security_section["has_issues"] = True
+                    node["security"] = security_section
+                    node["changed_at"] = now
+                    if not issues:  # no issues before, but now
+                        security_section["opened_at"] = now
+                        security_section["reopen_counter"] = security_section["reopen_counter"] + 1
+                        node["change"] = "opened"
+                        nodes_to_insert.append(dict(action="opened", node_id=node_id, data=node))
+                    elif hash_value != new_hash:  # changed hash -> the content has changed
+                        nodes_to_insert.append(dict(action="updated", node_id=node_id, data=node))
+                        node["change"] = "updated"
+                    else:  # no change
+                        nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
+                    # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
+                await run_async(temp_collection.insert_many, nodes_to_insert, silent=True)
+
+        async def move_security_temp_to_proper() -> None:
+            temp_name = temp_collection.name
+            aql_updates = [
+                f'for e in {temp_name} filter e.action in ["opened", "updated"] insert e.data in {self.security_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
+                # update security.run_id for all items with the same security issues
+                f'for e in {temp_name} filter e.action=="mark" update {{_key: e.node_id, security: {{run_id: e.run_id}}}} in {self.vertex_name} OPTIONS {{mergeObjects: true}}',  # noqa
+                # select all remaining nodes with a different run_id -> they are closed
+                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "closed", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.security_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
+            ]
+            updates = ";\n".join(map(lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()", aql_updates))
+            await self.db.execute_transaction(
+                f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
+                read=[temp_name],
+                write=[self.vertex_name, self.security_history],
+            )
+            log.info("Latest security update available.")
+
+        try:
+            # stream updates to the temp collection
+            async with stream.chunks(stream.iterate(iterator), 1000).stream() as streamer:
+                async for part in streamer:
+                    await update_chunk(part)
+            # move temp collection to proper and history collection
+            await move_security_temp_to_proper()
+        finally:
+            await self.db.delete_collection(temp_collection.name)
+        return 0
+
     async def by_id(self, node_id: NodeId) -> Optional[Json]:
         return await self.by_id_with(self.db, node_id)
 
@@ -529,7 +614,7 @@ class ArangoGraphDB(GraphDB):
                 result = {"id": doc["_key"], "type": "node"}
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
-                props(doc, result, Section.content)
+                props(doc, result, Section.content_ordered)
                 if root_level:
                     props(doc, result, Section.lookup_sections_ordered)
                     if additional_root_props:
@@ -978,7 +1063,9 @@ class ArangoGraphDB(GraphDB):
                     name="kinds_id_name_ctime",
                 )
 
-        def create_update_collection_indexes(progress: StandardCollection, node_history: StandardCollection) -> None:
+        def create_update_collection_indexes(
+            progress: StandardCollection, node_history: StandardCollection, security_history: StandardCollection
+        ) -> None:
             # progress indexes ------
             progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
             if "parent_nodes" not in progress_idxes:
@@ -997,6 +1084,16 @@ class ArangoGraphDB(GraphDB):
                 )
             if "ttl_index" not in node_history_indexes:
                 node_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
+            # security history indexes ------
+            security_history_indexes = {idx["name"]: idx for idx in cast(List[Json], security_history.indexes())}
+            if "history_access" not in security_history_indexes:
+                security_history.add_persistent_index(
+                    ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                    sparse=False,
+                    name="history_access",
+                )
+            if "ttl_index" not in security_history_indexes:
+                security_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
@@ -1066,8 +1163,9 @@ class ArangoGraphDB(GraphDB):
         else:
             in_progress = await create_collection(self.in_progress)
             node_history_collection = await create_collection(self.node_history)
+            security_history_collection = await create_collection(self.security_history)
             create_node_indexes(vertex)
-            create_update_collection_indexes(in_progress, node_history_collection)
+            create_update_collection_indexes(in_progress, node_history_collection, security_history_collection)
             await self.usage_db.create_update_schema()
 
         for edge_type in EdgeTypes.all:
@@ -1309,6 +1407,11 @@ class EventGraphDB(GraphDB):
         )
         async for a in result:
             yield a
+
+    async def update_security_section(
+        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, str, Json]], model: Model
+    ) -> int:
+        return await self.real.update_security_section(report_run_id, iterator, model)
 
     async def merge_graph(
         self,

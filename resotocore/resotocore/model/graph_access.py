@@ -59,6 +59,9 @@ class Section:
     # querying the graph easy.
     metadata = "metadata"
 
+    # This section holds information about security issues detected for this node.
+    security = "security"
+
     # Following sections are used to lookup special kinds in the graph hierarchy to simplify access.
     # See GraphResolver for details.
     # All resolved ancestors are written to this section.
@@ -72,7 +75,7 @@ class Section:
     usage = "usage"
 
     # The set of all content sections
-    content_ordered = [reported, desired, metadata]
+    content_ordered = [reported, security, desired, metadata]
     content = set(content_ordered)
 
     # The list of all lookup sections

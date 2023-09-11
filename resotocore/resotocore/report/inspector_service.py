@@ -11,7 +11,8 @@ from resotocore.cli.model import CLIContext, CLI
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
-from resotocore.ids import ConfigId, GraphName
+from resotocore.ids import ConfigId, GraphName, NodeId
+from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.model import Query, P
@@ -36,7 +37,7 @@ from resotocore.report import (
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.service import Service
 from resotocore.types import Json
-from resotocore.util import value_in_path
+from resotocore.util import value_in_path, uuid_str
 from resotolib.json_bender import Bender, S, bend
 
 log = logging.getLogger(__name__)
@@ -166,7 +167,11 @@ class InspectorService(Inspector, Service):
             name: self.__to_result(benchmark, check_lookup, results, context) for name, benchmark in benchmarks.items()
         }
         if sync_security_section:
-            pass
+            model = await self.model_handler.load_model(graph)
+            # We invent a report run id here. This id is used to identify all reports created by this run.
+            await self.db_access.get_graph_db(graph).update_security_section(
+                uuid_str(), self.__benchmarks_to_security_iterator(result), model
+            )
         return result
 
     async def perform_checks(
@@ -316,6 +321,7 @@ class InspectorService(Inspector, Service):
             accounts=context.accounts,
             only_failed=context.only_failed,
             severity=context.severity,
+            id=benchmark.id,
         )
 
     async def __perform_checks(
@@ -396,3 +402,32 @@ class InspectorService(Inspector, Service):
 
         except Exception as e:
             return {"error": f"Can not digest check collection: {e}"}
+
+    def __benchmarks_to_security_iterator(
+        self, results: Dict[str, BenchmarkResult]
+    ) -> AsyncIterator[Tuple[NodeId, str, Json]]:
+        # Create a mapping from node_id to all check results that contain this node
+        node_result: Dict[str, List[Tuple[BenchmarkResult, CheckResult]]] = defaultdict(list)
+
+        def walk_collection(collection: CheckCollectionResult, parent: BenchmarkResult) -> None:
+            for check in collection.checks:
+                for resources in check.resources_failing_by_account.values():
+                    for resource in resources:
+                        node_result[resource["node_id"]].append((parent, check))
+            for child in collection.children:
+                walk_collection(child, parent)
+
+        for result in results.values():
+            walk_collection(result, result)
+
+        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, str, Json]]:
+            for node_id, contexts in node_result.items():
+                issues = [
+                    dict(benchmark=bench.id, check=check.check.id, severity=check.check.severity.name)
+                    for bench, check in contexts
+                ]
+                # ignore the order of the issues
+                hashed = GraphBuilder.content_hash({i["check"]: i for i in issues})
+                yield NodeId(node_id), hashed, dict(issues=issues)
+
+        return iterate_nodes()

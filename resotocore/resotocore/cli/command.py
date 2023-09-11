@@ -4930,6 +4930,7 @@ class ReportCommand(CLICommand, EntityProvider):
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
+                sync_security_section=parsed_args.sync_security_section,
             )
             for result in results.values():
                 if not result.is_empty():

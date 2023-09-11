@@ -258,6 +258,7 @@ class CheckCollectionResult:
 class BenchmarkResult(CheckCollectionResult):
     framework: str
     version: str
+    id: str
     accounts: Optional[List[str]] = field(default=None)
     only_failed: bool = field(default=False)
     severity: Optional[ReportSeverity] = field(default=None)
@@ -265,6 +266,7 @@ class BenchmarkResult(CheckCollectionResult):
     def to_node(self) -> Json:
         node = super().to_node()
         reported = node["reported"]
+        reported["id"] = self.id
         reported["framework"] = self.framework
         reported["version"] = self.version
         reported["kind"] = "report_benchmark"
@@ -277,6 +279,7 @@ class BenchmarkResult(CheckCollectionResult):
     def from_node(js: Json) -> BenchmarkResult:
         reported = cast(Json, js["reported"])
         return BenchmarkResult(
+            id=reported["id"],
             framework=reported["framework"],
             version=reported["version"],
             title=reported["title"],

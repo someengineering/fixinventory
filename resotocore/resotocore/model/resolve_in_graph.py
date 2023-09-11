@@ -26,6 +26,10 @@ class NodePath:
     edge_type = ["edge_type"]
     ancestor_account_name = ["ancestors", "account", "reported", "name"]
     ancestor_account_id = ["ancestors", "account", "reported", "id"]
+    security_opened_at = ["security", "opened_at"]
+    security_reopen_counter = ["security", "reopen_counter"]
+    security_issues = ["security", "issues"]
+    security_hash = ["security", "hash"]
 
 
 @define(frozen=True)

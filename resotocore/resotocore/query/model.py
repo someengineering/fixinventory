@@ -11,6 +11,7 @@ from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, C
 
 from jsons import set_deserializer
 
+from resotocore.ids import NodeId
 from resotocore.model.graph_access import EdgeTypes, Direction
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.typed_model import to_js_str
@@ -81,7 +82,7 @@ class P:
         return PArray(name)
 
     @staticmethod
-    def with_id(ids: Union[str, List[str]]) -> Term:
+    def with_id(ids: Union[NodeId, str, List[str]]) -> Term:
         return IdTerm([ids] if isinstance(ids, str) else ids)
 
     @staticmethod
