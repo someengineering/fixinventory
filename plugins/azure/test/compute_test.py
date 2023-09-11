@@ -1,6 +1,7 @@
 from conftest import roundtrip_check
 from resoto_plugin_azure.resource.base import GraphBuilder
 from resoto_plugin_azure.resource.compute import *
+from resotolib.baseresources import VolumeStatus, InstanceStatus
 
 
 def test_availability_sets(builder: GraphBuilder) -> None:
@@ -31,6 +32,16 @@ def test_dedicated_host_group(builder: GraphBuilder) -> None:
 def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)
     assert len(collected) == 3
+
+
+def test_disks_resource(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
+    assert collected.volume_size == 200
+    assert collected.volume_type == "Premium_LRS"
+    assert collected.volume_status == VolumeStatus.UNKNOWN
+    assert collected.volume_iops == 120
+    assert collected.volume_throughput == 25
+    assert collected.volume_encrypted is True
 
 
 def test_disk_access(builder: GraphBuilder) -> None:
@@ -78,6 +89,12 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
 
+def test_virtual_machine_resources(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureVirtualMachine, builder)[0]
+    assert collected.instance_type == "Standard_A0"
+    assert collected.instance_status == InstanceStatus.RUNNING
+
+
 def test_scale_set(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineScaleSet, builder)
     assert len(collected) == 1
@@ -86,3 +103,30 @@ def test_scale_set(builder: GraphBuilder) -> None:
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
     assert len(collected) == 2
+
+
+def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureVirtualMachineSize, builder)[0]
+    assert collected.instance_type == "Standard_A1_V2"
+    assert collected.instance_cores == 1.0
+    assert collected.instance_memory == 2.0
+
+
+def test_snapshot(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureSnapshot, builder)
+    assert len(collected) == 2
+
+
+def test_snapshot_resources(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureSnapshot, builder)[1]
+    assert collected.snapshot_status == "None"
+    assert (
+        collected.volume_id
+        == "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/snapshots/mySnapshot2"
+    )
+    assert collected.volume_size == 200
+    assert collected.encrypted is True
+    assert (
+        collected.owner_id
+        == "subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Storage/storageAccounts/myStorageAccount"
+    )
