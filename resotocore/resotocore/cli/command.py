@@ -4925,7 +4925,7 @@ class ReportCommand(CLICommand, EntityProvider):
         async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
             results = await self.dependencies.inspector.perform_benchmarks(
                 ctx.graph_name,
-                benchmark_names=[parsed_args.identifier],
+                benchmark_names=parsed_args.identifier,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
@@ -4938,7 +4938,7 @@ class ReportCommand(CLICommand, EntityProvider):
         async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_checks(
                 ctx.graph_name,
-                check_ids=[parsed_args.identifier],
+                check_ids=parsed_args.identifier,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
@@ -4951,11 +4951,12 @@ class ReportCommand(CLICommand, EntityProvider):
             yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
 
         run_parser = NoExitArgumentParser()
-        run_parser.add_argument("identifier")
+        run_parser.add_argument("identifier", nargs="+")
         run_parser.add_argument("--accounts", nargs="+")
         run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
         run_parser.add_argument("--only-failing", action="store_true", default=False)
         run_parser.add_argument("--only-check-results", action="store_true", default=False)
+        run_parser.add_argument("--sync-security-section", action="store_true", default=False)
 
         action = self.action_from_arg(arg)
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []

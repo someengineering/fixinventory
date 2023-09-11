@@ -1,4 +1,4 @@
-from typing import AsyncIterator, AsyncGenerator, Optional, List, Union
+from typing import AsyncIterator, AsyncGenerator, List, Union
 
 from aiostream import stream
 from aiostream.core import Stream
@@ -124,15 +124,15 @@ async def respond_benchmark_result(gen: Union[Stream, AsyncIterator[JsonElement]
             elif isinstance(collection_node, CheckResult):
                 collection.checks.append(collection_node)
 
-    result: Optional[BenchmarkResult] = None
+    results: List[BenchmarkResult] = []
     for nid, data in graph.nodes(data=True):
         if isinstance(data.get("data"), BenchmarkResult):
             br = data["data"]
             traverse(nid, br)
-            result = br
+            results.append(br)
 
     # step 3: benchmark result to markdown
-    if result:
+    for result in results:
         # use accounts defined on the cmd line, otherwise fall back to accounts with failing checks
         accounts = result.accounts or result.failing_accounts()
         for account in accounts:
