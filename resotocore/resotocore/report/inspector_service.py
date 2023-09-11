@@ -130,6 +130,7 @@ class InspectorService(Inspector, Service):
         category: Optional[str] = None,
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
+        context: Optional[CheckContext] = None,
     ) -> List[ReportCheck]:
         def inspection_matches(inspection: ReportCheck) -> bool:
             return (
@@ -138,22 +139,30 @@ class InspectorService(Inspector, Service):
                 and (category is None or category in inspection.categories)
                 and (kind is None or kind == inspection.result_kind)
                 and (check_ids is None or inspection.id in check_ids)
+                and (context is None or context.includes_severity(inspection.severity))
             )
 
         return await self.filter_checks(inspection_matches)
 
-    async def perform_benchmark(
+    async def perform_benchmarks(
         self,
         graph: GraphName,
-        benchmark_name: str,
+        benchmark_names: List[str],
         *,
         accounts: Optional[List[str]] = None,
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
-    ) -> BenchmarkResult:
-        benchmark = await self.__benchmark(benchmark_id(benchmark_name))
+    ) -> Dict[str, BenchmarkResult]:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
-        return await self.__perform_benchmark(benchmark, graph, context)
+        benchmarks = {name: await self.__benchmark(benchmark_id(name)) for name in benchmark_names}
+        # collect all checks
+        check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
+        checks = await self.list_checks(check_ids=list(check_ids), context=context)
+        check_lookup = {check.id: check for check in checks}
+        results = await self.__perform_checks(graph, checks, context)
+        return {
+            name: self.__to_result(benchmark, check_lookup, results, context) for name, benchmark in benchmarks.items()
+        }
 
     async def perform_checks(
         self,
@@ -168,8 +177,9 @@ class InspectorService(Inspector, Service):
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
     ) -> BenchmarkResult:
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         checks = await self.list_checks(
-            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
+            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids, context=context
         )
         provider_name = f"{provider}_" if provider else ""
         service_name = f"{service}_" if service else ""
@@ -187,8 +197,15 @@ class InspectorService(Inspector, Service):
             checks=[c.id for c in checks],
             children=[],
         )
-        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
-        return await self.__perform_benchmark(benchmark, graph, context)
+
+        if context.accounts is None:
+            context.accounts = await self.__list_accounts(benchmark, graph)
+
+        checks_to_perform = await self.list_checks(check_ids=benchmark.nested_checks(), context=context)
+        check_by_id = {c.id: c for c in checks_to_perform}
+        results = await self.__perform_checks(graph, checks_to_perform, context)
+        await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
+        return self.__to_result(benchmark, check_by_id, results, context)
 
     async def __benchmark(self, cfg_id: ConfigId) -> Benchmark:
         cfg = await self.config_handler.get_config(cfg_id)
@@ -213,7 +230,7 @@ class InspectorService(Inspector, Service):
         # create context
         context = CheckContext(accounts=account_ids)
         # get check
-        checks = await self.list_checks(check_ids=[check_uid])
+        checks = await self.list_checks(check_ids=[check_uid], context=context)
         if not checks:
             raise NotFoundError(f"Check {check_uid} not found")
         model = await self.model_handler.load_model(graph)
@@ -263,17 +280,13 @@ class InspectorService(Inspector, Service):
         else:
             return empty()
 
-    async def __perform_benchmark(
-        self, benchmark: Benchmark, graph: GraphName, context: CheckContext
+    def __to_result(
+        self,
+        benchmark: Benchmark,
+        check_by_id: Dict[str, ReportCheck],
+        results: Dict[str, SingleCheckResult],
+        context: CheckContext,
     ) -> BenchmarkResult:
-        if context.accounts is None:
-            context.accounts = await self.__list_accounts(benchmark, graph)
-
-        perform_checks = await self.list_checks(check_ids=benchmark.nested_checks())
-        check_by_id = {c.id: c for c in perform_checks if context.includes_severity(c.severity)}
-        results = await self.__perform_checks(graph, perform_checks, context)
-        await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
-
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = []
             for cid in cc.checks or []:

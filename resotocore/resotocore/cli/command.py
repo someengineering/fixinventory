@@ -4923,16 +4923,17 @@ class ReportCommand(CLICommand, EntityProvider):
                 yield check.id
 
         async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
-            result = await self.dependencies.inspector.perform_benchmark(
+            results = await self.dependencies.inspector.perform_benchmarks(
                 ctx.graph_name,
-                parsed_args.identifier,
+                benchmark_names=[parsed_args.identifier],
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
             )
-            if not result.is_empty():
-                for node in result.to_graph(parsed_args.only_check_results):
-                    yield node
+            for result in results.values():
+                if not result.is_empty():
+                    for node in result.to_graph(parsed_args.only_check_results):
+                        yield node
 
         async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_checks(

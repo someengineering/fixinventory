@@ -348,24 +348,24 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def perform_benchmark(
+    async def perform_benchmarks(
         self,
         graph: GraphName,
-        benchmark_name: str,
+        benchmark_names: List[str],
         *,
         accounts: Optional[List[str]] = None,
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
-    ) -> BenchmarkResult:
+    ) -> Dict[str, BenchmarkResult]:
         """
         Perform a benchmark by given name on the content of a graph with given name.
 
-        :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
+        :param benchmark_names: The names of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
-        :param severity: only include checks with given severity or higher
+        :param severity: Only include checks with given severity or higher
         :param only_failing: only include failing checks in the result
-        :return: the result of the benchmark
+        :return: the result of all benchmarks by name
         """
 
     @abstractmethod
