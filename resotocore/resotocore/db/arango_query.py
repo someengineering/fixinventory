@@ -252,8 +252,12 @@ def query_string(
 
     def with_id(cursor: str, t: IdTerm) -> str:
         bvn = next_bind_var_name()
-        bind_vars[bvn] = t.id
-        return f"{cursor}._key == @{bvn}"
+        if len(t.ids) == 1:
+            bind_vars[bvn] = t.ids[0]
+            return f"{cursor}._key == @{bvn}"
+        else:
+            bind_vars[bvn] = t.ids
+            return f"{cursor}._key in @{bvn}"
 
     def is_term(cursor: str, t: IsTerm) -> str:
         is_results = []

@@ -81,8 +81,8 @@ class P:
         return PArray(name)
 
     @staticmethod
-    def with_id(uid: str) -> Term:
-        return IdTerm(uid)
+    def with_id(ids: Union[str, List[str]]) -> Term:
+        return IdTerm([ids] if isinstance(ids, str) else ids)
 
     @staticmethod
     def of_kind(name: str) -> Term:
@@ -465,10 +465,12 @@ class CombinedTerm(Term):
 
 @define(order=True, hash=True, frozen=True)
 class IdTerm(Term):
-    id: str
+    ids: List[str]
 
     def __str__(self) -> str:
-        return f'id("{self.id}")'
+        id_string = ", ".join(f'"{a}"' for a in self.ids)
+        ids = id_string if len(self.ids) == 1 else f"[{id_string}]"
+        return f"id({ids})"
 
 
 @define(order=True, hash=True, frozen=True)
@@ -1184,7 +1186,7 @@ class Query:
             elif isinstance(term, FunctionTerm):
                 return {"kind": "function", "property_path": term.property_path, "args": term.args}
             elif isinstance(term, IdTerm):
-                return {"kind": "id", "id": term.id}
+                return {"kind": "id", "ids": term.ids}
             elif isinstance(term, IsTerm):
                 return {"kind": "is", "kinds": term.kinds}
             elif isinstance(term, MergeTerm):
