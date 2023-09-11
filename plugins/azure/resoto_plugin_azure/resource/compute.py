@@ -1815,10 +1815,10 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
         "snapshot_status": S("properties", "diskState"),
-        "volume_id": S("properties", "diskAccessId"),
+        "volume_id": S("id"),
         "volume_size": S("properties", "diskSizeGB"),
         "encrypted": S("properties", "encryptionSettingsCollection", "enabled"),
-        "owner_id": S("creationData", "storageAccountId"),
+        "owner_id": S("properties", "creationData", "storageAccountId"),
     }
     completion_percent: Optional[float] = field(default=None, metadata={'description': 'Percentage complete for the background copy when a resource is created via the copystart operation.'})  # fmt: skip
     copy_completion_error: Optional[AzureCopyCompletionError] = field(default=None, metadata={'description': 'Indicates the error details if the background copy of a resource created via the copystart operation fails.'})  # fmt: skip

@@ -109,3 +109,23 @@ def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
     assert collected.instance_type == "Standard_A1_V2"
     assert collected.instance_cores == 1.0
     assert collected.instance_memory == 2.0
+
+
+def test_snapshot(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureSnapshot, builder)
+    assert len(collected) == 2
+
+
+def test_snapshot_resources(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureSnapshot, builder)[1]
+    assert collected.snapshot_status == "None"
+    assert (
+        collected.volume_id
+        == "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/snapshots/mySnapshot2"
+    )
+    assert collected.volume_size == 200
+    assert collected.encrypted is True
+    assert (
+        collected.owner_id
+        == "subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Storage/storageAccounts/myStorageAccount"
+    )
