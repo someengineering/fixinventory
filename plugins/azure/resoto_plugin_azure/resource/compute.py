@@ -2479,6 +2479,12 @@ class AzureVirtualMachineIdentity:
 
 
 InstanceStatusMapping = {
+    # "Starting"
+    # "Running"
+    # "Stopping"
+    # "Stopped"
+    # "Deallocating"
+    # "Deallocated"
     "Creating": InstanceStatus.BUSY,
     "Updating": InstanceStatus.BUSY,
     "Succeeded": InstanceStatus.RUNNING,

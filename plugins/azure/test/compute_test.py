@@ -1,6 +1,7 @@
 from conftest import roundtrip_check
 from resoto_plugin_azure.resource.base import GraphBuilder
 from resoto_plugin_azure.resource.compute import *
+from resotolib.baseresources import VolumeStatus, InstanceStatus
 
 
 def test_availability_sets(builder: GraphBuilder) -> None:
