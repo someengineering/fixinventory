@@ -2666,6 +2666,7 @@ class ListCommand(CLICommand, OutputTransformer):
 
             def extract_values(elem: JsonElement) -> List[Any | None]:
                 result = []
+                prop_idx: int
                 for prop_idx, prop_path in enumerate(props_to_show):
                     value = js_value_at(elem, prop_path[0])
                     columns_padding[prop_idx] = max(columns_padding[prop_idx], len(str(value)))
