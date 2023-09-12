@@ -12,7 +12,6 @@ from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
 from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId, GraphName, NodeId
-from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model import Model
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.query.model import Query, P
@@ -405,7 +404,7 @@ class InspectorService(Inspector, Service):
 
     def __benchmarks_to_security_iterator(
         self, results: Dict[str, BenchmarkResult]
-    ) -> AsyncIterator[Tuple[NodeId, str, Json]]:
+    ) -> AsyncIterator[Tuple[NodeId, Json]]:
         # Create a mapping from node_id to all check results that contain this node
         node_result: Dict[str, List[Tuple[BenchmarkResult, CheckResult]]] = defaultdict(list)
 
@@ -420,14 +419,12 @@ class InspectorService(Inspector, Service):
         for result in results.values():
             walk_collection(result, result)
 
-        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, str, Json]]:
+        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, Json]]:
             for node_id, contexts in node_result.items():
                 issues = [
                     dict(benchmark=bench.id, check=check.check.id, severity=check.check.severity.name)
                     for bench, check in contexts
                 ]
-                # ignore the order of the issues
-                hashed = GraphBuilder.content_hash({i["check"]: i for i in issues})
-                yield NodeId(node_id), hashed, dict(issues=issues)
+                yield NodeId(node_id), dict(issues=issues)
 
         return iterate_nodes()

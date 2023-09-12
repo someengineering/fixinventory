@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Union
 
 from attr import define, field, evolve
 
@@ -34,6 +34,12 @@ class ReportSeverity(Enum):
     medium = "medium"
     high = "high"
     critical = "critical"
+
+    @staticmethod
+    def higher(a: Union[str, ReportSeverity], b: Union[str, ReportSeverity]) -> ReportSeverity:
+        ra = a if isinstance(a, ReportSeverity) else ReportSeverity[a]
+        rb = b if isinstance(b, ReportSeverity) else ReportSeverity[b]
+        return ra if ReportSeverityPriority[ra] > ReportSeverityPriority[rb] else rb
 
 
 ReportSeverityPriority: Dict[ReportSeverity, int] = {severity: num for num, severity in enumerate(ReportSeverity)}
