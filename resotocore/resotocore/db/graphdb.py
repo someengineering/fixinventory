@@ -1096,6 +1096,13 @@ class ArangoGraphDB(GraphDB):
                     name="kinds_id_name_ctime",
                 )
 
+            if "security_overview" not in node_idxes:
+                nodes.add_persistent_index(
+                    fields=["security.run_id", "security.has_issues", "security.opened_at", "security.severity"],
+                    sparse=True,
+                    name="security_overview",
+                )
+
         def create_update_collection_indexes(progress: StandardCollection, node_history: StandardCollection) -> None:
             # progress indexes ------
             progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
@@ -1109,7 +1116,7 @@ class ArangoGraphDB(GraphDB):
             node_history_indexes = {idx["name"]: idx for idx in cast(List[Json], node_history.indexes())}
             if "history_access" not in node_history_indexes:
                 node_history.add_persistent_index(
-                    ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                    ["id", "change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
                     sparse=False,
                     name="history_access",
                 )
