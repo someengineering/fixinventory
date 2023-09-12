@@ -44,16 +44,6 @@ def test_disks_resource(builder: GraphBuilder) -> None:
     assert collected.volume_encrypted is True
 
 
-def test_disks_resource(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
-    assert collected.volume_size == 200
-    assert collected.volume_type == "Premium_LRS"
-    assert collected.volume_status == VolumeStatus.UNKNOWN
-    assert collected.volume_iops == 120
-    assert collected.volume_throughput == 25
-    assert collected.volume_encrypted is True
-
-
 def test_disk_access(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDiskAccess, builder)
     assert len(collected) == 2
@@ -97,12 +87,6 @@ def test_ssh_key(builder: GraphBuilder) -> None:
 def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
     assert len(collected) == 2
-
-
-def test_virtual_machine_resources(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualMachine, builder)[0]
-    assert collected.instance_type == "Standard_A0"
-    assert collected.instance_status == InstanceStatus.RUNNING
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:

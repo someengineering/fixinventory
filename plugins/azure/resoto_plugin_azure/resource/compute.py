@@ -16,6 +16,7 @@ from resotolib.baseresources import (
     BaseAutoScalingGroup,
     InstanceStatus,
     ModelReference,
+    EdgeType,
 )
 
 
@@ -81,6 +82,15 @@ class AzureAvailabilitySet(AzureResource):
     statuses: Optional[List[AzureInstanceViewStatus]] = field(default=None, metadata={'description': 'The resource status information.'})  # fmt: skip
     virtual_machines_availability: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if placement_group_id := self.proximity_placement_group:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
+            )
+        if virtual_machines := self.virtual_machines_availability:
+            for vm_id in virtual_machines:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+
 
 @define(eq=False, slots=False)
 class AzureCapacityReservationGroupInstanceView:
@@ -123,6 +133,11 @@ class AzureCapacityReservationGroup(AzureResource):
     capacity_reservations: Optional[List[str]] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
     reservation_group_instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
     virtual_machines_associated: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines associated to the capacity reservation group.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if virtual_machines := self.virtual_machines_associated:
+            for vm_id in virtual_machines:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -712,6 +727,12 @@ class AzureDisk(AzureResource, BaseVolume):
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if disk_id := self.disk_access_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskAccess, id=disk_id)
+        if self.disk_encryption and (disk_encryption_set_id := self.disk_encryption.disk_encryption_set_id):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_encryption_set_id)
 
 
 @define(eq=False, slots=False)
@@ -1766,6 +1787,10 @@ class AzureRestorePointCollection(AzureResource):
     restore_points: Optional[List[AzureRestorePoint]] = field(default=None, metadata={'description': 'A list containing all restore points created under this restore point collection.'})  # fmt: skip
     source: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.source and (collection_id := self.source.id):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureResource, id=collection_id)
+
 
 @define(eq=False, slots=False)
 class AzureSnapshotSku:
@@ -1864,6 +1889,10 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a snapshot supports hibernation.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the snapshot was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if disk_id := self.disk_access_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=disk_id)
 
 
 @define(eq=False, slots=False)
@@ -2602,6 +2631,27 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     user_data: Optional[str] = field(default=None, metadata={'description': 'Userdata for the vm, which must be base-64 encoded. Customer should not pass any secrets in here. Minimum api-version: 2021-03-01.'})  # fmt: skip
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if placement_group_id := self.proximity_placement_group:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
+            )
+
+        if (
+            self.virtual_machine_storage_profile
+            and self.virtual_machine_storage_profile.image_reference
+            and (image_reference_id := self.virtual_machine_storage_profile.image_reference.id)
+        ):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureImage, id=image_reference_id)
+
+        if (
+            self.virtual_machine_storage_profile
+            and self.virtual_machine_storage_profile.os_disk
+            and self.virtual_machine_storage_profile.os_disk.managed_disk
+            and (managed_disk_id := self.virtual_machine_storage_profile.os_disk.managed_disk.id)
+        ):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=managed_disk_id)
 
 
 @define(eq=False, slots=False)
