@@ -2,7 +2,9 @@ from pytest import fixture
 
 from resotocore.cli.cli import CLIService
 from resotocore.config import ConfigEntity
-from resotocore.ids import ConfigId
+from resotocore.db.model import QueryModel
+from resotocore.ids import ConfigId, GraphName
+from resotocore.query.model import P, Query
 from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
 from resotocore.report.report_config import (
@@ -103,7 +105,8 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
     inspector = inspector_service_with_test_benchmark
-    results = await inspector.perform_benchmarks(inspector.cli.env["graph"], ["test"])
+    graph_name = GraphName(inspector.cli.env["graph"])
+    results = await inspector.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
     result = results["test"]
     assert result.checks[0].number_of_resources_failing == 10
     assert result.checks[1].number_of_resources_failing == 10
@@ -118,6 +121,16 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
     passing, failing = result.passing_failing_checks_for_account("does_not_exist")
     assert len(passing) == 2
     assert len(failing) == 0
+
+    # make sure the result is persisted as part of the node
+    async def count_vulnerable() -> int:
+        db = inspector.db_access.get_graph_db(graph_name)
+        model = await inspector.model_handler.load_model(graph_name)
+        all_vunerable = Query.by(P("security.has_issues") == True)  # noqa
+        async with await db.search_list(QueryModel(all_vunerable, model), with_count=True) as cursor:
+            return cursor.count()  # type: ignore
+
+    assert await count_vulnerable() == 10
 
 
 async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
