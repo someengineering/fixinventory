@@ -4,8 +4,9 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource
+from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
+from resotolib.types import Json
 from resotolib.baseresources import (
     BaseInstance,
     BaseVolume,
@@ -14,7 +15,7 @@ from resotolib.baseresources import (
     VolumeStatus,
     BaseAutoScalingGroup,
     InstanceStatus,
-    InstanceStatus,
+    ModelReference,
 )
 
 
@@ -56,6 +57,9 @@ class AzureAvailabilitySet(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_proximity_placement_group", "azure_virtual_machine"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -99,6 +103,9 @@ class AzureCapacityReservationGroup(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_virtual_machine"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -616,6 +623,10 @@ class AzureDisk(AzureResource, BaseVolume):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_disk_access"]},
+        "successors": {"default": ["azure_disk_encryption_set"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1735,6 +1746,9 @@ class AzureRestorePointCollection(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_resource"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1781,6 +1795,9 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_disk"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2507,6 +2524,9 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_proximity_placement_group", "azure_image", "azure_disk"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
