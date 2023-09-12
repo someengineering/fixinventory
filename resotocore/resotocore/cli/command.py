@@ -4866,6 +4866,8 @@ class ReportCommand(CLICommand, EntityProvider):
             ),
             ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
             ArgInfo("--only-check-results", False, help_text="Only dump results."),
+            ArgInfo("--sync-security-section", False, help_text="Sync security section."),
+            ArgInfo("--run-id", False, help_text="Identifier for this specific run."),
         ]
         return {
             "benchmark": {
@@ -4931,6 +4933,7 @@ class ReportCommand(CLICommand, EntityProvider):
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
                 sync_security_section=parsed_args.sync_security_section,
+                report_run_id=parsed_args.run_id,
             )
             for result in results.values():
                 if not result.is_empty():
@@ -4959,6 +4962,7 @@ class ReportCommand(CLICommand, EntityProvider):
         run_parser.add_argument("--only-failing", action="store_true", default=False)
         run_parser.add_argument("--only-check-results", action="store_true", default=False)
         run_parser.add_argument("--sync-security-section", action="store_true", default=False)
+        run_parser.add_argument("--run-id", type=str, default=None)
 
         action = self.action_from_arg(arg)
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []

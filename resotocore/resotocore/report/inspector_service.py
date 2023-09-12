@@ -153,6 +153,7 @@ class InspectorService(Inspector, Service):
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
         sync_security_section: bool = False,
+        report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         benchmarks = {name: await self.__benchmark(benchmark_id(name)) for name in benchmark_names}
@@ -167,9 +168,10 @@ class InspectorService(Inspector, Service):
         }
         if sync_security_section:
             model = await self.model_handler.load_model(graph)
-            # We invent a report run id here. This id is used to identify all reports created by this run.
+            # In case no run_id is provided, we invent a report run id here.
+            run_id = report_run_id or uuid_str()
             await self.db_access.get_graph_db(graph).update_security_section(
-                uuid_str(), self.__benchmarks_to_security_iterator(result), model
+                run_id, self.__benchmarks_to_security_iterator(result), model
             )
         return result
 

@@ -366,6 +366,7 @@ class Inspector(ABC):
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
         sync_security_section: bool = False,
+        report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
         """
         Perform a benchmark by given name on the content of a graph with given name.
@@ -376,6 +377,7 @@ class Inspector(ABC):
         :param severity: Only include checks with given severity or higher
         :param only_failing: only include failing checks in the result
         :param sync_security_section: synchronize the security section of the graph with the benchmark result
+        :param report_run_id: give this run a specific id (will be persisted in the security section)
         :return: the result of all benchmarks by name
         """
 
