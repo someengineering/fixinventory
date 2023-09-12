@@ -59,9 +59,11 @@ log = logging.getLogger(__name__)
 
 
 class HistoryChange(Enum):
-    node_created = "node_created"
-    node_updated = "node_updated"
-    node_deleted = "node_deleted"
+    node_created = "node_created"  # when the resource is created
+    node_updated = "node_updated"  # when the resource is updated
+    node_deleted = "node_deleted"  # when the resource is deleted
+    node_vulnerable = "node_vulnerable"  # when the resource fails one or more security checks (after being compliant)
+    node_compliant = "node_compliant"  # when the resource passes all security checks (after being vulnerable)
 
 
 class GraphDB(ABC):
@@ -204,7 +206,6 @@ class ArangoGraphDB(GraphDB):
         self.vertex_name = name
         self.in_progress = f"{name}_in_progress"
         self.node_history = f"{name}_node_history"
-        self.security_history = f"{name}_security_history"
         self.usage_db = resource_usage_db(db, f"{name}_usage")
         self.db = db
         self.config = config
@@ -453,11 +454,11 @@ class ArangoGraphDB(GraphDB):
                     if not issues:  # no issues before, but now
                         security_section["opened_at"] = now
                         security_section["reopen_counter"] = security_section["reopen_counter"] + 1
-                        node["change"] = "opened"
-                        nodes_to_insert.append(dict(action="opened", node_id=node_id, data=node))
+                        node["change"] = "node_vulnerable"
+                        nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
                     elif hash_value != new_hash:  # changed hash -> the content has changed
-                        nodes_to_insert.append(dict(action="updated", node_id=node_id, data=node))
-                        node["change"] = "updated"
+                        nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
+                        node["change"] = "node_vulnerable"
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
                     # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
@@ -466,17 +467,18 @@ class ArangoGraphDB(GraphDB):
         async def move_security_temp_to_proper() -> None:
             temp_name = temp_collection.name
             aql_updates = [
-                f'for e in {temp_name} filter e.action in ["opened", "updated"] insert e.data in {self.security_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
-                # update security.run_id for all items with the same security issues
+                # Select all new or updated vulnerable nodes. Insert into history and update vertex.
+                f'for e in {temp_name} filter e.action=="node_vulnerable" insert e.data in {self.node_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
+                # Update security.run_id for all items with the same security issues
                 f'for e in {temp_name} filter e.action=="mark" update {{_key: e.node_id, security: {{run_id: e.run_id}}}} in {self.vertex_name} OPTIONS {{mergeObjects: true}}',  # noqa
-                # select all remaining nodes with a different run_id -> they are closed
-                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "closed", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.security_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
+                # Select all remaining nodes with a different run_id -> they are compliant again
+                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "node_compliant", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.node_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
             ]
             updates = ";\n".join(map(lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()", aql_updates))
             await self.db.execute_transaction(
                 f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
                 read=[temp_name],
-                write=[self.vertex_name, self.security_history],
+                write=[self.vertex_name, self.node_history],
             )
             log.info("Latest security update available.")
 
@@ -536,12 +538,12 @@ class ArangoGraphDB(GraphDB):
         if before:
             term = term.and_term(P.single("changed_at").lt(utc_str(before)))
         query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
-        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history)
+        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history, id_column="id")
         trafo = (
             None
             if query.query.aggregate
             else self.document_to_instance_fn(
-                query.model, query.query, ["change", "changed_at", "created", "updated", "deleted"]
+                query.model, query.query, ["change", "changed_at", "created", "updated", "deleted"], id_column="id"
             )
         )
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
@@ -590,7 +592,10 @@ class ArangoGraphDB(GraphDB):
 
     @staticmethod
     def document_to_instance_fn(
-        model: Model, query: Optional[Query] = None, additional_root_props: Optional[List[str]] = None
+        model: Model,
+        query: Optional[Query] = None,
+        additional_root_props: Optional[List[str]] = None,
+        id_column: str = "_key",
     ) -> Callable[[Json], Json]:
         synthetic_metadata = model.predefined_synthetic_props(synthetic_metadata_kinds)
 
@@ -611,7 +616,7 @@ class ArangoGraphDB(GraphDB):
             if Section.reported in doc or Section.desired in doc or Section.metadata in doc:
                 # side note: the dictionary remembers insertion order
                 # this order is also used to render the output (e.g. yaml property order)
-                result = {"id": doc["_key"], "type": "node"}
+                result = {"id": doc[id_column], "type": "node"}
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
                 props(doc, result, Section.content_ordered)
@@ -677,9 +682,9 @@ class ArangoGraphDB(GraphDB):
             for a in EdgeTypes.all
         ]
         history_updates = [
-            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
         ]
         usage_updates = [
             f'for u in {self.usage_db.collection_name} filter u.change_id=="{change_id}" update {{_key: u.id}} with {{ usage: MERGE(u.v, {{ start: DATE_ISO8601(u.at*1000), duration: "1h" }}) }} in {self.vertex_name} options {{ mergeObjects: false }}'  # noqa: E501
@@ -1063,9 +1068,7 @@ class ArangoGraphDB(GraphDB):
                     name="kinds_id_name_ctime",
                 )
 
-        def create_update_collection_indexes(
-            progress: StandardCollection, node_history: StandardCollection, security_history: StandardCollection
-        ) -> None:
+        def create_update_collection_indexes(progress: StandardCollection, node_history: StandardCollection) -> None:
             # progress indexes ------
             progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
             if "parent_nodes" not in progress_idxes:
@@ -1084,16 +1087,6 @@ class ArangoGraphDB(GraphDB):
                 )
             if "ttl_index" not in node_history_indexes:
                 node_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
-            # security history indexes ------
-            security_history_indexes = {idx["name"]: idx for idx in cast(List[Json], security_history.indexes())}
-            if "history_access" not in security_history_indexes:
-                security_history.add_persistent_index(
-                    ["change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
-                    sparse=False,
-                    name="history_access",
-                )
-            if "ttl_index" not in security_history_indexes:
-                security_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
@@ -1163,9 +1156,8 @@ class ArangoGraphDB(GraphDB):
         else:
             in_progress = await create_collection(self.in_progress)
             node_history_collection = await create_collection(self.node_history)
-            security_history_collection = await create_collection(self.security_history)
             create_node_indexes(vertex)
-            create_update_collection_indexes(in_progress, node_history_collection, security_history_collection)
+            create_update_collection_indexes(in_progress, node_history_collection)
             await self.usage_db.create_update_schema()
 
         for edge_type in EdgeTypes.all:
