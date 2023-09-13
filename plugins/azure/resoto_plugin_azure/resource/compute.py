@@ -1768,7 +1768,7 @@ class AzureRestorePointCollection(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_resource"]},
+        "successors": {"default": ["azure_virtual_machine"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1788,8 +1788,8 @@ class AzureRestorePointCollection(AzureResource):
     source: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.source and (collection_id := self.source.id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureResource, id=collection_id)
+        if collection_id := self.restore_point_collection_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=collection_id)
 
 
 @define(eq=False, slots=False)
