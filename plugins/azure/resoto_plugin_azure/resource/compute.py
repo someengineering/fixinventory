@@ -2639,17 +2639,17 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             )
 
         if (
-            self.virtual_machine_storage_profile
-            and self.virtual_machine_storage_profile.image_reference
-            and (image_reference_id := self.virtual_machine_storage_profile.image_reference.id)
+            (sp := self.virtual_machine_storage_profile)
+            and (image_ref := sp.image_reference)
+            and (image_reference_id := image_ref.id)
         ):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureImage, id=image_reference_id)
 
         if (
-            self.virtual_machine_storage_profile
-            and self.virtual_machine_storage_profile.os_disk
-            and self.virtual_machine_storage_profile.os_disk.managed_disk
-            and (managed_disk_id := self.virtual_machine_storage_profile.os_disk.managed_disk.id)
+            (sp := self.virtual_machine_storage_profile)
+            and (disk := sp.os_disk)
+            and (managed := disk.managed_disk)
+            and (managed_disk_id := managed.id)
         ):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=managed_disk_id)
 
