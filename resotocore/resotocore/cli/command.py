@@ -4784,6 +4784,8 @@ class ReportCommand(CLICommand, EntityProvider):
                          [--severity <level>]
                          [--only-failing]
                          [--only-check-results]
+                         [--sync-security-section]
+                         [--run-id <run-id>]
     report checks list
     report checks show <check-id>
     report checks run <check-id>
@@ -4805,11 +4807,16 @@ class ReportCommand(CLICommand, EntityProvider):
     - `--accounts` [optional]: List of account ids (space separated) to run the benchmark against.
         If not specified, the benchmark is run against all accounts.
     - `--severity` [optional]: Severity level to filter checks. One of `info`, `low`, `medium`, `high`, `critical`
+    - `--run-id` [optional]: Only valid in combination with `--sync-security-section`.
+        All changed section will contain a reference to the report run.
+        In case no run-id is provided, a unique identifier is generated.
 
     ## Options
     - `--only-failing` [optional]: Only include checks that are failing in the report.
     - `--only-check-results` [optional]: Only include the check result, not the benchmark structure in the report.
                                          This is useful, if you want to process the result with other action commands.
+    - `--sync-security-section` [optional]: Synchronize the result of the benchmark with the security section of
+                                            related nodes.
 
     ## Examples
 
@@ -4828,7 +4835,7 @@ class ReportCommand(CLICommand, EntityProvider):
       ... output suppressed ...
 
     # Perform the check against all defined accounts, showing only a result if the check fails.
-    > report check run aws_apigateway_authorizers_enabled  --accounts 111 222 --only-failing
+    > report check run aws_apigateway_authorizers_enabled --accounts 111 222 --only-failing
       ... output suppressed ...
 
     # List all available benchmarks

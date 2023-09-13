@@ -149,6 +149,16 @@ class FuzzyWordCompleter(Completer):
         return self.get_completions_filtered(document, complete_event, lambda v: not filter_values.get(v.text, False))
 
 
+SecuritySection = {
+    "opened_at": "Time issue was opened",
+    "reopen_counter": "How often an issue was closed and reopened",
+    "run_id": "Id of last run",
+    "has_issues": "True for nodes with issues.",
+    "severity": "Highest severity of all issues.",
+    "issues": "List of issues.",
+}
+SecuritySectionCompleter = FuzzyWordCompleter(list(SecuritySection.keys()), meta_dict=SecuritySection)
+
 re_nav_block = r"[a-zA-Z0-9]*(?:\[[0-9:]+\])?[a-zA-Z0-9]*"
 re_navigation = re.compile(f"-{re_nav_block}->|<-{re_nav_block}-|<-{re_nav_block}->")
 
@@ -175,6 +185,7 @@ re_sort_order = re.compile(r".*sort\s+\S+\s+(\S*)$")
 
 re_param_start = re.compile(r"(?:\s*|.*and\s+|.*or\s+)(/?[\w\-\[\]_.*]*)$")
 re_slash_reported = re.compile(r"/reported.(\S*)$")
+re_slash_security = re.compile(r"/security.(\S*)$")
 re_ancestor_descendant_kind = re.compile(r"(?:/ancestors.|/descendants.)([^.]*)$")
 re_ancestor_descendant_section = re.compile(r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]([^.]*)$")
 re_ancestor_descendant_reported = re.compile(r"(?:/ancestors.|/descendants.)[\w\d_-]+[.]reported[.](\S*)$")
@@ -222,7 +233,7 @@ class AbstractSearchCompleter(Completer, ABC):
         self.ops_lookup = set(ops)
         self.kind_completer = FuzzyWordCompleter(kinds, meta_dict={p: "kind" for p in kinds})
         self.property_names_completer = FuzzyWordCompleter(
-            props + ["/ancestors", "/reported", "/desired", "/metadata", "/descendants"],
+            props + ["/ancestors", "/reported", "/desired", "/metadata", "/security", "/descendants"],
             meta_dict=(
                 {
                     "/reported": "absolute path in reported section",
@@ -230,12 +241,15 @@ class AbstractSearchCompleter(Completer, ABC):
                     "/metadata": "absolute path in metadata section",
                     "/ancestors": "ancestor properties",
                     "/descendants": "descendant properties",
+                    "/security": "security information",
                     **{p: "property" for p in self.props},
                 }
             ),
         )
         self.start_completer = FuzzyWordCompleter(
-            ['"', "is(", "/ancestors"] + props + ["/reported", "/desired", "/metadata", "/descendants", "all"],
+            ['"', "is(", "/ancestors"]
+            + props
+            + ["/reported", "/desired", "/metadata", "/security", "/descendants", "all"],
             meta_dict=(
                 {
                     '"': 'full text search. e.g. "test"',
@@ -246,6 +260,7 @@ class AbstractSearchCompleter(Completer, ABC):
                     "/metadata": "absolute path in metadata section",
                     "/ancestors": "filter ancestor properties",
                     "/descendants": "filter descendant properties",
+                    "/security": "security related properties",
                     **{p: "filter property" for p in self.props},
                 }
             ),
@@ -314,6 +329,9 @@ class AbstractSearchCompleter(Completer, ABC):
         elif reported := re_slash_reported.match(ext.last_word):
             pd = cut_document_remaining(doc, reported.span(1))
             return self.property_path_completions(self.property_names_completer, pd, complete_event)
+        elif security := re_slash_security.match(ext.last_word):
+            pd = cut_document_remaining(doc, security.span(1))
+            return SecuritySectionCompleter.get_completions(pd, complete_event)
         else:
             return self.property_path_completions(start_with, doc, complete_event)
 
@@ -408,7 +426,7 @@ class AggregateCompleter(AbstractSearchCompleter):
             meta_dict=({",": "define another group function"}),
         )
         self.props_completer = FuzzyWordCompleter(
-            props + ["/ancestors", "/reported", "/desired", "/metadata", "/descendants"],
+            props + ["/ancestors", "/reported", "/desired", "/metadata", "/security", "/descendants"],
             meta_dict=(
                 {
                     "/reported": "absolute path in reported section",
@@ -416,6 +434,7 @@ class AggregateCompleter(AbstractSearchCompleter):
                     "/metadata": "absolute path in metadata section",
                     "/ancestors": "on ancestor properties",
                     "/descendants": "on descendant properties",
+                    "/security": "on security properties",
                     **{p: "aggregate property" for p in self.props},
                 }
             ),
