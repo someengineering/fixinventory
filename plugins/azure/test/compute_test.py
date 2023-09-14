@@ -94,6 +94,11 @@ def test_restore_point_collection(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureRestorePointCollection, builder)
     assert len(collected) == 2
 
+    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureRestorePointCollection, AzureVirtualMachine)) == 2
+
 
 def test_ssh_key(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSshPublicKeyResource, builder)

@@ -1788,8 +1788,8 @@ class AzureRestorePointCollection(AzureResource):
     source: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if collection_id := self.restore_point_collection_id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=collection_id)
+        if (source_id := self.source) and (vm_id := source_id.id):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
