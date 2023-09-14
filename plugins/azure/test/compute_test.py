@@ -19,6 +19,11 @@ def test_capacity_reservation_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureCapacityReservationGroup, builder)
     assert len(collected) == 2
 
+    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureCapacityReservationGroup, AzureVirtualMachine)) == 2
+
 
 def test_cloud_service(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureCloudService, builder)
