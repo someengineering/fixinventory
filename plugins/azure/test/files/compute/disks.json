@@ -63,13 +63,19 @@
                 "supportsHibernation": true,
                 "tier": "Premium",
                 "uniqueId": "d1d2d3d4-d5d6-d7d8-d9d0-d1d2d3d4d5d6",
-                "propertyUpdatesInProgress": { "targetTier": "Premium" }
+                "propertyUpdatesInProgress": {
+                    "targetTier": "Premium"
+                }
             },
             "type": "Microsoft.Compute/disks",
             "location": "westus",
-            "extendedLocation": {"name": "test"},
+            "extendedLocation": {
+                "name": "test"
+            },
             "managedBy": "test",
-            "managedByExtended": ["test2"],
+            "managedByExtended": [
+                "test2"
+            ],
             "tags": {
                 "department": "Development",
                 "project": "ManagedDisks"
@@ -124,7 +130,7 @@
                 "project": "ManagedDisks"
             },
             "id": "/subscriptions/{subscription-id}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess2",
-            "name": "myManagedDisk3"
+            "name": "myManagedDisk2"
         }
     ],
     "nextLink": "http://disksvchost:99/subscriptions/{subscriptionId}/providers/Microsoft.Compute/disks?$skiptoken={token}/Subscriptions/{subscriptionId}/ResourceGroups/myResourceGroup/Disks/myManagedDisk"

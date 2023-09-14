@@ -16,4 +16,4 @@ def test_collect(
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
     assert len(collector.graph.nodes) == 60
-    assert len(collector.graph.edges) == 72
+    assert len(collector.graph.edges) == 78

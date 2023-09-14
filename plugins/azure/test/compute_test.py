@@ -4,6 +4,7 @@ from resoto_plugin_azure.resource.compute import *
 from resotolib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
 
+
 def test_availability_sets(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailabilitySet, builder)
     assert len(collected) == 4
@@ -49,6 +50,7 @@ def test_disks(builder: GraphBuilder) -> None:
 
     assert len(builder.edges_of(AzureDisk, AzureDiskAccess)) == 2
     assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
+
 
 def test_disks_resource(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
@@ -108,6 +110,13 @@ def test_ssh_key(builder: GraphBuilder) -> None:
 def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
     assert len(collected) == 2
+
+    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureImage, AzureDisk]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureVirtualMachine, AzureProximityPlacementGroup)) == 2
+    assert len(builder.edges_of(AzureVirtualMachine, AzureImage)) == 2
+    assert len(builder.edges_of(AzureVirtualMachine, AzureDisk)) == 2
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:

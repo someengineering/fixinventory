@@ -1360,10 +1360,12 @@ class AzureManagedDiskParameters(AzureSubResource):
         "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
         "disk_parameters_security_profile": S("securityProfile") >> Bend(AzureVMDiskSecurityProfile.mapping),
         "storage_account_type": S("storageAccountType"),
+        "id": S("id"),
     }
     disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     disk_parameters_security_profile: Optional[AzureVMDiskSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the managed disk. **note:** it can only be set for confidential vms.'})  # fmt: skip
     storage_account_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the storage account type for the managed disk. Managed os disk storage account type can only be set when you create the scale set. Note: ultrassd_lrs can only be used with data disks. It cannot be used with os disk. Standard_lrs uses standard hdd. Standardssd_lrs uses standard ssd. Premium_lrs uses premium ssd. Ultrassd_lrs uses ultra disk. Premium_zrs uses premium ssd zone redundant storage. Standardssd_zrs uses standard ssd zone redundant storage. For more information regarding disks supported for windows virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/windows/disks-types and, for linux virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/linux/disks-types.'})  # fmt: skip
+    id: Optional[str] = field(default=None, metadata={'description': ''})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1945,6 +1947,7 @@ class AzureImageReference(AzureSubResource):
         "shared_gallery_image_id": S("sharedGalleryImageId"),
         "image_reference_sku": S("sku"),
         "version": S("version"),
+        "id": S("id"),
     }
     community_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the community gallery image unique id for vm deployment. This can be fetched from community gallery image get call.'})  # fmt: skip
     exact_version: Optional[str] = field(default=None, metadata={'description': 'Specifies in decimal numbers, the version of platform image or marketplace image used to create the virtual machine. This readonly field differs from version , only if the value specified in version field is latest.'})  # fmt: skip
@@ -1953,6 +1956,7 @@ class AzureImageReference(AzureSubResource):
     shared_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the shared gallery image unique id for vm deployment. This can be fetched from shared gallery image get call.'})  # fmt: skip
     image_reference_sku: Optional[str] = field(default=None, metadata={"description": "The image sku."})
     version: Optional[str] = field(default=None, metadata={'description': 'Specifies the version of the platform image or marketplace image used to create the virtual machine. The allowed formats are major. Minor. Build or latest. Major, minor, and build are decimal numbers. Specify latest to use the latest version of an image available at deploy time. Even if you use latest , the vm image will not automatically update after deploy time even if a new version becomes available. Please do not use field version for gallery image deployment, gallery image should always use id field for deployment, to use latest version of gallery image, just set /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Compute/galleries/{galleryname}/images/{imagename} in the id field without version input.'})  # fmt: skip
+    id: Optional[str] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
