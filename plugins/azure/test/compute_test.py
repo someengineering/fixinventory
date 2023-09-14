@@ -10,8 +10,9 @@ def test_availability_sets(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureVirtualMachine]
     connect_resources(builder, resource_types)
+
     assert len(builder.edges_of(AzureAvailabilitySet, AzureProximityPlacementGroup)) == 2
-    assert len(builder.edges_of(AzureAvailabilitySet, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureAvailabilitySet, AzureVirtualMachine)) == 2
 
 
 def test_capacity_reservation_group(builder: GraphBuilder) -> None:
