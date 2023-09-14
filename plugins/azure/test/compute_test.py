@@ -1,12 +1,17 @@
-from conftest import roundtrip_check
-from resoto_plugin_azure.resource.base import GraphBuilder
+from conftest import roundtrip_check, connect_resources
+from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
 from resoto_plugin_azure.resource.compute import *
 from resotolib.baseresources import VolumeStatus, InstanceStatus
-
+from typing import List, Type
 
 def test_availability_sets(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailabilitySet, builder)
     assert len(collected) == 4
+
+    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureVirtualMachine]
+    connect_resources(builder, resource_types)
+    assert len(builder.edges_of(AzureAvailabilitySet, AzureProximityPlacementGroup)) == 2
+    assert len(builder.edges_of(AzureAvailabilitySet, AzureVirtualMachine)) == 1
 
 
 def test_capacity_reservation_group(builder: GraphBuilder) -> None:
