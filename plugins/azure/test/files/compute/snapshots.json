@@ -5,7 +5,7 @@
                 "osType": "Windows",
                 "creationData": {
                     "createOption": "Copy",
-                    "sourceResourceId": "subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/snapshots/mySnapshot"
+                    "sourceResourceId": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess"
                 },
                 "diskSizeGB": 200,
                 "encryptionSettingsCollection": {

@@ -1891,7 +1891,7 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if disk_id := self.disk_access_id:
+        if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=disk_id)
 
 

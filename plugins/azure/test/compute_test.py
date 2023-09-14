@@ -137,6 +137,11 @@ def test_snapshot(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSnapshot, builder)
     assert len(collected) == 2
 
+    resource_type: List[Type[AzureResource]] = [AzureDisk]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureSnapshot, AzureDisk)) == 1
+
 
 def test_snapshot_resources(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSnapshot, builder)[1]
