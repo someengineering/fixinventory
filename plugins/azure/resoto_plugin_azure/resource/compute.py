@@ -729,10 +729,10 @@ class AzureDisk(AzureResource, BaseVolume):
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if disk_id := self.disk_access_id:
+        if disk_id := self.id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskAccess, id=disk_id)
-        if self.disk_encryption and (disk_encryption_set_id := self.disk_encryption.disk_encryption_set_id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_encryption_set_id)
+        if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
 
 
 @define(eq=False, slots=False)

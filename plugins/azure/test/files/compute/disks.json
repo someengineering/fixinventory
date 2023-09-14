@@ -28,6 +28,7 @@
                     ]
                 },
                 "encryption": {
+                    "diskEncryptionSetId": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskEncryptionSets/myDiskEncryptionSet",
                     "type": "EncryptionAtRestWithPlatformKey"
                 },
                 "timeCreated": "2016-12-28T04:41:35.9278721+00:00",
@@ -73,30 +74,12 @@
                 "department": "Development",
                 "project": "ManagedDisks"
             },
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk1",
+            "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess",
             "name": "myManagedDisk1",
             "sku": {
                 "name": "Premium_LRS",
                 "tier": "Premium"
             }
-        },
-        {
-            "properties": {
-                "osType": "Windows",
-                "creationData": {
-                    "createOption": "Empty"
-                },
-                "diskSizeGB": 10,
-                "encryption": {
-                    "type": "EncryptionAtRestWithPlatformKey"
-                },
-                "timeCreated": "2016-12-28T04:41:36.872242+00:00",
-                "provisioningState": "Succeeded"
-            },
-            "type": "Microsoft.Compute/disks",
-            "location": "westus",
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk2",
-            "name": "myManagedDisk2"
         },
         {
             "properties": {
@@ -128,6 +111,7 @@
                     ]
                 },
                 "encryption": {
+                    "diskEncryptionSetId": "/subscriptions/{subscriptionId}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskEncryptionSets/myDiskEncryptionSet2",
                     "type": "EncryptionAtRestWithPlatformKey"
                 },
                 "timeCreated": "2016-12-28T04:41:36.3973934+00:00",
@@ -139,7 +123,7 @@
                 "department": "Development",
                 "project": "ManagedDisks"
             },
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk3",
+            "id": "/subscriptions/{subscription-id}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess2",
             "name": "myManagedDisk3"
         }
     ],

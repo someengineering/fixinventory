@@ -37,8 +37,13 @@ def test_dedicated_host_group(builder: GraphBuilder) -> None:
 
 def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)
-    assert len(collected) == 3
+    assert len(collected) == 2
 
+    resource_types: List[Type[AzureResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureDisk, AzureDiskAccess)) == 2
+    assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
 
 def test_disks_resource(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
