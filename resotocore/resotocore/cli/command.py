@@ -2666,9 +2666,10 @@ class ListCommand(CLICommand, OutputTransformer):
 
             def extract_values(elem: JsonElement) -> List[Any | None]:
                 result = []
-                for idx, prop_path in enumerate(props_to_show):
+                prop_idx: int
+                for prop_idx, prop_path in enumerate(props_to_show):
                     value = js_value_at(elem, prop_path[0])
-                    columns_padding[idx] = max(columns_padding[idx], len(str(value)))
+                    columns_padding[prop_idx] = max(columns_padding[prop_idx], len(str(value)))
                     result.append(value)
                 return result
 
@@ -4783,6 +4784,8 @@ class ReportCommand(CLICommand, EntityProvider):
                          [--severity <level>]
                          [--only-failing]
                          [--only-check-results]
+                         [--sync-security-section]
+                         [--run-id <run-id>]
     report checks list
     report checks show <check-id>
     report checks run <check-id>
@@ -4804,11 +4807,16 @@ class ReportCommand(CLICommand, EntityProvider):
     - `--accounts` [optional]: List of account ids (space separated) to run the benchmark against.
         If not specified, the benchmark is run against all accounts.
     - `--severity` [optional]: Severity level to filter checks. One of `info`, `low`, `medium`, `high`, `critical`
+    - `--run-id` [optional]: Only valid in combination with `--sync-security-section`.
+        All changed section will contain a reference to the report run.
+        In case no run-id is provided, a unique identifier is generated.
 
     ## Options
     - `--only-failing` [optional]: Only include checks that are failing in the report.
     - `--only-check-results` [optional]: Only include the check result, not the benchmark structure in the report.
                                          This is useful, if you want to process the result with other action commands.
+    - `--sync-security-section` [optional]: Synchronize the result of the benchmark with the security section of
+                                            related nodes.
 
     ## Examples
 
@@ -4827,7 +4835,7 @@ class ReportCommand(CLICommand, EntityProvider):
       ... output suppressed ...
 
     # Perform the check against all defined accounts, showing only a result if the check fails.
-    > report check run aws_apigateway_authorizers_enabled  --accounts 111 222 --only-failing
+    > report check run aws_apigateway_authorizers_enabled --accounts 111 222 --only-failing
       ... output suppressed ...
 
     # List all available benchmarks
@@ -4865,6 +4873,8 @@ class ReportCommand(CLICommand, EntityProvider):
             ),
             ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
             ArgInfo("--only-check-results", False, help_text="Only dump results."),
+            ArgInfo("--sync-security-section", False, help_text="Sync security section."),
+            ArgInfo("--run-id", False, help_text="Identifier for this specific run."),
         ]
         return {
             "benchmark": {
@@ -4923,21 +4933,24 @@ class ReportCommand(CLICommand, EntityProvider):
                 yield check.id
 
         async def run_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
-            result = await self.dependencies.inspector.perform_benchmark(
+            results = await self.dependencies.inspector.perform_benchmarks(
                 ctx.graph_name,
-                parsed_args.identifier,
+                benchmark_names=parsed_args.identifier,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
+                sync_security_section=parsed_args.sync_security_section,
+                report_run_id=parsed_args.run_id,
             )
-            if not result.is_empty():
-                for node in result.to_graph(parsed_args.only_check_results):
-                    yield node
+            for result in results.values():
+                if not result.is_empty():
+                    for node in result.to_graph(parsed_args.only_check_results):
+                        yield node
 
         async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_checks(
                 ctx.graph_name,
-                check_ids=[parsed_args.identifier],
+                check_ids=parsed_args.identifier,
                 accounts=parsed_args.accounts,
                 severity=parsed_args.severity,
                 only_failing=parsed_args.only_failing,
@@ -4950,11 +4963,13 @@ class ReportCommand(CLICommand, EntityProvider):
             yield f"Do not understand: {arg}\n\n" + self.rendered_help(ctx)
 
         run_parser = NoExitArgumentParser()
-        run_parser.add_argument("identifier")
+        run_parser.add_argument("identifier", nargs="+")
         run_parser.add_argument("--accounts", nargs="+")
         run_parser.add_argument("--severity", type=ReportSeverity, choices=list(ReportSeverity))
         run_parser.add_argument("--only-failing", action="store_true", default=False)
         run_parser.add_argument("--only-check-results", action="store_true", default=False)
+        run_parser.add_argument("--sync-security-section", action="store_true", default=False)
+        run_parser.add_argument("--run-id", type=str, default=None)
 
         action = self.action_from_arg(arg)
         args = re.split("\\s+", arg.strip(), maxsplit=2) if arg else []

@@ -3,7 +3,7 @@ import string
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 from random import SystemRandom
-from typing import List, Optional, Any, Dict, cast
+from typing import List, Optional, Any, Dict, cast, AsyncIterator, Tuple
 
 from arango.database import StandardDatabase
 from arango.typings import Json
@@ -170,7 +170,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 async def load_graph(db: GraphDB, model: Model) -> MultiDiGraph:
-    blas = Query.by(P("identifier") == "sub_root").traverse_out(0, Navigation.Max)
+    blas = Query.by(P("identifier") == "sub_root").traverse_out(0, Navigation.Max)  # noqa
     return await db.search_graph(QueryModel(blas.on_section("reported"), model))
 
 
@@ -295,7 +295,7 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
 
 @mark.asyncio
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)
+    blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)  # noqa
     async with await filled_graph_db.search_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 10
@@ -337,7 +337,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert len(graph.nodes.values()) == 111
 
     # filter data and tag result, and then traverse to the end of the graph in both directions
-    around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)
+    around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)  # noqa
     graph = await filled_graph_db.search_graph(QueryModel(around_me.on_section("reported"), foo_model))
     assert len({x for x in graph.nodes}) == 12
     assert GraphAccess.root_id(graph) == "sub_root"
@@ -690,6 +690,44 @@ def test_render_metadata_section(foo_model: Model) -> None:
     printer = ArangoGraphDB.document_to_instance_fn(foo_model)
     out = printer({"_key": "1", "reported": {"kind": "foo"}, "metadata": {"exported_at": "2023-03-06T19:37:51Z"}})
     assert "exported_age" in out["metadata"]  # exported_age is not part of the document, but should be added
+
+
+@mark.asyncio
+async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Model) -> None:
+    async def query_vulnerable() -> List[Json]:
+        async with await filled_graph_db.search_list(
+            QueryModel(Query.by(P("security.has_issues") == True), foo_model)  # noqa
+        ) as cursor:
+            return [entry async for entry in cursor]
+
+    async def security_issues(num: int) -> AsyncIterator[Tuple[NodeId, Json]]:
+        checks = [dict(benchmark="test", check=f"check{n}", severity="medium") for n in range(num)]
+        for n in range(10):
+            yield NodeId(f"0_{n}"), dict(issues=checks)
+
+    async def no_issues() -> AsyncIterator[Tuple[NodeId, Json]]:
+        if False:
+            yield  # noqa
+
+    async def assert_security(run_id: str, count: int, expected_vulnerabilities: int, reopen: int = 0) -> None:
+        vulnerable = await query_vulnerable()
+        assert len(vulnerable) == count
+        for node in vulnerable:
+            security = node["security"]
+            assert security["has_issues"] is True
+            assert len(security["issues"]) == expected_vulnerabilities
+            assert security["opened_at"] is not None
+            assert security["reopen_counter"] == reopen
+            assert security["run_id"] == run_id
+
+    await filled_graph_db.update_security_section("change1", security_issues(1), foo_model)
+    await assert_security("change1", 10, 1)
+    await filled_graph_db.update_security_section("change2", security_issues(3), foo_model)
+    await assert_security("change2", 10, 3)
+    await filled_graph_db.update_security_section("change3", no_issues(), foo_model)
+    await assert_security("change3", 0, 0)
+    await filled_graph_db.update_security_section("change4", security_issues(2), foo_model)
+    await assert_security("change4", 10, 2, reopen=1)
 
 
 def to_json(obj: BaseResource) -> Json:

@@ -73,8 +73,10 @@ def test_parse_is_term() -> None:
 
 
 def test_parse_id_term() -> None:
-    assert id_term.parse('id("test")') == IdTerm("test")
-    assert id_term.parse("id(test)") == IdTerm("test")
+    assert id_term.parse('id("test")') == IdTerm(["test"])
+    assert id_term.parse("id(test)") == IdTerm(["test"])
+    assert id_term.parse("id(a,b,c)") == IdTerm(["a", "b", "c"])
+    assert id_term.parse("id([a,b,c])") == IdTerm(["a", "b", "c"])
 
 
 def test_parse_predicate() -> None:
