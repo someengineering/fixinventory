@@ -14,6 +14,7 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     ResotoCoreSnapshotsRoot,
 )
+from resotocore.report import BenchmarkConfigRoot
 from resotocore.system_start import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.ids import ConfigId
@@ -93,6 +94,7 @@ async def test_validation(core_config_handler: CoreConfigHandler) -> None:
         await validate({"config": {ResotoCoreSnapshotsRoot: {"foo-label": {"schedule": "foo bar", "retain": 42}}}})
         is not None
     )
+    assert await validate({"config": {BenchmarkConfigRoot: {"id": "some"}}, "config_id": "some_other"}) is not None
 
 
 @mark.asyncio
