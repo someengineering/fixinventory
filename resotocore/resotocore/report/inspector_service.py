@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator
+from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast
 
 from aiostream import stream
 from attr import define
@@ -14,7 +14,7 @@ from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId, GraphName, NodeId
 from resotocore.model.model import Model
 from resotocore.model.resolve_in_graph import NodePath
-from resotocore.query.model import Query, P
+from resotocore.query.model import Query, P, Term
 from resotocore.report import (
     Inspector,
     ReportCheck,
@@ -36,7 +36,7 @@ from resotocore.report import (
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
 from resotocore.service import Service
 from resotocore.types import Json
-from resotocore.util import value_in_path, uuid_str
+from resotocore.util import value_in_path, uuid_str, value_in_path_get
 from resotolib.json_bender import Bender, S, bend
 
 log = logging.getLogger(__name__)
@@ -58,6 +58,9 @@ class CheckContext:
     severity: Optional[ReportSeverity] = None
     only_failed: bool = False
     parallel_checks: int = 10
+
+    def severities_including(self, severity: ReportSeverity) -> List[ReportSeverity]:
+        return [s for s in ReportSeverity if self.includes_severity(severity)]
 
     def includes_severity(self, severity: ReportSeverity) -> bool:
         if self.severity is None:
@@ -143,6 +146,46 @@ class InspectorService(Inspector, Service):
             )
 
         return await self.filter_checks(inspection_matches)
+
+    async def load_benchmarks(
+        self,
+        graph: GraphName,
+        benchmark_names: List[str],
+        *,
+        accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
+    ) -> Dict[str, BenchmarkResult]:
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
+        # create query
+        term: Term = P("benchmark").is_in(benchmark_names)
+        if severity:
+            term = term & P("severity").is_in(context.severities_including(severity))
+        term = P.context("security.issues[]", term)
+        if accounts:
+            term = term & P("ancestors.account.reported.id").is_in(accounts)
+        term = term & P("security.has_issues").eq(True)
+        model = QueryModel(Query.by(term), await self.model_handler.load_model(graph))
+
+        # collect all checks
+        benchmarks = {name: await self.__benchmark(benchmark_id(name)) for name in benchmark_names}
+        check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
+        checks = await self.list_checks(check_ids=list(check_ids), context=context)
+        check_lookup = {check.id: check for check in checks}
+
+        # perform query, map resources and create lookup map
+        check_results: Dict[str, SingleCheckResult] = defaultdict(lambda: defaultdict(list))
+        async with await self.db_access.get_graph_db(graph).search_list(model) as cursor:
+            async for entry in cursor:
+                if account_id := value_in_path(entry, NodePath.ancestor_account_id):
+                    mapped = bend(ReportResourceData, entry)
+                    for issue in value_in_path_get(entry, NodePath.security_issues, cast(List[Json], [])):
+                        if check := issue.get("check"):
+                            check_results[check][account_id].append(mapped)
+        return {
+            name: self.__to_result(benchmark, check_lookup, check_results, context)
+            for name, benchmark in benchmarks.items()
+        }
 
     async def perform_benchmarks(
         self,
@@ -365,9 +408,12 @@ class InspectorService(Inspector, Service):
             ids = [value_in_path(a, NodePath.reported_id) async for a in crs]
             return [aid for aid in ids if aid is not None]
 
-    async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
+    async def validate_benchmark_config(self, cfg_id: ConfigId, json: Json) -> Optional[Json]:
         try:
             benchmark = BenchmarkConfig.from_config(ConfigEntity(ResotoReportBenchmark, json))
+            bid = cfg_id.rsplit(".", 1)[-1]
+            if benchmark.id != bid:
+                return {"error": f"Benchmark id should be {bid} (same as the config name). Got {benchmark.id}"}
             all_checks = {c.id for c in await self.filter_checks()}
             missing = []
             for check in benchmark.nested_checks():

@@ -629,7 +629,13 @@ class Api(Service):
         graph = GraphName(request.match_info["graph_id"])
         acc = request.query.get("accounts")
         accounts = [a.strip() for a in acc.split(",")] if acc else None
-        results = await deps.inspector.perform_benchmarks(graph, [benchmark], accounts=accounts)
+        action = request.query.get("action", "run")
+        if action == "run":
+            results = await deps.inspector.perform_benchmarks(graph, [benchmark], accounts=accounts)
+        elif action == "load":
+            results = await deps.inspector.load_benchmarks(graph, [benchmark], accounts=accounts)
+        else:
+            raise ValueError(f"Unknown action {action}. One of run or load is expected.")
         result_graph = results[benchmark].to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
             return await self.stream_response_from_gen(request, streamer, len(result_graph))

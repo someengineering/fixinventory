@@ -108,7 +108,7 @@ class CoreConfigHandler(Service):
         elif CheckConfigRoot in holder:
             return await self.inspector.validate_check_collection_config(task_data["config"])
         elif BenchmarkConfigRoot in holder:
-            return await self.inspector.validate_benchmark_config(task_data["config"])
+            return await self.inspector.validate_benchmark_config(task_data["config_id"], task_data["config"])
         elif ResotoCoreSnapshotsRoot in holder:
             return validate_snapshot_schedule()
         else:

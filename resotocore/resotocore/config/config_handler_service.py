@@ -78,7 +78,7 @@ class ConfigHandlerService(ConfigHandler, Service):
         if validator:
             validation = await self.validation_db.get(validator)
             if validation and validation.external_validation and validate:
-                await self.acknowledge_config_change(validator, final_config)
+                await self.acknowledge_config_change(validator, cfg_id, final_config)
 
         # If we come here, everything is fine
         return final_config
@@ -239,7 +239,7 @@ class ConfigHandlerService(ConfigHandler, Service):
         else:
             return None
 
-    async def acknowledge_config_change(self, cfg_id: str, config: Json) -> None:
+    async def acknowledge_config_change(self, validator: str, cfg_id: str, config: Json) -> None:
         """
         In case an external entity should acknowledge this config change.
         This method either return, which signals success or throws an exception.
@@ -248,8 +248,8 @@ class ConfigHandlerService(ConfigHandler, Service):
         task = WorkerTask(
             TaskId(uuid_str()),
             WorkerTaskName.validate_config,
-            {"config_id": cfg_id},
-            {"task": WorkerTaskName.validate_config, "config": config},
+            {"config_id": validator},
+            {"task": WorkerTaskName.validate_config, "config": config, "config_id": cfg_id},
             future,
             timedelta(seconds=30),
         )
