@@ -14,7 +14,8 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     ResotoCoreSnapshotsRoot,
 )
-from resotocore.report import BenchmarkConfigRoot
+from resotocore.model.typed_model import to_js
+from resotocore.report import BenchmarkConfigRoot, Benchmark
 from resotocore.system_start import empty_config
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.ids import ConfigId
@@ -63,7 +64,7 @@ async def test_exit_on_updated_config(
 
 
 @mark.asyncio
-async def test_validation(core_config_handler: CoreConfigHandler) -> None:
+async def test_validation(core_config_handler: CoreConfigHandler, test_benchmark: Benchmark) -> None:
     validate = core_config_handler.validate_config_entry
 
     # empty config is valid
@@ -94,7 +95,10 @@ async def test_validation(core_config_handler: CoreConfigHandler) -> None:
         await validate({"config": {ResotoCoreSnapshotsRoot: {"foo-label": {"schedule": "foo bar", "retain": 42}}}})
         is not None
     )
+    # make sure that the benchmark id and config_id are the same
     assert await validate({"config": {BenchmarkConfigRoot: {"id": "some"}}, "config_id": "some_other"}) is not None
+    # a valid benchmark config passes the check
+    assert await validate({"config": {BenchmarkConfigRoot: to_js(test_benchmark)}, "config_id": "test"}) is None
 
 
 @mark.asyncio
