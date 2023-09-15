@@ -239,7 +239,7 @@ class ConfigHandlerService(ConfigHandler, Service):
         else:
             return None
 
-    async def acknowledge_config_change(self, validator: str, cfg_id: str, config: Json) -> None:
+    async def acknowledge_config_change(self, validator: str, cfg_id: ConfigId, config: Json) -> None:
         """
         In case an external entity should acknowledge this config change.
         This method either return, which signals success or throws an exception.
