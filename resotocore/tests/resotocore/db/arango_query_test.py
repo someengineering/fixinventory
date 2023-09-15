@@ -5,7 +5,7 @@ from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combi
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
-from resotocore.query.model import Query, Sort
+from resotocore.query.model import Query, Sort, P
 from resotocore.query.query_parser import parse_query
 
 
@@ -41,6 +41,15 @@ async def test_query_cost(foo_model: Model, graph_db: GraphDB) -> None:
     c4 = await cost("all {parents: <-[0:]-} sort reported.name asc")
     assert c4.full_collection_scan is True
     assert c4.rating is EstimatedQueryCostRating.bad
+
+
+def test_id_term(foo_model: Model, graph_db: GraphDB) -> None:
+    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id("1234")), foo_model))
+    assert "m0._key == @b0" in q
+    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model))
+    assert "m0._key in @b0" in q
+    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model), id_column="id")
+    assert "m0.id in @b0" in q
 
 
 def test_fulltext_term() -> None:

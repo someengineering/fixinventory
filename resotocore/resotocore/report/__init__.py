@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Union
 
 from attr import define, field, evolve
 
@@ -34,6 +34,12 @@ class ReportSeverity(Enum):
     medium = "medium"
     high = "high"
     critical = "critical"
+
+    @staticmethod
+    def higher(a: Union[str, ReportSeverity], b: Union[str, ReportSeverity]) -> ReportSeverity:
+        ra = a if isinstance(a, ReportSeverity) else ReportSeverity[a]
+        rb = b if isinstance(b, ReportSeverity) else ReportSeverity[b]
+        return ra if ReportSeverityPriority[ra] > ReportSeverityPriority[rb] else rb
 
 
 ReportSeverityPriority: Dict[ReportSeverity, int] = {severity: num for num, severity in enumerate(ReportSeverity)}
@@ -258,6 +264,7 @@ class CheckCollectionResult:
 class BenchmarkResult(CheckCollectionResult):
     framework: str
     version: str
+    id: str
     accounts: Optional[List[str]] = field(default=None)
     only_failed: bool = field(default=False)
     severity: Optional[ReportSeverity] = field(default=None)
@@ -265,6 +272,7 @@ class BenchmarkResult(CheckCollectionResult):
     def to_node(self) -> Json:
         node = super().to_node()
         reported = node["reported"]
+        reported["id"] = self.id
         reported["framework"] = self.framework
         reported["version"] = self.version
         reported["kind"] = "report_benchmark"
@@ -277,6 +285,7 @@ class BenchmarkResult(CheckCollectionResult):
     def from_node(js: Json) -> BenchmarkResult:
         reported = cast(Json, js["reported"])
         return BenchmarkResult(
+            id=reported["id"],
             framework=reported["framework"],
             version=reported["version"],
             title=reported["title"],
@@ -348,24 +357,28 @@ class Inspector(ABC):
         """
 
     @abstractmethod
-    async def perform_benchmark(
+    async def perform_benchmarks(
         self,
         graph: GraphName,
-        benchmark_name: str,
+        benchmark_names: List[str],
         *,
         accounts: Optional[List[str]] = None,
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
-    ) -> BenchmarkResult:
+        sync_security_section: bool = False,
+        report_run_id: Optional[str] = None,
+    ) -> Dict[str, BenchmarkResult]:
         """
         Perform a benchmark by given name on the content of a graph with given name.
 
-        :param benchmark_name: the name of the benchmark to perform (e.g. aws_cis_1_5_0)
+        :param benchmark_names: The names of the benchmark to perform (e.g. aws_cis_1_5_0)
         :param graph: the name of the graph to perform the benchmark on (e.g. resoto)
         :param accounts: the list of accounts to perform the benchmark on. If not given, all accounts are used.
-        :param severity: only include checks with given severity or higher
+        :param severity: Only include checks with given severity or higher
         :param only_failing: only include failing checks in the result
-        :return: the result of the benchmark
+        :param sync_security_section: synchronize the security section of the graph with the benchmark result
+        :param report_run_id: give this run a specific id (will be persisted in the security section)
+        :return: the result of all benchmarks by name
         """
 
     @abstractmethod

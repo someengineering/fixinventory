@@ -83,13 +83,17 @@ array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
 
 
 def to_query(
-    db: Any, query_model: QueryModel, with_edges: bool = False, from_collection: Optional[str] = None
+    db: Any,
+    query_model: QueryModel,
+    with_edges: bool = False,
+    from_collection: Optional[str] = None,
+    id_column: str = "_key",
 ) -> Tuple[str, Json]:
     count: Dict[str, int] = defaultdict(lambda: 0)
     query = query_model.query
     bind_vars: Json = {}
     start = from_collection or f"`{db.vertex_name}`"
-    cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count)
+    cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count, id_column=id_column)
     return f"""{query_str} FOR result in {cursor} RETURN UNSET(result, {unset_props})""", bind_vars
 
 
@@ -101,7 +105,9 @@ def query_string(
     with_edges: bool,
     bind_vars: Json,
     counters: Dict[str, int],
+    *,
     outer_merge: Optional[str] = None,
+    id_column: str = "_key",
 ) -> Tuple[str, str]:
     # Note: the parts are maintained in reverse order
     query_parts = query.parts[::-1]
@@ -252,8 +258,12 @@ def query_string(
 
     def with_id(cursor: str, t: IdTerm) -> str:
         bvn = next_bind_var_name()
-        bind_vars[bvn] = t.id
-        return f"{cursor}._key == @{bvn}"
+        if len(t.ids) == 1:
+            bind_vars[bvn] = t.ids[0]
+            return f"{cursor}.{id_column} == @{bvn}"
+        else:
+            bind_vars[bvn] = t.ids
+            return f"{cursor}.{id_column} in @{bvn}"
 
     def is_term(cursor: str, t: IsTerm) -> str:
         is_results = []
@@ -320,7 +330,15 @@ def query_string(
             merge_crsr = next_crs("merge_part")
             # make sure the limit only yields one element
             mg_crs, mg_query = query_string(
-                db, mq.query, query_model, merge_cursor, with_edges, bind_vars, counters, merge_crsr
+                db,
+                mq.query,
+                query_model,
+                merge_cursor,
+                with_edges,
+                bind_vars,
+                counters,
+                outer_merge=merge_crsr,
+                id_column=id_column,
             )
             if mq.only_first:
                 merge_result += (
