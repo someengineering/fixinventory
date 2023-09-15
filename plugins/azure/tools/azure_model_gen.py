@@ -14,8 +14,6 @@ from prance.util.url import ResolutionError
 
 Json = Dict[str, Any]
 
-Debug = False
-
 
 def to_snake(name: str) -> str:
     name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -154,7 +152,10 @@ class AzureClassModel:
                 base_mappings[bp] = "K(None)"
             base_mappings["tags"] = "S('tags', default={})"
 
-        mapping = "    mapping: ClassVar[Dict[str, Bender]] = {\n"
+        # take class hierarchy into account and assemble the mappings
+        bmp = " | ".join(f"Azure{base}.mapping" for base in self.base_classes if base != "AzureResource")
+        bmp = f"{bmp} | " if bmp else ""
+        mapping = f"    mapping: ClassVar[Dict[str, Bender]] = {bmp} {{\n"
         if self.aggregate_root:
             mapping += ",\n".join(f'        "{k}": {v}' for k, v in base_mappings.items())
             mapping += ",\n"
@@ -582,6 +583,8 @@ def path_set(obj, path, value, **options):
 
 # endregion
 
+# To run this script, make sure you have resoto venv plus: pip install "prance[osv,cli]"
+Debug = False
 if __name__ == "__main__":
     specs_path = os.environ.get("AZURE_REST_API_SPECS", "../../../../azure-rest-api-specs")
     assert specs_path, (
