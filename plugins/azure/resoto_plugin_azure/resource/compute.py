@@ -1000,16 +1000,11 @@ class AzureGallery(AzureResource):
     soft_delete_policy: Optional[bool] = field(default=None, metadata={'description': 'Contains information about the soft deletion policy of the gallery.'})  # fmt: skip
 
 
+@define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-
-
-@define(eq=False, slots=False)
-class AzureDiskEncryptionSetParameters(AzureSubResource):
-    kind: ClassVar[str] = "azure_disk_encryption_set_parameters"
-    mapping: ClassVar[Dict[str, Bender]] = {}
 
 
 @define(eq=False, slots=False)
@@ -1018,7 +1013,7 @@ class AzureImageDisk:
     mapping: ClassVar[Dict[str, Bender]] = {
         "blob_uri": S("blobUri"),
         "caching": S("caching"),
-        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
+        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "disk_size_gb": S("diskSizeGB"),
         "managed_disk": S("managedDisk", "id"),
         "snapshot": S("snapshot", "id"),
@@ -1026,7 +1021,7 @@ class AzureImageDisk:
     }
     blob_uri: Optional[str] = field(default=None, metadata={"description": "The virtual hard disk."})
     caching: Optional[str] = field(default=None, metadata={'description': 'Specifies the caching requirements. Possible values are: **none,** **readonly,** **readwrite. ** the default values are: **none for standard storage. Readonly for premium storage. **.'})  # fmt: skip
-    disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
+    disk_encryption_set: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     disk_size_gb: Optional[int] = field(default=None, metadata={'description': 'Specifies the size of empty data disks in gigabytes. This element can be used to overwrite the name of the disk in a virtual machine image. This value cannot be larger than 1023 gb.'})  # fmt: skip
     managed_disk: Optional[str] = field(default=None, metadata={"description": ""})
     snapshot: Optional[str] = field(default=None, metadata={"description": ""})
@@ -1036,7 +1031,7 @@ class AzureImageDisk:
 @define(eq=False, slots=False)
 class AzureImageOSDisk(AzureImageDisk):
     kind: ClassVar[str] = "azure_image_os_disk"
-    mapping: ClassVar[Dict[str, Bender]] = {"os_state": S("osState"), "os_type": S("osType")}
+    mapping: ClassVar[Dict[str, Bender]] = AzureImageDisk.mapping | {"os_state": S("osState"), "os_type": S("osType")}
     os_state: Optional[str] = field(default=None, metadata={'description': 'The os state. For managed images, use generalized.'})  # fmt: skip
     os_type: Optional[str] = field(default=None, metadata={'description': 'This property allows you to specify the type of the os that is included in the disk if creating a vm from a custom image. Possible values are: **windows,** **linux. **.'})  # fmt: skip
 
@@ -1089,7 +1084,7 @@ class AzureImage(AzureResource):
 @define(eq=False, slots=False)
 class AzureSubResourceWithColocationStatus(AzureSubResource):
     kind: ClassVar[str] = "azure_sub_resource_with_colocation_status"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "colocation_status": S("colocationStatus") >> Bend(AzureInstanceViewStatus.mapping)
     }
     colocation_status: Optional[AzureInstanceViewStatus] = field(default=None, metadata={'description': 'Instance view status.'})  # fmt: skip
@@ -1346,26 +1341,24 @@ class AzureDiskEncryptionSettings:
 class AzureVMDiskSecurityProfile:
     kind: ClassVar[str] = "azure_vm_disk_security_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
+        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "security_encryption_type": S("securityEncryptionType"),
     }
-    disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
+    disk_encryption_set: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     security_encryption_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the encryptiontype of the managed disk. It is set to diskwithvmgueststate for encryption of the managed disk along with vmgueststate blob, and vmgueststateonly for encryption of just the vmgueststate blob. **note:** it can be set for only confidential vms.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AzureManagedDiskParameters(AzureSubResource):
     kind: ClassVar[str] = "azure_managed_disk_parameters"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "disk_parameters_security_profile": S("securityProfile") >> Bend(AzureVMDiskSecurityProfile.mapping),
         "storage_account_type": S("storageAccountType"),
-        "id": S("id"),
     }
-    disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
+    disk_encryption_set: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     disk_parameters_security_profile: Optional[AzureVMDiskSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the managed disk. **note:** it can only be set for confidential vms.'})  # fmt: skip
     storage_account_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the storage account type for the managed disk. Managed os disk storage account type can only be set when you create the scale set. Note: ultrassd_lrs can only be used with data disks. It cannot be used with os disk. Standard_lrs uses standard hdd. Standardssd_lrs uses standard ssd. Premium_lrs uses premium ssd. Ultrassd_lrs uses ultra disk. Premium_zrs uses premium ssd zone redundant storage. Standardssd_zrs uses standard ssd zone redundant storage. For more information regarding disks supported for windows virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/windows/disks-types and, for linux virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/linux/disks-types.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={'description': ''})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1379,17 +1372,17 @@ class AzureSubResourceReadOnly:
 class AzureRestorePointEncryption:
     kind: ClassVar[str] = "azure_restore_point_encryption"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
+        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "type": S("type"),
     }
-    disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
+    disk_encryption_set: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of key used to encrypt the data of the disk restore point.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AzureDiskRestorePointAttributes(AzureSubResourceReadOnly):
     kind: ClassVar[str] = "azure_disk_restore_point_attributes"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResourceReadOnly.mapping | {
         "encryption": S("encryption") >> Bend(AzureRestorePointEncryption.mapping),
         "source_disk_restore_point": S("sourceDiskRestorePoint", "id"),
     }
@@ -1739,7 +1732,7 @@ class AzureRestorePointInstanceView:
 @define(eq=False, slots=False)
 class AzureRestorePoint(AzureProxyResource):
     kind: ClassVar[str] = "azure_restore_point"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "consistency_mode": S("properties", "consistencyMode"),
         "exclude_disks": S("properties") >> S("excludeDisks", default=[]) >> ForallBend(S("id")),
         "restore_point_instance_view": S("properties", "instanceView") >> Bend(AzureRestorePointInstanceView.mapping),
@@ -1939,7 +1932,7 @@ class AzurePlan:
 @define(eq=False, slots=False)
 class AzureImageReference(AzureSubResource):
     kind: ClassVar[str] = "azure_image_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "community_gallery_image_id": S("communityGalleryImageId"),
         "exact_version": S("exactVersion"),
         "offer": S("offer"),
@@ -1947,7 +1940,6 @@ class AzureImageReference(AzureSubResource):
         "shared_gallery_image_id": S("sharedGalleryImageId"),
         "image_reference_sku": S("sku"),
         "version": S("version"),
-        "id": S("id"),
     }
     community_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the community gallery image unique id for vm deployment. This can be fetched from community gallery image get call.'})  # fmt: skip
     exact_version: Optional[str] = field(default=None, metadata={'description': 'Specifies in decimal numbers, the version of platform image or marketplace image used to create the virtual machine. This readonly field differs from version , only if the value specified in version field is latest.'})  # fmt: skip
@@ -1956,7 +1948,6 @@ class AzureImageReference(AzureSubResource):
     shared_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'Specified the shared gallery image unique id for vm deployment. This can be fetched from shared gallery image get call.'})  # fmt: skip
     image_reference_sku: Optional[str] = field(default=None, metadata={"description": "The image sku."})
     version: Optional[str] = field(default=None, metadata={'description': 'Specifies the version of the platform image or marketplace image used to create the virtual machine. The allowed formats are major. Minor. Build or latest. Major, minor, and build are decimal numbers. Specify latest to use the latest version of an image available at deploy time. Even if you use latest , the vm image will not automatically update after deploy time even if a new version becomes available. Please do not use field version for gallery image deployment, gallery image should always use id field for deployment, to use latest version of gallery image, just set /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Compute/galleries/{galleryname}/images/{imagename} in the id field without version input.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -2062,7 +2053,7 @@ class AzureAdditionalCapabilities:
 @define(eq=False, slots=False)
 class AzureNetworkInterfaceReference(AzureSubResource):
     kind: ClassVar[str] = "azure_network_interface_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "delete_option": S("properties", "deleteOption"),
         "primary": S("properties", "primary"),
     }
@@ -2749,11 +2740,11 @@ class AzureVirtualMachineScaleSetOSProfile:
 class AzureVirtualMachineScaleSetManagedDiskParameters:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_managed_disk_parameters"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureDiskEncryptionSetParameters.mapping),
+        "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "security_profile": S("securityProfile") >> Bend(AzureVMDiskSecurityProfile.mapping),
         "storage_account_type": S("storageAccountType"),
     }
-    disk_encryption_set: Optional[AzureDiskEncryptionSetParameters] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
+    disk_encryption_set: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Describes the parameter of customer managed disk encryption set resource id that can be specified for disk. **note:** the disk encryption set resource id can only be specified for managed disk. Please refer https://aka. Ms/mdssewithcmkoverview for more details.'})  # fmt: skip
     security_profile: Optional[AzureVMDiskSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the managed disk. **note:** it can only be set for confidential vms.'})  # fmt: skip
     storage_account_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the storage account type for the managed disk. Managed os disk storage account type can only be set when you create the scale set. Note: ultrassd_lrs can only be used with data disks. It cannot be used with os disk. Standard_lrs uses standard hdd. Standardssd_lrs uses standard ssd. Premium_lrs uses premium ssd. Ultrassd_lrs uses ultra disk. Premium_zrs uses premium ssd zone redundant storage. Standardssd_zrs uses standard ssd zone redundant storage. For more information regarding disks supported for windows virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/windows/disks-types and, for linux virtual machines, refer to https://docs. Microsoft. Com/azure/virtual-machines/linux/disks-types.'})  # fmt: skip
 
@@ -2949,7 +2940,7 @@ class AzureVirtualMachineScaleSetNetworkProfile:
 @define(eq=False, slots=False)
 class AzureVirtualMachineScaleSetExtension(AzureSubResourceReadOnly):
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_extension"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResourceReadOnly.mapping | {
         "auto_upgrade_minor_version": S("properties", "autoUpgradeMinorVersion"),
         "enable_automatic_upgrade": S("properties", "enableAutomaticUpgrade"),
         "force_update_tag": S("properties", "forceUpdateTag"),
@@ -3118,7 +3109,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         "automatic_repairs_policy": S("properties", "automaticRepairsPolicy")
         >> Bend(AzureAutomaticRepairsPolicy.mapping),
         "constrained_maximum_capacity": S("properties", "constrainedMaximumCapacity"),
-        "do_not_run_extensions_on_overprovisioned_v_ms": S("properties", "doNotRunExtensionsOnOverprovisionedVMs"),
+        "do_not_run_extensions_on_overprovisioned_vm_s": S("properties", "doNotRunExtensionsOnOverprovisionedVMs"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "host_group": S("properties", "hostGroup", "id"),
         "scale_set_identity": S("identity") >> Bend(AzureVirtualMachineScaleSetIdentity.mapping),
@@ -3143,7 +3134,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     scale_set_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     automatic_repairs_policy: Optional[AzureAutomaticRepairsPolicy] = field(default=None, metadata={'description': 'Specifies the configuration parameters for automatic repairs on the virtual machine scale set.'})  # fmt: skip
     constrained_maximum_capacity: Optional[bool] = field(default=None, metadata={'description': 'Optional property which must either be set to true or omitted.'})  # fmt: skip
-    do_not_run_extensions_on_overprovisioned_v_ms: Optional[bool] = field(default=None, metadata={'description': 'When overprovision is enabled, extensions are launched only on the requested number of vms which are finally kept. This property will hence ensure that the extensions do not run on the extra overprovisioned vms.'})  # fmt: skip
+    do_not_run_extensions_on_overprovisioned_vm_s: Optional[bool] = field(default=None, metadata={'description': 'When overprovision is enabled, extensions are launched only on the requested number of vms which are finally kept. This property will hence ensure that the extensions do not run on the extra overprovisioned vms.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     host_group: Optional[str] = field(default=None, metadata={"description": ""})
     scale_set_identity: Optional[AzureVirtualMachineScaleSetIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine scale set.'})  # fmt: skip
