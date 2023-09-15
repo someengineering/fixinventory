@@ -357,6 +357,18 @@ class Inspector(ABC):
         """
 
     @abstractmethod
+    async def load_benchmarks(
+        self,
+        graph: GraphName,
+        benchmark_names: List[str],
+        *,
+        accounts: Optional[List[str]] = None,
+        severity: Optional[ReportSeverity] = None,
+        only_failing: bool = False,
+    ) -> Dict[str, BenchmarkResult]:
+        pass
+
+    @abstractmethod
     async def perform_benchmarks(
         self,
         graph: GraphName,
@@ -417,7 +429,7 @@ class Inspector(ABC):
         pass
 
     @abstractmethod
-    async def validate_benchmark_config(self, json: Json) -> Optional[Json]:
+    async def validate_benchmark_config(self, cfg_id: ConfigId, json: Json) -> Optional[Json]:
         pass
 
     @abstractmethod

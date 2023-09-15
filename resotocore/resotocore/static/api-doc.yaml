@@ -2752,6 +2752,17 @@ paths:
           required: false
           explode: false
           example: 123456789012,123456789013
+        - name: action
+          in: query
+          description: |
+            The action to perform. You can either run (create) or load the benchmark.
+            Loading the benchmark requires, that a benchmark has been synchronized to the database before.
+            In case the resources haven't changed since the last synchronization, the result is the same,
+            but the load action is much faster.
+          schema:
+            type: string
+            enum: [run, load]
+            default: run
       responses:
         "200":
           description: "The checks result."

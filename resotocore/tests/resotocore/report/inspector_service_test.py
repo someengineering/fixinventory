@@ -1,3 +1,5 @@
+from typing import Dict
+
 from pytest import fixture
 
 from resotocore.cli.cli import CLIService
@@ -5,7 +7,7 @@ from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.ids import ConfigId, GraphName
 from resotocore.query.model import P, Query
-from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot
+from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot, BenchmarkResult
 from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
 from resotocore.report.report_config import (
     config_model,
@@ -66,7 +68,7 @@ def benchmark() -> Json:
         report_benchmark=dict(
             title="test_benchmark",
             description="test_benchmark",
-            id="test_benchmark",
+            id="test",
             framework="test",
             version="1.0",
             checks=["test_test_search", "test_test_cmd"],
@@ -104,23 +106,26 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
 
 
 async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
+    def assert_result(results: Dict[str, BenchmarkResult]) -> None:
+        result = results["test"]
+        assert result.checks[0].number_of_resources_failing == 10
+        assert result.checks[1].number_of_resources_failing == 10
+        filtered = result.filter_result(filter_failed=True)
+        assert filtered.checks[0].number_of_resources_failing == 10
+        assert len(filtered.checks[0].resources_failing_by_account["sub_root"]) == 10
+        assert filtered.checks[1].number_of_resources_failing == 10
+        assert len(filtered.checks[1].resources_failing_by_account["sub_root"]) == 10
+        passing, failing = result.passing_failing_checks_for_account("sub_root")
+        assert len(passing) == 0
+        assert len(failing) == 2
+        passing, failing = result.passing_failing_checks_for_account("does_not_exist")
+        assert len(passing) == 2
+        assert len(failing) == 0
+
     inspector = inspector_service_with_test_benchmark
     graph_name = GraphName(inspector.cli.env["graph"])
-    results = await inspector.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
-    result = results["test"]
-    assert result.checks[0].number_of_resources_failing == 10
-    assert result.checks[1].number_of_resources_failing == 10
-    filtered = result.filter_result(filter_failed=True)
-    assert filtered.checks[0].number_of_resources_failing == 10
-    assert len(filtered.checks[0].resources_failing_by_account["sub_root"]) == 10
-    assert filtered.checks[1].number_of_resources_failing == 10
-    assert len(filtered.checks[1].resources_failing_by_account["sub_root"]) == 10
-    passing, failing = result.passing_failing_checks_for_account("sub_root")
-    assert len(passing) == 0
-    assert len(failing) == 2
-    passing, failing = result.passing_failing_checks_for_account("does_not_exist")
-    assert len(passing) == 2
-    assert len(failing) == 0
+    performed = await inspector.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    assert_result(performed)
 
     # make sure the result is persisted as part of the node
     async def count_vulnerable() -> int:
@@ -131,6 +136,10 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
             return cursor.count()  # type: ignore
 
     assert await count_vulnerable() == 10
+
+    # loading the result from the db should give the same information
+    loaded = await inspector.load_benchmarks(graph_name, ["test"])
+    assert_result(loaded)
 
 
 async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
@@ -158,8 +167,9 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
     assert len(benchmarks) > 0
     for name, check in benchmarks.items():
         config = {BenchmarkConfigRoot: check}
-        assert (await inspector_service.validate_benchmark_config(config)) is None
-        benchmark = BenchmarkConfig.from_config(ConfigEntity(ConfigId("test"), config))
+        cfg_id = ConfigId(name)
+        assert (await inspector_service.validate_benchmark_config(cfg_id, config)) is None
+        benchmark = BenchmarkConfig.from_config(ConfigEntity(cfg_id, config))
         assert benchmark.clouds == ["aws"]
 
 

@@ -4786,6 +4786,11 @@ class ReportCommand(CLICommand, EntityProvider):
                          [--only-check-results]
                          [--sync-security-section]
                          [--run-id <run-id>]
+    report benchmark load <benchmark-id>
+                         [--accounts <account-id>]
+                         [--severity <level>]
+                         [--only-failing]
+                         [--only-check-results]
     report checks list
     report checks show <check-id>
     report checks run <check-id>
@@ -4851,6 +4856,10 @@ class ReportCommand(CLICommand, EntityProvider):
     > report benchmark run aws_cis_1_5
       ... output suppressed ...
 
+    # Load the benchmark from a previous run with sync enabled
+    > report benchmark load aws_cis_1_5
+      ... output suppressed ...
+
     # Run benchmark against account 111 and 222, check only critical checks
     # The resulting report should contain only failed checks.
     > report benchmark run aws_cis_1_5 --accounts 111 222  --severity critical --only-failing
@@ -4894,7 +4903,7 @@ class ReportCommand(CLICommand, EntityProvider):
 
     @staticmethod
     def is_run_action(arg: Optional[str]) -> bool:
-        return ReportCommand.action_from_arg(arg) in ("benchmark_run", "check_run")
+        return ReportCommand.action_from_arg(arg) in ("benchmark_run", "check_run", "benchmark_load")
 
     @staticmethod
     def action_from_arg(arg: Optional[str]) -> Optional[str]:
@@ -4905,6 +4914,8 @@ class ReportCommand(CLICommand, EntityProvider):
             return "benchmark_show"
         elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "run":
             return "benchmark_run"
+        elif len(args) >= 3 and args[0] in ("benchmark", "benchmarks") and args[1] == "load":
+            return "benchmark_load"
         elif len(args) == 2 and args[0] in ("check", "checks") and args[1] == "list":
             return "check_list"
         elif len(args) == 3 and args[0] in ("check", "checks") and args[1] == "show":
@@ -4947,6 +4958,19 @@ class ReportCommand(CLICommand, EntityProvider):
                     for node in result.to_graph(parsed_args.only_check_results):
                         yield node
 
+        async def load_benchmark(parsed_args: Namespace) -> AsyncIterator[Json]:
+            results = await self.dependencies.inspector.load_benchmarks(
+                ctx.graph_name,
+                benchmark_names=parsed_args.identifier,
+                accounts=parsed_args.accounts,
+                severity=parsed_args.severity,
+                only_failing=parsed_args.only_failing,
+            )
+            for result in results.values():
+                if not result.is_empty():
+                    for node in result.to_graph(parsed_args.only_check_results):
+                        yield node
+
         async def run_check(parsed_args: Namespace) -> AsyncIterator[Json]:
             result = await self.dependencies.inspector.perform_checks(
                 ctx.graph_name,
@@ -4980,6 +5004,9 @@ class ReportCommand(CLICommand, EntityProvider):
         elif action == "benchmark_run":
             parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
             return CLISource.no_count(partial(run_benchmark, parsed), required_permissions={Permission.read})
+        elif action == "benchmark_load":
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(partial(load_benchmark, parsed), required_permissions={Permission.read})
         elif action == "check_list":
             return CLISource.no_count(list_checks, required_permissions={Permission.read})
         elif action == "check_show":
