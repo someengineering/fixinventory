@@ -28,6 +28,7 @@
                     ]
                 },
                 "encryption": {
+                    "diskEncryptionSetId": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskEncryptionSets/myDiskEncryptionSet",
                     "type": "EncryptionAtRestWithPlatformKey"
                 },
                 "timeCreated": "2016-12-28T04:41:35.9278721+00:00",
@@ -62,41 +63,29 @@
                 "supportsHibernation": true,
                 "tier": "Premium",
                 "uniqueId": "d1d2d3d4-d5d6-d7d8-d9d0-d1d2d3d4d5d6",
-                "propertyUpdatesInProgress": { "targetTier": "Premium" }
+                "propertyUpdatesInProgress": {
+                    "targetTier": "Premium"
+                }
             },
             "type": "Microsoft.Compute/disks",
             "location": "westus",
-            "extendedLocation": {"name": "test"},
+            "extendedLocation": {
+                "name": "test"
+            },
             "managedBy": "test",
-            "managedByExtended": ["test2"],
+            "managedByExtended": [
+                "test2"
+            ],
             "tags": {
                 "department": "Development",
                 "project": "ManagedDisks"
             },
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk1",
+            "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess",
             "name": "myManagedDisk1",
             "sku": {
                 "name": "Premium_LRS",
                 "tier": "Premium"
             }
-        },
-        {
-            "properties": {
-                "osType": "Windows",
-                "creationData": {
-                    "createOption": "Empty"
-                },
-                "diskSizeGB": 10,
-                "encryption": {
-                    "type": "EncryptionAtRestWithPlatformKey"
-                },
-                "timeCreated": "2016-12-28T04:41:36.872242+00:00",
-                "provisioningState": "Succeeded"
-            },
-            "type": "Microsoft.Compute/disks",
-            "location": "westus",
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk2",
-            "name": "myManagedDisk2"
         },
         {
             "properties": {
@@ -128,6 +117,7 @@
                     ]
                 },
                 "encryption": {
+                    "diskEncryptionSetId": "/subscriptions/{subscriptionId}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskEncryptionSets/myDiskEncryptionSet2",
                     "type": "EncryptionAtRestWithPlatformKey"
                 },
                 "timeCreated": "2016-12-28T04:41:36.3973934+00:00",
@@ -139,8 +129,8 @@
                 "department": "Development",
                 "project": "ManagedDisks"
             },
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/myManagedDisk3",
-            "name": "myManagedDisk3"
+            "id": "/subscriptions/{subscription-id}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess2",
+            "name": "myManagedDisk2"
         }
     ],
     "nextLink": "http://disksvchost:99/subscriptions/{subscriptionId}/providers/Microsoft.Compute/disks?$skiptoken={token}/Subscriptions/{subscriptionId}/ResourceGroups/myResourceGroup/Disks/myManagedDisk"

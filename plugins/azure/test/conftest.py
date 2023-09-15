@@ -125,4 +125,19 @@ def roundtrip_check(
         # since we can not compare objects, we use the json representation to see that no information is lost
         again_js = again.to_json()
         assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
+    print(resources)
     return resources
+
+
+def connect_resources(
+    builder: GraphBuilder,
+    collect_resources: Optional[List[Type[AzureResourceType]]] = None,
+    filter_class: Optional[Type[AzureResourceType]] = None,
+) -> None:
+    # collect all defined resource kinds before we can connect them
+    for resource_kind in collect_resources or []:
+        resource_kind.collect_resources(builder)
+    # connect all resources
+    for node, data in list(builder.graph.nodes(data=True)):
+        if not filter_class or isinstance(node, filter_class):
+            node.connect_in_graph(builder, data.get("source", {}))

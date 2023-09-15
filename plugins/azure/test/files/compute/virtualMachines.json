@@ -22,7 +22,7 @@
                         "exactVersion": "aaaaaaaaaaaaa",
                         "sharedGalleryImageId": "aaaaaaaaaaaaaaa",
                         "communityGalleryImageId": "aaaa",
-                        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/images/myImage"
                     },
                     "osDisk": {
                         "osType": "Windows",
@@ -67,7 +67,7 @@
                                     "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                                 }
                             },
-                            "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/testingexcludedisk_OsDisk_1_74cdaedcea50483d9833c96adefa100f"
+                            "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess"
                         },
                         "deleteOption": "Delete"
                     },
@@ -234,7 +234,7 @@
                     "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
                 },
                 "proximityPlacementGroup": {
-                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
+                    "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/proximityPlacementGroups/myProximityPlacementGroup"
                 },
                 "priority": "Regular",
                 "evictionPolicy": "Deallocate",
@@ -359,7 +359,7 @@
                         "exactVersion": "aa",
                         "sharedGalleryImageId": "aaaaaaaaaaaaaaaaaaaaaaaaa",
                         "communityGalleryImageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                        "id": "aaaaaaaa"
+                        "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/images/myImage"
                     },
                     "osDisk": {
                         "osType": "Windows",
@@ -404,7 +404,7 @@
                                     "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                                 }
                             },
-                            "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/disks/testingexcludedisk_OsDisk_1_74cdaedcea50483d9833c96adefa100f"
+                            "id": "/subscriptions/{subscription-id}/resourceGroups/mySecondResourceGroup/providers/Microsoft.Compute/diskAccesses/myDiskAccess2"
                         },
                         "deleteOption": "Delete"
                     },
@@ -571,7 +571,7 @@
                     "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
                 },
                 "proximityPlacementGroup": {
-                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
+                    "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/proximityPlacementGroups/myProximityPlacementGroup"
                 },
                 "priority": "Regular",
                 "evictionPolicy": "Deallocate",

@@ -10,7 +10,7 @@
             },
             "properties": {
                 "source": {
-                    "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/virtualMachines/VM_Test",
+                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{virtualMachineName}",
                     "location": "westus"
                 },
                 "restorePointCollectionId": "59f04a5d-f783-4200-a1bd-d3f464e8c4b4",
@@ -27,7 +27,7 @@
             },
             "properties": {
                 "source": {
-                    "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/virtualMachines/VM_Prod",
+                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{virtualMachineName}",
                     "location": "westus"
                 },
                 "restorePointCollectionId": "2875c590-e337-4102-9668-4f5b7e3f98a4",

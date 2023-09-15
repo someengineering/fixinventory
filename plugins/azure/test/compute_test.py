@@ -1,17 +1,29 @@
-from conftest import roundtrip_check
-from resoto_plugin_azure.resource.base import GraphBuilder
+from conftest import roundtrip_check, connect_resources
+from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
 from resoto_plugin_azure.resource.compute import *
 from resotolib.baseresources import VolumeStatus, InstanceStatus
+from typing import List, Type
 
 
 def test_availability_sets(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailabilitySet, builder)
     assert len(collected) == 4
 
+    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureVirtualMachine]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureAvailabilitySet, AzureProximityPlacementGroup)) == 2
+    assert len(builder.edges_of(AzureAvailabilitySet, AzureVirtualMachine)) == 2
+
 
 def test_capacity_reservation_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureCapacityReservationGroup, builder)
     assert len(collected) == 2
+
+    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureCapacityReservationGroup, AzureVirtualMachine)) == 2
 
 
 def test_cloud_service(builder: GraphBuilder) -> None:
@@ -31,7 +43,13 @@ def test_dedicated_host_group(builder: GraphBuilder) -> None:
 
 def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)
-    assert len(collected) == 3
+    assert len(collected) == 2
+
+    resource_types: List[Type[AzureResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureDisk, AzureDiskAccess)) == 2
+    assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
 
 
 def test_disks_resource(builder: GraphBuilder) -> None:
@@ -78,6 +96,11 @@ def test_restore_point_collection(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureRestorePointCollection, builder)
     assert len(collected) == 2
 
+    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureRestorePointCollection, AzureVirtualMachine)) == 2
+
 
 def test_ssh_key(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSshPublicKeyResource, builder)
@@ -87,6 +110,13 @@ def test_ssh_key(builder: GraphBuilder) -> None:
 def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
     assert len(collected) == 2
+
+    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureImage, AzureDisk]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureVirtualMachine, AzureProximityPlacementGroup)) == 2
+    assert len(builder.edges_of(AzureVirtualMachine, AzureImage)) == 2
+    assert len(builder.edges_of(AzureVirtualMachine, AzureDisk)) == 2
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:
@@ -115,6 +145,11 @@ def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
 def test_snapshot(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSnapshot, builder)
     assert len(collected) == 2
+
+    resource_type: List[Type[AzureResource]] = [AzureDisk]
+    connect_resources(builder, resource_type)
+
+    assert len(builder.edges_of(AzureSnapshot, AzureDisk)) == 1
 
 
 def test_snapshot_resources(builder: GraphBuilder) -> None:
