@@ -73,7 +73,7 @@ from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_js
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
-from resotocore.report.inspector_service import InspectorService
+from resotocore.report.inspector_service import InspectorService, InspectorConfigService
 from resotocore.report.report_config import BenchmarkConfig
 from resotocore.system_start import empty_config, parse_args
 from resotocore.task.model import Subscriber, Subscription
@@ -553,7 +553,7 @@ def cli(dependencies: TenantDependencies) -> CLIService:
 
 @fixture
 async def inspector_service(cli: CLIService) -> InspectorService:
-    async with InspectorService(cli) as service:
+    async with InspectorConfigService(cli) as service:
         cli.dependencies.lookup["inspector"] = service
         return service
 

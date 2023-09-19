@@ -8,7 +8,13 @@ from resotocore.db.model import QueryModel
 from resotocore.ids import ConfigId, GraphName
 from resotocore.query.model import P, Query
 from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot, BenchmarkResult
-from resotocore.report.inspector_service import InspectorService, check_id, benchmark_id
+from resotocore.report.inspector_service import (
+    InspectorService,
+    check_id,
+    benchmark_id,
+    InspectorConfigService,
+    InspectorFileService,
+)
 from resotocore.report.report_config import (
     config_model,
     ReportCheckCollectionConfig,
@@ -22,10 +28,15 @@ from resotocore.util import partition_by
 async def inspector_service_with_test_benchmark(
     cli: CLIService, inspection_check_collection: Json, benchmark: Json
 ) -> InspectorService:
-    service = InspectorService(cli)
+    service = InspectorConfigService(cli)
     await service.config_handler.put_config(ConfigEntity(check_id("test"), inspection_check_collection))
     await service.config_handler.put_config(ConfigEntity(benchmark_id("test"), benchmark))
     return service
+
+
+@fixture
+async def inspector_file_service(cli: CLIService) -> InspectorService:
+    return InspectorFileService(cli)
 
 
 @fixture
@@ -184,3 +195,10 @@ async def test_list_failing(inspector_service_with_test_benchmark: InspectorServ
     assert len(search_res_account) == 0
     cmd_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
     assert len(cmd_res_account) == 0
+
+
+async def test_file_inspector(inspector_file_service: InspectorService) -> None:
+    assert len(await inspector_file_service.list_benchmarks()) >= 1
+    assert len(await inspector_file_service.filter_checks()) >= 100
+    aws_cis = await inspector_file_service.benchmark("aws_cis_1_5")
+    assert aws_cis is not None
