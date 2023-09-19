@@ -1,6 +1,8 @@
 import asyncio
 import logging
+from abc import abstractmethod
 from collections import defaultdict
+from functools import lru_cache
 from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast
 
 from aiostream import stream
@@ -89,39 +91,31 @@ ReportResourceData: Dict[str, Bender] = {
 class InspectorService(Inspector, Service):
     def __init__(self, cli: CLI) -> None:
         super().__init__()
-        self.config_handler: ConfigHandler = cli.dependencies.config_handler
         self.db_access = cli.dependencies.db_access
         self.cli = cli
         self.template_expander = cli.dependencies.template_expander
         self.model_handler = cli.dependencies.model_handler
         self.event_sender = cli.dependencies.event_sender
 
-    async def start(self) -> None:
-        if not self.cli.dependencies.config.multi_tenant_setup:
-            # TODO: we need a migration path for checks added in existing configs
-            config_ids = {i async for i in self.config_handler.list_config_ids()}
-            overwrite = False  # Only here to simplify development. True until we reach a stable version.
-            for name, js in BenchmarkConfig.from_files().items():
-                if overwrite or benchmark_id(name) not in config_ids:
-                    cid = benchmark_id(name)
-                    log.info(f"Creating benchmark config {cid}")
-                    await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}), validate=False)
-            for name, js in ReportCheckCollectionConfig.from_files().items():
-                if overwrite or check_id(name) not in config_ids:
-                    cid = check_id(name)
-                    log.info(f"Creating check collection config {cid}")
-                    await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
+    @abstractmethod
+    async def _report_values(self) -> Json:
+        pass
 
-    async def list_benchmarks(self) -> List[Benchmark]:
-        return [
-            await self.__benchmark(i)
-            async for i in self.config_handler.list_config_ids()
-            if i.startswith(BenchmarkConfigPrefix)
-        ]
+    @abstractmethod
+    async def _check_ids(self) -> List[ConfigId]:
+        pass
+
+    @abstractmethod
+    async def _checks(self, cfg_id: ConfigId) -> List[ReportCheck]:
+        pass
+
+    @abstractmethod
+    async def _benchmark(self, cfg_id: ConfigId) -> Benchmark:
+        pass
 
     async def benchmark(self, name: str) -> Optional[Benchmark]:
         try:
-            return await self.__benchmark(benchmark_id(name))
+            return await self._benchmark(benchmark_id(name))
         except ValueError:
             return None
 
@@ -168,7 +162,7 @@ class InspectorService(Inspector, Service):
         model = QueryModel(Query.by(term), await self.model_handler.load_model(graph))
 
         # collect all checks
-        benchmarks = {name: await self.__benchmark(benchmark_id(name)) for name in benchmark_names}
+        benchmarks = {name: await self._benchmark(benchmark_id(name)) for name in benchmark_names}
         check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
         check_lookup = {check.id: check for check in checks}
@@ -199,7 +193,7 @@ class InspectorService(Inspector, Service):
         report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
-        benchmarks = {name: await self.__benchmark(benchmark_id(name)) for name in benchmark_names}
+        benchmarks = {name: await self._benchmark(benchmark_id(name)) for name in benchmark_names}
         # collect all checks
         check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
@@ -261,22 +255,12 @@ class InspectorService(Inspector, Service):
         await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
         return self.__to_result(benchmark, check_by_id, results, context)
 
-    async def __benchmark(self, cfg_id: ConfigId) -> Benchmark:
-        cfg = await self.config_handler.get_config(cfg_id)
-        if cfg is None or BenchmarkConfigRoot not in cfg.config:
-            raise ValueError(f"Unknown benchmark: {cfg_id}")
-        return BenchmarkConfig.from_config(cfg)
-
     async def filter_checks(self, report_filter: Optional[Callable[[ReportCheck], bool]] = None) -> List[ReportCheck]:
-        cfg_ids = [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
-        loaded = await asyncio.gather(*[self.config_handler.get_config(cfg_id) for cfg_id in cfg_ids])
-        # fmt: off
+        cfg_ids = await self._check_ids()
+        list_of_lists = await asyncio.gather(*[self._checks(cfg_id) for cfg_id in cfg_ids])
         return [
-            check
-            for entry in loaded if isinstance(entry, ConfigEntity) and CheckConfigRoot in entry.config
-            for check in ReportCheckCollectionConfig.from_config(entry) if report_filter is None or report_filter(check)
+            check for entries in list_of_lists for check in entries if report_filter is None or report_filter(check)
         ]
-        # fmt: on
 
     async def list_failing_resources(
         self, graph: GraphName, check_uid: str, account_ids: Optional[List[str]] = None
@@ -290,8 +274,7 @@ class InspectorService(Inspector, Service):
         model = await self.model_handler.load_model(graph)
         inspection = checks[0]
         # load configuration
-        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
-        cfg = cfg_entity.config if cfg_entity else {}
+        cfg = await self._report_values()
         return await self.__list_failing_resources(graph, model, inspection, cfg, context)
 
     async def __list_failing_resources(
@@ -374,8 +357,7 @@ class InspectorService(Inspector, Service):
         # load model
         model = await self.model_handler.load_model(graph)
         # load configuration
-        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
-        cfg = cfg_entity.config if cfg_entity else {}
+        cfg = await self._report_values()
 
         async def perform_single(check: ReportCheck) -> Tuple[str, SingleCheckResult]:
             return check.id, await self.__perform_check(graph, model, check, cfg, context)
@@ -476,3 +458,94 @@ class InspectorService(Inspector, Service):
                 yield NodeId(node_id), dict(issues=issues)
 
         return iterate_nodes()
+
+
+@lru_cache(maxsize=1)
+def benchmarks_from_file() -> Dict[ConfigId, Benchmark]:
+    result = {}
+    for name, js in BenchmarkConfig.from_files().items():
+        cid = benchmark_id(name)
+        benchmark = BenchmarkConfig.from_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}))
+        result[cid] = benchmark
+    return result
+
+
+@lru_cache(maxsize=1)
+def checks_from_file() -> Dict[ConfigId, List[ReportCheck]]:
+    result = {}
+    for name, js in ReportCheckCollectionConfig.from_files().items():
+        cid = check_id(name)
+        result[cid] = ReportCheckCollectionConfig.from_config(ConfigEntity(cid, {CheckConfigRoot: js}))
+    return result
+
+
+class InspectorFileService(InspectorService):
+    async def _report_values(self) -> Json:
+        return {}  # default values
+
+    async def _check_ids(self) -> List[ConfigId]:
+        return list(checks_from_file().keys())
+
+    async def _checks(self, cfg_id: ConfigId) -> List[ReportCheck]:
+        return checks_from_file().get(cfg_id, [])
+
+    async def _benchmark(self, cfg_id: ConfigId) -> Benchmark:
+        return benchmarks_from_file()[cfg_id]
+
+    async def list_benchmarks(self) -> List[Benchmark]:
+        return list(benchmarks_from_file().values())
+
+    @staticmethod
+    def on_startup() -> None:
+        # make sure benchmarks and checks are loaded
+        benchmarks_from_file()
+        checks_from_file()
+
+
+class InspectorConfigService(InspectorService):
+    def __init__(self, cli: CLI) -> None:
+        super().__init__(cli)
+        self.config_handler: ConfigHandler = cli.dependencies.config_handler
+
+    async def start(self) -> None:
+        if not self.cli.dependencies.config.multi_tenant_setup:
+            # TODO: we need a migration path for checks added in existing configs
+            config_ids = {i async for i in self.config_handler.list_config_ids()}
+            overwrite = False  # Only here to simplify development. True until we reach a stable version.
+            for name, js in BenchmarkConfig.from_files().items():
+                if overwrite or benchmark_id(name) not in config_ids:
+                    cid = benchmark_id(name)
+                    log.info(f"Creating benchmark config {cid}")
+                    await self.config_handler.put_config(ConfigEntity(cid, {BenchmarkConfigRoot: js}), validate=False)
+            for name, js in ReportCheckCollectionConfig.from_files().items():
+                if overwrite or check_id(name) not in config_ids:
+                    cid = check_id(name)
+                    log.info(f"Creating check collection config {cid}")
+                    await self.config_handler.put_config(ConfigEntity(cid, {CheckConfigRoot: js}), validate=False)
+
+    async def _report_values(self) -> Json:
+        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
+        return cfg_entity.config if cfg_entity else {}
+
+    async def _check_ids(self) -> List[ConfigId]:
+        return [i async for i in self.config_handler.list_config_ids() if i.startswith(CheckConfigPrefix)]
+
+    async def _checks(self, cfg_id: ConfigId) -> List[ReportCheck]:
+        config = await self.config_handler.get_config(cfg_id)
+        if config is not None and CheckConfigRoot in config.config:
+            return ReportCheckCollectionConfig.from_config(config)
+        else:
+            return []
+
+    async def _benchmark(self, cfg_id: ConfigId) -> Benchmark:
+        cfg = await self.config_handler.get_config(cfg_id)
+        if cfg is None or BenchmarkConfigRoot not in cfg.config:
+            raise ValueError(f"Unknown benchmark: {cfg_id}")
+        return BenchmarkConfig.from_config(cfg)
+
+    async def list_benchmarks(self) -> List[Benchmark]:
+        return [
+            await self._benchmark(i)
+            async for i in self.config_handler.list_config_ids()
+            if i.startswith(BenchmarkConfigPrefix)
+        ]

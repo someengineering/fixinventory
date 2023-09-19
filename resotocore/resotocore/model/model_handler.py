@@ -257,3 +257,8 @@ class ModelHandlerFromCodeAndDB(ModelHandlerDB):
             return code_model()
         else:
             return await super().load_model(graph_name, force=force)
+
+    @staticmethod
+    def on_startup() -> None:
+        # make sure the model is loaded on startup
+        code_model()

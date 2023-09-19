@@ -42,7 +42,7 @@ from resotocore.model.model_handler import ModelHandler, ModelHandlerFromCodeAnd
 from resotocore.query.template_expander import TemplateExpander
 from resotocore.query.template_expander_service import TemplateExpanderService
 from resotocore.report import Inspector
-from resotocore.report.inspector_service import InspectorService
+from resotocore.report.inspector_service import InspectorFileService
 from resotocore.service import Service
 from resotocore.system_start import SystemInfo
 from resotocore.task.scheduler import NoScheduler
@@ -419,7 +419,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
         cli = deps.add(ServiceNames.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
         deps.add(ServiceNames.template_expander, TemplateExpanderService(db.template_entity_db, cli))
-        inspector = deps.add(ServiceNames.inspector, InspectorService(cli))
+        inspector = deps.add(ServiceNames.inspector, InspectorFileService(cli))
         subscriptions = deps.add(ServiceNames.subscription_handler, NoSubscriptionHandler())
         core_config_handler = deps.add(
             ServiceNames.core_config_handler,
