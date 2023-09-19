@@ -501,6 +501,8 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
         # if we prefer the profile name and we have a profile
         # we set the name from the profile and return immediately
         if Config.aws.prefer_profile_as_account_name:
+            if Config.aws.scrape_org:
+                log.error("Setting account name from profile with scrape_org enabled is likely not what you want")
             if set_name_from_profile():
                 return
 
@@ -516,7 +518,7 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
 
         # if we still don't have a name, we try
         # to set it from the profile if one is set
-        if account.name is None:
+        if account.name is None and not Config.aws.scrape_org:
             set_name_from_profile()
 
     if len(accounts) == 0:
