@@ -666,8 +666,7 @@ class EndState(StepState):
         messages = []
         task = self.instance
         # make sure to send the remaining progress message before the end message
-        if task.not_emitted_progress() is not None:
-            pr = task.progress_json()
+        if pr := task.not_emitted_progress():
             data = dict(workflow=task.descriptor.name, task=task.id, message=pr)
             messages.append(SendMessage(Event(CoreMessage.ProgressMessage, freeze(data))))
         messages.append(SendMessage(self.event))
@@ -773,13 +772,13 @@ class RunningTask:
 
         return self.__progress.to_json(key=order_progress)
 
-    def not_emitted_progress(self) -> Optional[ProgressTree]:
+    def not_emitted_progress(self) -> Optional[Json]:
         # only emit progress for workflows that have been updated since the last emit
         if isinstance(self.descriptor, Workflow) and (
             self.__progress_emitted_at is None or self.__progress_updated_at > self.__progress_emitted_at
         ):
             self.__progress_emitted_at = utc()
-            return self.__progress
+            return self.progress_json()
         return None
 
     @property
