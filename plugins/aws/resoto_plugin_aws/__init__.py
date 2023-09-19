@@ -491,12 +491,33 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
                 pass
             return False
 
+        def set_name_from_profile() -> bool:
+            if account.profile:
+                account.name = account.profile
+                log.debug(f"Set name for {account.kdname} from profile")
+                return True
+            return False
+
+        # if we prefer the profile name and we have a profile
+        # we set the name from the profile and return immediately
+        if Config.aws.prefer_profile_as_account_name:
+            if set_name_from_profile():
+                return
+
+        # otherwise we try to set the name from the account alias
+        # or the organization - depending on the configuration
+        # and what permissions we have
         if Config.aws.prefer_account_alias_as_name:
             if not set_name_from_account_alias():
                 set_name_from_org()
         else:
             if not set_name_from_org():
                 set_name_from_account_alias()
+
+        # if we still don't have a name, we try
+        # to set it from the profile if one is set
+        if account.name is None:
+            set_name_from_profile()
 
     if len(accounts) == 0:
         return

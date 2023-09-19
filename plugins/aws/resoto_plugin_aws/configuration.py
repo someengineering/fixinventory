@@ -171,6 +171,10 @@ class AwsConfig:
             " the role will be assumed when calling organizations:DescribeAccount."
         },
     )
+    prefer_profile_as_account_name: bool = field(
+        default=False,
+        metadata={"description": "Prefer the profile name as the account name, if a profile was used."},
+    )
     fork_process: bool = field(
         default=True,
         metadata={
