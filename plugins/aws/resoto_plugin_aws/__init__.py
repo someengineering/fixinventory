@@ -454,7 +454,7 @@ def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str
         raise botocore.exceptions.NoCredentialsError()
 
 
-def set_account_names(accounts: List[AwsAccount]) -> None:
+def set_account_names(accounts: List[AwsAccount], core_feedback: CoreFeedback) -> None:
     def set_account_name(account: AwsAccount) -> None:
         def set_name_from_account_alias() -> bool:
             try:
@@ -502,7 +502,11 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
         # we set the name from the profile and return immediately
         if Config.aws.prefer_profile_as_account_name:
             if Config.aws.scrape_org:
-                log.error("Setting account name from profile with scrape_org enabled is likely not what you want")
+                core_feedback.error(
+                    "Possible misconfiguration: setting prefer_profile_as_account_name"
+                    " with scrape_org enabled is likely not what you want",
+                    log,
+                )
             if set_name_from_profile():
                 return
 
@@ -614,7 +618,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         except botocore.exceptions.BotoCoreError as e:
             core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
 
-    set_account_names(accounts)
+    set_account_names(accounts, core_feedback)
     return accounts
 
 
