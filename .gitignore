@@ -32,3 +32,4 @@ out/
 *.iml
 **/.hypothesis/
 .sandbox/*
+.env
