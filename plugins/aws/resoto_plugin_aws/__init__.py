@@ -454,7 +454,7 @@ def current_account_id_and_partition(profile: Optional[str] = None) -> Tuple[str
         raise botocore.exceptions.NoCredentialsError()
 
 
-def set_account_names(accounts: List[AwsAccount]) -> None:
+def set_account_names(accounts: List[AwsAccount], core_feedback: CoreFeedback) -> None:
     def set_account_name(account: AwsAccount) -> None:
         def set_name_from_account_alias() -> bool:
             try:
@@ -491,12 +491,39 @@ def set_account_names(accounts: List[AwsAccount]) -> None:
                 pass
             return False
 
+        def set_name_from_profile() -> bool:
+            if account.profile:
+                account.name = account.profile
+                log.debug(f"Set name for {account.kdname} from profile")
+                return True
+            return False
+
+        # if we prefer the profile name and we have a profile
+        # we set the name from the profile and return immediately
+        if Config.aws.prefer_profile_as_account_name:
+            if Config.aws.scrape_org:
+                core_feedback.error(
+                    "Possible misconfiguration: setting prefer_profile_as_account_name"
+                    " with scrape_org enabled is likely not what you want",
+                    log,
+                )
+            if set_name_from_profile():
+                return
+
+        # otherwise we try to set the name from the account alias
+        # or the organization - depending on the configuration
+        # and what permissions we have
         if Config.aws.prefer_account_alias_as_name:
             if not set_name_from_account_alias():
                 set_name_from_org()
         else:
             if not set_name_from_org():
                 set_name_from_account_alias()
+
+        # if we still don't have a name, we try
+        # to set it from the profile if one is set
+        if account.name is None and not Config.aws.scrape_org:
+            set_name_from_profile()
 
     if len(accounts) == 0:
         return
@@ -591,7 +618,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         except botocore.exceptions.BotoCoreError as e:
             core_feedback.error(f"Unable to get accounts for profile {profile}: {e}", log)
 
-    set_account_names(accounts)
+    set_account_names(accounts, core_feedback)
     return accounts
 
 
