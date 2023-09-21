@@ -798,7 +798,7 @@ class AggregateVariable:
         return set(self.all_names())
 
 
-@define(order=True, hash=True, frozen=True)
+@define(order=True, frozen=True)
 class AggregateFunction:
     function: str
     name: Union[str, int]
@@ -809,6 +809,13 @@ class AggregateFunction:
         with_as = f" as {self.as_name}" if self.as_name else ""
         with_ops = " " + self.combined_ops() if self.ops else ""
         return f"{self.function}({self.name}{with_ops}){with_as}"
+
+    def __hash__(self) -> int:  # noqa
+        hash_function = hash(self.function)
+        hash_name = hash(self.name)
+        hash_ops = hash(tuple(self.ops))
+        hash_as_name = hash(self.as_name)
+        return hash_function ^ (hash_name << 1) ^ (hash_ops << 2) ^ (hash_as_name << 3)
 
     def combined_ops(self) -> str:
         return " ".join(f"{op} {value}" for op, value in self.ops)
