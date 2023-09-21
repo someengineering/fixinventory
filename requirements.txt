@@ -28,7 +28,7 @@ cffi==1.15.1
 charset-normalizer==3.2.0
 cheroot==10.0.0
 cherrypy==18.8.0
-cryptography==40.0.2
+cryptography==41.0.4
 deepdiff==6.5.0
 defusedxml==0.7.1
 deprecated==1.2.14
