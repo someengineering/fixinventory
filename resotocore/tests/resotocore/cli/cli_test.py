@@ -192,10 +192,10 @@ async def test_create_query_parts(cli: CLI) -> None:
     assert "-delete[1:]->" in commands[0].executable_commands[0].arg  # type: ignore
     commands = await cli.evaluate_cli_command("search some_int==0 | ancestors delete")
     assert "<-delete[1:]-" in commands[0].executable_commands[0].arg  # type: ignore
-    commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar)")
+    commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar) as a")
     assert (
         commands[0].executable_commands[0].arg
-        == f"'aggregate(reported.foo, reported.bla as bla: sum(reported.bar)):reported.some_int == 0 {sort}'"
+        == f"'aggregate(reported.foo, reported.bla as bla: sum(reported.bar) as a):reported.some_int == 0 sort a asc'"
     )
 
     # multiple head/tail commands are combined correctly
