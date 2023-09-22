@@ -402,7 +402,7 @@ class SearchCompleter(AbstractSearchCompleter):
 class AggregateCompleter(AbstractSearchCompleter):
     def __init__(self, kinds: List[str], props: List[str]) -> None:
         super().__init__(kinds, props)
-        self.aggregate_fns = ["sum(", "min(", "max(", "avg("]
+        self.aggregate_fns = ["sum(", "min(", "max(", "avg(", "stddev(", "variance("]
         self.aggregate_fn_completer = FuzzyWordCompleter(
             self.aggregate_fns,
             meta_dict={
@@ -410,6 +410,8 @@ class AggregateCompleter(AbstractSearchCompleter):
                 "min(": "use the smallest occurrence",
                 "max(": "use the biggest occurrence",
                 "avg(": "average over all occurrences",
+                "stddev(": "standard deviation over all occurrences",
+                "variance(": "variance over all occurrences",
             },
         )
         self.as_completer = FuzzyWordCompleter(["as"], meta_dict=({"as": "rename this result"}))

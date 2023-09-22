@@ -851,6 +851,10 @@ class Aggregate:
             result.update(agg.property_paths())  # type: ignore
         return result
 
+    def sort_by_fn(self, absolute: bool = True) -> List[Sort]:
+        # sort the aggregation result by the defined order of the aggregate functions
+        return [Sort(("/" if absolute else "") + fn.get_as_name()) for fn in self.group_func]
+
 
 SimpleValue = Union[str, int, float, bool]
 

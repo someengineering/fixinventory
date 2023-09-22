@@ -490,6 +490,10 @@ class CLIService(CLI, Service):
 
         # If the last part is a navigation, we need to add sort which will ingest a new part.
         with_sort = query.set_sort(*DefaultSort) if query.current_part.navigation else query
+        # If this is an aggregate query, the default sort needs to be changed
+        if query.aggregate is not None and query.current_part.sort == DefaultSort:
+            with_sort = query.set_sort(*query.aggregate.sort_by_fn())
+
         # When all parts are combined, interpret the result on defined section.
         final_query = with_sort.on_section(ctx.env.get("section", PathRoot))
         options = ExecuteSearchCommand.argument_string(parsed_options)
