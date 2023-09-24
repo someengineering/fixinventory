@@ -440,7 +440,7 @@ class CLIService(CLI, Service):
                 # we also add the aggregate_to_count command after the query
                 assert query.aggregate is None, "Can not combine aggregate and count!"
                 group_by_var = [AggregateVariable(AggregateVariableName(arg), "name")] if arg else []
-                aggregate = Aggregate(group_by_var, [AggregateFunction("sum", 1, [], "count")])
+                aggregate = Aggregate(group_by_var, [AggregateFunction("sum", 1, (), "count")])
                 # If the query should be explained, we want the output as is
                 if "explain" not in parsed_options:
                     additional_commands.append(self.command("aggregate_to_count", None, ctx))

@@ -426,7 +426,7 @@ def aggregate_group_function_parser() -> Parser:
     as_name = None
     if with_as:
         as_name = yield literal_p
-    return AggregateFunction(func, term_or_int, ops_list, as_name)
+    return AggregateFunction(func, term_or_int, tuple(ops_list), as_name)
 
 
 @make_parser
