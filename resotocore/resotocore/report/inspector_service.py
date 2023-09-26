@@ -154,7 +154,7 @@ class InspectorService(Inspector, Service):
         # create query
         term: Term = P("benchmark").is_in(benchmark_names)
         if severity:
-            term = term & P("severity").is_in(context.severities_including(severity))
+            term = term & P("severity").is_in([s.value for s in context.severities_including(severity)])
         term = P.context("security.issues[]", term)
         if accounts:
             term = term & P("ancestors.account.reported.id").is_in(accounts)

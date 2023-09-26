@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -817,7 +818,7 @@ class AggregateFunction:
         return " ".join(f"{op} {value}" for op, value in self.ops)
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
+        return self.as_name if self.as_name else re.sub(r"\W+", "_", f"{self.function}_of_{self.name}")
 
     def change_variable(self, fn: Callable[[str], str]) -> AggregateFunction:
         return evolve(self, name=fn(self.name)) if isinstance(self.name, str) else self
@@ -847,9 +848,10 @@ class Aggregate:
             result.update(agg.property_paths())  # type: ignore
         return result
 
-    def sort_by_fn(self, absolute: bool = True) -> List[Sort]:
-        # sort the aggregation result by the defined order of the aggregate functions
-        return [Sort(("/" if absolute else "") + fn.get_as_name()) for fn in self.group_func]
+    def sort_by_fn(self, section: str) -> List[Sort]:
+        root_or_section = None if section == PathRoot else section
+        on_section = partial(variable_to_absolute, root_or_section)
+        return [Sort("/" + fn.change_variable(on_section).get_as_name()) for fn in self.group_func]
 
 
 SimpleValue = Union[str, int, float, bool]
