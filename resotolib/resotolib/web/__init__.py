@@ -78,3 +78,6 @@ class WebServer(threading.Thread):
     def shutdown(self) -> None:
         log.debug("Received request to shutdown http server threads")
         cherrypy.engine.exit()
+
+    def mount(self, mountpoint: str, app: Any) -> None:
+        cherrypy.tree.mount(app, mountpoint, app.config)
