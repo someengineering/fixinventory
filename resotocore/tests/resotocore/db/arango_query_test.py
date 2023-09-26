@@ -180,7 +180,7 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         "collect var_0=agg0.name "
         "aggregate fn_0=max(agg0.num), fn_1=min(agg_let0), fn_2=sum(agg_let1) "
         'RETURN {"group":{"name": var_0}, "max_of_num": fn_0, '
-        '"min_of_a[*].x": fn_1, "sum_of_a[*].b[*].d": fn_2}' in q
+        '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
     q, _ = to_query(
         graph_db,
@@ -194,5 +194,5 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         "collect var_0=agg0.name, var_1=pre0.c "
         "aggregate fn_0=max(agg0.num), fn_1=min(pre0.x), fn_2=sum(agg_let1) "
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0, '
-        '"min_of_a[*].x": fn_1, "sum_of_a[*].b[*].d": fn_2}' in q
+        '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
