@@ -473,6 +473,21 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
 
 
 @pytest.mark.asyncio
+async def test_report(core_client: ResotoClient, client_session: ClientSession) -> None:
+    url = core_client.resotocore_url
+    report = await client_session.get(
+        f"{url}/report/benchmarks", params={"with_checks": "true", "short": "true", "benchmarks": "aws_cis_1_5"}
+    )
+    benchmarks = await report.json()
+    assert len(benchmarks) == 1
+    benchmark = benchmarks[0]
+    assert benchmark["id"] == "aws_cis_1_5"
+    assert len(benchmark["report_checks"]) > 50
+    assert benchmark.get("checks") is None
+    assert benchmark.get("children") is None
+
+
+@pytest.mark.asyncio
 async def test_authorization(core_client_with_psk: ResotoClient, client_session: ClientSession) -> None:
     url = core_client_with_psk.resotocore_url
     # make sure all users are deleted
