@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -798,11 +799,14 @@ class AggregateVariable:
         return set(self.all_names())
 
 
+AggregateOp = Tuple[str, Union[int, float]]  # (operation, value or variable). e.g. ("+", 1) or ("-", "var1")
+
+
 @define(order=True, hash=True, frozen=True)
 class AggregateFunction:
     function: str
     name: Union[str, int]
-    ops: List[Tuple[str, Union[int, float]]] = field(factory=list)
+    ops: Tuple[AggregateOp, ...] = field(factory=tuple)  # tuple instead of list to be hashable
     as_name: Optional[str] = None
 
     def __str__(self) -> str:
@@ -814,7 +818,7 @@ class AggregateFunction:
         return " ".join(f"{op} {value}" for op, value in self.ops)
 
     def get_as_name(self) -> str:
-        return self.as_name if self.as_name else f"{self.function}_of_{self.name}"
+        return self.as_name if self.as_name else re.sub(r"\W+", "_", f"{self.function}_of_{self.name}")
 
     def change_variable(self, fn: Callable[[str], str]) -> AggregateFunction:
         return evolve(self, name=fn(self.name)) if isinstance(self.name, str) else self
@@ -843,6 +847,11 @@ class Aggregate:
         for agg in chain(self.group_by, self.group_func):
             result.update(agg.property_paths())  # type: ignore
         return result
+
+    def sort_by_fn(self, section: str) -> List[Sort]:
+        root_or_section = None if section == PathRoot else section
+        on_section = partial(variable_to_absolute, root_or_section)
+        return [Sort("/" + fn.change_variable(on_section).get_as_name()) for fn in self.group_func]
 
 
 SimpleValue = Union[str, int, float, bool]

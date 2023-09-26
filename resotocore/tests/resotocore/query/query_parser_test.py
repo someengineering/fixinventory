@@ -132,7 +132,7 @@ def test_not() -> None:
     assert_round_trip(not_term, P.of_kind("bla").not_term())
     assert_round_trip(not_term, term_parser.parse("not(is(a) or not is(b) and not a>1 or not b<2 or not(a>1))"))
     # make sure not only negates the simple term, not the combined term
-    assert term_parser.parse("not a==b and b==c") == CombinedTerm(NotTerm(P("a") == "b"), "and", P("b") == "c")
+    assert term_parser.parse("not a==b and b==c") == CombinedTerm(NotTerm(P("a").eq("b")), "and", P("b").eq("c"))
 
 
 def test_filter_term() -> None:
@@ -142,7 +142,7 @@ def test_filter_term() -> None:
     assert_round_trip(term_parser, P.of_kind("foo") | P.of_kind("bla"))
     assert_round_trip(
         term_parser,
-        ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b").is_in([1, 2, 3])) & (P("c") == {"a": 123}),
+        ((P.of_kind("foo") | P.of_kind("bla")) & (P("a") > 23)) & (P("b").is_in([1, 2, 3])) & (P("c").eq({"a": 123})),
     )
 
 
@@ -200,9 +200,9 @@ def test_query() -> None:
         )
         .merge_with("cloud", Navigation(1, Navigation.Max, direction=Direction.inbound), Query.mk_term("cloud"))
         .traverse_out()
-        .filter(P("some.int.value") < 1, P("some.other") == 23)
+        .filter(P("some.int.value") < 1, P("some.other").eq(23))
         .traverse_out()
-        .filter(P("active") == 12, P.function("in_subnet").on("ip", "1.2.3.4/96"))
+        .filter(P("active").eq(12), P.function("in_subnet").on("ip", "1.2.3.4/96"))
         .filter_with(WithClause(WithClauseFilter("==", 0), Navigation()))
         .group_by([AggregateVariable(AggregateVariableName("foo"))], [AggregateFunction("sum", "cpu")])
         .add_sort(Sort("test", "asc"))
@@ -275,7 +275,7 @@ def test_aggregate_group_function() -> None:
     assert bla.name == "bla"
     assert bla.as_name == "bar"
     boo = aggregate_group_function_parser.parse("sum(boo * 1024.12 + 1) as bar")
-    assert boo.ops == [("*", 1024.12), ("+", 1)]
+    assert boo.ops == (("*", 1024.12), ("+", 1))
     with pytest.raises(Exception):
         assert aggregate_group_function_parser.parse("sum(test / 3 +)")
 
@@ -317,7 +317,7 @@ def test_with_clause() -> None:
     assert wc.navigation == Navigation(maybe_edge_types=["delete"])
     assert str(wc.term) == '(foo == "bla" and test > 23)'
     assert str(wc.with_clause) == "with(any, -delete->)"
-    term = Query.mk_term("foo", P("test") == 23)
+    term = Query.mk_term("foo", P("test").eq(23))
     clause_filter = WithClauseFilter(">", 23)
     nav = Navigation()
 

@@ -153,30 +153,104 @@ def query_string(
         return prop_name, resolved, merge_name
 
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
-        cursor = next_crs("agg")
+        cursor_lookup: Dict[Tuple[str, ...], str] = {}
+        nested_function_lookup: Dict[AggregateFunction, str] = {}
+        nested = {name for agg in a.group_by for name in agg.all_names() if array_marker_in_path_regexp.search(name)}
+        # If we have a nested array, we need to unfold the array and create a new for loop for each array access.
+        if nested:
+            cursor = next_crs("agg")
+            for_loop = f"for {cursor} in {in_cursor}"
+            internals = []
+            for ag in nested:
+                inner_crsr = cursor
+                ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(ag)]
+                ar_parts = []
+                for ar in ars[0:-1]:
+                    ar_parts.append(ar)
+                    if tuple(ar_parts) in cursor_lookup:
+                        continue
+                    nxt_crs = next_crs("pre")
+                    cursor_lookup[tuple(ar_parts)] = nxt_crs
+                    for_loop += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({inner_crsr}.{ar}), {{_internal: true}})"
+                    internals.append(f"{nxt_crs}._internal!=true")
+                    inner_crsr = nxt_crs
+            for_loop += f" FILTER {' OR '.join(internals)}"
+        else:
+            cursor = next_crs("agg")
+            for_loop = f"for {cursor} in {in_cursor}"
 
+        # the property needs to be accessed from the correct cursor
+        def prop_for(name: str) -> str:
+            ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(name)]
+            if len(ars) == 1:  # no array access
+                return f"{cursor}.{name}"
+            else:  # array access
+                return f"{cursor_lookup[tuple(ars[0:-1])]}.{ars[-1]}"
+
+        # the function needs to be accessed from the correct cursor or from a let expression
+        def function_value_for(fn: AggregateFunction, name: str) -> str:
+            ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(name)]
+            if len(ars) == 1:  # no array access
+                return f"{cursor}.{fn.name}"
+            elif tuple(ars[0:-1]) in cursor_lookup:  # array access with a related group variable
+                return f"{cursor_lookup[tuple(ars[0:-1])]}.{ars[-1]}"
+            else:  # array access without a related group variable -> let expression
+                return nested_function_lookup[fn]
+
+        # compute the correct cursor name for the given variable
         def var_name(n: Union[AggregateVariableName, AggregateVariableCombined]) -> str:
             def comb_name(cb: Union[str, AggregateVariableName]) -> str:
-                return f'"{cb}"' if isinstance(cb, str) else f"{cursor}.{cb.name}"
+                return f'"{cb}"' if isinstance(cb, str) else prop_for(cb.name)
 
             return (
-                f"{cursor}.{n.name}"
+                prop_for(n.name)
                 if isinstance(n, AggregateVariableName)
                 else f'CONCAT({",".join(comb_name(cp) for cp in n.parts)})'
             )
 
+        # compute the correct function term for the given function
         def func_term(fn: AggregateFunction) -> str:
-            name = f"{cursor}.{fn.name}" if isinstance(fn.name, str) else str(fn.name)
+            name = function_value_for(fn, fn.name) if isinstance(fn.name, str) else str(fn.name)
             return f"{name} {fn.combined_ops()}" if fn.ops else name
 
+        # if the function accesses an array, we need to handle this specially
+        # - in case the property name is also used in the group by, we can simply use the variable cursor
+        # - if not we need to create a separate let expression before the collect statement
+        #   inside the collect / aggregate we can refer to the let expression
+        # - if only a part of property name is used, use the last known cursor.
+        #   example: a[*].c in var and a[*].b[*].d in group -> use the a[*] cursor
+        def unfold_array_func_term(fn: AggregateFunction) -> Optional[str]:
+            if isinstance(fn.name, int):
+                return None
+            ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(fn.name)]
+            if len(ars) == 1:
+                return None
+            # array access without a related group variable.
+            res = next_crs("agg_let")
+            nested_function_lookup[fn] = res
+            pre = ""
+            current = cursor
+            car = []
+            for ar in ars[0:-1]:
+                car.append(ar)
+                tcar = tuple(car)
+                if tcar in cursor_lookup:
+                    current = cursor_lookup[tcar]
+                    continue
+                nxt_crs = next_crs("inner")
+                pre += f" FOR {nxt_crs} IN TO_ARRAY({current}.{ar})"
+                current = nxt_crs
+            return f"LET {res} = {fn.function}({pre} RETURN {current}.{ars[-1]})"
+
         variables = ", ".join(f"var_{num}={var_name(v.name)}" for num, v in enumerate(a.group_by))
-        funcs = ", ".join(f"fn_{num}={f.function}({func_term(f)})" for num, f in enumerate(a.group_func))
         agg_vars = ", ".join(f'"{v.get_as_name()}": var_{num}' for num, v in enumerate(a.group_by))
+        array_functions = " ".join((af for af in (unfold_array_func_term(f) for f in a.group_func) if af is not None))
+        funcs = ", ".join(f"fn_{num}={f.function}({func_term(f)})" for num, f in enumerate(a.group_func))
         agg_funcs = ", ".join(f'"{f.get_as_name()}": fn_{num}' for num, f in enumerate(a.group_func))
         group_result = f'"group":{{{agg_vars}}},' if a.group_by else ""
         aggregate_term = f"collect {variables} aggregate {funcs}"
         return_result = f"{{{group_result} {agg_funcs}}}"
-        return "aggregated", f"LET aggregated = (for {cursor} in {in_cursor} {aggregate_term} RETURN {return_result})"
+        return "aggregated", f"LET aggregated = ({for_loop} {array_functions} {aggregate_term} RETURN {return_result})"
 
     def predicate(cursor: str, p: Predicate, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
         pre = ""

@@ -153,3 +153,46 @@ def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
         ")\n"
         ' FOR result in with_usage0 RETURN UNSET(result, ["flat"])'
     )
+
+
+def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
+    q, _ = to_query(graph_db, QueryModel(parse_query("aggregate(name: max(num)): is(foo)"), foo_model))
+    assert "collect var_0=agg0.name aggregate fn_0=max(agg0.num)" in q
+    # aggregate vars get expanded
+    q, _ = to_query(graph_db, QueryModel(parse_query("aggregate(name, a[*].b[*].c: max(num)): is(foo)"), foo_model))
+    assert (
+        "for agg0 in filter0 FOR pre0 IN APPEND(TO_ARRAY(agg0.a), {_internal: true}) "
+        "FOR pre1 IN APPEND(TO_ARRAY(pre0.b), {_internal: true}) "
+        "FILTER pre0._internal!=true OR pre1._internal!=true  "
+        "collect var_0=agg0.name, var_1=pre1.c "
+        "aggregate fn_0=max(agg0.num) "
+        'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0}' in q
+    )
+    q, _ = to_query(
+        graph_db,
+        QueryModel(parse_query("aggregate(name: max(num), min(a[*].x), sum(a[*].b[*].d)): is(foo)"), foo_model),
+    )
+    # no expansion on the main level, but expansion in subqueries (let expressions)
+    assert (
+        "for agg0 in filter0 "
+        "LET agg_let0 = min( FOR inner0 IN TO_ARRAY(agg0.a) RETURN inner0.x) "
+        "LET agg_let1 = sum( FOR inner1 IN TO_ARRAY(agg0.a) FOR inner2 IN TO_ARRAY(inner1.b) RETURN inner2.d) "
+        "collect var_0=agg0.name "
+        "aggregate fn_0=max(agg0.num), fn_1=min(agg_let0), fn_2=sum(agg_let1) "
+        'RETURN {"group":{"name": var_0}, "max_of_num": fn_0, '
+        '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
+    )
+    q, _ = to_query(
+        graph_db,
+        QueryModel(parse_query("aggregate(name, a[*].c: max(num), min(a[*].x), sum(a[*].b[*].d)): is(foo)"), foo_model),
+    )
+    assert (
+        "for agg0 in filter0 FOR pre0 IN APPEND(TO_ARRAY(agg0.a), {_internal: true}) "
+        "FILTER pre0._internal!=true "
+        "LET agg_let0 = min( RETURN pre0.x) "
+        "LET agg_let1 = sum( FOR inner0 IN TO_ARRAY(pre0.b) RETURN inner0.d) "
+        "collect var_0=agg0.name, var_1=pre0.c "
+        "aggregate fn_0=max(agg0.num), fn_1=min(pre0.x), fn_2=sum(agg_let1) "
+        'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0, '
+        '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
+    )
