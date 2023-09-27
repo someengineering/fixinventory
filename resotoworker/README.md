@@ -78,4 +78,4 @@ If you have any questions feel free to [join our Discord](https://discord.gg/som
 
 
 ## License
-See repository LICENSE for details.
+See [LICENSE](../LICENSE) for details.

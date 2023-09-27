@@ -5,3 +5,7 @@ This plugin collects OneLogin users as cloud resources and adds them to the Reso
 
 ## Usage
 Retrieve OneLogin API credentials and provide them to the plugin either as environment variables or commandline arguments.
+
+## License
+See [LICENSE](../../LICENSE) for details.
+
