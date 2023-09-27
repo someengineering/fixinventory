@@ -3,7 +3,7 @@ name = "resoto-plugin-dockerhub"
 description = "Resoto Docker Hub Collector Plugin"
 version = "3.7.0"
 authors = [{name="Some Engineering Inc."}]
-license = "AGPLv3"
+license = { text="AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
     # Current project status
