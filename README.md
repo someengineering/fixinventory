@@ -48,4 +48,4 @@ If you have any questions, feel free to [join our Discord](https://discord.gg/so
 
 
 ## License
-See repository [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE) for details.
