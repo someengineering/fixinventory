@@ -91,6 +91,7 @@ from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
 from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
+from resotocore.report import Benchmark, ReportCheck
 from resotocore.service import Service
 from resotocore.task.model import Subscription
 from resotocore.types import Json, JsonElement
@@ -252,6 +253,7 @@ class Api(Service):
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", require(self.handle_subscribed, a)),
                 # report checks
                 web.get(prefix + "/report/checks", require(self.inspection_checks, r)),
+                web.get(prefix + "/report/benchmarks", require(self.benchmarks, r)),
                 web.get(prefix + "/report/checks/graph/{graph_id}", require(self.perform_benchmark_on_checks, r)),
                 web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", require(self.inspection_results, r)),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", require(self.perform_benchmark, r)),
@@ -647,6 +649,31 @@ class Api(Service):
         kind = request.query.get("kind")
         inspections = await deps.inspector.list_checks(provider=provider, service=service, category=category, kind=kind)
         return await single_result(request, to_js(inspections))
+
+    async def benchmarks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        benchmark_filter = [b.strip() for b in request.query.get("benchmarks", "").split(",") if b.strip()]
+        short = request.query.get("short", "false").lower() == "true"
+        with_checks = request.query.get("with_checks", "false").lower() == "true"
+        lookup = {c.id: c for c in await deps.inspector.list_checks()} if with_checks else {}
+
+        def to_js_check(c: ReportCheck) -> JsonElement:
+            return c.id if short else to_js(c, strip_nulls=True)
+
+        def to_js_benchmark(b: Benchmark) -> Json:
+            bj: Json = to_js(b, strip_nulls=True)
+            if short:
+                bj.pop("checks", None)
+                bj.pop("children", None)
+            if with_checks:
+                bj["report_checks"] = [to_js_check(lookup[c]) for c in b.nested_checks()]
+            return bj
+
+        benchmarks = [
+            to_js_benchmark(b)
+            for b in await deps.inspector.list_benchmarks()
+            if (b.id in benchmark_filter or not benchmark_filter)
+        ]
+        return await single_result(request, benchmarks)
 
     async def inspection_results(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph = GraphName(request.match_info["graph_id"])

@@ -205,8 +205,8 @@ paths:
           description: "If true, the hierarchy of complex kinds is flattened, holding all properties and all merged metadata."
           in: query
           schema:
-              type: boolean
-              default: false
+            type: boolean
+            default: false
       responses:
         "200":
           description: "The list of all kinds."
@@ -2721,6 +2721,41 @@ paths:
                 items:
                   $ref: "#/components/schemas/InspectCheck"
 
+  /report/benchmarks:
+    get:
+      summary: "List available benchmarks."
+      description: "List available benchmarks."
+      tags:
+        - report
+      parameters:
+        - name: benchmark
+          in: query
+          description: "Comma separated list of benchmarks. All if not defined."
+          schema:
+            type: string
+          example: "aws_cis_1_5,aws_cis_1_6"
+          explode: false
+        - name: with_checks
+          in: query
+          description: "Include check definition into the benchmark"
+          schema:
+            type: boolean
+            default: false
+        - name: short
+          in: query
+          description: "Reduce the information to top level properties."
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: "List of benchmarks."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Benchmark"
   /report/benchmark/{benchmark}/graph/{graph_id}:
     get:
       summary: "Perform a benchmark on a graph."
@@ -2761,7 +2796,7 @@ paths:
             but the load action is much faster.
           schema:
             type: string
-            enum: [run, load]
+            enum: [ run, load ]
             default: run
       responses:
         "200":
@@ -3146,32 +3181,32 @@ paths:
     post:
       summary: "This endpoint is used to create the first user."
       tags:
-          - authorization
+        - authorization
       description: "Create the first user from the create first user login form."
       requestBody:
         content:
-            application/x-www-form-urlencoded:
-              schema:
-                type: object
-                properties:
-                  company:
-                    type: string
-                    description: The company name.
-                  fullname:
-                    type: string
-                    description: The full name of the user.
-                  email:
-                    type: string
-                    description: The email of the user.
-                  password:
-                    type: string
-                    description: The password of the user.
-                  password_repeat:
-                    type: string
-                    description: The repeated password of the user.
-                  redirect:
-                    type: string
-                    description: The redirect url after the user is created.
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                company:
+                  type: string
+                  description: The company name.
+                fullname:
+                  type: string
+                  description: The full name of the user.
+                email:
+                  type: string
+                  description: The email of the user.
+                password:
+                  type: string
+                  description: The password of the user.
+                password_repeat:
+                  type: string
+                  description: The repeated password of the user.
+                redirect:
+                  type: string
+                  description: The redirect url after the user is created.
       responses:
         "303":
           description: "The redirect to the specified url in the form."
@@ -3224,7 +3259,7 @@ paths:
     get:
       summary: "This endpoint is used to renew a JWT that is about to expire."
       tags:
-          - authorization
+        - authorization
       description: "Get the user information."
       responses:
         "200":
@@ -3870,3 +3905,55 @@ components:
           items:
             type: string
           description: "The related checks of this check"
+
+    CheckCollection:
+      type: object
+      properties:
+        title:
+          type: string
+          description: "The title of this check collection"
+        description:
+          type: string
+          description: "The description of this check collection"
+        documentation:
+          type: string
+          description: "The documentation of this check collection"
+        checks:
+          type: array
+          items:
+            type: string
+          description: "Ids of checks in this collection"
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckCollection'
+          description: "Ids of child collections"
+
+    Benchmark:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/CheckCollection'
+      properties:
+        id:
+          type: string
+          description: "The id of this benchmark"
+        framework:
+          type: string
+          description: "The framework of this benchmark"
+        version:
+          type: string
+          description: "The version of this benchmark"
+        clouds:
+          type: array
+          items:
+            type: string
+          description: "The clouds relevant for this benchmark"
+        report_checks:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/InspectCheck'
+          description: "Related checks of this benchmarks"
+
+
