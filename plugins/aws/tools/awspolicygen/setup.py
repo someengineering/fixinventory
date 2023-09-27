@@ -34,7 +34,7 @@ setup(
         "Intended Audience :: System Administrators",
         "Intended Audience :: Information Technology",
         # License information
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         # Supported python versions
         "Programming Language :: Python :: 3.9",
         # Supported OS's
