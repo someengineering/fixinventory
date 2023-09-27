@@ -3,7 +3,7 @@ name = "resotometrics"
 version = "3.7.0"
 authors = [{name="Some Engineering Inc."}]
 description = "Exports Resoto metrics in Prometheus format."
-license = {file="LICENSE"}
+license = "AGPLv3"
 requires-python = ">=3.9"
 classifiers = [
     # Current project status

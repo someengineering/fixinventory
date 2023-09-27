@@ -3,7 +3,7 @@ name = "resotoshell"
 version = "3.7.0"
 authors = [{name="Some Engineering Inc."}]
 description = "Commandline interpreter to interact with Resoto."
-license = {file="LICENSE"}
+license = "AGPLv3"
 requires-python = ">=3.9"
 classifiers = [
     # Current project status
