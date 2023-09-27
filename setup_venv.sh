@@ -180,7 +180,7 @@ install_resoto() {
 }
 
 install_plugins() {
-    local collector_plugins=(aws azure cleanup_aws_alarms cleanup_aws_loadbalancers cleanup_aws_vpcs cleanup_expired cleanup_untagged cleanup_volumes digitalocean dockerhub example_collector gcp github k8s onelogin onprem posthog protector random scarf slack tagvalidator vsphere)
+    local collector_plugins=(aws azure digitalocean dockerhub example_collector gcp github k8s onelogin onprem posthog random scarf slack vsphere)
     for plugin in "${collector_plugins[@]}"; do
         pip_install "$plugin" true
     done
