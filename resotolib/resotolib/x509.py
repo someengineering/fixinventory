@@ -211,7 +211,9 @@ def gen_ca_bundle_bytes(certs: Union[Certificate, List[Certificate]], include_ce
     return bytes(content)
 
 
-def write_ca_bundle(certs: Union[Certificate, List[Certificate]], cert_path: str, include_certifi: bool = True, rename: bool = True) -> None:
+def write_ca_bundle(
+    certs: Union[Certificate, List[Certificate]], cert_path: str, include_certifi: bool = True, rename: bool = True
+) -> None:
     tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
     with open(tmp_cert_path, "wb") as f:
         f.write(gen_ca_bundle_bytes(certs, include_certifi))
