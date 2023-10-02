@@ -69,20 +69,14 @@ def test_additional_authorities() -> None:
     config = empty_config()
     ca_key, ca_cert = bootstrap_ca(common_name="the ca")
     _, another_ca = bootstrap_ca(common_name="another ca")
-    temp = TemporaryDirectory()
-    key, cert = CertificateHandlerWithCA._create_host_certificate(
-        config.api.host_certificate,
-        ca_key,
-        ca_cert,
-    )
-    ca = CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp.name), [another_ca])
-    ca_certs = {cert["issuer"]: cert for cert in ca.client_context.get_ca_certs()}
-    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
-    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
+    key, cert = CertificateHandlerWithCA._create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
+    with TemporaryDirectory() as temp:
+        ca = CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp), [another_ca])
+        ca_certs = {cert["issuer"]: cert for cert in ca.client_context.get_ca_certs()}
+        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
+        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
 
-    no_ca = CertificateHandlerNoCA(config, ca_cert, key, cert, Path(temp.name), [another_ca])
-    ca_certs = {cert["issuer"]: cert for cert in no_ca.client_context.get_ca_certs()}
-    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
-    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
-
-    temp.cleanup()
+        no_ca = CertificateHandlerNoCA(config, ca_cert, key, cert, Path(temp), [another_ca])
+        ca_certs = {cert["issuer"]: cert for cert in no_ca.client_context.get_ca_certs()}
+        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
+        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
