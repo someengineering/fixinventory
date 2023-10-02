@@ -168,3 +168,6 @@ wrapt==1.15.0
 yarl==1.9.2
 zc-lockfile==3.0.post1
 zipp==3.17.0
+
+# FIX: 2.31.0.7 depends on urllib3>=2 which is wrong
+types-requests==2.31.0.6
