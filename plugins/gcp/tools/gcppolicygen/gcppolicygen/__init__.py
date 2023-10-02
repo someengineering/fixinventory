@@ -7,13 +7,13 @@ Resoto GCP policy generator and uploader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This script generates the required GCP access policy and uploads it to the CDN.
 :copyright: © 2023 Some Engineering Inc.
-:license: Apache 2.0, see LICENSE for more details.
+:license: AGPL-3.0, see LICENSE for more details.
 """
 
 __title__ = "gcppolicygen"
 __description__ = "Resoto GCP policy generator and uploader."
 __author__ = "Some Engineering Inc."
-__license__ = "Apache 2.0"
+__license__ = "AGPL-3.0"
 __copyright__ = "Copyright © 2023 Some Engineering Inc."
 __version__ = "0.0.1"
 
