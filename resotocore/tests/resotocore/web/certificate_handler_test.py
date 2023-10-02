@@ -8,7 +8,7 @@ from attr import evolve
 from resotocore.core_config import CoreConfig
 from resotocore.system_start import empty_config, parse_args
 from resotocore.types import Json
-from resotocore.web.certificate_handler import CertificateHandler, CertificateHandlerWithCA
+from resotocore.web.certificate_handler import CertificateHandler, CertificateHandlerWithCA, CertificateHandlerNoCA
 from resotolib.x509 import (
     load_cert_from_bytes,
     cert_fingerprint,
@@ -63,3 +63,26 @@ def test_load_from_args(default_config: CoreConfig) -> None:
         config = evolve(default_config, args=args)
         context = CertificateHandler._create_host_context(config, cert, pk)
         assert context is not None
+
+
+def test_additional_authorities() -> None:
+    config = empty_config()
+    ca_key, ca_cert = bootstrap_ca(common_name="the ca")
+    _, another_ca = bootstrap_ca(common_name="another ca")
+    temp = TemporaryDirectory()
+    key, cert = CertificateHandlerWithCA._create_host_certificate(
+        config.api.host_certificate,
+        ca_key,
+        ca_cert,
+    )
+    ca = CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp.name), [another_ca])
+    ca_certs = {cert["issuer"]: cert for cert in ca.client_context.get_ca_certs()}
+    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
+    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
+
+    no_ca = CertificateHandlerNoCA(config, ca_cert, key, cert, Path(temp.name), [another_ca])
+    ca_certs = {cert["issuer"]: cert for cert in no_ca.client_context.get_ca_certs()}
+    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
+    assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
+
+    temp.cleanup()
