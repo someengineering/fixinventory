@@ -186,7 +186,7 @@ def write_cert_to_file(cert: Certificate, cert_path: str, rename: bool = True) -
         os.rename(tmp_cert_path, cert_path)
 
 
-def generate_ca_bundle_bytes(cert: Certificate, include_certifi: bool = True) -> bytes:
+def gen_ca_bundle_bytes(cert: Certificate, include_certifi: bool = True) -> bytes:
     content = bytearray()
     if include_certifi:
         content.extend(certifi.contents().encode())
