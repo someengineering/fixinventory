@@ -165,9 +165,9 @@ class CertificateHandlerNoCA(CertificateHandler):
 
         # if we get a ca certificate from the command line, use it
         if args.ca_cert and args.ca_cert_key and args.cert and args.cert_key:
-            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            ca_cert = load_cert_from_file(args.ca_cert)
             host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-            host_cert = load_cert_from_file(args.ca_cert_cert)
+            host_cert = load_cert_from_file(args.ca_cert)
             log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
             return CertificateHandlerNoCA(config, ca_cert, host_key, host_cert, temp_dir)
 
@@ -189,7 +189,7 @@ class CertificateHandlerNoCA(CertificateHandler):
             psk=config.args.psk,
         )
         tls_data.load()
-        authorities = [load_cert_from_file(args.ca_cert_cert)] if args.ca_cert else []
+        authorities = [load_cert_from_file(args.ca_cert)] if args.ca_cert else []
         return CertificateHandlerNoCA(config, tls_data.ca_cert, tls_data.key, tls_data.cert, temp_dir, authorities)
 
 
@@ -268,10 +268,10 @@ class CertificateHandlerWithCA(CertificateHandler):
         # if we get a ca certificate from the command line, use it
         if args.ca_cert and args.ca_cert_key:
             ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            ca_cert = load_cert_from_file(args.ca_cert)
             if args.cert and args.cert_key:
                 host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-                host_cert = load_cert_from_file(args.ca_cert_cert)
+                host_cert = load_cert_from_file(args.ca_cert)
             else:
                 host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
                     config.api.host_certificate, ca_key, ca_cert
@@ -282,7 +282,7 @@ class CertificateHandlerWithCA(CertificateHandler):
         # otherwise, load from database or create it
         sd = db.collection("system_data")
         maybe_ca: Optional[Json] = sd.get("ca")  # type: ignore
-        authorities = [load_cert_from_file(args.ca_cert_cert)] if args.ca_cert else []
+        authorities = [load_cert_from_file(args.ca_cert)] if args.ca_cert else []
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
