@@ -7,7 +7,16 @@ Resoto AWS policy generator and uploader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This script generates the required AWS access policy and uploads it to the CDN.
 :copyright: © 2022 Some Engineering Inc.
+:license: Apache 2.0, see LICENSE for more details.
 """
+
+__title__ = "awspolicygen"
+__description__ = "Resoto AWS policy generator and uploader."
+__author__ = "Some Engineering Inc."
+__license__ = "Apache 2.0"
+__copyright__ = "Copyright © 2023 Some Engineering Inc."
+__version__ = "0.0.1"
+
 
 logging.basicConfig(
     level=logging.INFO,
