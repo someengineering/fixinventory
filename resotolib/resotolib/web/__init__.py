@@ -12,6 +12,7 @@ class WebServer(threading.Thread):
         web_port: int = 9955,
         ssl_cert: Optional[str] = None,
         ssl_key: Optional[str] = None,
+        extra_config: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__()
         self.name = "webserver"
@@ -20,6 +21,7 @@ class WebServer(threading.Thread):
         self.web_port = web_port
         self.ssl_cert = ssl_cert
         self.ssl_key = ssl_key
+        self.extra_config = extra_config or {}
 
     @property
     def serving(self) -> bool:
@@ -69,6 +71,7 @@ class WebServer(threading.Thread):
                     "request.show_tracebacks": False,
                     "request.show_mismatched_params": False,
                     **ssl_args,
+                    **self.extra_config,
                 }
             }
         )

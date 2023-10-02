@@ -139,7 +139,8 @@ def main() -> None:
         ),
         web_host=Config.resotoworker.web_host,
         web_port=Config.resotoworker.web_port,
-        **web_server_args,
+        ssl_cert=web_server_args.get("ssl_cert"),
+        ssl_key=web_server_args.get("ssl_key"),
     )
     web_server.daemon = True
     web_server.start()
