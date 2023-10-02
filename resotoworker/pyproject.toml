@@ -1,6 +1,6 @@
 [project]
 name = "resotoworker"
-version = "3.7.0"
+version = "3.8.0"
 authors = [{ name = "Some Engineering Inc." }]
 description = "Runs collector plugins and sends the result to resotocore."
 license = { text="AGPLv3" }
@@ -9,7 +9,7 @@ classifiers = ["Programming Language :: Python :: 3"]
 readme = { file = "README.md", content-type = "text/markdown" }
 
 dependencies = [
-    "resotolib==3.7.0",
+    "resotolib==3.8.0",
     "tenacity",
     "CherryPy",
 ]
