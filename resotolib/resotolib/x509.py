@@ -208,9 +208,8 @@ def generate_ca_bundle_bytes(cert: Certificate, include_certifi: bool = True) ->
 
 def write_ca_bundle(cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True) -> None:
     tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
-    content = generate_ca_bundle_bytes(cert, include_certifi)
     with open(tmp_cert_path, "wb") as f:
-        f.write(content)
+        f.write(generate_ca_bundle_bytes(cert, include_certifi))
     if rename:
         os.rename(tmp_cert_path, cert_path)
 
