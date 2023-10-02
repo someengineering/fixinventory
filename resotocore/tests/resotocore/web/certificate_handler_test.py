@@ -65,18 +65,41 @@ def test_load_from_args(default_config: CoreConfig) -> None:
         assert context is not None
 
 
-def test_additional_authorities() -> None:
+def test_additional_authorities(test_db: StandardDatabase) -> None:
     config = empty_config()
     ca_key, ca_cert = bootstrap_ca(common_name="the ca")
-    _, another_ca = bootstrap_ca(common_name="another ca")
+    another_key, another_ca = bootstrap_ca(common_name="another ca")
     key, cert = CertificateHandlerWithCA._create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
-    with TemporaryDirectory() as temp:
-        ca = CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp), [another_ca])
-        ca_certs = {cert["issuer"]: cert for cert in ca.client_context.get_ca_certs()}
-        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
-        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
 
+    def assert_certs(handler: CertificateHandler, name: str) -> None:
+        ca_crts = {crt["issuer"]: crt for crt in handler.client_context.get_ca_certs()}
+        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", name),)) in ca_crts
+
+    with TemporaryDirectory() as temp:
+        ca_path = temp + "/ca.crt"
+        key_path = temp + "/ca.key"
+        another_ca_path = temp + "/another_ca.crt"
+        another_key_path = temp + "/another_ca.key"
+        write_cert_to_file(ca_cert, ca_path)
+        write_key_to_file(ca_key, key_path)
+        write_cert_to_file(another_ca, another_ca_path)
+        write_key_to_file(another_key, another_key_path)
+
+        # another ca is added explicitly
+        ca = CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp), [another_ca])
+        assert_certs(ca, "another ca")
         no_ca = CertificateHandlerNoCA(config, ca_cert, key, cert, Path(temp), [another_ca])
-        ca_certs = {cert["issuer"]: cert for cert in no_ca.client_context.get_ca_certs()}
-        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "the ca"),)) in ca_certs
-        assert ((("organizationName", "Some Engineering Inc."),), (("commonName", "another ca"),)) in ca_certs
+        assert_certs(no_ca, "another ca")
+
+        # another ca is defined on the command line (no key)
+        config = evolve(config, args=parse_args(["--ca-cert", another_ca_path]))
+        assert_certs(CertificateHandlerWithCA.lookup(config, test_db, Path(temp)), "another ca")
+
+        # in case cert and key are defined, it is used as the ca
+        config = evolve(config, args=parse_args(["--ca-cert", ca_path, "--ca-cert-key", key_path]))
+        assert_certs(CertificateHandlerWithCA.lookup(config, test_db, Path(temp)), "the ca")
+
+        # get ca certificate and host certificate/license from args
+        args = ["--ca-cert", ca_path, "--cert", another_ca_path, "--cert-key", another_key_path]
+        config = evolve(config, args=parse_args(args))
+        assert_certs(CertificateHandlerNoCA.lookup(config, Path(temp)), "the ca")

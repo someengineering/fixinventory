@@ -164,10 +164,10 @@ class CertificateHandlerNoCA(CertificateHandler):
         args = config.args
 
         # if we get a ca certificate from the command line, use it
-        if args.ca_cert and args.ca_cert_key and args.cert and args.cert_key:
+        if args.ca_cert and args.cert and args.cert_key:
             ca_cert = load_cert_from_file(args.ca_cert)
-            host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-            host_cert = load_cert_from_file(args.ca_cert)
+            host_key = load_key_from_file(args.cert_key, args.cert_key_pass)
+            host_cert = load_cert_from_file(args.cert)
             log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
             return CertificateHandlerNoCA(config, ca_cert, host_key, host_cert, temp_dir)
 
