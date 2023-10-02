@@ -12,7 +12,7 @@ class WebServer(threading.Thread):
         web_port: int = 9955,
         ssl_cert: Optional[str] = None,
         ssl_key: Optional[str] = None,
-        extra_config: Optional[dict] = None,
+        extra_config: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__()
         self.name = "webserver"
