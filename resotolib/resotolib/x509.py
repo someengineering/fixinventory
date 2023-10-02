@@ -186,24 +186,37 @@ def write_cert_to_file(cert: Certificate, cert_path: str, rename: bool = True) -
         os.rename(tmp_cert_path, cert_path)
 
 
-def write_ca_bundle(cert: Certificate, cert_path: str, include_certifi: bool = True, rename: bool = True) -> None:
-    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
-    with open(tmp_cert_path, "wb") as f:
-        if include_certifi:
-            f.write(certifi.contents().encode())
-        f.write("\n".encode())
-        f.write(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
-        f.write(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
+def gen_ca_bundle_bytes(certs: Union[Certificate, List[Certificate]], include_certifi: bool = True) -> bytes:
+    content = bytearray()
+    if include_certifi:
+        content.extend(certifi.contents().encode())
+
+    if isinstance(certs, Certificate):
+        certs = [certs]
+
+    for cert in certs:
+        content.extend("\n".encode())
+        content.extend(f"# Issuer: {cert.issuer.rfc4514_string()}\n".encode())
+        content.extend(f"# Subject: {cert.subject.rfc4514_string()}\n".encode())
         label: str = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value  # type: ignore
-        f.write(f"# Label: {label}\n".encode())
-        f.write(f"# Serial: {cert.serial_number}\n".encode())
+        content.extend(f"# Label: {label}\n".encode())
+        content.extend(f"# Serial: {cert.serial_number}\n".encode())
         md5 = cert_fingerprint(cert, "MD5")
         sha1 = cert_fingerprint(cert, "SHA1")
         sha256 = cert_fingerprint(cert, "SHA256")
-        f.write(f"# MD5 Fingerprint: {md5}\n".encode())
-        f.write(f"# SHA1 Fingerprint: {sha1}\n".encode())
-        f.write(f"# SHA256 Fingerprint: {sha256}\n".encode())
-        f.write(cert_to_bytes(cert))
+        content.extend(f"# MD5 Fingerprint: {md5}\n".encode())
+        content.extend(f"# SHA1 Fingerprint: {sha1}\n".encode())
+        content.extend(f"# SHA256 Fingerprint: {sha256}\n".encode())
+        content.extend(cert_to_bytes(cert))
+    return bytes(content)
+
+
+def write_ca_bundle(
+    certs: Union[Certificate, List[Certificate]], cert_path: str, include_certifi: bool = True, rename: bool = True
+) -> None:
+    tmp_cert_path = f"{cert_path}.tmp" if rename else cert_path
+    with open(tmp_cert_path, "wb") as f:
+        f.write(gen_ca_bundle_bytes(certs, include_certifi))
     if rename:
         os.rename(tmp_cert_path, cert_path)
 
