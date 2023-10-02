@@ -16,3 +16,5 @@ resotometrics:
       # Type of metric (gauge or counter)
       type: 'counter'
 ```
+## License
+See [LICENSE](../../LICENSE) for details.

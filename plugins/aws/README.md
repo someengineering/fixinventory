@@ -27,3 +27,6 @@ If you do not want it to scrape the account that was used to get the list of all
 
 If instead of using the current credentials you would like Resoto to assume the specified role (`resotoworker.aws.role`) even for the current account you can specify the options
 `resotoworker.aws.assume_current` and `resotoworker.aws.dont_scrape_current`. This would make it so that Resoto does not scrape the current account using default credentials but instead assume the specified IAM role even for the current account.
+
+## License
+See [LICENSE](../../LICENSE) for details.

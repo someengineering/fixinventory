@@ -3,16 +3,16 @@ name = "resotoshell"
 version = "3.7.0"
 authors = [{name="Some Engineering Inc."}]
 description = "Commandline interpreter to interact with Resoto."
-license = {file="LICENSE"}
+license = { text="AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
     # Current project status
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     # Audience
     "Intended Audience :: System Administrators",
     "Intended Audience :: Information Technology",
     # License information
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     # Supported python versions
     "Programming Language :: Python :: 3.9",
     # Supported OS's
