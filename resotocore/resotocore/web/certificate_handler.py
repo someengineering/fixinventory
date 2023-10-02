@@ -40,7 +40,13 @@ log = logging.getLogger(__name__)
 
 class CertificateHandler(Service):
     def __init__(
-        self, config: CoreConfig, ca_cert: Certificate, host_key: RSAPrivateKey, host_cert: Certificate, temp_dir: Path
+        self,
+        config: CoreConfig,
+        ca_cert: Certificate,
+        host_key: RSAPrivateKey,
+        host_cert: Certificate,
+        temp_dir: Path,
+        additional_trusted_authorities: Optional[List[Certificate]] = None,
     ) -> None:
         super().__init__()
         self.config = config
@@ -53,7 +59,7 @@ class CertificateHandler(Service):
         self.__recreate_ca_file()  # write the CA bundle to the temp dir
         self._ca_cert_recreate = Periodic("recreate ca bundle file", self.__recreate_ca_file, timedelta(hours=1))
         self._host_context = self._create_host_context(config, self._host_cert, self._host_key)
-        self._client_context = self.__create_client_context(config, ca_cert)
+        self._client_context = self.__create_client_context(config, ca_cert, additional_trusted_authorities)
 
     async def start(self) -> None:
         await self._ca_cert_recreate.start()
@@ -124,13 +130,19 @@ class CertificateHandler(Service):
         return ctx
 
     @staticmethod
-    def __create_client_context(config: CoreConfig, ca_cert: Certificate) -> SSLContext:
+    def __create_client_context(
+        config: CoreConfig, ca_cert: Certificate, additional_trusted_authorities: Optional[List[Certificate]]
+    ) -> SSLContext:
         # noinspection PyTypeChecker
         ctx = create_default_context(purpose=Purpose.SERVER_AUTH)
         if config.args.ca_cert:
             ctx.load_verify_locations(cafile=config.args.ca_cert)
         else:
             ca_bytes = cert_to_bytes(ca_cert).decode("utf-8")
+            ctx.load_verify_locations(cadata=ca_bytes)
+        # also load all additional trusted authorities into context
+        for cert in additional_trusted_authorities or []:
+            ca_bytes = cert_to_bytes(cert).decode("utf-8")
             ctx.load_verify_locations(cadata=ca_bytes)
         return ctx
 
@@ -152,10 +164,10 @@ class CertificateHandlerNoCA(CertificateHandler):
         args = config.args
 
         # if we get a ca certificate from the command line, use it
-        if args.ca_cert and args.ca_cert_key and args.cert and args.cert_key:
-            ca_cert = load_cert_from_file(args.ca_cert_cert)
-            host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-            host_cert = load_cert_from_file(args.ca_cert_cert)
+        if args.ca_cert and args.cert and args.cert_key:
+            ca_cert = load_cert_from_file(args.ca_cert)
+            host_key = load_key_from_file(args.cert_key, args.cert_key_pass)
+            host_cert = load_cert_from_file(args.cert)
             log.info(f"Using CA certificate from command line. fingerprint:{cert_fingerprint(ca_cert)}")
             return CertificateHandlerNoCA(config, ca_cert, host_key, host_cert, temp_dir)
 
@@ -177,7 +189,8 @@ class CertificateHandlerNoCA(CertificateHandler):
             psk=config.args.psk,
         )
         tls_data.load()
-        return CertificateHandlerNoCA(config, tls_data.ca_cert, tls_data.key, tls_data.cert, temp_dir)
+        authorities = [load_cert_from_file(args.ca_cert)] if args.ca_cert else []
+        return CertificateHandlerNoCA(config, tls_data.ca_cert, tls_data.key, tls_data.cert, temp_dir, authorities)
 
 
 class CertificateHandlerWithCA(CertificateHandler):
@@ -194,8 +207,9 @@ class CertificateHandlerWithCA(CertificateHandler):
         host_key: RSAPrivateKey,
         host_cert: Certificate,
         temp_dir: Path,
+        additional_trusted_authorities: Optional[List[Certificate]] = None,
     ) -> None:
-        super().__init__(config, ca_cert, host_key, host_cert, temp_dir)
+        super().__init__(config, ca_cert, host_key, host_cert, temp_dir, additional_trusted_authorities)
         self._ca_key = ca_key
 
     def create_key_and_cert(
@@ -254,10 +268,10 @@ class CertificateHandlerWithCA(CertificateHandler):
         # if we get a ca certificate from the command line, use it
         if args.ca_cert and args.ca_cert_key:
             ca_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-            ca_cert = load_cert_from_file(args.ca_cert_cert)
+            ca_cert = load_cert_from_file(args.ca_cert)
             if args.cert and args.cert_key:
                 host_key = load_key_from_file(args.ca_cert_key, args.ca_cert_key_pass)
-                host_cert = load_cert_from_file(args.ca_cert_cert)
+                host_cert = load_cert_from_file(args.ca_cert)
             else:
                 host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
                     config.api.host_certificate, ca_key, ca_cert
@@ -268,6 +282,7 @@ class CertificateHandlerWithCA(CertificateHandler):
         # otherwise, load from database or create it
         sd = db.collection("system_data")
         maybe_ca: Optional[Json] = sd.get("ca")  # type: ignore
+        authorities = [load_cert_from_file(args.ca_cert)] if args.ca_cert else []
         if maybe_ca and isinstance(maybe_ca.get("key"), str) and isinstance(maybe_ca.get("certificate"), str):
             log.debug("Found existing certificate in data store.")
             key = load_key_from_bytes(maybe_ca["key"].encode("utf-8"))
@@ -276,7 +291,7 @@ class CertificateHandlerWithCA(CertificateHandler):
             host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
                 config.api.host_certificate, key, certificate
             )
-            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir)
+            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir, authorities)
         else:
             wo = "with" if args.ca_cert_key_pass else "without"
             key, certificate = bootstrap_ca()
@@ -289,4 +304,4 @@ class CertificateHandlerWithCA(CertificateHandler):
             host_key, host_cert = CertificateHandlerWithCA._create_host_certificate(
                 config.api.host_certificate, key, certificate
             )
-            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir)
+            return CertificateHandlerWithCA(config, key, certificate, host_key, host_cert, temp_dir, authorities)
