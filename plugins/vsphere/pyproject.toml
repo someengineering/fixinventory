@@ -1,7 +1,7 @@
 [project]
 name = "resoto-plugin-vsphere"
 description = "Resoto VSphere Collector Plugin"
-version = "3.8.0"
+version = "3.8.1"
 authors = [{name="Some Engineering Inc."}]
 license = {file="LICENSE"}
 requires-python = ">=3.9"
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==3.8.0",
+    "resotolib==3.8.1",
     "pyvmomi",
 ]
 
