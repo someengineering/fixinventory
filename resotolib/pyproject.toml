@@ -1,9 +1,9 @@
 [project]
 name = "resotolib"
 version = "3.8.1"
-authors = [{name="Some Engineering Inc."}]
+authors = [{ name = "Some Engineering Inc." }]
 description = "Resoto common library."
-license = { text="AGPLv3" }
+license = { text = "AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
     # Current project status
@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Utilities",
 ]
-readme = {file="README.md", content-type="text/markdown"}
+readme = { file = "README.md", content-type = "text/markdown" }
 keywords = ["cloud security"]
 
 dependencies = [
@@ -64,6 +64,12 @@ test = [
     "pytest-cov",
     "pytest-runner",
     "tox",
+    "types-PyYAML",
+    "types-python-dateutil",
+    "types-pytz",
+    "types-requests",
+    "types-setuptools",
+    "types-tzlocal",
     "wheel",
 ]
 
