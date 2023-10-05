@@ -80,7 +80,9 @@ disable=
     too-many-nested-blocks,
     not-an-iterable,
     too-many-instance-attributes,
-    too-many-ancestors
+    too-many-ancestors,
+    duplicate-code,
+    cyclic-import
 
 
 [REPORTS]
