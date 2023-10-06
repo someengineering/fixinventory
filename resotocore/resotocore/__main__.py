@@ -154,8 +154,8 @@ def run_process(args: Namespace) -> None:
                 deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
                 # in case of tls: connect again with the correct certificate settings
                 use_tls = args.graphdb_server.startswith("https://")
-                db = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb
-                deps.add(ServiceNames.system_database, db)
+                sdb = DbAccess.connect(args, timedelta(seconds=30), verify=verify)[2] if use_tls else sdb
+                deps.add(ServiceNames.system_database, sdb)
                 event_sender = deps.add(
                     ServiceNames.event_sender,
                     PostHogEventSender(deps.system_data) if config.runtime.usage_metrics else NoEventSender(),

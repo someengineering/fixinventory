@@ -51,6 +51,7 @@ class CertificateHandler(Service):
         super().__init__()
         self.config = config
         self._ca_cert = ca_cert
+        self._trusted_authorities = [self._ca_cert] + (additional_trusted_authorities or [])
         self._ca_cert_bytes = cert_to_bytes(ca_cert)
         self._ca_cert_fingerprint = cert_fingerprint(ca_cert)
         self._ca_bundle = temp_dir / "ca-bundle.crt"
@@ -68,7 +69,7 @@ class CertificateHandler(Service):
         await self._ca_cert_recreate.stop()
 
     def __recreate_ca_file(self) -> None:
-        write_ca_bundle(self._ca_cert, str(self._ca_bundle))
+        write_ca_bundle(self._trusted_authorities, str(self._ca_bundle))
 
     @property
     def ca_cert(self) -> Certificate:
