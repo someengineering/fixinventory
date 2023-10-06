@@ -62,7 +62,7 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
             if os.path.isfile(path):
                 return path
             else:
-                raise AttributeError(f"{message}: path {path} is not a directory!")
+                raise AttributeError(f"{message}: path {path} is not a file!")
 
         return check_file
 

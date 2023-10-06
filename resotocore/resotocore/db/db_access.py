@@ -188,7 +188,7 @@ class DbAccess(Service):
             try:
                 # try to access the system database with default credentials.
                 # this only works if arango has been started with default settings.
-                http_client = ArangoHTTPClient(args.graphdb_request_timeout, not args.graphdb_no_ssl_verify)
+                http_client = ArangoHTTPClient(args.graphdb_request_timeout, False)
                 root_pw = args.graphdb_root_password
                 secure_root = not args.graphdb_bootstrap_do_not_secure
                 root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db(password=root_pw)
