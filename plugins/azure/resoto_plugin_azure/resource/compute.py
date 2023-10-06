@@ -966,7 +966,7 @@ class AzureSharingStatus:
     summary: Optional[List[AzureRegionalSharingStatus]] = field(default=None, metadata={'description': 'Summary of all regional sharing status.'})  # fmt: skip
 
 
-@define(eq=False, slots=False)  
+@define(eq=False, slots=False)
 class AzureGallery(AzureResource):
     kind: ClassVar[str] = "azure_gallery"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(

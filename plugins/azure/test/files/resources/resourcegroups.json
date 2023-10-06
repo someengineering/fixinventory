@@ -1,7 +1,7 @@
 {
     "value": [
         {
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/MyResourceGroup",
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup",
             "location": "eastus",
             "managedBy": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProvider}/{resourceType}/{resourceName}",
             "name": "myResourceGroup",
@@ -15,10 +15,10 @@
             "type": "Microsoft.Resources/resourceGroups"
         },
         {
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/MyResourceGroup2",
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup2",
             "location": "westus",
             "managedBy": null,
-            "name": "MyResourceGroup",
+            "name": "myResourceGroup2",
             "properties": {
                 "provisioningState": "Succeeded"
             },

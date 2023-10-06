@@ -1,5 +1,5 @@
 from conftest import roundtrip_check, connect_resources
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource, AzureResourceGroup
+from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
 from resoto_plugin_azure.resource.compute import *
 from resotolib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
@@ -165,13 +165,3 @@ def test_snapshot_resources(builder: GraphBuilder) -> None:
         collected.owner_id
         == "subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Storage/storageAccounts/myStorageAccount"
     )
-
-
-def test_resource_group(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureResourceGroup, builder)
-    assert len(collected) == 2
-
-    resource_type: List[Type[AzureResource]] = [AzureResource]
-    connect_resources(builder, resource_type)
-
-    assert len(builder.edges_of(AzureResourceGroup, AzureResource)) == 2

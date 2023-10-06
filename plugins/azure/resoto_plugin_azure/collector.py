@@ -6,7 +6,7 @@ from typing import Type, Set, List
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
 from resoto_plugin_azure.resource.compute import resources as compute_resources
-from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder, AzureResource
+from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder, AzureResource, AzureResourceGroup
 from resotolib.baseresources import Cloud, GraphRoot
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -59,11 +59,12 @@ class AzureSubscriptionCollector:
             # collect all regional resources
             for location in locations:
                 self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
-
+            # collect all groups
+            self.collect_resource_list("resource_groups", builder, [AzureResourceGroup])
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes
-            log.info(f"[Aws:{self.subscription.safe_name}] Connect resources and create edges.")
+            log.info(f"[Azure:{self.subscription.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, AzureResource):
                     node.connect_in_graph(builder, data.get("source", {}))
