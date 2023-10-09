@@ -283,6 +283,7 @@ jobs:
           df -h
 
       - name: Trigger workflow in fix-collect-single
+        if: github.event_name != 'pull_request'
         run: |
           curl -X POST \
           -H "Authorization: token ${{ secrets.SOME_CI_PAT }}" \
