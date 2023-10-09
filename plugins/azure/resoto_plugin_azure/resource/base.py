@@ -207,7 +207,7 @@ class AzureResourceGroup(AzureResource):
             resources_api_spec = AzureApiSpec(
                 service="resources",
                 version="2021-04-01",
-                path="/subscriptions/{subscriptionId}/resourceGroups/" + self.safe_name + "/resources",
+                path="/subscriptions/{subscriptionId}/resourceGroups/" + f"{self.safe_name}/resources",
                 path_parameters=["subscriptionId"],
                 query_parameters=["api-version"],
                 access_path="value",
@@ -462,3 +462,6 @@ class GraphBuilder:
             graph_nodes_access=self.graph_nodes_access,
             graph_edges_access=self.graph_edges_access,
         )
+
+
+resources: List[Type[AzureResource]] = [AzureResourceGroup]
