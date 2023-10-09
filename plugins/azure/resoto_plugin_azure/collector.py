@@ -6,7 +6,12 @@ from typing import Type, Set, List
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
 from resoto_plugin_azure.resource.compute import resources as compute_resources
-from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder, AzureResource
+from resoto_plugin_azure.resource.base import (
+    AzureSubscription,
+    GraphBuilder,
+    AzureResource,
+    resources as base_resources,
+)
 from resotolib.baseresources import Cloud, GraphRoot
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -22,7 +27,7 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
     return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = compute_resources
+all_resources: List[Type[AzureResource]] = compute_resources + base_resources
 global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 
@@ -63,7 +68,7 @@ class AzureSubscriptionCollector:
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes
-            log.info(f"[Aws:{self.subscription.safe_name}] Connect resources and create edges.")
+            log.info(f"[Azure:{self.subscription.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, AzureResource):
                     node.connect_in_graph(builder, data.get("source", {}))

@@ -10,7 +10,7 @@ from azure.core.utils import CaseInsensitiveDict
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from resoto_plugin_azure.config import AzureCredentials
-from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion
+from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
 from resotolib.json_bender import Bender, bend, S, ForallBend, Bend
@@ -188,6 +188,9 @@ class AzureResourceGroup(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_resource"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -197,6 +200,28 @@ class AzureResourceGroup(AzureResource):
     }
     managed_by: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that manages this resource group.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={"description": "The resource group properties."})
+    _resource_ids_in_group: Optional[List[str]] = None
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_resources_in_group() -> None:
+            resources_api_spec = AzureApiSpec(
+                service="resources",
+                version="2021-04-01",
+                path="/subscriptions/{subscriptionId}/resourceGroups/" + f"{self.safe_name}/resources",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+
+            self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
+
+        graph_builder.submit_work(collect_resources_in_group)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if resource_ids := self._resource_ids_in_group:
+            for resource_id in resource_ids:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureResource, id=resource_id)
 
 
 @define(eq=False, slots=False)
@@ -437,3 +462,6 @@ class GraphBuilder:
             graph_nodes_access=self.graph_nodes_access,
             graph_edges_access=self.graph_edges_access,
         )
+
+
+resources: List[Type[AzureResource]] = [AzureResourceGroup]

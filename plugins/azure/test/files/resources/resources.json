@@ -1,0 +1,46 @@
+{
+    "value": [
+        {
+            "changedTime": null,
+            "createdTime": null,
+            "extendedLocation": null,
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Storage/storageAccounts/myStorageAccount",
+            "identity": null,
+            "kind": "Storage",
+            "location": "eastus",
+            "managedBy": null,
+            "name": "myStorageAccount",
+            "plan": null,
+            "properties": null,
+            "provisioningState": null,
+            "resourceGroup": "myResourceGroup",
+            "sku": null,
+            "tags": {
+                "environment": "production",
+                "department": "IT"
+            },
+            "type": "Microsoft.Storage/storageAccounts"
+        },
+        {
+            "changedTime": null,
+            "createdTime": null,
+            "extendedLocation": null,
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup2/providers/Microsoft.Compute/virtualMachines/myVM",
+            "identity": null,
+            "kind": "VirtualMachine",
+            "location": "westus",
+            "managedBy": null,
+            "name": "myVM",
+            "plan": null,
+            "properties": null,
+            "provisioningState": null,
+            "resourceGroup": "myResourceGroup2",
+            "sku": null,
+            "tags": {
+                "environment": "development",
+                "department": "IT"
+            },
+            "type": "Microsoft.Compute/virtualMachines"
+        }
+    ]
+}

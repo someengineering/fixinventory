@@ -1,0 +1,32 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup",
+            "location": "eastus",
+            "managedBy": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProvider}/{resourceType}/{resourceName}",
+            "name": "myResourceGroup",
+            "properties": {
+                "provisioningState": "Succeeded"
+            },
+            "tags": {
+                "tag1": "value1",
+                "tag2": "value2"
+            },
+            "type": "Microsoft.Resources/resourceGroups"
+        },
+        {
+            "id": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup2",
+            "location": "westus",
+            "managedBy": null,
+            "name": "myResourceGroup2",
+            "properties": {
+                "provisioningState": "Succeeded"
+            },
+            "tags": {
+                "environment": "production",
+                "department": "IT"
+            },
+            "type": "Microsoft.Resources/resourceGroups"
+        }
+    ]
+}
