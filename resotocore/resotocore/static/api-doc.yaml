@@ -2711,6 +2711,13 @@ paths:
           schema:
             type: string
           example: "aws_ec2_instance"
+        - name: id
+          in: query
+          description: "Filter by check ids."
+          schema:
+            type: string
+          explode: false
+          example: "aws_ec2_snapshot_encrypted,aws_ec2_unused_elastic_ip"
       responses:
         "200":
           description: "List of checks."

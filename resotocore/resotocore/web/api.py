@@ -647,7 +647,10 @@ class Api(Service):
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        inspections = await deps.inspector.list_checks(provider=provider, service=service, category=category, kind=kind)
+        check_ids = request.query.get("id", "").split(",")
+        inspections = await deps.inspector.list_checks(
+            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
+        )
         return await single_result(request, to_js(inspections))
 
     async def benchmarks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
