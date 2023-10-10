@@ -475,16 +475,29 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
 @pytest.mark.asyncio
 async def test_report(core_client: ResotoClient, client_session: ClientSession) -> None:
     url = core_client.resotocore_url
-    report = await client_session.get(
+    response = await client_session.get(
         f"{url}/report/benchmarks", params={"with_checks": "true", "short": "true", "benchmarks": "aws_cis_1_5"}
     )
-    benchmarks = await report.json()
+    benchmarks = await response.json()
     assert len(benchmarks) == 1
     benchmark = benchmarks[0]
     assert benchmark["id"] == "aws_cis_1_5"
     assert len(benchmark["report_checks"]) > 50
     assert benchmark.get("checks") is None
     assert benchmark.get("children") is None
+    response = await client_session.get(
+        f"{url}/report/checks",
+        params=dict(
+            provider="aws",
+            service="ec2",
+            category="security",
+            kind="aws_ec2_instance",
+            id="aws_ec2_internet_facing_with_instance_profile,aws_ec2_old_instances,aws_ec2_unused_elastic_ip",
+        ),
+    )
+    checks = await response.json()
+    assert len(checks) == 2
+    assert {a["id"] for a in checks} == {"aws_ec2_internet_facing_with_instance_profile", "aws_ec2_old_instances"}
 
 
 @pytest.mark.asyncio
