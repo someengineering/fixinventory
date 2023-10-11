@@ -647,7 +647,7 @@ class Api(Service):
         service = request.query.get("service")
         category = request.query.get("category")
         kind = request.query.get("kind")
-        check_ids = request.query.get("id", "").split(",")
+        check_ids = request.query["id"].split(",") if "id" in request.query else None
         inspections = await deps.inspector.list_checks(
             provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
         )
