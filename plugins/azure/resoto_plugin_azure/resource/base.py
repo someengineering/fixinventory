@@ -20,8 +20,7 @@ from resotolib.types import Json
 log = logging.getLogger("resoto.plugins.azure")
 
 
-def get_client(builder: GraphBuilder) -> AzureClient:
-    subscription_id = builder.subscription.subscription_id
+def get_client(subscription_id: str) -> AzureClient:
     credential = AzureAccountConfig().credentials()
     return AzureClient.create(credential=credential, subscription_id=subscription_id)
 
@@ -36,14 +35,15 @@ class AzureResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
-    def delete(self, graph: GraphBuilder) -> bool:
+    def delete(self, graph: Graph) -> bool:
         """
         Deletes a resource by ID.
 
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
-        return get_client(graph).delete(self.id)
+        subscription_id = self.id.split("/")[2]
+        return get_client(subscription_id).delete(self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         """
