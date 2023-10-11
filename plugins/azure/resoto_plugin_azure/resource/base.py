@@ -9,7 +9,7 @@ from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from resoto_plugin_azure.config import AzureCredentials
+from resoto_plugin_azure.config import AzureCredentials, AzureAccountConfig
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -18,6 +18,14 @@ from resotolib.threading import ExecutorQueue
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.azure")
+
+
+def get_client(builder: GraphBuilder) -> AzureClient:
+    subscription_id = builder.subscription.subscription_id
+    credential = AzureAccountConfig().credentials()
+    return AzureClient.create(credential=credential, subscription_id=subscription_id)
+
+
 T = TypeVar("T")
 
 
@@ -28,10 +36,14 @@ class AzureResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
-    def delete(self, graph: Any) -> bool:
-        # TODO: implement me.
-        # get_client().delete(self.id)
-        return False
+    def delete(self, graph: GraphBuilder) -> bool:
+        """
+        Deletes a resource by ID.
+
+        Returns:
+        bool: True if the resource was successfully deleted; False otherwise.
+        """
+        return get_client(graph).delete(self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         """

@@ -41,6 +41,10 @@ class AzureClient(ABC):
     def for_location(self, location: str) -> AzureClient:
         pass
 
+    @abstractmethod
+    def delete(self, resource_id: str) -> bool:
+        pass
+
     @staticmethod
     def __create_management_client(
         credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
@@ -66,8 +70,19 @@ class AzureResourceManagementClient(AzureClient):
             else:
                 raise e
 
-    def delete(self, resource_id: str) -> None:
-        self.client.resources.delete_by_id(resource_id)
+    def delete(self, resource_id: str) -> bool:
+        try:
+            self._delete_by_id(resource_id, api_version="2021-04-01")
+        except HttpResponseError as e:
+            if e.error and e.error.code == "ResourceNotFoundError":
+                return False
+            else:
+                raise e
+
+        return True
+
+    def _delete_by_id(self, resource_id: str, api_version: str) -> None:
+        self.client.resources._delete_by_id_initial(resource_id=resource_id, api_version=api_version)
 
     # noinspection PyProtectedMember
     def _call(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
