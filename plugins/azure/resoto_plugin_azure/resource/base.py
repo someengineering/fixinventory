@@ -9,7 +9,7 @@ from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from resoto_plugin_azure.config import AzureCredentials, AzureAccountConfig
+from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -23,8 +23,11 @@ log = logging.getLogger("resoto.plugins.azure")
 
 def get_client(subscription_id: str) -> AzureClient:
     config = current_config()
-    azure_config = cast(AzureAccountConfig, config.azure)
-    return AzureClient.create(credential=azure_config.credentials(), subscription_id=subscription_id)
+    azure_config = cast(AzureConfig, config.azure)
+    #  Taking credentials from the config if access through the environment cannot be provided
+    if azure_config.accounts and (account := azure_config.accounts[subscription_id]):
+        credential = account.credentials()
+    return AzureClient.create(credential=credential, subscription_id=subscription_id)
 
 
 T = TypeVar("T")
