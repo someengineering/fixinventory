@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import Future
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
@@ -16,13 +16,15 @@ from resotolib.graph import Graph, EdgeKey
 from resotolib.json_bender import Bender, bend, S, ForallBend, Bend
 from resotolib.threading import ExecutorQueue
 from resotolib.types import Json
+from resotolib.config import current_config
 
 log = logging.getLogger("resoto.plugins.azure")
 
 
 def get_client(subscription_id: str) -> AzureClient:
-    credential = AzureAccountConfig().credentials()
-    return AzureClient.create(credential=credential, subscription_id=subscription_id)
+    config = current_config()
+    azure_config = cast(AzureAccountConfig, config.azure)
+    return AzureClient.create(credential=azure_config.credentials(), subscription_id=subscription_id)
 
 
 T = TypeVar("T")
@@ -42,6 +44,8 @@ class AzureResource(BaseResource):
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
+        # Extracts {subscriptionId} value from a resource_id
+        # e.g /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
         subscription_id = self.id.split("/")[2]
         return get_client(subscription_id).delete(self.id)
 
