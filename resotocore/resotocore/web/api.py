@@ -660,7 +660,7 @@ class Api(Service):
         lookup = {c.id: c for c in await deps.inspector.list_checks()} if with_checks else {}
 
         def to_js_check(c: ReportCheck) -> JsonElement:
-            return c.id if short else to_js(c, strip_nulls=True)
+            return dict(id=c.id, severity=c.severity.value) if short else to_js(c, strip_nulls=True)
 
         def to_js_benchmark(b: Benchmark) -> Json:
             bj: Json = to_js(b, strip_nulls=True)
