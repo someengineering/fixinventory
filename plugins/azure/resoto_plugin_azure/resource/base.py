@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable,
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
+from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
@@ -25,8 +26,10 @@ def get_client(subscription_id: str) -> AzureClient:
     config = current_config()
     azure_config = cast(AzureConfig, config.azure)
     #  Taking credentials from the config if access through the environment cannot be provided
-    if azure_config.accounts and (account := azure_config.accounts[subscription_id]):
+    if azure_config.accounts and (account := azure_config.accounts.get(subscription_id)):
         credential = account.credentials()
+    else:
+        credential = DefaultAzureCredential()
     return AzureClient.create(credential=credential, subscription_id=subscription_id)
 
 
