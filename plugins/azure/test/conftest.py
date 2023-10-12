@@ -36,6 +36,9 @@ class StaticFileAzureClient(AzureClient):
     def for_location(self, location: str) -> AzureClient:
         return self
 
+    def delete(self, resource_id: str) -> bool:
+        return False
+
 
 @fixture
 def config() -> AzureConfig:

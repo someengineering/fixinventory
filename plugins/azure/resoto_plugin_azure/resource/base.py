@@ -3,21 +3,36 @@ from __future__ import annotations
 import logging
 from concurrent.futures import Future
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
+from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from resoto_plugin_azure.config import AzureCredentials
+from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
 from resotolib.json_bender import Bender, bend, S, ForallBend, Bend
 from resotolib.threading import ExecutorQueue
 from resotolib.types import Json
+from resotolib.config import current_config
 
 log = logging.getLogger("resoto.plugins.azure")
+
+
+def get_client(subscription_id: str) -> AzureClient:
+    config = current_config()
+    azure_config = cast(AzureConfig, config.azure)
+    #  Taking credentials from the config if access through the environment cannot be provided
+    if azure_config.accounts and (account := azure_config.accounts.get(subscription_id)):
+        credential = account.credentials()
+    else:
+        credential = DefaultAzureCredential()
+    return AzureClient.create(credential=credential, subscription_id=subscription_id)
+
+
 T = TypeVar("T")
 
 
@@ -28,10 +43,17 @@ class AzureResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
-    def delete(self, graph: Any) -> bool:
-        # TODO: implement me.
-        # get_client().delete(self.id)
-        return False
+    def delete(self, graph: Graph) -> bool:
+        """
+        Deletes a resource by ID.
+
+        Returns:
+        bool: True if the resource was successfully deleted; False otherwise.
+        """
+        # Extracts {subscriptionId} value from a resource_id
+        # e.g /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
+        subscription_id = self.id.split("/")[2]
+        return get_client(subscription_id).delete(self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         """
