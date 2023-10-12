@@ -327,6 +327,7 @@ def test_ancestor_of() -> None:
     assert graph.ancestor_of(nid1, EdgeTypes.default, "foo") is None
     assert graph.ancestor_of(nid1, EdgeTypes.default, "foo") is None
     assert graph.ancestor_of(nid1, EdgeTypes.default, "account")["id"] == acc1  # type: ignore
+    assert graph.ancestor_of(acc1, EdgeTypes.default, "account")["id"] == acc1  # type: ignore
 
     # add another "shorter" edge from acc2 -> nid1, so it is shorter that from acc1 -> nid1
     key = GraphAccess.edge_key(acc2, nid1, EdgeTypes.default)
