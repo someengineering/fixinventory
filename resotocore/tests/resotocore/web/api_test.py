@@ -483,6 +483,10 @@ async def test_report(core_client: ResotoClient, client_session: ClientSession) 
     benchmark = benchmarks[0]
     assert benchmark["id"] == "aws_cis_1_5"
     assert len(benchmark["report_checks"]) > 50
+    assert benchmark["report_checks"][0] == {
+        "id": "aws_iam_account_maintain_current_contact_details",
+        "severity": "medium",
+    }
     assert benchmark.get("checks") is None
     assert benchmark.get("children") is None
     response = await client_session.get(
