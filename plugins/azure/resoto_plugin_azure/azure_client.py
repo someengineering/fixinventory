@@ -72,7 +72,7 @@ class AzureResourceManagementClient(AzureClient):
 
     def delete(self, resource_id: str) -> bool:
         try:
-            self.client.resources._delete_by_id_initial(resource_id=resource_id, api_version="2021-04-01")
+            self.client.resources.begin_delete_by_id(resource_id=resource_id, api_version="2021-04-01")
         except HttpResponseError as e:
             if e.error and e.error.code == "ResourceNotFoundError":
                 return False  # Resource not found to delete
