@@ -44,9 +44,11 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         cloud = Cloud(id=self.cloud, name="Gcp")
 
         credentials = Credentials.all(feedback)
+        log.debug(f"Found {len(credentials)} GCP projects total")
         if len(Config.gcp.project) > 0:
             for project in list(credentials.keys()):
                 if project not in Config.gcp.project:
+                    log.debug(f"Skipping project {project} because it is not in the configured projects list")
                     del credentials[project]
 
         if len(credentials) == 0:
