@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder
+from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder, AzureSubResource
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
@@ -998,13 +998,6 @@ class AzureGallery(AzureResource):
     sharing_profile: Optional[AzureSharingProfile] = field(default=None, metadata={'description': 'Profile for gallery sharing to subscription or tenant.'})  # fmt: skip
     sharing_status: Optional[AzureSharingStatus] = field(default=None, metadata={'description': 'Sharing status of current gallery.'})  # fmt: skip
     soft_delete_policy: Optional[bool] = field(default=None, metadata={'description': 'Contains information about the soft deletion policy of the gallery.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureSubResource:
-    kind: ClassVar[str] = "azure_sub_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
-    id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
 
 
 @define(eq=False, slots=False)

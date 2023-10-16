@@ -210,7 +210,8 @@ def type_name(s: Json, name_hint: Optional[str] = None) -> str:
     elif s.get("type") == "object" and "properties" not in s:
         return "any"
     else:
-        return pascalcase(name_hint or "_".join(s.get("properties", {})))
+        name = name_hint or "_".join(s.get("properties", {}))
+        return pascalcase(name) if name else "nameless"
 
 
 ignore_properties = {"name", "id", "type", "location", "tags", "zones"}
@@ -399,8 +400,11 @@ class AzureRestSpec:
                         access_path,
                         is_array,
                     )
-                    name = type_definition["ref"]  # name is added in the ref parser
-                    yield AzureRestSpec(name, info, type_definition, file)
+                    if ssh := simple_shape(type_definition):
+                        yield AzureRestSpec(ssh, info, type_definition, file)
+                    else:
+                        name = type_definition["ref"]  # name is added in the ref parser
+                        yield AzureRestSpec(name, info, type_definition, file)
 
 
 class AzureModel:
@@ -487,7 +491,7 @@ class ResolvingRefParser(ResolvingParser):
             self.specification,
             self.url,
             reference_cache=self.__reference_cache,
-            recursion_limit=3,
+            recursion_limit=1,
             **forward_args,
         )
         resolver.resolve_references()
@@ -584,7 +588,7 @@ def path_set(obj, path, value, **options):
 # endregion
 
 # To run this script, make sure you have resoto venv plus: pip install "prance[osv,cli]"
-Debug = False
+Debug = True
 if __name__ == "__main__":
     specs_path = os.environ.get("AZURE_REST_API_SPECS", "../../../../azure-rest-api-specs")
     assert specs_path, (
@@ -592,7 +596,7 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"compute"}), key=lambda x: x.name)}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"network"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":

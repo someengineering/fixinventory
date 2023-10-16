@@ -297,6 +297,12 @@ class AzureSubscription(AzureResource, BaseAccount):
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 
+class AzureSubResource:
+    kind: ClassVar[str] = "azure_sub_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
+    id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
+
+
 class GraphBuilder:
     def __init__(
         self,
