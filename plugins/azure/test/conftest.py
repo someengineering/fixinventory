@@ -39,6 +39,12 @@ class StaticFileAzureClient(AzureClient):
     def delete(self, resource_id: str) -> bool:
         return False
 
+    def delete_resource_tag(self, tag_name: str, resource_id: str) -> bool:
+        return False
+
+    def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
+        return False
+
 
 @fixture
 def config() -> AzureConfig:

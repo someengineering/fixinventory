@@ -33,6 +33,21 @@ def get_client(subscription_id: str) -> AzureClient:
     return AzureClient.create(credential=credential, subscription_id=subscription_id)
 
 
+def get_subscription_id_from_resource_id(resource_id: str) -> str:
+    """
+    Extracts {subscriptionId} value from a resource_id.
+
+    e.g /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
+
+    Args:
+    resource_id (str): The resource ID.
+
+    Returns:
+    str: The extracted subscription ID.
+    """
+    return resource_id.split("/")[2]
+
+
 T = TypeVar("T")
 
 
@@ -50,10 +65,26 @@ class AzureResource(BaseResource):
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
-        # Extracts {subscriptionId} value from a resource_id
-        # e.g /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
-        subscription_id = self.id.split("/")[2]
+        subscription_id = get_subscription_id_from_resource_id(self.id)
         return get_client(subscription_id).delete(self.id)
+
+    def delete_tag(self, key: str) -> bool:
+        """Deletes a tag value.
+
+        This method removes a specific value from a tag associated with a subscription, while keeping the tag itself intact.
+        The tag remains on the account, but the specified value will be deleted.
+        """
+        subscription_id = get_subscription_id_from_resource_id(self.id)
+        return get_client(subscription_id).delete_resource_tag(tag_name=key, resource_id=self.id)
+
+    def update_tag(self, key: str, value: str) -> bool:
+        """Creates a tag value. The name of the tag must already exist.
+
+        This method allows for the creation or update of a tag value associated with the specified tag name.
+        The tag name must already exist for the operation to be successful.
+        """
+        subscription_id = get_subscription_id_from_resource_id(self.id)
+        return get_client(subscription_id).update_resource_tag(tag_name=key, tag_value=value, resource_id=self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         """
