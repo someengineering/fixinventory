@@ -1,70 +1,10 @@
-from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, AzureSubResource
+from resoto_plugin_azure.resource.base import AzureResource, AzureSubResource, AzureSku
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K
-
-
-@define(eq=False, slots=False)
-class AzureChildResource:
-    kind: ClassVar[str] = "azure_child_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"etag": S("etag"), "id": S("id"), "name": S("name"), "type": S("type")}
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
-
-
-@define(eq=False, slots=False)
-class AzureSystemData:
-    kind: ClassVar[str] = "azure_system_data"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "created_at": S("createdAt"),
-        "created_by": S("createdBy"),
-        "created_by_type": S("createdByType"),
-        "last_modified_at": S("lastModifiedAt"),
-        "last_modified_by": S("lastModifiedBy"),
-        "last_modified_by_type": S("lastModifiedByType"),
-    }
-    created_at: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp of resource creation (utc).'})  # fmt: skip
-    created_by: Optional[str] = field(default=None, metadata={'description': 'The identity that created the resource.'})  # fmt: skip
-    created_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that created the resource.'})  # fmt: skip
-    last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
-    last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
-    last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureAdminRuleCollection(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_admin_rule_collection"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/securityAdminConfigurations/{configurationName}/ruleCollections/{ruleCollectionName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "applies_to_groups": S("properties") >> S("appliesToGroups", default=[]) >> ForallBend(S("networkGroupId")),
-        "description": S("properties", "description"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    applies_to_groups: Optional[List[str]] = field(default=None, metadata={"description": "Groups for configuration."})
-    description: Optional[str] = field(default=None, metadata={'description': 'A description of the admin rule collection.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    resource_guid: Optional[str] = field(default=None, metadata={'description': 'Unique identifier for this resource.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1159,36 +1099,6 @@ class AzureApplicationGateway(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayAvailableSslOptions(AzureResource):
-    kind: ClassVar[str] = "azure_application_gateway_available_ssl_options"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/applicationGatewayAvailableSslOptions/default",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "available_cipher_suites": S("properties", "availableCipherSuites"),
-        "available_protocols": S("properties", "availableProtocols"),
-        "default_policy": S("properties", "defaultPolicy"),
-        "predefined_policies": S("properties") >> S("predefinedPolicies", default=[]) >> ForallBend(S("id")),
-    }
-    available_cipher_suites: Optional[List[str]] = field(default=None, metadata={'description': 'List of available ssl cipher suites.'})  # fmt: skip
-    available_protocols: Optional[List[str]] = field(default=None, metadata={'description': 'List of available ssl protocols.'})  # fmt: skip
-    default_policy: Optional[str] = field(default=None, metadata={"description": "Ssl predefined policy name enums."})
-    predefined_policies: Optional[List[str]] = field(default=None, metadata={'description': 'List of available ssl predefined policy.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureApplicationGatewayFirewallRule:
     kind: ClassVar[str] = "azure_application_gateway_firewall_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1251,32 +1161,6 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewaySslPredefinedPolicy(AzureResource):
-    kind: ClassVar[str] = "azure_application_gateway_ssl_predefined_policy"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/applicationGatewayAvailableSslOptions/default/predefinedPolicies",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "cipher_suites": S("properties", "cipherSuites"),
-        "min_protocol_version": S("properties", "minProtocolVersion"),
-    }
-    cipher_suites: Optional[List[str]] = field(default=None, metadata={'description': 'Ssl cipher suites to be enabled in the specified order for application gateway.'})  # fmt: skip
-    min_protocol_version: Optional[str] = field(default=None, metadata={"description": "Ssl protocol enums."})
-
-
-@define(eq=False, slots=False)
 class AzureDefaultRuleSetPropertyFormat:
     kind: ClassVar[str] = "azure_default_rule_set_property_format"
     mapping: ClassVar[Dict[str, Bender]] = {"rule_set_type": S("ruleSetType"), "rule_set_version": S("ruleSetVersion")}
@@ -1307,7 +1191,7 @@ class AzureApplicationGatewayWafDynamicManifestResult(AzureResource):
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
         version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/applicationGatewayWafDynamicManifests/dafault",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/applicationGatewayWafDynamicManifests/default",
         path_parameters=["location", "subscriptionId"],
         query_parameters=["api-version"],
         access_path=None,
@@ -1429,21 +1313,21 @@ class AzureAvailableServiceAlias(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallApplicationRuleProtocol:
-    kind: ClassVar[str] = "azure_azure_firewall_application_rule_protocol"
+class AzureFirewallApplicationRuleProtocol:
+    kind: ClassVar[str] = "azure_firewall_application_rule_protocol"
     mapping: ClassVar[Dict[str, Bender]] = {"port": S("port"), "protocol_type": S("protocolType")}
     port: Optional[int] = field(default=None, metadata={'description': 'Port number for the protocol, cannot be greater than 64000. This field is optional.'})  # fmt: skip
     protocol_type: Optional[str] = field(default=None, metadata={'description': 'The protocol type of a application rule resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallApplicationRule:
-    kind: ClassVar[str] = "azure_azure_firewall_application_rule"
+class AzureFirewallApplicationRule:
+    kind: ClassVar[str] = "azure_firewall_application_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "fqdn_tags": S("fqdnTags"),
         "name": S("name"),
-        "protocols": S("protocols") >> ForallBend(AzureAzureFirewallApplicationRuleProtocol.mapping),
+        "protocols": S("protocols") >> ForallBend(AzureFirewallApplicationRuleProtocol.mapping),
         "source_addresses": S("sourceAddresses"),
         "source_ip_groups": S("sourceIpGroups"),
         "target_fqdns": S("targetFqdns"),
@@ -1451,34 +1335,34 @@ class AzureAzureFirewallApplicationRule:
     description: Optional[str] = field(default=None, metadata={"description": "Description of the rule."})
     fqdn_tags: Optional[List[str]] = field(default=None, metadata={"description": "List of fqdn tags for this rule."})
     name: Optional[str] = field(default=None, metadata={"description": "Name of the application rule."})
-    protocols: Optional[List[AzureAzureFirewallApplicationRuleProtocol]] = field(default=None, metadata={'description': 'Array of applicationruleprotocols.'})  # fmt: skip
+    protocols: Optional[List[AzureFirewallApplicationRuleProtocol]] = field(default=None, metadata={'description': 'Array of applicationruleprotocols.'})  # fmt: skip
     source_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'List of source ip addresses for this rule.'})  # fmt: skip
     source_ip_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of source ipgroups for this rule.'})  # fmt: skip
     target_fqdns: Optional[List[str]] = field(default=None, metadata={"description": "List of fqdns for this rule."})
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallApplicationRuleCollection(AzureSubResource):
-    kind: ClassVar[str] = "azure_azure_firewall_application_rule_collection"
+class AzureFirewallApplicationRuleCollection(AzureSubResource):
+    kind: ClassVar[str] = "azure_firewall_application_rule_collection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "action": S("properties", "action", "type"),
         "etag": S("etag"),
         "name": S("name"),
         "priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "rules": S("properties", "rules") >> ForallBend(AzureAzureFirewallApplicationRule.mapping),
+        "rules": S("properties", "rules") >> ForallBend(AzureFirewallApplicationRule.mapping),
     }
     action: Optional[str] = field(default=None, metadata={"description": "Properties of the azurefirewallrcaction."})
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the azure firewall. This name can be used to access the resource.'})  # fmt: skip
     priority: Optional[int] = field(default=None, metadata={'description': 'Priority of the application rule collection resource.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    rules: Optional[List[AzureAzureFirewallApplicationRule]] = field(default=None, metadata={'description': 'Collection of rules used by a application rule collection.'})  # fmt: skip
+    rules: Optional[List[AzureFirewallApplicationRule]] = field(default=None, metadata={'description': 'Collection of rules used by a application rule collection.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallNatRule:
-    kind: ClassVar[str] = "azure_azure_firewall_nat_rule"
+class AzureFirewallNatRule:
+    kind: ClassVar[str] = "azure_firewall_nat_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "destination_addresses": S("destinationAddresses"),
@@ -1504,27 +1388,27 @@ class AzureAzureFirewallNatRule:
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallNatRuleCollection(AzureSubResource):
-    kind: ClassVar[str] = "azure_azure_firewall_nat_rule_collection"
+class AzureFirewallNatRuleCollection(AzureSubResource):
+    kind: ClassVar[str] = "azure_firewall_nat_rule_collection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "action": S("properties", "action", "type"),
         "etag": S("etag"),
         "name": S("name"),
         "priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "rules": S("properties", "rules") >> ForallBend(AzureAzureFirewallNatRule.mapping),
+        "rules": S("properties", "rules") >> ForallBend(AzureFirewallNatRule.mapping),
     }
     action: Optional[str] = field(default=None, metadata={"description": "Azurefirewall nat rule collection action."})
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the azure firewall. This name can be used to access the resource.'})  # fmt: skip
     priority: Optional[int] = field(default=None, metadata={'description': 'Priority of the nat rule collection resource.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    rules: Optional[List[AzureAzureFirewallNatRule]] = field(default=None, metadata={'description': 'Collection of rules used by a nat rule collection.'})  # fmt: skip
+    rules: Optional[List[AzureFirewallNatRule]] = field(default=None, metadata={'description': 'Collection of rules used by a nat rule collection.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallNetworkRule:
-    kind: ClassVar[str] = "azure_azure_firewall_network_rule"
+class AzureFirewallNetworkRule:
+    kind: ClassVar[str] = "azure_firewall_network_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "destination_addresses": S("destinationAddresses"),
@@ -1548,27 +1432,27 @@ class AzureAzureFirewallNetworkRule:
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallNetworkRuleCollection(AzureSubResource):
-    kind: ClassVar[str] = "azure_azure_firewall_network_rule_collection"
+class AzureFirewallNetworkRuleCollection(AzureSubResource):
+    kind: ClassVar[str] = "azure_firewall_network_rule_collection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "action": S("properties", "action", "type"),
         "etag": S("etag"),
         "name": S("name"),
         "priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "rules": S("properties", "rules") >> ForallBend(AzureAzureFirewallNetworkRule.mapping),
+        "rules": S("properties", "rules") >> ForallBend(AzureFirewallNetworkRule.mapping),
     }
     action: Optional[str] = field(default=None, metadata={"description": "Properties of the azurefirewallrcaction."})
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the azure firewall. This name can be used to access the resource.'})  # fmt: skip
     priority: Optional[int] = field(default=None, metadata={'description': 'Priority of the network rule collection resource.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    rules: Optional[List[AzureAzureFirewallNetworkRule]] = field(default=None, metadata={'description': 'Collection of rules used by a network rule collection.'})  # fmt: skip
+    rules: Optional[List[AzureFirewallNetworkRule]] = field(default=None, metadata={'description': 'Collection of rules used by a network rule collection.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallIPConfiguration(AzureSubResource):
-    kind: ClassVar[str] = "azure_azure_firewall_ip_configuration"
+class AzureFirewallIPConfiguration(AzureSubResource):
+    kind: ClassVar[str] = "azure_firewall_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
         "name": S("name"),
@@ -1610,24 +1494,24 @@ class AzureHubIPAddresses:
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallIpGroups:
-    kind: ClassVar[str] = "azure_azure_firewall_ip_groups"
+class AzureFirewallIpGroups:
+    kind: ClassVar[str] = "azure_firewall_ip_groups"
     mapping: ClassVar[Dict[str, Bender]] = {"change_number": S("changeNumber"), "id": S("id")}
     change_number: Optional[str] = field(default=None, metadata={"description": "The iteration number."})
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallSku:
-    kind: ClassVar[str] = "azure_azure_firewall_sku"
+class AzureFirewallSku:
+    kind: ClassVar[str] = "azure_firewall_sku"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
     name: Optional[str] = field(default=None, metadata={"description": "Name of an azure firewall sku."})
     tier: Optional[str] = field(default=None, metadata={"description": "Tier of an azure firewall."})
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewall(AzureResource):
-    kind: ClassVar[str] = "azure_azure_firewall"
+class AzureFirewall(AzureResource):
+    kind: ClassVar[str] = "azure_firewall"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
         version="2023-05-01",
@@ -1646,43 +1530,42 @@ class AzureAzureFirewall(AzureResource):
         "atime": K(None),
         "additional_properties": S("properties", "additionalProperties"),
         "application_rule_collections": S("properties", "applicationRuleCollections")
-        >> ForallBend(AzureAzureFirewallApplicationRuleCollection.mapping),
+        >> ForallBend(AzureFirewallApplicationRuleCollection.mapping),
         "etag": S("etag"),
         "firewall_policy": S("properties", "firewallPolicy", "id"),
         "hub_ip_addresses": S("properties", "hubIPAddresses") >> Bend(AzureHubIPAddresses.mapping),
-        "ip_configurations": S("properties", "ipConfigurations")
-        >> ForallBend(AzureAzureFirewallIPConfiguration.mapping),
-        "ip_groups": S("properties", "ipGroups") >> ForallBend(AzureAzureFirewallIpGroups.mapping),
+        "ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureFirewallIPConfiguration.mapping),
+        "ip_groups": S("properties", "ipGroups") >> ForallBend(AzureFirewallIpGroups.mapping),
         "management_ip_configuration": S("properties", "managementIpConfiguration")
-        >> Bend(AzureAzureFirewallIPConfiguration.mapping),
+        >> Bend(AzureFirewallIPConfiguration.mapping),
         "nat_rule_collections": S("properties", "natRuleCollections")
-        >> ForallBend(AzureAzureFirewallNatRuleCollection.mapping),
+        >> ForallBend(AzureFirewallNatRuleCollection.mapping),
         "network_rule_collections": S("properties", "networkRuleCollections")
-        >> ForallBend(AzureAzureFirewallNetworkRuleCollection.mapping),
+        >> ForallBend(AzureFirewallNetworkRuleCollection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "sku": S("properties", "sku") >> Bend(AzureAzureFirewallSku.mapping),
+        "sku": S("properties", "sku") >> Bend(AzureFirewallSku.mapping),
         "threat_intel_mode": S("properties", "threatIntelMode"),
         "virtual_hub": S("properties", "virtualHub", "id"),
     }
     additional_properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The additional properties of azure firewall.'})  # fmt: skip
-    application_rule_collections: Optional[List[AzureAzureFirewallApplicationRuleCollection]] = field(default=None, metadata={'description': 'Collection of application rule collections used by azure firewall.'})  # fmt: skip
+    application_rule_collections: Optional[List[AzureFirewallApplicationRuleCollection]] = field(default=None, metadata={'description': 'Collection of application rule collections used by azure firewall.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     firewall_policy: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     hub_ip_addresses: Optional[AzureHubIPAddresses] = field(default=None, metadata={'description': 'Ip addresses associated with azure firewall.'})  # fmt: skip
-    ip_configurations: Optional[List[AzureAzureFirewallIPConfiguration]] = field(default=None, metadata={'description': 'Ip configuration of the azure firewall resource.'})  # fmt: skip
-    ip_groups: Optional[List[AzureAzureFirewallIpGroups]] = field(default=None, metadata={'description': 'List of ipgroups associated with azure firewall.'})  # fmt: skip
-    management_ip_configuration: Optional[AzureAzureFirewallIPConfiguration] = field(default=None, metadata={'description': 'Ip configuration of an azure firewall.'})  # fmt: skip
-    nat_rule_collections: Optional[List[AzureAzureFirewallNatRuleCollection]] = field(default=None, metadata={'description': 'Collection of nat rule collections used by azure firewall.'})  # fmt: skip
-    network_rule_collections: Optional[List[AzureAzureFirewallNetworkRuleCollection]] = field(default=None, metadata={'description': 'Collection of network rule collections used by azure firewall.'})  # fmt: skip
+    ip_configurations: Optional[List[AzureFirewallIPConfiguration]] = field(default=None, metadata={'description': 'Ip configuration of the azure firewall resource.'})  # fmt: skip
+    ip_groups: Optional[List[AzureFirewallIpGroups]] = field(default=None, metadata={'description': 'List of ipgroups associated with azure firewall.'})  # fmt: skip
+    management_ip_configuration: Optional[AzureFirewallIPConfiguration] = field(default=None, metadata={'description': 'Ip configuration of an azure firewall.'})  # fmt: skip
+    nat_rule_collections: Optional[List[AzureFirewallNatRuleCollection]] = field(default=None, metadata={'description': 'Collection of nat rule collections used by azure firewall.'})  # fmt: skip
+    network_rule_collections: Optional[List[AzureFirewallNetworkRuleCollection]] = field(default=None, metadata={'description': 'Collection of network rule collections used by azure firewall.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    sku: Optional[AzureAzureFirewallSku] = field(default=None, metadata={"description": "Sku of an azure firewall."})
+    sku: Optional[AzureFirewallSku] = field(default=None, metadata={"description": "Sku of an azure firewall."})
     threat_intel_mode: Optional[str] = field(default=None, metadata={'description': 'The operation mode for threat intel.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
 
 @define(eq=False, slots=False)
-class AzureAzureFirewallFqdnTag(AzureResource):
-    kind: ClassVar[str] = "azure_azure_firewall_fqdn_tag"
+class AzureFirewallFqdnTag(AzureResource):
+    kind: ClassVar[str] = "azure_firewall_fqdn_tag"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
         version="2023-05-01",
@@ -1709,8 +1592,8 @@ class AzureAzureFirewallFqdnTag(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureAzureWebCategory(AzureResource):
-    kind: ClassVar[str] = "azure_azure_web_category"
+class AzureWebCategory(AzureResource):
+    kind: ClassVar[str] = "azure_web_category"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
         version="2023-05-01",
@@ -1732,32 +1615,6 @@ class AzureAzureWebCategory(AzureResource):
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     properties: Optional[str] = field(default=None, metadata={"description": "Azure web category properties."})
-
-
-@define(eq=False, slots=False)
-class AzureBaseAdminRule(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_base_admin_rule"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/securityAdminConfigurations/{configurationName}/ruleCollections/{ruleCollectionName}/rules",
-        path_parameters=[],
-        query_parameters=[],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "rule_kind": S("kind"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    rule_kind: Optional[str] = field(default=None, metadata={"description": "Whether the rule is custom or default."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1881,69 +1738,6 @@ class AzureBgpServiceCommunity(AzureResource):
     }
     bgp_communities: Optional[List[AzureBGPCommunity]] = field(default=None, metadata={'description': 'A list of bgp communities.'})  # fmt: skip
     service_name: Optional[str] = field(default=None, metadata={'description': 'The name of the bgp community. E. G. Skype.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureHub:
-    kind: ClassVar[str] = "azure_hub"
-    mapping: ClassVar[Dict[str, Bender]] = {"resource_id": S("resourceId"), "resource_type": S("resourceType")}
-    resource_id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-    resource_type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
-
-
-@define(eq=False, slots=False)
-class AzureConnectivityGroupItem:
-    kind: ClassVar[str] = "azure_connectivity_group_item"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_connectivity": S("groupConnectivity"),
-        "is_global": S("isGlobal"),
-        "network_group_id": S("networkGroupId"),
-        "use_hub_gateway": S("useHubGateway"),
-    }
-    group_connectivity: Optional[str] = field(default=None, metadata={"description": "Group connectivity type."})
-    is_global: Optional[str] = field(default=None, metadata={"description": "Flag if global is supported."})
-    network_group_id: Optional[str] = field(default=None, metadata={"description": "Network group id."})
-    use_hub_gateway: Optional[str] = field(default=None, metadata={"description": "Flag if need to use hub gateway."})
-
-
-@define(eq=False, slots=False)
-class AzureConnectivityConfiguration(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_connectivity_configuration"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/connectivityConfigurations/{configurationName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "applies_to_groups": S("properties", "appliesToGroups") >> ForallBend(AzureConnectivityGroupItem.mapping),
-        "connectivity_topology": S("properties", "connectivityTopology"),
-        "delete_existing_peering": S("properties", "deleteExistingPeering"),
-        "description": S("properties", "description"),
-        "hubs": S("properties", "hubs") >> ForallBend(AzureHub.mapping),
-        "is_global": S("properties", "isGlobal"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    applies_to_groups: Optional[List[AzureConnectivityGroupItem]] = field(default=None, metadata={'description': 'Groups for configuration.'})  # fmt: skip
-    connectivity_topology: Optional[str] = field(default=None, metadata={"description": "Connectivity topology type."})
-    delete_existing_peering: Optional[str] = field(default=None, metadata={'description': 'Flag if need to remove current existing peerings.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'A description of the connectivity configuration.'})  # fmt: skip
-    hubs: Optional[List[AzureHub]] = field(default=None, metadata={"description": "List of hubitems."})
-    is_global: Optional[str] = field(default=None, metadata={"description": "Flag if global mesh is supported."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    resource_guid: Optional[str] = field(default=None, metadata={'description': 'Unique identifier for this resource.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2362,14 +2156,6 @@ class AzureServiceEndpointPolicy:
 
 
 @define(eq=False, slots=False)
-class AzurePublicIPAddressSku:
-    kind: ClassVar[str] = "azure_public_ip_address_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={"description": "Name of a public ip address sku."})
-    tier: Optional[str] = field(default=None, metadata={"description": "Tier of a public ip address sku."})
-
-
-@define(eq=False, slots=False)
 class AzurePublicIPAddressDnsSettings:
     kind: ClassVar[str] = "azure_public_ip_address_dns_settings"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2460,7 +2246,7 @@ class AzurePublicIPAddress:
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
         "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
         "resource_guid": S("properties", "resourceGuid"),
-        "sku": S("sku") >> Bend(AzurePublicIPAddressSku.mapping),
+        "sku": S("sku") >> Bend(AzureSku.mapping),
         "tags": S("tags"),
         "type": S("type"),
         "zones": S("zones"),
@@ -2483,7 +2269,7 @@ class AzurePublicIPAddress:
     public_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'Ip address allocation method.'})  # fmt: skip
     public_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource guid property of the public ip address resource.'})  # fmt: skip
-    sku: Optional[AzurePublicIPAddressSku] = field(default=None, metadata={'description': 'Sku of a public ip address.'})  # fmt: skip
+    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Sku of a public ip address.'})  # fmt: skip
     tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     zones: Optional[List[str]] = field(default=None, metadata={'description': 'A list of availability zones denoting the ip allocated for the resource needs to come from.'})  # fmt: skip
@@ -3061,15 +2847,6 @@ class AzureEndpointServiceResult(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureExpressRouteCircuitSku:
-    kind: ClassVar[str] = "azure_express_route_circuit_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"family": S("family"), "name": S("name"), "tier": S("tier")}
-    family: Optional[str] = field(default=None, metadata={"description": "The family of the sku."})
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the sku."})
-    tier: Optional[str] = field(default=None, metadata={"description": "The tier of the sku."})
-
-
-@define(eq=False, slots=False)
 class AzureExpressRouteCircuitAuthorization(AzureSubResource):
     kind: ClassVar[str] = "azure_express_route_circuit_authorization"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
@@ -3311,7 +3088,7 @@ class AzureExpressRouteCircuit(AzureResource):
         "service_provider_properties": S("properties", "serviceProviderProperties")
         >> Bend(AzureExpressRouteCircuitServiceProviderProperties.mapping),
         "service_provider_provisioning_state": S("properties", "serviceProviderProvisioningState"),
-        "sku": S("sku") >> Bend(AzureExpressRouteCircuitSku.mapping),
+        "sku": S("sku") >> Bend(AzureSku.mapping),
         "stag": S("properties", "stag"),
     }
     allow_classic_operations: Optional[bool] = field(default=None, metadata={'description': 'Allow classic operations.'})  # fmt: skip
@@ -3330,7 +3107,7 @@ class AzureExpressRouteCircuit(AzureResource):
     service_provider_notes: Optional[str] = field(default=None, metadata={"description": "The serviceprovidernotes."})
     service_provider_properties: Optional[AzureExpressRouteCircuitServiceProviderProperties] = field(default=None, metadata={'description': 'Contains serviceproviderproperties in an expressroutecircuit.'})  # fmt: skip
     service_provider_provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The serviceproviderprovisioningstate state of the resource.'})  # fmt: skip
-    sku: Optional[AzureExpressRouteCircuitSku] = field(default=None, metadata={'description': 'Contains sku in an expressroutecircuit.'})  # fmt: skip
+    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Contains sku in an expressroutecircuit.'})  # fmt: skip
     stag: Optional[int] = field(default=None, metadata={'description': 'The identifier of the circuit traffic. Outer tag for qinq encapsulation.'})  # fmt: skip
 
 
@@ -4061,14 +3838,6 @@ class AzureIpGroup(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureLoadBalancerSku:
-    kind: ClassVar[str] = "azure_load_balancer_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={"description": "Name of a load balancer sku."})
-    tier: Optional[str] = field(default=None, metadata={"description": "Tier of a load balancer sku."})
-
-
-@define(eq=False, slots=False)
 class AzureGatewayLoadBalancerTunnelInterface:
     kind: ClassVar[str] = "azure_gateway_load_balancer_tunnel_interface"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4316,7 +4085,7 @@ class AzureLoadBalancer(AzureResource):
         "probes": S("properties", "probes") >> ForallBend(AzureProbe.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
-        "sku": S("sku") >> Bend(AzureLoadBalancerSku.mapping),
+        "sku": S("sku") >> Bend(AzureSku.mapping),
     }
     backend_address_pools: Optional[List[AzureBackendAddressPool]] = field(default=None, metadata={'description': 'Collection of backend address pools used by a load balancer.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -4331,132 +4100,7 @@ class AzureLoadBalancer(AzureResource):
     probes: Optional[List[AzureProbe]] = field(default=None, metadata={'description': 'Collection of probe objects used in the load balancer.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource guid property of the load balancer resource.'})  # fmt: skip
-    sku: Optional[AzureLoadBalancerSku] = field(default=None, metadata={"description": "Sku of a load balancer."})
-
-
-@define(eq=False, slots=False)
-class AzureNetworkGroup(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_network_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/networkGroups/{networkGroupName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "description": S("properties", "description"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "A description of the network group."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    resource_guid: Optional[str] = field(default=None, metadata={'description': 'Unique identifier for this resource.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureCrossTenantScopes:
-    kind: ClassVar[str] = "azure_cross_tenant_scopes"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "management_groups": S("managementGroups"),
-        "subscriptions": S("subscriptions"),
-        "tenant_id": S("tenantId"),
-    }
-    management_groups: Optional[List[str]] = field(default=None, metadata={"description": "List of management groups."})
-    subscriptions: Optional[List[str]] = field(default=None, metadata={"description": "List of subscriptions."})
-    tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant id."})
-
-
-@define(eq=False, slots=False)
-class AzureManagementgroupsSubscriptionsCrosstenantscopes:
-    kind: ClassVar[str] = "azure_managementgroups_subscriptions_crosstenantscopes"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "cross_tenant_scopes": S("crossTenantScopes") >> ForallBend(AzureCrossTenantScopes.mapping),
-        "management_groups": S("managementGroups"),
-        "subscriptions": S("subscriptions"),
-    }
-    cross_tenant_scopes: Optional[List[AzureCrossTenantScopes]] = field(default=None, metadata={'description': 'List of cross tenant scopes.'})  # fmt: skip
-    management_groups: Optional[List[str]] = field(default=None, metadata={"description": "List of management groups."})
-    subscriptions: Optional[List[str]] = field(default=None, metadata={"description": "List of subscriptions."})
-
-
-@define(eq=False, slots=False)
-class AzureNetworkManager(AzureResource):
-    kind: ClassVar[str] = "azure_network_manager"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "description": S("properties", "description"),
-        "etag": S("etag"),
-        "network_manager_scope_accesses": S("properties", "networkManagerScopeAccesses"),
-        "network_manager_scopes": S("properties", "networkManagerScopes")
-        >> Bend(AzureManagementgroupsSubscriptionsCrosstenantscopes.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "A description of the network manager."})
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    network_manager_scope_accesses: Optional[List[str]] = field(default=None, metadata={"description": "Scope access."})
-    network_manager_scopes: Optional[AzureManagementgroupsSubscriptionsCrosstenantscopes] = field(default=None, metadata={'description': 'Scope of network manager.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    resource_guid: Optional[str] = field(default=None, metadata={'description': 'Unique identifier for this resource.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureNetworkManagerConnection(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_network_manager_connection"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkManagerConnections/{networkManagerConnectionName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "connection_state": S("properties", "connectionState"),
-        "description": S("properties", "description"),
-        "etag": S("etag"),
-        "network_manager_id": S("properties", "networkManagerId"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    connection_state: Optional[str] = field(default=None, metadata={'description': 'The current scope connection state.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'A description of the network manager connection.'})  # fmt: skip
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    network_manager_id: Optional[str] = field(default=None, metadata={"description": "Network manager id."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    sku: Optional[AzureSku] = field(default=None, metadata={"description": "Sku of a load balancer."})
 
 
 @define(eq=False, slots=False)
@@ -4764,120 +4408,6 @@ class AzureProviderResourceOperationDescription:
 
 
 @define(eq=False, slots=False)
-class AzureAvailability:
-    kind: ClassVar[str] = "azure_availability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "blob_duration": S("blobDuration"),
-        "retention": S("retention"),
-        "time_grain": S("timeGrain"),
-    }
-    blob_duration: Optional[str] = field(default=None, metadata={"description": "Duration of the availability blob."})
-    retention: Optional[str] = field(default=None, metadata={"description": "The retention of the availability."})
-    time_grain: Optional[str] = field(default=None, metadata={"description": "The time grain of the availability."})
-
-
-@define(eq=False, slots=False)
-class AzureDimension:
-    kind: ClassVar[str] = "azure_dimension"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "display_name": S("displayName"),
-        "internal_name": S("internalName"),
-        "name": S("name"),
-    }
-    display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the dimension."})
-    internal_name: Optional[str] = field(default=None, metadata={"description": "The internal name of the dimension."})
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the dimension."})
-
-
-@define(eq=False, slots=False)
-class AzureMetricSpecification:
-    kind: ClassVar[str] = "azure_metric_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "aggregation_type": S("aggregationType"),
-        "availabilities": S("availabilities") >> ForallBend(AzureAvailability.mapping),
-        "dimensions": S("dimensions") >> ForallBend(AzureDimension.mapping),
-        "display_description": S("displayDescription"),
-        "display_name": S("displayName"),
-        "enable_regional_mdm_account": S("enableRegionalMdmAccount"),
-        "fill_gap_with_zero": S("fillGapWithZero"),
-        "is_internal": S("isInternal"),
-        "metric_filter_pattern": S("metricFilterPattern"),
-        "name": S("name"),
-        "resource_id_dimension_name_override": S("resourceIdDimensionNameOverride"),
-        "source_mdm_account": S("sourceMdmAccount"),
-        "source_mdm_namespace": S("sourceMdmNamespace"),
-        "unit": S("unit"),
-    }
-    aggregation_type: Optional[str] = field(default=None, metadata={"description": "The aggregation type."})
-    availabilities: Optional[List[AzureAvailability]] = field(default=None, metadata={'description': 'List of availability.'})  # fmt: skip
-    dimensions: Optional[List[AzureDimension]] = field(default=None, metadata={"description": "List of dimensions."})
-    display_description: Optional[str] = field(default=None, metadata={'description': 'The description of the metric.'})  # fmt: skip
-    display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the metric."})
-    enable_regional_mdm_account: Optional[bool] = field(default=None, metadata={'description': 'Whether regional mdm account enabled.'})  # fmt: skip
-    fill_gap_with_zero: Optional[bool] = field(default=None, metadata={'description': 'Whether gaps would be filled with zeros.'})  # fmt: skip
-    is_internal: Optional[bool] = field(default=None, metadata={"description": "Whether the metric is internal."})
-    metric_filter_pattern: Optional[str] = field(default=None, metadata={'description': 'Pattern for the filter of the metric.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the metric."})
-    resource_id_dimension_name_override: Optional[str] = field(default=None, metadata={'description': 'The resource id dimension name override.'})  # fmt: skip
-    source_mdm_account: Optional[str] = field(default=None, metadata={"description": "The source mdm account."})
-    source_mdm_namespace: Optional[str] = field(default=None, metadata={"description": "The source mdm namespace."})
-    unit: Optional[str] = field(default=None, metadata={"description": "Units the metric to be displayed in."})
-
-
-@define(eq=False, slots=False)
-class AzureLogSpecification:
-    kind: ClassVar[str] = "azure_log_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "blob_duration": S("blobDuration"),
-        "display_name": S("displayName"),
-        "name": S("name"),
-    }
-    blob_duration: Optional[str] = field(default=None, metadata={"description": "Duration of the blob."})
-    display_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the specification.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the specification."})
-
-
-@define(eq=False, slots=False)
-class AzureMetricspecificationsLogspecifications:
-    kind: ClassVar[str] = "azure_metricspecifications_logspecifications"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "log_specifications": S("logSpecifications") >> ForallBend(AzureLogSpecification.mapping),
-        "metric_specifications": S("metricSpecifications") >> ForallBend(AzureMetricSpecification.mapping),
-    }
-    log_specifications: Optional[List[AzureLogSpecification]] = field(default=None, metadata={'description': 'Operation log specification.'})  # fmt: skip
-    metric_specifications: Optional[List[AzureMetricSpecification]] = field(default=None, metadata={'description': 'Operation service specification.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureOperation(AzureResource):
-    kind: ClassVar[str] = "azure_operation"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/providers/Microsoft.Network/operations",
-        path_parameters=[],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "display": S("display") >> Bend(AzureProviderResourceOperationDescription.mapping),
-        "origin": S("origin"),
-        "service_specification": S("properties", "serviceSpecification")
-        >> Bend(AzureMetricspecificationsLogspecifications.mapping),
-    }
-    display: Optional[AzureProviderResourceOperationDescription] = field(default=None, metadata={'description': 'Display metadata associated with the operation.'})  # fmt: skip
-    origin: Optional[str] = field(default=None, metadata={"description": "Origin of the operation."})
-    service_specification: Optional[AzureMetricspecificationsLogspecifications] = field(default=None, metadata={'description': 'Specification of the service.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureAddressSpace:
     kind: ClassVar[str] = "azure_address_space"
     mapping: ClassVar[Dict[str, Bender]] = {"address_prefixes": S("addressPrefixes")}
@@ -5009,14 +4539,6 @@ class AzureP2SVpnGateway(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzurePublicIPPrefixSku:
-    kind: ClassVar[str] = "azure_public_ip_prefix_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={"description": "Name of a public ip prefix sku."})
-    tier: Optional[str] = field(default=None, metadata={"description": "Tier of a public ip prefix sku."})
-
-
-@define(eq=False, slots=False)
 class AzurePublicIPPrefix(AzureResource):
     kind: ClassVar[str] = "azure_public_ip_prefix"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
@@ -5047,7 +4569,7 @@ class AzurePublicIPPrefix(AzureResource):
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id")),
         "resource_guid": S("properties", "resourceGuid"),
-        "sku": S("sku") >> Bend(AzurePublicIPPrefixSku.mapping),
+        "sku": S("sku") >> Bend(AzureSku.mapping),
     }
     custom_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -5061,7 +4583,7 @@ class AzurePublicIPPrefix(AzureResource):
     public_ip_address_version: Optional[str] = field(default=None, metadata={"description": "Ip address version."})
     public_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'The list of all referenced publicipaddresses.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource guid property of the public ip prefix resource.'})  # fmt: skip
-    sku: Optional[AzurePublicIPPrefixSku] = field(default=None, metadata={"description": "Sku of a public ip prefix."})
+    sku: Optional[AzureSku] = field(default=None, metadata={"description": "Sku of a public ip prefix."})
 
 
 @define(eq=False, slots=False)
@@ -5115,72 +4637,6 @@ class AzureRouteFilter(AzureResource):
     peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'A collection of references to express route circuit peerings.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     rules: Optional[List[AzureRouteFilterRule]] = field(default=None, metadata={'description': 'Collection of routefilterrules contained within a route filter.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureScopeConnection(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_scope_connection"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/scopeConnections/{scopeConnectionName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "connection_state": S("properties", "connectionState"),
-        "description": S("properties", "description"),
-        "etag": S("etag"),
-        "resource_id": S("properties", "resourceId"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "tenant_id": S("properties", "tenantId"),
-    }
-    connection_state: Optional[str] = field(default=None, metadata={'description': 'The current scope connection state.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'A description of the scope connection.'})  # fmt: skip
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    resource_id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant id."})
-
-
-@define(eq=False, slots=False)
-class AzureSecurityAdminConfiguration(AzureResource, AzureChildResource):
-    kind: ClassVar[str] = "azure_security_admin_configuration"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/securityAdminConfigurations/{configurationName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = AzureChildResource.mapping | {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "apply_on_network_intent_policy_based_services": S("properties", "applyOnNetworkIntentPolicyBasedServices"),
-        "description": S("properties", "description"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    apply_on_network_intent_policy_based_services: Optional[List[str]] = field(default=None, metadata={'description': 'Enum list of network intent policy based services.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'A description of the security configuration.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    resource_guid: Optional[str] = field(default=None, metadata={'description': 'Unique identifier for this resource.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -5279,36 +4735,6 @@ class AzureServiceTagsListResult(AzureResource):
     tag_cloud: Optional[str] = field(default=None, metadata={"description": "The name of the cloud."})
     next_link: Optional[str] = field(default=None, metadata={'description': 'The url to get next page of service tag information resources.'})  # fmt: skip
     values: Optional[List[AzureServiceTagInformation]] = field(default=None, metadata={'description': 'The list of service tag information resources.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureStaticMember(AzureResource):
-    kind: ClassVar[str] = "azure_static_member"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkManagers/{networkManagerName}/networkGroups/{networkGroupName}/staticMembers/{staticMemberName}",
-        path_parameters=[],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "provisioning_state": S("properties", "provisioningState"),
-        "member_region": S("properties", "region"),
-        "resource_id": S("properties", "resourceId"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    member_region: Optional[str] = field(default=None, metadata={"description": "Resource region."})
-    resource_id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -6421,21 +5847,21 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
 
 resources: List[Type[AzureResource]] = [
     AzureApplicationGateway,
-    AzureApplicationGatewayAvailableSslOptions,
     AzureApplicationGatewayFirewallRuleSet,
     AzureApplicationGatewayWafDynamicManifestResult,
     AzureAutoApprovedPrivateLinkService,
     AzureAvailableDelegation,
     AzureAvailablePrivateEndpointType,
     AzureAvailableServiceAlias,
-    AzureAzureFirewall,
-    AzureAzureFirewallFqdnTag,
-    AzureAzureWebCategory,
+    AzureFirewall,
+    AzureFirewallFqdnTag,
+    AzureWebCategory,
     AzureBastionHost,
     AzureBgpServiceCommunity,
     AzureCustomIpPrefix,
     AzureDdosProtectionPlan,
     AzureDscpConfiguration,
+    AzureEndpointServiceResult,
     AzureExpressRouteCircuit,
     AzureExpressRouteCrossConnection,
     AzureExpressRouteGateway,
@@ -6447,12 +5873,10 @@ resources: List[Type[AzureResource]] = [
     AzureIpAllocation,
     AzureIpGroup,
     AzureLoadBalancer,
-    AzureNetworkManager,
     AzureNetworkProfile,
     AzureNetworkVirtualAppliance,
     AzureNetworkVirtualApplianceSku,
     AzureNetworkWatcher,
-    AzureOperation,
     AzureP2SVpnGateway,
     AzurePublicIPPrefix,
     AzureRouteFilter,

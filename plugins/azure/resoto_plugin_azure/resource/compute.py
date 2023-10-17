@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder, AzureSubResource
+from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder, AzureSubResource, AzureSystemData, AzureSku
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
@@ -35,15 +35,6 @@ class AzureInstanceViewStatus:
     level: Optional[str] = field(default=None, metadata={"description": "The level code."})
     message: Optional[str] = field(default=None, metadata={'description': 'The detailed status message, including for alerts and error messages.'})  # fmt: skip
     time: Optional[datetime] = field(default=None, metadata={"description": "The time of the status."})
-
-
-@define(eq=False, slots=False)
-class AzureSku:
-    kind: ClassVar[str] = "azure_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"capacity": S("capacity"), "name": S("name"), "tier": S("tier")}
-    capacity: Optional[int] = field(default=None, metadata={'description': 'Specifies the number of virtual machines in the scale set.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The sku name."})
-    tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -275,14 +266,6 @@ class AzureCloudServiceExtensionProfile:
     kind: ClassVar[str] = "azure_cloud_service_extension_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"extensions": S("extensions") >> ForallBend(AzureExtension.mapping)}
     extensions: Optional[List[AzureExtension]] = field(default=None, metadata={'description': 'List of extensions for the cloud service.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureSystemData:
-    kind: ClassVar[str] = "azure_system_data"
-    mapping: ClassVar[Dict[str, Bender]] = {"created_at": S("createdAt"), "last_modified_at": S("lastModifiedAt")}
-    created_at: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time in utc at which the cloud service (extended support) resource was created. Minimum api-version: 2022-04-04.'})  # fmt: skip
-    last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time in utc at which the cloud service (extended support) resource was last modified. Minimum api-version: 2022-04-04.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

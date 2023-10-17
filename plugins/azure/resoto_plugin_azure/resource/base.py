@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import Future
+from datetime import datetime
 from threading import Lock
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
@@ -297,10 +298,53 @@ class AzureSubscription(AzureResource, BaseAccount):
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 
+@define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
+
+
+@define(eq=False, slots=False)
+class AzureChildResource:
+    kind: ClassVar[str] = "azure_child_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {"etag": S("etag"), "id": S("id"), "name": S("name"), "type": S("type")}
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+
+@define(eq=False, slots=False)
+class AzureSystemData:
+    kind: ClassVar[str] = "azure_system_data"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "created_at": S("createdAt"),
+        "created_by": S("createdBy"),
+        "created_by_type": S("createdByType"),
+        "last_modified_at": S("lastModifiedAt"),
+        "last_modified_by": S("lastModifiedBy"),
+        "last_modified_by_type": S("lastModifiedByType"),
+    }
+    created_at: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp of resource creation (utc).'})  # fmt: skip
+    created_by: Optional[str] = field(default=None, metadata={'description': 'The identity that created the resource.'})  # fmt: skip
+    created_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that created the resource.'})  # fmt: skip
+    last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+    last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
+    last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureSku:
+    kind: ClassVar[str] = "azure_sku"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "capacity": S("capacity"),
+        "name": S("name"),
+        "tier": S("tier"),
+        "family": S("family"),
+    }
+    capacity: Optional[int] = field(default=None, metadata={'description': 'Specifies the number of virtual machines in the scale set.'})  # fmt: skip
+    family: Optional[str] = field(default=None, metadata={"description": "The family of the sku."})
+    name: Optional[str] = field(default=None, metadata={"description": "The sku name."})
+    tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
 
 
 class GraphBuilder:
