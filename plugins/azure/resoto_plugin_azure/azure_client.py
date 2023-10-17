@@ -91,34 +91,14 @@ class AzureResourceManagementClient(AzureClient):
         return True
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
-        try:
-            # Get the resource by its ID
-            resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
-
-            # Check if the tag already exists in the resource's tags
-            existing_tag_value = resource.tags.get(tag_name)
-
-            # If the tag exists, update its value
-            if existing_tag_value is not None:
-                resource.tags[tag_name] = tag_value
-            else:
-                return False  # Tag not found in the resource
-
-            # Create or update the resource with the updated tag
-            updated_resource = GenericResource(location=resource.location, tags=resource.tags)
-            self.client.resources.begin_create_or_update_by_id(resource_id, "2021-04-01", updated_resource)
-
-        except HttpResponseError as e:
-            if e.error and e.error.code == "ResourceNotFoundError":
-                return False  # Resource not found
-            elif e.error and e.error.code == "ResourceExistsError":
-                return False  # Tag for updating its value does not exist
-            else:
-                raise e
-
-        return True
+        return self._update_or_delete_tag(
+            tag_name=tag_name, tag_value=tag_value, resource_id=resource_id, is_update=True
+        )
 
     def delete_resource_tag(self, tag_name: str, resource_id: str) -> bool:
+        return self._update_or_delete_tag(tag_name=tag_name, tag_value="", resource_id=resource_id, is_update=False)
+
+    def _update_or_delete_tag(self, tag_name: str, tag_value: str, resource_id: str, is_update: bool) -> bool:
         try:
             # Get the resource by its ID
             resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
@@ -126,11 +106,18 @@ class AzureResourceManagementClient(AzureClient):
             # Check if the tag exists in the resource's tags
             existing_tag_value = resource.tags.get(tag_name)
 
-            # If the tag exists, delete it
-            if existing_tag_value is not None:
-                resource.tags.pop(tag_name)
+            # Check if need to update or delete tag
+            if is_update:
+                if existing_tag_value is not None:
+                    resource.tags[tag_name] = tag_value
+                else:
+                    return False  # Tag not found in the resource
             else:
-                return False  # Tag not found in the resource
+                # If the tag exists, delete it
+                if existing_tag_value is not None:
+                    resource.tags.pop(tag_name)
+                else:
+                    return True  # Tag not found in the resource
 
             # Create or update the resource to reflect the removal of the tag
             updated_resource = GenericResource(location=resource.location, tags=resource.tags)
@@ -140,7 +127,7 @@ class AzureResourceManagementClient(AzureClient):
             if e.error and e.error.code == "ResourceNotFoundError":
                 return False  # Resource not found
             elif e.error and e.error.code == "ResourceExistsError":
-                return False  # Tag for deletion does not exist
+                return False  # Tag for update/delete does not exist
             else:
                 raise e
 
