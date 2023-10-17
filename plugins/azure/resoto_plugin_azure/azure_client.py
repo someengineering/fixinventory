@@ -16,6 +16,7 @@ from azure.core.utils import case_insensitive_dict
 from azure.mgmt.core.exceptions import ARMErrorFormat
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.resource.resources._serialization import Serializer
+from azure.mgmt.resource.resources.models import GenericResource
 
 from resoto_plugin_azure.config import AzureCredentials
 from resotolib.types import Json
@@ -43,6 +44,14 @@ class AzureClient(ABC):
 
     @abstractmethod
     def delete(self, resource_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def delete_resource_tag(self, tag_name: str, resource_id: str) -> bool:
         pass
 
     @staticmethod
@@ -76,6 +85,47 @@ class AzureResourceManagementClient(AzureClient):
         except HttpResponseError as e:
             if e.error and e.error.code == "ResourceNotFoundError":
                 return False  # Resource not found to delete
+            else:
+                raise e
+
+        return True
+
+    def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
+        return self._update_or_delete_tag(
+            tag_name=tag_name, tag_value=tag_value, resource_id=resource_id, is_update=True
+        )
+
+    def delete_resource_tag(self, tag_name: str, resource_id: str) -> bool:
+        return self._update_or_delete_tag(tag_name=tag_name, tag_value="", resource_id=resource_id, is_update=False)
+
+    def _update_or_delete_tag(self, tag_name: str, tag_value: str, resource_id: str, is_update: bool) -> bool:
+        try:
+            # Get the resource by its ID
+            resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
+
+            # Check if need to update or delete tag
+            if is_update:
+                # Create the tag or update its value if it exists
+                resource.tags[tag_name] = tag_value
+            else:
+                # Check if the tag exists in the resource's tags
+                existing_tag_value = resource.tags.get(tag_name)
+
+                # If the tag exists, delete it
+                if existing_tag_value is not None:
+                    resource.tags.pop(tag_name)
+                else:
+                    return True
+
+            # Create or update the resource to reflect the removal of the tag
+            updated_resource = GenericResource(location=resource.location, tags=resource.tags)
+            self.client.resources.begin_create_or_update_by_id(resource_id, "2021-04-01", updated_resource)
+
+        except HttpResponseError as e:
+            if e.error and e.error.code == "ResourceNotFoundError":
+                return False  # Resource not found
+            elif e.error and e.error.code == "ResourceExistsError":
+                return False  # Tag for update/delete does not exist
             else:
                 raise e
 
