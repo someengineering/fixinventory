@@ -103,21 +103,19 @@ class AzureResourceManagementClient(AzureClient):
             # Get the resource by its ID
             resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
 
-            # Check if the tag exists in the resource's tags
-            existing_tag_value = resource.tags.get(tag_name)
-
             # Check if need to update or delete tag
             if is_update:
-                if existing_tag_value is not None:
-                    resource.tags[tag_name] = tag_value
-                else:
-                    return False  # Tag not found in the resource
+                # Create the tag or update its value if it exists
+                resource.tags[tag_name] = tag_value
             else:
+                # Check if the tag exists in the resource's tags
+                existing_tag_value = resource.tags.get(tag_name)
+
                 # If the tag exists, delete it
                 if existing_tag_value is not None:
                     resource.tags.pop(tag_name)
                 else:
-                    return True  # Tag not found in the resource
+                    return True
 
             # Create or update the resource to reflect the removal of the tag
             updated_resource = GenericResource(location=resource.location, tags=resource.tags)
