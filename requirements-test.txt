@@ -165,7 +165,7 @@ typish==1.9.3
 tzdata==2023.3
 tzlocal==5.1
 uritemplate==4.1.1
-urllib3==1.26.17
+urllib3==1.26.18
 ustache==0.1.5
 virtualenv==20.24.5
 wcwidth==0.2.8
