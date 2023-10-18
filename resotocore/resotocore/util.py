@@ -126,7 +126,7 @@ def json_hash(js: Json) -> str:
 def pop_keys(d: Dict[AnyT, AnyR], keys: List[AnyT]) -> Dict[AnyT, AnyR]:
     res = dict(d)
     for key in keys:
-        res.pop(key, None)  # type: ignore
+        res.pop(key, None)
     return res
 
 

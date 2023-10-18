@@ -3,10 +3,14 @@ from argparse import ArgumentParser
 from datetime import datetime
 from functools import lru_cache
 from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable, Tuple, List
+from typing_extensions import TypeAlias
 
 from aiostream.core import Stream
 from parsy import Parser, regex, string
 
+from resotocore.model.graph_access import Section
+from resotocore.types import JsonElement
+from resotocore.util import AnyT, utc, parse_utc
 from resotolib.durations import parse_duration, DurationRe
 from resotolib.parse_util import (
     make_parser,
@@ -24,14 +28,12 @@ from resotolib.parse_util import (
     dash_dp,
     equals_p,
 )
-from resotocore.model.graph_access import Section
-from resotocore.types import JsonElement
-from resotocore.util import AnyT, utc, parse_utc
 
 T = TypeVar("T")
 # Allow the function to return either a coroutine or the result directly
 Result = Union[T, Awaitable[T]]
-JsGen = Union[Stream, AsyncIterator[JsonElement]]
+JsStream: TypeAlias = Stream
+JsGen = Union[JsStream, AsyncIterator[JsonElement]]
 # A sink function takes a stream and creates a result
 Sink = Callable[[JsGen], Awaitable[T]]
 

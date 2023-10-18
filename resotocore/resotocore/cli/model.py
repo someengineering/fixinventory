@@ -32,7 +32,7 @@ from attrs import define, field
 from parsy import test_char, string
 from rich.jupyter import JupyterMixin
 
-from resotocore.cli import JsGen, T, Sink
+from resotocore.cli import JsGen, T, Sink, JsStream
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.core_config import AliasTemplateConfig, AliasTemplateParameterConfig
 from resotocore.error import CLIParseError
@@ -226,7 +226,7 @@ class CLIAction(ABC):
         self.required_permissions = required_permissions or set()
 
     @staticmethod
-    def make_stream(in_stream: JsGen) -> Stream:
+    def make_stream(in_stream: JsGen) -> JsStream:
         return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
 
 
@@ -242,7 +242,7 @@ class CLISource(CLIAction):
         super().__init__(produces, requires, envelope, required_permissions)
         self._fn = fn
 
-    async def source(self) -> Tuple[Optional[int], Stream]:
+    async def source(self) -> Tuple[Optional[int], JsStream]:
         res = self._fn()
         count, gen = await res if iscoroutine(res) else res
         return count, self.make_stream(await gen if iscoroutine(gen) else gen)
@@ -300,7 +300,7 @@ class CLIFlow(CLIAction):
         super().__init__(produces, requires, envelope, required_permissions)
         self._fn = fn
 
-    async def flow(self, in_stream: JsGen) -> Stream:
+    async def flow(self, in_stream: JsGen) -> JsStream:
         gen = self._fn(self.make_stream(in_stream))
         return self.make_stream(await gen if iscoroutine(gen) else gen)
 
@@ -695,7 +695,7 @@ class ParsedCommandLine:
             return False
         return all(self.ctx.user.has_permission(cmd.action.required_permissions) for cmd in self.executable_commands)
 
-    async def execute(self) -> Tuple[Optional[int], Stream]:
+    async def execute(self) -> Tuple[Optional[int], JsStream]:
         if self.executable_commands:
             source_action = cast(CLISource, self.executable_commands[0].action)
             count, flow = await source_action.source()

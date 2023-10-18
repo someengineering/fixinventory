@@ -183,7 +183,7 @@ class TagsValue(Bender):
     def execute(self, source: List[Json]) -> Optional[str]:
         for k in source:
             if k.get("Key") == self.name:
-                return k.get("Value", "")
+                return k.get("Value", "")  # type: ignore
         return None
 
 

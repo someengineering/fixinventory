@@ -79,7 +79,7 @@ def node_gen(ud: UD) -> Json:
     }
 
 
-def graph_stream(node_list: List[Json]) -> Stream:
+def graph_stream(node_list: List[Json]) -> Stream[Json]:
     def from_node() -> Generator[Json, Any, None]:
         for node in node_list:
             yield node
