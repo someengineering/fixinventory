@@ -102,7 +102,7 @@ def builder(
 
 
 def all_props_set(obj: AzureResourceType, ignore_props: Optional[Set[str]] = None) -> None:
-    for field in fields(type(obj)):
+    for field in fields(type(obj)):  # type: ignore
         prop = field.name
         if not prop.startswith("_") and prop not in {
             "account",
