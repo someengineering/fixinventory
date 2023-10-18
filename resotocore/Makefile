@@ -59,7 +59,8 @@ lint: ## static code analysis
 	black --line-length 120 --check resotocore tests
 	flake8 resotocore
 	pylint resotocore
-	mypy --python-version 3.9 --strict --install-types --non-interactive resotocore tests
+	# mypy --python-version 3.9 --strict --install-types --non-interactive resotocore tests
+	mypy --python-version 3.9 --strict resotocore tests
 
 test: ## run tests quickly with the default Python
 	pytest

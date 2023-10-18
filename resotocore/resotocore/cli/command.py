@@ -76,6 +76,7 @@ from resotocore.cli import (
     parse_time_or_delta,
     strip_quotes,
     key_value_parser,
+    JsStream,
 )
 from resotocore.cli.model import (
     CLICommand,
@@ -845,7 +846,9 @@ class AggregateCommand(SearchCLIPart):
 
     @staticmethod
     async def aggregate_in(
-        content: Stream, group_props: Optional[List[str]] = None, fn_props: Optional[List[AggregateFunction]] = None
+        content: JsStream,
+        group_props: Optional[List[str]] = None,
+        fn_props: Optional[List[AggregateFunction]] = None,
     ) -> Dict[tuple[Any, ...], _AggregateIntermediateResult]:
         """
         Aggregate the number of elements in the stream, grouped by the provided group properties and
@@ -928,7 +931,7 @@ class AggregateCommand(SearchCLIPart):
                 result[av.as_name or ".".join(av.all_names())] = value
             return result
 
-        async def aggregate_data(content: Stream) -> AsyncIterator[JsonElement]:
+        async def aggregate_data(content: JsStream) -> AsyncIterator[JsonElement]:
             async with content.stream() as in_stream:
                 for key, value in (await self.aggregate_in(in_stream, var_names, aggregate.group_func)).items():
                     entry: Json = {"group": group(key)}
@@ -1127,7 +1130,7 @@ class CountCommand(SearchCLIPart):
 
         fn = inc_prop if arg else inc_identity
 
-        async def count_in_stream(content: Stream) -> AsyncIterator[JsonElement]:
+        async def count_in_stream(content: JsStream) -> AsyncIterator[JsonElement]:
             async with content.stream() as in_stream:
                 async for element in in_stream:
                     fn(element)
@@ -1624,7 +1627,7 @@ class FlattenCommand(CLICommand):
         def iterable(it: Any) -> bool:
             return False if isinstance(it, str) else isinstance(it, Iterable)
 
-        def iterate(it: Any) -> Stream:
+        def iterate(it: Any) -> JsStream:
             return stream.iterate(it) if is_async_iterable(it) or iterable(it) else stream.just(it)
 
         return CLIFlow(lambda in_stream: stream.flatmap(in_stream, iterate), required_permissions={Permission.read})
@@ -1923,7 +1926,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 if any(p for p in kind.resolved_properties() if p.path.same_as(path))
             ]
 
-        async def source() -> Tuple[int, Stream]:
+        async def source() -> Tuple[int, JsStream]:
             model = await self.dependencies.model_handler.load_model(graph_name)
 
             def show(k: ComplexKind) -> bool:
@@ -2305,12 +2308,12 @@ class FormatCommand(CLICommand, OutputTransformer):
                 raise AttributeError("A format renderer can not be combined together with a format string!")
             use = next(iter(format_to_use))
 
-        async def render_single(converter: ConvertFn, iss: Stream) -> JsGen:
+        async def render_single(converter: ConvertFn, iss: JsStream) -> JsGen:
             async with iss.stream() as streamer:
                 async for elem in converter(streamer):
                     yield elem
 
-        async def format_stream(in_stream: Stream) -> JsGen:
+        async def format_stream(in_stream: JsStream) -> JsGen:
             if use:
                 if all_renderer := self.render_all.get(use):
                     return all_renderer(in_stream)
@@ -2634,7 +2637,7 @@ class ListCommand(CLICommand, OutputTransformer):
             else:
                 return elem
 
-        async def csv_stream(in_stream: Stream) -> JsGen:
+        async def csv_stream(in_stream: JsStream) -> JsGen:
             output = io.StringIO()
             dialect = csv.unix_dialect()
             writer = csv.writer(output, dialect=dialect, quoting=csv.QUOTE_NONNUMERIC)
@@ -2658,7 +2661,7 @@ class ListCommand(CLICommand, OutputTransformer):
                             result.append(value)
                         yield to_csv_string(result)
 
-        def markdown_stream(in_stream: Stream) -> JsGen:
+        def markdown_stream(in_stream: JsStream) -> JsGen:
             chunk_size = 500
 
             columns_padding = [len(name) for _, name in props_to_show]
@@ -2988,7 +2991,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
             else:
                 yield f"No job with this id: {job_id}"
 
-        async def running_jobs() -> Tuple[int, Stream]:
+        async def running_jobs() -> Tuple[int, JsStream]:
             tasks = await self.dependencies.task_handler.running_tasks()
             return len(tasks), stream.iterate(
                 {"job": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
@@ -3035,10 +3038,10 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     # this method expects a stream of Tuple[str, Dict[str, str], Json]
     def send_to_queue_stream(
         self,
-        in_stream: Stream,
+        in_stream: JsStream,
         result_handler: Callable[[WorkerTask, Future[Json]], Awaitable[Json]],
         wait_for_result: bool,
-    ) -> Stream:
+    ) -> JsStream:
         async def send_to_queue(task_name: str, task_args: Dict[str, str], data: Json) -> JsonElement:
             future = asyncio.get_event_loop().create_future()
             task = WorkerTask(TaskId(uuid_str()), task_name, task_args, data, future, self.timeout())
@@ -3058,11 +3061,11 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     def load_by_id_merged(
         self,
         model: Model,
-        in_stream: Stream,
+        in_stream: JsStream,
         variables: Optional[Set[str]],
         expected_kind: Optional[str] = None,
         **env: str,
-    ) -> Stream:
+    ) -> JsStream:
         async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
             ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
@@ -3226,8 +3229,8 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
         formatter, variables = ctx.formatter_with_variables(args or "")
         fn = call_function(lambda item: {"args": args_parts_unquoted_parser.parse(formatter(item)), "node": item})
 
-        def setup_stream(in_stream: Stream) -> Stream:
-            def with_dependencies(model: Model) -> Stream:
+        def setup_stream(in_stream: JsStream) -> JsStream:
+            def with_dependencies(model: Model) -> JsStream:
                 load = self.load_by_id_merged(model, in_stream, variables, allowed_on_kind, **ctx.env)
                 handler = self.update_node_in_graphdb(model, **ctx.env) if expect_node_result else self.no_update
                 return self.send_to_queue_stream(stream.map(load, fn), handler, True)
@@ -3239,7 +3242,7 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
             dependencies = stream.call(load_model)
             return stream.flatmap(dependencies, with_dependencies)
 
-        def setup_source() -> Stream:
+        def setup_source() -> JsStream:
             arg = {"args": args_parts_unquoted_parser.parse(formatter({}))}
             return self.send_to_queue_stream(stream.just((command_name, {}, arg)), self.no_update, True)
 
@@ -3354,8 +3357,8 @@ class TagCommand(SendWorkerTaskCommand):
         else:
             raise AttributeError("Expect update tag_key tag_value or delete tag_key")
 
-        def setup_stream(in_stream: Stream) -> Stream:
-            def with_dependencies(model: Model) -> Stream:
+        def setup_stream(in_stream: JsStream) -> JsStream:
+            def with_dependencies(model: Model) -> JsStream:
                 load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
                 result_handler = self.update_node_in_graphdb(model, **ctx.env)
                 return self.send_to_queue_stream(stream.map(load, fn), result_handler, not ns.nowait)
@@ -3372,7 +3375,7 @@ class TagCommand(SendWorkerTaskCommand):
 
 class FileCommand(CLICommand, InternalPart):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        def file_command() -> Stream:
+        def file_command() -> JsStream:
             if not arg:
                 raise AttributeError("file command needs a parameter!")
             elif not os.path.exists(arg):
@@ -3399,7 +3402,7 @@ class UploadCommand(CLICommand, InternalPart):
             raise AttributeError("upload command needs a parameter!")
         file_id = "file"
 
-        def upload_command() -> Stream:
+        def upload_command() -> JsStream:
             if file_id in ctx.uploaded_files:
                 file = ctx.uploaded_files[file_id]
                 return stream.just(f"Received file {file} of size {os.path.getsize(file)}")
@@ -3700,7 +3703,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         return [ArgInfo(expects_value=True, value_hint="file", help_text="file to write to")]
 
     @staticmethod
-    async def write_result_to_file(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+    async def write_result_to_file(in_stream: JsStream, file_name: str) -> AsyncIterator[JsonElement]:
         async with TemporaryDirectory() as temp_dir:
             path = os.path.join(temp_dir, uuid_str())
             async with aiofiles.open(path, "w") as f:
@@ -3713,7 +3716,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
             yield FilePath.user_local(user=file_name, local=path).json()
 
     @staticmethod
-    async def already_file_stream(in_stream: Stream, file_name: str) -> AsyncIterator[JsonElement]:
+    async def already_file_stream(in_stream: JsStream, file_name: str) -> AsyncIterator[JsonElement]:
         async with in_stream.stream() as streamer:
             async for out in streamer:
                 yield evolve(FilePath.from_path(out), user=Path(file_name)).json()
@@ -4014,7 +4017,7 @@ class HttpCommand(CLICommand):
         else:
             raise AttributeError("No URL provided to connect to.")
 
-    def perform_requests(self, template: HttpRequestTemplate) -> Callable[[Stream], AsyncIterator[JsonElement]]:
+    def perform_requests(self, template: HttpRequestTemplate) -> Callable[[JsStream], AsyncIterator[JsonElement]]:
         retries_left = template.retries
 
         async def perform_request(e: JsonElement) -> int:
@@ -4055,7 +4058,7 @@ class HttpCommand(CLICommand):
                 # define exceptions as server error
                 return 500
 
-        async def iterate_stream(in_stream: Stream) -> AsyncIterator[JsonElement]:
+        async def iterate_stream(in_stream: JsStream) -> AsyncIterator[JsonElement]:
             results: Dict[int, int] = defaultdict(lambda: 0)
             async with in_stream.stream() as streamer:
                 async for elem in streamer:
@@ -4264,7 +4267,7 @@ class WorkflowsCommand(CLICommand):
             else:
                 yield f"No workflow with this id: {wf_id}"
 
-        async def running_workflows() -> Tuple[int, Stream]:
+        async def running_workflows() -> Tuple[int, JsStream]:
             tasks = await self.dependencies.task_handler.running_tasks()
 
             def info(rt: RunningTask) -> JsonElement:
@@ -4311,11 +4314,11 @@ class WorkflowsCommand(CLICommand):
                 result["errors"] = len(rtd.info_messages())
             return result
 
-        async def history_aggregation() -> Stream:
+        async def history_aggregation() -> JsStream:
             info = await self.dependencies.db_access.running_task_db.aggregated_history()
             return stream.just(info)
 
-        async def history_of(history_args: List[str]) -> Tuple[int, Stream]:
+        async def history_of(history_args: List[str]) -> Tuple[int, JsStream]:
             parser = NoExitArgumentParser()
             parser.add_argument("workflow")
             parser.add_argument("--started-after", dest="started_after", type=date_parser.parse)
@@ -4531,7 +4534,7 @@ class ConfigsCommand(CLICommand):
                 async for file in send_file(message + config):
                     yield file
 
-        async def list_configs() -> Tuple[int, Stream]:
+        async def list_configs() -> Tuple[int, JsStream]:
             ids = [i async for i in self.dependencies.config_handler.list_config_ids()]
             return len(ids), stream.iterate(ids)
 
@@ -5171,7 +5174,7 @@ class AppsCommand(CLICommand):
             else:
                 raise ValueError(f"Config {config} not found.")
 
-            async def stream_to_iterator(in_stream: Stream) -> AsyncIterator[JsonElement]:
+            async def stream_to_iterator(in_stream: JsStream) -> AsyncIterator[JsonElement]:
                 async with in_stream.stream() as streamer:
                     async for item in streamer:
                         yield item
@@ -5816,7 +5819,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
         in_source_position = kwargs.get("position") == 0
         db_lookup = dict(mysql="mysql+pymysql", mariadb="mariadb+pymysql")
 
-        async def sync_database_result(p: Namespace, maybe_stream: Optional[Stream]) -> AsyncIterator[JsonElement]:
+        async def sync_database_result(p: Namespace, maybe_stream: Optional[JsStream]) -> AsyncIterator[JsonElement]:
             async with TemporaryDirectory() as temp_dir:
                 # optional: path of the output file
                 file_output: Optional[Path] = Path(temp_dir) / "db" if p.db == "sqlite" else None
@@ -5859,7 +5862,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             complete_model: bool,
             drop_existing_tables: bool,
             query: Optional[Query],
-            in_stream: Stream,
+            in_stream: JsStream,
         ) -> None:
             resoto_model = await self.dependencies.model_handler.load_model(ctx.graph_name)
 

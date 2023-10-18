@@ -84,7 +84,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
             if walk_subclasses:
                 for subclass in clazz.__subclasses__():
                     check(subclass)
-            for field in attrs.fields(clazz):
+            for field in attrs.fields(clazz):  # type: ignore
                 check(field.type)
         elif is_enum(clazz):
             all_classes.add(clazz)
@@ -232,7 +232,7 @@ def dataclasses_to_resotocore_model(
         base_names = [model_name(base) for base in bases]
         base_props: Set[Attribute] = reduce(lambda result, base: result | set(attrs.fields(base)), bases, set())  # type: ignore # noqa: E501
         props = [
-            p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)
+            p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)  # type: ignore # noqa: E501
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)

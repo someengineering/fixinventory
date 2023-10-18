@@ -412,7 +412,7 @@ def resolve_type(clazz: Type[Any]) -> None:
 
 def validate_dataclass(node: BaseResource) -> bool:
     resolve_type(type(node))  # make sure all type annotations are resolved
-    for field in fields(type(node)):
+    for field in fields(type(node)):  # type: ignore
         value = getattr(node, field.name)
         try:
             check_type(value, field.type)
