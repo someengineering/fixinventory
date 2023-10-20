@@ -1455,7 +1455,9 @@ class AzureFirewall(AzureResource):
     nat_rule_collections: Optional[List[AzureFirewallNatRuleCollection]] = field(default=None, metadata={'description': 'Collection of NAT rule collections used by Azure Firewall.'})  # fmt: skip
     network_rule_collections: Optional[List[AzureFirewallNetworkRuleCollection]] = field(default=None, metadata={'description': 'Collection of network rule collections used by Azure Firewall.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    firewall_sku: Optional[AzureFirewallSku] = field(default=None, metadata={"description": "SKU of an Azure Firewall."})
+    firewall_sku: Optional[AzureFirewallSku] = field(
+        default=None, metadata={"description": "SKU of an Azure Firewall."}
+    )
     threat_intel_mode: Optional[str] = field(default=None, metadata={'description': 'The operation mode for Threat Intel.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
