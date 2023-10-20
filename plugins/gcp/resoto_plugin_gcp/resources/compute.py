@@ -3588,7 +3588,7 @@ class GcpNetwork(GcpResource):
         "internal_ipv6_range": S("internalIpv6Range"),
         "mtu": S("mtu"),
         "network_firewall_policy_enforcement_order": S("networkFirewallPolicyEnforcementOrder"),
-        "peerings": S("peerings", default=[]) >> ForallBend(GcpNetworkPeering.mapping),
+        "network_peerings": S("peerings", default=[]) >> ForallBend(GcpNetworkPeering.mapping),
         "routing_config": S("routingConfig", "routingMode"),
         "self_link_with_id": S("selfLinkWithId"),
         "subnetworks": S("subnetworks", default=[]),
@@ -3601,7 +3601,7 @@ class GcpNetwork(GcpResource):
     internal_ipv6_range: Optional[str] = field(default=None)
     mtu: Optional[int] = field(default=None)
     network_firewall_policy_enforcement_order: Optional[str] = field(default=None)
-    peerings: Optional[List[GcpNetworkPeering]] = field(default=None)
+    network_peerings: Optional[List[GcpNetworkPeering]] = field(default=None)
     routing_config: Optional[str] = field(default=None)
     self_link_with_id: Optional[str] = field(default=None)
     subnetworks: Optional[List[str]] = field(default=None)

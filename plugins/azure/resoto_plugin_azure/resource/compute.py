@@ -62,14 +62,14 @@ class AzureAvailabilitySet(AzureResource):
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "platform_update_domain_count": S("properties", "platformUpdateDomainCount"),
         "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "statuses": S("properties", "statuses") >> ForallBend(AzureInstanceViewStatus.mapping),
         "virtual_machines_availability": S("properties") >> S("virtualMachines", default=[]) >> ForallBend(S("id")),
     }
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={"description": "Fault domain count."})
     platform_update_domain_count: Optional[int] = field(default=None, metadata={"description": "Update domain count."})
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
     statuses: Optional[List[AzureInstanceViewStatus]] = field(default=None, metadata={'description': 'The resource status information.'})  # fmt: skip
     virtual_machines_availability: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the availability set.'})  # fmt: skip
 
@@ -3098,7 +3098,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
         "scale_in_policy": S("properties", "scaleInPolicy") >> Bend(AzureScaleInPolicy.mapping),
         "single_placement_group": S("properties", "singlePlacementGroup"),
-        "scale_set_sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "spot_restore_policy": S("properties", "spotRestorePolicy") >> Bend(AzureSpotRestorePolicy.mapping),
         "time_created": S("properties", "timeCreated"),
         "unique_id": S("properties", "uniqueId"),
@@ -3123,7 +3123,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     proximity_placement_group: Optional[str] = field(default=None, metadata={"description": ""})
     scale_in_policy: Optional[AzureScaleInPolicy] = field(default=None, metadata={'description': 'Describes a scale-in policy for a virtual machine scale set.'})  # fmt: skip
     single_placement_group: Optional[bool] = field(default=None, metadata={'description': 'When true this limits the scale set to a single placement group, of max size 100 virtual machines. Note: if singleplacementgroup is true, it may be modified to false. However, if singleplacementgroup is false, it may not be modified to true.'})  # fmt: skip
-    scale_set_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
     spot_restore_policy: Optional[AzureSpotRestorePolicy] = field(default=None, metadata={'description': 'Specifies the spot-try-restore properties for the virtual machine scale set. With this property customer can enable or disable automatic restore of the evicted spot vmss vm instances opportunistically based on capacity availability and pricing constraint.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time at which the virtual machine scale set resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the id which uniquely identifies a virtual machine scale set.'})  # fmt: skip
