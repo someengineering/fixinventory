@@ -6,7 +6,6 @@ from typing import Type, Set, List
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
 from resoto_plugin_azure.resource.compute import resources as compute_resources
-from resoto_plugin_azure.resource.network import resources as network_resources
 from resoto_plugin_azure.resource.base import (
     AzureSubscription,
     GraphBuilder,
@@ -28,7 +27,7 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
     return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = base_resources + compute_resources + network_resources
+all_resources: List[Type[AzureResource]] = base_resources + compute_resources
 global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 

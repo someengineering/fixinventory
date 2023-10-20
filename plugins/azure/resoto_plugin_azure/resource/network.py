@@ -1430,7 +1430,8 @@ class AzureFirewall(AzureResource):
         "etag": S("etag"),
         "firewall_policy": S("properties", "firewallPolicy", "id"),
         "hub_ip_addresses": S("properties", "hubIPAddresses") >> Bend(AzureHubIPAddresses.mapping),
-        "firewall_ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureFirewallIPConfiguration.mapping),
+        "firewall_ip_configurations": S("properties", "ipConfigurations")
+        >> ForallBend(AzureFirewallIPConfiguration.mapping),
         "ip_groups": S("properties", "ipGroups") >> ForallBend(AzureFirewallIpGroups.mapping),
         "management_ip_configuration": S("properties", "managementIpConfiguration")
         >> Bend(AzureFirewallIPConfiguration.mapping),
@@ -1454,7 +1455,9 @@ class AzureFirewall(AzureResource):
     nat_rule_collections: Optional[List[AzureFirewallNatRuleCollection]] = field(default=None, metadata={'description': 'Collection of nat rule collections used by azure firewall.'})  # fmt: skip
     network_rule_collections: Optional[List[AzureFirewallNetworkRuleCollection]] = field(default=None, metadata={'description': 'Collection of network rule collections used by azure firewall.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    firewall_sku: Optional[AzureFirewallSku] = field(default=None, metadata={"description": "Sku of an azure firewall."})
+    firewall_sku: Optional[AzureFirewallSku] = field(
+        default=None, metadata={"description": "Sku of an azure firewall."}
+    )
     threat_intel_mode: Optional[str] = field(default=None, metadata={'description': 'The operation mode for threat intel.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
@@ -3006,7 +3009,8 @@ class AzureExpressRouteCrossConnection(AzureResource):
         "etag": S("etag"),
         "express_route_circuit": S("properties", "expressRouteCircuit", "id"),
         "peering_location": S("properties", "peeringLocation"),
-        "cross_connection_peerings": S("properties", "peerings") >> ForallBend(AzureExpressRouteCrossConnectionPeering.mapping),
+        "cross_connection_peerings": S("properties", "peerings")
+        >> ForallBend(AzureExpressRouteCrossConnectionPeering.mapping),
         "primary_azure_port": S("properties", "primaryAzurePort"),
         "provisioning_state": S("properties", "provisioningState"),
         "s_tag": S("properties", "sTag"),
@@ -3238,7 +3242,7 @@ class AzureExpressRoutePort(AzureResource):
         "ether_type": S("properties", "etherType"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "links": S("properties", "links") >> ForallBend(AzureExpressRouteLink.mapping),
-        "mtu_string": S("properties", "mtu"), # TODO: check if this string is actually an int?
+        "mtu_string": S("properties", "mtu"),  # TODO: check if this string is actually an int?
         "peering_location": S("properties", "peeringLocation"),
         "provisioned_bandwidth_in_gbps": S("properties", "provisionedBandwidthInGbps"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -3487,7 +3491,7 @@ class AzureFirewallPolicy(AzureResource):
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "rule_collection_groups": S("properties") >> S("ruleCollectionGroups", default=[]) >> ForallBend(S("id")),
-        "size_string": S("properties", "size"), # TODO: check if this is actually an int?
+        "size_string": S("properties", "size"),  # TODO: check if this is actually an int?
         "sku": S("properties", "sku", "tier"),
         "snat": S("properties", "snat") >> Bend(AzureFirewallPolicySNAT.mapping),
         "sql": S("properties", "sql", "allowSqlRedirect"),
@@ -4421,8 +4425,6 @@ class AzureSecurityPartnerProvider(AzureResource):
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
 
-
-
 @define(eq=False, slots=False)
 class AzureUsageName:
     kind: ClassVar[str] = "azure_usage_name"
@@ -5039,7 +5041,8 @@ class AzureVpnGateway(AzureResource):
         "connections": S("properties", "connections") >> ForallBend(AzureVpnConnection.mapping),
         "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
         "etag": S("etag"),
-        "gateway_ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureVpnGatewayIpConfiguration.mapping),
+        "gateway_ip_configurations": S("properties", "ipConfigurations")
+        >> ForallBend(AzureVpnGatewayIpConfiguration.mapping),
         "is_routing_preference_internet": S("properties", "isRoutingPreferenceInternet"),
         "nat_rules": S("properties", "natRules") >> ForallBend(AzureVpnGatewayNatRule.mapping),
         "provisioning_state": S("properties", "provisioningState"),
