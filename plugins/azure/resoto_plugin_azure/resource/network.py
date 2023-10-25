@@ -3242,7 +3242,7 @@ class AzureExpressRoutePort(AzureResource):
         "ether_type": S("properties", "etherType"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "links": S("properties", "links") >> ForallBend(AzureExpressRouteLink.mapping),
-        "mtu_string": S("properties", "mtu"),  # TODO: check if this string is actually an int?
+        "mtu_string": S("properties", "mtu"),
         "peering_location": S("properties", "peeringLocation"),
         "provisioned_bandwidth_in_gbps": S("properties", "provisionedBandwidthInGbps"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -3491,7 +3491,7 @@ class AzureFirewallPolicy(AzureResource):
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "rule_collection_groups": S("properties") >> S("ruleCollectionGroups", default=[]) >> ForallBend(S("id")),
-        "size_string": S("properties", "size"),  # TODO: check if this is actually an int?
+        "size_string": S("properties", "size"),
         "sku": S("properties", "sku", "tier"),
         "snat": S("properties", "snat") >> Bend(AzureFirewallPolicySNAT.mapping),
         "sql": S("properties", "sql", "allowSqlRedirect"),
@@ -4448,7 +4448,8 @@ class AzureUsage(AzureResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("name"),
+        "name": K(None),
+        "usage_name": S("name") >> Bend(AzureUsageName.mapping),
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
@@ -4456,6 +4457,9 @@ class AzureUsage(AzureResource):
         "limit": S("limit"),
         "unit": S("unit"),
     }
+    usage_name: Optional[AzureUsageName] = field(
+        default=None, metadata={"description": "The name of the type of usage."}
+    )
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
