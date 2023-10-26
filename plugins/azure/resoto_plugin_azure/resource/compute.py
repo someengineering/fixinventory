@@ -2150,7 +2150,7 @@ class AzureVirtualMachineNetworkInterfaceConfiguration:
 
 @define(eq=False, slots=False)
 class AzureNetworkProfile:
-    kind: ClassVar[str] = "azure_network_profile"
+    kind: ClassVar[str] = "azure_vm_network_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_api_version": S("networkApiVersion"),
         "network_interface_configurations": S("networkInterfaceConfigurations")
