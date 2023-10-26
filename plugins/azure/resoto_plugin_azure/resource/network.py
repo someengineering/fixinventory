@@ -4,7 +4,7 @@ from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import AzureResource, AzureSubResource, AzureSku
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt
 
 
 @define(eq=False, slots=False)
@@ -3240,7 +3240,7 @@ class AzureExpressRoutePort(AzureResource):
         "ether_type": S("properties", "etherType"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "links": S("properties", "links") >> ForallBend(AzureExpressRouteLink.mapping),
-        "mtu_string": S("properties", "mtu"),
+        "mtu_int": S("properties", "mtu") >> AsInt(),
         "peering_location": S("properties", "peeringLocation"),
         "provisioned_bandwidth_in_gbps": S("properties", "provisionedBandwidthInGbps"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -3255,7 +3255,7 @@ class AzureExpressRoutePort(AzureResource):
     ether_type: Optional[str] = field(default=None, metadata={"description": "Ether type of the physical port."})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     links: Optional[List[AzureExpressRouteLink]] = field(default=None, metadata={'description': 'The set of physical links of the ExpressRoutePort resource.'})  # fmt: skip
-    mtu_string: Optional[str] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
+    mtu_int: Optional[int] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
     peering_location: Optional[str] = field(default=None, metadata={'description': 'The name of the peering location that the ExpressRoutePort is mapped to physically.'})  # fmt: skip
     provisioned_bandwidth_in_gbps: Optional[float] = field(default=None, metadata={'description': 'Aggregate Gbps of associated circuit bandwidths.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
