@@ -50,8 +50,7 @@ class AzureProperty:
         desc = re.sub("[\n\r'\"]", " ", self.description)  # remove invalid characters
         desc = re.sub("<br\\s*/?>", " ", desc)  # replace <br/> tags
         desc = re.sub("\\s\\s+", " ", desc)  # remove multiple spaces
-        sentences = " ".join(f"{s.strip().capitalize()}." for s in desc.split(".") if len(s.strip()) > 0)
-        metadata = f", metadata={{'description': '{sentences}'}}"
+        metadata = f", metadata={{'description': '{desc}'}}"
         result = f"field({default}{metadata})"
         if (len(result) + len(self.name) + len(self.type_name)) > 100:
             result += "  # fmt: skip"
@@ -588,7 +587,7 @@ def path_set(obj, path, value, **options):
 # endregion
 
 # To run this script, make sure you have resoto venv plus: pip install "prance[osv,cli]"
-Debug = True
+Debug = False
 if __name__ == "__main__":
     specs_path = os.environ.get("AZURE_REST_API_SPECS", "../../../../azure-rest-api-specs")
     assert specs_path, (

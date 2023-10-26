@@ -535,7 +535,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "failover_replica": S("failoverReplica", default={}) >> Bend(GcpSqlFailoverreplica.mapping),
         "gce_zone": S("gceZone"),
         "instance_type": S("instanceType"),
-        "ip_addresses": S("ipAddresses", default=[]) >> ForallBend(GcpSqlIpMapping.mapping),
+        "instance_ip_addresses": S("ipAddresses", default=[]) >> ForallBend(GcpSqlIpMapping.mapping),
         "ipv6_address": S("ipv6Address"),
         "maintenance_version": S("maintenanceVersion"),
         "master_instance_name": S("masterInstanceName"),
@@ -569,7 +569,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
     gce_zone: Optional[str] = field(default=None)
     instance_type: Optional[str] = field(default=None)
-    ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
+    instance_ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
     ipv6_address: Optional[str] = field(default=None)
     maintenance_version: Optional[str] = field(default=None)
     master_instance_name: Optional[str] = field(default=None)

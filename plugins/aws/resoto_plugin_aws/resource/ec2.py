@@ -1807,12 +1807,12 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
         "connection_accepter_vpc_info": S("AccepterVpcInfo") >> Bend(AwsEc2VpcPeeringConnectionVpcInfo.mapping),
         "connection_expiration_time": S("ExpirationTime"),
         "connection_requester_vpc_info": S("RequesterVpcInfo") >> Bend(AwsEc2VpcPeeringConnectionVpcInfo.mapping),
-        "connection_status": S("Status") >> Bend(AwsEc2VpcPeeringConnectionStateReason.mapping),
+        "peering_connection_status": S("Status") >> Bend(AwsEc2VpcPeeringConnectionStateReason.mapping),
     }
     connection_accepter_vpc_info: Optional[AwsEc2VpcPeeringConnectionVpcInfo] = field(default=None)
     connection_expiration_time: Optional[datetime] = field(default=None)
     connection_requester_vpc_info: Optional[AwsEc2VpcPeeringConnectionVpcInfo] = field(default=None)
-    connection_status: Optional[AwsEc2VpcPeeringConnectionStateReason] = field(default=None)
+    peering_connection_status: Optional[AwsEc2VpcPeeringConnectionStateReason] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.connection_requester_vpc_info and (vpc_id := self.connection_requester_vpc_info.vpc_id):

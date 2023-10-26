@@ -27,7 +27,7 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
     return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = compute_resources + base_resources
+all_resources: List[Type[AzureResource]] = base_resources + compute_resources
 global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 

@@ -17,14 +17,14 @@ from resotolib.config import Config
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
 from resotolib.json import from_json as from_js
-from resotolib.json_bender import S, bend, Bender, Sort, AsDate
+from resotolib.json_bender import S, bend, Bender, Sort, AsDate, K
 from resotolib.proc import num_default_threads
 from resotolib.types import Json
 from resotolib.utils import rnd_str
 
 log = logging.getLogger("resoto.plugins.k8s")
 
-SortTransitionTime = Sort(S("lastTransitionTime") >> AsDate())
+SortTransitionTime = Sort(S("lastTransitionTime").or_else(K("1970-01-01T00:00:00Z")) >> AsDate())
 
 
 @define(eq=False, slots=False)
