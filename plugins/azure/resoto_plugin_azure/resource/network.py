@@ -1173,15 +1173,13 @@ class AzureAutoApprovedPrivateLinkService(AzureResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("privateLinkService"),
         "tags": S("tags", default={}),
         "name": K(None),
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "private_link_service": S("privateLinkService"),
     }
-    private_link_service: Optional[str] = field(default=None, metadata={'description': 'The id of the private link service resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
