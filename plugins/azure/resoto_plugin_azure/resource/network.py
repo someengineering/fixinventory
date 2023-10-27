@@ -3489,7 +3489,7 @@ class AzureFirewallPolicy(AzureResource):
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "rule_collection_groups": S("properties") >> S("ruleCollectionGroups", default=[]) >> ForallBend(S("id")),
-        "size_string": S("properties", "size") >> StringToUnitNumber("B"),
+        "size": S("properties", "size") >> StringToUnitNumber("B", expected=int),
         "sku": S("properties", "sku", "tier"),
         "snat": S("properties", "snat") >> Bend(AzureFirewallPolicySNAT.mapping),
         "sql": S("properties", "sql", "allowSqlRedirect"),
@@ -3510,7 +3510,7 @@ class AzureFirewallPolicy(AzureResource):
     intrusion_detection: Optional[AzureFirewallPolicyIntrusionDetection] = field(default=None, metadata={'description': 'Configuration for intrusion detection mode and rules.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     rule_collection_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to FirewallPolicyRuleCollectionGroups.'})  # fmt: skip
-    size_string: Optional[int] = field(default=None, metadata={'description': 'A read-only string that represents the size of the FirewallPolicyPropertiesFormat in MB. (ex 0.5MB)'})  # fmt: skip
+    size: Optional[int] = field(default=None, metadata={'description': 'A read-only string that represents the size of the FirewallPolicyPropertiesFormat in MB. (ex 0.5MB)'})  # fmt: skip
     sku: Optional[str] = field(default=None, metadata={"description": "SKU of Firewall policy."})
     snat: Optional[AzureFirewallPolicySNAT] = field(default=None, metadata={'description': 'The private IP addresses/IP ranges to which traffic will not be SNAT.'})  # fmt: skip
     sql: Optional[bool] = field(default=None, metadata={"description": "SQL Settings in Firewall Policy."})

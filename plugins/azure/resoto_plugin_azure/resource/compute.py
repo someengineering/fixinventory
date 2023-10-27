@@ -2149,7 +2149,7 @@ class AzureVirtualMachineNetworkInterfaceConfiguration:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkProfile:
+class AzureVirtualMachineNetworkProfile:
     kind: ClassVar[str] = "azure_virtual_machine_network_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_api_version": S("networkApiVersion"),
@@ -2552,7 +2552,8 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "virtual_machine_instance_view": S("properties", "instanceView")
         >> Bend(AzureVirtualMachineInstanceView.mapping),
         "license_type": S("properties", "licenseType"),
-        "virtual_machine_network_profile": S("properties", "networkProfile") >> Bend(AzureNetworkProfile.mapping),
+        "virtual_machine_network_profile": S("properties", "networkProfile")
+        >> Bend(AzureVirtualMachineNetworkProfile.mapping),
         "virtual_machine_os_profile": S("properties", "osProfile") >> Bend(AzureOSProfile.mapping),
         "azure_plan": S("plan") >> Bend(AzurePlan.mapping),
         "platform_fault_domain": S("properties", "platformFaultDomain"),
@@ -2587,7 +2588,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     virtual_machine_identity: Optional[AzureVirtualMachineIdentity] = field(default=None, metadata={'description': 'Identity for the virtual machine.'})  # fmt: skip
     virtual_machine_instance_view: Optional[AzureVirtualMachineInstanceView] = field(default=None, metadata={'description': 'The instance view of a virtual machine.'})  # fmt: skip
     license_type: Optional[str] = field(default=None, metadata={'description': 'Specifies that the image or disk that is being used was licensed on-premises. Possible values for windows server operating system are: windows_client windows_server possible values for linux server operating system are: rhel_byos (for rhel) sles_byos (for suse) for more information, see [azure hybrid use benefit for windows server](https://docs. Microsoft. Com/azure/virtual-machines/windows/hybrid-use-benefit-licensing) [azure hybrid use benefit for linux server](https://docs. Microsoft. Com/azure/virtual-machines/linux/azure-hybrid-benefit-linux) minimum api-version: 2015-06-15.'})  # fmt: skip
-    virtual_machine_network_profile: Optional[AzureNetworkProfile] = field(default=None, metadata={'description': 'Specifies the network interfaces or the networking configuration of the virtual machine.'})  # fmt: skip
+    virtual_machine_network_profile: Optional[AzureVirtualMachineNetworkProfile] = field(default=None, metadata={'description': 'Specifies the network interfaces or the networking configuration of the virtual machine.'})  # fmt: skip
     virtual_machine_os_profile: Optional[AzureOSProfile] = field(default=None, metadata={'description': 'Specifies the operating system settings for the virtual machine. Some of the settings cannot be changed once vm is provisioned.'})  # fmt: skip
     azure_plan: Optional[AzurePlan] = field(default=None, metadata={'description': 'Specifies information about the marketplace image used to create the virtual machine. This element is only used for marketplace images. Before you can use a marketplace image from an api, you must enable the image for programmatic use. In the azure portal, find the marketplace image that you want to use and then click **want to deploy programmatically, get started ->**. Enter any required information and then click **save**.'})  # fmt: skip
     platform_fault_domain: Optional[int] = field(default=None, metadata={'description': 'Specifies the scale set logical fault domain into which the virtual machine will be created. By default, the virtual machine will by automatically assigned to a fault domain that best maintains balance across available fault domains. This is applicable only if the virtualmachinescaleset property of this virtual machine is set. The virtual machine scale set that is referenced, must have platformfaultdomaincount greater than 1. This property cannot be updated once the virtual machine is created. Fault domain assignment can be viewed in the virtual machine instance view. Minimum api‐version: 2020‐12‐01.'})  # fmt: skip
