@@ -709,6 +709,11 @@ class BaseRegion(BaseResource):
     kind: ClassVar[str] = "region"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
 
+    def _keys(self) -> Tuple[Any, ...]:
+        if self._graph is None:
+            raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
+        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id, self.name
+
     def region(self, graph: Optional[Any] = None) -> BaseRegion:
         return self
 
