@@ -1,0 +1,16 @@
+{
+    "value": [
+        {
+            "name": "servicesAzure",
+            "id": "/subscriptions/subId/providers/Microsoft.Network/AvailableServiceAliases/servicesAzure",
+            "type": "Microsoft.Network/AvailableServiceAliases",
+            "resourceName": "/services/Azure"
+        },
+        {
+            "name": "servicesAzureManagedInstance",
+            "id": "/subscriptions/subId/providers/Microsoft.Network/AvailableServiceAliases/servicesAzureManagedInstance",
+            "type": "Microsoft.Network/AvailableServiceAliases",
+            "resourceName": "/services/Azure/ManagedInstance"
+        }
+    ]
+}

@@ -12,6 +12,7 @@ from resoto_plugin_azure.resource.base import (
     AzureResource,
     resources as base_resources,
 )
+from resoto_plugin_azure.resource.network import resources as network_resources
 from resotolib.baseresources import Cloud, GraphRoot
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
@@ -27,7 +28,7 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
     return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = base_resources + compute_resources
+all_resources: List[Type[AzureResource]] = base_resources + compute_resources + network_resources
 global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 

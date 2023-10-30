@@ -4,7 +4,7 @@ from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import AzureResource, AzureSubResource, AzureSku
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K
+from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringToUnitNumber
 
 
 @define(eq=False, slots=False)
@@ -1173,15 +1173,13 @@ class AzureAutoApprovedPrivateLinkService(AzureResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("privateLinkService"),
         "tags": S("tags", default={}),
         "name": K(None),
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "private_link_service": S("privateLinkService"),
     }
-    private_link_service: Optional[str] = field(default=None, metadata={'description': 'The id of the private link service resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -3242,7 +3240,7 @@ class AzureExpressRoutePort(AzureResource):
         "ether_type": S("properties", "etherType"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "links": S("properties", "links") >> ForallBend(AzureExpressRouteLink.mapping),
-        "mtu_string": S("properties", "mtu"),  # TODO: check if this string is actually an int?
+        "mtu": S("properties", "mtu") >> AsInt(),
         "peering_location": S("properties", "peeringLocation"),
         "provisioned_bandwidth_in_gbps": S("properties", "provisionedBandwidthInGbps"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -3257,7 +3255,7 @@ class AzureExpressRoutePort(AzureResource):
     ether_type: Optional[str] = field(default=None, metadata={"description": "Ether type of the physical port."})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     links: Optional[List[AzureExpressRouteLink]] = field(default=None, metadata={'description': 'The set of physical links of the ExpressRoutePort resource.'})  # fmt: skip
-    mtu_string: Optional[str] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
+    mtu: Optional[int] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
     peering_location: Optional[str] = field(default=None, metadata={'description': 'The name of the peering location that the ExpressRoutePort is mapped to physically.'})  # fmt: skip
     provisioned_bandwidth_in_gbps: Optional[float] = field(default=None, metadata={'description': 'Aggregate Gbps of associated circuit bandwidths.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -3491,7 +3489,7 @@ class AzureFirewallPolicy(AzureResource):
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "rule_collection_groups": S("properties") >> S("ruleCollectionGroups", default=[]) >> ForallBend(S("id")),
-        "size_string": S("properties", "size"),  # TODO: check if this is actually an int?
+        "size": S("properties", "size") >> StringToUnitNumber("B", expected=int),
         "sku": S("properties", "sku", "tier"),
         "snat": S("properties", "snat") >> Bend(AzureFirewallPolicySNAT.mapping),
         "sql": S("properties", "sql", "allowSqlRedirect"),
@@ -3512,7 +3510,7 @@ class AzureFirewallPolicy(AzureResource):
     intrusion_detection: Optional[AzureFirewallPolicyIntrusionDetection] = field(default=None, metadata={'description': 'Configuration for intrusion detection mode and rules.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     rule_collection_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to FirewallPolicyRuleCollectionGroups.'})  # fmt: skip
-    size_string: Optional[str] = field(default=None, metadata={'description': 'A read-only string that represents the size of the FirewallPolicyPropertiesFormat in MB. (ex 0.5MB)'})  # fmt: skip
+    size: Optional[int] = field(default=None, metadata={'description': 'A read-only string that represents the size of the FirewallPolicyPropertiesFormat in MB. (ex 0.5MB)'})  # fmt: skip
     sku: Optional[str] = field(default=None, metadata={"description": "SKU of Firewall policy."})
     snat: Optional[AzureFirewallPolicySNAT] = field(default=None, metadata={'description': 'The private IP addresses/IP ranges to which traffic will not be SNAT.'})  # fmt: skip
     sql: Optional[bool] = field(default=None, metadata={"description": "SQL Settings in Firewall Policy."})
@@ -4448,7 +4446,8 @@ class AzureUsage(AzureResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("name"),
+        "name": K(None),
+        "usage_name": S("name") >> Bend(AzureUsageName.mapping),
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
@@ -4456,6 +4455,9 @@ class AzureUsage(AzureResource):
         "limit": S("limit"),
         "unit": S("unit"),
     }
+    usage_name: Optional[AzureUsageName] = field(
+        default=None, metadata={"description": "The name of the type of usage."}
+    )
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
