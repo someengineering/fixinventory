@@ -196,15 +196,7 @@ class BaseResource(ABC):
         """
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")
-        return (
-            self.kind,
-            self.cloud().id,
-            self.account().id,
-            self.region().id,
-            self.zone().id,
-            self.id,
-            self.name,
-        )
+        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id
 
     @property
     def safe_name(self) -> str:
