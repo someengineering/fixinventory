@@ -1,6 +1,6 @@
 import logging
 from attrs import define
-from typing import ClassVar, Dict, List, Optional
+from typing import ClassVar, Dict, List, Optional, Tuple, Any
 
 from resoto_plugin_digitalocean.client import StreamingWrapper
 from resoto_plugin_digitalocean.client import get_team_credentials
@@ -46,6 +46,11 @@ class DigitalOceanResource(BaseResource):
     kind: ClassVar[str] = "digitalocean_resource"
     urn: str = ""
 
+    def _keys(self) -> Tuple[Any, ...]:
+        if self.urn:
+            return tuple(list(super()._keys()) + [self.urn])
+        return super()._keys()
+
     def delete_uri_path(self) -> Optional[str]:
         return None
 
@@ -75,7 +80,7 @@ class DigitalOceanResource(BaseResource):
         raise NotImplementedError
 
     def to_json(self) -> Json:
-        return _to_json(self, strip_nulls=True, keep_untouched=set(["tags"]))
+        return _to_json(self, strip_nulls=True, keep_untouched={"tags"})
 
 
 @define(eq=False, slots=False)
