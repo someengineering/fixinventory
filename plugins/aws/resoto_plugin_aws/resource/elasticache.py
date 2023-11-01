@@ -55,6 +55,8 @@ class ElastiCacheTaggable:
 @define(eq=False, slots=False)
 class AwsElastiCacheEndpoint:
     kind: ClassVar[str] = "aws_elasticache_endpoint"
+    kind_display: ClassVar[str] = "AWS ElastiCache Endpoint"
+    kind_description: ClassVar[str] = "ElastiCache is a web service that makes it easy to deploy, operate, and scale an in-memory cache in the cloud. The Elasticache endpoint refers to the endpoint URL that is used to connect to the ElastiCache cluster."
     mapping: ClassVar[Dict[str, Bender]] = {"address": S("Address"), "port": S("Port")}
     address: Optional[str] = field(default=None)
     port: Optional[int] = field(default=None)
@@ -63,6 +65,8 @@ class AwsElastiCacheEndpoint:
 @define(eq=False, slots=False)
 class AwsElastiCacheDestinationDetails:
     kind: ClassVar[str] = "aws_elasticache_destination_details"
+    kind_display: ClassVar[str] = "AWS ElastiCache Destination Details"
+    kind_description: ClassVar[str] = "ElastiCache is a web service that makes it easy to deploy, operate, and scale an in-memory cache in the cloud. The AWS ElastiCache Destination Details provide information about the destination of caching in an ElastiCache cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloud_watch_logs_details": S("CloudWatchLogsDetails", "LogGroup"),
         "kinesis_firehose_details": S("KinesisFirehoseDetails", "DeliveryStream"),
@@ -74,6 +78,8 @@ class AwsElastiCacheDestinationDetails:
 @define(eq=False, slots=False)
 class AwsElastiCachePendingLogDeliveryConfiguration:
     kind: ClassVar[str] = "aws_elasticache_pending_log_delivery_configuration"
+    kind_display: ClassVar[str] = "AWS ElastiCache Pending Log Delivery Configuration"
+    kind_description: ClassVar[str] = "ElastiCache Pending Log Delivery Configuration is a feature that allows users to view information on the status of log delivery for automatic backups in Amazon ElastiCache."
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_type": S("LogType"),
         "destination_type": S("DestinationType"),
@@ -89,6 +95,8 @@ class AwsElastiCachePendingLogDeliveryConfiguration:
 @define(eq=False, slots=False)
 class AwsElastiCachePendingModifiedValues:
     kind: ClassVar[str] = "aws_elasticache_pending_modified_values"
+    kind_display: ClassVar[str] = "AWS ElastiCache Pending Modified Values"
+    kind_description: ClassVar[str] = "ElastiCache Pending Modified Values is a feature in Amazon ElastiCache, which allows users to view the configuration modifications that are waiting to be applied to a cache cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "num_cache_nodes": S("NumCacheNodes"),
         "cache_node_ids_to_remove": S("CacheNodeIdsToRemove", default=[]),
@@ -109,6 +117,8 @@ class AwsElastiCachePendingModifiedValues:
 @define(eq=False, slots=False)
 class AwsElastiCacheNotificationConfiguration:
     kind: ClassVar[str] = "aws_elasticache_notification_configuration"
+    kind_display: ClassVar[str] = "AWS ElastiCache Notification Configuration"
+    kind_description: ClassVar[str] = "ElastiCache Notification Configuration allows users to configure notifications for events occurring in Amazon ElastiCache, such as failures or scaling events."
     mapping: ClassVar[Dict[str, Bender]] = {"topic_arn": S("TopicArn"), "topic_status": S("TopicStatus")}
     topic_arn: Optional[str] = field(default=None)
     topic_status: Optional[str] = field(default=None)
@@ -117,6 +127,8 @@ class AwsElastiCacheNotificationConfiguration:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheSecurityGroupMembership:
     kind: ClassVar[str] = "aws_elasticache_cache_security_group_membership"
+    kind_display: ClassVar[str] = "AWS ElastiCache Cache Security Group Membership"
+    kind_description: ClassVar[str] = "ElastiCache Cache Security Group Membership allows you to control access to your ElastiCache resources by managing the cache security group memberships."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_security_group_name": S("CacheSecurityGroupName"),
         "status": S("Status"),
@@ -128,6 +140,8 @@ class AwsElastiCacheCacheSecurityGroupMembership:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheParameterGroupStatus:
     kind: ClassVar[str] = "aws_elasticache_cache_parameter_group_status"
+    kind_display: ClassVar[str] = "AWS Elasticache Cache Parameter Group Status"
+    kind_description: ClassVar[str] = "AWS Elasticache Cache Parameter Group Status represents the current status of a cache parameter group in AWS Elasticache. It provides information about the configuration settings that control the behavior of the cache cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_parameter_group_name": S("CacheParameterGroupName"),
         "parameter_apply_status": S("ParameterApplyStatus"),
@@ -141,6 +155,8 @@ class AwsElastiCacheCacheParameterGroupStatus:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheNode:
     kind: ClassVar[str] = "aws_elasticache_cache_node"
+    kind_display: ClassVar[str] = "AWS ElastiCache Cache Node"
+    kind_description: ClassVar[str] = "ElastiCache Cache Nodes are the compute resources in AWS ElastiCache used for running an in-memory caching system, such as Redis or Memcached, to improve application performance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_node_id": S("CacheNodeId"),
         "cache_node_status": S("CacheNodeStatus"),
@@ -164,6 +180,8 @@ class AwsElastiCacheCacheNode:
 @define(eq=False, slots=False)
 class AwsElastiCacheSecurityGroupMembership:
     kind: ClassVar[str] = "aws_elasticache_security_group_membership"
+    kind_display: ClassVar[str] = "AWS ElastiCache Security Group Membership"
+    kind_description: ClassVar[str] = "ElastiCache Security Group Membership allows you to control access to your ElastiCache clusters by specifying the source IP ranges or security groups that are allowed to connect to them."
     mapping: ClassVar[Dict[str, Bender]] = {"security_group_id": S("SecurityGroupId"), "status": S("Status")}
     security_group_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -172,6 +190,8 @@ class AwsElastiCacheSecurityGroupMembership:
 @define(eq=False, slots=False)
 class AwsElastiCacheLogDeliveryConfiguration:
     kind: ClassVar[str] = "aws_elasticache_log_delivery_configuration"
+    kind_display: ClassVar[str] = "AWS ElastiCache Log Delivery Configuration"
+    kind_description: ClassVar[str] = "ElastiCache Log Delivery Configuration allows you to configure the delivery of logs generated by Amazon ElastiCache to an Amazon S3 bucket, enabling you to collect, monitor, and analyze logs for troubleshooting and auditing purposes."
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_type": S("LogType"),
         "destination_type": S("DestinationType"),
@@ -191,6 +211,8 @@ class AwsElastiCacheLogDeliveryConfiguration:
 @define(eq=False, slots=False)
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
+    kind_display: ClassVar[str] = "AWS ElastiCache Cache Cluster"
+    kind_description: ClassVar[str] = "ElastiCache is a web service that makes it easy to set up, manage, and scale a distributed in-memory cache environment in the cloud. A cache cluster is a collection of one or more cache nodes that work together to provide a highly scalable and available cache solution."
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_security_group"],
@@ -312,6 +334,8 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsElastiCacheGlobalReplicationGroupInfo:
     kind: ClassVar[str] = "aws_elasticache_global_replication_group_info"
+    kind_display: ClassVar[str] = "AWS ElastiCache Global Replication Group Info"
+    kind_description: ClassVar[str] = "ElastiCache Global Replication Group Info provides information about a global replication group in Amazon ElastiCache, which enables automatic and fast cross-regional data replication for caching purposes."
     mapping: ClassVar[Dict[str, Bender]] = {
         "global_replication_group_id": S("GlobalReplicationGroupId"),
         "global_replication_group_member_role": S("GlobalReplicationGroupMemberRole"),
@@ -323,6 +347,8 @@ class AwsElastiCacheGlobalReplicationGroupInfo:
 @define(eq=False, slots=False)
 class AwsElastiCacheReshardingStatus:
     kind: ClassVar[str] = "aws_elasticache_resharding_status"
+    kind_display: ClassVar[str] = "AWS ElastiCache Resharding Status"
+    kind_description: ClassVar[str] = "ElastiCache resharding status provides information about the status of the data resharding process in AWS ElastiCache, which is a fully managed in-memory data store service for caching frequently accessed data."
     mapping: ClassVar[Dict[str, Bender]] = {"slot_migration": S("SlotMigration", "ProgressPercentage")}
     slot_migration: Optional[float] = field(default=None)
 
@@ -330,6 +356,8 @@ class AwsElastiCacheReshardingStatus:
 @define(eq=False, slots=False)
 class AwsElastiCacheUserGroupsUpdateStatus:
     kind: ClassVar[str] = "aws_elasticache_user_groups_update_status"
+    kind_display: ClassVar[str] = "AWS ElastiCache User Groups Update Status"
+    kind_description: ClassVar[str] = "This resource represents the status of updating user groups in AWS ElastiCache. User groups in ElastiCache are used to manage user access to Redis or Memcached clusters."
     mapping: ClassVar[Dict[str, Bender]] = {
         "user_group_ids_to_add": S("UserGroupIdsToAdd", default=[]),
         "user_group_ids_to_remove": S("UserGroupIdsToRemove", default=[]),
@@ -341,6 +369,8 @@ class AwsElastiCacheUserGroupsUpdateStatus:
 @define(eq=False, slots=False)
 class AwsElastiCacheReplicationGroupPendingModifiedValues:
     kind: ClassVar[str] = "aws_elasticache_replication_group_pending_modified_values"
+    kind_display: ClassVar[str] = "AWS ElastiCache Replication Group Pending Modified Values"
+    kind_description: ClassVar[str] = "ElastiCache Replication Group Pending Modified Values is a feature in AWS ElastiCache that shows the modified values for a replication group that are in the process of being applied."
     mapping: ClassVar[Dict[str, Bender]] = {
         "primary_cluster_id": S("PrimaryClusterId"),
         "automatic_failover_status": S("AutomaticFailoverStatus"),
@@ -361,6 +391,8 @@ class AwsElastiCacheReplicationGroupPendingModifiedValues:
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeGroupMember:
     kind: ClassVar[str] = "aws_elasticache_node_group_member"
+    kind_display: ClassVar[str] = "AWS ElastiCache Node Group Member"
+    kind_description: ClassVar[str] = "ElastiCache Node Group Members are individual cache nodes within a node group in AWS ElastiCache, providing in-memory caching for faster performance of applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cache_cluster_id": S("CacheClusterId"),
         "cache_node_id": S("CacheNodeId"),
@@ -380,6 +412,8 @@ class AwsElastiCacheNodeGroupMember:
 @define(eq=False, slots=False)
 class AwsElastiCacheNodeGroup:
     kind: ClassVar[str] = "aws_elasticache_node_group"
+    kind_display: ClassVar[str] = "AWS ElastiCache Node Group"
+    kind_description: ClassVar[str] = "ElastiCache Node Group is a feature in AWS ElastiCache that allows you to scale out horizontally by adding multiple cache nodes to a cache cluster. It improves performance and provides high availability for caching data in your applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_group_id": S("NodeGroupId"),
         "status": S("Status"),
@@ -399,6 +433,8 @@ class AwsElastiCacheNodeGroup:
 @define(eq=False, slots=False)
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
+    kind_display: ClassVar[str] = "AWS ElastiCache Replication Group"
+    kind_description: ClassVar[str] = "ElastiCache Replication Groups in AWS are used to store and retrieve data in memory to improve the performance of web applications and reduce the load on databases."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-replication-groups", "ReplicationGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_elasticache_cache_cluster", "aws_kms_key"]},

@@ -19,6 +19,8 @@ service_name = "athena"
 @define(eq=False, slots=False)
 class AwsAthenaEncryptionConfiguration:
     kind: ClassVar[str] = "aws_athena_encryption_configuration"
+    kind_display: ClassVar[str] = "AWS Athena Encryption Configuration"
+    kind_description: ClassVar[str] = "Athena Encryption Configuration is a feature in AWS Athena that allows users to configure encryption settings for their query results."
     mapping: ClassVar[Dict[str, Bender]] = {"encryption_option": S("EncryptionOption"), "kms_key": S("KmsKey")}
     encryption_option: Optional[str] = None
     kms_key: Optional[str] = None
@@ -27,6 +29,8 @@ class AwsAthenaEncryptionConfiguration:
 @define(eq=False, slots=False)
 class AwsAthenaResultConfiguration:
     kind: ClassVar[str] = "aws_athena_result_configuration"
+    kind_display: ClassVar[str] = "AWS Athena Result Configuration"
+    kind_description: ClassVar[str] = "AWS Athena Result Configuration allows users to specify where query results should be stored in Amazon S3 and how they should be encrypted."
     mapping: ClassVar[Dict[str, Bender]] = {
         "output_location": S("OutputLocation"),
         "encryption_configuration": S("EncryptionConfiguration") >> Bend(AwsAthenaEncryptionConfiguration.mapping),
@@ -40,6 +44,8 @@ class AwsAthenaResultConfiguration:
 @define(eq=False, slots=False)
 class AwsAthenaEngineVersion:
     kind: ClassVar[str] = "aws_athena_engine_version"
+    kind_display: ClassVar[str] = "AWS Athena Engine Version"
+    kind_description: ClassVar[str] = "AWS Athena Engine Version is a service provided by Amazon Web Services for querying and analyzing data stored in Amazon S3 using standard SQL statements."
     mapping: ClassVar[Dict[str, Bender]] = {
         "selected_engine_version": S("SelectedEngineVersion"),
         "effective_engine_version": S("EffectiveEngineVersion"),
@@ -51,6 +57,8 @@ class AwsAthenaEngineVersion:
 @define(eq=False, slots=False)
 class AwsAthenaWorkGroupConfiguration:
     kind: ClassVar[str] = "aws_athena_work_group_configuration"
+    kind_display: ClassVar[str] = "AWS Athena Work Group Configuration"
+    kind_description: ClassVar[str] = "Athena work group configuration in Amazon Web Services, which allows users to configure settings for managing and executing queries in Athena."
     mapping: ClassVar[Dict[str, Bender]] = {
         "result_configuration": S("ResultConfiguration") >> Bend(AwsAthenaResultConfiguration.mapping),
         "enforce_work_group_configuration": S("EnforceWorkGroupConfiguration"),
@@ -70,6 +78,8 @@ class AwsAthenaWorkGroupConfiguration:
 @define(eq=False, slots=False)
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
+    kind_display: ClassVar[str] = "AWS Athena Work Group"
+    kind_description: ClassVar[str] = "Athena Work Group is a logical container for AWS Glue Data Catalog metadata and query statistics."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -185,6 +195,8 @@ class AwsAthenaWorkGroup(AwsResource):
 @define(eq=False, slots=False)
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
+    kind_display: ClassVar[str] = "AWS Athena Data Catalog"
+    kind_description: ClassVar[str] = "Athena Data Catalog is a managed metadata repository in AWS that allows you to store and organize metadata about your data sources, such as databases, tables, and partitions."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-data-catalogs", "DataCatalogsSummary")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

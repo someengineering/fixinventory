@@ -59,6 +59,8 @@ class EcsTaggable:
 @define(eq=False, slots=False)
 class AwsEcsManagedScaling:
     kind: ClassVar[str] = "aws_ecs_managed_scaling"
+    kind_display: ClassVar[str] = "AWS ECS Managed Scaling"
+    kind_description: ClassVar[str] = "ECS Managed Scaling is a feature of Amazon Elastic Container Service (ECS) that automatically adjusts the number of running tasks in an ECS service based on demand or a specified scaling policy."
     mapping: ClassVar[Dict[str, Bender]] = {
         "status": S("status"),
         "target_capacity": S("targetCapacity"),
@@ -76,6 +78,8 @@ class AwsEcsManagedScaling:
 @define(eq=False, slots=False)
 class AwsEcsAutoScalingGroupProvider:
     kind: ClassVar[str] = "aws_ecs_auto_scaling_group_provider"
+    kind_display: ClassVar[str] = "AWS ECS Auto Scaling Group Provider"
+    kind_description: ClassVar[str] = "ECS Auto Scaling Group Provider is a service in AWS that allows for automatic scaling of a containerized application deployed on Amazon ECS (Elastic Container Service) using Auto Scaling Groups."
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_scaling_group_arn": S("autoScalingGroupArn"),
         "managed_scaling": S("managedScaling") >> Bend(AwsEcsManagedScaling.mapping),
@@ -90,6 +94,8 @@ class AwsEcsAutoScalingGroupProvider:
 class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     # collection of capacity provider resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_capacity_provider"
+    kind_display: ClassVar[str] = "AWS ECS Capacity Provider"
+    kind_description: ClassVar[str] = "ECS Capacity Providers are used in Amazon's Elastic Container Service to manage the capacity and scaling for containerized applications."
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
@@ -143,6 +149,8 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEcsKeyValuePair:
     kind: ClassVar[str] = "aws_ecs_key_value_pair"
+    kind_display: ClassVar[str] = "AWS ECS Key Value Pair"
+    kind_description: ClassVar[str] = "A key value pair is a simple data structure used in AWS ECS (Elastic Container Service) to store and manage the metadata associated with containers."
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -151,6 +159,8 @@ class AwsEcsKeyValuePair:
 @define(eq=False, slots=False)
 class AwsEcsAttachment:
     kind: ClassVar[str] = "aws_ecs_attachment"
+    kind_display: ClassVar[str] = "AWS ECS Attachment"
+    kind_description: ClassVar[str] = "ECS Attachments are links between ECS tasks and Elastic Network Interfaces (ENIs) that enable containerized applications running in the ECS service to communicate with other resources within a Virtual Private Cloud (VPC)."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "type": S("type"),
@@ -166,6 +176,8 @@ class AwsEcsAttachment:
 @define(eq=False, slots=False)
 class AwsEcsAttribute:
     kind: ClassVar[str] = "aws_ecs_attribute"
+    kind_display: ClassVar[str] = "AWS ECS Attribute"
+    kind_description: ClassVar[str] = "ECS (Elastic Container Service) Attribute is a key-value pair that can be assigned to a specific ECS resource, such as a task definition or a service, to provide additional information or configuration settings."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "value": S("value"),
@@ -181,6 +193,8 @@ class AwsEcsAttribute:
 @define(eq=False, slots=False)
 class AwsEcsNetworkBinding:
     kind: ClassVar[str] = "aws_ecs_network_binding"
+    kind_display: ClassVar[str] = "AWS ECS Network Binding"
+    kind_description: ClassVar[str] = "ECS network binding is a service in Amazon's Elastic Container Service that allows containers within a task to communicate with each other and external services securely."
     mapping: ClassVar[Dict[str, Bender]] = {
         "bind_ip": S("bindIP"),
         "container_port": S("containerPort"),
@@ -196,6 +210,8 @@ class AwsEcsNetworkBinding:
 @define(eq=False, slots=False)
 class AwsEcsNetworkInterface:
     kind: ClassVar[str] = "aws_ecs_network_interface"
+    kind_display: ClassVar[str] = "AWS ECS Network Interface"
+    kind_description: ClassVar[str] = "ECS Network Interface is a networking component used by the Amazon Elastic Container Service (ECS) to connect containers to network resources within the AWS cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attachment_id": S("attachmentId"),
         "private_ipv4_address": S("privateIpv4Address"),
@@ -209,6 +225,8 @@ class AwsEcsNetworkInterface:
 @define(eq=False, slots=False)
 class AwsEcsManagedAgent:
     kind: ClassVar[str] = "aws_ecs_managed_agent"
+    kind_display: ClassVar[str] = "AWS ECS Managed Agent"
+    kind_description: ClassVar[str] = "The AWS ECS Managed Agent is a component of Amazon Elastic Container Service (ECS) that runs on each EC2 instance in an ECS cluster and manages the lifecycle of tasks and container instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_started_at": S("lastStartedAt"),
         "name": S("name"),
@@ -224,6 +242,8 @@ class AwsEcsManagedAgent:
 @define(eq=False, slots=False)
 class AwsEcsContainer:
     kind: ClassVar[str] = "aws_ecs_container"
+    kind_display: ClassVar[str] = "AWS ECS Container"
+    kind_description: ClassVar[str] = "ECS Containers are a lightweight and portable way to package, deploy, and run applications in a highly scalable and managed container environment provided by Amazon Elastic Container Service (ECS)."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_arn": S("containerArn"),
         "task_arn": S("taskArn"),
@@ -265,6 +285,8 @@ class AwsEcsContainer:
 @define(eq=False, slots=False)
 class AwsEcsInferenceAccelerator:
     kind: ClassVar[str] = "aws_ecs_inference_accelerator"
+    kind_display: ClassVar[str] = "AWS ECS Inference Accelerator"
+    kind_description: ClassVar[str] = "ECS Inference Accelerators are resources used by Amazon ECS to accelerate deep learning inference workloads, improving performance and reducing latency."
     mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
     device_name: Optional[str] = field(default=None)
     device_type: Optional[str] = field(default=None)
@@ -273,6 +295,8 @@ class AwsEcsInferenceAccelerator:
 @define(eq=False, slots=False)
 class AwsEcsEnvironmentFile:
     kind: ClassVar[str] = "aws_ecs_environment_file"
+    kind_display: ClassVar[str] = "AWS ECS Environment File"
+    kind_description: ClassVar[str] = "ECS Environment Files are used to store environment variables for containers in Amazon Elastic Container Service (ECS), allowing users to easily manage and configure these variables for their applications."
     mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
     value: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -281,6 +305,8 @@ class AwsEcsEnvironmentFile:
 @define(eq=False, slots=False)
 class AwsEcsResourceRequirement:
     kind: ClassVar[str] = "aws_ecs_resource_requirement"
+    kind_display: ClassVar[str] = "AWS ECS Resource Requirement"
+    kind_description: ClassVar[str] = "Resource requirements for running containerized applications on Amazon Elastic Container Service (ECS), including CPU and memory allocation."
     mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "type": S("type")}
     value: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -289,6 +315,8 @@ class AwsEcsResourceRequirement:
 @define(eq=False, slots=False)
 class AwsEcsContainerOverride:
     kind: ClassVar[str] = "aws_ecs_container_override"
+    kind_display: ClassVar[str] = "AWS ECS Container Override"
+    kind_description: ClassVar[str] = "ECS Container Overrides allow users to override the default values of container instance attributes defined in a task definition for a specific task run."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "command": S("command", default=[]),
@@ -312,6 +340,8 @@ class AwsEcsContainerOverride:
 @define(eq=False, slots=False)
 class AwsEcsTaskOverride:
     kind: ClassVar[str] = "aws_ecs_task_override"
+    kind_display: ClassVar[str] = "AWS ECS Task Override"
+    kind_description: ClassVar[str] = "ECS Task Overrides allow you to change the default values of a task definition when running an ECS task."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_overrides": S("containerOverrides", default=[]) >> ForallBend(AwsEcsContainerOverride.mapping),
         "cpu": S("cpu"),
@@ -335,6 +365,8 @@ class AwsEcsTaskOverride:
 class AwsEcsTask(EcsTaggable, AwsResource):
     # collection of task resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_task"
+    kind_display: ClassVar[str] = "AWS ECS Task"
+    kind_description: ClassVar[str] = "ECS Tasks are containers managed by Amazon Elastic Container Service, which allow users to run and scale applications easily using Docker containers."
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ecs_task_definition"],
@@ -454,6 +486,8 @@ class AwsEcsTask(EcsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEcsPortMapping:
     kind: ClassVar[str] = "aws_ecs_port_mapping"
+    kind_display: ClassVar[str] = "AWS ECS Port Mapping"
+    kind_description: ClassVar[str] = "Port mapping in Amazon Elastic Container Service (ECS) allows containers running within a task to receive inbound traffic on specified port numbers."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_port": S("containerPort"),
         "host_port": S("hostPort"),
@@ -467,6 +501,8 @@ class AwsEcsPortMapping:
 @define(eq=False, slots=False)
 class AwsEcsMountPoint:
     kind: ClassVar[str] = "aws_ecs_mount_point"
+    kind_display: ClassVar[str] = "AWS ECS Mount Point"
+    kind_description: ClassVar[str] = "ECS Mount Points are used in Amazon EC2 Container Service to attach persistent storage volumes to containers in a task definition."
     mapping: ClassVar[Dict[str, Bender]] = {
         "source_volume": S("sourceVolume"),
         "container_path": S("containerPath"),
@@ -480,6 +516,8 @@ class AwsEcsMountPoint:
 @define(eq=False, slots=False)
 class AwsEcsVolumeFrom:
     kind: ClassVar[str] = "aws_ecs_volume_from"
+    kind_display: ClassVar[str] = "AWS ECS Volume From"
+    kind_description: ClassVar[str] = "Volume From is a feature in Amazon Elastic Container Service (ECS) that allows a container to access the contents of another container's mounted volumes."
     mapping: ClassVar[Dict[str, Bender]] = {"source_container": S("sourceContainer"), "read_only": S("readOnly")}
     source_container: Optional[str] = field(default=None)
     read_only: Optional[bool] = field(default=None)
@@ -488,6 +526,8 @@ class AwsEcsVolumeFrom:
 @define(eq=False, slots=False)
 class AwsEcsKernelCapabilities:
     kind: ClassVar[str] = "aws_ecs_kernel_capabilities"
+    kind_display: ClassVar[str] = "AWS ECS Kernel Capabilities"
+    kind_description: ClassVar[str] = "Kernel capabilities allow fine-grained control over privileged operations, such as modifying network settings or accessing hardware resources, for tasks running in Amazon ECS."
     mapping: ClassVar[Dict[str, Bender]] = {"add": S("add", default=[]), "drop": S("drop", default=[])}
     add: List[str] = field(factory=list)
     drop: List[str] = field(factory=list)
@@ -496,6 +536,8 @@ class AwsEcsKernelCapabilities:
 @define(eq=False, slots=False)
 class AwsEcsDevice:
     kind: ClassVar[str] = "aws_ecs_device"
+    kind_display: ClassVar[str] = "AWS ECS Device"
+    kind_description: ClassVar[str] = "ECS Device refers to a device connected to Amazon Elastic Container Service, which is a container management service that allows you to easily run and scale containerized applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "host_path": S("hostPath"),
         "container_path": S("containerPath"),
@@ -509,6 +551,8 @@ class AwsEcsDevice:
 @define(eq=False, slots=False)
 class AwsEcsTmpfs:
     kind: ClassVar[str] = "aws_ecs_tmpfs"
+    kind_display: ClassVar[str] = "AWS ECS Tmpfs"
+    kind_description: ClassVar[str] = "Tmpfs is a temporary file storage system in AWS Elastic Container Service (ECS) that can be mounted as a memory-backed file system for containers. It provides fast and volatile storage for temporary files during container runtime."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_path": S("containerPath"),
         "size": S("size"),
@@ -522,6 +566,8 @@ class AwsEcsTmpfs:
 @define(eq=False, slots=False)
 class AwsEcsLinuxParameters:
     kind: ClassVar[str] = "aws_ecs_linux_parameters"
+    kind_display: ClassVar[str] = "AWS ECS Linux Parameters"
+    kind_description: ClassVar[str] = "ECS Linux Parameters are configuration settings for Amazon Elastic Container Service (ECS) that enable you to modify container behavior on Linux instances within an ECS cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "capabilities": S("capabilities") >> Bend(AwsEcsKernelCapabilities.mapping),
         "devices": S("devices", default=[]) >> ForallBend(AwsEcsDevice.mapping),
@@ -543,6 +589,8 @@ class AwsEcsLinuxParameters:
 @define(eq=False, slots=False)
 class AwsEcsSecret:
     kind: ClassVar[str] = "aws_ecs_secret"
+    kind_display: ClassVar[str] = "AWS ECS Secret"
+    kind_description: ClassVar[str] = "ECS Secrets provide a secure way to store and manage sensitive information, such as database credentials or API keys, for use by applications running on AWS Elastic Container Service."
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value_from": S("valueFrom")}
     name: Optional[str] = field(default=None)
     value_from: Optional[str] = field(default=None)
@@ -551,6 +599,8 @@ class AwsEcsSecret:
 @define(eq=False, slots=False)
 class AwsEcsContainerDependency:
     kind: ClassVar[str] = "aws_ecs_container_dependency"
+    kind_display: ClassVar[str] = "AWS ECS Container Dependency"
+    kind_description: ClassVar[str] = "ECS Container Dependency is a feature in AWS ECS (Elastic Container Service) that allows you to define dependencies between containers within a task definition to ensure proper sequencing and synchronization of container startup and shutdown."
     mapping: ClassVar[Dict[str, Bender]] = {"container_name": S("containerName"), "condition": S("condition")}
     container_name: Optional[str] = field(default=None)
     condition: Optional[str] = field(default=None)
@@ -559,6 +609,8 @@ class AwsEcsContainerDependency:
 @define(eq=False, slots=False)
 class AwsEcsHostEntry:
     kind: ClassVar[str] = "aws_ecs_host_entry"
+    kind_display: ClassVar[str] = "AWS ECS Host Entry"
+    kind_description: ClassVar[str] = "ECS Host Entries are configurations that specify the IP address and hostname of a registered container instance in Amazon Elastic Container Service (ECS)."
     mapping: ClassVar[Dict[str, Bender]] = {"hostname": S("hostname"), "ip_address": S("ipAddress")}
     hostname: Optional[str] = field(default=None)
     ip_address: Optional[str] = field(default=None)
@@ -567,6 +619,8 @@ class AwsEcsHostEntry:
 @define(eq=False, slots=False)
 class AwsEcsUlimit:
     kind: ClassVar[str] = "aws_ecs_ulimit"
+    kind_display: ClassVar[str] = "AWS ECS Ulimit"
+    kind_description: ClassVar[str] = "ECS Ulimit is a resource limit configuration for Amazon Elastic Container Service (ECS) tasks, which allows users to set specific limits on various system resources such as the number of open files or maximum memory usage for each container."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "soft_limit": S("softLimit"),
@@ -580,6 +634,8 @@ class AwsEcsUlimit:
 @define(eq=False, slots=False)
 class AwsEcsLogConfiguration:
     kind: ClassVar[str] = "aws_ecs_log_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Log Configuration"
+    kind_description: ClassVar[str] = "ECS Log Configuration is a feature of Amazon Elastic Container Service that allows you to configure logging for your containerized applications and view the logs in various destinations such as CloudWatch Logs or Amazon S3."
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_driver": S("logDriver"),
         "options": S("options"),
@@ -593,6 +649,8 @@ class AwsEcsLogConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsHealthCheck:
     kind: ClassVar[str] = "aws_ecs_health_check"
+    kind_display: ClassVar[str] = "AWS ECS Health Check"
+    kind_description: ClassVar[str] = "ECS Health Check is a feature of Amazon Elastic Container Service (ECS) that allows you to monitor the health of your containers by conducting periodic health checks and reporting the results."
     mapping: ClassVar[Dict[str, Bender]] = {
         "command": S("command", default=[]),
         "interval": S("interval"),
@@ -610,6 +668,8 @@ class AwsEcsHealthCheck:
 @define(eq=False, slots=False)
 class AwsEcsSystemControl:
     kind: ClassVar[str] = "aws_ecs_system_control"
+    kind_display: ClassVar[str] = "AWS ECS System Control"
+    kind_description: ClassVar[str] = "ECS System Control is a service in AWS ECS (Elastic Container Service) that allows users to manage and control the deployment of containers on a cloud environment."
     mapping: ClassVar[Dict[str, Bender]] = {"namespace": S("namespace"), "value": S("value")}
     namespace: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -618,6 +678,8 @@ class AwsEcsSystemControl:
 @define(eq=False, slots=False)
 class AwsEcsFirelensConfiguration:
     kind: ClassVar[str] = "aws_ecs_firelens_configuration"
+    kind_display: ClassVar[str] = "AWS ECS FireLens Configuration"
+    kind_description: ClassVar[str] = "AWS ECS FireLens Configuration is a feature of Amazon Elastic Container Service (ECS) that allows you to collect, process, and route logs from your containers to different storage and analytics services."
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "options": S("options")}
     type: Optional[str] = field(default=None)
     options: Optional[Dict[str, str]] = field(default=None)
@@ -626,6 +688,8 @@ class AwsEcsFirelensConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsContainerDefinition:
     kind: ClassVar[str] = "aws_ecs_container_definition"
+    kind_display: ClassVar[str] = "AWS ECS Container Definition"
+    kind_description: ClassVar[str] = "ECS Container Definition is a configuration that defines how a container should be run within an Amazon ECS cluster. It includes details such as image, CPU and memory resources, environment variables, and networking settings."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "image": S("image"),
@@ -711,6 +775,8 @@ class AwsEcsContainerDefinition:
 @define(eq=False, slots=False)
 class AwsEcsDockerVolumeConfiguration:
     kind: ClassVar[str] = "aws_ecs_docker_volume_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Docker Volume Configuration"
+    kind_description: ClassVar[str] = "ECS Docker Volume Configuration is a feature in Amazon ECS (Elastic Container Service) that allows you to specify how Docker volumes should be configured for containers running in an ECS cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "scope": S("scope"),
         "autoprovision": S("autoprovision"),
@@ -728,6 +794,8 @@ class AwsEcsDockerVolumeConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsEFSAuthorizationConfig:
     kind: ClassVar[str] = "aws_ecs_efs_authorization_config"
+    kind_display: ClassVar[str] = "AWS ECS EFS Authorization Config"
+    kind_description: ClassVar[str] = "ECS EFS Authorization Config is a feature in AWS ECS (Elastic Container Service) that allows fine-grained permission control for using Amazon EFS (Elastic File System) with ECS tasks."
     mapping: ClassVar[Dict[str, Bender]] = {"access_point_id": S("accessPointId"), "iam": S("iam")}
     access_point_id: Optional[str] = field(default=None)
     iam: Optional[str] = field(default=None)
@@ -736,6 +804,8 @@ class AwsEcsEFSAuthorizationConfig:
 @define(eq=False, slots=False)
 class AwsEcsEFSVolumeConfiguration:
     kind: ClassVar[str] = "aws_ecs_efs_volume_configuration"
+    kind_display: ClassVar[str] = "AWS ECS EFS Volume Configuration"
+    kind_description: ClassVar[str] = "ECS EFS Volume Configuration is a feature in AWS Elastic Container Service (ECS) that allows you to configure volumes using Amazon Elastic File System (EFS) for storing persistent data in containers."
     mapping: ClassVar[Dict[str, Bender]] = {
         "file_system_id": S("fileSystemId"),
         "root_directory": S("rootDirectory"),
@@ -753,6 +823,8 @@ class AwsEcsEFSVolumeConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsFSxWindowsFileServerAuthorizationConfig:
     kind: ClassVar[str] = "aws_ecs_f_sx_windows_file_server_authorization_config"
+    kind_display: ClassVar[str] = "AWS ECS FSx Windows File Server Authorization Config"
+    kind_description: ClassVar[str] = "ECS FSx Windows File Server Authorization Config is a configuration resource in AWS Elastic Container Service (ECS) that allows secure access to an FSx for Windows File Server from ECS tasks running on Amazon EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {"credentials_parameter": S("credentialsParameter"), "domain": S("domain")}
     credentials_parameter: Optional[str] = field(default=None)
     domain: Optional[str] = field(default=None)
@@ -761,6 +833,8 @@ class AwsEcsFSxWindowsFileServerAuthorizationConfig:
 @define(eq=False, slots=False)
 class AwsEcsFSxWindowsFileServerVolumeConfiguration:
     kind: ClassVar[str] = "aws_ecs_f_sx_windows_file_server_volume_configuration"
+    kind_display: ClassVar[str] = "AWS ECS FSx Windows File Server Volume Configuration"
+    kind_description: ClassVar[str] = "FSx Windows File Server Volume Configuration provides persistent and scalable storage for ECS tasks running on Windows instances in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "file_system_id": S("fileSystemId"),
         "root_directory": S("rootDirectory"),
@@ -774,6 +848,8 @@ class AwsEcsFSxWindowsFileServerVolumeConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsVolume:
     kind: ClassVar[str] = "aws_ecs_volume"
+    kind_display: ClassVar[str] = "AWS ECS Volume"
+    kind_description: ClassVar[str] = "ECS Volumes are persistent block storage devices that can be attached to Amazon ECS containers, providing data storage for applications running on the Amazon Elastic Container Service."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "host": S("host", "sourcePath"),
@@ -794,6 +870,8 @@ class AwsEcsVolume:
 @define(eq=False, slots=False)
 class AwsEcsTaskDefinitionPlacementConstraint:
     kind: ClassVar[str] = "aws_ecs_task_definition_placement_constraint"
+    kind_display: ClassVar[str] = "AWS ECS Task Definition Placement Constraint"
+    kind_description: ClassVar[str] = "ECS Task Definition Placement Constraints are rules that specify the placement of tasks within an Amazon ECS cluster based on resource requirements or custom expressions."
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "expression": S("expression")}
     type: Optional[str] = field(default=None)
     expression: Optional[str] = field(default=None)
@@ -802,6 +880,8 @@ class AwsEcsTaskDefinitionPlacementConstraint:
 @define(eq=False, slots=False)
 class AwsEcsRuntimePlatform:
     kind: ClassVar[str] = "aws_ecs_runtime_platform"
+    kind_display: ClassVar[str] = "AWS ECS Runtime Platform"
+    kind_description: ClassVar[str] = "The AWS ECS Runtime Platform is a container management service provided by Amazon Web Services, allowing users to easily run and scale containerized applications on AWS."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cpu_architecture": S("cpuArchitecture"),
         "operating_system_family": S("operatingSystemFamily"),
@@ -813,6 +893,8 @@ class AwsEcsRuntimePlatform:
 @define(eq=False, slots=False)
 class AwsEcsProxyConfiguration:
     kind: ClassVar[str] = "aws_ecs_proxy_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Proxy Configuration"
+    kind_description: ClassVar[str] = "ECS Proxy Configuration is a feature in Amazon Elastic Container Service that allows for configuring the proxy settings for containers running in an ECS cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "type": S("type"),
         "container_name": S("containerName"),
@@ -826,6 +908,8 @@ class AwsEcsProxyConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
+    kind_display: ClassVar[str] = "AWS ECS Task Definition"
+    kind_description: ClassVar[str] = "An ECS Task Definition is a blueprint for running tasks in AWS Elastic Container Service (ECS), providing information such as the Docker image, CPU, memory, network configuration, and other parameters."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-task-definitions", "taskDefinitionArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
@@ -934,6 +1018,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEcsLoadBalancer:
     kind: ClassVar[str] = "aws_ecs_load_balancer"
+    kind_display: ClassVar[str] = "AWS ECS Load Balancer"
+    kind_description: ClassVar[str] = "ECS Load Balancers are elastic load balancing services provided by AWS for distributing incoming traffic to multiple targets within an Amazon Elastic Container Service (ECS) cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_group_arn": S("targetGroupArn"),
         "load_balancer_name": S("loadBalancerName"),
@@ -949,6 +1035,8 @@ class AwsEcsLoadBalancer:
 @define(eq=False, slots=False)
 class AwsEcsServiceRegistry:
     kind: ClassVar[str] = "aws_ecs_service_registry"
+    kind_display: ClassVar[str] = "AWS ECS Service Registry"
+    kind_description: ClassVar[str] = "The AWS ECS Service Registry is a service provided by Amazon Web Services for managing the registry of services in ECS (Elastic Container Service) tasks and clusters."
     mapping: ClassVar[Dict[str, Bender]] = {
         "registry_arn": S("registryArn"),
         "port": S("port"),
@@ -964,6 +1052,8 @@ class AwsEcsServiceRegistry:
 @define(eq=False, slots=False)
 class AwsEcsCapacityProviderStrategyItem:
     kind: ClassVar[str] = "aws_ecs_capacity_provider_strategy_item"
+    kind_display: ClassVar[str] = "AWS ECS Capacity Provider Strategy Item"
+    kind_description: ClassVar[str] = "ECS Capacity Provider Strategy Item is a configuration option used in Amazon Elastic Container Service (ECS) for managing the capacity of EC2 instances in an ECS cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_provider": S("capacityProvider"),
         "weight": S("weight"),
@@ -977,6 +1067,8 @@ class AwsEcsCapacityProviderStrategyItem:
 @define(eq=False, slots=False)
 class AwsEcsDeploymentCircuitBreaker:
     kind: ClassVar[str] = "aws_ecs_deployment_circuit_breaker"
+    kind_display: ClassVar[str] = "AWS ECS Deployment Circuit Breaker"
+    kind_description: ClassVar[str] = "Circuit Breaker is a feature in Amazon Elastic Container Service (ECS) that helps prevent application failures by stopping the deployment of a new version if it exceeds a specified error rate or latency threshold."
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "rollback": S("rollback")}
     enable: Optional[bool] = field(default=None)
     rollback: Optional[bool] = field(default=None)
@@ -985,6 +1077,8 @@ class AwsEcsDeploymentCircuitBreaker:
 @define(eq=False, slots=False)
 class AwsEcsDeploymentConfiguration:
     kind: ClassVar[str] = "aws_ecs_deployment_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Deployment Configuration"
+    kind_description: ClassVar[str] = "ECS Deployment Configurations are used to manage the deployment of containers in Amazon ECS, allowing users to specify various properties and settings for their container deployments."
     mapping: ClassVar[Dict[str, Bender]] = {
         "deployment_circuit_breaker": S("deploymentCircuitBreaker") >> Bend(AwsEcsDeploymentCircuitBreaker.mapping),
         "maximum_percent": S("maximumPercent"),
@@ -998,6 +1092,8 @@ class AwsEcsDeploymentConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsAwsVpcConfiguration:
     kind: ClassVar[str] = "aws_ecs_aws_vpc_configuration"
+    kind_display: ClassVar[str] = "AWS ECS AWS VPC Configuration"
+    kind_description: ClassVar[str] = "ECS AWS VPC Configuration is a configuration setting for Amazon Elastic Container Service (ECS) that allows you to specify the virtual private cloud (VPC) configuration for your ECS tasks and services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "subnets": S("subnets", default=[]),
         "security_groups": S("securityGroups", default=[]),
@@ -1011,6 +1107,8 @@ class AwsEcsAwsVpcConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsNetworkConfiguration:
     kind: ClassVar[str] = "aws_ecs_network_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Network Configuration"
+    kind_description: ClassVar[str] = "ECS Network Configuration is a feature in Amazon Elastic Container Service (ECS) that allows users to configure networking settings for their containerized applications running on ECS. It includes specifications for the VPC, subnet, security groups, and other network resources."
     mapping: ClassVar[Dict[str, Bender]] = {
         "awsvpc_configuration": S("awsvpcConfiguration") >> Bend(AwsEcsAwsVpcConfiguration.mapping)
     }
@@ -1020,6 +1118,8 @@ class AwsEcsNetworkConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsScale:
     kind: ClassVar[str] = "aws_ecs_scale"
+    kind_display: ClassVar[str] = "AWS ECS Scale"
+    kind_description: ClassVar[str] = "ECS Scale is a feature in AWS Elastic Container Service (ECS) that allows you to automatically scale the number of containers running in a cluster based on application load and resource utilization."
     mapping: ClassVar[Dict[str, Bender]] = {"value": S("value"), "unit": S("unit")}
     value: Optional[float] = field(default=None)
     unit: Optional[str] = field(default=None)
@@ -1028,6 +1128,8 @@ class AwsEcsScale:
 @define(eq=False, slots=False)
 class AwsEcsTaskSet:
     kind: ClassVar[str] = "aws_ecs_task_set"
+    kind_display: ClassVar[str] = "AWS ECS Task Set"
+    kind_description: ClassVar[str] = "ECS Task Sets are a way to manage multiple versions of a task definition in Amazon ECS, allowing users to create and manage a set of tasks running in a service."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "task_set_arn": S("taskSetArn"),
@@ -1082,6 +1184,8 @@ class AwsEcsTaskSet:
 @define(eq=False, slots=False)
 class AwsEcsDeployment:
     kind: ClassVar[str] = "aws_ecs_deployment"
+    kind_display: ClassVar[str] = "AWS ECS Deployment"
+    kind_description: ClassVar[str] = "ECS (Elastic Container Service) Deployment is a service provided by AWS that allows you to run and manage Docker containers on a cluster of EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "status": S("status"),
@@ -1122,6 +1226,8 @@ class AwsEcsDeployment:
 @define(eq=False, slots=False)
 class AwsEcsServiceEvent:
     kind: ClassVar[str] = "aws_ecs_service_event"
+    kind_display: ClassVar[str] = "AWS ECS Service Event"
+    kind_description: ClassVar[str] = "ECS service events are used to monitor and track changes in the state of Amazon Elastic Container Service (ECS) services, such as task placement or service scaling events."
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "created_at": S("createdAt"), "message": S("message")}
     id: Optional[str] = field(default=None)
     created_at: Optional[datetime] = field(default=None)
@@ -1131,6 +1237,8 @@ class AwsEcsServiceEvent:
 @define(eq=False, slots=False)
 class AwsEcsPlacementConstraint:
     kind: ClassVar[str] = "aws_ecs_placement_constraint"
+    kind_display: ClassVar[str] = "AWS ECS Placement Constraint"
+    kind_description: ClassVar[str] = "ECS Placement Constraints are rules used to define where tasks or services can be placed within an Amazon ECS cluster, based on attributes such as instance type, availability zone, or custom metadata."
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "expression": S("expression")}
     type: Optional[str] = field(default=None)
     expression: Optional[str] = field(default=None)
@@ -1139,6 +1247,8 @@ class AwsEcsPlacementConstraint:
 @define(eq=False, slots=False)
 class AwsEcsPlacementStrategy:
     kind: ClassVar[str] = "aws_ecs_placement_strategy"
+    kind_display: ClassVar[str] = "AWS ECS Placement Strategy"
+    kind_description: ClassVar[str] = "ECS Placement Strategies help you define how tasks in Amazon Elastic Container Service (ECS) are placed on container instances within a cluster, taking into consideration factors like instance attributes, availability zones, and task resource requirements."
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("type"), "field": S("field")}
     type: Optional[str] = field(default=None)
     field: Optional[str] = field(default=None)
@@ -1148,6 +1258,8 @@ class AwsEcsPlacementStrategy:
 class AwsEcsService(EcsTaggable, AwsResource):
     # collection of service resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_service"
+    kind_display: ClassVar[str] = "AWS ECS Service"
+    kind_description: ClassVar[str] = "ECS (Elastic Container Service) is a scalable container orchestration service provided by AWS, allowing users to easily manage, deploy, and scale containerized applications."
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -1347,6 +1459,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEcsVersionInfo:
     kind: ClassVar[str] = "aws_ecs_version_info"
+    kind_display: ClassVar[str] = "AWS ECS Version Info"
+    kind_description: ClassVar[str] = "ECS Version Info provides information about the different versions of Amazon Elastic Container Service (ECS) available in the AWS cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "agent_version": S("agentVersion"),
         "agent_hash": S("agentHash"),
@@ -1360,6 +1474,8 @@ class AwsEcsVersionInfo:
 @define(eq=False, slots=False)
 class AwsEcsResource:
     kind: ClassVar[str] = "aws_ecs_resource"
+    kind_display: ClassVar[str] = "AWS ECS Resource"
+    kind_description: ClassVar[str] = "ECS Resources are computing resources that can be used in Amazon Elastic Container Service (ECS) to deploy and run containerized applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "type": S("type"),
@@ -1379,6 +1495,8 @@ class AwsEcsResource:
 @define(eq=False, slots=False)
 class AwsEcsInstanceHealthCheckResult:
     kind: ClassVar[str] = "aws_ecs_instance_health_check_result"
+    kind_display: ClassVar[str] = "AWS ECS Instance Health Check Result"
+    kind_description: ClassVar[str] = "ECS Instance Health Check Result is the outcome of the health check performed on an Amazon ECS instance, indicating whether the instance is healthy or not."
     mapping: ClassVar[Dict[str, Bender]] = {
         "type": S("type"),
         "status": S("status"),
@@ -1394,6 +1512,8 @@ class AwsEcsInstanceHealthCheckResult:
 @define(eq=False, slots=False)
 class AwsEcsContainerInstanceHealthStatus:
     kind: ClassVar[str] = "aws_ecs_container_instance_health_status"
+    kind_display: ClassVar[str] = "AWS ECS Container Instance Health Status"
+    kind_description: ClassVar[str] = "ECS Container Instance Health Status represents the health status of a container instance in Amazon ECS (Elastic Container Service). It indicates whether the container instance is healthy or not based on the reported health status of the underlying resources."
     mapping: ClassVar[Dict[str, Bender]] = {
         "overall_status": S("overallStatus"),
         "details": S("details", default=[]) >> ForallBend(AwsEcsInstanceHealthCheckResult.mapping),
@@ -1406,6 +1526,8 @@ class AwsEcsContainerInstanceHealthStatus:
 class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
+    kind_display: ClassVar[str] = "AWS ECS Container Instance"
+    kind_description: ClassVar[str] = "ECS Container Instances are virtual servers in Amazon's Elastic Container Service (ECS) that are used to run and manage containers within the ECS environment."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
@@ -1471,6 +1593,8 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEcsExecuteCommandLogConfiguration:
     kind: ClassVar[str] = "aws_ecs_execute_command_log_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Execute Command Log Configuration"
+    kind_description: ClassVar[str] = "ECS Execute Command Log Configuration is used to configure the logging for Execute Command feature in Amazon Elastic Container Service (ECS)."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloud_watch_log_group_name": S("cloudWatchLogGroupName"),
         "cloud_watch_encryption_enabled": S("cloudWatchEncryptionEnabled"),
@@ -1488,6 +1612,8 @@ class AwsEcsExecuteCommandLogConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsExecuteCommandConfiguration:
     kind: ClassVar[str] = "aws_ecs_execute_command_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Execute Command Configuration"
+    kind_description: ClassVar[str] = "ECS Execute Command Configuration is a feature in AWS ECS that allows users to run commands on their ECS containers for debugging and troubleshooting purposes."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kms_key_id": S("kmsKeyId"),
         "logging": S("logging"),
@@ -1501,6 +1627,8 @@ class AwsEcsExecuteCommandConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsClusterConfiguration:
     kind: ClassVar[str] = "aws_ecs_cluster_configuration"
+    kind_display: ClassVar[str] = "AWS ECS Cluster Configuration"
+    kind_description: ClassVar[str] = "ECS Cluster Configuration is a service provided by Amazon Web Services that allows users to define and configure a cluster of container instances using Amazon Elastic Container Service (ECS). It enables the management and orchestration of containerized applications in a scalable and highly available manner."
     mapping: ClassVar[Dict[str, Bender]] = {
         "execute_command_configuration": S("executeCommandConfiguration")
         >> Bend(AwsEcsExecuteCommandConfiguration.mapping)
@@ -1511,6 +1639,8 @@ class AwsEcsClusterConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsClusterSetting:
     kind: ClassVar[str] = "aws_ecs_cluster_setting"
+    kind_display: ClassVar[str] = "AWS ECS Cluster Setting"
+    kind_description: ClassVar[str] = "ECS Cluster Settings are configurations that define the properties and behavior of an Amazon ECS cluster, allowing users to customize and manage their containerized applications efficiently."
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -1519,6 +1649,8 @@ class AwsEcsClusterSetting:
 @define(eq=False, slots=False)
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
+    kind_display: ClassVar[str] = "AWS ECS Cluster"
+    kind_description: ClassVar[str] = "ECS (Elastic Container Service) Cluster is a managed cluster of Amazon EC2 instances used to deploy and manage Docker containers."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusterArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},

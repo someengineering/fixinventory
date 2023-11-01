@@ -85,6 +85,8 @@ class CloudFrontTaggable:
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginCustomHeader:
     kind: ClassVar[str] = "aws_cloudfront_origin_custom_header"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Custom Header"
+    kind_description: ClassVar[str] = "AWS CloudFront Origin Custom Header is a feature of Amazon CloudFront that allows users to add custom headers to requests sent to the origin server."
     mapping: ClassVar[Dict[str, Bender]] = {"header_name": S("HeaderName"), "header_value": S("HeaderValue")}
     header_name: Optional[str] = field(default=None)
     header_value: Optional[str] = field(default=None)
@@ -93,6 +95,8 @@ class AwsCloudFrontOriginCustomHeader:
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomOriginConfig:
     kind: ClassVar[str] = "aws_cloudfront_custom_origin_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Custom Origin Configuration"
+    kind_description: ClassVar[str] = "CloudFront Custom Origin Configuration allows users to customize the settings of the origin (source) server for their CloudFront distribution. This includes specifying the origin server's domain name, port, and protocol settings."
     mapping: ClassVar[Dict[str, Bender]] = {
         "http_port": S("HTTPPort"),
         "https_port": S("HTTPSPort"),
@@ -112,6 +116,8 @@ class AwsCloudFrontCustomOriginConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginShield:
     kind: ClassVar[str] = "aws_cloudfront_origin_shield"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Shield"
+    kind_description: ClassVar[str] = "CloudFront Origin Shield is a feature offered by AWS CloudFront that adds an additional layer of protection and reliability to the origin servers by caching the content at an intermediate layer."
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "origin_shield_region": S("OriginShieldRegion")}
     enabled: Optional[bool] = field(default=None)
     origin_shield_region: Optional[str] = field(default=None)
@@ -120,6 +126,8 @@ class AwsCloudFrontOriginShield:
 @define(eq=False, slots=False)
 class AwsCloudFrontOrigin:
     kind: ClassVar[str] = "aws_cloudfront_origin"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin"
+    kind_description: ClassVar[str] = "CloudFront Origin represents the source of content for distribution through the Amazon CloudFront content delivery network."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "domain_name": S("DomainName"),
@@ -147,6 +155,8 @@ class AwsCloudFrontOrigin:
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupFailoverCriteria:
     kind: ClassVar[str] = "aws_cloudfront_origin_group_failover_criteria"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Group Failover Criteria"
+    kind_description: ClassVar[str] = "Failover criteria for AWS CloudFront origin groups, which determine when a secondary origin server is used as a fallback in case the primary origin server fails."
     mapping: ClassVar[Dict[str, Bender]] = {"status_codes": S("StatusCodes", "Items", default=[])}
     status_codes: List[str] = field(factory=list)
 
@@ -154,6 +164,8 @@ class AwsCloudFrontOriginGroupFailoverCriteria:
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroupMembers:
     kind: ClassVar[str] = "aws_cloudfront_origin_group_members"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Group Members"
+    kind_description: ClassVar[str] = "CloudFront Origin Group Members are the origin servers that are part of an Origin Group in AWS CloudFront. They serve as the source for content delivered by CloudFront distributions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "origin_id": S("OriginId"),
     }
@@ -163,6 +175,8 @@ class AwsCloudFrontOriginGroupMembers:
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginGroup:
     kind: ClassVar[str] = "aws_cloudfront_origin_group"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Group"
+    kind_description: ClassVar[str] = "An AWS CloudFront Origin Group is a collection of origins that you can associate with a distribution, allowing you to specify multiple origin resources for content delivery."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "failover_criteria": S("FailoverCriteria") >> Bend(AwsCloudFrontOriginGroupFailoverCriteria.mapping),
@@ -176,6 +190,8 @@ class AwsCloudFrontOriginGroup:
 @define(eq=False, slots=False)
 class AwsCloudFrontLambdaFunctionAssociation:
     kind: ClassVar[str] = "aws_cloudfront_lambda_function_association"
+    kind_display: ClassVar[str] = "AWS CloudFront Lambda Function Association"
+    kind_description: ClassVar[str] = "CloudFront Lambda Function Association allows users to associate Lambda functions with CloudFront distributions, allowing them to modify the request or response and customize the content delivery process."
     mapping: ClassVar[Dict[str, Bender]] = {
         "lambda_function_arn": S("LambdaFunctionARN"),
         "event_type": S("EventType"),
@@ -189,6 +205,8 @@ class AwsCloudFrontLambdaFunctionAssociation:
 @define(eq=False, slots=False)
 class AwsCloudFrontFunctionAssociation:
     kind: ClassVar[str] = "aws_cloudfront_function_association"
+    kind_display: ClassVar[str] = "AWS CloudFront Function Association"
+    kind_description: ClassVar[str] = "CloudFront Function Association is a feature in Amazon CloudFront that allows associating a CloudFront function with a CloudFront distribution to modify the behavior of the distribution."
     mapping: ClassVar[Dict[str, Bender]] = {"function_arn": S("FunctionARN"), "event_type": S("EventType")}
     function_arn: Optional[str] = field(default=None)
     event_type: Optional[str] = field(default=None)
@@ -197,6 +215,8 @@ class AwsCloudFrontFunctionAssociation:
 @define(eq=False, slots=False)
 class AwsCloudFrontCookiePreference:
     kind: ClassVar[str] = "aws_cloudfront_cookie_preference"
+    kind_display: ClassVar[str] = "AWS CloudFront Cookie Preference"
+    kind_description: ClassVar[str] = "AWS CloudFront Cookie Preference is a feature of Amazon CloudFront that enables users to specify how CloudFront handles cookies in the client request and response headers."
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward": S("Forward"),
         "whitelisted_names": S("WhitelistedNames", "Items", default=[]),
@@ -208,6 +228,8 @@ class AwsCloudFrontCookiePreference:
 @define(eq=False, slots=False)
 class AwsCloudFrontForwardedValues:
     kind: ClassVar[str] = "aws_cloudfront_forwarded_values"
+    kind_display: ClassVar[str] = "AWS CloudFront Forwarded Values"
+    kind_description: ClassVar[str] = "CloudFront Forwarded Values allows you to customize how CloudFront handles and forwards specific HTTP headers in viewer requests to the origin."
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string": S("QueryString"),
         "cookies": S("Cookies") >> Bend(AwsCloudFrontCookiePreference.mapping),
@@ -223,6 +245,8 @@ class AwsCloudFrontForwardedValues:
 @define(eq=False, slots=False)
 class AwsCloudFrontDefaultCacheBehavior:
     kind: ClassVar[str] = "aws_cloudfront_default_cache_behavior"
+    kind_display: ClassVar[str] = "AWS CloudFront Default Cache Behavior"
+    kind_description: ClassVar[str] = "CloudFront Default Cache Behavior is a configuration setting in AWS CloudFront that defines the default behavior for caching content on the edge locations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_origin_id": S("TargetOriginId"),
         "trusted_signers": S("TrustedSigners", "Items", default=[]),
@@ -268,6 +292,8 @@ class AwsCloudFrontDefaultCacheBehavior:
 @define(eq=False, slots=False)
 class AwsCloudFrontCacheBehavior:
     kind: ClassVar[str] = "aws_cloudfront_cache_behavior"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Behavior"
+    kind_description: ClassVar[str] = "CloudFront Cache Behavior is a configuration setting that determines how CloudFront behaves when serving content from cache."
     mapping: ClassVar[Dict[str, Bender]] = {
         "path_pattern": S("PathPattern"),
         "target_origin_id": S("TargetOriginId"),
@@ -315,6 +341,8 @@ class AwsCloudFrontCacheBehavior:
 @define(eq=False, slots=False)
 class AwsCloudFrontCustomErrorResponse:
     kind: ClassVar[str] = "aws_cloudfront_custom_error_response"
+    kind_display: ClassVar[str] = "AWS CloudFront Custom Error Response"
+    kind_description: ClassVar[str] = "AWS CloudFront Custom Error Response allows users to customize the error responses for their CloudFront distributions, providing a more personalized and user-friendly experience for website visitors when errors occur."
     mapping: ClassVar[Dict[str, Bender]] = {
         "error_code": S("ErrorCode"),
         "response_page_path": S("ResponsePagePath"),
@@ -330,6 +358,8 @@ class AwsCloudFrontCustomErrorResponse:
 @define(eq=False, slots=False)
 class AwsCloudFrontViewerCertificate:
     kind: ClassVar[str] = "aws_cloudfront_viewer_certificate"
+    kind_display: ClassVar[str] = "AWS CloudFront Viewer Certificate"
+    kind_description: ClassVar[str] = "AWS CloudFront Viewer Certificate is a SSL/TLS certificate that is used to encrypt the communication between the viewer (client) and the CloudFront distribution."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloudfront_default_certificate": S("CloudFrontDefaultCertificate"),
         "iam_certificate_id": S("IAMCertificateId"),
@@ -351,6 +381,8 @@ class AwsCloudFrontViewerCertificate:
 @define(eq=False, slots=False)
 class AwsCloudFrontRestrictions:
     kind: ClassVar[str] = "aws_cloudfront_restrictions"
+    kind_display: ClassVar[str] = "AWS CloudFront Restrictions"
+    kind_description: ClassVar[str] = "CloudFront Restrictions in AWS allow users to control access to their content by specifying the locations or IP addresses that are allowed to access it."
     mapping: ClassVar[Dict[str, Bender]] = {"geo_restriction": S("GeoRestriction", "Items", default=[])}
     geo_restriction: List[str] = field(factory=list)
 
@@ -358,6 +390,8 @@ class AwsCloudFrontRestrictions:
 @define(eq=False, slots=False)
 class AwsCloudFrontAliasICPRecordal:
     kind: ClassVar[str] = "aws_cloudfront_alias_icp_recordal"
+    kind_display: ClassVar[str] = "AWS CloudFront Alias ICP Recordal"
+    kind_description: ClassVar[str] = "AWS CloudFront Alias ICP Recordal is a feature that allows you to associate an Internet Content Provider (ICP) record with a CloudFront distribution in China."
     mapping: ClassVar[Dict[str, Bender]] = {"cname": S("CNAME"), "icp_recordal_status": S("ICPRecordalStatus")}
     cname: Optional[str] = field(default=None)
     icp_recordal_status: Optional[str] = field(default=None)
@@ -366,6 +400,8 @@ class AwsCloudFrontAliasICPRecordal:
 @define(eq=False, slots=False)
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
+    kind_display: ClassVar[str] = "AWS CloudFront Distribution"
+    kind_description: ClassVar[str] = "CloudFront Distributions are a content delivery network (CDN) offered by Amazon Web Services, which enables users to deliver their content to end-users with low latency and high transfer speeds."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-distributions", "DistributionList.Items")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_lambda_function"]},
@@ -510,6 +546,8 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
 @define(eq=False, slots=False)
 class AwsCloudFrontFunctionConfig:
     kind: ClassVar[str] = "aws_cloudfront_function_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Function Config"
+    kind_description: ClassVar[str] = "CloudFront Function Config is a configuration for a CloudFront function in the AWS CloudFront service, which allows users to run custom code at the edge locations of the CloudFront CDN to modify the content delivery behavior."
     mapping: ClassVar[Dict[str, Bender]] = {"comment": S("Comment"), "runtime": S("Runtime")}
     comment: Optional[str] = field(default=None)
     runtime: Optional[str] = field(default=None)
@@ -518,6 +556,8 @@ class AwsCloudFrontFunctionConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
+    kind_display: ClassVar[str] = "AWS CloudFront Function"
+    kind_description: ClassVar[str] = "CloudFront Functions are serverless functions that allow developers to customize and extend the functionality of CloudFront content delivery network, enabling advanced edge processing of HTTP requests and responses."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "FunctionList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -561,6 +601,8 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 @define(eq=False, slots=False)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
+    kind_display: ClassVar[str] = "AWS CloudFront Public Key"
+    kind_description: ClassVar[str] = "AWS CloudFront Public Key is a public key used for encrypting content stored on AWS CloudFront."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -586,6 +628,8 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudFrontKinesisStreamConfig:
     kind: ClassVar[str] = "aws_cloudfront_kinesis_stream_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Kinesis Stream Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Kinesis Stream Config allows users to configure the integration between CloudFront and Kinesis Streams, enabling real-time data streaming and processing."
     mapping: ClassVar[Dict[str, Bender]] = {"role_arn": S("RoleARN"), "stream_arn": S("StreamARN")}
     role_arn: Optional[str] = field(default=None)
     stream_arn: Optional[str] = field(default=None)
@@ -594,6 +638,8 @@ class AwsCloudFrontKinesisStreamConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontEndPoint:
     kind: ClassVar[str] = "aws_cloudfront_end_point"
+    kind_display: ClassVar[str] = "AWS CloudFront End Point"
+    kind_description: ClassVar[str] = "CloudFront End Points provide a globally distributed content delivery network (CDN) that delivers data, videos, applications, and APIs to viewers with low latency and high transfer speeds."
     mapping: ClassVar[Dict[str, Bender]] = {
         "stream_type": S("StreamType"),
         "kinesis_stream_config": S("KinesisStreamConfig") >> Bend(AwsCloudFrontKinesisStreamConfig.mapping),
@@ -605,6 +651,8 @@ class AwsCloudFrontEndPoint:
 @define(eq=False, slots=False)
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Real-time Log Configuration"
+    kind_description: ClassVar[str] = "CloudFront Real-time Log Configuration allows you to configure real-time logging for your CloudFront distribution, enabling you to receive real-time logs for your web traffic."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-realtime-log-configs", "RealtimeLogConfigs.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -632,6 +680,8 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyCorsConfig:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_cors_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy CORS Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy CORS (Cross-Origin Resource Sharing) Config allows users to specify how CloudFront should handle CORS headers in the response for a specific CloudFront distribution."
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_control_allow_origins": S("AccessControlAllowOrigins", "Items", default=[]),
         "access_control_allow_headers": S("AccessControlAllowHeaders", "Items", default=[]),
@@ -653,6 +703,8 @@ class AwsCloudFrontResponseHeadersPolicyCorsConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyXSSProtection:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_xss_protection"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy XSS Protection"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy XSS Protection allows users to configure Cross-Site Scripting (XSS) protection in the response headers of their CloudFront distributions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "protection": S("Protection"),
@@ -668,6 +720,8 @@ class AwsCloudFrontResponseHeadersPolicyXSSProtection:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyFrameOptions:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_frame_options"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Frame Options"
+    kind_description: ClassVar[str] = "CloudFront Response Headers Policy Frame Options is a feature of Amazon CloudFront that allows you to control the frame options in HTTP responses sent by CloudFront distributions."
     mapping: ClassVar[Dict[str, Bender]] = {"override": S("Override"), "frame_option": S("FrameOption")}
     override: Optional[bool] = field(default=None)
     frame_option: Optional[str] = field(default=None)
@@ -676,6 +730,8 @@ class AwsCloudFrontResponseHeadersPolicyFrameOptions:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyReferrerPolicy:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_referrer_policy"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Referrer Policy"
+    kind_description: ClassVar[str] = "The Referrer Policy in CloudFront determines how the browser should send the 'Referer' HTTP header when making requests to CloudFront distributions."
     mapping: ClassVar[Dict[str, Bender]] = {"override": S("Override"), "referrer_policy": S("ReferrerPolicy")}
     override: Optional[bool] = field(default=None)
     referrer_policy: Optional[str] = field(default=None)
@@ -684,6 +740,8 @@ class AwsCloudFrontResponseHeadersPolicyReferrerPolicy:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyContentSecurityPolicy:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_content_security_policy"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy - Content-Security-Policy"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy - Content-Security-Policy allows users to define the content security policy (CSP) for their CloudFront distributions, specifying which content sources are allowed and disallowed."
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "content_security_policy": S("ContentSecurityPolicy"),
@@ -695,6 +753,8 @@ class AwsCloudFrontResponseHeadersPolicyContentSecurityPolicy:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyStrictTransportSecurity:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_strict_transport_security"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy - Strict Transport Security"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy - Strict Transport Security is a security feature that enables websites to declare that their content should only be accessed over HTTPS, and defines the duration for which the browser should automatically choose HTTPS for subsequent requests."
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
         "include_subdomains": S("IncludeSubdomains"),
@@ -710,6 +770,8 @@ class AwsCloudFrontResponseHeadersPolicyStrictTransportSecurity:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_security_headers_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Security Headers Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy Security Headers Config allows configuring security headers for responses served by AWS CloudFront, providing additional security measures for web applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "xss_protection": S("XSSProtection") >> Bend(AwsCloudFrontResponseHeadersPolicyXSSProtection.mapping),
         "frame_options": S("FrameOptions") >> Bend(AwsCloudFrontResponseHeadersPolicyFrameOptions.mapping),
@@ -731,6 +793,8 @@ class AwsCloudFrontResponseHeadersPolicySecurityHeadersConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_server_timing_headers_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Server Timing Headers Config"
+    kind_description: ClassVar[str] = "CloudFront Response Headers Policy Server Timing Headers Config is a configuration option in AWS CloudFront that allows you to control the inclusion of Server Timing headers in the response sent to clients."
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "sampling_rate": S("SamplingRate")}
     enabled: Optional[bool] = field(default=None)
     sampling_rate: Optional[float] = field(default=None)
@@ -739,6 +803,8 @@ class AwsCloudFrontResponseHeadersPolicyServerTimingHeadersConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyCustomHeader:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_custom_header"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Custom Header"
+    kind_description: ClassVar[str] = "The custom header response policy allows you to add custom headers to the responses served by CloudFront distributions. This can be used to control caching behavior or add additional information to the responses."
     mapping: ClassVar[Dict[str, Bender]] = {"header": S("Header"), "value": S("Value"), "override": S("Override")}
     header: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -748,6 +814,8 @@ class AwsCloudFrontResponseHeadersPolicyCustomHeader:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicyConfig:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Configuration"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy Configuration allows users to define and control the HTTP response headers that are included in the responses served by CloudFront."
     mapping: ClassVar[Dict[str, Bender]] = {
         "comment": S("Comment"),
         "name": S("Name"),
@@ -772,6 +840,8 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
+    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy"
+    kind_description: ClassVar[str] = "The AWS CloudFront Response Headers Policy is a configuration that allows you to manage and control the response headers that are included in the HTTP responses delivered by CloudFront."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-response-headers-policies", "ResponseHeadersPolicyList.Items"
     )
@@ -800,6 +870,8 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudFrontS3Origin:
     kind: ClassVar[str] = "aws_cloudfront_s3_origin"
+    kind_display: ClassVar[str] = "AWS CloudFront S3 Origin"
+    kind_description: ClassVar[str] = "CloudFront S3 Origin is an Amazon Web Services (AWS) service that allows you to use an Amazon S3 bucket as the origin for your CloudFront distribution. It enables faster content delivery by caching and distributing web content from the S3 bucket to edge locations around the world."
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain_name": S("DomainName"),
         "origin_access_identity": S("OriginAccessIdentity"),
@@ -811,6 +883,8 @@ class AwsCloudFrontS3Origin:
 @define(eq=False, slots=False)
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
+    kind_display: ClassVar[str] = "AWS CloudFront Streaming Distribution"
+    kind_description: ClassVar[str] = "CloudFront Streaming Distribution is a content delivery network (CDN) service provided by AWS that allows for fast and secure streaming of audio and video content over the internet."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-streaming-distributions", "StreamingDistributionList.Items"
     )
@@ -841,6 +915,8 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
+    kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
+    kind_description: ClassVar[str] = "CloudFront Origin Access Control is a feature in AWS CloudFront that allows you to restrict access to your origin server by using an Amazon S3 bucket or an HTTP server as the source for your website or application files."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-origin-access-controls", "OriginAccessControlList.Items"
     )
@@ -871,6 +947,8 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyHeadersConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_headers_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy Headers Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Cache Policy Headers Config allows users to configure the cache headers for content in the CloudFront CDN, determining how long content is cached and how it is delivered to end users."
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_behavior": S("HeaderBehavior"),
         "headers": S("Headers", "Items", default=[]),
@@ -882,6 +960,8 @@ class AwsCloudFrontCachePolicyHeadersConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyCookiesConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_cookies_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy Cookies Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Cache Policy Cookies Config is a configuration for customizing caching behavior based on cookies when using AWS CloudFront, a global content delivery network (CDN) service."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cookie_behavior": S("CookieBehavior"),
         "cookies": S("Cookies", default=[]),
@@ -893,6 +973,8 @@ class AwsCloudFrontCachePolicyCookiesConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyQueryStringsConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_query_strings_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy Query Strings Config"
+    kind_description: ClassVar[str] = "The AWS CloudFront Cache Policy Query Strings Config provides configuration settings for how CloudFront handles caching of resources based on query string parameters."
     mapping: ClassVar[Dict[str, Bender]] = {
         "query_string_behavior": S("QueryStringBehavior"),
         "query_strings": S("QueryStrings", "Items", default=[]),
@@ -904,6 +986,8 @@ class AwsCloudFrontCachePolicyQueryStringsConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
     kind: ClassVar[str] = "aws_cloudfront_parameters_in_cache_key_and_forwarded_to_origin"
+    kind_display: ClassVar[str] = "AWS CloudFront Parameters in Cache Key and Forwarded to Origin"
+    kind_description: ClassVar[str] = "AWS CloudFront allows users to customize the cache key and specify which parameters are forwarded to the origin server for improved caching and origin response."
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_accept_encoding_gzip": S("EnableAcceptEncodingGzip"),
         "enable_accept_encoding_brotli": S("EnableAcceptEncodingBrotli"),
@@ -921,6 +1005,8 @@ class AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicyConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy Configuration"
+    kind_description: ClassVar[str] = "CloudFront Cache Policies allow you to define caching behavior for your content. This resource represents the configuration settings for a cache policy in Amazon CloudFront."
     mapping: ClassVar[Dict[str, Bender]] = {
         "comment": S("Comment"),
         "name": S("Name"),
@@ -943,6 +1029,8 @@ class AwsCloudFrontCachePolicyConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
+    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy"
+    kind_description: ClassVar[str] = "CloudFront Cache Policies in AWS specify the caching behavior for CloudFront distributions, allowing users to control how content is cached and delivered to end users."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-cache-policies", "CachePolicyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CachePolicy", "Id"),
@@ -966,6 +1054,8 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfile:
     kind: ClassVar[str] = "aws_cloudfront_query_arg_profile"
+    kind_display: ClassVar[str] = "AWS CloudFront Query Argument Profile"
+    kind_description: ClassVar[str] = "CloudFront Query Argument Profile in AWS is a configuration that allows you to control how CloudFront caches and forwards query strings in the URLs of your content."
     mapping: ClassVar[Dict[str, Bender]] = {"query_arg": S("QueryArg"), "profile_id": S("ProfileId")}
     query_arg: Optional[str] = field(default=None)
     profile_id: Optional[str] = field(default=None)
@@ -974,6 +1064,8 @@ class AwsCloudFrontQueryArgProfile:
 @define(eq=False, slots=False)
 class AwsCloudFrontQueryArgProfileConfig:
     kind: ClassVar[str] = "aws_cloudfront_query_arg_profile_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Query Arg Profile Config"
+    kind_description: ClassVar[str] = "CloudFront Query Arg Profile Config is a feature in AWS CloudFront that allows you to configure personalized caching behavior for different query strings on your website."
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_query_arg_profile_is_unknown": S("ForwardWhenQueryArgProfileIsUnknown"),
         "query_arg_profiles": S("QueryArgProfiles", "Items", default=[])
@@ -986,6 +1078,8 @@ class AwsCloudFrontQueryArgProfileConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfile:
     kind: ClassVar[str] = "aws_cloudfront_content_type_profile"
+    kind_display: ClassVar[str] = "AWS CloudFront Content Type Profile"
+    kind_description: ClassVar[str] = "AWS CloudFront Content Type Profiles help you manage the behavior of CloudFront by configuring how it handles content types for different file extensions or MIME types."
     mapping: ClassVar[Dict[str, Bender]] = {
         "format": S("Format"),
         "profile_id": S("ProfileId"),
@@ -999,6 +1093,8 @@ class AwsCloudFrontContentTypeProfile:
 @define(eq=False, slots=False)
 class AwsCloudFrontContentTypeProfileConfig:
     kind: ClassVar[str] = "aws_cloudfront_content_type_profile_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Content Type Profile Config"
+    kind_description: ClassVar[str] = "AWS CloudFront Content Type Profile Config is a configuration object that allows you to specify how CloudFront should interpret and act upon the Content-Type header of viewer requests for your content."
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_content_type_is_unknown": S("ForwardWhenContentTypeIsUnknown"),
         "content_type_profiles": S("ContentTypeProfiles", "Items", default=[])
@@ -1011,6 +1107,8 @@ class AwsCloudFrontContentTypeProfileConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
+    kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
+    kind_description: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration is a feature that allows you to encrypt selected fields in HTTP requests and responses before they are sent and after they are received by CloudFront."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"
     )
@@ -1060,6 +1158,8 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudFrontEncryptionEntity:
     kind: ClassVar[str] = "aws_cloudfront_encryption_entity"
+    kind_display: ClassVar[str] = "AWS CloudFront Encryption Entity"
+    kind_description: ClassVar[str] = "CloudFront Encryption Entities represent the security configuration for content delivery, ensuring secure and encrypted data transfer between the user and the CloudFront edge servers."
     mapping: ClassVar[Dict[str, Bender]] = {
         "public_key_id": S("PublicKeyId"),
         "provider_id": S("ProviderId"),
@@ -1073,6 +1173,8 @@ class AwsCloudFrontEncryptionEntity:
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
+    kind_display: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile"
+    kind_description: ClassVar[str] = "Field Level Encryption Profiles in AWS CloudFront allow users to encrypt specific fields in a web form, providing an extra layer of security to sensitive data."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList.Items"
     )

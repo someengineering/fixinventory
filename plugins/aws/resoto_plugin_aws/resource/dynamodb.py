@@ -48,6 +48,8 @@ class DynamoDbTaggable:
 @define(eq=False, slots=False)
 class AwsDynamoDbAttributeDefinition:
     kind: ClassVar[str] = "aws_dynamo_db_attribute_definition"
+    kind_display: ClassVar[str] = "AWS DynamoDB Attribute Definition"
+    kind_description: ClassVar[str] = "An attribute definition in AWS DynamoDB describes the data type and name of an attribute for a table."
     mapping: ClassVar[Dict[str, Bender]] = {"attribute_name": S("AttributeName"), "attribute_type": S("AttributeType")}
     attribute_name: Optional[str] = field(default=None)
     attribute_type: Optional[str] = field(default=None)
@@ -56,6 +58,8 @@ class AwsDynamoDbAttributeDefinition:
 @define(eq=False, slots=False)
 class AwsDynamoDbKeySchemaElement:
     kind: ClassVar[str] = "aws_dynamo_db_key_schema_element"
+    kind_display: ClassVar[str] = "AWS DynamoDB Key Schema Element"
+    kind_description: ClassVar[str] = "DynamoDB Key Schema Element represents the key attributes used to uniquely identify an item in a DynamoDB table."
     mapping: ClassVar[Dict[str, Bender]] = {"attribute_name": S("AttributeName"), "key_type": S("KeyType")}
     attribute_name: Optional[str] = field(default=None)
     key_type: Optional[str] = field(default=None)
@@ -64,6 +68,8 @@ class AwsDynamoDbKeySchemaElement:
 @define(eq=False, slots=False)
 class AwsDynamoDbProvisionedThroughputDescription:
     kind: ClassVar[str] = "aws_dynamo_db_provisioned_throughput_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB Provisioned Throughput Description"
+    kind_description: ClassVar[str] = "DynamoDB Provisioned Throughput is the measurement of the capacity provisioned to handle request traffic for a DynamoDB table. It determines the read and write capacity units available for the table."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_increase_date_time": S("LastIncreaseDateTime"),
         "last_decrease_date_time": S("LastDecreaseDateTime"),
@@ -81,6 +87,8 @@ class AwsDynamoDbProvisionedThroughputDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbBillingModeSummary:
     kind: ClassVar[str] = "aws_dynamo_db_billing_mode_summary"
+    kind_display: ClassVar[str] = "AWS DynamoDB Billing Mode Summary"
+    kind_description: ClassVar[str] = "DynamoDB Billing Mode Summary provides information about the billing mode configured for DynamoDB tables in AWS. DynamoDB is a NoSQL database service provided by Amazon."
     mapping: ClassVar[Dict[str, Bender]] = {
         "billing_mode": S("BillingMode"),
         "last_update_to_pay_per_request_date_time": S("LastUpdateToPayPerRequestDateTime"),
@@ -92,6 +100,8 @@ class AwsDynamoDbBillingModeSummary:
 @define(eq=False, slots=False)
 class AwsDynamoDbProjection:
     kind: ClassVar[str] = "aws_dynamo_db_projection"
+    kind_display: ClassVar[str] = "AWS DynamoDB Projection"
+    kind_description: ClassVar[str] = "DynamoDB Projections allow you to specify which attributes should be included in the index of a table for efficient querying."
     mapping: ClassVar[Dict[str, Bender]] = {
         "projection_type": S("ProjectionType"),
         "non_key_attributes": S("NonKeyAttributes", default=[]),
@@ -103,6 +113,8 @@ class AwsDynamoDbProjection:
 @define(eq=False, slots=False)
 class AwsDynamoDbLocalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_local_secondary_index_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB Local Secondary Index Description"
+    kind_description: ClassVar[str] = "DynamoDB Local Secondary Indexes provide additional querying flexibility on non-key attributes in DynamoDB tables, enhancing the performance and efficiency of data retrieval in Amazon's NoSQL database service."
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
         "key_schema": S("KeySchema", default=[]) >> ForallBend(AwsDynamoDbKeySchemaElement.mapping),
@@ -122,6 +134,8 @@ class AwsDynamoDbLocalSecondaryIndexDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_global_secondary_index_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB Global Secondary Index Description"
+    kind_description: ClassVar[str] = "A Global Secondary Index (GSI) in DynamoDB is an additional index that you can create on your table to support fast and efficient data access patterns."
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
         "key_schema": S("KeySchema", default=[]) >> ForallBend(AwsDynamoDbKeySchemaElement.mapping),
@@ -148,6 +162,8 @@ class AwsDynamoDbGlobalSecondaryIndexDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbStreamSpecification:
     kind: ClassVar[str] = "aws_dynamo_db_stream_specification"
+    kind_display: ClassVar[str] = "AWS DynamoDB Stream Specification"
+    kind_description: ClassVar[str] = "DynamoDB Streams provide a time-ordered sequence of item-level modifications made to data in a DynamoDB table."
     mapping: ClassVar[Dict[str, Bender]] = {
         "stream_enabled": S("StreamEnabled"),
         "stream_view_type": S("StreamViewType"),
@@ -159,6 +175,8 @@ class AwsDynamoDbStreamSpecification:
 @define(eq=False, slots=False)
 class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_replica_global_secondary_index_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB Replica Global Secondary Index Description"
+    kind_description: ClassVar[str] = "DynamoDB Replica Global Secondary Index is a replicated index in DynamoDB that allows you to perform fast and efficient queries on replicated data across multiple AWS Regions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
         "provisioned_throughput_override": S("ProvisionedThroughputOverride", "ReadCapacityUnits"),
@@ -170,6 +188,8 @@ class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbTableClassSummary:
     kind: ClassVar[str] = "aws_dynamo_db_table_class_summary"
+    kind_display: ClassVar[str] = "AWS DynamoDB Table Class Summary"
+    kind_description: ClassVar[str] = "DynamoDB Table Class Summary provides information about the classes of tables in Amazon DynamoDB, a fully managed NoSQL database service provided by AWS. It enables users to store and retrieve any amount of data with high availability and durability."
     mapping: ClassVar[Dict[str, Bender]] = {
         "table_class": S("TableClass"),
         "last_update_date_time": S("LastUpdateDateTime"),
@@ -181,6 +201,8 @@ class AwsDynamoDbTableClassSummary:
 @define(eq=False, slots=False)
 class AwsDynamoDbReplicaDescription:
     kind: ClassVar[str] = "aws_dynamo_db_replica_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB Replica Description"
+    kind_description: ClassVar[str] = "DynamoDB Replica Description provides detailed information about the replica configuration and status of an Amazon DynamoDB table in the AWS cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "region_name": S("RegionName"),
         "replica_status": S("ReplicaStatus"),
@@ -207,6 +229,8 @@ class AwsDynamoDbReplicaDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbRestoreSummary:
     kind: ClassVar[str] = "aws_dynamo_db_restore_summary"
+    kind_display: ClassVar[str] = "AWS DynamoDB Restore Summary"
+    kind_description: ClassVar[str] = "DynamoDB Restore Summary provides an overview of the restore process for Amazon DynamoDB backups, including information on restore progress, completion time, and any errors encountered during the restore."
     mapping: ClassVar[Dict[str, Bender]] = {
         "source_backup_arn": S("SourceBackupArn"),
         "source_table_arn": S("SourceTableArn"),
@@ -222,6 +246,8 @@ class AwsDynamoDbRestoreSummary:
 @define(eq=False, slots=False)
 class AwsDynamoDbSSEDescription:
     kind: ClassVar[str] = "aws_dynamo_db_sse_description"
+    kind_display: ClassVar[str] = "AWS DynamoDB SSE Description"
+    kind_description: ClassVar[str] = "DynamoDB SSE (Server-Side Encryption) provides automatic encryption at rest for DynamoDB tables, ensuring data security and compliance with privacy regulations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "status": S("Status"),
         "sse_type": S("SSEType"),
@@ -237,6 +263,8 @@ class AwsDynamoDbSSEDescription:
 @define(eq=False, slots=False)
 class AwsDynamoDbArchivalSummary:
     kind: ClassVar[str] = "aws_dynamo_db_archival_summary"
+    kind_display: ClassVar[str] = "AWS DynamoDB Archival Summary"
+    kind_description: ClassVar[str] = "DynamoDB Archival Summary provides information about the archival status and details for DynamoDB tables in Amazon's cloud. Archival allows you to automatically store older data in a cost-effective manner while keeping active data readily available."
     mapping: ClassVar[Dict[str, Bender]] = {
         "archival_date_time": S("ArchivalDateTime"),
         "archival_reason": S("ArchivalReason"),
@@ -250,6 +278,8 @@ class AwsDynamoDbArchivalSummary:
 @define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
+    kind_display: ClassVar[str] = "AWS DynamoDB Table"
+    kind_description: ClassVar[str] = "DynamoDB is a NoSQL database service provided by Amazon Web Services, allowing users to store and retrieve data using flexible schema and high-performance queries."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},
@@ -362,6 +392,8 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_global_table"
+    kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
+    kind_description: ClassVar[str] = "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally distributed replicas of DynamoDB tables, enabling low-latency and high-performance global access to data."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-global-tables", "GlobalTables")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},

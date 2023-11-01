@@ -47,6 +47,8 @@ class EfsTaggable:
 @define(eq=False, slots=False)
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
+    kind_display: ClassVar[str] = "AWS EFS Mount Target"
+    kind_description: ClassVar[str] = "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow EC2 instances to mount the file system and access the shared data."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("MountTargetId"),
         "owner_id": S("OwnerId"),
@@ -68,6 +70,8 @@ class AwsEfsMountTarget(AwsResource):
 @define(eq=False, slots=False)
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
+    kind_display: ClassVar[str] = "AWS EFS File System"
+    kind_description: ClassVar[str] = "EFS (Elastic File System) provides a scalable and fully managed file storage service for Amazon EC2 instances."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-file-systems",
@@ -143,6 +147,8 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
 @define(eq=False, slots=False)
 class AwsEfsPosixUser:
     kind: ClassVar[str] = "aws_efs_posix_user"
+    kind_display: ClassVar[str] = "AWS EFS POSIX User"
+    kind_description: ClassVar[str] = "EFS POSIX Users are user accounts that can be used to access and manage files in Amazon Elastic File System (EFS) using POSIX permissions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "uid": S("Uid"),
         "gid": S("Gid"),
@@ -156,6 +162,8 @@ class AwsEfsPosixUser:
 @define(eq=False, slots=False)
 class AwsEfsCreationInfo:
     kind: ClassVar[str] = "aws_efs_creation_info"
+    kind_display: ClassVar[str] = "AWS EFS Creation Info"
+    kind_description: ClassVar[str] = "EFS Creation Info is a parameter used in AWS to provide information for creating an Amazon Elastic File System (EFS) resource."
     mapping: ClassVar[Dict[str, Bender]] = {
         "owner_uid": S("OwnerUid"),
         "owner_gid": S("OwnerGid"),
@@ -169,6 +177,8 @@ class AwsEfsCreationInfo:
 @define(eq=False, slots=False)
 class AwsEfsRootDirectory:
     kind: ClassVar[str] = "aws_efs_root_directory"
+    kind_display: ClassVar[str] = "AWS EFS Root Directory"
+    kind_description: ClassVar[str] = "The root directory of an Amazon Elastic File System (EFS) provides a common entry point for accessing all files and directories within the file system."
     mapping: ClassVar[Dict[str, Bender]] = {
         "path": S("Path"),
         "creation_info": S("CreationInfo") >> Bend(AwsEfsCreationInfo.mapping),
@@ -180,6 +190,8 @@ class AwsEfsRootDirectory:
 @define(eq=False, slots=False)
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
+    kind_display: ClassVar[str] = "AWS EFS Access Point"
+    kind_description: ClassVar[str] = "AWS EFS Access Point is a way to securely access files in Amazon EFS (Elastic File System) using a unique hostname and optional path, providing fine-grained access control."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-access-points",

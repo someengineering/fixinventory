@@ -81,6 +81,8 @@ class EC2Taggable:
 @define(eq=False, slots=False)
 class AwsEc2ProcessorInfo:
     kind: ClassVar[str] = "aws_ec2_processor_info"
+    kind_display: ClassVar[str] = "AWS EC2 Processor Info"
+    kind_description: ClassVar[str] = "EC2 Processor Info provides detailed information about the processors used in Amazon EC2 instances, such as the model, clock speed, and number of cores."
     mapping: ClassVar[Dict[str, Bender]] = {
         "supported_architectures": S("SupportedArchitectures", default=[]),
         "sustained_clock_speed_in_ghz": S("SustainedClockSpeedInGhz"),
@@ -93,6 +95,8 @@ class AwsEc2ProcessorInfo:
 @define(eq=False, slots=False)
 class AwsEc2VCpuInfo:
     kind: ClassVar[str] = "aws_ec2_v_cpu_info"
+    kind_display: ClassVar[str] = "AWS EC2 vCPU Info"
+    kind_description: ClassVar[str] = "EC2 vCPU Info provides detailed information about the virtual CPU capabilities of Amazon EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_v_cpus": S("DefaultVCpus"),
         "default_cores": S("DefaultCores"),
@@ -110,6 +114,8 @@ class AwsEc2VCpuInfo:
 @define(eq=False, slots=False)
 class AwsEc2DiskInfo:
     kind: ClassVar[str] = "aws_ec2_disk_info"
+    kind_display: ClassVar[str] = "AWS EC2 Disk Info"
+    kind_description: ClassVar[str] = "EC2 Disk Info refers to the information about the disk storage associated with an EC2 instance in Amazon Web Services. It provides details such as disk size, type, and usage statistics."
     mapping: ClassVar[Dict[str, Bender]] = {"size_in_gb": S("SizeInGB"), "count": S("Count"), "type": S("Type")}
     size_in_gb: Optional[int] = field(default=None)
     count: Optional[int] = field(default=None)
@@ -119,6 +125,8 @@ class AwsEc2DiskInfo:
 @define(eq=False, slots=False)
 class AwsEc2InstanceStorageInfo:
     kind: ClassVar[str] = "aws_ec2_instance_storage_info"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Storage Info"
+    kind_description: ClassVar[str] = "EC2 Instance Storage Info provides information about the storage configuration and details of an EC2 instance in Amazon Web Services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "total_size_in_gb": S("TotalSizeInGB"),
         "disks": S("Disks", default=[]) >> ForallBend(AwsEc2DiskInfo.mapping),
@@ -134,6 +142,8 @@ class AwsEc2InstanceStorageInfo:
 @define(eq=False, slots=False)
 class AwsEc2EbsOptimizedInfo:
     kind: ClassVar[str] = "aws_ec2_ebs_optimized_info"
+    kind_display: ClassVar[str] = "AWS EC2 EBS Optimized Info"
+    kind_description: ClassVar[str] = "EBS optimization is an Amazon EC2 feature that enables EC2 instances to fully utilize the IOPS provisioned on an EBS volume."
     mapping: ClassVar[Dict[str, Bender]] = {
         "baseline_bandwidth_in_mbps": S("BaselineBandwidthInMbps"),
         "baseline_throughput_in_mbps": S("BaselineThroughputInMBps"),
@@ -153,6 +163,8 @@ class AwsEc2EbsOptimizedInfo:
 @define(eq=False, slots=False)
 class AwsEc2EbsInfo:
     kind: ClassVar[str] = "aws_ec2_ebs_info"
+    kind_display: ClassVar[str] = "AWS EC2 EBS Info"
+    kind_description: ClassVar[str] = "EBS (Elastic Block Store) is a block storage service provided by AWS. It provides persistent storage volumes that can be attached to EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ebs_optimized_support": S("EbsOptimizedSupport"),
         "encryption_support": S("EncryptionSupport"),
@@ -168,6 +180,8 @@ class AwsEc2EbsInfo:
 @define(eq=False, slots=False)
 class AwsEc2NetworkCardInfo:
     kind: ClassVar[str] = "aws_ec2_network_card_info"
+    kind_display: ClassVar[str] = "AWS EC2 Network Card Info"
+    kind_description: ClassVar[str] = "AWS EC2 Network Card Info refers to the information related to the network cards associated with EC2 instances in Amazon Web Services. It includes details such as the network card ID, description, and network interface attachments."
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_card_index": S("NetworkCardIndex"),
         "network_performance": S("NetworkPerformance"),
@@ -181,6 +195,8 @@ class AwsEc2NetworkCardInfo:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInfo:
     kind: ClassVar[str] = "aws_ec2_network_info"
+    kind_display: ClassVar[str] = "AWS EC2 Network Info"
+    kind_description: ClassVar[str] = "EC2 Network Info provides information about the networking details of EC2 instances in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_performance": S("NetworkPerformance"),
         "maximum_network_interfaces": S("MaximumNetworkInterfaces"),
@@ -212,6 +228,8 @@ class AwsEc2NetworkInfo:
 @define(eq=False, slots=False)
 class AwsEc2GpuDeviceInfo:
     kind: ClassVar[str] = "aws_ec2_gpu_device_info"
+    kind_display: ClassVar[str] = "AWS EC2 GPU Device Info"
+    kind_description: ClassVar[str] = "EC2 GPU Device Info provides information about the GPU devices available in the Amazon EC2 instances. It includes details such as GPU model, memory size, and utilization. This information is useful for optimizing performance and managing GPU resources in EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
         "manufacturer": S("Manufacturer"),
@@ -227,6 +245,8 @@ class AwsEc2GpuDeviceInfo:
 @define(eq=False, slots=False)
 class AwsEc2GpuInfo:
     kind: ClassVar[str] = "aws_ec2_gpu_info"
+    kind_display: ClassVar[str] = "AWS EC2 GPU Info"
+    kind_description: ClassVar[str] = "EC2 GPU Info provides detailed information about the Graphics Processing Units (GPUs) available in Amazon EC2 instances. This includes information about the GPU type, memory, and performance capabilities."
     mapping: ClassVar[Dict[str, Bender]] = {
         "gpus": S("Gpus", default=[]) >> ForallBend(AwsEc2GpuDeviceInfo.mapping),
         "total_gpu_memory_in_mi_b": S("TotalGpuMemoryInMiB"),
@@ -239,6 +259,8 @@ class AwsEc2GpuInfo:
 @define(eq=False, slots=False)
 class AwsEc2FpgaDeviceInfo:
     kind: ClassVar[str] = "aws_ec2_fpga_device_info"
+    kind_display: ClassVar[str] = "AWS EC2 FPGA Device Info"
+    kind_description: ClassVar[str] = "Provides information about FPGA devices available in EC2 instances. FPGA devices in EC2 instances provide customizable and programmable hardware acceleration for various workloads."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
         "manufacturer": S("Manufacturer"),
@@ -254,6 +276,8 @@ class AwsEc2FpgaDeviceInfo:
 @define(eq=False, slots=False)
 class AwsEc2FpgaInfo:
     kind: ClassVar[str] = "aws_ec2_fpga_info"
+    kind_display: ClassVar[str] = "AWS EC2 FPGA Info"
+    kind_description: ClassVar[str] = "FPGAs (Field-Programmable Gate Arrays) in AWS EC2 provide hardware acceleration capabilities for your applications, enabling you to optimize performance and efficiency for specific workloads."
     mapping: ClassVar[Dict[str, Bender]] = {
         "fpgas": S("Fpgas", default=[]) >> ForallBend(AwsEc2FpgaDeviceInfo.mapping),
         "total_fpga_memory_in_mi_b": S("TotalFpgaMemoryInMiB"),
@@ -265,6 +289,8 @@ class AwsEc2FpgaInfo:
 @define(eq=False, slots=False)
 class AwsEc2PlacementGroupInfo:
     kind: ClassVar[str] = "aws_ec2_placement_group_info"
+    kind_display: ClassVar[str] = "AWS EC2 Placement Group Info"
+    kind_description: ClassVar[str] = "EC2 Placement Groups are logical groupings of instances within a single Availability Zone that enables applications to take advantage of low-latency network connections between instances."
     mapping: ClassVar[Dict[str, Bender]] = {"supported_strategies": S("SupportedStrategies", default=[])}
     supported_strategies: List[str] = field(factory=list)
 
@@ -272,6 +298,8 @@ class AwsEc2PlacementGroupInfo:
 @define(eq=False, slots=False)
 class AwsEc2InferenceDeviceInfo:
     kind: ClassVar[str] = "aws_ec2_inference_device_info"
+    kind_display: ClassVar[str] = "AWS EC2 Inference Device Info"
+    kind_description: ClassVar[str] = "EC2 Inference Device Info provides information about the inference devices available for EC2 instances. Inference devices are specialized hardware accelerators that can be used to optimize the performance of machine learning or deep learning workloads on EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {"count": S("Count"), "name": S("Name"), "manufacturer": S("Manufacturer")}
     count: Optional[int] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -281,6 +309,8 @@ class AwsEc2InferenceDeviceInfo:
 @define(eq=False, slots=False)
 class AwsEc2InferenceAcceleratorInfo:
     kind: ClassVar[str] = "aws_ec2_inference_accelerator_info"
+    kind_display: ClassVar[str] = "AWS EC2 Inference Accelerator Info"
+    kind_description: ClassVar[str] = "EC2 Inference Accelerator Info provides information about acceleration options available for Amazon EC2 instances, allowing users to enhance performance of their machine learning inference workloads."
     mapping: ClassVar[Dict[str, Bender]] = {
         "accelerators": S("Accelerators", default=[]) >> ForallBend(AwsEc2InferenceDeviceInfo.mapping)
     }
@@ -290,6 +320,8 @@ class AwsEc2InferenceAcceleratorInfo:
 @define(eq=False, slots=False)
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Type"
+    kind_description: ClassVar[str] = "The type of EC2 instance determines the hardware of the host computer used for the instance and the number of virtual CPUs, amount of memory, and storage capacity provided."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -375,6 +407,8 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
 @define(eq=False, slots=False)
 class AwsEc2VolumeAttachment:
     kind: ClassVar[str] = "aws_ec2_volume_attachment"
+    kind_display: ClassVar[str] = "AWS EC2 Volume Attachment"
+    kind_description: ClassVar[str] = "AWS EC2 Volume Attachment is a resource that represents the attachment of an Amazon Elastic Block Store (EBS) volume to an EC2 instance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
         "device": S("Device"),
@@ -404,6 +438,8 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
+    kind_display: ClassVar[str] = "AWS EC2 Volume"
+    kind_description: ClassVar[str] = "EC2 Volumes are block-level storage devices that can be attached to EC2 instances in Amazon's cloud, providing additional storage for applications and data."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-volumes", "Volumes")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"], "delete": ["aws_kms_key"]},
@@ -602,6 +638,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 @define(eq=False, slots=False)
 class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
+    kind_display: ClassVar[str] = "AWS EC2 Snapshot"
+    kind_description: ClassVar[str] = "EC2 Snapshots are incremental backups of Amazon Elastic Block Store (EBS) volumes, allowing users to capture and store point-in-time copies of their data."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-snapshots", "Snapshots", dict(OwnerIds=["self"])
     )
@@ -665,6 +703,8 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AwsEc2KeyPair(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_keypair"
+    kind_display: ClassVar[str] = "AWS EC2 Keypair"
+    kind_description: ClassVar[str] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-key-pairs", "KeyPairs")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -707,6 +747,8 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2Placement:
     kind: ClassVar[str] = "aws_ec2_placement"
+    kind_display: ClassVar[str] = "AWS EC2 Placement"
+    kind_description: ClassVar[str] = "EC2 Placement refers to the process of selecting a suitable physical host within an AWS Availability Zone to run an EC2 instance. It helps optimize performance, availability, and cost by considering factors such as instance type, size, and availability of resources on the host."
     mapping: ClassVar[Dict[str, Bender]] = {
         "availability_zone": S("AvailabilityZone"),
         "affinity": S("Affinity"),
@@ -730,6 +772,8 @@ class AwsEc2Placement:
 @define(eq=False, slots=False)
 class AwsEc2ProductCode:
     kind: ClassVar[str] = "aws_ec2_product_code"
+    kind_display: ClassVar[str] = "AWS EC2 Product Code"
+    kind_description: ClassVar[str] = "An EC2 Product Code is a unique identifier assigned to an Amazon Machine Image (AMI) to facilitate tracking and licensing of software packages included in the image."
     mapping: ClassVar[Dict[str, Bender]] = {
         "product_code_id": S("ProductCodeId"),
         "product_code_type": S("ProductCodeType"),
@@ -741,6 +785,8 @@ class AwsEc2ProductCode:
 @define(eq=False, slots=False)
 class AwsEc2InstanceState:
     kind: ClassVar[str] = "aws_ec2_instance_state"
+    kind_display: ClassVar[str] = "AWS EC2 Instance State"
+    kind_description: ClassVar[str] = "AWS EC2 Instance State represents the current state of an EC2 instance in Amazon's cloud, such as running, stopped, terminated, or pending."
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "name": S("Name")}
     code: Optional[int] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -749,6 +795,8 @@ class AwsEc2InstanceState:
 @define(eq=False, slots=False)
 class AwsEc2EbsInstanceBlockDevice:
     kind: ClassVar[str] = "aws_ec2_ebs_instance_block_device"
+    kind_display: ClassVar[str] = "AWS EC2 EBS Instance Block Device"
+    kind_description: ClassVar[str] = "EC2 EBS Instance Block Device is a storage volume attached to an Amazon EC2 instance for persistent data storage."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
         "delete_on_termination": S("DeleteOnTermination"),
@@ -764,6 +812,8 @@ class AwsEc2EbsInstanceBlockDevice:
 @define(eq=False, slots=False)
 class AwsEc2InstanceBlockDeviceMapping:
     kind: ClassVar[str] = "aws_ec2_instance_block_device_mapping"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Block Device Mapping"
+    kind_description: ClassVar[str] = "Block device mapping is a feature in Amazon EC2 that allows users to specify the block devices to attach to an EC2 instance at launch time."
     mapping: ClassVar[Dict[str, Bender]] = {
         "device_name": S("DeviceName"),
         "ebs": S("Ebs") >> Bend(AwsEc2EbsInstanceBlockDevice.mapping),
@@ -775,6 +825,8 @@ class AwsEc2InstanceBlockDeviceMapping:
 @define(eq=False, slots=False)
 class AwsEc2IamInstanceProfile:
     kind: ClassVar[str] = "aws_ec2_iam_instance_profile"
+    kind_display: ClassVar[str] = "AWS EC2 IAM Instance Profile"
+    kind_description: ClassVar[str] = "IAM Instance Profiles are used to associate IAM roles with EC2 instances, allowing applications running on the instances to securely access other AWS services."
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "id": S("Id")}
     arn: Optional[str] = field(default=None)
     id: Optional[str] = field(default=None)
@@ -783,6 +835,8 @@ class AwsEc2IamInstanceProfile:
 @define(eq=False, slots=False)
 class AwsEc2ElasticGpuAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_gpu_association"
+    kind_display: ClassVar[str] = "AWS EC2 Elastic GPU Association"
+    kind_description: ClassVar[str] = "Elastic GPU Association is a feature in AWS EC2 that allows attaching an Elastic GPU to an EC2 instance, providing additional GPU resources for graphics-intensive applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "elastic_gpu_id": S("ElasticGpuId"),
         "elastic_gpu_association_id": S("ElasticGpuAssociationId"),
@@ -798,6 +852,8 @@ class AwsEc2ElasticGpuAssociation:
 @define(eq=False, slots=False)
 class AwsEc2ElasticInferenceAcceleratorAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_inference_accelerator_association"
+    kind_display: ClassVar[str] = "AWS EC2 Elastic Inference Accelerator Association"
+    kind_description: ClassVar[str] = "Elastic Inference Accelerator Association allows users to attach elastic inference accelerators to EC2 instances in order to accelerate their machine learning inference workloads."
     mapping: ClassVar[Dict[str, Bender]] = {
         "elastic_inference_accelerator_arn": S("ElasticInferenceAcceleratorArn"),
         "elastic_inference_accelerator_association_id": S("ElasticInferenceAcceleratorAssociationId"),
@@ -813,6 +869,8 @@ class AwsEc2ElasticInferenceAcceleratorAssociation:
 @define(eq=False, slots=False)
 class AwsEc2InstanceNetworkInterfaceAssociation:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_association"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Network Interface Association"
+    kind_description: ClassVar[str] = "A network interface association for an EC2 instance in Amazon's cloud, which helps manage the connection between the instance and its associated network interface."
     mapping: ClassVar[Dict[str, Bender]] = {
         "carrier_ip": S("CarrierIp"),
         "customer_owned_ip": S("CustomerOwnedIp"),
@@ -830,6 +888,8 @@ class AwsEc2InstanceNetworkInterfaceAssociation:
 @define(eq=False, slots=False)
 class AwsEc2InstanceNetworkInterfaceAttachment:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_attachment"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Network Interface Attachment"
+    kind_description: ClassVar[str] = "An attachment of a network interface to an EC2 instance in the Amazon Web Services cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
         "attachment_id": S("AttachmentId"),
@@ -849,6 +909,8 @@ class AwsEc2InstanceNetworkInterfaceAttachment:
 @define(eq=False, slots=False)
 class AwsEc2GroupIdentifier:
     kind: ClassVar[str] = "aws_ec2_group_identifier"
+    kind_display: ClassVar[str] = "AWS EC2 Group Identifier"
+    kind_description: ClassVar[str] = "An EC2 Group Identifier is a unique identifier for a group of EC2 instances that are associated with a security group in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {"group_name": S("GroupName"), "group_id": S("GroupId")}
     group_name: Optional[str] = field(default=None)
     group_id: Optional[str] = field(default=None)
@@ -857,6 +919,8 @@ class AwsEc2GroupIdentifier:
 @define(eq=False, slots=False)
 class AwsEc2InstancePrivateIpAddress:
     kind: ClassVar[str] = "aws_ec2_instance_private_ip_address"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Private IP Address"
+    kind_description: ClassVar[str] = "The private IP address is the internal IP address assigned to the EC2 instance within the Amazon VPC (Virtual Private Cloud) network."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
         "primary": S("Primary"),
@@ -872,6 +936,8 @@ class AwsEc2InstancePrivateIpAddress:
 @define(eq=False, slots=False)
 class AwsEc2InstanceNetworkInterface:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Network Interface"
+    kind_description: ClassVar[str] = "A network interface is a virtual network card that allows an EC2 instance to connect to networks and communicate with other resources."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association": S("Association") >> Bend(AwsEc2InstanceNetworkInterfaceAssociation.mapping),
         "attachment": S("Attachment") >> Bend(AwsEc2InstanceNetworkInterfaceAttachment.mapping),
@@ -913,6 +979,8 @@ class AwsEc2InstanceNetworkInterface:
 @define(eq=False, slots=False)
 class AwsEc2StateReason:
     kind: ClassVar[str] = "aws_ec2_state_reason"
+    kind_display: ClassVar[str] = "AWS EC2 State Reason"
+    kind_description: ClassVar[str] = "EC2 State Reason provides information about the reason a certain EC2 instance is in its current state, such as running, stopped, or terminated."
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
     code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -921,6 +989,8 @@ class AwsEc2StateReason:
 @define(eq=False, slots=False)
 class AwsEc2CpuOptions:
     kind: ClassVar[str] = "aws_ec2_cpu_options"
+    kind_display: ClassVar[str] = "AWS EC2 CPU Options"
+    kind_description: ClassVar[str] = "EC2 CPU Options allow users to customize the number of vCPUs (virtual CPUs) and the processor generation of their EC2 instances in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {"core_count": S("CoreCount"), "threads_per_core": S("ThreadsPerCore")}
     core_count: Optional[int] = field(default=None)
     threads_per_core: Optional[int] = field(default=None)
@@ -929,6 +999,8 @@ class AwsEc2CpuOptions:
 @define(eq=False, slots=False)
 class AwsEc2CapacityReservationTargetResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_target_response"
+    kind_display: ClassVar[str] = "AWS EC2 Capacity Reservation Target Response"
+    kind_description: ClassVar[str] = "This resource represents the response for querying capacity reservation targets available for EC2 instances in AWS. It provides information about the different capacity reservation options and their availability."
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservation_id": S("CapacityReservationId"),
         "capacity_reservation_resource_group_arn": S("CapacityReservationResourceGroupArn"),
@@ -940,6 +1012,8 @@ class AwsEc2CapacityReservationTargetResponse:
 @define(eq=False, slots=False)
 class AwsEc2CapacityReservationSpecificationResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_specification_response"
+    kind_display: ClassVar[str] = "AWS EC2 Capacity Reservation Specification Response"
+    kind_description: ClassVar[str] = "The Capacity Reservation Specification Response is a response object that provides information about the capacity reservations for an EC2 instance in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservation_preference": S("CapacityReservationPreference"),
         "capacity_reservation_target": S("CapacityReservationTarget")
@@ -952,6 +1026,8 @@ class AwsEc2CapacityReservationSpecificationResponse:
 @define(eq=False, slots=False)
 class AwsEc2InstanceMetadataOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_instance_metadata_options_response"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Metadata Options Response"
+    kind_description: ClassVar[str] = "The AWS EC2 Instance Metadata Options Response is a configuration response from Amazon EC2 that provides information about the metadata service options enabled for an EC2 instance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "state": S("State"),
         "http_tokens": S("HttpTokens"),
@@ -971,6 +1047,8 @@ class AwsEc2InstanceMetadataOptionsResponse:
 @define(eq=False, slots=False)
 class AwsEc2PrivateDnsNameOptionsResponse:
     kind: ClassVar[str] = "aws_ec2_private_dns_name_options_response"
+    kind_display: ClassVar[str] = "AWS EC2 Private DNS Name Options Response"
+    kind_description: ClassVar[str] = "Private DNS Name Options Response is a response object in the AWS EC2 service that provides options for configuring the private DNS name of a resource in a virtual private cloud (VPC)."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname_type": S("HostnameType"),
         "enable_resource_name_dns_a_record": S("EnableResourceNameDnsARecord"),
@@ -994,6 +1072,8 @@ InstanceStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
+    kind_display: ClassVar[str] = "AWS EC2 Instance"
+    kind_description: ClassVar[str] = "EC2 Instances are virtual servers in Amazon's cloud, allowing users to run applications on the Amazon Web Services infrastructure."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_ec2_keypair", "aws_vpc"]},
@@ -1258,6 +1338,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 @define(eq=False, slots=False)
 class AwsEc2RecurringCharge:
     kind: ClassVar[str] = "aws_ec2_recurring_charge"
+    kind_display: ClassVar[str] = "AWS EC2 Recurring Charge"
+    kind_description: ClassVar[str] = "There is no specific resource or service named 'aws_ec2_recurring_charge' in AWS. Please provide a valid resource name."
     mapping: ClassVar[Dict[str, Bender]] = {"amount": S("Amount"), "frequency": S("Frequency")}
     amount: Optional[float] = field(default=None)
     frequency: Optional[str] = field(default=None)
@@ -1266,6 +1348,8 @@ class AwsEc2RecurringCharge:
 @define(eq=False, slots=False)
 class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
+    kind_display: ClassVar[str] = "AWS EC2 Reserved Instances"
+    kind_description: ClassVar[str] = "Reserved Instances are a purchasing option to save money on EC2 instance usage. Users can reserve instances for a one- or three-year term, allowing them to pay a lower hourly rate compared to on-demand instances."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-reserved-instances", "ReservedInstances")
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1323,6 +1407,8 @@ class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2NetworkAclAssociation:
     kind: ClassVar[str] = "aws_ec2_network_acl_association"
+    kind_display: ClassVar[str] = "AWS EC2 Network ACL Association"
+    kind_description: ClassVar[str] = "Network ACL Associations are used to associate a network ACL with a subnet in an Amazon VPC, allowing the network ACL to control inbound and outbound traffic to and from the subnet."
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_acl_association_id": S("NetworkAclAssociationId"),
         "network_acl_id": S("NetworkAclId"),
@@ -1336,6 +1422,8 @@ class AwsEc2NetworkAclAssociation:
 @define(eq=False, slots=False)
 class AwsEc2IcmpTypeCode:
     kind: ClassVar[str] = "aws_ec2_icmp_type_code"
+    kind_display: ClassVar[str] = "AWS EC2 ICMP Type Code"
+    kind_description: ClassVar[str] = "ICMP Type Code is a parameter used in AWS EC2 to specify the type and code of Internet Control Message Protocol (ICMP) messages."
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "type": S("Type")}
     code: Optional[int] = field(default=None)
     type: Optional[int] = field(default=None)
@@ -1344,6 +1432,8 @@ class AwsEc2IcmpTypeCode:
 @define(eq=False, slots=False)
 class AwsEc2PortRange:
     kind: ClassVar[str] = "aws_ec2_port_range"
+    kind_display: ClassVar[str] = "AWS EC2 Port Range"
+    kind_description: ClassVar[str] = "A range of port numbers that can be used to control inbound and outbound traffic for an AWS EC2 instance."
     mapping: ClassVar[Dict[str, Bender]] = {"from_range": S("From"), "to_range": S("To")}
     from_range: Optional[int] = field(default=None)
     to_range: Optional[int] = field(default=None)
@@ -1352,6 +1442,8 @@ class AwsEc2PortRange:
 @define(eq=False, slots=False)
 class AwsEc2NetworkAclEntry:
     kind: ClassVar[str] = "aws_ec2_network_acl_entry"
+    kind_display: ClassVar[str] = "AWS EC2 Network ACL Entry"
+    kind_description: ClassVar[str] = "EC2 Network ACL Entry is an access control entry for a network ACL in Amazon EC2, which controls inbound and outbound traffic flow for subnets."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cidr_block": S("CidrBlock"),
         "egress": S("Egress"),
@@ -1375,6 +1467,8 @@ class AwsEc2NetworkAclEntry:
 @define(eq=False, slots=False)
 class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
+    kind_display: ClassVar[str] = "AWS EC2 Network ACL"
+    kind_description: ClassVar[str] = "EC2 Network ACLs are virtual stateless firewalls that control inbound and outbound traffic for EC2 instances in Amazon's cloud."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-acls", "NetworkAcls")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc", "aws_ec2_subnet"]},
@@ -1420,6 +1514,8 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
+    kind_display: ClassVar[str] = "AWS EC2 Elastic IP"
+    kind_description: ClassVar[str] = "Elastic IP addresses are static, IPv4 addresses designed for dynamic cloud computing. They allow you to mask the failure or replacement of an instance by rapidly remapping the address to another instance in your account."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-addresses", "Addresses")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance", "aws_ec2_network_interface"]},
@@ -1498,6 +1594,8 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterfaceAssociation:
     kind: ClassVar[str] = "aws_ec2_network_interface_association"
+    kind_display: ClassVar[str] = "AWS EC2 Network Interface Association"
+    kind_description: ClassVar[str] = "The association between a network interface and an EC2 instance, allowing the instance to access the network."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allocation_id": S("AllocationId"),
         "association_id": S("AssociationId"),
@@ -1518,6 +1616,8 @@ class AwsEc2NetworkInterfaceAssociation:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterfaceAttachment:
     kind: ClassVar[str] = "aws_ec2_network_interface_attachment"
+    kind_display: ClassVar[str] = "AWS EC2 Network Interface Attachment"
+    kind_description: ClassVar[str] = "An attachment of a network interface to an EC2 instance, allowing the instance to communicate over the network."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
         "attachment_id": S("AttachmentId"),
@@ -1540,6 +1640,8 @@ class AwsEc2NetworkInterfaceAttachment:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterfacePrivateIpAddress:
     kind: ClassVar[str] = "aws_ec2_network_interface_private_ip_address"
+    kind_display: ClassVar[str] = "AWS EC2 Network Interface Private IP Address"
+    kind_description: ClassVar[str] = "The private IP address assigned to a network interface of an Amazon EC2 instance. This IP address is used for communication within the Amazon VPC (Virtual Private Cloud) network."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association": S("Association") >> Bend(AwsEc2NetworkInterfaceAssociation.mapping),
         "primary": S("Primary"),
@@ -1555,6 +1657,8 @@ class AwsEc2NetworkInterfacePrivateIpAddress:
 @define(eq=False, slots=False)
 class AwsEc2Tag:
     kind: ClassVar[str] = "aws_ec2_tag"
+    kind_display: ClassVar[str] = "AWS EC2 Tag"
+    kind_description: ClassVar[str] = "EC2 tags are key-value pairs that can be assigned to EC2 instances, images, volumes, and other resources for easier management and organization."
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value": S("Value")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -1563,6 +1667,8 @@ class AwsEc2Tag:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
+    kind_display: ClassVar[str] = "AWS EC2 Network Interface"
+    kind_description: ClassVar[str] = "An EC2 Network Interface is a virtual network interface that can be attached to EC2 instances in the AWS cloud, allowing for communication between instances and with external networks."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-interfaces", "NetworkInterfaces")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1670,6 +1776,8 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
 @define(eq=False, slots=False)
 class AwsEc2VpcCidrBlockState:
     kind: ClassVar[str] = "aws_vpc_cidr_block_state"
+    kind_display: ClassVar[str] = "AWS VPC CIDR Block State"
+    kind_description: ClassVar[str] = "The state of a CIDR block in an Amazon Virtual Private Cloud (VPC) which provides networking functionality for Amazon Elastic Compute Cloud (EC2) instances."
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
     state: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
@@ -1678,6 +1786,8 @@ class AwsEc2VpcCidrBlockState:
 @define(eq=False, slots=False)
 class AwsEc2VpcIpv6CidrBlockAssociation:
     kind: ClassVar[str] = "aws_vpc_ipv6_cidr_block_association"
+    kind_display: ClassVar[str] = "AWS VPC IPv6 CIDR Block Association"
+    kind_description: ClassVar[str] = "AWS VPC IPv6 CIDR Block Association represents the association between an Amazon Virtual Private Cloud (VPC) and an IPv6 CIDR block, enabling communication over IPv6 in the VPC."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association_id": S("AssociationId"),
         "ipv6_cidr_block": S("Ipv6CidrBlock"),
@@ -1695,6 +1805,8 @@ class AwsEc2VpcIpv6CidrBlockAssociation:
 @define(eq=False, slots=False)
 class AwsEc2VpcCidrBlockAssociation:
     kind: ClassVar[str] = "aws_vpc_cidr_block_association"
+    kind_display: ClassVar[str] = "AWS VPC CIDR Block Association"
+    kind_description: ClassVar[str] = "CIDR Block Association is used to associate a specific range of IP addresses (CIDR block) with a Virtual Private Cloud (VPC) in the AWS cloud. It allows the VPC to have a defined IP range for its resources and enables secure communication within the VPC."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association_id": S("AssociationId"),
         "cidr_block": S("CidrBlock"),
@@ -1708,6 +1820,8 @@ class AwsEc2VpcCidrBlockAssociation:
 @define(eq=False, slots=False)
 class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
+    kind_display: ClassVar[str] = "AWS VPC"
+    kind_description: ClassVar[str] = "AWS VPC stands for Amazon Virtual Private Cloud. It is a virtual network dedicated to your AWS account, allowing you to launch AWS resources in a defined virtual network environment."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
@@ -1752,6 +1866,8 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionOptionsDescription:
     kind: ClassVar[str] = "aws_vpc_peering_connection_options_description"
+    kind_display: ClassVar[str] = "AWS VPC Peering Connection Options Description"
+    kind_description: ClassVar[str] = "VPC Peering Connection Options Description provides the different options and configurations for establishing a peering connection between two Amazon Virtual Private Clouds (VPCs). This allows communication between the VPCs using private IP addresses."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allow_dns_resolution_from_remote_vpc": S("AllowDnsResolutionFromRemoteVpc"),
         "allow_egress_from_local_classic_link_to_remote_vpc": S("AllowEgressFromLocalClassicLinkToRemoteVpc"),
@@ -1765,6 +1881,8 @@ class AwsEc2VpcPeeringConnectionOptionsDescription:
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionVpcInfo:
     kind: ClassVar[str] = "aws_vpc_peering_connection_vpc_info"
+    kind_display: ClassVar[str] = "AWS VPC Peering Connection VPC Info"
+    kind_description: ClassVar[str] = "VPC Peering Connection VPC Info provides information about the virtual private cloud (VPC) involved in a VPC peering connection in Amazon Web Services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cidr_block": S("CidrBlock"),
         "ipv6_cidr_block_set": S("Ipv6CidrBlockSet", default=[]) >> ForallBend(S("Ipv6CidrBlock")),
@@ -1786,6 +1904,8 @@ class AwsEc2VpcPeeringConnectionVpcInfo:
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnectionStateReason:
     kind: ClassVar[str] = "aws_vpc_peering_connection_state_reason"
+    kind_display: ClassVar[str] = "AWS VPC Peering Connection State Reason"
+    kind_description: ClassVar[str] = "This resource represents the reason for the current state of a VPC peering connection in Amazon Web Services."
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "message": S("Message")}
     code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -1794,6 +1914,8 @@ class AwsEc2VpcPeeringConnectionStateReason:
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
+    kind_display: ClassVar[str] = "AWS VPC Peering Connection"
+    kind_description: ClassVar[str] = "VPC Peering Connection is a networking connection between two Amazon Virtual Private Clouds (VPCs) that enables you to route traffic between them using private IP addresses."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-vpc-peering-connections", "VpcPeeringConnections"
     )
@@ -1844,6 +1966,8 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
 @define(eq=False, slots=False)
 class AwsEc2DnsEntry:
     kind: ClassVar[str] = "aws_ec2_dns_entry"
+    kind_display: ClassVar[str] = "AWS EC2 DNS Entry"
+    kind_description: ClassVar[str] = "An EC2 DNS Entry is a domain name assigned to an Amazon EC2 instance, allowing users to access the instance's applications using a human-readable name instead of its IP address."
     mapping: ClassVar[Dict[str, Bender]] = {"dns_name": S("DnsName"), "hosted_zone_id": S("HostedZoneId")}
     dns_name: Optional[str] = field(default=None)
     hosted_zone_id: Optional[str] = field(default=None)
@@ -1852,6 +1976,8 @@ class AwsEc2DnsEntry:
 @define(eq=False, slots=False)
 class AwsEc2LastError:
     kind: ClassVar[str] = "aws_ec2_last_error"
+    kind_display: ClassVar[str] = "AWS EC2 Last Error"
+    kind_description: ClassVar[str] = "The AWS EC2 Last Error is a description of the last error occurred in relation to an EC2 instance. It helps in troubleshooting and identifying issues with the EC2 instances in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {"message": S("Message"), "code": S("Code")}
     message: Optional[str] = field(default=None)
     code: Optional[str] = field(default=None)
@@ -1860,6 +1986,8 @@ class AwsEc2LastError:
 @define(eq=False, slots=False)
 class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
+    kind_display: ClassVar[str] = "AWS VPC Endpoint"
+    kind_description: ClassVar[str] = "VPC Endpoints enable secure and private communication between your VPC and supported AWS services without using public IPs or requiring traffic to traverse the internet."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpc-endpoints", "VpcEndpoints")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1946,6 +2074,8 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
 @define(eq=False, slots=False)
 class AwsEc2SubnetCidrBlockState:
     kind: ClassVar[str] = "aws_ec2_subnet_cidr_block_state"
+    kind_display: ClassVar[str] = "AWS EC2 Subnet CIDR Block State"
+    kind_description: ClassVar[str] = "The state of the CIDR block for a subnet in AWS EC2. It indicates whether the CIDR block is associated with a subnet or not."
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
     state: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
@@ -1954,6 +2084,8 @@ class AwsEc2SubnetCidrBlockState:
 @define(eq=False, slots=False)
 class AwsEc2SubnetIpv6CidrBlockAssociation:
     kind: ClassVar[str] = "aws_ec2_subnet_ipv6_cidr_block_association"
+    kind_display: ClassVar[str] = "AWS EC2 Subnet IPv6 CIDR Block Association"
+    kind_description: ClassVar[str] = "IPv6 CIDR Block Association is used to associate an IPv6 CIDR block with a subnet in Amazon EC2, enabling the subnet to use IPv6 addresses."
     mapping: ClassVar[Dict[str, Bender]] = {
         "association_id": S("AssociationId"),
         "ipv6_cidr_block": S("Ipv6CidrBlock"),
@@ -1967,6 +2099,8 @@ class AwsEc2SubnetIpv6CidrBlockAssociation:
 @define(eq=False, slots=False)
 class AwsEc2PrivateDnsNameOptionsOnLaunch:
     kind: ClassVar[str] = "aws_ec2_private_dns_name_options_on_launch"
+    kind_display: ClassVar[str] = "AWS EC2 Private DNS Name Options on Launch"
+    kind_description: ClassVar[str] = "The option to enable or disable assigning a private DNS name to an Amazon EC2 instance on launch."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname_type": S("HostnameType"),
         "enable_resource_name_dns_a_record": S("EnableResourceNameDnsARecord"),
@@ -1980,6 +2114,8 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 @define(eq=False, slots=False)
 class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
+    kind_display: ClassVar[str] = "AWS EC2 Subnet"
+    kind_description: ClassVar[str] = "An AWS EC2 Subnet is a logical subdivision of a VPC (Virtual Private Cloud) in Amazon's cloud, allowing users to group resources and control network access within a specific network segment."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-subnets", "Subnets")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
@@ -2051,6 +2187,8 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
 @define(eq=False, slots=False)
 class AwsEc2IpRange:
     kind: ClassVar[str] = "aws_ec2_ip_range"
+    kind_display: ClassVar[str] = "AWS EC2 IP Range"
+    kind_description: ClassVar[str] = "An IP range in the Amazon EC2 service that is used to define a range of IP addresses available for EC2 instances. It allows users to control inbound and outbound traffic to their virtual servers within the specified IP range."
     mapping: ClassVar[Dict[str, Bender]] = {"cidr_ip": S("CidrIp"), "description": S("Description")}
     cidr_ip: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
@@ -2059,6 +2197,8 @@ class AwsEc2IpRange:
 @define(eq=False, slots=False)
 class AwsEc2Ipv6Range:
     kind: ClassVar[str] = "aws_ec2_ipv6_range"
+    kind_display: ClassVar[str] = "AWS EC2 IPv6 Range"
+    kind_description: ClassVar[str] = "AWS EC2 IPv6 Range is a range of IPv6 addresses that can be assigned to EC2 instances in the Amazon Web Services cloud."
     mapping: ClassVar[Dict[str, Bender]] = {"cidr_ipv6": S("CidrIpv6"), "description": S("Description")}
     cidr_ipv6: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
@@ -2067,6 +2207,8 @@ class AwsEc2Ipv6Range:
 @define(eq=False, slots=False)
 class AwsEc2PrefixListId:
     kind: ClassVar[str] = "aws_ec2_prefix_list_id"
+    kind_display: ClassVar[str] = "AWS EC2 Prefix List ID"
+    kind_description: ClassVar[str] = "A prefix list is a set of CIDR blocks that can be used as a firewall rule in AWS VPC to allow or deny traffic."
     mapping: ClassVar[Dict[str, Bender]] = {"description": S("Description"), "prefix_list_id": S("PrefixListId")}
     description: Optional[str] = field(default=None)
     prefix_list_id: Optional[str] = field(default=None)
@@ -2075,6 +2217,8 @@ class AwsEc2PrefixListId:
 @define(eq=False, slots=False)
 class AwsEc2UserIdGroupPair:
     kind: ClassVar[str] = "aws_ec2_user_id_group_pair"
+    kind_display: ClassVar[str] = "AWS EC2 User ID Group Pair"
+    kind_description: ClassVar[str] = "User ID Group Pair is a configuration in EC2 that associates a user ID with a security group, allowing or denying traffic based on the specified source or destination IP address range."
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("Description"),
         "group_id": S("GroupId"),
@@ -2096,6 +2240,8 @@ class AwsEc2UserIdGroupPair:
 @define(eq=False, slots=False)
 class AwsEc2IpPermission:
     kind: ClassVar[str] = "aws_ec2_ip_permission"
+    kind_display: ClassVar[str] = "AWS EC2 IP Permission"
+    kind_description: ClassVar[str] = "IP Permission in AWS EC2 allows you to control inbound and outbound traffic to an EC2 instance based on IP addresses."
     mapping: ClassVar[Dict[str, Bender]] = {
         "from_port": S("FromPort"),
         "ip_protocol": S("IpProtocol"),
@@ -2117,6 +2263,8 @@ class AwsEc2IpPermission:
 @define(eq=False, slots=False)
 class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
+    kind_display: ClassVar[str] = "AWS EC2 Security Group"
+    kind_description: ClassVar[str] = "An EC2 Security Group acts as a virtual firewall that controls inbound and outbound traffic for EC2 instances within a VPC."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-security-groups", "SecurityGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
@@ -2208,6 +2356,8 @@ class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
 @define(eq=False, slots=False)
 class AwsEc2NatGatewayAddress:
     kind: ClassVar[str] = "aws_ec2_nat_gateway_address"
+    kind_display: ClassVar[str] = "AWS EC2 NAT Gateway Address"
+    kind_description: ClassVar[str] = "The NAT Gateway Address is a public IP address assigned to an AWS EC2 NAT Gateway, which allows instances within a private subnet to communicate with the internet."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allocation_id": S("AllocationId"),
         "network_interface_id": S("NetworkInterfaceId"),
@@ -2223,6 +2373,8 @@ class AwsEc2NatGatewayAddress:
 @define(eq=False, slots=False)
 class AwsEc2ProvisionedBandwidth:
     kind: ClassVar[str] = "aws_ec2_provisioned_bandwidth"
+    kind_display: ClassVar[str] = "AWS EC2 Provisioned Bandwidth"
+    kind_description: ClassVar[str] = "EC2 Provisioned Bandwidth refers to the ability to provision high-bandwidth connections between EC2 instances and other AWS services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "provision_time": S("ProvisionTime"),
         "provisioned": S("Provisioned"),
@@ -2240,6 +2392,8 @@ class AwsEc2ProvisionedBandwidth:
 @define(eq=False, slots=False)
 class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
+    kind_display: ClassVar[str] = "AWS EC2 NAT Gateway"
+    kind_description: ClassVar[str] = "A NAT Gateway is a fully managed network address translation (NAT) service provided by Amazon Web Services (AWS) that allows instances within a private subnet to connect outbound to the Internet while also preventing inbound connections from the outside."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-nat-gateways", "NatGateways")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_ec2_network_interface", "aws_vpc", "aws_ec2_subnet"]},
@@ -2294,6 +2448,8 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
 @define(eq=False, slots=False)
 class AwsEc2InternetGatewayAttachment:
     kind: ClassVar[str] = "aws_ec2_internet_gateway_attachment"
+    kind_display: ClassVar[str] = "AWS EC2 Internet Gateway Attachment"
+    kind_description: ClassVar[str] = "EC2 Internet Gateway Attachment is a resource that represents the attachment of an Internet Gateway to a VPC in Amazon's cloud, enabling outbound internet access for instances in the VPC."
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "vpc_id": S("VpcId")}
     state: Optional[str] = field(default=None)
     vpc_id: Optional[str] = field(default=None)
@@ -2302,6 +2458,8 @@ class AwsEc2InternetGatewayAttachment:
 @define(eq=False, slots=False)
 class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
+    kind_display: ClassVar[str] = "AWS EC2 Internet Gateway"
+    kind_description: ClassVar[str] = "An Internet Gateway is a horizontally scalable, redundant, and highly available VPC component that allows communication between instances in your VPC and the internet."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-internet-gateways", "InternetGateways")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
@@ -2360,6 +2518,8 @@ class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
 @define(eq=False, slots=False)
 class AwsEc2RouteTableAssociationState:
     kind: ClassVar[str] = "aws_ec2_route_table_association_state"
+    kind_display: ClassVar[str] = "AWS EC2 Route Table Association State"
+    kind_description: ClassVar[str] = "Route Table Association State represents the state of association between a subnet and a route table in Amazon EC2."
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
     state: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
@@ -2368,6 +2528,8 @@ class AwsEc2RouteTableAssociationState:
 @define(eq=False, slots=False)
 class AwsEc2RouteTableAssociation:
     kind: ClassVar[str] = "aws_ec2_route_table_association"
+    kind_display: ClassVar[str] = "AWS EC2 Route Table Association"
+    kind_description: ClassVar[str] = "A Route Table Association is used to associate a route table with a subnet in Amazon EC2, allowing for traffic routing within the virtual private cloud (VPC)"
     mapping: ClassVar[Dict[str, Bender]] = {
         "main": S("Main"),
         "route_table_association_id": S("RouteTableAssociationId"),
@@ -2387,6 +2549,8 @@ class AwsEc2RouteTableAssociation:
 @define(eq=False, slots=False)
 class AwsEc2Route:
     kind: ClassVar[str] = "aws_ec2_route"
+    kind_display: ClassVar[str] = "AWS EC2 Route"
+    kind_description: ClassVar[str] = "Routes in AWS EC2 are used to direct network traffic from one subnet to another, allowing communication between different instances and networks within the Amazon EC2 service."
     mapping: ClassVar[Dict[str, Bender]] = {
         "destination_cidr_block": S("DestinationCidrBlock"),
         "destination_ipv6_cidr_block": S("DestinationIpv6CidrBlock"),
@@ -2426,6 +2590,8 @@ class AwsEc2Route:
 @define(eq=False, slots=False)
 class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
+    kind_display: ClassVar[str] = "AWS EC2 Route Table"
+    kind_description: ClassVar[str] = "EC2 Route Tables are used to determine where network traffic is directed within a Virtual Private Cloud (VPC) in Amazon's cloud infrastructure."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-route-tables", "RouteTables")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
@@ -2485,6 +2651,8 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
 @define(eq=False, slots=False)
 class AwsEc2InstanceCapacity:
     kind: ClassVar[str] = "aws_ec2_instance_capacity"
+    kind_display: ClassVar[str] = "AWS EC2 Instance Capacity"
+    kind_description: ClassVar[str] = "AWS EC2 Instance Capacity refers to the amount of computing power, expressed in terms of CPU, memory, and networking resources, that an EC2 instance can provide to run applications in the Amazon Web Services cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_capacity": S("AvailableCapacity"),
         "instance_type": S("InstanceType"),
@@ -2498,6 +2666,8 @@ class AwsEc2InstanceCapacity:
 @define(eq=False, slots=False)
 class AwsEc2AvailableCapacity:
     kind: ClassVar[str] = "aws_ec2_available_capacity"
+    kind_display: ClassVar[str] = "AWS EC2 Available Capacity"
+    kind_description: ClassVar[str] = "The available capacity refers to the amount of resources (such as CPU, memory, and storage) that are currently available for new EC2 instances to be launched in the Amazon Web Services infrastructure."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_instance_capacity": S("AvailableInstanceCapacity", default=[])
         >> ForallBend(AwsEc2InstanceCapacity.mapping),
@@ -2510,6 +2680,8 @@ class AwsEc2AvailableCapacity:
 @define(eq=False, slots=False)
 class AwsEc2HostProperties:
     kind: ClassVar[str] = "aws_ec2_host_properties"
+    kind_display: ClassVar[str] = "AWS EC2 Host Properties"
+    kind_description: ClassVar[str] = "EC2 Host Properties provide detailed information and configuration options for the physical hosts within the Amazon EC2 infrastructure."
     mapping: ClassVar[Dict[str, Bender]] = {
         "cores": S("Cores"),
         "instance_type": S("InstanceType"),
@@ -2527,6 +2699,8 @@ class AwsEc2HostProperties:
 @define(eq=False, slots=False)
 class AwsEc2HostInstance:
     kind: ClassVar[str] = "aws_ec2_host_instance"
+    kind_display: ClassVar[str] = "AWS EC2 Host Instance"
+    kind_description: ClassVar[str] = "EC2 Host Instances are physical servers in Amazon's cloud that are dedicated to hosting EC2 instances, providing you with more control over your infrastructure and allowing you to easily manage your own host-level resources."
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_id": S("InstanceId"),
         "instance_type": S("InstanceType"),
@@ -2540,6 +2714,8 @@ class AwsEc2HostInstance:
 @define(eq=False, slots=False)
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
+    kind_display: ClassVar[str] = "AWS EC2 Host"
+    kind_description: ClassVar[str] = "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2 instances."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-hosts", "Hosts")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]}
@@ -2608,6 +2784,8 @@ class AwsEc2Host(EC2Taggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2DestinationOption:
     kind: ClassVar[str] = "aws_ec2_destination_option"
+    kind_display: ClassVar[str] = "AWS EC2 Destination Option"
+    kind_description: ClassVar[str] = "EC2 Destination Options allow users to specify the destinations for traffic within a VPC, providing flexibility and control over network traffic flows."
     mapping: ClassVar[Dict[str, Bender]] = {
         "file_format": S("FileFormat"),
         "hive_compatible_partitions": S("HiveCompatiblePartitions"),
@@ -2626,6 +2804,8 @@ class AwsEc2DestinationOption:
 @define(eq=False, slots=False)
 class AwsEc2FlowLog(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_flow_log"
+    kind_display: ClassVar[str] = "AWS EC2 Flow Log"
+    kind_description: ClassVar[str] = "EC2 Flow Logs capture information about the IP traffic going to and from network interfaces in an Amazon EC2 instance, helping to troubleshoot network connectivity issues."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-flow-logs", "FlowLogs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FlowLogId"),

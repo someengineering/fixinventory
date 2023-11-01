@@ -17,6 +17,8 @@ service_name = "glacier"
 @define(eq=False, slots=False)
 class AwsGlacierInventoryRetrievalParameters:
     kind: ClassVar[str] = "aws_glacier_job_inventory_retrieval_parameters"
+    kind_display: ClassVar[str] = "AWS Glacier Job Inventory Retrieval Parameters"
+    kind_description: ClassVar[str] = "Retrieval parameters for inventory jobs in Amazon Glacier service that allow users to access metadata about their Glacier vault inventory."
     mapping: ClassVar[Dict[str, Bender]] = {
         "output_format": S("Format"),
         "start_date": S("StartDate"),
@@ -32,6 +34,8 @@ class AwsGlacierInventoryRetrievalParameters:
 @define(eq=False, slots=False)
 class AwsGlacierSelectParameters:
     kind: ClassVar[str] = "aws_glacier_job_select_parameters"
+    kind_display: ClassVar[str] = "AWS Glacier Job Select Parameters"
+    kind_description: ClassVar[str] = "AWS Glacier Job Select Parameters are specific options and configurations for selecting and querying data from Glacier vaults for retrieval."
     mapping: ClassVar[Dict[str, Bender]] = {
         "input_serialization": S("InputSerialization"),
         "expression_type": S("ExpressionType"),
@@ -47,6 +51,8 @@ class AwsGlacierSelectParameters:
 @define(eq=False, slots=False)
 class AwsGlacierBucketEncryption:
     kind: ClassVar[str] = "aws_glacier_bucket_encryption"
+    kind_display: ClassVar[str] = "AWS Glacier Bucket Encryption"
+    kind_description: ClassVar[str] = "AWS Glacier is a long-term archival storage service, and AWS Glacier Bucket Encryption provides the ability to encrypt data at rest in Glacier buckets to enhance data security and compliance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "encryption_type": S("EncryptionType"),
         "kms_key_id": S("KMSKeyId"),
@@ -60,6 +66,8 @@ class AwsGlacierBucketEncryption:
 @define(eq=False, slots=False)
 class AwsGlacierAcl:
     kind: ClassVar[str] = "aws_glacier_acl"
+    kind_display: ClassVar[str] = "AWS Glacier ACL"
+    kind_description: ClassVar[str] = "AWS Glacier ACL is an access control feature in Amazon Glacier that allows users to manage permissions for their Glacier vaults and archives."
     mapping: ClassVar[Dict[str, Bender]] = {
         "grantee": S("Grantee"),
         "permission": S("Permission"),
@@ -71,6 +79,8 @@ class AwsGlacierAcl:
 @define(eq=False, slots=False)
 class AwsGlacierJobBucket:
     kind: ClassVar[str] = "aws_glacier_job_bucket"
+    kind_display: ClassVar[str] = "AWS Glacier Job Bucket"
+    kind_description: ClassVar[str] = "The AWS Glacier Job Bucket is a storage location used for managing jobs in Amazon Glacier, a secure and durable storage service for long-term data archiving and backup."
     mapping: ClassVar[Dict[str, Bender]] = {
         "bucket_name": S("BucketName"),
         "prefix": S("Prefix"),
@@ -93,6 +103,8 @@ class AwsGlacierJobBucket:
 @define(eq=False, slots=False)
 class AwsGlacierJobOutputLocation:
     kind: ClassVar[str] = "aws_glacier_job_output_location"
+    kind_display: ClassVar[str] = "AWS Glacier Job Output Location"
+    kind_description: ClassVar[str] = "The AWS Glacier Job Output Location refers to the destination where the output of an AWS Glacier job is stored."
     mapping: ClassVar[Dict[str, Bender]] = {
         "s3": S("S3") >> Bend(AwsGlacierJobBucket.mapping),
     }
@@ -102,6 +114,8 @@ class AwsGlacierJobOutputLocation:
 @define(eq=False, slots=False)
 class AwsGlacierJob(AwsResource):
     kind: ClassVar[str] = "aws_glacier_job"
+    kind_display: ClassVar[str] = "AWS Glacier Job"
+    kind_description: ClassVar[str] = "AWS Glacier Jobs are used to manage and execute operations on data stored in Amazon S3 Glacier, such as data retrieval or inventory retrieval."
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
@@ -169,6 +183,8 @@ class AwsGlacierJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
+    kind_display: ClassVar[str] = "AWS Glacier Vault"
+    kind_description: ClassVar[str] = "AWS Glacier Vaults are used for long term data archiving and backup, providing a secure and durable storage solution with low cost."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-vaults", "VaultList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {

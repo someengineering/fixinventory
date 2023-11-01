@@ -17,6 +17,8 @@ service_name = "config"
 @define(eq=False, slots=False)
 class AwsConfigRecorderStatus:
     kind: ClassVar[str] = "aws_config_recorder_status"
+    kind_display: ClassVar[str] = "AWS Config Recorder Status"
+    kind_description: ClassVar[str] = "AWS Config Recorder Status is a service that records configuration changes made to AWS resources and evaluates the recorded configurations for rule compliance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_start_time": S("lastStartTime"),
         "last_stop_time": S("lastStopTime"),
@@ -38,6 +40,8 @@ class AwsConfigRecorderStatus:
 @define(eq=False, slots=False)
 class AwsConfigRecordingGroup:
     kind: ClassVar[str] = "aws_config_recording_group"
+    kind_display: ClassVar[str] = "AWS Config Recording Group"
+    kind_description: ClassVar[str] = "AWS Config Recording Group is a feature of AWS Config that allows users to specify the types of AWS resources to be recorded and the details to include in the recorded configurations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "all_supported": S("allSupported"),
         "include_global_resource_types": S("includeGlobalResourceTypes"),
@@ -51,6 +55,8 @@ class AwsConfigRecordingGroup:
 @define(eq=False, slots=False)
 class AwsConfigRecorder(AwsResource):
     kind: ClassVar[str] = "aws_config_recorder"
+    kind_display: ClassVar[str] = "AWS Config Recorder"
+    kind_description: ClassVar[str] = "AWS Config Recorder is a service provided by Amazon Web Services that continuously records the configuration changes made to resources in an AWS account."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-configuration-recorders", "ConfigurationRecorders"
     )

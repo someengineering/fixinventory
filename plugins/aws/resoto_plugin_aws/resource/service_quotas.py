@@ -18,6 +18,8 @@ service_name = "service-quotas"
 @define(eq=False, slots=False)
 class AwsQuotaMetricInfo:
     kind: ClassVar[str] = "aws_quota_metric_info"
+    kind_display: ClassVar[str] = "AWS Quota Metric Info"
+    kind_description: ClassVar[str] = "Quota Metric Info provides information about the quotas and limits set for various services and resource types in Amazon Web Services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric_namespace": S("MetricNamespace"),
         "metric_name": S("MetricName"),
@@ -33,6 +35,8 @@ class AwsQuotaMetricInfo:
 @define(eq=False, slots=False)
 class AwsQuotaPeriod:
     kind: ClassVar[str] = "aws_quota_period"
+    kind_display: ClassVar[str] = "AWS Quota Period"
+    kind_description: ClassVar[str] = "Quota Period refers to the timeframe for which resource usage is measured and restrictions are imposed by AWS."
     mapping: ClassVar[Dict[str, Bender]] = {"period_value": S("PeriodValue"), "period_unit": S("PeriodUnit")}
     period_value: Optional[int] = field(default=None)
     period_unit: Optional[str] = field(default=None)
@@ -41,6 +45,8 @@ class AwsQuotaPeriod:
 @define(eq=False, slots=False)
 class AwsQuotaErrorReason:
     kind: ClassVar[str] = "aws_quota_error_reason"
+    kind_display: ClassVar[str] = "AWS Quota Error Reason"
+    kind_description: ClassVar[str] = "AWS Quota Error Reason refers to the reason for a quota error in Amazon Web Services. It indicates the cause of exceeding the resource limits set by AWS quotas."
     mapping: ClassVar[Dict[str, Bender]] = {"error_code": S("ErrorCode"), "error_message": S("ErrorMessage")}
     error_code: Optional[str] = field(default=None)
     error_message: Optional[str] = field(default=None)
@@ -49,6 +55,8 @@ class AwsQuotaErrorReason:
 @define(eq=False, slots=False)
 class AwsServiceQuota(AwsResource, BaseQuota):
     kind: ClassVar[str] = "aws_service_quota"
+    kind_display: ClassVar[str] = "AWS Service Quota"
+    kind_description: ClassVar[str] = "AWS Service Quota is a feature that enables you to view and manage your quotas (also referred to as limits) for AWS services."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [

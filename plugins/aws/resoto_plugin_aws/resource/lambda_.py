@@ -26,6 +26,8 @@ service_name = "lambda"
 @define(eq=False, slots=False)
 class AwsLambdaPolicyStatement:
     kind: ClassVar[str] = "aws_lambda_policy_statement"
+    kind_display: ClassVar[str] = "AWS Lambda Policy Statement"
+    kind_description: ClassVar[str] = "Lambda Policy Statements are used to define permissions for AWS Lambda functions, specifying what actions can be performed and by whom."
     mapping: ClassVar[Dict[str, Bender]] = {
         "sid": S("Sid"),
         "effect": S("Effect"),
@@ -45,6 +47,8 @@ class AwsLambdaPolicyStatement:
 @define(eq=False, slots=False)
 class AwsLambdaPolicy:
     kind: ClassVar[str] = "aws_lambda_policy"
+    kind_display: ClassVar[str] = "AWS Lambda Policy"
+    kind_description: ClassVar[str] = "AWS Lambda Policies are permissions policies that determine what actions a Lambda function can take and what resources it can access within the AWS environment."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "version": S("Version"),
@@ -58,6 +62,8 @@ class AwsLambdaPolicy:
 @define(eq=False, slots=False)
 class AwsLambdaEnvironmentError:
     kind: ClassVar[str] = "aws_lambda_environment_error"
+    kind_display: ClassVar[str] = "AWS Lambda Environment Error"
+    kind_description: ClassVar[str] = "An error occurring in the environment setup or configuration of an AWS Lambda function."
     mapping: ClassVar[Dict[str, Bender]] = {"error_code": S("ErrorCode"), "message": S("Message")}
     error_code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -66,6 +72,8 @@ class AwsLambdaEnvironmentError:
 @define(eq=False, slots=False)
 class AwsLambdaEnvironmentResponse:
     kind: ClassVar[str] = "aws_lambda_environment_response"
+    kind_display: ClassVar[str] = "AWS Lambda Environment Response"
+    kind_description: ClassVar[str] = "AWS Lambda Environment Response is a service that provides information about the runtime environment of an AWS Lambda function."
     mapping: ClassVar[Dict[str, Bender]] = {
         "variables": S("Variables"),
         "error": S("Error") >> Bend(AwsLambdaEnvironmentError.mapping),
@@ -77,6 +85,8 @@ class AwsLambdaEnvironmentResponse:
 @define(eq=False, slots=False)
 class AwsLambdaLayer:
     kind: ClassVar[str] = "aws_lambda_layer"
+    kind_display: ClassVar[str] = "AWS Lambda Layer"
+    kind_description: ClassVar[str] = "Lambda Layers are a distribution mechanism for libraries, custom runtimes, or other function dependencies used by Lambda functions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "arn": S("Arn"),
         "code_size": S("CodeSize"),
@@ -92,6 +102,8 @@ class AwsLambdaLayer:
 @define(eq=False, slots=False)
 class AwsLambdaFileSystemConfig:
     kind: ClassVar[str] = "aws_lambda_file_system_config"
+    kind_display: ClassVar[str] = "AWS Lambda File System Config"
+    kind_description: ClassVar[str] = "AWS Lambda File System Config allows you to configure file systems for your Lambda functions, enabling them to access and store data in a file system outside of the Lambda execution environment."
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "local_mount_source_arn": S("LocalMountsource_arn")}
     arn: Optional[str] = field(default=None)
     local_mount_source_arn: Optional[str] = field(default=None)
@@ -100,6 +112,8 @@ class AwsLambdaFileSystemConfig:
 @define(eq=False, slots=False)
 class AwsLambdaImageConfig:
     kind: ClassVar[str] = "aws_lambda_image_config"
+    kind_display: ClassVar[str] = "AWS Lambda Image Configuration"
+    kind_description: ClassVar[str] = "Lambda Image Configuration is a feature of AWS Lambda that allows you to build and deploy container images as Lambda function packages."
     mapping: ClassVar[Dict[str, Bender]] = {
         "entry_point": S("EntryPoint", default=[]),
         "command": S("Command", default=[]),
@@ -113,6 +127,8 @@ class AwsLambdaImageConfig:
 @define(eq=False, slots=False)
 class AwsLambdaImageConfigError:
     kind: ClassVar[str] = "aws_lambda_image_config_error"
+    kind_display: ClassVar[str] = "AWS Lambda Image Config Error"
+    kind_description: ClassVar[str] = "AWS Lambda Image Config Error refers to an error that occurs when there is a configuration issue with an AWS Lambda function using container image. This error usually happens when there is an incorrect setup or mismatch in the configuration settings for the Lambda function's container image."
     mapping: ClassVar[Dict[str, Bender]] = {"error_code": S("ErrorCode"), "message": S("Message")}
     error_code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -121,6 +137,8 @@ class AwsLambdaImageConfigError:
 @define(eq=False, slots=False)
 class AwsLambdaImageConfigResponse:
     kind: ClassVar[str] = "aws_lambda_image_config_response"
+    kind_display: ClassVar[str] = "AWS Lambda Image Configuration Response"
+    kind_description: ClassVar[str] = "AWS Lambda Image Configuration Response is the response object returned when configuring an image for AWS Lambda, which is a compute service that lets you run code without provisioning or managing servers."
     mapping: ClassVar[Dict[str, Bender]] = {
         "image_config": S("ImageConfig") >> Bend(AwsLambdaImageConfig.mapping),
         "error": S("Error") >> Bend(AwsLambdaImageConfigError.mapping),
@@ -132,6 +150,8 @@ class AwsLambdaImageConfigResponse:
 @define(eq=False, slots=False)
 class AwsLambdaCors:
     kind: ClassVar[str] = "aws_lambda_cors"
+    kind_display: ClassVar[str] = "AWS Lambda CORS"
+    kind_description: ClassVar[str] = "AWS Lambda CORS refers to the Cross-Origin Resource Sharing (CORS) configuration for AWS Lambda functions. CORS allows a server to indicate which origins have permissions to access its resources, helping to protect against cross-origin vulnerabilities."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allow_credentials": S("AllowCredentials"),
         "allow_headers": S("AllowHeaders", default=[]),
@@ -151,6 +171,8 @@ class AwsLambdaCors:
 @define(eq=False, slots=False)
 class AwsLambdaFunctionUrlConfig:
     kind: ClassVar[str] = "aws_lambda_function_url_config"
+    kind_display: ClassVar[str] = "AWS Lambda Function URL Config"
+    kind_description: ClassVar[str] = "URL configuration for AWS Lambda function, allowing users to specify the trigger URL and other related settings."
     mapping: ClassVar[Dict[str, Bender]] = {
         "function_url": S("FunctionUrl"),
         "function_arn": S("FunctionArn"),
@@ -170,6 +192,8 @@ class AwsLambdaFunctionUrlConfig:
 @define(eq=False, slots=False)
 class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
+    kind_display: ClassVar[str] = "AWS Lambda Function"
+    kind_description: ClassVar[str] = "AWS Lambda is a serverless computing service that lets you run your code without provisioning or managing servers. Lambda functions are the compute units that run your code in response to events."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "Functions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

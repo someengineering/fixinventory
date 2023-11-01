@@ -15,6 +15,8 @@ service_name = "kms"
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionPrimaryKey:
     kind: ClassVar[str] = "aws_kms_multiregion_primary_key"
+    kind_display: ClassVar[str] = "AWS KMS Multiregion Primary Key"
+    kind_description: ClassVar[str] = "AWS KMS Multiregion Primary Key is a cryptographic key used for encryption and decryption of data in multiple AWS regions."
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
@@ -23,6 +25,8 @@ class AwsKmsMultiRegionPrimaryKey:
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionReplicaKey:
     kind: ClassVar[str] = "aws_kms_multiregion_replica_key"
+    kind_display: ClassVar[str] = "AWS KMS Multi-Region Replica Key"
+    kind_description: ClassVar[str] = "AWS KMS Multi-Region Replica Key is a feature of AWS Key Management Service (KMS) that allows for the replication of customer master keys (CMKs) across multiple AWS regions for improved availability and durability of encryption operations."
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
@@ -31,6 +35,8 @@ class AwsKmsMultiRegionReplicaKey:
 @define(eq=False, slots=False)
 class AwsKmsMultiRegionConfig:
     kind: ClassVar[str] = "aws_kms_multiregion_config"
+    kind_display: ClassVar[str] = "AWS KMS Multi-Region Config"
+    kind_description: ClassVar[str] = "AWS KMS Multi-Region Config is a feature in Amazon Key Management Service (KMS) that allows you to configure cross-region replication of KMS keys. This helps you ensure availability and durability of your keys in multiple regions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "multi_region_key_type": S("MultiRegionKeyType"),
         "primary_key": S("PrimaryKey") >> Bend(AwsKmsMultiRegionPrimaryKey.mapping),
@@ -44,6 +50,8 @@ class AwsKmsMultiRegionConfig:
 @define(eq=False, slots=False)
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
+    kind_display: ClassVar[str] = "AWS KMS Key"
+    kind_description: ClassVar[str] = "AWS KMS (Key Management Service) Key is a managed service that allows you to create and control the encryption keys used to encrypt your data stored on various AWS services and applications."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-keys", "Keys")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyId"),

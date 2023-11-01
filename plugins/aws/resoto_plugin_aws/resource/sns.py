@@ -16,6 +16,8 @@ service_name = "sns"
 @define(eq=False, slots=False)
 class AwsSnsTopic(AwsResource):
     kind: ClassVar[str] = "aws_sns_topic"
+    kind_display: ClassVar[str] = "AWS SNS Topic"
+    kind_description: ClassVar[str] = "AWS SNS (Simple Notification Service) Topic is a publish-subscribe messaging service provided by Amazon Web Services. It allows applications, services, and devices to send and receive notifications via email, SMS, push notifications, and more."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-topics", "Topics")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -115,6 +117,8 @@ class AwsSnsTopic(AwsResource):
 @define(eq=False, slots=False)
 class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
+    kind_display: ClassVar[str] = "AWS SNS Subscription"
+    kind_description: ClassVar[str] = "SNS Subscriptions in AWS allow applications to receive messages from topics of interest using different protocols such as HTTP, email, SMS, or Lambda function invocation."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-subscriptions", "Subscriptions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_sns_topic", "aws_iam_role"], "delete": ["aws_iam_role"]},
@@ -192,6 +196,8 @@ class AwsSnsSubscription(AwsResource):
 class AwsSnsEndpoint(AwsResource):
     # collection of endpoint resources happens in AwsSnsPlatformApplication.collect()
     kind: ClassVar[str] = "aws_sns_endpoint"
+    kind_display: ClassVar[str] = "AWS SNS Endpoint"
+    kind_description: ClassVar[str] = "An endpoint in the AWS Simple Notification Service (SNS), which is used to send push notifications or SMS messages to mobile devices or other applications."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Arn"),
         "arn": S("Arn"),
@@ -217,6 +223,8 @@ class AwsSnsEndpoint(AwsResource):
 @define(eq=False, slots=False)
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
+    kind_display: ClassVar[str] = "AWS SNS Platform Application"
+    kind_description: ClassVar[str] = "AWS SNS Platform Application is a service that allows you to create a platform application and register it with Amazon SNS so that your application can receive push notifications."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-platform-applications", "PlatformApplications", expected_errors=["InvalidAction"]
     )

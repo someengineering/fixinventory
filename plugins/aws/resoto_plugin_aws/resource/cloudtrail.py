@@ -22,6 +22,8 @@ service_name = "cloudtrail"
 @define(eq=False, slots=False)
 class AwsCloudTrailAdvancedFieldSelector:
     kind: ClassVar[str] = "aws_cloud_trail_advanced_field_selector"
+    kind_display: ClassVar[str] = "AWS CloudTrail Advanced Field Selector"
+    kind_description: ClassVar[str] = "AWS CloudTrail Advanced Field Selector provides fine-grained control over the fields returned in CloudTrail log events, allowing users to filter and retrieve specific data of interest."
     mapping: ClassVar[Dict[str, Bender]] = {
         "field": S("Field"),
         "equals": S("Equals"),
@@ -42,6 +44,8 @@ class AwsCloudTrailAdvancedFieldSelector:
 @define(eq=False, slots=False)
 class AwsCloudTrailEventSelector:
     kind: ClassVar[str] = "aws_cloud_trail_event_selector"
+    kind_display: ClassVar[str] = "AWS CloudTrail Event Selector"
+    kind_description: ClassVar[str] = "CloudTrail Event Selector is a feature in AWS CloudTrail that allows you to choose which events to record and store in your Amazon S3 bucket for auditing and compliance purposes."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
         "field_selectors": S("FieldSelectors", default=[])
@@ -55,6 +59,8 @@ class AwsCloudTrailEventSelector:
 @define(eq=False, slots=False)
 class AwsCloudTrailStatus:
     kind: ClassVar[str] = "aws_cloud_trail_status"
+    kind_display: ClassVar[str] = "AWS CloudTrail Status"
+    kind_description: ClassVar[str] = "CloudTrail is a service that enables governance, compliance, operational auditing, and risk auditing of your AWS account. CloudTrail provides event history of your AWS account activity, including actions taken through the AWS Management Console, AWS SDKs, command line tools, and other AWS services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "is_logging": S("IsLogging"),
         "latest_delivery_error": S("LatestDeliveryError"),
@@ -96,6 +102,8 @@ class AwsCloudTrailStatus:
 @define(eq=False, slots=False)
 class AwsCloudTrail(AwsResource):
     kind: ClassVar[str] = "aws_cloud_trail"
+    kind_display: ClassVar[str] = "AWS CloudTrail"
+    kind_description: ClassVar[str] = "CloudTrail is a service that enables governance, compliance, operational auditing, and risk auditing of your AWS account."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-trails", "Trails")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
