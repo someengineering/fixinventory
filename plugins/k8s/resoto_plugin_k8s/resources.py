@@ -100,9 +100,6 @@ class GraphBuilder:
                     self.connect_volumes(from_node, sources)
 
 
-# region node
-
-
 @define(eq=False, slots=False)
 class KubernetesNodeStatusAddresses:
     kind: ClassVar[str] = "kubernetes_node_status_addresses"
