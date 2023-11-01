@@ -18,6 +18,8 @@ log = resotolib.logger.getLogger("resoto." + __name__)
 @define(eq=False, slots=False)
 class VSphereHost(BaseAccount):
     kind: ClassVar[str] = "vsphere_host"
+    kind_display: ClassVar[str] = "vSphere Host"
+    kind_description: ClassVar[str] = "A vSphere Host."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -26,6 +28,8 @@ class VSphereHost(BaseAccount):
 @define(eq=False, slots=False)
 class VSphereDataCenter(BaseRegion):
     kind: ClassVar[str] = "vsphere_data_center"
+    kind_display: ClassVar[str] = "vSphere Data Center"
+    kind_description: ClassVar[str] = "A vSphere Data Center."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -34,6 +38,8 @@ class VSphereDataCenter(BaseRegion):
 @define(eq=False, slots=False)
 class VSphereCluster(BaseZone):
     kind: ClassVar[str] = "vsphere_cluster"
+    kind_display: ClassVar[str] = "vSphere Cluster"
+    kind_description: ClassVar[str] = "A vSphere Cluster."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -42,6 +48,8 @@ class VSphereCluster(BaseZone):
 @define(eq=False, slots=False)
 class VSphereESXiHost(BaseResource):
     kind: ClassVar[str] = "vsphere_esxi_host"
+    kind_display: ClassVar[str] = "vSphere ESXi Host"
+    kind_description: ClassVar[str] = "A vSphere ESXi Host."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -50,6 +58,8 @@ class VSphereESXiHost(BaseResource):
 @define(eq=False, slots=False)
 class VSphereDataStore(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore"
+    kind_display: ClassVar[str] = "vSphere Data Store"
+    kind_description: ClassVar[str] = "A vSphere Data Store."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -58,6 +68,8 @@ class VSphereDataStore(BaseResource):
 @define(eq=False, slots=False)
 class VSphereDataStoreCluster(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore_cluster"
+    kind_display: ClassVar[str] = "vSphere Data Store Cluster"
+    kind_description: ClassVar[str] = "A vSphere Data Store Cluster."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -66,6 +78,8 @@ class VSphereDataStoreCluster(BaseResource):
 @define(eq=False, slots=False)
 class VSphereResourcePool(BaseResource):
     kind: ClassVar[str] = "vsphere_resource_pool"
+    kind_display: ClassVar[str] = "vSphere Resource Pool"
+    kind_description: ClassVar[str] = "A vSphere Resource Pool."
 
     def delete(self, graph: Graph) -> bool:
         return NotImplemented
@@ -74,6 +88,8 @@ class VSphereResourcePool(BaseResource):
 @define(eq=False, slots=False)
 class VSphereResource:
     kind: ClassVar[str] = "vsphere_resource"
+    kind_display: ClassVar[str] = "vSphere Resource"
+    kind_description: ClassVar[str] = "A vSphere Resource."
 
     def _vsphere_client(self) -> VSphereClient:
         return get_vsphere_client()
@@ -82,6 +98,8 @@ class VSphereResource:
 @define(eq=False, slots=False)
 class VSphereInstance(BaseInstance, VSphereResource):
     kind: ClassVar[str] = "vsphere_instance"
+    kind_display: ClassVar[str] = "vSphere Instance"
+    kind_description: ClassVar[str] = "A vSphere Instance."
 
     def _vm(self):
         return self._vsphere_client().get_object([vim.VirtualMachine], self.name)
@@ -117,6 +135,8 @@ class VSphereInstance(BaseInstance, VSphereResource):
 @define(eq=False, slots=False)
 class VSphereTemplate(BaseResource, VSphereResource):
     kind: ClassVar[str] = "vsphere_template"
+    kind_display: ClassVar[str] = "vSphere Template"
+    kind_description: ClassVar[str] = "A vSphere Template."
 
     def _get_default_resource_pool(self) -> vim.ResourcePool:
         return self._vsphere_client().get_object([vim.ResourcePool], "Resources")
