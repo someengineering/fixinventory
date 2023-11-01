@@ -193,8 +193,6 @@ class KubernetesNodeStatusConfig:
 
 @define(eq=False, slots=False)
 class KubernetesDaemonEndpoint:
-    kind_display: ClassVar[str] = "Kubernetes Daemon Endpoint"
-    kind_description: ClassVar[str] = "A Kubernetes Daemon Endpoint."
     kind: ClassVar[str] = "kubernetes_daemon_endpoint"
     kind_display: ClassVar[str] = "Kubernetes Daemon Endpoint"
     kind_description: ClassVar[str] = (
