@@ -75,7 +75,7 @@ class Section:
     usage = "usage"
 
     # The set of all content sections
-    content_ordered = [reported, security, desired, metadata]
+    content_ordered = [reported, security, usage, desired, metadata]
     content = set(content_ordered)
 
     # The list of all lookup sections
@@ -83,7 +83,7 @@ class Section:
     lookup_sections = set(lookup_sections_ordered)
 
     # The list of all sections
-    all_ordered = [*content_ordered, *lookup_sections_ordered, usage]
+    all_ordered = [*content_ordered, *lookup_sections_ordered]
     all = set(all_ordered)
 
     # remove the section plus dot if it exists in the string: reported.foo => foo
