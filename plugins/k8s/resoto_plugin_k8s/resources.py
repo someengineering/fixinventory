@@ -106,6 +106,8 @@ class GraphBuilder:
 @define(eq=False, slots=False)
 class KubernetesNodeStatusAddresses:
     kind: ClassVar[str] = "kubernetes_node_status_addresses"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Address"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Address."
     mapping: ClassVar[Dict[str, Bender]] = {
         "address": S("address"),
         "type": S("type"),
@@ -117,6 +119,8 @@ class KubernetesNodeStatusAddresses:
 @define(eq=False, slots=False)
 class KubernetesNodeCondition:
     kind: ClassVar[str] = "kubernetes_node_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Condition"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Condition."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_heartbeat_time": S("lastHeartbeatTime"),
         "last_transition_time": S("lastTransitionTime"),
@@ -136,6 +140,8 @@ class KubernetesNodeCondition:
 @define(eq=False, slots=False)
 class KubernetesNodeStatusConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active_configmap"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Config Source"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Config Source."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_config_key": S("kubeletConfigKey"),
         "name": S("name"),
@@ -153,6 +159,8 @@ class KubernetesNodeStatusConfigSource:
 @define(eq=False, slots=False)
 class KubernetesNodeConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Config Source"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Config Source."
     mapping: ClassVar[Dict[str, Bender]] = {
         "config_map": S("configMap") >> Bend(KubernetesNodeStatusConfigSource.mapping),
     }
@@ -162,6 +170,8 @@ class KubernetesNodeConfigSource:
 @define(eq=False, slots=False)
 class KubernetesNodeStatusConfig:
     kind: ClassVar[str] = "kubernetes_node_status_config"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Config"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Config."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active") >> Bend(KubernetesNodeConfigSource.mapping),
         "assigned": S("assigned") >> Bend(KubernetesNodeConfigSource.mapping),
@@ -174,6 +184,8 @@ class KubernetesNodeStatusConfig:
 
 @define(eq=False, slots=False)
 class KubernetesDaemonEndpoint:
+    kind_display: ClassVar[str] = "Kubernetes Daemon Endpoint"
+    kind_description: ClassVar[str] = "A Kubernetes Daemon Endpoint."
     kind: ClassVar[str] = "kubernetes_daemon_endpoint"
     mapping: ClassVar[Dict[str, Bender]] = {
         "port": S("Port"),
@@ -184,6 +196,8 @@ class KubernetesDaemonEndpoint:
 @define(eq=False, slots=False)
 class KubernetesNodeDaemonEndpoint:
     kind: ClassVar[str] = "kubernetes_node_daemon_endpoint"
+    kind_display: ClassVar[str] = "Kubernetes Node Daemon Endpoint"
+    kind_description: ClassVar[str] = "A Kubernetes Node Daemon Endpoint."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_endpoint": S("kubeletEndpoint") >> Bend(KubernetesDaemonEndpoint.mapping),
     }
@@ -193,6 +207,8 @@ class KubernetesNodeDaemonEndpoint:
 @define(eq=False, slots=False)
 class KubernetesNodeStatusImages:
     kind: ClassVar[str] = "kubernetes_node_status_images"
+    kind_display: ClassVar[str] = "Kubernetes Node Status Images"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status Images."
     mapping: ClassVar[Dict[str, Bender]] = {
         "names": S("names", default=[]),
         "size_bytes": S("sizeBytes", default=0),
@@ -204,6 +220,8 @@ class KubernetesNodeStatusImages:
 @define(eq=False, slots=False)
 class KubernetesNodeSystemInfo:
     kind: ClassVar[str] = "kubernetes_node_system_info"
+    kind_display: ClassVar[str] = "Kubernetes Node System Info"
+    kind_description: ClassVar[str] = "A Kubernetes Node System Info."
     mapping: ClassVar[Dict[str, Bender]] = {
         "architecture": S("architecture"),
         "boot_id": S("bootID"),
@@ -231,6 +249,8 @@ class KubernetesNodeSystemInfo:
 @define(eq=False, slots=False)
 class KubernetesAttachedVolume:
     kind: ClassVar[str] = "kubernetes_attached_volume"
+    kind_display: ClassVar[str] = "Kubernetes Attached Volume"
+    kind_description: ClassVar[str] = "A Kubernetes Attached Volume."
     mapping: ClassVar[Dict[str, Bender]] = {
         "device_path": S("devicePath"),
         "name": S("name"),
@@ -242,6 +262,8 @@ class KubernetesAttachedVolume:
 @define(eq=False, slots=False)
 class KubernetesNodeStatus:
     kind: ClassVar[str] = "kubernetes_node_status"
+    kind_display: ClassVar[str] = "Kubernetes Node Status"
+    kind_description: ClassVar[str] = "A Kubernetes Node Status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "addresses": S("addresses", default=[]) >> ForallBend(KubernetesNodeStatusAddresses.mapping),
         "conditions": S("conditions", default=[]) >> SortTransitionTime >> ForallBend(KubernetesNodeCondition.mapping),
@@ -269,6 +291,8 @@ class KubernetesNodeStatus:
 @define
 class KubernetesTaint:
     kind: ClassVar[str] = "kubernetes_taint"
+    kind_display: ClassVar[str] = "Kubernetes Taint"
+    kind_description: ClassVar[str] = "A Kubernetes Taint."
     mapping: ClassVar[Dict[str, Bender]] = {
         "effect": S("effect"),
         "key": S("key"),
@@ -284,6 +308,8 @@ class KubernetesTaint:
 @define
 class KubernetesNodeSpec:
     kind: ClassVar[str] = "kubernetes_node_spec"
+    kind_display: ClassVar[str] = "Kubernetes Node Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Node Spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "external_id": S("externalID"),
         "pod_cidr": S("podCIDR"),
@@ -312,6 +338,8 @@ instance_status_map: Dict[str, InstanceStatus] = {
 @define(eq=False, slots=False)
 class KubernetesNode(KubernetesResource, BaseInstance):
     kind: ClassVar[str] = "kubernetes_node"
+    kind_display: ClassVar[str] = "Kubernetes Node"
+    kind_description: ClassVar[str] = "A Kubernetes Node."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "node_status": S("status") >> Bend(KubernetesNodeStatus.mapping),
         "node_spec": S("spec") >> Bend(KubernetesNodeSpec.mapping),
@@ -339,6 +367,8 @@ class KubernetesNode(KubernetesResource, BaseInstance):
 @define(eq=False, slots=False)
 class KubernetesPodStatusConditions:
     kind: ClassVar[str] = "kubernetes_pod_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Pod Status Condition"
+    kind_description: ClassVar[str] = "A Kubernetes Pod status condition."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_probe_time": S("lastProbeTime"),
         "last_transition_time": S("lastTransitionTime"),
@@ -358,6 +388,8 @@ class KubernetesPodStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesContainerStateRunning:
     kind: ClassVar[str] = "kubernetes_container_state_running"
+    kind_display: ClassVar[str] = "Kubernetes Container State: Running"
+    kind_description: ClassVar[str] = "A running Kubernetes container."
     mapping: ClassVar[Dict[str, Bender]] = {
         "started_at": S("startedAt"),
     }
@@ -367,6 +399,8 @@ class KubernetesContainerStateRunning:
 @define(eq=False, slots=False)
 class KubernetesContainerStateTerminated:
     kind: ClassVar[str] = "kubernetes_container_state_terminated"
+    kind_display: ClassVar[str] = "Kubernetes Container State: Terminated"
+    kind_description: ClassVar[str] = "A terminated Kubernetes container."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_id": S("containerID"),
         "exit_code": S("exitCode"),
@@ -388,6 +422,8 @@ class KubernetesContainerStateTerminated:
 @define(eq=False, slots=False)
 class KubernetesContainerStateWaiting:
     kind: ClassVar[str] = "kubernetes_container_state_waiting"
+    kind_display: ClassVar[str] = "Kubernetes Container State: Waiting"
+    kind_description: ClassVar[str] = "A waiting Kubernetes container."
     mapping: ClassVar[Dict[str, Bender]] = {
         "message": S("message"),
         "reason": S("reason"),
@@ -399,6 +435,8 @@ class KubernetesContainerStateWaiting:
 @define(eq=False, slots=False)
 class KubernetesContainerState:
     kind: ClassVar[str] = "kubernetes_container_state"
+    kind_display: ClassVar[str] = "Kubernetes Container State"
+    kind_description: ClassVar[str] = "A Kubernetes container state."
     mapping: ClassVar[Dict[str, Bender]] = {
         "running": S("running") >> Bend(KubernetesContainerStateRunning.mapping),
         "terminated": S("terminated") >> Bend(KubernetesContainerStateTerminated.mapping),
@@ -412,6 +450,8 @@ class KubernetesContainerState:
 @define(eq=False, slots=False)
 class KubernetesContainerStatus:
     kind: ClassVar[str] = "kubernetes_container_status"
+    kind_display: ClassVar[str] = "Kubernetes Container Status"
+    kind_description: ClassVar[str] = "A Kubernetes container status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_id": S("containerID"),
         "image": S("image"),
@@ -437,6 +477,8 @@ class KubernetesContainerStatus:
 @define(eq=False, slots=False)
 class KubernetesPodIPs:
     kind: ClassVar[str] = "kubernetes_pod_ips"
+    kind_display: ClassVar[str] = "Kubernetes Pod IPs"
+    kind_description: ClassVar[str] = "Kubernetes Pod IPs."
     mapping: ClassVar[Dict[str, Bender]] = {"ip": S("ip")}
     ip: Optional[str] = field(default=None)
 
@@ -444,6 +486,8 @@ class KubernetesPodIPs:
 @define(eq=False, slots=False)
 class KubernetesPodStatus:
     kind: ClassVar[str] = "kubernetes_pod_status"
+    kind_display: ClassVar[str] = "Kubernetes Pod Status"
+    kind_description: ClassVar[str] = "A Kubernetes Pod status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -481,6 +525,8 @@ class KubernetesPodStatus:
 @define
 class KubernetesContainerPort:
     kind: ClassVar[str] = "kubernetes_container_port"
+    kind_display: ClassVar[str] = "Kubernetes Container Port"
+    kind_description: ClassVar[str] = "A Kubernetes Container Port."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_port": S("containerPort"),
         "host_ip": S("hostIP"),
@@ -498,6 +544,8 @@ class KubernetesContainerPort:
 @define
 class KubernetesResourceRequirements:
     kind: ClassVar[str] = "kubernetes_resource_requirements"
+    kind_display: ClassVar[str] = "Kubernetes Resource Requirements"
+    kind_description: ClassVar[str] = "Kubernetes Resource Requirements."
     mapping: ClassVar[Dict[str, Bender]] = {
         "limits": S("limits"),
         "requests": S("requests"),
@@ -509,6 +557,8 @@ class KubernetesResourceRequirements:
 @define
 class KubernetesSecurityContext:
     kind: ClassVar[str] = "kubernetes_security_context"
+    kind_display: ClassVar[str] = "Kubernetes Security Context"
+    kind_description: ClassVar[str] = "Kubernetes Security Context."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allow_privilege_escalation": S("allowPrivilegeEscalation"),
         "privileged": S("privileged"),
@@ -536,6 +586,8 @@ class KubernetesSecurityContext:
 @define
 class KubernetesVolumeDevice:
     kind: ClassVar[str] = "kubernetes_volume_device"
+    kind_display: ClassVar[str] = "Kubernetes Volume Device"
+    kind_description: ClassVar[str] = "A Kubernetes Volume Device."
     mapping: ClassVar[Dict[str, Bender]] = {
         "device_path": S("devicePath"),
         "name": S("name"),
@@ -547,6 +599,8 @@ class KubernetesVolumeDevice:
 @define
 class KubernetesVolumeMount:
     kind: ClassVar[str] = "kubernetes_volume_mount"
+    kind_display: ClassVar[str] = "Kubernetes Volume Mount"
+    kind_description: ClassVar[str] = "A Kubernetes Volume Mount."
     mapping: ClassVar[Dict[str, Bender]] = {
         "mount_path": S("mountPath"),
         "mount_propagation": S("mountPropagation"),
@@ -566,6 +620,8 @@ class KubernetesVolumeMount:
 @define
 class KubernetesContainer:
     kind: ClassVar[str] = "kubernetes_container"
+    kind_display: ClassVar[str] = "Kubernetes Container"
+    kind_description: ClassVar[str] = "A Kubernetes Container."
     mapping: ClassVar[Dict[str, Bender]] = {
         "args": S("args", default=[]),
         "command": S("command", default=[]),
@@ -605,6 +661,8 @@ class KubernetesContainer:
 @define
 class KubernetesPodSecurityContext:
     kind: ClassVar[str] = "kubernetes_pod_security_context"
+    kind_display: ClassVar[str] = "Kubernetes Pod Security Context"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Security Context."
     mapping: ClassVar[Dict[str, Bender]] = {
         "fs_group": S("fsGroup"),
         "fs_group_change_policy": S("fsGroupChangePolicy"),
@@ -630,6 +688,8 @@ class KubernetesPodSecurityContext:
 @define
 class KubernetesToleration:
     kind: ClassVar[str] = "kubernetes_toleration"
+    kind_display: ClassVar[str] = "Kubernetes Toleration"
+    kind_description: ClassVar[str] = "A Kubernetes Toleration."
     mapping: ClassVar[Dict[str, Bender]] = {
         "effect": S("effect"),
         "key": S("key"),
@@ -647,6 +707,8 @@ class KubernetesToleration:
 @define
 class KubernetesVolume:
     kind: ClassVar[str] = "kubernetes_volume"
+    kind_display: ClassVar[str] = "Kubernetes Volume"
+    kind_description: ClassVar[str] = "A Kubernetes Volume."
     mapping: ClassVar[Dict[str, Bender]] = {
         "aws_elastic_block_store": S("awsElasticBlockStore"),
         "azure_disk": S("azureDisk"),
@@ -714,6 +776,8 @@ class KubernetesVolume:
 @define
 class KubernetesPodSpec:
     kind: ClassVar[str] = "kubernetes_pod_spec"
+    kind_display: ClassVar[str] = "Kubernetes Pod Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_deadline_seconds": S("activeDeadlineSeconds"),
         "automount_service_account_token": S("automountServiceAccountToken"),
@@ -776,6 +840,8 @@ class KubernetesPodSpec:
 @define(eq=False, slots=False)
 class KubernetesPod(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod"
+    kind_display: ClassVar[str] = "Kubernetes Pod"
+    kind_description: ClassVar[str] = "A Kubernetes Pod."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "pod_status": S("status") >> Bend(KubernetesPodStatus.mapping),
         "pod_spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
@@ -816,6 +882,8 @@ class KubernetesPod(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaimStatusConditions:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume Claim status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_probe_time": S("lastProbeTime"),
         "last_transition_time": S("lastTransitionTime"),
@@ -835,6 +903,8 @@ class KubernetesPersistentVolumeClaimStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaimStatus:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_status"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim Status"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume Claim status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_modes": S("accessModes", default=[]),
         "allocated_resources": S("allocatedResources"),
@@ -854,6 +924,8 @@ class KubernetesPersistentVolumeClaimStatus:
 @define
 class KubernetesLabelSelectorRequirement:
     kind: ClassVar[str] = "kubernetes_label_selector_requirement"
+    kind_display: ClassVar[str] = "Kubernetes Label Selector Requirement"
+    kind_description: ClassVar[str] = "A Kubernetes Label Selector Requirement."
     mapping: ClassVar[Dict[str, Bender]] = {
         "key": S("key"),
         "operator": S("operator"),
@@ -867,6 +939,8 @@ class KubernetesLabelSelectorRequirement:
 @define
 class KubernetesLabelSelector:
     kind: ClassVar[str] = "kubernetes_label_selector"
+    kind_display: ClassVar[str] = "Kubernetes Label Selector"
+    kind_description: ClassVar[str] = "A Kubernetes Label Selector."
     mapping: ClassVar[Dict[str, Bender]] = {
         "match_expressions": S("matchExpressions", default=[])
         >> ForallBend(KubernetesLabelSelectorRequirement.mapping),
@@ -879,6 +953,8 @@ class KubernetesLabelSelector:
 @define
 class KubernetesPersistentVolumeClaimSpec:
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim_spec"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume Claim spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_modes": S("accessModes", default=[]),
         "resources": S("resources") >> Bend(KubernetesResourceRequirements.mapping),
@@ -898,6 +974,8 @@ class KubernetesPersistentVolumeClaimSpec:
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaim(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume Claim."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "persistent_volume_claim_status": S("status") >> Bend(KubernetesPersistentVolumeClaimStatus.mapping),
         "persistent_volume_claim_spec": S("spec") >> Bend(KubernetesPersistentVolumeClaimSpec.mapping),
@@ -917,6 +995,8 @@ class KubernetesPersistentVolumeClaim(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesLoadbalancerIngressPorts:
     kind: ClassVar[str] = "kubernetes_loadbalancer_ingress_ports"
+    kind_display: ClassVar[str] = "Kubernetes Loadbalancer Ingress Ports"
+    kind_description: ClassVar[str] = "A Kubernetes Loadbalancer Ingress Ports."
     mapping: ClassVar[Dict[str, Bender]] = {
         "error": S("error"),
         "port": S("port"),
@@ -930,6 +1010,8 @@ class KubernetesLoadbalancerIngressPorts:
 @define(eq=False, slots=False)
 class KubernetesLoadbalancerIngress:
     kind: ClassVar[str] = "kubernetes_loadbalancer_ingress"
+    kind_display: ClassVar[str] = "Kubernetes Loadbalancer Ingress"
+    kind_description: ClassVar[str] = "A Kubernetes Loadbalancer Ingress."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname": S("hostname"),
         "ip": S("ip"),
@@ -943,6 +1025,8 @@ class KubernetesLoadbalancerIngress:
 @define(eq=False, slots=False)
 class KubernetesLoadbalancerStatus:
     kind: ClassVar[str] = "kubernetes_loadbalancer_status"
+    kind_display: ClassVar[str] = "Kubernetes Loadbalancer Status"
+    kind_description: ClassVar[str] = "A Kubernetes Loadbalancer status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesLoadbalancerIngress.mapping),
     }
@@ -952,6 +1036,8 @@ class KubernetesLoadbalancerStatus:
 @define(eq=False, slots=False)
 class KubernetesServiceStatusConditions:
     kind: ClassVar[str] = "kubernetes_service_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Service Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Service status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -971,6 +1057,8 @@ class KubernetesServiceStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesServiceStatus:
     kind: ClassVar[str] = "kubernetes_service_status"
+    kind_display: ClassVar[str] = "Kubernetes Service Status"
+    kind_description: ClassVar[str] = "A Kubernetes Service status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -984,6 +1072,8 @@ class KubernetesServiceStatus:
 @define
 class KubernetesServicePort:
     kind: ClassVar[str] = "kubernetes_service_port"
+    kind_display: ClassVar[str] = "Kubernetes Service Port"
+    kind_description: ClassVar[str] = "A Kubernetes Service Port."
     mapping: ClassVar[Dict[str, Bender]] = {
         "app_protocol": S("appProtocol"),
         "name": S("name"),
@@ -1003,6 +1093,8 @@ class KubernetesServicePort:
 @define
 class KubernetesServiceSpec:
     kind: ClassVar[str] = "kubernetes_service_spec"
+    kind_display: ClassVar[str] = "Kubernetes Service Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Service spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "allocate_load_balancer_node_ports": S("allocateLoadBalancerNodePorts"),
         "cluster_ip": S("clusterIP"),
@@ -1046,6 +1138,8 @@ class KubernetesServiceSpec:
 @define(eq=False, slots=False)
 class KubernetesService(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_service"
+    kind_display: ClassVar[str] = "Kubernetes Service"
+    kind_description: ClassVar[str] = "A Kubernetes Service."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "service_status": S("status") >> Bend(KubernetesServiceStatus.mapping),
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
@@ -1091,11 +1185,15 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class KubernetesPodTemplate(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_template"
+    kind_display: ClassVar[str] = "Kubernetes Pod Template"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Template."
 
 
 @define(eq=False, slots=False)
 class KubernetesClusterInfo:
     kind: ClassVar[str] = "kubernetes_cluster_info"
+    kind_display: ClassVar[str] = "Kubernetes Cluster Info"
+    kind_description: ClassVar[str] = "A Kubernetes Cluster Info."
     major: str
     minor: str
     platform: str
@@ -1105,6 +1203,8 @@ class KubernetesClusterInfo:
 @define(eq=False, slots=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
     kind: ClassVar[str] = "kubernetes_cluster"
+    kind_display: ClassVar[str] = "Kubernetes Cluster"
+    kind_description: ClassVar[str] = "A Kubernetes Cluster."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1134,11 +1234,15 @@ class KubernetesCluster(KubernetesResource, BaseAccount):
 @define(eq=False, slots=False)
 class KubernetesConfigMap(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_config_map"
+    kind_display: ClassVar[str] = "Kubernetes Config Map"
+    kind_description: ClassVar[str] = "A Kubernetes Config Map."
 
 
 @define(eq=False, slots=False)
 class KubernetesEndpointAddress:
     kind: ClassVar[str] = "kubernetes_endpoint_address"
+    kind_display: ClassVar[str] = "Kubernetes Endpoint Address"
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint Address."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip": S("ip"),
         "node_name": S("nodeName"),
@@ -1156,6 +1260,8 @@ class KubernetesEndpointAddress:
 @define(eq=False, slots=False)
 class KubernetesEndpointPort:
     kind: ClassVar[str] = "kubernetes_endpoint_port"
+    kind_display: ClassVar[str] = "Kubernetes Endpoint Port"
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint Port."
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "port": S("port"),
@@ -1170,6 +1276,8 @@ class KubernetesEndpointPort:
 @define(eq=False, slots=False)
 class KubernetesEndpointSubset:
     kind: ClassVar[str] = "kubernetes_endpoint_subset"
+    kind_display: ClassVar[str] = "Kubernetes Endpoint Subset"
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint Subset."
     mapping: ClassVar[Dict[str, Bender]] = {
         "addresses": S("addresses", default=[]) >> ForallBend(KubernetesEndpointAddress.mapping),
         "ports": S("ports", default=[]) >> ForallBend(KubernetesEndpointPort.mapping),
@@ -1181,6 +1289,8 @@ class KubernetesEndpointSubset:
 @define(eq=False, slots=False)
 class KubernetesEndpoints(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint"
+    kind_display: ClassVar[str] = "Kubernetes Endpoint"
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }
@@ -1204,6 +1314,8 @@ class KubernetesEndpoints(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesEndpointSlice(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint_slice"
+    kind_display: ClassVar[str] = "Kubernetes Endpoint Slice"
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint Slice."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -1215,11 +1327,15 @@ class KubernetesEndpointSlice(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesLimitRange(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_limit_range"
+    kind_display: ClassVar[str] = "Kubernetes Limit Range"
+    kind_description: ClassVar[str] = "A Kubernetes Limit Range."
 
 
 @define(eq=False, slots=False)
 class KubernetesNamespaceStatusConditions:
     kind: ClassVar[str] = "kubernetes_namespace_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Namespace Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Namespace status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -1237,6 +1353,8 @@ class KubernetesNamespaceStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesNamespaceStatus:
     kind: ClassVar[str] = "kubernetes_namespace_status"
+    kind_display: ClassVar[str] = "Kubernetes Namespace Status"
+    kind_description: ClassVar[str] = "A Kubernetes Namespace status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -1250,6 +1368,8 @@ class KubernetesNamespaceStatus:
 @define(eq=False, slots=False)
 class KubernetesNamespace(KubernetesResource, BaseRegion):
     kind: ClassVar[str] = "kubernetes_namespace"
+    kind_display: ClassVar[str] = "Kubernetes Namespace"
+    kind_description: ClassVar[str] = "A Kubernetes Namespace."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "namespace_status": S("status") >> Bend(KubernetesNamespaceStatus.mapping),
     }
@@ -1285,6 +1405,8 @@ class KubernetesNamespace(KubernetesResource, BaseRegion):
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeStatus:
     kind: ClassVar[str] = "kubernetes_persistent_volume_status"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Status"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "message": S("message"),
         "phase": S("phase"),
@@ -1298,6 +1420,8 @@ class KubernetesPersistentVolumeStatus:
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeSpecAwsElasticBlockStore:
     kind: ClassVar[str] = "kubernetes_persistent_volume_spec_aws_elastic_block_store"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Spec Aws Elastic Block Store"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume spec AWS elastic block store."
     mapping: ClassVar[Dict[str, Bender]] = {
         "volume_id": S("volumeID"),
         "fs_type": S("fsType"),
@@ -1309,6 +1433,8 @@ class KubernetesPersistentVolumeSpecAwsElasticBlockStore:
 @define
 class KubernetesPersistentVolumeSpec:
     kind: ClassVar[str] = "kubernetes_persistent_volume_spec"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_modes": S("accessModes", default=[]),
         "aws_elastic_block_store": S("awsElasticBlockStore")
@@ -1385,6 +1511,8 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     kind: ClassVar[str] = "kubernetes_persistent_volume"
+    kind_display: ClassVar[str] = "Kubernetes Persistent Volume"
+    kind_description: ClassVar[str] = "A Kubernetes Persistent Volume."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "persistent_volume_status": S("status") >> Bend(KubernetesPersistentVolumeStatus.mapping),
         "persistent_volume_spec": S("spec") >> Bend(KubernetesPersistentVolumeSpec.mapping),
@@ -1422,6 +1550,8 @@ class KubernetesReplicationControllerStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesReplicationControllerStatus:
     kind: ClassVar[str] = "kubernetes_replication_controller_status"
+    kind_display: ClassVar[str] = "Kubernetes Replication Controller Status"
+    kind_description: ClassVar[str] = "A Kubernetes Replication Controller status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "conditions": S("conditions", default=[])
@@ -1443,6 +1573,8 @@ class KubernetesReplicationControllerStatus:
 @define(eq=False, slots=False)
 class KubernetesReplicationController(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replication_controller"
+    kind_display: ClassVar[str] = "Kubernetes Replication Controller"
+    kind_description: ClassVar[str] = "A Kubernetes Replication Controller."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "replication_controller_status": S("status") >> Bend(KubernetesReplicationControllerStatus.mapping),
     }
@@ -1452,6 +1584,8 @@ class KubernetesReplicationController(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesResourceQuotaStatus:
     kind: ClassVar[str] = "kubernetes_resource_quota_status"
+    kind_display: ClassVar[str] = "Kubernetes Resource Quota Status"
+    kind_description: ClassVar[str] = "A Kubernetes Resource Quota status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hard": S("hard"),
         "used": S("used"),
@@ -1463,6 +1597,8 @@ class KubernetesResourceQuotaStatus:
 @define
 class KubernetesResourceQuotaSpec:
     kind: ClassVar[str] = "kubernetes_resource_quota_spec"
+    kind_display: ClassVar[str] = "Kubernetes Resource Quota Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Resource Quota spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hard": S("hard"),
         "scope_selector": S("scopeSelector"),
@@ -1476,6 +1612,8 @@ class KubernetesResourceQuotaSpec:
 @define(eq=False, slots=False)
 class KubernetesResourceQuota(KubernetesResource, BaseQuota):
     kind: ClassVar[str] = "kubernetes_resource_quota"
+    kind_display: ClassVar[str] = "Kubernetes Resource Quota"
+    kind_description: ClassVar[str] = "A Kubernetes Resource Quota."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "resource_quota_status": S("status") >> Bend(KubernetesResourceQuotaStatus.mapping),
         "resource_quota_spec": S("spec") >> Bend(KubernetesResourceQuotaSpec.mapping),
@@ -1487,11 +1625,15 @@ class KubernetesResourceQuota(KubernetesResource, BaseQuota):
 @define(eq=False, slots=False)
 class KubernetesSecret(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_secret"
+    kind_display: ClassVar[str] = "Kubernetes Secret"
+    kind_description: ClassVar[str] = "A Kubernetes Secret."
 
 
 @define(eq=False, slots=False)
 class KubernetesServiceAccount(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service_account"
+    kind_display: ClassVar[str] = "Kubernetes Service Account"
+    kind_description: ClassVar[str] = "A Kubernetes Service Account."
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_secret"], "delete": []}}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1504,16 +1646,22 @@ class KubernetesServiceAccount(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesMutatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_mutating_webhook_configuration"
+    kind_display: ClassVar[str] = "Kubernetes Mutating Webhook Configuration"
+    kind_description: ClassVar[str] = "A Kubernetes Mutating Webhook Configuration."
 
 
 @define(eq=False, slots=False)
 class KubernetesValidatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_validating_webhook_configuration"
+    kind_display: ClassVar[str] = "Kubernetes Validating Webhook Configuration"
+    kind_description: ClassVar[str] = "A Kubernetes Validating Webhook Configuration."
 
 
 @define(eq=False, slots=False)
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
+    kind_display: ClassVar[str] = "Kubernetes Controller Revision"
+    kind_description: ClassVar[str] = "A Kubernetes Controller Revision."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -1525,6 +1673,8 @@ class KubernetesControllerRevision(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesDaemonSetStatusConditions:
     kind: ClassVar[str] = "kubernetes_daemon_set_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Daemon Set Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Daemon Set status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -1542,6 +1692,8 @@ class KubernetesDaemonSetStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesDaemonSetStatus:
     kind: ClassVar[str] = "kubernetes_daemon_set_status"
+    kind_display: ClassVar[str] = "Kubernetes Daemon Set Status"
+    kind_description: ClassVar[str] = "A Kubernetes Daemon Set status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "collision_count": S("collisionCount"),
         "conditions": S("conditions", default=[])
@@ -1571,6 +1723,8 @@ class KubernetesDaemonSetStatus:
 @define
 class KubernetesPodTemplateSpec:
     kind: ClassVar[str] = "kubernetes_pod_template_spec"
+    kind_display: ClassVar[str] = "Kubernetes Pod Template Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Template spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
     }
@@ -1580,6 +1734,8 @@ class KubernetesPodTemplateSpec:
 @define
 class KubernetesDaemonSetSpec:
     kind: ClassVar[str] = "kubernetes_daemon_set_spec"
+    kind_display: ClassVar[str] = "Kubernetes Daemon Set Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Daemon Set spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "revision_history_limit": S("revisionHistoryLimit"),
@@ -1595,6 +1751,8 @@ class KubernetesDaemonSetSpec:
 @define(eq=False, slots=False)
 class KubernetesDaemonSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_daemon_set"
+    kind_display: ClassVar[str] = "Kubernetes Daemon Set"
+    kind_description: ClassVar[str] = "A Kubernetes Daemon Set."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
@@ -1613,6 +1771,8 @@ class KubernetesDaemonSet(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesDeploymentStatusCondition:
     kind: ClassVar[str] = "kubernetes_deployment_status_condition"
+    kind_display: ClassVar[str] = "Kubernetes Deployment Status Condition"
+    kind_description: ClassVar[str] = "A Kubernetes Deployment status condition."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "last_update_time": S("lastUpdateTime"),
@@ -1632,6 +1792,8 @@ class KubernetesDeploymentStatusCondition:
 @define(eq=False, slots=False)
 class KubernetesDeploymentStatus:
     kind: ClassVar[str] = "kubernetes_deployment_status"
+    kind_display: ClassVar[str] = "Kubernetes Deployment Status"
+    kind_description: ClassVar[str] = "A Kubernetes Deployment status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
@@ -1657,6 +1819,8 @@ class KubernetesDeploymentStatus:
 @define
 class KubernetesRollingUpdateDeployment:
     kind: ClassVar[str] = "kubernetes_rolling_update_deployment"
+    kind_display: ClassVar[str] = "Kubernetes Rolling Update Deployment"
+    kind_description: ClassVar[str] = "A Kubernetes rolling update deployment."
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_surge": S("maxSurge"),
         "max_unavailable": S("maxUnavailable"),
@@ -1668,6 +1832,8 @@ class KubernetesRollingUpdateDeployment:
 @define
 class KubernetesDeploymentStrategy:
     kind: ClassVar[str] = "kubernetes_deployment_strategy"
+    kind_display: ClassVar[str] = "Kubernetes Deployment Strategy"
+    kind_description: ClassVar[str] = "A Kubernetes deployment strategy."
     mapping: ClassVar[Dict[str, Bender]] = {
         "rolling_update": S("rollingUpdate") >> Bend(KubernetesRollingUpdateDeployment.mapping),
         "type": S("type"),
@@ -1679,6 +1845,8 @@ class KubernetesDeploymentStrategy:
 @define
 class KubernetesDeploymentSpec:
     kind: ClassVar[str] = "kubernetes_deployment_spec"
+    kind_display: ClassVar[str] = "Kubernetes Deployment Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Deployment spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "paused": S("paused"),
@@ -1702,6 +1870,8 @@ class KubernetesDeploymentSpec:
 @define(eq=False, slots=False)
 class KubernetesDeployment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_deployment"
+    kind_display: ClassVar[str] = "Kubernetes Deployment"
+    kind_description: ClassVar[str] = "A Kubernetes Deployment."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
@@ -1725,6 +1895,8 @@ class KubernetesDeployment(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesReplicaSetStatusCondition:
     kind: ClassVar[str] = "kubernetes_replica_set_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Replica Set Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Replica Set status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -1742,6 +1914,8 @@ class KubernetesReplicaSetStatusCondition:
 @define(eq=False, slots=False)
 class KubernetesReplicaSetStatus:
     kind: ClassVar[str] = "kubernetes_replica_set_status"
+    kind_display: ClassVar[str] = "Kubernetes Replica Set Status"
+    kind_description: ClassVar[str] = "A Kubernetes Replica Set status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "conditions": S("conditions", default=[])
@@ -1763,6 +1937,8 @@ class KubernetesReplicaSetStatus:
 @define
 class KubernetesReplicaSetSpec:
     kind: ClassVar[str] = "kubernetes_replica_set_spec"
+    kind_display: ClassVar[str] = "Kubernetes Replica Set Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Replica Set spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "replicas": S("replicas"),
@@ -1778,6 +1954,8 @@ class KubernetesReplicaSetSpec:
 @define(eq=False, slots=False)
 class KubernetesReplicaSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replica_set"
+    kind_display: ClassVar[str] = "Kubernetes Replica Set"
+    kind_description: ClassVar[str] = "A Kubernetes Replica Set."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "replica_set_status": S("status") >> Bend(KubernetesReplicaSetStatus.mapping),
         "replica_set_spec": S("spec") >> Bend(KubernetesReplicaSetSpec.mapping),
@@ -1796,6 +1974,8 @@ class KubernetesReplicaSet(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesStatefulSetStatusCondition:
     kind: ClassVar[str] = "kubernetes_stateful_set_status_condition"
+    kind_display: ClassVar[str] = "Kubernetes Stateful Set Status Condition"
+    kind_description: ClassVar[str] = "A Kubernetes Stateful Set status condition."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -1813,6 +1993,8 @@ class KubernetesStatefulSetStatusCondition:
 @define(eq=False, slots=False)
 class KubernetesStatefulSetStatus:
     kind: ClassVar[str] = "kubernetes_stateful_set_status"
+    kind_display: ClassVar[str] = "Kubernetes Stateful Set Status"
+    kind_description: ClassVar[str] = "A Kubernetes Stateful Set status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "available_replicas": S("availableReplicas"),
         "collision_count": S("collisionCount"),
@@ -1842,6 +2024,8 @@ class KubernetesStatefulSetStatus:
 @define
 class KubernetesStatefulSetSpec:
     kind: ClassVar[str] = "kubernetes_stateful_set_spec"
+    kind_display: ClassVar[str] = "Kubernetes Stateful Set Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Stateful Set spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "pod_management_policy": S("podManagementPolicy"),
@@ -1863,6 +2047,8 @@ class KubernetesStatefulSetSpec:
 @define(eq=False, slots=False)
 class KubernetesStatefulSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_stateful_set"
+    kind_display: ClassVar[str] = "Kubernetes Stateful Set"
+    kind_description: ClassVar[str] = "A Kubernetes Stateful Set."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "stateful_set_status": S("status") >> Bend(KubernetesStatefulSetStatus.mapping),
         "stateful_set_spec": S("spec") >> Bend(KubernetesStatefulSetSpec.mapping),
@@ -1881,6 +2067,8 @@ class KubernetesStatefulSet(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesHorizontalPodAutoscalerStatus:
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler_status"
+    kind_display: ClassVar[str] = "Kubernetes Horizontal Pod Autoscaler Status"
+    kind_description: ClassVar[str] = "A Kubernetes Horizontal Pod Autoscaler status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "current_cpu_utilization_percentage": S("currentCPUUtilizationPercentage"),
         "current_replicas": S("currentReplicas"),
@@ -1898,6 +2086,8 @@ class KubernetesHorizontalPodAutoscalerStatus:
 @define
 class KubernetesCrossVersionObjectReference:
     kind: ClassVar[str] = "kubernetes_cross_object_reference"
+    kind_display: ClassVar[str] = "Kubernetes Cross Object Reference"
+    kind_description: ClassVar[str] = "A Kubernetes cross object reference."
     mapping: ClassVar[Dict[str, Bender]] = {
         "api_version": S("apiVersion"),
         "resource_kind": S("kind"),
@@ -1911,6 +2101,8 @@ class KubernetesCrossVersionObjectReference:
 @define
 class KubernetesHorizontalPodAutoscalerSpec:
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler_spec"
+    kind_display: ClassVar[str] = "Kubernetes Horizontal Pod Autoscaler Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Horizontal Pod Autoscaler spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_replicas": S("maxReplicas"),
         "min_replicas": S("minReplicas"),
@@ -1926,6 +2118,8 @@ class KubernetesHorizontalPodAutoscalerSpec:
 @define(eq=False, slots=False)
 class KubernetesHorizontalPodAutoscaler(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler"
+    kind_display: ClassVar[str] = "Kubernetes Horizontal Pod Autoscaler"
+    kind_description: ClassVar[str] = "A Kubernetes Horizontal Pod Autoscaler."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "horizontal_pod_autoscaler_status": S("status") >> Bend(KubernetesHorizontalPodAutoscalerStatus.mapping),
         "horizontal_pod_autoscaler_spec": S("spec") >> Bend(KubernetesHorizontalPodAutoscalerSpec.mapping),
@@ -1937,6 +2131,8 @@ class KubernetesHorizontalPodAutoscaler(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesCronJobStatusActive:
     kind: ClassVar[str] = "kubernetes_cron_job_status_active"
+    kind_display: ClassVar[str] = "Kubernetes Cron Job status: active"
+    kind_description: ClassVar[str] = "An active Kubernetes Cron Job."
     mapping: ClassVar[Dict[str, Bender]] = {
         "api_version": S("apiVersion"),
         "field_path": S("fieldPath"),
@@ -1956,6 +2152,8 @@ class KubernetesCronJobStatusActive:
 @define(eq=False, slots=False)
 class KubernetesCronJobStatus:
     kind: ClassVar[str] = "kubernetes_cron_job_status"
+    kind_display: ClassVar[str] = "Kubernetes Cron Job Status"
+    kind_description: ClassVar[str] = "A Kubernetes Cron Job status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active", default=[]) >> ForallBend(KubernetesCronJobStatusActive.mapping),
         "last_schedule_time": S("lastScheduleTime"),
@@ -1969,6 +2167,8 @@ class KubernetesCronJobStatus:
 @define
 class KubernetesJobSpec:
     kind: ClassVar[str] = "kubernetes_job_spec"
+    kind_display: ClassVar[str] = "Kubernetes Job Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Job spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_deadline_seconds": S("activeDeadlineSeconds"),
         "backoff_limit": S("backoffLimit"),
@@ -1996,6 +2196,8 @@ class KubernetesJobSpec:
 @define
 class KubernetesJobTemplateSpec:
     kind: ClassVar[str] = "kubernetes_job_template_spec"
+    kind_display: ClassVar[str] = "Kubernetes Job Template Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Job Template spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "spec": S("spec") >> Bend(KubernetesJobSpec.mapping),
     }
@@ -2005,6 +2207,8 @@ class KubernetesJobTemplateSpec:
 @define
 class KubernetesCronJobSpec:
     kind: ClassVar[str] = "kubernetes_cron_job_spec"
+    kind_display: ClassVar[str] = "Kubernetes Cron Job Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Cron Job spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "concurrency_policy": S("concurrencyPolicy"),
         "failed_jobs_history_limit": S("failedJobsHistoryLimit"),
@@ -2028,6 +2232,8 @@ class KubernetesCronJobSpec:
 @define(eq=False, slots=False)
 class KubernetesCronJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cron_job"
+    kind_display: ClassVar[str] = "Kubernetes Cron Job"
+    kind_description: ClassVar[str] = "A Kubernetes Cron Job."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "cron_job_status": S("status") >> Bend(KubernetesCronJobStatus.mapping),
         "cron_job_spec": S("spec") >> Bend(KubernetesCronJobSpec.mapping),
@@ -2041,6 +2247,8 @@ class KubernetesCronJob(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesJobStatusConditions:
     kind: ClassVar[str] = "kubernetes_job_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Job Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Job status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_probe_time": S("lastProbeTime"),
         "last_transition_time": S("lastTransitionTime"),
@@ -2060,6 +2268,8 @@ class KubernetesJobStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesJobStatus:
     kind: ClassVar[str] = "kubernetes_job_status"
+    kind_display: ClassVar[str] = "Kubernetes Job Status"
+    kind_description: ClassVar[str] = "A Kubernetes Job status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active"),
         "completed_indexes": S("completedIndexes"),
@@ -2085,6 +2295,8 @@ class KubernetesJobStatus:
 @define(eq=False, slots=False)
 class KubernetesJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_job"
+    kind_display: ClassVar[str] = "Kubernetes Job"
+    kind_description: ClassVar[str] = "A Kubernetes Job."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "job_status": S("status") >> Bend(KubernetesJobStatus.mapping),
         "job_spec": S("spec") >> Bend(KubernetesJobSpec.mapping),
@@ -2100,6 +2312,8 @@ class KubernetesJob(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesFlowSchemaStatusConditions:
     kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Flow Schema Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Flow Schema status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -2117,6 +2331,8 @@ class KubernetesFlowSchemaStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesFlowSchemaStatus:
     kind: ClassVar[str] = "kubernetes_flow_schema_status"
+    kind_display: ClassVar[str] = "Kubernetes Flow Schema Status"
+    kind_description: ClassVar[str] = "A Kubernetes Flow Schema status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -2154,6 +2370,8 @@ class KubernetesPriorityLevelConfigurationStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesPriorityLevelConfigurationStatus:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
+    kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration Status"
+    kind_description: ClassVar[str] = "A Kubernetes Priority Level Configuration status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -2165,6 +2383,8 @@ class KubernetesPriorityLevelConfigurationStatus:
 @define(eq=False, slots=False)
 class KubernetesPriorityLevelConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_level_configuration"
+    kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration"
+    kind_description: ClassVar[str] = "A Kubernetes Priority Level Configuration."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "priority_level_configuration_status": S("status") >> Bend(KubernetesPriorityLevelConfigurationStatus.mapping),
     }
@@ -2174,6 +2394,8 @@ class KubernetesPriorityLevelConfiguration(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancerIngressPorts:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress_ports"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Status Loadbalancer Ingress Ports"
+    kind_description: ClassVar[str] = "Kubernetes Ingress status load balancer ingress ports."
     mapping: ClassVar[Dict[str, Bender]] = {
         "error": S("error"),
         "port": S("port"),
@@ -2187,6 +2409,8 @@ class KubernetesIngressStatusLoadbalancerIngressPorts:
 @define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancerIngress:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Status Loadbalancer Ingress"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress status load balancer ingress."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname": S("hostname"),
         "ip": S("ip"),
@@ -2200,6 +2424,8 @@ class KubernetesIngressStatusLoadbalancerIngress:
 @define(eq=False, slots=False)
 class KubernetesIngressStatusLoadbalancer:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Status Loadbalancer"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress status load balancer."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesIngressStatusLoadbalancerIngress.mapping),
     }
@@ -2209,6 +2435,8 @@ class KubernetesIngressStatusLoadbalancer:
 @define(eq=False, slots=False)
 class KubernetesIngressStatus:
     kind: ClassVar[str] = "kubernetes_ingress_status"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Status"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "load_balancer": S("loadBalancer") >> Bend(KubernetesIngressStatusLoadbalancer.mapping),
     }
@@ -2218,6 +2446,8 @@ class KubernetesIngressStatus:
 @define
 class KubernetesIngressRule:
     kind: ClassVar[str] = "kubernetes_ingress_rule"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Rule"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress rule."
     mapping: ClassVar[Dict[str, Bender]] = {
         "host": S("host"),
         "http": S("http"),
@@ -2229,6 +2459,8 @@ class KubernetesIngressRule:
 @define
 class KubernetesIngressTLS:
     kind: ClassVar[str] = "kubernetes_ingress_tls"
+    kind_display: ClassVar[str] = "Kubernetes Ingress TLS"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress TLS."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hosts": S("hosts", default=[]),
         "secret_name": S("secretName"),
@@ -2240,6 +2472,8 @@ class KubernetesIngressTLS:
 @define
 class KubernetesIngressSpec:
     kind: ClassVar[str] = "kubernetes_ingress_spec"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress_class_name": S("ingressClassName"),
         "rules": S("rules", default=[]) >> ForallBend(KubernetesIngressRule.mapping),
@@ -2276,6 +2510,8 @@ def get_backend_service_names(json: Json) -> List[str]:
 @define(eq=False, slots=False)
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
+    kind_display: ClassVar[str] = "Kubernetes Ingress"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "ingress_status": S("status") >> Bend(KubernetesIngressStatus.mapping),
         "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
@@ -2323,12 +2559,16 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class KubernetesIngressClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_ingress_class"
+    kind_display: ClassVar[str] = "Kubernetes Ingress Class"
+    kind_description: ClassVar[str] = "A Kubernetes Ingress class."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
 
 
 @define(eq=False, slots=False)
 class KubernetesNetworkPolicyStatusConditions:
     kind: ClassVar[str] = "kubernetes_network_policy_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Network Policy Status Conditions"
+    kind_description: ClassVar[str] = "A Kubernetes Network Policy status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -2348,6 +2588,8 @@ class KubernetesNetworkPolicyStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
+    kind_display: ClassVar[str] = "Kubernetes Network Policy Status"
+    kind_description: ClassVar[str] = "A Kubernetes Network Policy status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -2359,6 +2601,8 @@ class KubernetesNetworkPolicyStatus:
 @define(eq=False, slots=False)
 class KubernetesNetworkPolicy(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_network_policy"
+    kind_display: ClassVar[str] = "Kubernetes Network Policy"
+    kind_description: ClassVar[str] = "A Kubernetes Network Policy."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "network_policy_status": S("status") >> Bend(KubernetesNetworkPolicyStatus.mapping),
     }
@@ -2368,12 +2612,16 @@ class KubernetesNetworkPolicy(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesRuntimeClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_runtime_class"
+    kind_display: ClassVar[str] = "Kubernetes Runtime Class"
+    kind_description: ClassVar[str] = "A Kubernetes Runtime class."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {}
 
 
 @define(eq=False, slots=False)
 class KubernetesPodDisruptionBudgetStatusConditions:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status_conditions"
+    kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Status Conditions"
+    kind_description: ClassVar[str] = "Kubernetes Pod Disruption Budget status conditions."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -2393,6 +2641,8 @@ class KubernetesPodDisruptionBudgetStatusConditions:
 @define(eq=False, slots=False)
 class KubernetesPodDisruptionBudgetStatus:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
+    kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Status"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Disruption Budget status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -2416,6 +2666,8 @@ class KubernetesPodDisruptionBudgetStatus:
 @define
 class KubernetesPodDisruptionBudgetSpec:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_spec"
+    kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Disruption Budget spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_unavailable": S("maxUnavailable"),
         "min_available": S("minAvailable"),
@@ -2429,6 +2681,8 @@ class KubernetesPodDisruptionBudgetSpec:
 @define(eq=False, slots=False)
 class KubernetesPodDisruptionBudget(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget"
+    kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget"
+    kind_description: ClassVar[str] = "A Kubernetes Pod Disruption Budget."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "pod_disruption_budget_status": S("status") >> Bend(KubernetesPodDisruptionBudgetStatus.mapping),
         "pod_disruption_budget_spec": S("spec") >> Bend(KubernetesPodDisruptionBudgetSpec.mapping),
@@ -2440,51 +2694,71 @@ class KubernetesPodDisruptionBudget(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesClusterRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role"
+    kind_display: ClassVar[str] = "Kubernetes Cluster Role"
+    kind_description: ClassVar[str] = "A Kubernetes Cluster Role."
 
 
 @define(eq=False, slots=False)
 class KubernetesClusterRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role_binding"
+    kind_display: ClassVar[str] = "Kubernetes Cluster Role Binding"
+    kind_description: ClassVar[str] = "A Kubernetes Cluster Role Binding."
 
 
 @define(eq=False, slots=False)
 class KubernetesRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role"
+    kind_display: ClassVar[str] = "Kubernetes Role"
+    kind_description: ClassVar[str] = "A Kubernetes Role."
 
 
 @define(eq=False, slots=False)
 class KubernetesRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role_binding"
+    kind_display: ClassVar[str] = "Kubernetes Role Binding"
+    kind_description: ClassVar[str] = "A Kubernetes Role Binding."
 
 
 @define(eq=False, slots=False)
 class KubernetesPriorityClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_class"
+    kind_display: ClassVar[str] = "Kubernetes Priority Class"
+    kind_description: ClassVar[str] = "A Kubernetes Priority Class."
 
 
 @define(eq=False, slots=False)
 class KubernetesCSIDriver(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_driver"
+    kind_display: ClassVar[str] = "Kubernetes CSI Driver"
+    kind_description: ClassVar[str] = "A Kubernetes CSI Driver."
 
 
 @define(eq=False, slots=False)
 class KubernetesCSINode(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_node"
+    kind_display: ClassVar[str] = "Kubernetes CSI Node"
+    kind_description: ClassVar[str] = "A Kubernetes CSI Node."
 
 
 @define(eq=False, slots=False)
 class KubernetesCSIStorageCapacity(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_storage_capacity"
+    kind_display: ClassVar[str] = "Kubernetes CSI Storage Capacity"
+    kind_description: ClassVar[str] = "Kubernetes CSI Storage Capacity."
 
 
 @define(eq=False, slots=False)
 class KubernetesStorageClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_storage_class"
+    kind_display: ClassVar[str] = "Kubernetes Storage Class"
+    kind_description: ClassVar[str] = "A Kubernetes Storage Class."
 
 
 @define(eq=False, slots=False)
 class KubernetesVolumeError:
     kind: ClassVar[str] = "kubernetes_volume_error"
+    kind_display: ClassVar[str] = "Kubernetes Volume Error"
+    kind_description: ClassVar[str] = "A Kubernetes Volume error."
     mapping: ClassVar[Dict[str, Bender]] = {
         "message": S("message"),
         "time": S("time"),
@@ -2496,6 +2770,8 @@ class KubernetesVolumeError:
 @define(eq=False, slots=False)
 class KubernetesVolumeAttachmentStatus:
     kind: ClassVar[str] = "kubernetes_volume_attachment_status"
+    kind_display: ClassVar[str] = "Kubernetes Volume Attachment Status"
+    kind_description: ClassVar[str] = "A Kubernetes Volume Attachment status."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_error": S("attachError") >> Bend(KubernetesVolumeError.mapping),
         "attached": S("attached"),
@@ -2511,6 +2787,8 @@ class KubernetesVolumeAttachmentStatus:
 @define
 class KubernetesVolumeAttachmentSpec:
     kind: ClassVar[str] = "kubernetes_volume_attachment_spec"
+    kind_display: ClassVar[str] = "Kubernetes Volume Attachment Spec"
+    kind_description: ClassVar[str] = "A Kubernetes Volume Attachment spec."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attacher": S("attacher"),
         "node_name": S("nodeName"),
@@ -2524,6 +2802,8 @@ class KubernetesVolumeAttachmentSpec:
 @define(eq=False, slots=False)
 class KubernetesVolumeAttachment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_volume_attachment"
+    kind_display: ClassVar[str] = "Kubernetes Volume Attachment"
+    kind_description: ClassVar[str] = "A Kubernetes Volume Attachment."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "volume_attachment_status": S("status") >> Bend(KubernetesVolumeAttachmentStatus.mapping),
         "volume_attachment_spec": S("spec") >> Bend(KubernetesVolumeAttachmentSpec.mapping),
