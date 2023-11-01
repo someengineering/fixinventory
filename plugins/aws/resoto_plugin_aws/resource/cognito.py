@@ -94,7 +94,7 @@ class AwsCognitoUser(AwsResource, BaseUser):
     pool_name: Optional[str] = None
 
     def _keys(self) -> Tuple[Any, ...]:
-        # in case different user pools include the same user: we add the
+        # in case different user pools include the same user: we add the pool name to the keys
         if self.pool_name is not None:
             return tuple(list(super()._keys()) + [self.pool_name])
         return super()._keys()
