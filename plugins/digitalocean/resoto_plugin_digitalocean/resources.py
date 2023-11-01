@@ -45,7 +45,7 @@ class DigitalOceanResource(BaseResource):
 
     kind: ClassVar[str] = "digitalocean_resource"
     kind_display: ClassVar[str] = "DigitalOcean Resource"
-    kind_description: ClassVar[str] = "A DigitalOcean Resource."
+    kind_description: ClassVar[str] = ""
     urn: str = ""
 
     def delete_uri_path(self) -> Optional[str]:
@@ -86,7 +86,7 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
 
     kind: ClassVar[str] = "digitalocean_team"
     kind_display: ClassVar[str] = "DigitalOcean Team"
-    kind_description: ClassVar[str] = "A DigitalOcean Team."
+    kind_description: ClassVar[str] = "A team is a group of users within DigitalOcean that can collaborate on projects and share resources."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -126,7 +126,7 @@ class DigitalOceanRegion(DigitalOceanResource, BaseRegion):
 
     kind: ClassVar[str] = "digitalocean_region"
     kind_display: ClassVar[str] = "DigitalOcean Region"
-    kind_description: ClassVar[str] = "A DigitalOcean Region."
+    kind_description: ClassVar[str] = "A region in DigitalOcean's cloud infrastructure where resources such as droplets, volumes, and networks can be deployed."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -158,7 +158,7 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_project"
     kind_display: ClassVar[str] = "DigitalOcean Project"
-    kind_description: ClassVar[str] = "A DigitalOcean Project."
+    kind_description: ClassVar[str] = "A DigitalOcean Project is a flexible way to organize and manage resources in the DigitalOcean cloud platform."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -199,7 +199,7 @@ class DigitalOceanProject(DigitalOceanResource, BaseResource):
 class DigitalOceanDropletSize(DigitalOceanResource, BaseInstanceType):
     kind: ClassVar[str] = "digitalocean_droplet_size"
     kind_display: ClassVar[str] = "DigitalOcean Droplet Size"
-    kind_description: ClassVar[str] = "The DigitalOcean Droplet Size."
+    kind_description: ClassVar[str] = "Droplet Sizes are different configurations of virtual private servers (Droplets) provided by DigitalOcean with varying amounts of CPU, memory, and storage."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -220,7 +220,7 @@ class DigitalOceanDroplet(DigitalOceanResource, BaseInstance):
 
     kind: ClassVar[str] = "digitalocean_droplet"
     kind_display: ClassVar[str] = "DigitalOcean Droplet"
-    kind_description: ClassVar[str] = "A DigitalOcean Droplet."
+    kind_description: ClassVar[str] = "A DigitalOcean Droplet is a virtual machine instance that can be provisioned and managed on the DigitalOcean cloud platform."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -253,7 +253,7 @@ class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource)
 
     kind: ClassVar[str] = "digitalocean_droplet_neighborhood"
     kind_display: ClassVar[str] = "DigitalOcean Droplet Neighborhood"
-    kind_description: ClassVar[str] = "A DigitalOcean Droplet Neighborhood."
+    kind_description: ClassVar[str] = "Droplet Neighborhood is a feature in DigitalOcean that allows users to deploy Droplets (virtual machines) in the same datacenter to achieve low latency communication and high reliability."
     droplets: Optional[List[str]] = None
 
 
@@ -263,7 +263,7 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
     kind_display: ClassVar[str] = "DigitalOcean Kubernetes Cluster"
-    kind_description: ClassVar[str] = "A DigitalOcean Kubernetes Cluster."
+    kind_description: ClassVar[str] = "A Kubernetes cluster hosted on the DigitalOcean cloud platform, providing managed container orchestration and scalability."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_droplet"],
@@ -289,6 +289,8 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
 @define(eq=False, slots=False)
 class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
     kind: ClassVar[str] = "digitalocean_volume"
+    kind_display: ClassVar[str] = "DigitalOcean Volume"
+    kind_description: ClassVar[str] = "DigitalOcean Volume is a block storage service provided by DigitalOcean that allows users to attach additional storage to their Droplets."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_snapshot"],
@@ -322,7 +324,7 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
     kind_display: ClassVar[str] = "DigitalOcean Database"
-    kind_description: ClassVar[str] = "A DigitalOcean Database."
+    kind_description: ClassVar[str] = "A database service provided by DigitalOcean that allows users to store and manage their data."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_app"],
@@ -346,7 +348,7 @@ class DigitalOceanVPC(DigitalOceanResource, BaseNetwork):
 
     kind: ClassVar[str] = "digitalocean_vpc"
     kind_display: ClassVar[str] = "DigitalOcean VPC"
-    kind_description: ClassVar[str] = "A DigitalOcean VPC."
+    kind_description: ClassVar[str] = "A Virtual Private Cloud (VPC) is a virtual network dedicated to your DigitalOcean account. It allows you to isolate your resources and securely connect them to other resources within your account."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -377,7 +379,7 @@ class DigitalOceanSnapshot(DigitalOceanResource, BaseSnapshot):
 
     kind: ClassVar[str] = "digitalocean_snapshot"
     kind_display: ClassVar[str] = "DigitalOcean Snapshot"
-    kind_description: ClassVar[str] = "A DigitalOcean Snapshot."
+    kind_description: ClassVar[str] = "DigitalOcean Snapshots are point-in-time copies of your Droplets (virtual machines) that can be used for creating new Droplets or restoring existing ones."
     snapshot_size_gigabytes: Optional[int] = None
     resource_id: Optional[str] = None
     resource_type: Optional[str] = None
@@ -395,7 +397,7 @@ class DigitalOceanLoadBalancer(DigitalOceanResource, BaseLoadBalancer):
 
     kind: ClassVar[str] = "digitalocean_load_balancer"
     kind_display: ClassVar[str] = "DigitalOcean Load Balancer"
-    kind_description: ClassVar[str] = "A DigitalOcean Load Balancer."
+    kind_description: ClassVar[str] = "A load balancer service provided by DigitalOcean that distributes incoming network traffic across multiple servers to ensure high availability and reliability."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_droplet"],
@@ -420,7 +422,7 @@ class DigitalOceanFloatingIP(DigitalOceanResource, BaseIPAddress):
 
     kind: ClassVar[str] = "digitalocean_floating_ip"
     kind_display: ClassVar[str] = "DigitalOcean Floating IP"
-    kind_description: ClassVar[str] = "A DigitalOcean Floating IP."
+    kind_description: ClassVar[str] = "A DigitalOcean Floating IP is a static IP address that can be easily reassigned between DigitalOcean Droplets, providing flexibility and high availability for your applications."
 
     is_locked: Optional[bool] = None
 
@@ -447,7 +449,7 @@ class DigitalOceanImage(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_image"
     kind_display: ClassVar[str] = "DigitalOcean Image"
-    kind_description: ClassVar[str] = "A DigitalOcean Image."
+    kind_description: ClassVar[str] = "A DigitalOcean Image is a template for creating virtual machines (known as Droplets) on the DigitalOcean cloud platform."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_droplet"],
@@ -477,7 +479,7 @@ class DigitalOceanSpace(DigitalOceanResource, BaseBucket):
 
     kind: ClassVar[str] = "digitalocean_space"
     kind_display: ClassVar[str] = "DigitalOcean Space"
-    kind_description: ClassVar[str] = "A DigitalOcean Space."
+    kind_description: ClassVar[str] = "DigitalOcean Spaces is an object storage service that allows you to store and serve large amounts of unstructured data."
 
     def delete(self, graph: Graph) -> bool:
         log.debug(f"Deleting space {self.id} in account {self.account(graph).id} region {self.region(graph).id}")
@@ -500,7 +502,7 @@ class DigitalOceanApp(DigitalOceanResource, BaseResource):
 
     kind: ClassVar[str] = "digitalocean_app"
     kind_display: ClassVar[str] = "DigitalOcean App"
-    kind_description: ClassVar[str] = "A DigitalOcean App."
+    kind_description: ClassVar[str] = "DigitalOcean App is a platform that allows users to deploy and manage applications on DigitalOcean's cloud infrastructure."
 
     tier_slug: Optional[str] = None
     default_ingress: Optional[str] = None
