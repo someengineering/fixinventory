@@ -483,10 +483,9 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_access_key"
     kind_display: ClassVar[str] = "AWS IAM Access Key"
-    kind_description: ClassVar[str] = (
-        "An AWS IAM Access Key is used to securely access AWS services and resources"
-        " using API operations."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),

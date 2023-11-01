@@ -680,10 +680,9 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     kind_display: ClassVar[str] = "AWS CloudFront Public Key"
-    kind_description: ClassVar[str] = (
-        "AWS CloudFront Public Key is a public key used for encrypting content stored"
-        " on AWS CloudFront."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "AWS CloudFront Public Key is a public key used for encrypting content stored on AWS CloudFront."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),

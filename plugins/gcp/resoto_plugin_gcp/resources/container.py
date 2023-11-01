@@ -1002,10 +1002,9 @@ class GcpContainerNodePool:
 class GcpContainerFilter:
     kind: ClassVar[str] = "gcp_container_filter"
     kind_display: ClassVar[str] = "GCP Container Filter"
-    kind_description: ClassVar[str] = (
-        "A GCP Container Filter is used to specify criteria for filtering containers"
-        " in Google Cloud Platform."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A GCP Container Filter is used to specify criteria for filtering containers in Google Cloud Platform."
     mapping: ClassVar[Dict[str, Bender]] = {"event_type": S("eventType", default=[])}
     event_type: Optional[List[str]] = field(default=None)
 

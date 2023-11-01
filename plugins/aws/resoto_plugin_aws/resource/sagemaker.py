@@ -1790,10 +1790,9 @@ class AwsSagemakerCodeRepository(AwsResource):
 class AwsSagemakerDeployedImage:
     kind: ClassVar[str] = "aws_sagemaker_deployed_image"
     kind_display: ClassVar[str] = "AWS SageMaker Deployed Image"
-    kind_description: ClassVar[str] = (
-        "An image that has been deployed and is used for running machine learning"
-        " models on Amazon SageMaker."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An image that has been deployed and is used for running machine learning models on Amazon SageMaker."
     mapping: ClassVar[Dict[str, Bender]] = {
         "specified_image": S("SpecifiedImage"),
         "resolved_image": S("ResolvedImage"),
@@ -2851,10 +2850,9 @@ class AwsSagemakerAutoMLJobConfig:
 class AwsSagemakerFinalAutoMLJobObjectiveMetric:
     kind: ClassVar[str] = "aws_sagemaker_final_auto_ml_job_objective_metric"
     kind_display: ClassVar[str] = "AWS SageMaker Final AutoML Job Objective Metric"
-    kind_description: ClassVar[str] = (
-        "The final objective metric value calculated at the end of an Amazon"
-        " SageMaker AutoML job."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "The final objective metric value calculated at the end of an Amazon SageMaker AutoML job."
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "metric_name": S("MetricName"), "value": S("Value")}
     type: Optional[str] = field(default=None)
     metric_name: Optional[str] = field(default=None)

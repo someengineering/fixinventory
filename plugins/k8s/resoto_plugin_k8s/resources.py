@@ -145,10 +145,9 @@ class KubernetesNodeCondition:
 class KubernetesNodeStatusConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active_configmap"
     kind_display: ClassVar[str] = "Kubernetes Node Status Config Active ConfigMap"
-    kind_description: ClassVar[str] = (
-        "This resource represents the active configuration map for the node status in"
-        " a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "This resource represents the active configuration map for the node status in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_config_key": S("kubeletConfigKey"),
         "name": S("name"),
@@ -167,9 +166,7 @@ class KubernetesNodeStatusConfigSource:
 class KubernetesNodeConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active"
     kind_display: ClassVar[str] = "Kubernetes Node Status Config Active"
-    kind_description: ClassVar[str] = (
-        "The active configuration status of a node in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[str] = "The active configuration status of a node in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "config_map": S("configMap") >> Bend(KubernetesNodeStatusConfigSource.mapping),
     }
@@ -442,10 +439,9 @@ class KubernetesPodStatusConditions:
 class KubernetesContainerStateRunning:
     kind: ClassVar[str] = "kubernetes_container_state_running"
     kind_display: ClassVar[str] = "Kubernetes Container State Running"
-    kind_description: ClassVar[str] = (
-        "Running state indicates that the container is currently up and running"
-        " within a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Running state indicates that the container is currently up and running within a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "started_at": S("startedAt"),
     }
@@ -499,10 +495,9 @@ class KubernetesContainerStateWaiting:
 class KubernetesContainerState:
     kind: ClassVar[str] = "kubernetes_container_state"
     kind_display: ClassVar[str] = "Kubernetes Container State"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Container State represents the current state of a container"
-        " running in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Container State represents the current state of a container running in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "running": S("running") >> Bend(KubernetesContainerStateRunning.mapping),
         "terminated": S("terminated") >> Bend(KubernetesContainerStateTerminated.mapping),
@@ -1172,10 +1167,9 @@ class KubernetesLoadbalancerIngress:
 class KubernetesLoadbalancerStatus:
     kind: ClassVar[str] = "kubernetes_loadbalancer_status"
     kind_display: ClassVar[str] = "Kubernetes LoadBalancer Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes LoadBalancer Status represents the status of a load balancer in a"
-        " Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes LoadBalancer Status represents the status of a load balancer in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesLoadbalancerIngress.mapping),
     }
@@ -1423,10 +1417,9 @@ class KubernetesConfigMap(KubernetesResource):
 class KubernetesEndpointAddress:
     kind: ClassVar[str] = "kubernetes_endpoint_address"
     kind_display: ClassVar[str] = "Kubernetes Endpoint Address"
-    kind_description: ClassVar[str] = (
-        "The address of the Kubernetes endpoint, which is used to access and interact"
-        " with a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "The address of the Kubernetes endpoint, which is used to access and interact with a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip": S("ip"),
         "node_name": S("nodeName"),
@@ -1480,10 +1473,7 @@ class KubernetesEndpointSubset:
 class KubernetesEndpoints(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint"
     kind_display: ClassVar[str] = "Kubernetes Endpoint"
-    kind_description: ClassVar[str] = (
-        "A Kubernetes Endpoint defines a network address where a service can be"
-        " accessed."
-    )
+    kind_description: ClassVar[str] = "A Kubernetes Endpoint defines a network address where a service can be accessed."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }
@@ -1925,10 +1915,9 @@ class KubernetesValidatingWebhookConfiguration(KubernetesResource):
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
     kind_display: ClassVar[str] = "Kubernetes Controller Revision"
-    kind_description: ClassVar[str] = (
-        "Controller Revision in Kubernetes represents a specific revision of a"
-        " controller's configuration and state."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Controller Revision in Kubernetes represents a specific revision of a controller's configuration and state."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -2034,10 +2023,9 @@ class KubernetesDaemonSetSpec:
 class KubernetesDaemonSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_daemon_set"
     kind_display: ClassVar[str] = "Kubernetes DaemonSet"
-    kind_description: ClassVar[str] = (
-        "A Kubernetes DaemonSet ensures that all (or some) nodes in a cluster run a"
-        " copy of a specified pod."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A Kubernetes DaemonSet ensures that all (or some) nodes in a cluster run a copy of a specified pod."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
@@ -2252,10 +2240,9 @@ class KubernetesReplicaSetStatus:
 class KubernetesReplicaSetSpec:
     kind: ClassVar[str] = "kubernetes_replica_set_spec"
     kind_display: ClassVar[str] = "Kubernetes Replica Set Spec"
-    kind_description: ClassVar[str] = (
-        "A Kubernetes Replica Set Spec defines the desired state for creating and"
-        " managing a group of replica pods."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A Kubernetes Replica Set Spec defines the desired state for creating and managing a group of replica pods."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "replicas": S("replicas"),
@@ -2511,10 +2498,9 @@ class KubernetesCronJobStatusActive:
 class KubernetesCronJobStatus:
     kind: ClassVar[str] = "kubernetes_cron_job_status"
     kind_display: ClassVar[str] = "Kubernetes Cron Job Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Cron Job Status represents the status of a scheduled job in a"
-        " Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Cron Job Status represents the status of a scheduled job in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active", default=[]) >> ForallBend(KubernetesCronJobStatusActive.mapping),
         "last_schedule_time": S("lastScheduleTime"),
@@ -2646,10 +2632,9 @@ class KubernetesJobStatusConditions:
 class KubernetesJobStatus:
     kind: ClassVar[str] = "kubernetes_job_status"
     kind_display: ClassVar[str] = "Kubernetes Job Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Job Status refers to the current state and progress of a job in a"
-        " Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Job Status refers to the current state and progress of a job in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active"),
         "completed_indexes": S("completedIndexes"),
@@ -2696,10 +2681,9 @@ class KubernetesJob(KubernetesResource):
 class KubernetesFlowSchemaStatusConditions:
     kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
     kind_display: ClassVar[str] = "Kubernetes Flow Schema Status Conditions"
-    kind_description: ClassVar[str] = (
-        "Flow Schema Status Conditions represent the current status of a flow schema"
-        " in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Flow Schema Status Conditions represent the current status of a flow schema in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -2945,10 +2929,9 @@ def get_backend_service_names(json: Json) -> List[str]:
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
     kind_display: ClassVar[str] = "Kubernetes Ingress"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Ingress is an API object that manages external access to services"
-        " within a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Ingress is an API object that manages external access to services within a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "ingress_status": S("status") >> Bend(KubernetesIngressStatus.mapping),
         "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
@@ -3033,10 +3016,9 @@ class KubernetesNetworkPolicyStatusConditions:
 class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
     kind_display: ClassVar[str] = "Kubernetes Network Policy Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Network Policy Status represents the current status of network"
-        " policies in a Kubernetes cluster"
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Network Policy Status represents the current status of network policies in a Kubernetes cluster"
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime

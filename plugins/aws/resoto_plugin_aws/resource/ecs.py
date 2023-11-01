@@ -395,10 +395,9 @@ class AwsEcsContainerOverride:
 class AwsEcsTaskOverride:
     kind: ClassVar[str] = "aws_ecs_task_override"
     kind_display: ClassVar[str] = "AWS ECS Task Override"
-    kind_description: ClassVar[str] = (
-        "ECS Task Overrides allow you to change the default values of a task"
-        " definition when running an ECS task."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "ECS Task Overrides allow you to change the default values of a task definition when running an ECS task."
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_overrides": S("containerOverrides", default=[]) >> ForallBend(AwsEcsContainerOverride.mapping),
         "cpu": S("cpu"),

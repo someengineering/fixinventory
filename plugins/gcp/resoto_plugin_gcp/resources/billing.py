@@ -228,9 +228,7 @@ class GcpAggregationInfo:
 class GcpMoney:
     kind: ClassVar[str] = "gcp_money"
     kind_display: ClassVar[str] = "GCP Money"
-    kind_description: ClassVar[str] = (
-        "Sorry, there is no known resource or service called GCP Money."
-    )
+    kind_description: ClassVar[str] = "Sorry, there is no known resource or service called GCP Money."
     mapping: ClassVar[Dict[str, Bender]] = {
         "currency_code": S("currencyCode"),
         "nanos": S("nanos"),

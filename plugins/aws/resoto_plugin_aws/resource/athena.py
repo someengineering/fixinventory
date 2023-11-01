@@ -92,10 +92,9 @@ class AwsAthenaWorkGroupConfiguration:
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     kind_display: ClassVar[str] = "AWS Athena Work Group"
-    kind_description: ClassVar[str] = (
-        "Athena Work Group is a logical container for AWS Glue Data Catalog metadata"
-        " and query statistics."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Athena Work Group is a logical container for AWS Glue Data Catalog metadata and query statistics."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

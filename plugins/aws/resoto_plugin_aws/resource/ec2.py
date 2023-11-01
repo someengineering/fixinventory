@@ -100,10 +100,9 @@ class AwsEc2ProcessorInfo:
 class AwsEc2VCpuInfo:
     kind: ClassVar[str] = "aws_ec2_v_cpu_info"
     kind_display: ClassVar[str] = "AWS EC2 vCPU Info"
-    kind_description: ClassVar[str] = (
-        "EC2 vCPU Info provides detailed information about the virtual CPU"
-        " capabilities of Amazon EC2 instances."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "EC2 vCPU Info provides detailed information about the virtual CPU capabilities of Amazon EC2 instances."
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_v_cpus": S("DefaultVCpus"),
         "default_cores": S("DefaultCores"),
@@ -221,10 +220,9 @@ class AwsEc2NetworkCardInfo:
 class AwsEc2NetworkInfo:
     kind: ClassVar[str] = "aws_ec2_network_info"
     kind_display: ClassVar[str] = "AWS EC2 Network Info"
-    kind_description: ClassVar[str] = (
-        "EC2 Network Info provides information about the networking details of EC2"
-        " instances in Amazon's cloud."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "EC2 Network Info provides information about the networking details of EC2 instances in Amazon's cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_performance": S("NetworkPerformance"),
         "maximum_network_interfaces": S("MaximumNetworkInterfaces"),
@@ -777,10 +775,9 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 class AwsEc2KeyPair(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_keypair"
     kind_display: ClassVar[str] = "AWS EC2 Keypair"
-    kind_description: ClassVar[str] = (
-        "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in"
-        " Amazon's cloud."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-key-pairs", "KeyPairs")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -999,10 +996,9 @@ class AwsEc2InstanceNetworkInterfaceAssociation:
 class AwsEc2InstanceNetworkInterfaceAttachment:
     kind: ClassVar[str] = "aws_ec2_instance_network_interface_attachment"
     kind_display: ClassVar[str] = "AWS EC2 Instance Network Interface Attachment"
-    kind_description: ClassVar[str] = (
-        "An attachment of a network interface to an EC2 instance in the Amazon Web"
-        " Services cloud."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An attachment of a network interface to an EC2 instance in the Amazon Web Services cloud."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_time": S("AttachTime"),
         "attachment_id": S("AttachmentId"),
@@ -1594,10 +1590,9 @@ class AwsEc2IcmpTypeCode:
 class AwsEc2PortRange:
     kind: ClassVar[str] = "aws_ec2_port_range"
     kind_display: ClassVar[str] = "AWS EC2 Port Range"
-    kind_description: ClassVar[str] = (
-        "A range of port numbers that can be used to control inbound and outbound"
-        " traffic for an AWS EC2 instance."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A range of port numbers that can be used to control inbound and outbound traffic for an AWS EC2 instance."
     mapping: ClassVar[Dict[str, Bender]] = {"from_range": S("From"), "to_range": S("To")}
     from_range: Optional[int] = field(default=None)
     to_range: Optional[int] = field(default=None)
@@ -2342,10 +2337,9 @@ class AwsEc2SubnetIpv6CidrBlockAssociation:
 class AwsEc2PrivateDnsNameOptionsOnLaunch:
     kind: ClassVar[str] = "aws_ec2_private_dns_name_options_on_launch"
     kind_display: ClassVar[str] = "AWS EC2 Private DNS Name Options on Launch"
-    kind_description: ClassVar[str] = (
-        "The option to enable or disable assigning a private DNS name to an Amazon"
-        " EC2 instance on launch."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "The option to enable or disable assigning a private DNS name to an Amazon EC2 instance on launch."
     mapping: ClassVar[Dict[str, Bender]] = {
         "hostname_type": S("HostnameType"),
         "enable_resource_name_dns_a_record": S("EnableResourceNameDnsARecord"),
@@ -3034,10 +3028,9 @@ class AwsEc2HostInstance:
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
     kind_display: ClassVar[str] = "AWS EC2 Host"
-    kind_description: ClassVar[str] = (
-        "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2"
-        " instances."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2 instances."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-hosts", "Hosts")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]}

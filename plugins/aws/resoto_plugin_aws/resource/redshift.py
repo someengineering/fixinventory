@@ -253,10 +253,7 @@ class AwsRedshiftHsmStatus:
 class AwsRedshiftClusterSnapshotCopyStatus:
     kind: ClassVar[str] = "aws_redshift_cluster_snapshot_copy_status"
     kind_display: ClassVar[str] = "AWS Redshift Cluster Snapshot Copy Status"
-    kind_description: ClassVar[str] = (
-        "The status of the copy operation for a snapshot of an Amazon Redshift"
-        " cluster."
-    )
+    kind_description: ClassVar[str] = "The status of the copy operation for a snapshot of an Amazon Redshift cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "destination_region": S("DestinationRegion"),
         "retention_period": S("RetentionPeriod"),
@@ -292,9 +289,7 @@ class AwsRedshiftClusterNode:
 class AwsRedshiftElasticIpStatus:
     kind: ClassVar[str] = "aws_redshift_elastic_ip_status"
     kind_display: ClassVar[str] = "AWS Redshift Elastic IP Status"
-    kind_description: ClassVar[str] = (
-        "The status of an Elastic IP assigned to an Amazon Redshift cluster."
-    )
+    kind_description: ClassVar[str] = "The status of an Elastic IP assigned to an Amazon Redshift cluster."
     mapping: ClassVar[Dict[str, Bender]] = {"elastic_ip": S("ElasticIp"), "status": S("Status")}
     elastic_ip: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -304,10 +299,9 @@ class AwsRedshiftElasticIpStatus:
 class AwsRedshiftClusterIamRole:
     kind: ClassVar[str] = "aws_redshift_cluster_iam_role"
     kind_display: ClassVar[str] = "AWS Redshift Cluster IAM Role"
-    kind_description: ClassVar[str] = (
-        "An IAM role that is used to grant permissions to an Amazon Redshift cluster"
-        " to access other AWS services."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An IAM role that is used to grant permissions to an Amazon Redshift cluster to access other AWS services."
     mapping: ClassVar[Dict[str, Bender]] = {"iam_role_arn": S("IamRoleArn"), "apply_status": S("ApplyStatus")}
     iam_role_arn: Optional[str] = field(default=None)
     apply_status: Optional[str] = field(default=None)
@@ -400,10 +394,9 @@ class AwsRedshiftReservedNodeExchangeStatus:
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     kind_display: ClassVar[str] = "AWS Redshift Cluster"
-    kind_description: ClassVar[str] = (
-        "Redshift Cluster is a fully managed, petabyte-scale data warehouse service"
-        " provided by AWS."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

@@ -49,10 +49,9 @@ class DynamoDbTaggable:
 class AwsDynamoDbAttributeDefinition:
     kind: ClassVar[str] = "aws_dynamo_db_attribute_definition"
     kind_display: ClassVar[str] = "AWS DynamoDB Attribute Definition"
-    kind_description: ClassVar[str] = (
-        "An attribute definition in AWS DynamoDB describes the data type and name of"
-        " an attribute for a table."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An attribute definition in AWS DynamoDB describes the data type and name of an attribute for a table."
     mapping: ClassVar[Dict[str, Bender]] = {"attribute_name": S("AttributeName"), "attribute_type": S("AttributeType")}
     attribute_name: Optional[str] = field(default=None)
     attribute_type: Optional[str] = field(default=None)

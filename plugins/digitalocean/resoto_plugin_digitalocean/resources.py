@@ -90,10 +90,9 @@ class DigitalOceanTeam(DigitalOceanResource, BaseAccount):
 
     kind: ClassVar[str] = "digitalocean_team"
     kind_display: ClassVar[str] = "DigitalOcean Team"
-    kind_description: ClassVar[str] = (
-        "A team is a group of users within DigitalOcean that can collaborate on"
-        " projects and share resources."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A team is a group of users within DigitalOcean that can collaborate on projects and share resources."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -354,10 +353,9 @@ class DigitalOceanVolume(DigitalOceanResource, BaseVolume):
 class DigitalOceanDatabase(DigitalOceanResource, BaseDatabase):
     kind: ClassVar[str] = "digitalocean_database"
     kind_display: ClassVar[str] = "DigitalOcean Database"
-    kind_description: ClassVar[str] = (
-        "A database service provided by DigitalOcean that allows users to store and"
-        " manage their data."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A database service provided by DigitalOcean that allows users to store and manage their data."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["digitalocean_app"],
