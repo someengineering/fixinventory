@@ -119,6 +119,8 @@ from resotocore.model.model import (
     Property,
     ArrayKind,
     PropertyPath,
+    TransformKind,
+    AnyKind,
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js, from_js
@@ -2553,6 +2555,7 @@ class ListCommand(CLICommand, OutputTransformer):
         return [
             ArgInfo("--csv", help_text="format", option_group="format"),
             ArgInfo("--markdown", help_text="format", option_group="format"),
+            ArgInfo("--table", help_text="format", option_group="format"),
             ArgInfo(
                 expects_value=True,
                 help_text="comma separated list of properties to show",
@@ -2565,6 +2568,7 @@ class ListCommand(CLICommand, OutputTransformer):
         output_type = parser.add_mutually_exclusive_group()
         output_type.add_argument("--csv", dest="csv", action="store_true")
         output_type.add_argument("--markdown", dest="markdown", action="store_true")
+        output_type.add_argument("--table", dest="table", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
 
@@ -2661,6 +2665,33 @@ class ListCommand(CLICommand, OutputTransformer):
                             result.append(value)
                         yield to_csv_string(result)
 
+        async def table_stream(in_stream: JsStream, model: Model) -> JsGen:
+            def kind_of(path: List[str]) -> str:
+                if path[0] in Section.lookup_sections:
+                    return kind_of(path[2:])
+                if path[0] in Section.content:
+                    path = path[1:]
+                kind = model.kind_by_path(".".join(path))
+                if isinstance(kind, TransformKind):
+                    return kind.source_kind.fqn if kind.source_kind else AnyKind().fqn
+                else:
+                    return kind.fqn
+
+            # header columns
+            yield [
+                {
+                    "name": name,
+                    "kind": kind_of(path),
+                    "display": " ".join(word.capitalize() for word in name.split("_")),
+                }
+                for path, name in props_to_show
+            ]
+            # data columns
+            async with in_stream.stream() as s:
+                async for elem in s:
+                    if is_node(elem):
+                        yield {name: js_value_at(elem, prop_path) for prop_path, name in props_to_show}
+
         def markdown_stream(in_stream: JsStream) -> JsGen:
             chunk_size = 500
 
@@ -2732,6 +2763,9 @@ class ListCommand(CLICommand, OutputTransformer):
                 return csv_stream(in_stream)
             elif parsed.markdown:
                 return markdown_stream(in_stream)
+            elif parsed.table:
+                dependencies = stream.call(partial(self.dependencies.model_handler.load_model, ctx.graph_name))
+                return stream.flatmap(dependencies, partial(table_stream, in_stream))
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 

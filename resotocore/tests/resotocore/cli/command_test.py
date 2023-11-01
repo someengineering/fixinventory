@@ -573,7 +573,7 @@ async def test_list_command(cli: CLI) -> None:
 
     # List is using the correct type
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
-    result = await cli.execute_cli_command(f"json {json.dumps(props)}" " | list a,b,c,d,e,f", stream.list)
+    result = await cli.execute_cli_command(f"json {json.dumps(props)} | list a,b,c,d,e,f", stream.list)
     assert result[0] == ["a=a, b=true, c=false, e=12, f=1.234"]
 
     # Queries that use the reported section, also interpret the list format in the reported section
@@ -585,19 +585,31 @@ async def test_list_command(cli: CLI) -> None:
     # List supports csv output
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     result = await cli.execute_cli_command(
-        f"json {json.dumps(props)}" " | list --csv a,b,c,d,e,f,non_existent", stream.list
+        f"json {json.dumps(props)} | list --csv a,b,c,d,e,f,non_existent", stream.list
     )
     assert result[0] == ['"a","b","c","d","e","f","non_existent"', '"a",True,False,"",12,1.234,""']
 
     # List supports markdown output
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     result = await cli.execute_cli_command(
-        f"json {json.dumps(props)}" " | list --markdown a,b,c,d,e,f,non_existent", stream.list
+        f"json {json.dumps(props)} | list --markdown a,b,c,d,e,f,non_existent", stream.list
     )
     assert result[0] == [
         "|a|b   |c    |d   |e |f    |non_existent|",
         "|-|----|-----|----|--|-----|------------|",
         "|a|true|false|null|12|1.234|null        |",
+    ]
+
+    # List supports markdown output
+    result = await cli.execute_cli_command(
+        'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1} | list --table name, some_int', stream.list
+    )
+    assert result[0] == [
+        [
+            {"display": "Name", "kind": "string", "name": "name"},
+            {"display": "Some Int", "kind": "int32", "name": "some_int"},
+        ],
+        {"name": "a", "some_int": 1},
     ]
 
     # List supports only markdown or csv, but not both at the same time
