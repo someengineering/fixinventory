@@ -19,7 +19,13 @@ service_name = "cloudformation"
 class AwsCloudFormationRollbackTrigger:
     kind: ClassVar[str] = "aws_cloudformation_rollback_trigger"
     kind_display: ClassVar[str] = "AWS CloudFormation Rollback Trigger"
-    kind_description: ClassVar[str] = "AWS CloudFormation Rollback Trigger is a feature that allows you to specify criteria to determine when CloudFormation should roll back a stack operation. When the specified criteria are met, CloudFormation automatically rolls back any changes made during the stack operation to the previously deployed state."
+    kind_description: ClassVar[str] = (
+        "AWS CloudFormation Rollback Trigger is a feature that allows you to specify"
+        " criteria to determine when CloudFormation should roll back a stack"
+        " operation. When the specified criteria are met, CloudFormation automatically"
+        " rolls back any changes made during the stack operation to the previously"
+        " deployed state."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "type": S("Type")}
     arn: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -29,7 +35,10 @@ class AwsCloudFormationRollbackTrigger:
 class AwsCloudFormationRollbackConfiguration:
     kind: ClassVar[str] = "aws_cloudformation_rollback_configuration"
     kind_display: ClassVar[str] = "AWS CloudFormation Rollback Configuration"
-    kind_description: ClassVar[str] = "AWS CloudFormation Rollback Configuration allows users to specify the conditions under which an AWS CloudFormation stack rollback is triggered."
+    kind_description: ClassVar[str] = (
+        "AWS CloudFormation Rollback Configuration allows users to specify the"
+        " conditions under which an AWS CloudFormation stack rollback is triggered."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "rollback_triggers": S("RollbackTriggers", default=[]) >> ForallBend(AwsCloudFormationRollbackTrigger.mapping),
         "monitoring_time_in_minutes": S("MonitoringTimeInMinutes"),
@@ -42,7 +51,11 @@ class AwsCloudFormationRollbackConfiguration:
 class AwsCloudFormationOutput:
     kind: ClassVar[str] = "aws_cloudformation_output"
     kind_display: ClassVar[str] = "AWS CloudFormation Output"
-    kind_description: ClassVar[str] = "AWS CloudFormation Output represents the values that are provided by a CloudFormation stack and can be accessed by other resources in the same stack."
+    kind_description: ClassVar[str] = (
+        "AWS CloudFormation Output represents the values that are provided by a"
+        " CloudFormation stack and can be accessed by other resources in the same"
+        " stack."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "output_key": S("OutputKey"),
         "output_value": S("OutputValue"),
@@ -59,7 +72,12 @@ class AwsCloudFormationOutput:
 class AwsCloudFormationStackDriftInformation:
     kind: ClassVar[str] = "aws_cloudformation_stack_drift_information"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Drift Information"
-    kind_description: ClassVar[str] = "CloudFormation Stack Drift Information provides details about any drift that has occurred in an AWS CloudFormation stack. Stack drift occurs when the actual state of the stack resources diverges from their expected state as defined in the stack template."
+    kind_description: ClassVar[str] = (
+        "CloudFormation Stack Drift Information provides details about any drift that"
+        " has occurred in an AWS CloudFormation stack. Stack drift occurs when the"
+        " actual state of the stack resources diverges from their expected state as"
+        " defined in the stack template."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "stack_drift_status": S("StackDriftStatus"),
         "last_check_timestamp": S("LastCheckTimestamp"),
@@ -72,7 +90,10 @@ class AwsCloudFormationStackDriftInformation:
 class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack"
-    kind_description: ClassVar[str] = "CloudFormation Stacks are a collection of AWS resources that are created, updated, or deleted together as a single unit."
+    kind_description: ClassVar[str] = (
+        "CloudFormation Stacks are a collection of AWS resources that are created,"
+        " updated, or deleted together as a single unit."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-stacks", "Stacks")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackId"),
@@ -192,7 +213,11 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
 class AwsCloudFormationAutoDeployment:
     kind: ClassVar[str] = "aws_cloudformation_auto_deployment"
     kind_display: ClassVar[str] = "AWS CloudFormation Auto Deployment"
-    kind_description: ClassVar[str] = "AWS CloudFormation Auto Deployment is a service that automates the deployment of CloudFormation templates in the AWS Cloud, making it easier to provision and manage a stack of AWS resources."
+    kind_description: ClassVar[str] = (
+        "AWS CloudFormation Auto Deployment is a service that automates the"
+        " deployment of CloudFormation templates in the AWS Cloud, making it easier to"
+        " provision and manage a stack of AWS resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "retain_stacks_on_account_removal": S("RetainStacksOnAccountRemoval"),
@@ -205,7 +230,11 @@ class AwsCloudFormationAutoDeployment:
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Set"
-    kind_description: ClassVar[str] = "CloudFormation Stack Set is a feature in AWS CloudFormation that enables you to create, update, or delete stacks across multiple accounts and regions with a single CloudFormation template."
+    kind_description: ClassVar[str] = (
+        "CloudFormation Stack Set is a feature in AWS CloudFormation that enables you"
+        " to create, update, or delete stacks across multiple accounts and regions"
+        " with a single CloudFormation template."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackSetId"),
@@ -319,7 +348,10 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     # note: resource is collected via AwsCloudFormationStackSet
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
-    kind_description: ClassVar[str] = "CloudFormation Stack Instance Summary provides a summary of instances in a CloudFormation stack, including instance ID, status, and stack name."
+    kind_description: ClassVar[str] = (
+        "CloudFormation Stack Instance Summary provides a summary of instances in a"
+        " CloudFormation stack, including instance ID, status, and stack name."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": F(_stack_instance_id),
         "stack_instance_stack_set_id": S("StackSetId"),

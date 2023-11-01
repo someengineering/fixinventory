@@ -18,7 +18,12 @@ service_name = "autoscaling"
 class AwsAutoScalingLaunchTemplateSpecification:
     kind: ClassVar[str] = "aws_autoscaling_launch_template_specification"
     kind_display: ClassVar[str] = "AWS Auto Scaling Launch Template Specification"
-    kind_description: ClassVar[str] = "An Auto Scaling Launch Template Specification is a configuration template for launching instances in an Auto Scaling group in Amazon Web Services. It allows users to define the instance specifications, such as the AMI, instance type, security groups, and more."
+    kind_description: ClassVar[str] = (
+        "An Auto Scaling Launch Template Specification is a configuration template"
+        " for launching instances in an Auto Scaling group in Amazon Web Services. It"
+        " allows users to define the instance specifications, such as the AMI,"
+        " instance type, security groups, and more."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template_id": S("LaunchTemplateId"),
         "launch_template_name": S("LaunchTemplateName"),
@@ -33,7 +38,12 @@ class AwsAutoScalingLaunchTemplateSpecification:
 class AwsAutoScalingMinMax:
     kind: ClassVar[str] = "aws_autoscaling_min_max"
     kind_display: ClassVar[str] = "AWS Auto Scaling Min Max"
-    kind_description: ClassVar[str] = "AWS Auto Scaling Min Max is a feature of Amazon Web Services that allows users to set minimum and maximum limits for the number of instances in an auto scaling group. This helps to ensure that the group scales within desired bounds based on resource needs."
+    kind_description: ClassVar[str] = (
+        "AWS Auto Scaling Min Max is a feature of Amazon Web Services that allows"
+        " users to set minimum and maximum limits for the number of instances in an"
+        " auto scaling group. This helps to ensure that the group scales within"
+        " desired bounds based on resource needs."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
     min: Optional[int] = field(default=None)
     max: Optional[int] = field(default=None)
@@ -43,7 +53,12 @@ class AwsAutoScalingMinMax:
 class AwsAutoScalingInstanceRequirements:
     kind: ClassVar[str] = "aws_autoscaling_instance_requirements"
     kind_display: ClassVar[str] = "AWS Auto Scaling Instance Requirements"
-    kind_description: ClassVar[str] = "Auto Scaling Instance Requirements refer to the specific requirements that need to be fulfilled by instances in an Auto Scaling group, such as specifying the minimum and maximum number of instances, instance types, and availability zones."
+    kind_description: ClassVar[str] = (
+        "Auto Scaling Instance Requirements refer to the specific requirements that"
+        " need to be fulfilled by instances in an Auto Scaling group, such as"
+        " specifying the minimum and maximum number of instances, instance types, and"
+        " availability zones."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "v_cpu_count": S("VCpuCount") >> Bend(AwsAutoScalingMinMax.mapping),
         "memory_mi_b": S("MemoryMiB") >> Bend(AwsAutoScalingMinMax.mapping),
@@ -94,7 +109,10 @@ class AwsAutoScalingInstanceRequirements:
 class AwsAutoScalingLaunchTemplateOverrides:
     kind: ClassVar[str] = "aws_autoscaling_launch_template_overrides"
     kind_display: ClassVar[str] = "AWS Autoscaling Launch Template Overrides"
-    kind_description: ClassVar[str] = "Launch Template Overrides are used in AWS Autoscaling to customize the configuration of instances launched by an autoscaling group."
+    kind_description: ClassVar[str] = (
+        "Launch Template Overrides are used in AWS Autoscaling to customize the"
+        " configuration of instances launched by an autoscaling group."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_type": S("InstanceType"),
         "weighted_capacity": S("WeightedCapacity"),
@@ -112,7 +130,11 @@ class AwsAutoScalingLaunchTemplateOverrides:
 class AwsAutoScalingLaunchTemplate:
     kind: ClassVar[str] = "aws_autoscaling_launch_template"
     kind_display: ClassVar[str] = "AWS Autoscaling Launch Template"
-    kind_description: ClassVar[str] = "An Autoscaling Launch Template is a reusable configuration that defines the launch parameters and instance settings for instances created by Autoscaling groups in AWS."
+    kind_description: ClassVar[str] = (
+        "An Autoscaling Launch Template is a reusable configuration that defines the"
+        " launch parameters and instance settings for instances created by Autoscaling"
+        " groups in AWS."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template_specification": S("LaunchTemplateSpecification")
         >> Bend(AwsAutoScalingLaunchTemplateSpecification.mapping),
@@ -126,7 +148,11 @@ class AwsAutoScalingLaunchTemplate:
 class AwsAutoScalingInstancesDistribution:
     kind: ClassVar[str] = "aws_autoscaling_instances_distribution"
     kind_display: ClassVar[str] = "AWS Autoscaling Instances Distribution"
-    kind_description: ClassVar[str] = "Autoscaling Instances Distribution in AWS allows for automatic scaling of EC2 instances based on predefined conditions, ensuring optimized resource allocation and workload management."
+    kind_description: ClassVar[str] = (
+        "Autoscaling Instances Distribution in AWS allows for automatic scaling of"
+        " EC2 instances based on predefined conditions, ensuring optimized resource"
+        " allocation and workload management."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "on_demand_allocation_strategy": S("OnDemandAllocationStrategy"),
         "on_demand_base_capacity": S("OnDemandBaseCapacity"),
@@ -147,7 +173,11 @@ class AwsAutoScalingInstancesDistribution:
 class AwsAutoScalingMixedInstancesPolicy:
     kind: ClassVar[str] = "aws_autoscaling_mixed_instances_policy"
     kind_display: ClassVar[str] = "AWS Autoscaling Mixed Instances Policy"
-    kind_description: ClassVar[str] = "AWS Autoscaling Mixed Instances Policy allows users to define a policy for autoscaling groups that specifies a mixture of instance types and purchase options."
+    kind_description: ClassVar[str] = (
+        "AWS Autoscaling Mixed Instances Policy allows users to define a policy for"
+        " autoscaling groups that specifies a mixture of instance types and purchase"
+        " options."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "launch_template": S("LaunchTemplate") >> Bend(AwsAutoScalingLaunchTemplate.mapping),
         "instances_distribution": S("InstancesDistribution") >> Bend(AwsAutoScalingInstancesDistribution.mapping),
@@ -160,7 +190,12 @@ class AwsAutoScalingMixedInstancesPolicy:
 class AwsAutoScalingInstance:
     kind: ClassVar[str] = "aws_autoscaling_instance"
     kind_display: ClassVar[str] = "AWS Auto Scaling Instance"
-    kind_description: ClassVar[str] = "Auto Scaling Instances are automatically provisioned and terminated instances managed by the AWS Auto Scaling service, which helps maintain application availability and optimize resource usage based on user-defined scaling policies."
+    kind_description: ClassVar[str] = (
+        "Auto Scaling Instances are automatically provisioned and terminated"
+        " instances managed by the AWS Auto Scaling service, which helps maintain"
+        " application availability and optimize resource usage based on user-defined"
+        " scaling policies."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_id": S("InstanceId"),
         "instance_type": S("InstanceType"),
@@ -187,7 +222,13 @@ class AwsAutoScalingInstance:
 class AwsAutoScalingSuspendedProcess:
     kind: ClassVar[str] = "aws_autoscaling_suspended_process"
     kind_display: ClassVar[str] = "AWS Autoscaling Suspended Process"
-    kind_description: ClassVar[str] = "Autoscaling Suspended Process is a feature in Amazon EC2 Auto Scaling that allows you to suspend and resume specific scaling processes for your Auto Scaling group. It allows you to temporarily stop scaling activities for a specific process, such as launching new instances or terminating instances, while keeping your existing resources running."
+    kind_description: ClassVar[str] = (
+        "Autoscaling Suspended Process is a feature in Amazon EC2 Auto Scaling that"
+        " allows you to suspend and resume specific scaling processes for your Auto"
+        " Scaling group. It allows you to temporarily stop scaling activities for a"
+        " specific process, such as launching new instances or terminating instances,"
+        " while keeping your existing resources running."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "process_name": S("ProcessName"),
         "suspension_reason": S("SuspensionReason"),
@@ -200,7 +241,11 @@ class AwsAutoScalingSuspendedProcess:
 class AwsAutoScalingEnabledMetric:
     kind: ClassVar[str] = "aws_autoscaling_enabled_metric"
     kind_display: ClassVar[str] = "AWS Auto Scaling Enabled Metric"
-    kind_description: ClassVar[str] = "Auto Scaling Enabled Metric is a feature in AWS Auto Scaling that scales resources based on a specified metric, such as CPU utilization or request count."
+    kind_description: ClassVar[str] = (
+        "Auto Scaling Enabled Metric is a feature in AWS Auto Scaling that scales"
+        " resources based on a specified metric, such as CPU utilization or request"
+        " count."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"metric": S("Metric"), "granularity": S("Granularity")}
     metric: Optional[str] = field(default=None)
     granularity: Optional[str] = field(default=None)
@@ -210,7 +255,10 @@ class AwsAutoScalingEnabledMetric:
 class AwsAutoScalingWarmPoolConfiguration:
     kind: ClassVar[str] = "aws_autoscaling_warm_pool_configuration"
     kind_display: ClassVar[str] = "AWS Auto Scaling Warm Pool Configuration"
-    kind_description: ClassVar[str] = "AWS Auto Scaling Warm Pool Configuration is a feature that allows you to provision and maintain a pool of pre-warmed instances for faster scaling."
+    kind_description: ClassVar[str] = (
+        "AWS Auto Scaling Warm Pool Configuration is a feature that allows you to"
+        " provision and maintain a pool of pre-warmed instances for faster scaling."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_group_prepared_capacity": S("MaxGroupPreparedCapacity"),
         "min_size": S("MinSize"),
@@ -229,7 +277,11 @@ class AwsAutoScalingWarmPoolConfiguration:
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     kind_display: ClassVar[str] = "AWS Autoscaling Group"
-    kind_description: ClassVar[str] = "An AWS Autoscaling Group is a collection of Amazon EC2 instances that are treated as a logical grouping for the purpose of automatic scaling and management."
+    kind_description: ClassVar[str] = (
+        "An AWS Autoscaling Group is a collection of Amazon EC2 instances that are"
+        " treated as a logical grouping for the purpose of automatic scaling and"
+        " management."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-auto-scaling-groups", "AutoScalingGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"]},

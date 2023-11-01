@@ -58,7 +58,10 @@ def pricing_region(region: str) -> str:
 class AwsPricingProduct:
     kind: ClassVar[str] = "aws_pricing_product"
     kind_display: ClassVar[str] = "AWS Pricing Product"
-    kind_description: ClassVar[str] = "AWS Pricing Product is a resource that provides information about the pricing of various Amazon Web Services products and services."
+    kind_description: ClassVar[str] = (
+        "AWS Pricing Product is a resource that provides information about the"
+        " pricing of various Amazon Web Services products and services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "product_family": S("productFamily"),
         "sku": S("sku"),
@@ -73,7 +76,10 @@ class AwsPricingProduct:
 class AwsPricingPriceDimension:
     kind: ClassVar[str] = "aws_pricing_price_dimension"
     kind_display: ClassVar[str] = "AWS Pricing Price Dimension"
-    kind_description: ClassVar[str] = "Price Dimensions in AWS Pricing are the specific unit for which usage is measured and priced, such as per hour or per GB."
+    kind_description: ClassVar[str] = (
+        "Price Dimensions in AWS Pricing are the specific unit for which usage is"
+        " measured and priced, such as per hour or per GB."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "unit": S("unit"),
         "end_range": S("endRange"),
@@ -96,7 +102,10 @@ class AwsPricingPriceDimension:
 class AwsPricingTerm:
     kind: ClassVar[str] = "aws_pricing_term"
     kind_display: ClassVar[str] = "AWS Pricing Term"
-    kind_description: ClassVar[str] = "AWS Pricing Terms refer to the different pricing options and payment plans available for services on the Amazon Web Services platform."
+    kind_description: ClassVar[str] = (
+        "AWS Pricing Terms refer to the different pricing options and payment plans"
+        " available for services on the Amazon Web Services platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "sku": S("sku"),
         "effective_date": S("effectiveDate"),
@@ -117,7 +126,11 @@ class AwsPricingTerm:
 class AwsPricingPrice:
     kind: ClassVar[str] = "aws_pricing_price"
     kind_display: ClassVar[str] = "AWS Pricing Price"
-    kind_description: ClassVar[str] = "AWS Pricing Price refers to the cost associated with using various AWS services and resources. It includes charges for compute, storage, network usage, data transfer, and other services provided by Amazon Web Services."
+    kind_description: ClassVar[str] = (
+        "AWS Pricing Price refers to the cost associated with using various AWS"
+        " services and resources. It includes charges for compute, storage, network"
+        " usage, data transfer, and other services provided by Amazon Web Services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "product": S("product") >> Bend(AwsPricingProduct.mapping),
         "service_code": S("serviceCode"),

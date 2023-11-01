@@ -100,7 +100,10 @@ class AwsResource(BaseResource, ABC):
     # The name of the kind of all resources. Needs to be globally unique.
     kind: ClassVar[str] = "aws_resource"
     kind_display: ClassVar[str] = "AWS Resource"
-    kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."
+    kind_description: ClassVar[str] = (
+        "AWS Resource is a generic term used to refer to any type of resource"
+        " available in Amazon Web Services cloud."
+    )
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
@@ -242,7 +245,11 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     kind_display: ClassVar[str] = "AWS Account"
-    kind_description: ClassVar[str] = "An AWS Account is a container for AWS resources, such as EC2 instances, S3 buckets, and RDS databases. It allows users to access and manage their resources on the Amazon Web Services platform."
+    kind_description: ClassVar[str] = (
+        "An AWS Account is a container for AWS resources, such as EC2 instances, S3"
+        " buckets, and RDS databases. It allows users to access and manage their"
+        " resources on the Amazon Web Services platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
@@ -279,7 +286,11 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     kind_display: ClassVar[str] = "AWS Region"
-    kind_description: ClassVar[str] = "An AWS Region is a physical location where AWS has multiple data centers, allowing users to choose the geographic area in which their resources are located."
+    kind_description: ClassVar[str] = (
+        "An AWS Region is a physical location where AWS has multiple data centers,"
+        " allowing users to choose the geographic area in which their resources are"
+        " located."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -327,7 +338,10 @@ class AwsRegion(BaseRegion, AwsResource):
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     kind_display: ClassVar[str] = "AWS EC2 Volume Type"
-    kind_description: ClassVar[str] = "EC2 Volume Types are different storage options for Amazon Elastic Block Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
+    kind_description: ClassVar[str] = (
+        "EC2 Volume Types are different storage options for Amazon Elastic Block"
+        " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
+    )
 
 
 class GraphBuilder:

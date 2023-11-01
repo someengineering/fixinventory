@@ -58,7 +58,10 @@ def iam_delete_tag(resource: AwsResource, client: AwsClient, action: str, key: s
 class AwsIamPolicyDetail:
     kind: ClassVar[str] = "aws_iam_policy_detail"
     kind_display: ClassVar[str] = "AWS IAM Policy Detail"
-    kind_description: ClassVar[str] = "IAM Policy Detail provides information about the permissions and access control settings defined in an IAM policy."
+    kind_description: ClassVar[str] = (
+        "IAM Policy Detail provides information about the permissions and access"
+        " control settings defined in an IAM policy."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"policy_name": S("PolicyName"), "policy_document": S("PolicyDocument")}
     policy_name: Optional[str] = field(default=None)
     policy_document: Optional[Json] = field(default=None)
@@ -68,7 +71,13 @@ class AwsIamPolicyDetail:
 class AwsIamAttachedPermissionsBoundary:
     kind: ClassVar[str] = "aws_iam_attached_permissions_boundary"
     kind_display: ClassVar[str] = "AWS IAM Attached Permissions Boundary"
-    kind_description: ClassVar[str] = "IAM Attached Permissions Boundary is a feature in AWS Identity and Access Management (IAM) that allows you to set a permissions boundary for an IAM entity (user or role), limiting the maximum permissions that the entity can have. This helps to enforce least privilege access for IAM entities within AWS."
+    kind_description: ClassVar[str] = (
+        "IAM Attached Permissions Boundary is a feature in AWS Identity and Access"
+        " Management (IAM) that allows you to set a permissions boundary for an IAM"
+        " entity (user or role), limiting the maximum permissions that the entity can"
+        " have. This helps to enforce least privilege access for IAM entities within"
+        " AWS."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "permissions_boundary_type": S("PermissionsBoundaryType"),
         "permissions_boundary_arn": S("PermissionsBoundaryArn"),
@@ -81,7 +90,11 @@ class AwsIamAttachedPermissionsBoundary:
 class AwsIamRoleLastUsed:
     kind: ClassVar[str] = "aws_iam_role_last_used"
     kind_display: ClassVar[str] = "AWS IAM Role Last Used"
-    kind_description: ClassVar[str] = "IAM Role Last Used is a feature in AWS Identity and Access Management (IAM) that provides information on when an IAM role was last used to access resources."
+    kind_description: ClassVar[str] = (
+        "IAM Role Last Used is a feature in AWS Identity and Access Management (IAM)"
+        " that provides information on when an IAM role was last used to access"
+        " resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"last_used": S("LastUsedDate"), "region": S("Region")}
     last_used: Optional[datetime] = field(default=None)
     region: Optional[str] = field(default=None)
@@ -92,7 +105,12 @@ class AwsIamRole(AwsResource):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
     kind_display: ClassVar[str] = "AWS IAM Role"
-    kind_description: ClassVar[str] = "IAM Roles are a way to delegate permissions to entities that you trust. IAM roles are similar to users, in that they are both AWS identity types. However, instead of being uniquely associated with one person, IAM roles are intended to be assumable by anyone who needs it."
+    kind_description: ClassVar[str] = (
+        "IAM Roles are a way to delegate permissions to entities that you trust. IAM"
+        " roles are similar to users, in that they are both AWS identity types."
+        " However, instead of being uniquely associated with one person, IAM roles are"
+        " intended to be assumable by anyone who needs it."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_iam_policy", "aws_iam_instance_profile"],
@@ -200,7 +218,12 @@ class AwsIamRole(AwsResource):
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     kind_display: ClassVar[str] = "AWS IAM Server Certificate"
-    kind_description: ClassVar[str] = "AWS IAM Server Certificate is a digital certificate that AWS Identity and Access Management (IAM) uses to verify the identity of a resource like an HTTPS server. It enables secure communication between the server and AWS services."
+    kind_description: ClassVar[str] = (
+        "AWS IAM Server Certificate is a digital certificate that AWS Identity and"
+        " Access Management (IAM) uses to verify the identity of a resource like an"
+        " HTTPS server. It enables secure communication between the server and AWS"
+        " services."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-server-certificates", "ServerCertificateMetadataList"
     )
@@ -256,7 +279,11 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
 class AwsIamPolicyVersion:
     kind: ClassVar[str] = "aws_iam_policy_version"
     kind_display: ClassVar[str] = "AWS IAM Policy Version"
-    kind_description: ClassVar[str] = "IAM Policy Version represents a specific version of an IAM policy definition in AWS Identity and Access Management service, which defines permissions and access control for AWS resources."
+    kind_description: ClassVar[str] = (
+        "IAM Policy Version represents a specific version of an IAM policy definition"
+        " in AWS Identity and Access Management service, which defines permissions and"
+        " access control for AWS resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "document": S("Document"),
         "version_id": S("VersionId"),
@@ -283,7 +310,10 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
     kind_display: ClassVar[str] = "AWS IAM Policy"
-    kind_description: ClassVar[str] = "IAM Policies in AWS are used to define permissions and access controls for users, groups, and roles within the AWS ecosystem."
+    kind_description: ClassVar[str] = (
+        "IAM Policies in AWS are used to define permissions and access controls for"
+        " users, groups, and roles within the AWS ecosystem."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -353,7 +383,11 @@ class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
     kind_display: ClassVar[str] = "AWS IAM Group"
-    kind_description: ClassVar[str] = "IAM Groups are collections of IAM users. They allow you to manage permissions collectively for multiple users, making it easier to manage access to AWS resources."
+    kind_description: ClassVar[str] = (
+        "IAM Groups are collections of IAM users. They allow you to manage"
+        " permissions collectively for multiple users, making it easier to manage"
+        " access to AWS resources."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
@@ -425,7 +459,13 @@ class AwsIamGroup(AwsResource, BaseGroup):
 class AwsIamAccessKeyLastUsed:
     kind: ClassVar[str] = "aws_iam_access_key_last_used"
     kind_display: ClassVar[str] = "AWS IAM Access Key Last Used"
-    kind_description: ClassVar[str] = "IAM Access Key Last Used is a feature in Amazon's Identity and Access Management (IAM) service that allows you to view the last time an IAM access key was used and the region from which the key was used. This helps you monitor the usage of access keys and detect any potential unauthorized access."
+    kind_description: ClassVar[str] = (
+        "IAM Access Key Last Used is a feature in Amazon's Identity and Access"
+        " Management (IAM) service that allows you to view the last time an IAM access"
+        " key was used and the region from which the key was used. This helps you"
+        " monitor the usage of access keys and detect any potential unauthorized"
+        " access."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_used": S("LastUsedDate"),
         "last_rotated": S("LastRotated"),
@@ -443,7 +483,10 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_access_key"
     kind_display: ClassVar[str] = "AWS IAM Access Key"
-    kind_description: ClassVar[str] = "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
+    kind_description: ClassVar[str] = (
+        "An AWS IAM Access Key is used to securely access AWS services and resources"
+        " using API operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -555,7 +598,11 @@ class CredentialReportLine:
 class AwsIamVirtualMfaDevice:
     kind: ClassVar[str] = "aws_iam_virtual_mfa_device"
     kind_display: ClassVar[str] = "AWS IAM Virtual MFA Device"
-    kind_description: ClassVar[str] = "AWS IAM Virtual MFA Device is a virtual multi-factor authentication device that generates time-based one-time passwords (TOTP) for login use cases in AWS."
+    kind_description: ClassVar[str] = (
+        "AWS IAM Virtual MFA Device is a virtual multi-factor authentication device"
+        " that generates time-based one-time passwords (TOTP) for login use cases in"
+        " AWS."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "serial_number": S("SerialNumber"),
         "enable_date": S("EnableDate"),
@@ -568,7 +615,10 @@ class AwsIamVirtualMfaDevice:
 class AwsRootUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_root_user"
     kind_display: ClassVar[str] = "AWS Root User"
-    kind_description: ClassVar[str] = "The AWS Root User is the initial user created when setting up an AWS account and has unrestricted access to all resources in the account."
+    kind_description: ClassVar[str] = (
+        "The AWS Root User is the initial user created when setting up an AWS account"
+        " and has unrestricted access to all resources in the account."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
     }
@@ -584,7 +634,10 @@ class AwsRootUser(AwsResource, BaseUser):
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     kind_display: ClassVar[str] = "AWS IAM User"
-    kind_description: ClassVar[str] = "IAM Users are identities created within AWS Identity and Access Management (IAM) that can be assigned permissions to access and manage AWS resources."
+    kind_description: ClassVar[str] = (
+        "IAM Users are identities created within AWS Identity and Access Management"
+        " (IAM) that can be assigned permissions to access and manage AWS resources."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_group"]},
@@ -743,7 +796,10 @@ class AwsIamUser(AwsResource, BaseUser):
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     kind_display: ClassVar[str] = "AWS IAM Instance Profile"
-    kind_description: ClassVar[str] = "IAM Instance Profiles are used to associate IAM roles with EC2 instances, allowing the instances to securely access AWS services and resources."
+    kind_description: ClassVar[str] = (
+        "IAM Instance Profiles are used to associate IAM roles with EC2 instances,"
+        " allowing the instances to securely access AWS services and resources."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-instance-profiles", "InstanceProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceProfileId"),

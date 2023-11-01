@@ -57,7 +57,12 @@ class ElbV2Taggable:
 class AwsAlbLoadBalancerState:
     kind: ClassVar[str] = "aws_alb_load_balancer_state"
     kind_display: ClassVar[str] = "AWS ALB Load Balancer State"
-    kind_description: ClassVar[str] = "ALB Load Balancer State represents the state of an Application Load Balancer (ALB) in Amazon Web Services. The ALB distributes incoming traffic across multiple targets, such as EC2 instances, containers, and IP addresses, to ensure high availability and scalability of applications."
+    kind_description: ClassVar[str] = (
+        "ALB Load Balancer State represents the state of an Application Load Balancer"
+        " (ALB) in Amazon Web Services. The ALB distributes incoming traffic across"
+        " multiple targets, such as EC2 instances, containers, and IP addresses, to"
+        " ensure high availability and scalability of applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("Code"), "reason": S("Reason")}
     code: Optional[str] = field(default=None)
     reason: Optional[str] = field(default=None)
@@ -67,7 +72,10 @@ class AwsAlbLoadBalancerState:
 class AwsAlbLoadBalancerAddress:
     kind: ClassVar[str] = "aws_alb_load_balancer_address"
     kind_display: ClassVar[str] = "AWS ALB Load Balancer Address"
-    kind_description: ClassVar[str] = "An address associated with an Application Load Balancer (ALB) in AWS, which is responsible for distributing incoming traffic across multiple targets."
+    kind_description: ClassVar[str] = (
+        "An address associated with an Application Load Balancer (ALB) in AWS, which"
+        " is responsible for distributing incoming traffic across multiple targets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_address": S("IpAddress"),
         "allocation_id": S("AllocationId"),
@@ -84,7 +92,11 @@ class AwsAlbLoadBalancerAddress:
 class AwsAlbAvailabilityZone:
     kind: ClassVar[str] = "aws_alb_availability_zone"
     kind_display: ClassVar[str] = "AWS ALB Availability Zone"
-    kind_description: ClassVar[str] = "ALB Availability Zone is a feature of AWS Application Load Balancer that allows distribution of incoming traffic to different availability zones within a region for increased availability and fault tolerance."
+    kind_description: ClassVar[str] = (
+        "ALB Availability Zone is a feature of AWS Application Load Balancer that"
+        " allows distribution of incoming traffic to different availability zones"
+        " within a region for increased availability and fault tolerance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "zone_name": S("ZoneName"),
         "subnet_id": S("SubnetId"),
@@ -102,7 +114,11 @@ class AwsAlbAvailabilityZone:
 class AwsAlbCertificate:
     kind: ClassVar[str] = "aws_alb_certificate"
     kind_display: ClassVar[str] = "AWS ALB Certificate"
-    kind_description: ClassVar[str] = "AWS ALB Certificate is a digital certificate used to secure HTTPS connections for an Application Load Balancer (ALB) in Amazon Web Services (AWS)."
+    kind_description: ClassVar[str] = (
+        "AWS ALB Certificate is a digital certificate used to secure HTTPS"
+        " connections for an Application Load Balancer (ALB) in Amazon Web Services"
+        " (AWS)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"certificate_arn": S("CertificateArn"), "is_default": S("IsDefault")}
     certificate_arn: Optional[str] = field(default=None)
     is_default: Optional[bool] = field(default=None)
@@ -112,7 +128,11 @@ class AwsAlbCertificate:
 class AwsAlbAuthenticateOidcActionConfig:
     kind: ClassVar[str] = "aws_alb_authenticate_oidc_action_config"
     kind_display: ClassVar[str] = "AWS ALB Authenticate OIDC Action Configuration"
-    kind_description: ClassVar[str] = "The AWS ALB Authenticate OIDC Action Configuration allows users to configure OpenID Connect (OIDC) authentication for Application Load Balancers (ALBs) in Amazon Web Services."
+    kind_description: ClassVar[str] = (
+        "The AWS ALB Authenticate OIDC Action Configuration allows users to configure"
+        " OpenID Connect (OIDC) authentication for Application Load Balancers (ALBs)"
+        " in Amazon Web Services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "issuer": S("Issuer"),
         "authorization_endpoint": S("AuthorizationEndpoint"),
@@ -145,7 +165,10 @@ class AwsAlbAuthenticateOidcActionConfig:
 class AwsAlbAuthenticateCognitoActionConfig:
     kind: ClassVar[str] = "aws_alb_authenticate_cognito_action_config"
     kind_display: ClassVar[str] = "AWS ALB Authenticate Cognito Action Config"
-    kind_description: ClassVar[str] = "ALB Authenticate Cognito Action Config is a configuration option for an AWS Application Load Balancer to authenticate users via Amazon Cognito."
+    kind_description: ClassVar[str] = (
+        "ALB Authenticate Cognito Action Config is a configuration option for an AWS"
+        " Application Load Balancer to authenticate users via Amazon Cognito."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "user_pool_arn": S("UserPoolArn"),
         "user_pool_client_id": S("UserPoolClientId"),
@@ -170,7 +193,12 @@ class AwsAlbAuthenticateCognitoActionConfig:
 class AwsAlbRedirectActionConfig:
     kind: ClassVar[str] = "aws_alb_redirect_action_config"
     kind_display: ClassVar[str] = "AWS ALB Redirect Action Config"
-    kind_description: ClassVar[str] = "ALB Redirect Action Config is a configuration for redirect actions in the Application Load Balancer (ALB) service in Amazon Web Services. It allows for redirecting incoming requests to a different URL or path in a flexible and configurable way."
+    kind_description: ClassVar[str] = (
+        "ALB Redirect Action Config is a configuration for redirect actions in the"
+        " Application Load Balancer (ALB) service in Amazon Web Services. It allows"
+        " for redirecting incoming requests to a different URL or path in a flexible"
+        " and configurable way."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "protocol": S("Protocol"),
         "port": S("Port"),
@@ -191,7 +219,12 @@ class AwsAlbRedirectActionConfig:
 class AwsAlbFixedResponseActionConfig:
     kind: ClassVar[str] = "aws_alb_fixed_response_action_config"
     kind_display: ClassVar[str] = "AWS ALB Fixed Response Action Config"
-    kind_description: ClassVar[str] = "ALB Fixed Response Action Config is a configuration for the fixed response action on an Application Load Balancer (ALB) in Amazon Web Services (AWS). It allows users to define custom HTTP responses with fixed status codes and messages for specific paths or conditions."
+    kind_description: ClassVar[str] = (
+        "ALB Fixed Response Action Config is a configuration for the fixed response"
+        " action on an Application Load Balancer (ALB) in Amazon Web Services (AWS)."
+        " It allows users to define custom HTTP responses with fixed status codes and"
+        " messages for specific paths or conditions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "message_body": S("MessageBody"),
         "status_code": S("StatusCode"),
@@ -206,7 +239,11 @@ class AwsAlbFixedResponseActionConfig:
 class AwsAlbTargetGroupTuple:
     kind: ClassVar[str] = "aws_alb_target_group_tuple"
     kind_display: ClassVar[str] = "AWS ALB Target Group Tuple"
-    kind_description: ClassVar[str] = "ALB Target Group Tuples are used in AWS Application Load Balancers to define rules for routing incoming requests to registered targets, such as EC2 instances or Lambda functions."
+    kind_description: ClassVar[str] = (
+        "ALB Target Group Tuples are used in AWS Application Load Balancers to define"
+        " rules for routing incoming requests to registered targets, such as EC2"
+        " instances or Lambda functions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"target_group_arn": S("TargetGroupArn"), "weight": S("Weight")}
     target_group_arn: Optional[str] = field(default=None)
     weight: Optional[int] = field(default=None)
@@ -216,7 +253,11 @@ class AwsAlbTargetGroupTuple:
 class AwsAlbTargetGroupStickinessConfig:
     kind: ClassVar[str] = "aws_alb_target_group_stickiness_config"
     kind_display: ClassVar[str] = "AWS ALB Target Group Stickiness Configuration"
-    kind_description: ClassVar[str] = "ALB Target Group Stickiness Configuration allows you to enable or configure stickiness for incoming traffic to an Application Load Balancer (ALB) target group in AWS."
+    kind_description: ClassVar[str] = (
+        "ALB Target Group Stickiness Configuration allows you to enable or configure"
+        " stickiness for incoming traffic to an Application Load Balancer (ALB) target"
+        " group in AWS."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "duration_seconds": S("DurationSeconds")}
     enabled: Optional[bool] = field(default=None)
     duration_seconds: Optional[int] = field(default=None)
@@ -226,7 +267,11 @@ class AwsAlbTargetGroupStickinessConfig:
 class AwsAlbForwardActionConfig:
     kind: ClassVar[str] = "aws_alb_forward_action_config"
     kind_display: ClassVar[str] = "AWS ALB Forward Action Configuration"
-    kind_description: ClassVar[str] = "The AWS Application Load Balancer (ALB) Forward Action Configuration represents the configuration for forwarding requests to a target group in the ALB."
+    kind_description: ClassVar[str] = (
+        "The AWS Application Load Balancer (ALB) Forward Action Configuration"
+        " represents the configuration for forwarding requests to a target group in"
+        " the ALB."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_groups": S("TargetGroups", default=[]) >> ForallBend(AwsAlbTargetGroupTuple.mapping),
         "target_group_stickiness_config": S("TargetGroupStickinessConfig")
@@ -240,7 +285,10 @@ class AwsAlbForwardActionConfig:
 class AwsAlbAction:
     kind: ClassVar[str] = "aws_alb_action"
     kind_display: ClassVar[str] = "AWS Application Load Balancer Action"
-    kind_description: ClassVar[str] = "An AWS Application Load Balancer Action defines how the load balancer should distribute incoming requests to target instances or services."
+    kind_description: ClassVar[str] = (
+        "An AWS Application Load Balancer Action defines how the load balancer should"
+        " distribute incoming requests to target instances or services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "type": S("Type"),
         "target_group_arn": S("TargetGroupArn"),
@@ -266,7 +314,10 @@ class AwsAlbAction:
 class AwsAlbListener:
     kind: ClassVar[str] = "aws_alb_listener"
     kind_display: ClassVar[str] = "AWS ALB Listener"
-    kind_description: ClassVar[str] = "An Application Load Balancer (ALB) Listener is a configuration that defines how an ALB distributes incoming traffic to target groups."
+    kind_description: ClassVar[str] = (
+        "An Application Load Balancer (ALB) Listener is a configuration that defines"
+        " how an ALB distributes incoming traffic to target groups."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "listener_arn": S("ListenerArn"),
         "load_balancer_arn": S("LoadBalancerArn"),
@@ -291,7 +342,11 @@ class AwsAlbListener:
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     kind_display: ClassVar[str] = "AWS ALB"
-    kind_description: ClassVar[str] = "AWS ALB is an Application Load Balancer that distributes incoming application traffic across multiple targets, such as EC2 instances, in multiple availability zones."
+    kind_description: ClassVar[str] = (
+        "AWS ALB is an Application Load Balancer that distributes incoming"
+        " application traffic across multiple targets, such as EC2 instances, in"
+        " multiple availability zones."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-load-balancers",
@@ -463,7 +518,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 class AwsAlbMatcher:
     kind: ClassVar[str] = "aws_alb_matcher"
     kind_display: ClassVar[str] = "AWS ALB Matcher"
-    kind_description: ClassVar[str] = "ALB Matchers are rules defined for an Application Load Balancer (ALB) to route incoming requests to specific target groups based on the content of the request."
+    kind_description: ClassVar[str] = (
+        "ALB Matchers are rules defined for an Application Load Balancer (ALB) to"
+        " route incoming requests to specific target groups based on the content of"
+        " the request."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"http_code": S("HttpCode"), "grpc_code": S("GrpcCode")}
     http_code: Optional[str] = field(default=None)
     grpc_code: Optional[str] = field(default=None)
@@ -473,7 +532,12 @@ class AwsAlbMatcher:
 class AwsAlbTargetDescription:
     kind: ClassVar[str] = "aws_alb_target_description"
     kind_display: ClassVar[str] = "AWS ALB Target Description"
-    kind_description: ClassVar[str] = "The target description specifies information about the instances registered with an Application Load Balancer (ALB) in Amazon Web Services. This includes details such as the instance ID, IP address, health check status, and other metadata."
+    kind_description: ClassVar[str] = (
+        "The target description specifies information about the instances registered"
+        " with an Application Load Balancer (ALB) in Amazon Web Services. This"
+        " includes details such as the instance ID, IP address, health check status,"
+        " and other metadata."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "port": S("Port"),
@@ -488,7 +552,10 @@ class AwsAlbTargetDescription:
 class AwsAlbTargetHealth:
     kind: ClassVar[str] = "aws_alb_target_health"
     kind_display: ClassVar[str] = "AWS ALB Target Health"
-    kind_description: ClassVar[str] = "ALB Target Health is a feature of AWS Application Load Balancer that provides information about the current health status of registered targets."
+    kind_description: ClassVar[str] = (
+        "ALB Target Health is a feature of AWS Application Load Balancer that"
+        " provides information about the current health status of registered targets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "reason": S("Reason"), "description": S("Description")}
     state: Optional[str] = field(default=None)
     reason: Optional[str] = field(default=None)
@@ -499,7 +566,12 @@ class AwsAlbTargetHealth:
 class AwsAlbTargetHealthDescription:
     kind: ClassVar[str] = "aws_alb_target_health_description"
     kind_display: ClassVar[str] = "AWS ALB Target Health Description"
-    kind_description: ClassVar[str] = "ALB Target Health Description is a feature of AWS Application Load Balancer that provides information about the health of targets registered with the load balancer, including target status and reason for any health checks failures."
+    kind_description: ClassVar[str] = (
+        "ALB Target Health Description is a feature of AWS Application Load Balancer"
+        " that provides information about the health of targets registered with the"
+        " load balancer, including target status and reason for any health checks"
+        " failures."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-target-health",
@@ -520,7 +592,11 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     kind_display: ClassVar[str] = "AWS ALB Target Group"
-    kind_description: ClassVar[str] = "An ALB Target Group is a group of instances or IP addresses registered with an Application Load Balancer that receives traffic and distributes it to the registered targets."
+    kind_description: ClassVar[str] = (
+        "An ALB Target Group is a group of instances or IP addresses registered with"
+        " an Application Load Balancer that receives traffic and distributes it to the"
+        " registered targets."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-target-groups",

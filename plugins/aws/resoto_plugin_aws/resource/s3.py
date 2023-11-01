@@ -21,7 +21,11 @@ service_name = "s3"
 class AwsS3ServerSideEncryptionRule:
     kind: ClassVar[str] = "aws_s3_server_side_encryption_rule"
     kind_display: ClassVar[str] = "AWS S3 Server-side Encryption Rule"
-    kind_description: ClassVar[str] = "Server-side encryption rules are used in AWS S3 to specify encryption settings for objects stored in the S3 bucket, ensuring data confidentiality and integrity."
+    kind_description: ClassVar[str] = (
+        "Server-side encryption rules are used in AWS S3 to specify encryption"
+        " settings for objects stored in the S3 bucket, ensuring data confidentiality"
+        " and integrity."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "sse_algorithm": S("ApplyServerSideEncryptionByDefault", "SSEAlgorithm"),
         "kms_master_key_id": S("ApplyServerSideEncryptionByDefault", "KMSMasterKeyID"),
@@ -36,7 +40,10 @@ class AwsS3ServerSideEncryptionRule:
 class AwsS3PublicAccessBlockConfiguration:
     kind: ClassVar[str] = "aws_s3_public_access_block_configuration"
     kind_display: ClassVar[str] = "AWS S3 Public Access Block Configuration"
-    kind_description: ClassVar[str] = "S3 Public Access Block Configuration is a feature in AWS S3 that allows users to manage and restrict public access to their S3 buckets and objects."
+    kind_description: ClassVar[str] = (
+        "S3 Public Access Block Configuration is a feature in AWS S3 that allows"
+        " users to manage and restrict public access to their S3 buckets and objects."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "block_public_acls": S("BlockPublicAcls"),
         "ignore_public_acls": S("IgnorePublicAcls"),
@@ -53,7 +60,10 @@ class AwsS3PublicAccessBlockConfiguration:
 class AwsS3Owner:
     kind: ClassVar[str] = "aws_s3_owner"
     kind_display: ClassVar[str] = "AWS S3 Owner"
-    kind_description: ClassVar[str] = "The AWS S3 Owner refers to the account or entity that owns the Amazon S3 bucket, which is a storage resource provided by Amazon Web Services."
+    kind_description: ClassVar[str] = (
+        "The AWS S3 Owner refers to the account or entity that owns the Amazon S3"
+        " bucket, which is a storage resource provided by Amazon Web Services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"display_name": S("DisplayName"), "id": S("ID")}
     display_name: Optional[str] = field(default=None)
     id: Optional[str] = field(default=None)
@@ -63,7 +73,10 @@ class AwsS3Owner:
 class AwsS3Grantee:
     kind: ClassVar[str] = "aws_s3_grantee"
     kind_display: ClassVar[str] = "AWS S3 Grantee"
-    kind_description: ClassVar[str] = "AWS S3 Grantees are entities that have been given permission to access objects in an S3 bucket."
+    kind_description: ClassVar[str] = (
+        "AWS S3 Grantees are entities that have been given permission to access"
+        " objects in an S3 bucket."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "display_name": S("DisplayName"),
         "email_address": S("EmailAddress"),
@@ -82,7 +95,11 @@ class AwsS3Grantee:
 class AwsS3Grant:
     kind: ClassVar[str] = "aws_s3_grant"
     kind_display: ClassVar[str] = "AWS S3 Grant"
-    kind_description: ClassVar[str] = "AWS S3 Grant is a permission that allows a specific user or group to access and perform operations on an S3 bucket or object in the Amazon S3 storage service."
+    kind_description: ClassVar[str] = (
+        "AWS S3 Grant is a permission that allows a specific user or group to access"
+        " and perform operations on an S3 bucket or object in the Amazon S3 storage"
+        " service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "grantee": S("Grantee") >> Bend(AwsS3Grantee.mapping),
         "permission": S("Permission"),
@@ -95,7 +112,11 @@ class AwsS3Grant:
 class AwsS3BucketAcl:
     kind: ClassVar[str] = "aws_s3_bucket_acl"
     kind_display: ClassVar[str] = "AWS S3 Bucket ACL"
-    kind_description: ClassVar[str] = "S3 Bucket ACL (Access Control List) is a set of permissions that defines who can access objects (files) stored in an Amazon S3 bucket and what actions they can perform on those objects."
+    kind_description: ClassVar[str] = (
+        "S3 Bucket ACL (Access Control List) is a set of permissions that defines who"
+        " can access objects (files) stored in an Amazon S3 bucket and what actions"
+        " they can perform on those objects."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "owner": S("Owner") >> Bend(AwsS3Owner.mapping),
         "grants": S("Grants", default=[]) >> ForallBend(AwsS3Grant.mapping),
@@ -108,7 +129,11 @@ class AwsS3BucketAcl:
 class AwsS3TargetGrant:
     kind: ClassVar[str] = "aws_s3_target_grant"
     kind_display: ClassVar[str] = "AWS S3 Target Grant"
-    kind_description: ClassVar[str] = "Target grants in AWS S3 provide permissions for cross-account replication, allowing one AWS S3 bucket to grant another AWS S3 bucket permissions to perform replication."
+    kind_description: ClassVar[str] = (
+        "Target grants in AWS S3 provide permissions for cross-account replication,"
+        " allowing one AWS S3 bucket to grant another AWS S3 bucket permissions to"
+        " perform replication."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "grantee": S("Grantee") >> Bend(AwsS3Grantee.mapping),
         "permission": S("Permission"),
@@ -121,7 +146,10 @@ class AwsS3TargetGrant:
 class AwsS3Logging:
     kind: ClassVar[str] = "aws_s3_logging"
     kind_display: ClassVar[str] = "AWS S3 Logging"
-    kind_description: ClassVar[str] = "S3 Logging is a feature in Amazon Simple Storage Service that allows users to track and record access logs for their S3 buckets."
+    kind_description: ClassVar[str] = (
+        "S3 Logging is a feature in Amazon Simple Storage Service that allows users"
+        " to track and record access logs for their S3 buckets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_bucket": S("TargetBucket"),
         "target_grants": S("TargetGrants") >> ForallBend(AwsS3TargetGrant.mapping),
@@ -136,7 +164,10 @@ class AwsS3Logging:
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     kind_display: ClassVar[str] = "AWS S3 Bucket"
-    kind_description: ClassVar[str] = "S3 buckets are simple storage containers in Amazon's cloud, offering a scalable storage solution for various types of data."
+    kind_description: ClassVar[str] = (
+        "S3 buckets are simple storage containers in Amazon's cloud, offering a"
+        " scalable storage solution for various types of data."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
     )
@@ -332,7 +363,10 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
 
     kind: ClassVar[str] = "aws_s3_account_settings"
     kind_display: ClassVar[str] = "AWS S3 Account Settings"
-    kind_description: ClassVar[str] = "AWS S3 Account Settings refer to the configuration options and preferences available for an Amazon S3 (Simple Storage Service) account."
+    kind_description: ClassVar[str] = (
+        "AWS S3 Account Settings refer to the configuration options and preferences"
+        " available for an Amazon S3 (Simple Storage Service) account."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_account"]},
     }

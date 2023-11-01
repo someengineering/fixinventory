@@ -64,7 +64,11 @@ class ApiGatewayTaggable:
 class AwsApiGatewayMethodResponse:
     kind: ClassVar[str] = "aws_api_gateway_method_response"
     kind_display: ClassVar[str] = "AWS API Gateway Method Response"
-    kind_description: ClassVar[str] = "API Gateway Method Response allows users to define the response parameters and models for a particular method in the API Gateway service, which helps in shaping the output of API responses."
+    kind_description: ClassVar[str] = (
+        "API Gateway Method Response allows users to define the response parameters"
+        " and models for a particular method in the API Gateway service, which helps"
+        " in shaping the output of API responses."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "status_code": S("statusCode"),
         "response_parameters": S("responseParameters"),
@@ -79,7 +83,10 @@ class AwsApiGatewayMethodResponse:
 class AwsApiGatewayIntegrationResponse:
     kind: ClassVar[str] = "aws_api_gateway_integration_response"
     kind_display: ClassVar[str] = "AWS API Gateway Integration Response"
-    kind_description: ClassVar[str] = "API Gateway Integration Response is used to define the response structure and mapping for an API Gateway integration."
+    kind_description: ClassVar[str] = (
+        "API Gateway Integration Response is used to define the response structure"
+        " and mapping for an API Gateway integration."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "status_code": S("statusCode"),
         "selection_pattern": S("selectionPattern"),
@@ -98,7 +105,11 @@ class AwsApiGatewayIntegrationResponse:
 class AwsApiGatewayIntegration:
     kind: ClassVar[str] = "aws_api_gateway_integration"
     kind_display: ClassVar[str] = "AWS API Gateway Integration"
-    kind_description: ClassVar[str] = "API Gateway Integration is a feature provided by AWS API Gateway that allows users to connect their APIs to other AWS services or external HTTP endpoints."
+    kind_description: ClassVar[str] = (
+        "API Gateway Integration is a feature provided by AWS API Gateway that allows"
+        " users to connect their APIs to other AWS services or external HTTP"
+        " endpoints."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "integration_type": S("type"),
         "http_method": S("httpMethod"),
@@ -137,7 +148,11 @@ class AwsApiGatewayIntegration:
 class AwsApiGatewayMethod:
     kind: ClassVar[str] = "aws_api_gateway_method"
     kind_display: ClassVar[str] = "AWS API Gateway Method"
-    kind_description: ClassVar[str] = "AWS API Gateway Method allows users to define the individual methods that are available in a REST API, including the HTTP method and the integration with backend services."
+    kind_description: ClassVar[str] = (
+        "AWS API Gateway Method allows users to define the individual methods that"
+        " are available in a REST API, including the HTTP method and the integration"
+        " with backend services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "http_method": S("httpMethod"),
         "authorization_type": S("authorizationType"),
@@ -169,7 +184,10 @@ class AwsApiGatewayResource(AwsResource):
     # collection of resource resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_resource"
     kind_display: ClassVar[str] = "AWS API Gateway Resource"
-    kind_description: ClassVar[str] = "API Gateway Resource is a logical unit used in API Gateway to represent a part of an API's resource hierarchy."
+    kind_description: ClassVar[str] = (
+        "API Gateway Resource is a logical unit used in API Gateway to represent a"
+        " part of an API's resource hierarchy."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_authorizer"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -218,7 +236,11 @@ class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_authorizer"
     kind_display: ClassVar[str] = "AWS API Gateway Authorizer"
-    kind_description: ClassVar[str] = "API Gateway Authorizers are mechanisms that help control access to APIs deployed on AWS API Gateway by authenticating and authorizing client requests."
+    kind_description: ClassVar[str] = (
+        "API Gateway Authorizers are mechanisms that help control access to APIs"
+        " deployed on AWS API Gateway by authenticating and authorizing client"
+        " requests."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_lambda_function"]},
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_lambda_function", "aws_iam_role"]},
@@ -283,7 +305,11 @@ class AwsApiGatewayAuthorizer(AwsResource):
 class AwsApiGatewayCanarySetting:
     kind: ClassVar[str] = "aws_api_gateway_canary_setting"
     kind_display: ClassVar[str] = "AWS API Gateway Canary Setting"
-    kind_description: ClassVar[str] = "API Gateway Canary Setting is a feature in AWS API Gateway that allows you to test new deployments or changes to your APIs on a small percentage of your traffic before rolling them out to the entire API."
+    kind_description: ClassVar[str] = (
+        "API Gateway Canary Setting is a feature in AWS API Gateway that allows you"
+        " to test new deployments or changes to your APIs on a small percentage of"
+        " your traffic before rolling them out to the entire API."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "percent_traffic": S("percentTraffic"),
         "deployment_id": S("deploymentId"),
@@ -301,7 +327,10 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     # collection of stage resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_stage"
     kind_display: ClassVar[str] = "AWS API Gateway Stage"
-    kind_description: ClassVar[str] = "API Gateway Stages are environment configurations for deploying and managing APIs in the AWS API Gateway service."
+    kind_description: ClassVar[str] = (
+        "API Gateway Stages are environment configurations for deploying and managing"
+        " APIs in the AWS API Gateway service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("syntheticId"),  # created by Resoto to avoid collision with duplicate stage names
         "name": S("stageName"),
@@ -359,7 +388,11 @@ class AwsApiGatewayDeployment(AwsResource):
     # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_api_gateway_deployment"
     kind_display: ClassVar[str] = "AWS API Gateway Deployment"
-    kind_description: ClassVar[str] = "API Gateway Deployments refer to the process of deploying the API configurations created in AWS API Gateway to make them accessible for clients."
+    kind_description: ClassVar[str] = (
+        "API Gateway Deployments refer to the process of deploying the API"
+        " configurations created in AWS API Gateway to make them accessible for"
+        " clients."
+    )
     # edge to aws_api_gateway_stage is established in AwsApiGatewayRestApi.collect()
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}
 
@@ -398,7 +431,11 @@ class AwsApiGatewayDeployment(AwsResource):
 class AwsApiGatewayEndpointConfiguration:
     kind: ClassVar[str] = "aws_api_gateway_endpoint_configuration"
     kind_display: ClassVar[str] = "AWS API Gateway Endpoint Configuration"
-    kind_description: ClassVar[str] = "API Gateway Endpoint Configuration is a configuration that defines the settings for an API Gateway endpoint, including the protocol, SSL certificate, and custom domain name."
+    kind_description: ClassVar[str] = (
+        "API Gateway Endpoint Configuration is a configuration that defines the"
+        " settings for an API Gateway endpoint, including the protocol, SSL"
+        " certificate, and custom domain name."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "types": S("types", default=[]),
         "vpc_endpoint_ids": S("vpcEndpointIds", default=[]),
@@ -411,7 +448,10 @@ class AwsApiGatewayEndpointConfiguration:
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_rest_api"
     kind_display: ClassVar[str] = "AWS API Gateway REST API"
-    kind_description: ClassVar[str] = "API Gateway is a fully managed service that makes it easy for developers to create, publish, and manage APIs at any scale."
+    kind_description: ClassVar[str] = (
+        "API Gateway is a fully managed service that makes it easy for developers to"
+        " create, publish, and manage APIs at any scale."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "get-rest-apis", "items", override_iam_permission="apigateway:GET"
     )
@@ -544,7 +584,11 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
 class AwsApiGatewayMutualTlsAuthentication:
     kind: ClassVar[str] = "aws_api_gateway_mutual_tls_authentication"
     kind_display: ClassVar[str] = "AWS API Gateway Mutual TLS Authentication"
-    kind_description: ClassVar[str] = "API Gateway Mutual TLS Authentication enables mutual TLS authentication for secure communication between clients and API Gateway, providing an additional layer of security to protect the API endpoints."
+    kind_description: ClassVar[str] = (
+        "API Gateway Mutual TLS Authentication enables mutual TLS authentication for"
+        " secure communication between clients and API Gateway, providing an"
+        " additional layer of security to protect the API endpoints."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "truststore_uri": S("truststoreUri"),
         "truststore_version": S("truststoreVersion"),
@@ -559,7 +603,11 @@ class AwsApiGatewayMutualTlsAuthentication:
 class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_domain_name"
     kind_display: ClassVar[str] = "AWS API Gateway Domain Name"
-    kind_description: ClassVar[str] = "API Gateway Domain Name is a custom domain name that you can associate with your API in Amazon API Gateway, allowing you to have a more branded and user-friendly endpoint for your API."
+    kind_description: ClassVar[str] = (
+        "API Gateway Domain Name is a custom domain name that you can associate with"
+        " your API in Amazon API Gateway, allowing you to have a more branded and"
+        " user-friendly endpoint for your API."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "get-domain-names", "items", override_iam_permission="apigateway:GET"
     )

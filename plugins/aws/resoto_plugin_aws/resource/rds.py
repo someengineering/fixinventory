@@ -56,7 +56,11 @@ class RdsTaggable:
 class AwsRdsEndpoint:
     kind: ClassVar[str] = "aws_rds_endpoint"
     kind_display: ClassVar[str] = "AWS RDS Endpoint"
-    kind_description: ClassVar[str] = "An RDS Endpoint in AWS is the network address that applications use to connect to a database instance in the Amazon Relational Database Service (RDS). It allows users to access and interact with their database instances."
+    kind_description: ClassVar[str] = (
+        "An RDS Endpoint in AWS is the network address that applications use to"
+        " connect to a database instance in the Amazon Relational Database Service"
+        " (RDS). It allows users to access and interact with their database instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "address": S("Address"),
         "port": S("Port"),
@@ -71,7 +75,12 @@ class AwsRdsEndpoint:
 class AwsRdsDBSecurityGroupMembership:
     kind: ClassVar[str] = "aws_rds_db_security_group_membership"
     kind_display: ClassVar[str] = "AWS RDS DB Security Group Membership"
-    kind_description: ClassVar[str] = "AWS RDS DB Security Group Membership is a resource that represents the membership of an Amazon RDS database instance in a security group. It allows controlling access to the database instance by defining inbound and outbound rules for the security group."
+    kind_description: ClassVar[str] = (
+        "AWS RDS DB Security Group Membership is a resource that represents the"
+        " membership of an Amazon RDS database instance in a security group. It allows"
+        " controlling access to the database instance by defining inbound and outbound"
+        " rules for the security group."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"db_security_group_name": S("DBSecurityGroupName"), "status": S("Status")}
     db_security_group_name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -81,7 +90,11 @@ class AwsRdsDBSecurityGroupMembership:
 class AwsRdsVpcSecurityGroupMembership:
     kind: ClassVar[str] = "aws_rds_vpc_security_group_membership"
     kind_display: ClassVar[str] = "AWS RDS VPC Security Group Membership"
-    kind_description: ClassVar[str] = "AWS RDS VPC Security Group Membership represents the group membership of an Amazon RDS instance in a Virtual Private Cloud (VPC). It controls the inbound and outbound traffic for the RDS instance within the VPC."
+    kind_description: ClassVar[str] = (
+        "AWS RDS VPC Security Group Membership represents the group membership of an"
+        " Amazon RDS instance in a Virtual Private Cloud (VPC). It controls the"
+        " inbound and outbound traffic for the RDS instance within the VPC."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"vpc_security_group_id": S("VpcSecurityGroupId"), "status": S("Status")}
     vpc_security_group_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -91,7 +104,11 @@ class AwsRdsVpcSecurityGroupMembership:
 class AwsRdsDBParameterGroupStatus:
     kind: ClassVar[str] = "aws_rds_db_parameter_group_status"
     kind_display: ClassVar[str] = "AWS RDS DB Parameter Group Status"
-    kind_description: ClassVar[str] = "The status of a parameter group in Amazon RDS, which is a collection of database engine parameter values that can be applied to one or more DB instances."
+    kind_description: ClassVar[str] = (
+        "The status of a parameter group in Amazon RDS, which is a collection of"
+        " database engine parameter values that can be applied to one or more DB"
+        " instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_parameter_group_name": S("DBParameterGroupName"),
         "parameter_apply_status": S("ParameterApplyStatus"),
@@ -104,7 +121,10 @@ class AwsRdsDBParameterGroupStatus:
 class AwsRdsSubnet:
     kind: ClassVar[str] = "aws_rds_subnet"
     kind_display: ClassVar[str] = "AWS RDS Subnet"
-    kind_description: ClassVar[str] = "RDS Subnet refers to a network subnet in the Amazon Relational Database Service (RDS), which is used to isolate and manage database instances."
+    kind_description: ClassVar[str] = (
+        "RDS Subnet refers to a network subnet in the Amazon Relational Database"
+        " Service (RDS), which is used to isolate and manage database instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "subnet_identifier": S("SubnetIdentifier"),
         "subnet_availability_zone": S("SubnetAvailabilityZone", "Name"),
@@ -121,7 +141,10 @@ class AwsRdsSubnet:
 class AwsRdsDBSubnetGroup:
     kind: ClassVar[str] = "aws_rds_db_subnet_group"
     kind_display: ClassVar[str] = "AWS RDS DB Subnet Group"
-    kind_description: ClassVar[str] = "DB Subnet Groups are used to specify the VPC subnets where Amazon RDS DB instances are created."
+    kind_description: ClassVar[str] = (
+        "DB Subnet Groups are used to specify the VPC subnets where Amazon RDS DB"
+        " instances are created."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_subnet_group_name": S("DBSubnetGroupName"),
         "db_subnet_group_description": S("DBSubnetGroupDescription"),
@@ -144,7 +167,11 @@ class AwsRdsDBSubnetGroup:
 class AwsRdsPendingCloudwatchLogsExports:
     kind: ClassVar[str] = "aws_rds_pending_cloudwatch_logs_exports"
     kind_display: ClassVar[str] = "AWS RDS Pending CloudWatch Logs Exports"
-    kind_description: ClassVar[str] = "RDS Pending CloudWatch Logs Exports represent the logs that are being exported from an Amazon RDS database to Amazon CloudWatch Logs but are still in a pending state."
+    kind_description: ClassVar[str] = (
+        "RDS Pending CloudWatch Logs Exports represent the logs that are being"
+        " exported from an Amazon RDS database to Amazon CloudWatch Logs but are still"
+        " in a pending state."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_types_to_enable": S("LogTypesToEnable", default=[]),
         "log_types_to_disable": S("LogTypesToDisable", default=[]),
@@ -157,7 +184,11 @@ class AwsRdsPendingCloudwatchLogsExports:
 class AwsRdsProcessorFeature:
     kind: ClassVar[str] = "aws_rds_processor_feature"
     kind_display: ClassVar[str] = "AWS RDS Processor Feature"
-    kind_description: ClassVar[str] = "RDS Processor Features are customizable settings for processor performance in Amazon Relational Database Service, allowing users to modify processor functionalities based on their specific requirements."
+    kind_description: ClassVar[str] = (
+        "RDS Processor Features are customizable settings for processor performance"
+        " in Amazon Relational Database Service, allowing users to modify processor"
+        " functionalities based on their specific requirements."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -167,7 +198,11 @@ class AwsRdsProcessorFeature:
 class AwsRdsPendingModifiedValues:
     kind: ClassVar[str] = "aws_rds_pending_modified_values"
     kind_display: ClassVar[str] = "AWS RDS Pending Modified Values"
-    kind_description: ClassVar[str] = "RDS Pending Modified Values represent the changes that are pending to be applied to an RDS instance, such as changes to its database engine version or storage capacity."
+    kind_description: ClassVar[str] = (
+        "RDS Pending Modified Values represent the changes that are pending to be"
+        " applied to an RDS instance, such as changes to its database engine version"
+        " or storage capacity."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_instance_class": S("DBInstanceClass"),
         "allocated_storage": S("AllocatedStorage"),
@@ -213,7 +248,10 @@ class AwsRdsPendingModifiedValues:
 class AwsRdsOptionGroupMembership:
     kind: ClassVar[str] = "aws_rds_option_group_membership"
     kind_display: ClassVar[str] = "AWS RDS Option Group Membership"
-    kind_description: ClassVar[str] = "RDS Option Group Memberships are used to associate DB instances with option groups which contain a list of configurable options for the database engine."
+    kind_description: ClassVar[str] = (
+        "RDS Option Group Memberships are used to associate DB instances with option"
+        " groups which contain a list of configurable options for the database engine."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"option_group_name": S("OptionGroupName"), "status": S("Status")}
     option_group_name: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -223,7 +261,11 @@ class AwsRdsOptionGroupMembership:
 class AwsRdsDBInstanceStatusInfo:
     kind: ClassVar[str] = "aws_rds_db_instance_status_info"
     kind_display: ClassVar[str] = "AWS RDS DB Instance Status Info"
-    kind_description: ClassVar[str] = "RDS DB Instance Status Info provides information about the status of an Amazon RDS database instance, including its current state and any pending actions."
+    kind_description: ClassVar[str] = (
+        "RDS DB Instance Status Info provides information about the status of an"
+        " Amazon RDS database instance, including its current state and any pending"
+        " actions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "status_type": S("StatusType"),
         "normal": S("Normal"),
@@ -240,7 +282,10 @@ class AwsRdsDBInstanceStatusInfo:
 class AwsRdsDomainMembership:
     kind: ClassVar[str] = "aws_rds_domain_membership"
     kind_display: ClassVar[str] = "AWS RDS Domain Membership"
-    kind_description: ClassVar[str] = "RDS Domain Membership is a feature in Amazon RDS that allows you to join an Amazon RDS DB instance to an existing Microsoft Active Directory domain."
+    kind_description: ClassVar[str] = (
+        "RDS Domain Membership is a feature in Amazon RDS that allows you to join an"
+        " Amazon RDS DB instance to an existing Microsoft Active Directory domain."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain": S("Domain"),
         "status": S("Status"),
@@ -257,7 +302,10 @@ class AwsRdsDomainMembership:
 class AwsRdsDBRole:
     kind: ClassVar[str] = "aws_rds_db_role"
     kind_display: ClassVar[str] = "AWS RDS DB Role"
-    kind_description: ClassVar[str] = "RDS DB Roles are a way to manage user access to Amazon RDS database instances using IAM."
+    kind_description: ClassVar[str] = (
+        "RDS DB Roles are a way to manage user access to Amazon RDS database"
+        " instances using IAM."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "role_arn": S("RoleArn"),
         "feature_name": S("FeatureName"),
@@ -272,7 +320,10 @@ class AwsRdsDBRole:
 class AwsRdsTag:
     kind: ClassVar[str] = "aws_rds_tag"
     kind_display: ClassVar[str] = "AWS RDS Tag"
-    kind_description: ClassVar[str] = "Tags for Amazon RDS instances and resources, which are key-value pairs to help manage and organize resources."
+    kind_description: ClassVar[str] = (
+        "Tags for Amazon RDS instances and resources, which are key-value pairs to"
+        " help manage and organize resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value": S("Value")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -282,7 +333,10 @@ class AwsRdsTag:
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     kind_display: ClassVar[str] = "AWS RDS Instance"
-    kind_description: ClassVar[str] = "RDS instances are managed relational databases in Amazon's cloud, providing scalable and fast performance for applications."
+    kind_description: ClassVar[str] = (
+        "RDS instances are managed relational databases in Amazon's cloud, providing"
+        " scalable and fast performance for applications."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-instances", "DBInstances")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -530,7 +584,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
 class AwsRdsDBClusterOptionGroupStatus:
     kind: ClassVar[str] = "aws_rds_db_cluster_option_group_status"
     kind_display: ClassVar[str] = "AWS RDS DB Cluster Option Group Status"
-    kind_description: ClassVar[str] = "The status of the option group for a DB cluster in Amazon RDS, which is a collection of database options and settings that can be applied to a DB instance."
+    kind_description: ClassVar[str] = (
+        "The status of the option group for a DB cluster in Amazon RDS, which is a"
+        " collection of database options and settings that can be applied to a DB"
+        " instance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_cluster_option_group_name": S("DBClusterOptionGroupName"),
         "status": S("Status"),
@@ -543,7 +601,11 @@ class AwsRdsDBClusterOptionGroupStatus:
 class AwsRdsDBClusterMember:
     kind: ClassVar[str] = "aws_rds_db_cluster_member"
     kind_display: ClassVar[str] = "AWS RDS DB Cluster Member"
-    kind_description: ClassVar[str] = "DB Cluster Member is a participant in an Amazon RDS Database Cluster, which is a managed relational database service offered by AWS for scaling and high availability."
+    kind_description: ClassVar[str] = (
+        "DB Cluster Member is a participant in an Amazon RDS Database Cluster, which"
+        " is a managed relational database service offered by AWS for scaling and high"
+        " availability."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_instance_identifier": S("DBInstanceIdentifier"),
         "is_cluster_writer": S("IsClusterWriter"),
@@ -560,7 +622,12 @@ class AwsRdsDBClusterMember:
 class AwsRdsScalingConfigurationInfo:
     kind: ClassVar[str] = "aws_rds_scaling_configuration_info"
     kind_display: ClassVar[str] = "AWS RDS Scaling Configuration Info"
-    kind_description: ClassVar[str] = "RDS Scaling Configuration Info provides information about the scaling configuration for Amazon RDS (Relational Database Service). It includes details about scaling policies, auto-scaling settings, and capacity planning for RDS instances."
+    kind_description: ClassVar[str] = (
+        "RDS Scaling Configuration Info provides information about the scaling"
+        " configuration for Amazon RDS (Relational Database Service). It includes"
+        " details about scaling policies, auto-scaling settings, and capacity planning"
+        " for RDS instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_capacity": S("MinCapacity"),
         "max_capacity": S("MaxCapacity"),
@@ -581,7 +648,10 @@ class AwsRdsScalingConfigurationInfo:
 class AwsRdsClusterPendingModifiedValues:
     kind: ClassVar[str] = "aws_rds_cluster_pending_modified_values"
     kind_display: ClassVar[str] = "AWS RDS Cluster Pending Modified Values"
-    kind_description: ClassVar[str] = "RDS Cluster Pending Modified Values represents the pending modifications made to an Amazon RDS Cluster, indicating changes that will be applied soon."
+    kind_description: ClassVar[str] = (
+        "RDS Cluster Pending Modified Values represents the pending modifications"
+        " made to an Amazon RDS Cluster, indicating changes that will be applied soon."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "pending_cloudwatch_logs_exports": S("PendingCloudwatchLogsExports")
         >> Bend(AwsRdsPendingCloudwatchLogsExports.mapping),
@@ -607,7 +677,13 @@ class AwsRdsClusterPendingModifiedValues:
 class AwsRdsServerlessV2ScalingConfigurationInfo:
     kind: ClassVar[str] = "aws_rds_serverless_v2_scaling_configuration_info"
     kind_display: ClassVar[str] = "AWS RDS Serverless V2 Scaling Configuration Info"
-    kind_description: ClassVar[str] = "RDS Serverless V2 Scaling Configuration provides information about the configuration settings for scaling Amazon RDS Aurora Serverless v2. It allows users to specify the minimum and maximum capacity for their serverless clusters, as well as the target utilization and scaling thresholds."
+    kind_description: ClassVar[str] = (
+        "RDS Serverless V2 Scaling Configuration provides information about the"
+        " configuration settings for scaling Amazon RDS Aurora Serverless v2. It"
+        " allows users to specify the minimum and maximum capacity for their"
+        " serverless clusters, as well as the target utilization and scaling"
+        " thresholds."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"min_capacity": S("MinCapacity"), "max_capacity": S("MaxCapacity")}
     min_capacity: Optional[float] = field(default=None)
     max_capacity: Optional[float] = field(default=None)
@@ -617,7 +693,11 @@ class AwsRdsServerlessV2ScalingConfigurationInfo:
 class AwsRdsMasterUserSecret:
     kind: ClassVar[str] = "aws_rds_master_user_secret"
     kind_display: ClassVar[str] = "AWS RDS Master User Secret"
-    kind_description: ClassVar[str] = "AWS RDS Master User Secret refers to the credentials used to authenticate the master user of an Amazon RDS (Relational Database Service) instance. These credentials are private and should be securely stored."
+    kind_description: ClassVar[str] = (
+        "AWS RDS Master User Secret refers to the credentials used to authenticate"
+        " the master user of an Amazon RDS (Relational Database Service) instance."
+        " These credentials are private and should be securely stored."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "secret_arn": S("SecretArn"),
         "secret_status": S("SecretStatus"),
@@ -632,7 +712,11 @@ class AwsRdsMasterUserSecret:
 class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_cluster"
     kind_display: ClassVar[str] = "AWS RDS Cluster"
-    kind_description: ClassVar[str] = "RDS Clusters are managed relational database services in Amazon's cloud, providing scalable and highly available databases for applications running on the Amazon Web Services infrastructure."
+    kind_description: ClassVar[str] = (
+        "RDS Clusters are managed relational database services in Amazon's cloud,"
+        " providing scalable and highly available databases for applications running"
+        " on the Amazon Web Services infrastructure."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-clusters", "DBClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterIdentifier"),

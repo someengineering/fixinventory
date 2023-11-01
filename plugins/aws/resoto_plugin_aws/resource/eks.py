@@ -58,7 +58,11 @@ class EKSTaggable:
 class AwsEksNodegroupScalingConfig:
     kind: ClassVar[str] = "aws_eks_nodegroup_scaling_config"
     kind_display: ClassVar[str] = "AWS EKS Nodegroup Scaling Config"
-    kind_description: ClassVar[str] = "EKS Nodegroup Scaling Config is a configuration for Amazon Elastic Kubernetes Service (EKS) nodegroups that allows you to customize the scaling behavior of your worker nodes in an EKS cluster."
+    kind_description: ClassVar[str] = (
+        "EKS Nodegroup Scaling Config is a configuration for Amazon Elastic"
+        " Kubernetes Service (EKS) nodegroups that allows you to customize the scaling"
+        " behavior of your worker nodes in an EKS cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_size": S("minSize"),
         "max_size": S("maxSize"),
@@ -73,7 +77,11 @@ class AwsEksNodegroupScalingConfig:
 class AwsEksRemoteAccessConfig:
     kind: ClassVar[str] = "aws_eks_remote_access_config"
     kind_display: ClassVar[str] = "AWS EKS Remote Access Config"
-    kind_description: ClassVar[str] = "AWS EKS Remote Access Config is a configuration resource for managing remote access to Amazon Elastic Kubernetes Service (EKS) clusters, allowing users to securely connect and administer their EKS clusters from remote locations."
+    kind_description: ClassVar[str] = (
+        "AWS EKS Remote Access Config is a configuration resource for managing remote"
+        " access to Amazon Elastic Kubernetes Service (EKS) clusters, allowing users"
+        " to securely connect and administer their EKS clusters from remote locations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ec2_ssh_key": S("ec2SshKey"),
         "source_security_groups": S("sourceSecurityGroups", default=[]),
@@ -86,7 +94,11 @@ class AwsEksRemoteAccessConfig:
 class AwsEksTaint:
     kind: ClassVar[str] = "aws_eks_taint"
     kind_display: ClassVar[str] = "AWS EKS Taint"
-    kind_description: ClassVar[str] = "EKS Taints are used in Amazon Elastic Kubernetes Service (EKS) to mark nodes as unschedulable for certain pods, preventing them from being deployed on those nodes."
+    kind_description: ClassVar[str] = (
+        "EKS Taints are used in Amazon Elastic Kubernetes Service (EKS) to mark nodes"
+        " as unschedulable for certain pods, preventing them from being deployed on"
+        " those nodes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("key"), "value": S("value"), "effect": S("effect")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -97,7 +109,10 @@ class AwsEksTaint:
 class AwsEksNodegroupResources:
     kind: ClassVar[str] = "aws_eks_nodegroup_resources"
     kind_display: ClassVar[str] = "AWS EKS Nodegroup Resources"
-    kind_description: ClassVar[str] = "EKS Nodegroup Resources are worker nodes managed by the Amazon Elastic Kubernetes Service (EKS) to run applications on Kubernetes clusters."
+    kind_description: ClassVar[str] = (
+        "EKS Nodegroup Resources are worker nodes managed by the Amazon Elastic"
+        " Kubernetes Service (EKS) to run applications on Kubernetes clusters."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_scaling_groups": S("autoScalingGroups", default=[]) >> ForallBend(S("name")),
         "remote_access_security_group": S("remoteAccessSecurityGroup"),
@@ -110,7 +125,11 @@ class AwsEksNodegroupResources:
 class AwsEksIssue:
     kind: ClassVar[str] = "aws_eks_issue"
     kind_display: ClassVar[str] = "AWS EKS Issue"
-    kind_description: ClassVar[str] = "An issue related to Amazon Elastic Kubernetes Service (EKS), a managed service that simplifies the deployment, management, and scaling of containerized applications using Kubernetes."
+    kind_description: ClassVar[str] = (
+        "An issue related to Amazon Elastic Kubernetes Service (EKS), a managed"
+        " service that simplifies the deployment, management, and scaling of"
+        " containerized applications using Kubernetes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
         "message": S("message"),
@@ -125,7 +144,10 @@ class AwsEksIssue:
 class AwsEksNodegroupHealth:
     kind: ClassVar[str] = "aws_eks_nodegroup_health"
     kind_display: ClassVar[str] = "AWS EKS Nodegroup Health"
-    kind_description: ClassVar[str] = "EKS Nodegroup Health is a feature in AWS Elastic Kubernetes Service that provides information about the health of nodegroups in a Kubernetes cluster."
+    kind_description: ClassVar[str] = (
+        "EKS Nodegroup Health is a feature in AWS Elastic Kubernetes Service that"
+        " provides information about the health of nodegroups in a Kubernetes cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"issues": S("issues", default=[]) >> ForallBend(AwsEksIssue.mapping)}
     issues: List[AwsEksIssue] = field(factory=list)
 
@@ -134,7 +156,11 @@ class AwsEksNodegroupHealth:
 class AwsEksNodegroupUpdateConfig:
     kind: ClassVar[str] = "aws_eks_nodegroup_update_config"
     kind_display: ClassVar[str] = "AWS EKS Nodegroup Update Config"
-    kind_description: ClassVar[str] = "This resource represents the configuration for updating an Amazon Elastic Kubernetes Service (EKS) nodegroup in AWS. EKS is a managed service that makes it easy to run Kubernetes on AWS."
+    kind_description: ClassVar[str] = (
+        "This resource represents the configuration for updating an Amazon Elastic"
+        " Kubernetes Service (EKS) nodegroup in AWS. EKS is a managed service that"
+        " makes it easy to run Kubernetes on AWS."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_unavailable": S("maxUnavailable"),
         "max_unavailable_percentage": S("maxUnavailablePercentage"),
@@ -147,7 +173,11 @@ class AwsEksNodegroupUpdateConfig:
 class AwsEksLaunchTemplateSpecification:
     kind: ClassVar[str] = "aws_eks_launch_template_specification"
     kind_display: ClassVar[str] = "AWS EKS Launch Template Specification"
-    kind_description: ClassVar[str] = "EKS Launch Template Specification refers to a configuration template used to provision Amazon Elastic Kubernetes Service (EKS) clusters with pre-configured instances."
+    kind_description: ClassVar[str] = (
+        "EKS Launch Template Specification refers to a configuration template used to"
+        " provision Amazon Elastic Kubernetes Service (EKS) clusters with pre-"
+        " configured instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "version": S("version"), "id": S("id")}
     name: Optional[str] = field(default=None)
     version: Optional[str] = field(default=None)
@@ -159,7 +189,11 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
     kind_display: ClassVar[str] = "AWS EKS Nodegroup"
-    kind_description: ClassVar[str] = "An EKS Nodegroup is a set of EC2 instances that host containerized applications and run Kubernetes pods in Amazon Elastic Kubernetes Service (EKS) cluster."
+    kind_description: ClassVar[str] = (
+        "An EKS Nodegroup is a set of EC2 instances that host containerized"
+        " applications and run Kubernetes pods in Amazon Elastic Kubernetes Service"
+        " (EKS) cluster."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_eks_cluster"], "delete": ["aws_eks_cluster", "aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
@@ -239,7 +273,11 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
 class AwsEksVpcConfigResponse:
     kind: ClassVar[str] = "aws_eks_vpc_config_response"
     kind_display: ClassVar[str] = "AWS EKS VPC Config Response"
-    kind_description: ClassVar[str] = "The AWS EKS VPC Config Response is a response object that contains the configuration details of the Amazon Virtual Private Cloud (VPC) used by the Amazon Elastic Kubernetes Service (EKS)."
+    kind_description: ClassVar[str] = (
+        "The AWS EKS VPC Config Response is a response object that contains the"
+        " configuration details of the Amazon Virtual Private Cloud (VPC) used by the"
+        " Amazon Elastic Kubernetes Service (EKS)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "subnet_ids": S("subnetIds", default=[]),
         "security_group_ids": S("securityGroupIds", default=[]),
@@ -262,7 +300,11 @@ class AwsEksVpcConfigResponse:
 class AwsEksKubernetesNetworkConfigResponse:
     kind: ClassVar[str] = "aws_eks_kubernetes_network_config_response"
     kind_display: ClassVar[str] = "AWS EKS Kubernetes Network Config Response"
-    kind_description: ClassVar[str] = "The AWS EKS Kubernetes Network Config Response is the network configuration response received from the Amazon Elastic Kubernetes Service (EKS), which provides managed Kubernetes infrastructure in the AWS cloud."
+    kind_description: ClassVar[str] = (
+        "The AWS EKS Kubernetes Network Config Response is the network configuration"
+        " response received from the Amazon Elastic Kubernetes Service (EKS), which"
+        " provides managed Kubernetes infrastructure in the AWS cloud."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "service_ipv4_cidr": S("serviceIpv4Cidr"),
         "service_ipv6_cidr": S("serviceIpv6Cidr"),
@@ -277,7 +319,11 @@ class AwsEksKubernetesNetworkConfigResponse:
 class AwsEksLogSetup:
     kind: ClassVar[str] = "aws_eks_log_setup"
     kind_display: ClassVar[str] = "AWS EKS Log Setup"
-    kind_description: ClassVar[str] = "AWS EKS Log Setup is a feature that enables the logging of Kubernetes cluster control plane logs to an Amazon CloudWatch Logs group for easy monitoring and troubleshooting."
+    kind_description: ClassVar[str] = (
+        "AWS EKS Log Setup is a feature that enables the logging of Kubernetes"
+        " cluster control plane logs to an Amazon CloudWatch Logs group for easy"
+        " monitoring and troubleshooting."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"types": S("types", default=[]), "enabled": S("enabled")}
     types: List[str] = field(factory=list)
     enabled: Optional[bool] = field(default=None)
@@ -287,7 +333,11 @@ class AwsEksLogSetup:
 class AwsEksLogging:
     kind: ClassVar[str] = "aws_eks_logging"
     kind_display: ClassVar[str] = "AWS EKS Logging"
-    kind_description: ClassVar[str] = "EKS Logging is a feature of Amazon Elastic Kubernetes Service that allows you to capture and store logs generated by containers running in your Kubernetes cluster."
+    kind_description: ClassVar[str] = (
+        "EKS Logging is a feature of Amazon Elastic Kubernetes Service that allows"
+        " you to capture and store logs generated by containers running in your"
+        " Kubernetes cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cluster_logging": S("clusterLogging", default=[]) >> ForallBend(AwsEksLogSetup.mapping)
     }
@@ -298,7 +348,11 @@ class AwsEksLogging:
 class AwsEksIdentity:
     kind: ClassVar[str] = "aws_eks_identity"
     kind_display: ClassVar[str] = "AWS EKS Identity"
-    kind_description: ClassVar[str] = "EKS Identity allows you to securely authenticate with and access resources in Amazon Elastic Kubernetes Service (EKS) clusters using AWS Identity and Access Management (IAM) roles."
+    kind_description: ClassVar[str] = (
+        "EKS Identity allows you to securely authenticate with and access resources"
+        " in Amazon Elastic Kubernetes Service (EKS) clusters using AWS Identity and"
+        " Access Management (IAM) roles."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"oidc": S("oidc", "issuer")}
     oidc: Optional[str] = field(default=None)
 
@@ -307,7 +361,11 @@ class AwsEksIdentity:
 class AwsEksEncryptionConfig:
     kind: ClassVar[str] = "aws_eks_encryption_config"
     kind_display: ClassVar[str] = "AWS EKS Encryption Config"
-    kind_description: ClassVar[str] = "EKS Encryption Config is a feature in Amazon Elastic Kubernetes Service that allows users to configure encryption settings for their Kubernetes cluster resources."
+    kind_description: ClassVar[str] = (
+        "EKS Encryption Config is a feature in Amazon Elastic Kubernetes Service that"
+        " allows users to configure encryption settings for their Kubernetes cluster"
+        " resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "resources": S("resources", default=[]),
         "provider": S("provider", "keyArn"),
@@ -320,7 +378,10 @@ class AwsEksEncryptionConfig:
 class AwsEksConnectorConfig:
     kind: ClassVar[str] = "aws_eks_connector_config"
     kind_display: ClassVar[str] = "AWS EKS Connector Config"
-    kind_description: ClassVar[str] = "The AWS EKS Connector Config is used to configure the connection between a Kubernetes cluster in Amazon EKS and external resources or services."
+    kind_description: ClassVar[str] = (
+        "The AWS EKS Connector Config is used to configure the connection between a"
+        " Kubernetes cluster in Amazon EKS and external resources or services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "activation_id": S("activationId"),
         "activation_code": S("activationCode"),
@@ -339,7 +400,11 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     kind_display: ClassVar[str] = "AWS EKS Cluster"
-    kind_description: ClassVar[str] = "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes service provided by AWS for running containerized applications using Kubernetes."
+    kind_description: ClassVar[str] = (
+        "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes"
+        " service provided by AWS for running containerized applications using"
+        " Kubernetes."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

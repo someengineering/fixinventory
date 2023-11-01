@@ -19,7 +19,11 @@ service_name = "elasticbeanstalk"
 class AwsBeanstalkMaxCountRule:
     kind: ClassVar[str] = "aws_beanstalk_max_count_rule"
     kind_display: ClassVar[str] = "AWS Beanstalk Max Count Rule"
-    kind_description: ClassVar[str] = "AWS Beanstalk Max Count Rule is a rule that can be set on an AWS Elastic Beanstalk environment to limit the maximum number of instances that can be running at a given time."
+    kind_description: ClassVar[str] = (
+        "AWS Beanstalk Max Count Rule is a rule that can be set on an AWS Elastic"
+        " Beanstalk environment to limit the maximum number of instances that can be"
+        " running at a given time."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "max_count": S("MaxCount"),
@@ -34,7 +38,11 @@ class AwsBeanstalkMaxCountRule:
 class AwsBeanstalkMaxAgeRule:
     kind: ClassVar[str] = "aws_beanstalk_max_age_rule"
     kind_display: ClassVar[str] = "AWS Beanstalk Max Age Rule"
-    kind_description: ClassVar[str] = "A rule that defines the maximum age of the environments in AWS Elastic Beanstalk, which allows automatic termination of environments after a specified time period."
+    kind_description: ClassVar[str] = (
+        "A rule that defines the maximum age of the environments in AWS Elastic"
+        " Beanstalk, which allows automatic termination of environments after a"
+        " specified time period."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "max_age_in_days": S("MaxAgeInDays"),
@@ -49,7 +57,11 @@ class AwsBeanstalkMaxAgeRule:
 class AwsBeanstalkApplicationVersionLifecycleConfig:
     kind: ClassVar[str] = "aws_beanstalk_application_version_lifecycle_config"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application Version Lifecycle Configuration"
-    kind_description: ClassVar[str] = "An AWS Elastic Beanstalk Application Version Lifecycle Configuration allows you to define rules for automatically deploying, updating, and deleting application versions on your Elastic Beanstalk environments."
+    kind_description: ClassVar[str] = (
+        "An AWS Elastic Beanstalk Application Version Lifecycle Configuration allows"
+        " you to define rules for automatically deploying, updating, and deleting"
+        " application versions on your Elastic Beanstalk environments."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_count_rule": S("MaxCountRule") >> Bend(AwsBeanstalkMaxCountRule.mapping),
         "max_age_rule": S("MaxAgeRule") >> Bend(AwsBeanstalkMaxAgeRule.mapping),
@@ -62,7 +74,11 @@ class AwsBeanstalkApplicationVersionLifecycleConfig:
 class AwsBeanstalkApplicationResourceLifecycleConfig:
     kind: ClassVar[str] = "aws_beanstalk_application_resource_lifecycle_config"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application Resource Lifecycle Configuration"
-    kind_description: ClassVar[str] = "The AWS Elastic Beanstalk Application Resource Lifecycle Configuration allows users to define and manage the lifecycle of resources used in an Elastic Beanstalk application."
+    kind_description: ClassVar[str] = (
+        "The AWS Elastic Beanstalk Application Resource Lifecycle Configuration"
+        " allows users to define and manage the lifecycle of resources used in an"
+        " Elastic Beanstalk application."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "service_role": S("ServiceRole"),
         "version_lifecycle_config": S("VersionLifecycleConfig")
@@ -76,7 +92,10 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
-    kind_description: ClassVar[str] = "Elastic Beanstalk is a fully managed service that makes it easy to deploy and run applications in multiple languages."
+    kind_description: ClassVar[str] = (
+        "Elastic Beanstalk is a fully managed service that makes it easy to deploy"
+        " and run applications in multiple languages."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-applications", "Applications")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ApplicationName"),
@@ -155,7 +174,11 @@ class AwsBeanstalkApplication(AwsResource):
 class AwsBeanstalkEnvironmentTier:
     kind: ClassVar[str] = "aws_beanstalk_environment_tier"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment Tier"
-    kind_description: ClassVar[str] = "The environment tier in AWS Elastic Beanstalk determines the resources and features available for an Elastic Beanstalk environment. It can be either WebServer or Worker."
+    kind_description: ClassVar[str] = (
+        "The environment tier in AWS Elastic Beanstalk determines the resources and"
+        " features available for an Elastic Beanstalk environment. It can be either"
+        " WebServer or Worker."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "type": S("Type"), "version": S("Version")}
     name: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -166,7 +189,10 @@ class AwsBeanstalkEnvironmentTier:
 class AwsBeanstalkEnvironmentLink:
     kind: ClassVar[str] = "aws_beanstalk_environment_link"
     kind_display: ClassVar[str] = "AWS Beanstalk Environment Link"
-    kind_description: ClassVar[str] = "AWS Beanstalk Environment Link is a reference to an AWS Elastic Beanstalk environment which provides a URL to access the deployed application."
+    kind_description: ClassVar[str] = (
+        "AWS Beanstalk Environment Link is a reference to an AWS Elastic Beanstalk"
+        " environment which provides a URL to access the deployed application."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"link_name": S("LinkName"), "environment_name": S("EnvironmentName")}
     link_name: Optional[str] = field(default=None)
     environment_name: Optional[str] = field(default=None)
@@ -176,7 +202,11 @@ class AwsBeanstalkEnvironmentLink:
 class AwsBeanstalkAutoScalingGroupDescription:
     kind: ClassVar[str] = "aws_beanstalk_auto_scaling_group_description"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Auto Scaling Group Description"
-    kind_description: ClassVar[str] = "AWS Elastic Beanstalk Auto Scaling Group Description is a feature of AWS Elastic Beanstalk that allows dynamic scaling of resources based on the demand of your application to ensure optimal performance."
+    kind_description: ClassVar[str] = (
+        "AWS Elastic Beanstalk Auto Scaling Group Description is a feature of AWS"
+        " Elastic Beanstalk that allows dynamic scaling of resources based on the"
+        " demand of your application to ensure optimal performance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_scaling_group_name": S("Name"),
     }
@@ -187,7 +217,11 @@ class AwsBeanstalkAutoScalingGroupDescription:
 class AwsBeanstalkInstancesDescription:
     kind: ClassVar[str] = "aws_beanstalk_instances_description"
     kind_display: ClassVar[str] = "AWS Beanstalk Instances Description"
-    kind_description: ClassVar[str] = "Beanstalk is a fully managed service by AWS that makes it easy to deploy, run, and scale applications in the cloud. Beanstalk instances are the virtual servers on which applications are deployed and run in AWS Beanstalk."
+    kind_description: ClassVar[str] = (
+        "Beanstalk is a fully managed service by AWS that makes it easy to deploy,"
+        " run, and scale applications in the cloud. Beanstalk instances are the"
+        " virtual servers on which applications are deployed and run in AWS Beanstalk."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_id": S("Id"),
     }
@@ -198,7 +232,11 @@ class AwsBeanstalkInstancesDescription:
 class AwsBeanstalkLoadBalancerDescription:
     kind: ClassVar[str] = "aws_beanstalk_load_balancer_description"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Load Balancer Description"
-    kind_description: ClassVar[str] = "AWS Elastic Beanstalk Load Balancer Description is a string representing the description of the load balancer in the Elastic Beanstalk service provided by Amazon Web Services."
+    kind_description: ClassVar[str] = (
+        "AWS Elastic Beanstalk Load Balancer Description is a string representing the"
+        " description of the load balancer in the Elastic Beanstalk service provided"
+        " by Amazon Web Services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "load_balancer_name": S("Name"),
     }
@@ -209,7 +247,11 @@ class AwsBeanstalkLoadBalancerDescription:
 class AwsBeanstalkQueueDescription:
     kind: ClassVar[str] = "aws_beanstalk_queue_description"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Queue Description"
-    kind_description: ClassVar[str] = "Elastic Beanstalk is a platform for deploying and running web applications. This resource represents the description of a queue within the Elastic Beanstalk environment."
+    kind_description: ClassVar[str] = (
+        "Elastic Beanstalk is a platform for deploying and running web applications."
+        " This resource represents the description of a queue within the Elastic"
+        " Beanstalk environment."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "queue_name": S("Name"),
         "queue_url": S("URL"),
@@ -222,7 +264,12 @@ class AwsBeanstalkQueueDescription:
 class AwsBeanstalkEnvironmentResourcesDescription:
     kind: ClassVar[str] = "aws_beanstalk_environment_resources"
     kind_display: ClassVar[str] = "AWS Beanstalk Environment Resources"
-    kind_description: ClassVar[str] = "Beanstalk Environment Resources refer to the compute, storage, and networking resources allocated to an application environment in AWS Elastic Beanstalk, a fully managed service for deploying and scaling web applications."
+    kind_description: ClassVar[str] = (
+        "Beanstalk Environment Resources refer to the compute, storage, and"
+        " networking resources allocated to an application environment in AWS Elastic"
+        " Beanstalk, a fully managed service for deploying and scaling web"
+        " applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_scaling_groups": S("AutoScalingGroups") >> ForallBend(AwsBeanstalkAutoScalingGroupDescription.mapping),
         "instances": S("Instances") >> ForallBend(AwsBeanstalkInstancesDescription.mapping),
@@ -239,7 +286,11 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
-    kind_description: ClassVar[str] = "AWS Elastic Beanstalk is a service that makes it easy to deploy, run, and scale applications in the AWS cloud. An Elastic Beanstalk environment is a version of your application that is deployed and running on AWS."
+    kind_description: ClassVar[str] = (
+        "AWS Elastic Beanstalk is a service that makes it easy to deploy, run, and"
+        " scale applications in the AWS cloud. An Elastic Beanstalk environment is a"
+        " version of your application that is deployed and running on AWS."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-environments", "Environments")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
