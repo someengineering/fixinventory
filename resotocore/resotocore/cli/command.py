@@ -2764,8 +2764,11 @@ class ListCommand(CLICommand, OutputTransformer):
             elif parsed.markdown:
                 return markdown_stream(in_stream)
             elif parsed.table:
-                dependencies = stream.call(partial(self.dependencies.model_handler.load_model, ctx.graph_name))
-                return stream.flatmap(dependencies, partial(table_stream, in_stream))
+
+                async def load_model() -> Model:
+                    return await self.dependencies.model_handler.load_model(ctx.graph_name)
+
+                return stream.flatmap(stream.call(load_model), partial(table_stream, in_stream))
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
