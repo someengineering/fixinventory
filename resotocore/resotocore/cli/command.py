@@ -2678,19 +2678,24 @@ class ListCommand(CLICommand, OutputTransformer):
                     return kind.fqn
 
             # header columns
-            yield [
-                {
-                    "name": name,
-                    "kind": kind_of(path),
-                    "display": " ".join(word.capitalize() for word in name.split("_")),
-                }
-                for path, name in props_to_show
-            ]
+            yield {
+                "columns": [
+                    {
+                        "name": name,
+                        "kind": kind_of(path),
+                        "display": " ".join(word.capitalize() for word in name.split("_")),
+                    }
+                    for path, name in props_to_show
+                ],
+            }
             # data columns
             async with in_stream.stream() as s:
                 async for elem in s:
                     if is_node(elem):
-                        yield {name: js_value_at(elem, prop_path) for prop_path, name in props_to_show}
+                        yield {
+                            "id": elem["id"],
+                            "row": {name: js_value_at(elem, prop_path) for prop_path, name in props_to_show},
+                        }
 
         def markdown_stream(in_stream: JsStream) -> JsGen:
             chunk_size = 500

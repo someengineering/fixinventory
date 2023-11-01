@@ -605,11 +605,13 @@ async def test_list_command(cli: CLI) -> None:
         'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1} | list --table name, some_int', stream.list
     )
     assert result[0] == [
-        [
-            {"display": "Name", "kind": "string", "name": "name"},
-            {"display": "Some Int", "kind": "int32", "name": "some_int"},
-        ],
-        {"name": "a", "some_int": 1},
+        {
+            "columns": [
+                {"display": "Name", "kind": "string", "name": "name"},
+                {"display": "Some Int", "kind": "int32", "name": "some_int"},
+            ],
+        },
+        {"id": "foo", "row": {"name": "a", "some_int": 1}},
     ]
 
     # List supports only markdown or csv, but not both at the same time
