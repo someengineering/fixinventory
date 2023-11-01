@@ -18,7 +18,10 @@ from resotolib.types import Json
 class GcpBillingAccount(GcpResource):
     kind: ClassVar[str] = "gcp_billing_account"
     kind_display: ClassVar[str] = "GCP Billing Account"
-    kind_description: ClassVar[str] = "GCP Billing Account is a financial account used to manage the payment and billing information for Google Cloud Platform services."
+    kind_description: ClassVar[str] = (
+        "GCP Billing Account is a financial account used to manage the payment and"
+        " billing information for Google Cloud Platform services."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_project_billing_info"]},
     }
@@ -65,7 +68,10 @@ class GcpBillingAccount(GcpResource):
 class GcpProjectBillingInfo(GcpResource):
     kind: ClassVar[str] = "gcp_project_billing_info"
     kind_display: ClassVar[str] = "GCP Project Billing Info"
-    kind_description: ClassVar[str] = "GCP Project Billing Info provides information and management capabilities for the billing aspects of a Google Cloud Platform project."
+    kind_description: ClassVar[str] = (
+        "GCP Project Billing Info provides information and management capabilities"
+        " for the billing aspects of a Google Cloud Platform project."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",
@@ -102,7 +108,11 @@ class GcpProjectBillingInfo(GcpResource):
 class GcpService(GcpResource):
     kind: ClassVar[str] = "gcp_service"
     kind_display: ClassVar[str] = "GCP Service"
-    kind_description: ClassVar[str] = "GCP Service refers to any of the various services and products offered by Google Cloud Platform, which provide scalable cloud computing solutions for businesses and developers."
+    kind_description: ClassVar[str] = (
+        "GCP Service refers to any of the various services and products offered by"
+        " Google Cloud Platform, which provide scalable cloud computing solutions for"
+        " businesses and developers."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_sku"]},
     }
@@ -165,7 +175,10 @@ class GcpService(GcpResource):
 class GcpCategory:
     kind: ClassVar[str] = "gcp_category"
     kind_display: ClassVar[str] = "GCP Category"
-    kind_description: ClassVar[str] = "GCP Category is a classification system used by Google Cloud Platform to organize various cloud resources and services into different categories."
+    kind_description: ClassVar[str] = (
+        "GCP Category is a classification system used by Google Cloud Platform to"
+        " organize various cloud resources and services into different categories."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "resource_family": S("resourceFamily"),
         "resource_group": S("resourceGroup"),
@@ -182,7 +195,11 @@ class GcpCategory:
 class GcpGeoTaxonomy:
     kind: ClassVar[str] = "gcp_geo_taxonomy"
     kind_display: ClassVar[str] = "GCP Geo Taxonomy"
-    kind_description: ClassVar[str] = "GCP Geo Taxonomy is a resource in Google Cloud Platform that provides a hierarchical taxonomy for geographic locations, ensuring consistent and accurate data for geospatial analysis and visualization."
+    kind_description: ClassVar[str] = (
+        "GCP Geo Taxonomy is a resource in Google Cloud Platform that provides a"
+        " hierarchical taxonomy for geographic locations, ensuring consistent and"
+        " accurate data for geospatial analysis and visualization."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"regions": S("regions", default=[]), "type": S("type")}
     regions: List[str] = field(factory=list)
     type: Optional[str] = field(default=None)
@@ -192,7 +209,11 @@ class GcpGeoTaxonomy:
 class GcpAggregationInfo:
     kind: ClassVar[str] = "gcp_aggregation_info"
     kind_display: ClassVar[str] = "GCP Aggregation Info"
-    kind_description: ClassVar[str] = "GCP Aggregation Info refers to aggregated data about resources in Google Cloud Platform, providing insights and metrics for monitoring and analysis purposes."
+    kind_description: ClassVar[str] = (
+        "GCP Aggregation Info refers to aggregated data about resources in Google"
+        " Cloud Platform, providing insights and metrics for monitoring and analysis"
+        " purposes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aggregation_count": S("aggregationCount"),
         "aggregation_interval": S("aggregationInterval"),
@@ -207,7 +228,9 @@ class GcpAggregationInfo:
 class GcpMoney:
     kind: ClassVar[str] = "gcp_money"
     kind_display: ClassVar[str] = "GCP Money"
-    kind_description: ClassVar[str] = "Sorry, there is no known resource or service called GCP Money."
+    kind_description: ClassVar[str] = (
+        "Sorry, there is no known resource or service called GCP Money."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "currency_code": S("currencyCode"),
         "nanos": S("nanos"),
@@ -222,7 +245,11 @@ class GcpMoney:
 class GcpTierRate:
     kind: ClassVar[str] = "gcp_tier_rate"
     kind_display: ClassVar[str] = "GCP Tier Rate"
-    kind_description: ClassVar[str] = "GCP Tier Rate refers to the pricing tiers for different levels of usage of Google Cloud Platform services. Higher tiers typically offer discounted rates for increased usage volumes."
+    kind_description: ClassVar[str] = (
+        "GCP Tier Rate refers to the pricing tiers for different levels of usage of"
+        " Google Cloud Platform services. Higher tiers typically offer discounted"
+        " rates for increased usage volumes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "start_usage_amount": S("startUsageAmount"),
         "unit_price": S("unitPrice", default={}) >> Bend(GcpMoney.mapping),
@@ -235,7 +262,11 @@ class GcpTierRate:
 class GcpPricingExpression:
     kind: ClassVar[str] = "gcp_pricing_expression"
     kind_display: ClassVar[str] = "GCP Pricing Expression"
-    kind_description: ClassVar[str] = "GCP Pricing Expression is a mechanism used in Google Cloud Platform to calculate the cost of resources and services based on configuration and usage."
+    kind_description: ClassVar[str] = (
+        "GCP Pricing Expression is a mechanism used in Google Cloud Platform to"
+        " calculate the cost of resources and services based on configuration and"
+        " usage."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "base_unit": S("baseUnit"),
         "base_unit_conversion_factor": S("baseUnitConversionFactor"),
@@ -258,7 +289,10 @@ class GcpPricingExpression:
 class GcpPricingInfo:
     kind: ClassVar[str] = "gcp_pricing_info"
     kind_display: ClassVar[str] = "GCP Pricing Info"
-    kind_description: ClassVar[str] = "GCP Pricing Info provides information on the pricing models and costs associated with using Google Cloud Platform services."
+    kind_description: ClassVar[str] = (
+        "GCP Pricing Info provides information on the pricing models and costs"
+        " associated with using Google Cloud Platform services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aggregation_info": S("aggregationInfo", default={}) >> Bend(GcpAggregationInfo.mapping),
         "currency_conversion_rate": S("currencyConversionRate"),
@@ -277,7 +311,10 @@ class GcpPricingInfo:
 class GcpSku(GcpResource):
     kind: ClassVar[str] = "gcp_sku"
     kind_display: ClassVar[str] = "GCP SKU"
-    kind_description: ClassVar[str] = "GCP SKU represents a Stock Keeping Unit in Google Cloud Platform, providing unique identifiers for different resources and services."
+    kind_description: ClassVar[str] = (
+        "GCP SKU represents a Stock Keeping Unit in Google Cloud Platform, providing"
+        " unique identifiers for different resources and services."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudbilling",
         version="v1",

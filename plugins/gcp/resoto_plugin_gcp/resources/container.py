@@ -17,7 +17,11 @@ from resotolib.types import Json
 class GcpContainerCloudRunConfig:
     kind: ClassVar[str] = "gcp_container_cloud_run_config"
     kind_display: ClassVar[str] = "GCP Container Cloud Run Configuration"
-    kind_description: ClassVar[str] = "GCP Container Cloud Run Config allows users to define and configure runtime settings for applications running on Google Cloud's serverless platform, Cloud Run."
+    kind_description: ClassVar[str] = (
+        "GCP Container Cloud Run Config allows users to define and configure runtime"
+        " settings for applications running on Google Cloud's serverless platform,"
+        " Cloud Run."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"disabled": S("disabled"), "load_balancer_type": S("loadBalancerType")}
     disabled: Optional[bool] = field(default=None)
     load_balancer_type: Optional[str] = field(default=None)
@@ -27,7 +31,11 @@ class GcpContainerCloudRunConfig:
 class GcpContainerAddonsConfig:
     kind: ClassVar[str] = "gcp_container_addons_config"
     kind_display: ClassVar[str] = "GCP Container Addons Config"
-    kind_description: ClassVar[str] = "GCP Container Addons Config is a configuration setting in Google Cloud Platform that allows users to enable or disable add-ons for Kubernetes Engine clusters."
+    kind_description: ClassVar[str] = (
+        "GCP Container Addons Config is a configuration setting in Google Cloud"
+        " Platform that allows users to enable or disable add-ons for Kubernetes"
+        " Engine clusters."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloud_run_config": S("cloudRunConfig", default={}) >> Bend(GcpContainerCloudRunConfig.mapping),
         "config_connector_config": S("configConnectorConfig", "enabled"),
@@ -56,7 +64,11 @@ class GcpContainerAddonsConfig:
 class GcpContainerAuthenticatorGroupsConfig:
     kind: ClassVar[str] = "gcp_container_authenticator_groups_config"
     kind_display: ClassVar[str] = "GCP Container Authenticator Groups Config"
-    kind_description: ClassVar[str] = "GCP Container Authenticator Groups Config is a configuration resource in Google Cloud Platform that allows users to define groups of authenticated users and their access privileges for container-based applications."
+    kind_description: ClassVar[str] = (
+        "GCP Container Authenticator Groups Config is a configuration resource in"
+        " Google Cloud Platform that allows users to define groups of authenticated"
+        " users and their access privileges for container-based applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "security_group": S("securityGroup")}
     enabled: Optional[bool] = field(default=None)
     security_group: Optional[str] = field(default=None)
@@ -66,7 +78,12 @@ class GcpContainerAuthenticatorGroupsConfig:
 class GcpContainerAutoUpgradeOptions:
     kind: ClassVar[str] = "gcp_container_auto_upgrade_options"
     kind_display: ClassVar[str] = "GCP Container Auto-Upgrade Options"
-    kind_description: ClassVar[str] = "GCP Container Auto-Upgrade Options refer to the settings available for automatically upgrading Kubernetes clusters in the Google Cloud Platform, ensuring that they are always running the latest version of Kubernetes for enhanced security and performance."
+    kind_description: ClassVar[str] = (
+        "GCP Container Auto-Upgrade Options refer to the settings available for"
+        " automatically upgrading Kubernetes clusters in the Google Cloud Platform,"
+        " ensuring that they are always running the latest version of Kubernetes for"
+        " enhanced security and performance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_upgrade_start_time": S("autoUpgradeStartTime"),
         "description": S("description"),
@@ -79,7 +96,10 @@ class GcpContainerAutoUpgradeOptions:
 class GcpContainerNodeManagement:
     kind: ClassVar[str] = "gcp_container_node_management"
     kind_display: ClassVar[str] = "GCP Container Node Management"
-    kind_description: ClassVar[str] = "GCP Container Node Management is a service provided by Google Cloud Platform for managing and orchestrating containers running on GCP Kubernetes Engine."
+    kind_description: ClassVar[str] = (
+        "GCP Container Node Management is a service provided by Google Cloud Platform"
+        " for managing and orchestrating containers running on GCP Kubernetes Engine."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_repair": S("autoRepair"),
         "auto_upgrade": S("autoUpgrade"),
@@ -94,7 +114,11 @@ class GcpContainerNodeManagement:
 class GcpContainerShieldedInstanceConfig:
     kind: ClassVar[str] = "gcp_container_shielded_instance_config"
     kind_display: ClassVar[str] = "GCP Container Shielded Instance Config"
-    kind_description: ClassVar[str] = "Shielded Instance Config is a feature in Google Cloud Platform that adds layers of security to container instances, protecting them from various attack vectors and ensuring the integrity of the running container images."
+    kind_description: ClassVar[str] = (
+        "Shielded Instance Config is a feature in Google Cloud Platform that adds"
+        " layers of security to container instances, protecting them from various"
+        " attack vectors and ensuring the integrity of the running container images."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_integrity_monitoring": S("enableIntegrityMonitoring"),
         "enable_secure_boot": S("enableSecureBoot"),
@@ -107,7 +131,11 @@ class GcpContainerShieldedInstanceConfig:
 class GcpContainerStandardRolloutPolicy:
     kind: ClassVar[str] = "gcp_container_standard_rollout_policy"
     kind_display: ClassVar[str] = "GCP Container Standard Rollout Policy"
-    kind_description: ClassVar[str] = "A rollout policy in Google Cloud Platform (GCP) Container is a standard mechanism that defines how new versions of a container should be gradually deployed to a cluster in a controlled manner."
+    kind_description: ClassVar[str] = (
+        "A rollout policy in Google Cloud Platform (GCP) Container is a standard"
+        " mechanism that defines how new versions of a container should be gradually"
+        " deployed to a cluster in a controlled manner."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "batch_node_count": S("batchNodeCount"),
         "batch_percentage": S("batchPercentage"),
@@ -122,7 +150,11 @@ class GcpContainerStandardRolloutPolicy:
 class GcpContainerBlueGreenSettings:
     kind: ClassVar[str] = "gcp_container_blue_green_settings"
     kind_display: ClassVar[str] = "GCP Container Blue-Green Settings"
-    kind_description: ClassVar[str] = "GCP Container Blue-Green Settings refers to the ability to deploy new versions of containers in a blue-green manner, enabling seamless deployment and testing of code changes without affecting production traffic."
+    kind_description: ClassVar[str] = (
+        "GCP Container Blue-Green Settings refers to the ability to deploy new"
+        " versions of containers in a blue-green manner, enabling seamless deployment"
+        " and testing of code changes without affecting production traffic."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_pool_soak_duration": S("nodePoolSoakDuration"),
         "standard_rollout_policy": S("standardRolloutPolicy", default={})
@@ -136,7 +168,11 @@ class GcpContainerBlueGreenSettings:
 class GcpContainerUpgradeSettings:
     kind: ClassVar[str] = "gcp_container_upgrade_settings"
     kind_display: ClassVar[str] = "GCP Container Upgrade Settings"
-    kind_description: ClassVar[str] = "GCP Container Upgrade Settings are configurations that allow users to manage and control the upgrade process of their containerized applications in Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP Container Upgrade Settings are configurations that allow users to manage"
+        " and control the upgrade process of their containerized applications in"
+        " Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "blue_green_settings": S("blueGreenSettings", default={}) >> Bend(GcpContainerBlueGreenSettings.mapping),
         "max_surge": S("maxSurge"),
@@ -153,7 +189,11 @@ class GcpContainerUpgradeSettings:
 class GcpContainerAutoprovisioningNodePoolDefaults:
     kind: ClassVar[str] = "gcp_container_autoprovisioning_node_pool_defaults"
     kind_display: ClassVar[str] = "GCP Container Autoprovisioning Node Pool Defaults"
-    kind_description: ClassVar[str] = "Autoprovisioning Node Pool Defaults is a feature of Google Cloud Platform (GCP) Container Engine that automatically creates and manages additional node pools based on workload demands."
+    kind_description: ClassVar[str] = (
+        "Autoprovisioning Node Pool Defaults is a feature of Google Cloud Platform"
+        " (GCP) Container Engine that automatically creates and manages additional"
+        " node pools based on workload demands."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "boot_disk_kms_key": S("bootDiskKmsKey"),
         "disk_size_gb": S("diskSizeGb"),
@@ -183,7 +223,12 @@ class GcpContainerAutoprovisioningNodePoolDefaults:
 class GcpContainerResourceLimit:
     kind: ClassVar[str] = "gcp_container_resource_limit"
     kind_display: ClassVar[str] = "GCP Container Resource Limit"
-    kind_description: ClassVar[str] = "Container Resource Limit in Google Cloud Platform (GCP) is a feature that allows you to set resource constraints on containers, such as CPU and memory limits, to ensure efficient resource allocation and prevent resource starvation."
+    kind_description: ClassVar[str] = (
+        "Container Resource Limit in Google Cloud Platform (GCP) is a feature that"
+        " allows you to set resource constraints on containers, such as CPU and memory"
+        " limits, to ensure efficient resource allocation and prevent resource"
+        " starvation."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "maximum": S("maximum"),
         "minimum": S("minimum"),
@@ -198,7 +243,11 @@ class GcpContainerResourceLimit:
 class GcpContainerClusterAutoscaling:
     kind: ClassVar[str] = "gcp_container_cluster_autoscaling"
     kind_display: ClassVar[str] = "GCP Container Cluster Autoscaling"
-    kind_description: ClassVar[str] = "Container Cluster Autoscaling is a feature in Google Cloud Platform (GCP) that dynamically adjusts the number of nodes in a container cluster based on application demand and resource utilization."
+    kind_description: ClassVar[str] = (
+        "Container Cluster Autoscaling is a feature in Google Cloud Platform (GCP)"
+        " that dynamically adjusts the number of nodes in a container cluster based on"
+        " application demand and resource utilization."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "autoprovisioning_locations": S("autoprovisioningLocations", default=[]),
         "autoprovisioning_node_pool_defaults": S("autoprovisioningNodePoolDefaults", default={})
@@ -218,7 +267,11 @@ class GcpContainerClusterAutoscaling:
 class GcpContainerBinaryAuthorization:
     kind: ClassVar[str] = "gcp_container_binary_authorization"
     kind_display: ClassVar[str] = "GCP Container Binary Authorization"
-    kind_description: ClassVar[str] = "GCP Container Binary Authorization is a service that ensures only trusted container images are deployed in your Google Cloud environment, helping to prevent unauthorized or vulnerable images from running in production."
+    kind_description: ClassVar[str] = (
+        "GCP Container Binary Authorization is a service that ensures only trusted"
+        " container images are deployed in your Google Cloud environment, helping to"
+        " prevent unauthorized or vulnerable images from running in production."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "evaluation_mode": S("evaluationMode")}
     enabled: Optional[bool] = field(default=None)
     evaluation_mode: Optional[str] = field(default=None)
@@ -228,7 +281,10 @@ class GcpContainerBinaryAuthorization:
 class GcpContainerStatusCondition:
     kind: ClassVar[str] = "gcp_container_status_condition"
     kind_display: ClassVar[str] = "GCP Container Status Condition"
-    kind_description: ClassVar[str] = "Container Status Condition represents the current status condition of a container in the Google Cloud Platform Container Registry."
+    kind_description: ClassVar[str] = (
+        "Container Status Condition represents the current status condition of a"
+        " container in the Google Cloud Platform Container Registry."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "canonical_code": S("canonicalCode"),
         "code": S("code"),
@@ -243,7 +299,11 @@ class GcpContainerStatusCondition:
 class GcpContainerDatabaseEncryption:
     kind: ClassVar[str] = "gcp_container_database_encryption"
     kind_display: ClassVar[str] = "GCP Container Database Encryption"
-    kind_description: ClassVar[str] = "GCP Container Database Encryption provides enhanced security by encrypting the data stored in containers, ensuring the confidentiality and integrity of the data at rest."
+    kind_description: ClassVar[str] = (
+        "GCP Container Database Encryption provides enhanced security by encrypting"
+        " the data stored in containers, ensuring the confidentiality and integrity of"
+        " the data at rest."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key_name": S("keyName"), "state": S("state")}
     key_name: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
@@ -253,7 +313,11 @@ class GcpContainerDatabaseEncryption:
 class GcpContainerIPAllocationPolicy:
     kind: ClassVar[str] = "gcp_container_ip_allocation_policy"
     kind_display: ClassVar[str] = "GCP Container IP Allocation Policy"
-    kind_description: ClassVar[str] = "Container IP Allocation Policy is a feature in Google Cloud Platform that allows users to define and manage the IP address allocation policy for containers in a Kubernetes cluster."
+    kind_description: ClassVar[str] = (
+        "Container IP Allocation Policy is a feature in Google Cloud Platform that"
+        " allows users to define and manage the IP address allocation policy for"
+        " containers in a Kubernetes cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cluster_ipv4_cidr": S("clusterIpv4Cidr"),
         "cluster_ipv4_cidr_block": S("clusterIpv4CidrBlock"),
@@ -292,7 +356,10 @@ class GcpContainerIPAllocationPolicy:
 class GcpContainerLoggingComponentConfig:
     kind: ClassVar[str] = "gcp_container_logging_component_config"
     kind_display: ClassVar[str] = "GCP Container Logging Component Config"
-    kind_description: ClassVar[str] = "Container Logging Component Config is a configuration setting for logging containers in the Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "Container Logging Component Config is a configuration setting for logging"
+        " containers in the Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable_components": S("enableComponents", default=[])}
     enable_components: Optional[List[str]] = field(default=None)
 
@@ -301,7 +368,11 @@ class GcpContainerLoggingComponentConfig:
 class GcpContainerLoggingConfig:
     kind: ClassVar[str] = "gcp_container_logging_config"
     kind_display: ClassVar[str] = "GCP Container Logging Config"
-    kind_description: ClassVar[str] = "Container Logging Config is a feature in Google Cloud Platform (GCP) that allows users to configure and manage logging for their containerized applications running on GCP's Kubernetes Engine clusters."
+    kind_description: ClassVar[str] = (
+        "Container Logging Config is a feature in Google Cloud Platform (GCP) that"
+        " allows users to configure and manage logging for their containerized"
+        " applications running on GCP's Kubernetes Engine clusters."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "component_config": S("componentConfig", default={}) >> Bend(GcpContainerLoggingComponentConfig.mapping)
     }
@@ -312,7 +383,11 @@ class GcpContainerLoggingConfig:
 class GcpContainerDailyMaintenanceWindow:
     kind: ClassVar[str] = "gcp_container_daily_maintenance_window"
     kind_display: ClassVar[str] = "GCP Container Daily Maintenance Window"
-    kind_description: ClassVar[str] = "This resource represents the daily maintenance window for Google Cloud Platform (GCP) containers, during which routine maintenance activities can take place."
+    kind_description: ClassVar[str] = (
+        "This resource represents the daily maintenance window for Google Cloud"
+        " Platform (GCP) containers, during which routine maintenance activities can"
+        " take place."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"duration": S("duration"), "start_time": S("startTime")}
     duration: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
@@ -322,7 +397,10 @@ class GcpContainerDailyMaintenanceWindow:
 class GcpContainerTimeWindow:
     kind: ClassVar[str] = "gcp_container_time_window"
     kind_display: ClassVar[str] = "GCP Container Time Window"
-    kind_description: ClassVar[str] = "A time window feature in GCP that allows users to specify the period of time during which their containers are allowed to run."
+    kind_description: ClassVar[str] = (
+        "A time window feature in GCP that allows users to specify the period of time"
+        " during which their containers are allowed to run."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "end_time": S("endTime"),
         "maintenance_exclusion_options": S("maintenanceExclusionOptions", "scope"),
@@ -337,7 +415,10 @@ class GcpContainerTimeWindow:
 class GcpContainerRecurringTimeWindow:
     kind: ClassVar[str] = "gcp_container_recurring_time_window"
     kind_display: ClassVar[str] = "GCP Container Recurring Time Window"
-    kind_description: ClassVar[str] = "A recurring time window in Google Cloud Platform's container environment, used for scheduling recurring tasks or events."
+    kind_description: ClassVar[str] = (
+        "A recurring time window in Google Cloud Platform's container environment,"
+        " used for scheduling recurring tasks or events."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "recurrence": S("recurrence"),
         "window": S("window", default={}) >> Bend(GcpContainerTimeWindow.mapping),
@@ -350,7 +431,11 @@ class GcpContainerRecurringTimeWindow:
 class GcpContainerMaintenanceWindow:
     kind: ClassVar[str] = "gcp_container_maintenance_window"
     kind_display: ClassVar[str] = "GCP Container Maintenance Window"
-    kind_description: ClassVar[str] = "A maintenance window is a designated time period during which planned maintenance can be performed on Google Cloud Platform (GCP) containers without impacting the availability of the services."
+    kind_description: ClassVar[str] = (
+        "A maintenance window is a designated time period during which planned"
+        " maintenance can be performed on Google Cloud Platform (GCP) containers"
+        " without impacting the availability of the services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "daily_maintenance_window": S("dailyMaintenanceWindow", default={})
         >> Bend(GcpContainerDailyMaintenanceWindow.mapping),
@@ -367,7 +452,11 @@ class GcpContainerMaintenanceWindow:
 class GcpContainerMaintenancePolicy:
     kind: ClassVar[str] = "gcp_container_maintenance_policy"
     kind_display: ClassVar[str] = "GCP Container Maintenance Policy"
-    kind_description: ClassVar[str] = "GCP Container Maintenance Policy is a feature in Google Cloud Platform that allows users to define how their container clusters will be updated and maintained by specifying maintenance windows and auto-upgrade settings."
+    kind_description: ClassVar[str] = (
+        "GCP Container Maintenance Policy is a feature in Google Cloud Platform that"
+        " allows users to define how their container clusters will be updated and"
+        " maintained by specifying maintenance windows and auto-upgrade settings."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "resource_version": S("resourceVersion"),
         "window": S("window", default={}) >> Bend(GcpContainerMaintenanceWindow.mapping),
@@ -380,7 +469,12 @@ class GcpContainerMaintenancePolicy:
 class GcpContainerMasterAuth:
     kind: ClassVar[str] = "gcp_container_master_auth"
     kind_display: ClassVar[str] = "GCP Container Cluster Master Authentication"
-    kind_description: ClassVar[str] = "GCP Container Cluster Master Authentication provides secure access and authentication to the master controller of a Google Cloud Platform (GCP) container cluster, allowing users to manage and control their container cluster resources."
+    kind_description: ClassVar[str] = (
+        "GCP Container Cluster Master Authentication provides secure access and"
+        " authentication to the master controller of a Google Cloud Platform (GCP)"
+        " container cluster, allowing users to manage and control their container"
+        " cluster resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "client_certificate": S("clientCertificate"),
         "client_certificate_config": S("clientCertificateConfig", "issueClientCertificate"),
@@ -401,7 +495,10 @@ class GcpContainerMasterAuth:
 class GcpContainerCidrBlock:
     kind: ClassVar[str] = "gcp_container_cidr_block"
     kind_display: ClassVar[str] = "GCP Container CIDR Block"
-    kind_description: ClassVar[str] = "GCP Container CIDR Block is a range of IP addresses that can be used for the pods within a Google Cloud Platform (GCP) container cluster."
+    kind_description: ClassVar[str] = (
+        "GCP Container CIDR Block is a range of IP addresses that can be used for the"
+        " pods within a Google Cloud Platform (GCP) container cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"cidr_block": S("cidrBlock"), "display_name": S("displayName")}
     cidr_block: Optional[str] = field(default=None)
     display_name: Optional[str] = field(default=None)
@@ -411,7 +508,11 @@ class GcpContainerCidrBlock:
 class GcpContainerMasterAuthorizedNetworksConfig:
     kind: ClassVar[str] = "gcp_container_master_authorized_networks_config"
     kind_display: ClassVar[str] = "GCP Container Master Authorized Networks Configuration"
-    kind_description: ClassVar[str] = "Container Master Authorized Networks Configuration allows you to configure the IP address ranges that have access to the Kubernetes master of a Google Cloud Platform (GCP) container."
+    kind_description: ClassVar[str] = (
+        "Container Master Authorized Networks Configuration allows you to configure"
+        " the IP address ranges that have access to the Kubernetes master of a Google"
+        " Cloud Platform (GCP) container."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cidr_blocks": S("cidrBlocks", default=[]) >> ForallBend(GcpContainerCidrBlock.mapping),
         "enabled": S("enabled"),
@@ -424,7 +525,11 @@ class GcpContainerMasterAuthorizedNetworksConfig:
 class GcpContainerMonitoringComponentConfig:
     kind: ClassVar[str] = "gcp_container_monitoring_component_config"
     kind_display: ClassVar[str] = "GCP Container Monitoring Component Config"
-    kind_description: ClassVar[str] = "GCP Container Monitoring Component Config is a configuration component used for monitoring containers in the Google Cloud Platform. It allows users to configure various settings and parameters for container monitoring."
+    kind_description: ClassVar[str] = (
+        "GCP Container Monitoring Component Config is a configuration component used"
+        " for monitoring containers in the Google Cloud Platform. It allows users to"
+        " configure various settings and parameters for container monitoring."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable_components": S("enableComponents", default=[])}
     enable_components: Optional[List[str]] = field(default=None)
 
@@ -433,7 +538,11 @@ class GcpContainerMonitoringComponentConfig:
 class GcpContainerMonitoringConfig:
     kind: ClassVar[str] = "gcp_container_monitoring_config"
     kind_display: ClassVar[str] = "GCP Container Monitoring Config"
-    kind_description: ClassVar[str] = "GCP Container Monitoring Config is a feature provided by Google Cloud Platform that allows users to configure and monitor the containers running on their cloud infrastructure."
+    kind_description: ClassVar[str] = (
+        "GCP Container Monitoring Config is a feature provided by Google Cloud"
+        " Platform that allows users to configure and monitor the containers running"
+        " on their cloud infrastructure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "component_config": S("componentConfig", default={}) >> Bend(GcpContainerMonitoringComponentConfig.mapping),
         "managed_prometheus_config": S("managedPrometheusConfig", "enabled"),
@@ -446,7 +555,11 @@ class GcpContainerMonitoringConfig:
 class GcpContainerDNSConfig:
     kind: ClassVar[str] = "gcp_container_dns_config"
     kind_display: ClassVar[str] = "GCP Container DNS Config"
-    kind_description: ClassVar[str] = "Container DNS Config is a feature in Google Cloud Platform that allows users to configure DNS settings for containers running in Google Kubernetes Engine (GKE)."
+    kind_description: ClassVar[str] = (
+        "Container DNS Config is a feature in Google Cloud Platform that allows users"
+        " to configure DNS settings for containers running in Google Kubernetes Engine"
+        " (GKE)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cluster_dns": S("clusterDns"),
         "cluster_dns_domain": S("clusterDnsDomain"),
@@ -461,7 +574,12 @@ class GcpContainerDNSConfig:
 class GcpContainerNetworkConfig:
     kind: ClassVar[str] = "gcp_container_network_config"
     kind_display: ClassVar[str] = "GCP Container Network Config"
-    kind_description: ClassVar[str] = "Container Network Config is a feature provided by Google Cloud Platform that allows users to configure network settings for their containerized applications running in Google Kubernetes Engine (GKE), such as IP addresses, subnets, and network policies."
+    kind_description: ClassVar[str] = (
+        "Container Network Config is a feature provided by Google Cloud Platform that"
+        " allows users to configure network settings for their containerized"
+        " applications running in Google Kubernetes Engine (GKE), such as IP"
+        " addresses, subnets, and network policies."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "datapath_provider": S("datapathProvider"),
         "default_snat_status": S("defaultSnatStatus", "disabled"),
@@ -488,7 +606,11 @@ class GcpContainerNetworkConfig:
 class GcpContainerNetworkPolicy:
     kind: ClassVar[str] = "gcp_container_network_policy"
     kind_display: ClassVar[str] = "GCP Container Network Policy"
-    kind_description: ClassVar[str] = "GCP Container Network Policy is a resource in Google Cloud Platform that allows users to control network traffic between containers within a Kubernetes Engine cluster."
+    kind_description: ClassVar[str] = (
+        "GCP Container Network Policy is a resource in Google Cloud Platform that"
+        " allows users to control network traffic between containers within a"
+        " Kubernetes Engine cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "provider": S("provider")}
     enabled: Optional[bool] = field(default=None)
     provider: Optional[str] = field(default=None)
@@ -498,7 +620,11 @@ class GcpContainerNetworkPolicy:
 class GcpContainerGPUSharingConfig:
     kind: ClassVar[str] = "gcp_container_gpu_sharing_config"
     kind_display: ClassVar[str] = "GCP Container GPU Sharing Config"
-    kind_description: ClassVar[str] = "This resource allows the sharing of GPUs (Graphics Processing Units) between containers in Google Cloud Platform (GCP) containers, enabling efficient utilization of GPU resources."
+    kind_description: ClassVar[str] = (
+        "This resource allows the sharing of GPUs (Graphics Processing Units) between"
+        " containers in Google Cloud Platform (GCP) containers, enabling efficient"
+        " utilization of GPU resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "gpu_sharing_strategy": S("gpuSharingStrategy"),
         "max_shared_clients_per_gpu": S("maxSharedClientsPerGpu"),
@@ -511,7 +637,11 @@ class GcpContainerGPUSharingConfig:
 class GcpContainerAcceleratorConfig:
     kind: ClassVar[str] = "gcp_container_accelerator_config"
     kind_display: ClassVar[str] = "GCP Container Accelerator Config"
-    kind_description: ClassVar[str] = "Container Accelerator Config is a feature in Google Cloud Platform that allows you to attach GPUs (Graphical Processing Units) to your containers, enabling faster and more efficient workload processing."
+    kind_description: ClassVar[str] = (
+        "Container Accelerator Config is a feature in Google Cloud Platform that"
+        " allows you to attach GPUs (Graphical Processing Units) to your containers,"
+        " enabling faster and more efficient workload processing."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "accelerator_count": S("acceleratorCount"),
         "accelerator_type": S("acceleratorType"),
@@ -528,7 +658,12 @@ class GcpContainerAcceleratorConfig:
 class GcpContainerNodeKubeletConfig:
     kind: ClassVar[str] = "gcp_container_node_kubelet_config"
     kind_display: ClassVar[str] = "GCP Container Node Kubelet Config"
-    kind_description: ClassVar[str] = "The GCP Container Node Kubelet Config is a configuration file used by Google Cloud Platform (GCP) to configure the Kubelet component of container nodes in a Kubernetes cluster. Kubelet is responsible for managing the state of each container running on the node."
+    kind_description: ClassVar[str] = (
+        "The GCP Container Node Kubelet Config is a configuration file used by Google"
+        " Cloud Platform (GCP) to configure the Kubelet component of container nodes"
+        " in a Kubernetes cluster. Kubelet is responsible for managing the state of"
+        " each container running on the node."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cpu_cfs_quota": S("cpuCfsQuota"),
         "cpu_cfs_quota_period": S("cpuCfsQuotaPeriod"),
@@ -545,7 +680,11 @@ class GcpContainerNodeKubeletConfig:
 class GcpContainerLinuxNodeConfig:
     kind: ClassVar[str] = "gcp_container_linux_node_config"
     kind_display: ClassVar[str] = "GCP Container Linux Node Config"
-    kind_description: ClassVar[str] = "GCP Container Linux Node Config is a configuration for Linux nodes in Google Cloud Platform's container service, allowing users to define the settings and behavior for their Linux-based container nodes."
+    kind_description: ClassVar[str] = (
+        "GCP Container Linux Node Config is a configuration for Linux nodes in Google"
+        " Cloud Platform's container service, allowing users to define the settings"
+        " and behavior for their Linux-based container nodes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"sysctls": S("sysctls")}
     sysctls: Optional[Dict[str, str]] = field(default=None)
 
@@ -554,7 +693,11 @@ class GcpContainerLinuxNodeConfig:
 class GcpContainerNodePoolLoggingConfig:
     kind: ClassVar[str] = "gcp_container_node_pool_logging_config"
     kind_display: ClassVar[str] = "GCP Container Node Pool Logging Config"
-    kind_description: ClassVar[str] = "Container Node Pool Logging Config is a configuration setting in Google Cloud Platform (GCP) for specifying logging options for container node pools in Kubernetes clusters."
+    kind_description: ClassVar[str] = (
+        "Container Node Pool Logging Config is a configuration setting in Google"
+        " Cloud Platform (GCP) for specifying logging options for container node pools"
+        " in Kubernetes clusters."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"variant_config": S("variantConfig", "variant")}
     variant_config: Optional[str] = field(default=None)
 
@@ -563,7 +706,11 @@ class GcpContainerNodePoolLoggingConfig:
 class GcpContainerReservationAffinity:
     kind: ClassVar[str] = "gcp_container_reservation_affinity"
     kind_display: ClassVar[str] = "GCP Container Reservation Affinity"
-    kind_description: ClassVar[str] = "Container Reservation Affinity is a feature in Google Cloud Platform that allows you to reserve specific compute nodes for your container workloads, ensuring they are always scheduled on those nodes."
+    kind_description: ClassVar[str] = (
+        "Container Reservation Affinity is a feature in Google Cloud Platform that"
+        " allows you to reserve specific compute nodes for your container workloads,"
+        " ensuring they are always scheduled on those nodes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "consume_reservation_type": S("consumeReservationType"),
         "key": S("key"),
@@ -578,7 +725,11 @@ class GcpContainerReservationAffinity:
 class GcpContainerNodeTaint:
     kind: ClassVar[str] = "gcp_container_node_taint"
     kind_display: ClassVar[str] = "GCP Container Node Taint"
-    kind_description: ClassVar[str] = "Container Node Taints are a feature in Google Cloud Platform's container service that allow users to add constraints and preferences to nodes in a Kubernetes cluster."
+    kind_description: ClassVar[str] = (
+        "Container Node Taints are a feature in Google Cloud Platform's container"
+        " service that allow users to add constraints and preferences to nodes in a"
+        " Kubernetes cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"effect": S("effect"), "key": S("key"), "value": S("value")}
     effect: Optional[str] = field(default=None)
     key: Optional[str] = field(default=None)
@@ -589,7 +740,11 @@ class GcpContainerNodeTaint:
 class GcpContainerNodeConfig:
     kind: ClassVar[str] = "gcp_container_node_config"
     kind_display: ClassVar[str] = "GCP Container Node Config"
-    kind_description: ClassVar[str] = "GCP Container Node Config is a configuration for a node in Google Cloud Platform's container service, allowing users to specify settings such as machine type, disk size, and network configuration for a container node."
+    kind_description: ClassVar[str] = (
+        "GCP Container Node Config is a configuration for a node in Google Cloud"
+        " Platform's container service, allowing users to specify settings such as"
+        " machine type, disk size, and network configuration for a container node."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "accelerators": S("accelerators", default=[]) >> ForallBend(GcpContainerAcceleratorConfig.mapping),
         "advanced_machine_features": S("advancedMachineFeatures", "threadsPerCore"),
@@ -655,7 +810,11 @@ class GcpContainerNodeConfig:
 class GcpContainerNetworkTags:
     kind: ClassVar[str] = "gcp_container_network_tags"
     kind_display: ClassVar[str] = "GCP Container Network Tags"
-    kind_description: ClassVar[str] = "GCP Container Network Tags are labels that can be assigned to GCP container instances, allowing for easier management and control of network traffic within Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP Container Network Tags are labels that can be assigned to GCP container"
+        " instances, allowing for easier management and control of network traffic"
+        " within Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"tags": S("tags", default=[])}
     tags: Optional[List[str]] = field(default=None)
 
@@ -664,7 +823,11 @@ class GcpContainerNetworkTags:
 class GcpContainerNodePoolAutoConfig:
     kind: ClassVar[str] = "gcp_container_node_pool_auto_config"
     kind_display: ClassVar[str] = "GCP Container Node Pool Auto Config"
-    kind_description: ClassVar[str] = "Auto Config is a feature in GCP (Google Cloud Platform) that allows automatic configuration of Container Node Pools, which are groups of nodes in a Kubernetes cluster that run containerized applications."
+    kind_description: ClassVar[str] = (
+        "Auto Config is a feature in GCP (Google Cloud Platform) that allows"
+        " automatic configuration of Container Node Pools, which are groups of nodes"
+        " in a Kubernetes cluster that run containerized applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_tags": S("networkTags", default={}) >> Bend(GcpContainerNetworkTags.mapping)
     }
@@ -675,7 +838,10 @@ class GcpContainerNodePoolAutoConfig:
 class GcpContainerNodeConfigDefaults:
     kind: ClassVar[str] = "gcp_container_node_config_defaults"
     kind_display: ClassVar[str] = "GCP Container Node Config Defaults"
-    kind_description: ClassVar[str] = "GCP Container Node Config Defaults represents the default configuration settings for nodes in a Google Cloud Platform container cluster."
+    kind_description: ClassVar[str] = (
+        "GCP Container Node Config Defaults represents the default configuration"
+        " settings for nodes in a Google Cloud Platform container cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "gcfs_config": S("gcfsConfig", "enabled"),
         "logging_config": S("loggingConfig", default={}) >> Bend(GcpContainerNodePoolLoggingConfig.mapping),
@@ -688,7 +854,11 @@ class GcpContainerNodeConfigDefaults:
 class GcpContainerNodePoolDefaults:
     kind: ClassVar[str] = "gcp_container_node_pool_defaults"
     kind_display: ClassVar[str] = "GCP Container Node Pool Defaults"
-    kind_description: ClassVar[str] = "GCP Container Node Pool Defaults is a feature in Google Cloud Platform that allows users to set default configurations for their container node pools, which are groups of nodes that host containerized applications."
+    kind_description: ClassVar[str] = (
+        "GCP Container Node Pool Defaults is a feature in Google Cloud Platform that"
+        " allows users to set default configurations for their container node pools,"
+        " which are groups of nodes that host containerized applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_config_defaults": S("nodeConfigDefaults", default={}) >> Bend(GcpContainerNodeConfigDefaults.mapping)
     }
@@ -699,7 +869,11 @@ class GcpContainerNodePoolDefaults:
 class GcpContainerNodePoolAutoscaling:
     kind: ClassVar[str] = "gcp_container_node_pool_autoscaling"
     kind_display: ClassVar[str] = "GCP Container Node Pool Autoscaling"
-    kind_description: ClassVar[str] = "Container Node Pool Autoscaling is a feature in Google Cloud Platform that automatically adjusts the number of nodes in a container cluster based on demand, ensuring optimal resource utilization and scalability."
+    kind_description: ClassVar[str] = (
+        "Container Node Pool Autoscaling is a feature in Google Cloud Platform that"
+        " automatically adjusts the number of nodes in a container cluster based on"
+        " demand, ensuring optimal resource utilization and scalability."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "autoprovisioned": S("autoprovisioned"),
         "enabled": S("enabled"),
@@ -722,7 +896,11 @@ class GcpContainerNodePoolAutoscaling:
 class GcpContainerNodeNetworkConfig:
     kind: ClassVar[str] = "gcp_container_node_network_config"
     kind_display: ClassVar[str] = "GCP Container Node Network Config"
-    kind_description: ClassVar[str] = "GCP Container Node Network Config is a network configuration for nodes in Google Cloud Platform's container service. It defines the network settings for containers running on the nodes."
+    kind_description: ClassVar[str] = (
+        "GCP Container Node Network Config is a network configuration for nodes in"
+        " Google Cloud Platform's container service. It defines the network settings"
+        " for containers running on the nodes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "create_pod_range": S("createPodRange"),
         "network_performance_config": S("networkPerformanceConfig", "totalEgressBandwidthTier"),
@@ -739,7 +917,11 @@ class GcpContainerNodeNetworkConfig:
 class GcpContainerBlueGreenInfo:
     kind: ClassVar[str] = "gcp_container_blue_green_info"
     kind_display: ClassVar[str] = "GCP Container Blue-Green Info"
-    kind_description: ClassVar[str] = "Blue-Green deployment strategy in Google Cloud Platform (GCP) container where two identical production environments, blue and green, are used to minimize downtime during software releases."
+    kind_description: ClassVar[str] = (
+        "Blue-Green deployment strategy in Google Cloud Platform (GCP) container"
+        " where two identical production environments, blue and green, are used to"
+        " minimize downtime during software releases."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "blue_instance_group_urls": S("blueInstanceGroupUrls", default=[]),
         "blue_pool_deletion_start_time": S("bluePoolDeletionStartTime"),
@@ -758,7 +940,11 @@ class GcpContainerBlueGreenInfo:
 class GcpContainerUpdateInfo:
     kind: ClassVar[str] = "gcp_container_update_info"
     kind_display: ClassVar[str] = "GCP Container Update Info"
-    kind_description: ClassVar[str] = "Container Update Info is a feature in Google Cloud Platform that provides information about updates and changes to container instances in a Google Kubernetes Engine cluster."
+    kind_description: ClassVar[str] = (
+        "Container Update Info is a feature in Google Cloud Platform that provides"
+        " information about updates and changes to container instances in a Google"
+        " Kubernetes Engine cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "blue_green_info": S("blueGreenInfo", default={}) >> Bend(GcpContainerBlueGreenInfo.mapping)
     }
@@ -769,7 +955,11 @@ class GcpContainerUpdateInfo:
 class GcpContainerNodePool:
     kind: ClassVar[str] = "gcp_container_node_pool"
     kind_display: ClassVar[str] = "GCP Container Node Pool"
-    kind_description: ClassVar[str] = "Container Node Pool is a resource in Google Cloud Platform that allows you to create and manage a pool of virtual machines to run your containerized applications in Google Kubernetes Engine."
+    kind_description: ClassVar[str] = (
+        "Container Node Pool is a resource in Google Cloud Platform that allows you"
+        " to create and manage a pool of virtual machines to run your containerized"
+        " applications in Google Kubernetes Engine."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "autoscaling": S("autoscaling", default={}) >> Bend(GcpContainerNodePoolAutoscaling.mapping),
         "conditions": S("conditions", default=[]) >> ForallBend(GcpContainerStatusCondition.mapping),
@@ -812,7 +1002,10 @@ class GcpContainerNodePool:
 class GcpContainerFilter:
     kind: ClassVar[str] = "gcp_container_filter"
     kind_display: ClassVar[str] = "GCP Container Filter"
-    kind_description: ClassVar[str] = "A GCP Container Filter is used to specify criteria for filtering containers in Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "A GCP Container Filter is used to specify criteria for filtering containers"
+        " in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"event_type": S("eventType", default=[])}
     event_type: Optional[List[str]] = field(default=None)
 
@@ -821,7 +1014,10 @@ class GcpContainerFilter:
 class GcpContainerPubSub:
     kind: ClassVar[str] = "gcp_container_pub_sub"
     kind_display: ClassVar[str] = "GCP Container Pub/Sub"
-    kind_description: ClassVar[str] = "GCP Container Pub/Sub is a messaging service provided by Google Cloud Platform for decoupling and scaling microservices and distributed systems."
+    kind_description: ClassVar[str] = (
+        "GCP Container Pub/Sub is a messaging service provided by Google Cloud"
+        " Platform for decoupling and scaling microservices and distributed systems."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
         "filter": S("filter", default={}) >> Bend(GcpContainerFilter.mapping),
@@ -836,7 +1032,10 @@ class GcpContainerPubSub:
 class GcpContainerNotificationConfig:
     kind: ClassVar[str] = "gcp_container_notification_config"
     kind_display: ClassVar[str] = "GCP Container Notification Config"
-    kind_description: ClassVar[str] = "GCP Container Notification Config is a resource in Google Cloud Platform that allows users to configure notifications for container events."
+    kind_description: ClassVar[str] = (
+        "GCP Container Notification Config is a resource in Google Cloud Platform"
+        " that allows users to configure notifications for container events."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"pubsub": S("pubsub", default={}) >> Bend(GcpContainerPubSub.mapping)}
     pubsub: Optional[GcpContainerPubSub] = field(default=None)
 
@@ -845,7 +1044,12 @@ class GcpContainerNotificationConfig:
 class GcpContainerPrivateClusterConfig:
     kind: ClassVar[str] = "gcp_container_private_cluster_config"
     kind_display: ClassVar[str] = "GCP Container Private Cluster Config"
-    kind_description: ClassVar[str] = "Private cluster configuration option for running Kubernetes clusters in Google Cloud Platform (GCP) container engine. Private clusters offer enhanced security by isolating the cluster's control plane and worker nodes from the public internet."
+    kind_description: ClassVar[str] = (
+        "Private cluster configuration option for running Kubernetes clusters in"
+        " Google Cloud Platform (GCP) container engine. Private clusters offer"
+        " enhanced security by isolating the cluster's control plane and worker nodes"
+        " from the public internet."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_private_endpoint": S("enablePrivateEndpoint"),
         "enable_private_nodes": S("enablePrivateNodes"),
@@ -868,7 +1072,11 @@ class GcpContainerPrivateClusterConfig:
 class GcpContainerResourceUsageExportConfig:
     kind: ClassVar[str] = "gcp_container_resource_usage_export_config"
     kind_display: ClassVar[str] = "GCP Container Resource Usage Export Config"
-    kind_description: ClassVar[str] = "Container Resource Usage Export Config is a feature in Google Cloud Platform that allows exporting container resource usage data to external systems for analysis and monitoring purposes."
+    kind_description: ClassVar[str] = (
+        "Container Resource Usage Export Config is a feature in Google Cloud Platform"
+        " that allows exporting container resource usage data to external systems for"
+        " analysis and monitoring purposes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bigquery_destination": S("bigqueryDestination", "datasetId"),
         "consumption_metering_config": S("consumptionMeteringConfig", "enabled"),
@@ -883,7 +1091,11 @@ class GcpContainerResourceUsageExportConfig:
 class GcpContainerCluster(GcpResource):
     kind: ClassVar[str] = "gcp_container_cluster"
     kind_display: ClassVar[str] = "GCP Container Cluster"
-    kind_description: ClassVar[str] = "Container Cluster is a managed Kubernetes cluster service provided by Google Cloud Platform, which allows users to deploy, manage, and scale containerized applications using Kubernetes."
+    kind_description: ClassVar[str] = (
+        "Container Cluster is a managed Kubernetes cluster service provided by Google"
+        " Cloud Platform, which allows users to deploy, manage, and scale"
+        " containerized applications using Kubernetes."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="container",
         version="v1",
@@ -1031,7 +1243,10 @@ class GcpContainerCluster(GcpResource):
 class GcpContainerStatus:
     kind: ClassVar[str] = "gcp_container_status"
     kind_display: ClassVar[str] = "GCP Container Status"
-    kind_description: ClassVar[str] = "GCP Container Status provides information about the current status, health, and availability of containers running on Google Cloud Platform (GCP)."
+    kind_description: ClassVar[str] = (
+        "GCP Container Status provides information about the current status, health,"
+        " and availability of containers running on Google Cloud Platform (GCP)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
         "details": S("details", default=[]),
@@ -1046,7 +1261,11 @@ class GcpContainerStatus:
 class GcpContainerMetric:
     kind: ClassVar[str] = "gcp_container_metric"
     kind_display: ClassVar[str] = "GCP Container Metric"
-    kind_description: ClassVar[str] = "Container Metrics in Google Cloud Platform (GCP) are measurements of resource utilization and performance for containers running on GCP's managed Kubernetes Engine."
+    kind_description: ClassVar[str] = (
+        "Container Metrics in Google Cloud Platform (GCP) are measurements of"
+        " resource utilization and performance for containers running on GCP's managed"
+        " Kubernetes Engine."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "double_value": S("doubleValue"),
         "int_value": S("intValue"),
@@ -1063,7 +1282,12 @@ class GcpContainerMetric:
 class GcpContainerOperationProgress:
     kind: ClassVar[str] = "gcp_container_operation_progress"
     kind_display: ClassVar[str] = "GCP Container Operation Progress"
-    kind_description: ClassVar[str] = "GCP Container Operation Progress refers to the status and progress of an operation involving containers in Google Cloud Platform. It provides information on the current state and completion progress of container-related operations."
+    kind_description: ClassVar[str] = (
+        "GCP Container Operation Progress refers to the status and progress of an"
+        " operation involving containers in Google Cloud Platform. It provides"
+        " information on the current state and completion progress of container-"
+        " related operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "metrics": S("metrics", default=[]) >> ForallBend(GcpContainerMetric.mapping),
         "name": S("name"),
@@ -1078,7 +1302,11 @@ class GcpContainerOperationProgress:
 class GcpContainerOperation(GcpResource):
     kind: ClassVar[str] = "gcp_container_operation"
     kind_display: ClassVar[str] = "GCP Container Operation"
-    kind_description: ClassVar[str] = "Container Operations are management tasks performed on containers in Google Cloud Platform, including creating, starting, stopping, and deleting containers."
+    kind_description: ClassVar[str] = (
+        "Container Operations are management tasks performed on containers in Google"
+        " Cloud Platform, including creating, starting, stopping, and deleting"
+        " containers."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_container_cluster"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="container",

@@ -260,7 +260,11 @@ class GraphBuilder:
 class GcpResource(BaseResource):
     kind: ClassVar[str] = "gcp_resource"
     kind_display: ClassVar[str] = "GCP Resource"
-    kind_description: ClassVar[str] = "GCP Resource refers to any resource or service available on the Google Cloud Platform, such as virtual machines, databases, storage buckets, and networking components."
+    kind_description: ClassVar[str] = (
+        "GCP Resource refers to any resource or service available on the Google Cloud"
+        " Platform, such as virtual machines, databases, storage buckets, and"
+        " networking components."
+    )
     api_spec: ClassVar[Optional[GcpApiSpec]] = None
     mapping: ClassVar[Dict[str, Bender]] = {}
 
@@ -410,14 +414,21 @@ GcpResourceType = TypeVar("GcpResourceType", bound=GcpResource)
 class GcpProject(GcpResource, BaseAccount):
     kind: ClassVar[str] = "gcp_project"
     kind_display: ClassVar[str] = "GCP Project"
-    kind_description: ClassVar[str] = "A GCP Project is a container for resources in the Google Cloud Platform, allowing users to organize and manage their cloud resources."
+    kind_description: ClassVar[str] = (
+        "A GCP Project is a container for resources in the Google Cloud Platform,"
+        " allowing users to organize and manage their cloud resources."
+    )
 
 
 @define(eq=False, slots=False)
 class GcpDeprecationStatus:
     kind: ClassVar[str] = "gcp_deprecation_status"
     kind_display: ClassVar[str] = "GCP Deprecation Status"
-    kind_description: ClassVar[str] = "GCP Deprecation Status is a feature in Google Cloud Platform that provides information about the deprecation status of various resources and services, helping users stay updated on any upcoming changes or removals."
+    kind_description: ClassVar[str] = (
+        "GCP Deprecation Status is a feature in Google Cloud Platform that provides"
+        " information about the deprecation status of various resources and services,"
+        " helping users stay updated on any upcoming changes or removals."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "deleted": S("deleted"),
         "deprecated": S("deprecated"),
@@ -436,7 +447,12 @@ class GcpDeprecationStatus:
 class GcpLimit:
     kind: ClassVar[str] = "gcp_quota"
     kind_display: ClassVar[str] = "GCP Quota"
-    kind_description: ClassVar[str] = "Quota in GCP (Google Cloud Platform) represents the maximum limit of resources that can be used for a particular service, such as compute instances, storage, or API calls. It ensures resource availability and helps manage usage and costs."
+    kind_description: ClassVar[str] = (
+        "Quota in GCP (Google Cloud Platform) represents the maximum limit of"
+        " resources that can be used for a particular service, such as compute"
+        " instances, storage, or API calls. It ensures resource availability and helps"
+        " manage usage and costs."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "limit": S("limit"),
         "usage": S("usage"),
@@ -451,7 +467,11 @@ class GcpLimit:
 class GcpRegionQuota(GcpResource):
     kind: ClassVar[str] = "gcp_region_quota"
     kind_display: ClassVar[str] = "GCP Region Quota"
-    kind_description: ClassVar[str] = "Region Quota in GCP refers to the maximum limits of resources that can be provisioned in a specific region, such as compute instances, storage, or networking resources."
+    kind_description: ClassVar[str] = (
+        "Region Quota in GCP refers to the maximum limits of resources that can be"
+        " provisioned in a specific region, such as compute instances, storage, or"
+        " networking resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "name": S("name"),
@@ -468,7 +488,10 @@ class GcpRegionQuota(GcpResource):
 class GcpRegion(GcpResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
     kind_display: ClassVar[str] = "GCP Region"
-    kind_description: ClassVar[str] = "A GCP Region is a specific geographical location where Google Cloud Platform resources are deployed and run."
+    kind_description: ClassVar[str] = (
+        "A GCP Region is a specific geographical location where Google Cloud Platform"
+        " resources are deployed and run."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -515,7 +538,12 @@ class GcpRegion(GcpResource, BaseRegion):
 class GcpZone(GcpResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
     kind_display: ClassVar[str] = "GCP Zone"
-    kind_description: ClassVar[str] = "A GCP Zone is a specific geographic location where Google Cloud Platform resources can be deployed. Zones are isolated from each other within a region, providing fault tolerance and high availability for applications and services."
+    kind_description: ClassVar[str] = (
+        "A GCP Zone is a specific geographic location where Google Cloud Platform"
+        " resources can be deployed. Zones are isolated from each other within a"
+        " region, providing fault tolerance and high availability for applications and"
+        " services."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",

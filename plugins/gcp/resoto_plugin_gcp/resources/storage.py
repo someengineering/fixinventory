@@ -13,7 +13,11 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend
 class GcpProjectteam:
     kind: ClassVar[str] = "gcp_projectteam"
     kind_display: ClassVar[str] = "GCP Project Team"
-    kind_description: ClassVar[str] = "GCP Project Teams are groups of users who work together on a Google Cloud Platform project, allowing them to collaborate and manage resources within the project."
+    kind_description: ClassVar[str] = (
+        "GCP Project Teams are groups of users who work together on a Google Cloud"
+        " Platform project, allowing them to collaborate and manage resources within"
+        " the project."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"project_number": S("projectNumber"), "team": S("team")}
     project_number: Optional[str] = field(default=None)
     team: Optional[str] = field(default=None)
@@ -23,7 +27,12 @@ class GcpProjectteam:
 class GcpBucketAccessControl:
     kind: ClassVar[str] = "gcp_bucket_access_control"
     kind_display: ClassVar[str] = "GCP Bucket Access Control"
-    kind_description: ClassVar[str] = "Bucket Access Control is a feature in the Google Cloud Platform that allows you to manage and control access to your storage buckets. It provides fine-grained access control, allowing you to specify who can read, write, or delete objects within a bucket."
+    kind_description: ClassVar[str] = (
+        "Bucket Access Control is a feature in the Google Cloud Platform that allows"
+        " you to manage and control access to your storage buckets. It provides fine-"
+        " grained access control, allowing you to specify who can read, write, or"
+        " delete objects within a bucket."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -56,7 +65,11 @@ class GcpBucketAccessControl:
 class GcpAutoclass:
     kind: ClassVar[str] = "gcp_autoclass"
     kind_display: ClassVar[str] = "GCP AutoML AutoClass"
-    kind_description: ClassVar[str] = "GCP AutoML AutoClass is a machine learning service provided by Google Cloud Platform that automates the classification of data into different categories."
+    kind_description: ClassVar[str] = (
+        "GCP AutoML AutoClass is a machine learning service provided by Google Cloud"
+        " Platform that automates the classification of data into different"
+        " categories."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime")}
     enabled: Optional[bool] = field(default=None)
     toggle_time: Optional[datetime] = field(default=None)
@@ -66,7 +79,11 @@ class GcpAutoclass:
 class GcpCors:
     kind: ClassVar[str] = "gcp_cors"
     kind_display: ClassVar[str] = "GCP CORS"
-    kind_description: ClassVar[str] = "Cross-Origin Resource Sharing (CORS) in Google Cloud Platform allows web applications running on different domains to make requests to resources in a more secure manner."
+    kind_description: ClassVar[str] = (
+        "Cross-Origin Resource Sharing (CORS) in Google Cloud Platform allows web"
+        " applications running on different domains to make requests to resources in a"
+        " more secure manner."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_age_seconds": S("maxAgeSeconds"),
         "method": S("method", default=[]),
@@ -83,7 +100,11 @@ class GcpCors:
 class GcpObjectAccessControl:
     kind: ClassVar[str] = "gcp_object_access_control"
     kind_display: ClassVar[str] = "GCP Object Access Control"
-    kind_description: ClassVar[str] = "GCP Object Access Control is a feature in Google Cloud Platform that allows users to control access to their storage objects (such as files, images, videos) by specifying permissions and policies."
+    kind_description: ClassVar[str] = (
+        "GCP Object Access Control is a feature in Google Cloud Platform that allows"
+        " users to control access to their storage objects (such as files, images,"
+        " videos) by specifying permissions and policies."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bucket": S("bucket"),
         "domain": S("domain"),
@@ -116,7 +137,11 @@ class GcpObjectAccessControl:
 class GcpBucketpolicyonly:
     kind: ClassVar[str] = "gcp_bucketpolicyonly"
     kind_display: ClassVar[str] = "GCP Bucket Policy Only"
-    kind_description: ClassVar[str] = "GCP Bucket Policy Only is a feature in Google Cloud Platform that enforces the use of IAM policies for bucket access control and disables any ACL-based access control."
+    kind_description: ClassVar[str] = (
+        "GCP Bucket Policy Only is a feature in Google Cloud Platform that enforces"
+        " the use of IAM policies for bucket access control and disables any ACL-based"
+        " access control."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
     locked_time: Optional[datetime] = field(default=None)
@@ -126,7 +151,12 @@ class GcpBucketpolicyonly:
 class GcpUniformbucketlevelaccess:
     kind: ClassVar[str] = "gcp_uniformbucketlevelaccess"
     kind_display: ClassVar[str] = "GCP Uniform Bucket Level Access"
-    kind_description: ClassVar[str] = "Uniform bucket-level access is a feature in Google Cloud Platform that allows for fine-grained access control to Google Cloud Storage buckets. It provides more control and security for managing access to your storage buckets."
+    kind_description: ClassVar[str] = (
+        "Uniform bucket-level access is a feature in Google Cloud Platform that"
+        " allows for fine-grained access control to Google Cloud Storage buckets. It"
+        " provides more control and security for managing access to your storage"
+        " buckets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
     locked_time: Optional[datetime] = field(default=None)
@@ -136,7 +166,11 @@ class GcpUniformbucketlevelaccess:
 class GcpIamconfiguration:
     kind: ClassVar[str] = "gcp_iamconfiguration"
     kind_display: ClassVar[str] = "GCP IAM Configuration"
-    kind_description: ClassVar[str] = "IAM (Identity and Access Management) Configuration in Google Cloud Platform, which allows users to control access to their cloud resources and manage permissions for users and service accounts."
+    kind_description: ClassVar[str] = (
+        "IAM (Identity and Access Management) Configuration in Google Cloud Platform,"
+        " which allows users to control access to their cloud resources and manage"
+        " permissions for users and service accounts."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bucket_policy_only": S("bucketPolicyOnly", default={}) >> Bend(GcpBucketpolicyonly.mapping),
         "public_access_prevention": S("publicAccessPrevention"),
@@ -152,7 +186,11 @@ class GcpIamconfiguration:
 class GcpAction:
     kind: ClassVar[str] = "gcp_action"
     kind_display: ClassVar[str] = "GCP Action"
-    kind_description: ClassVar[str] = "GCP Action refers to a specific action or operation performed on resources in Google Cloud Platform (GCP), such as creating, deleting, or modifying cloud resources."
+    kind_description: ClassVar[str] = (
+        "GCP Action refers to a specific action or operation performed on resources"
+        " in Google Cloud Platform (GCP), such as creating, deleting, or modifying"
+        " cloud resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"storage_class": S("storageClass"), "type": S("type")}
     storage_class: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -162,7 +200,10 @@ class GcpAction:
 class GcpCondition:
     kind: ClassVar[str] = "gcp_condition"
     kind_display: ClassVar[str] = "GCP Condition"
-    kind_description: ClassVar[str] = "Conditions in Google Cloud Platform (GCP) are used to define rules and policies for resource usage and access control."
+    kind_description: ClassVar[str] = (
+        "Conditions in Google Cloud Platform (GCP) are used to define rules and"
+        " policies for resource usage and access control."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "age": S("age"),
         "created_before": S("createdBefore"),
@@ -195,7 +236,10 @@ class GcpCondition:
 class GcpRule:
     kind: ClassVar[str] = "gcp_rule"
     kind_display: ClassVar[str] = "GCP Rule"
-    kind_description: ClassVar[str] = "GCP Rules are a set of policies or conditions defined to govern the behavior of resources in the Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP Rules are a set of policies or conditions defined to govern the behavior"
+        " of resources in the Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action", default={}) >> Bend(GcpAction.mapping),
         "condition": S("condition", default={}) >> Bend(GcpCondition.mapping),
@@ -208,7 +252,11 @@ class GcpRule:
 class GcpLogging:
     kind: ClassVar[str] = "gcp_logging"
     kind_display: ClassVar[str] = "GCP Logging"
-    kind_description: ClassVar[str] = "GCP Logging is a service provided by Google Cloud Platform that allows users to collect, store, and analyze logs from various resources in their cloud environment."
+    kind_description: ClassVar[str] = (
+        "GCP Logging is a service provided by Google Cloud Platform that allows users"
+        " to collect, store, and analyze logs from various resources in their cloud"
+        " environment."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"log_bucket": S("logBucket"), "log_object_prefix": S("logObjectPrefix")}
     log_bucket: Optional[str] = field(default=None)
     log_object_prefix: Optional[str] = field(default=None)
@@ -218,7 +266,11 @@ class GcpLogging:
 class GcpOwner:
     kind: ClassVar[str] = "gcp_owner"
     kind_display: ClassVar[str] = "GCP Owner"
-    kind_description: ClassVar[str] = "GCP Owner refers to the owner of a Google Cloud Platform (GCP) resource or project, who has full control and access to manage and configure the resource or project."
+    kind_description: ClassVar[str] = (
+        "GCP Owner refers to the owner of a Google Cloud Platform (GCP) resource or"
+        " project, who has full control and access to manage and configure the"
+        " resource or project."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"entity": S("entity"), "entity_id": S("entityId")}
     entity: Optional[str] = field(default=None)
     entity_id: Optional[str] = field(default=None)
@@ -228,7 +280,11 @@ class GcpOwner:
 class GcpRetentionpolicy:
     kind: ClassVar[str] = "gcp_retentionpolicy"
     kind_display: ClassVar[str] = "GCP Retention Policy"
-    kind_description: ClassVar[str] = "GCP Retention Policy is a feature in Google Cloud Platform that allows users to set and manage rules for data retention, specifying how long data should be kept before it is automatically deleted."
+    kind_description: ClassVar[str] = (
+        "GCP Retention Policy is a feature in Google Cloud Platform that allows users"
+        " to set and manage rules for data retention, specifying how long data should"
+        " be kept before it is automatically deleted."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "effective_time": S("effectiveTime"),
         "is_locked": S("isLocked"),
@@ -243,7 +299,11 @@ class GcpRetentionpolicy:
 class GcpWebsite:
     kind: ClassVar[str] = "gcp_website"
     kind_display: ClassVar[str] = "GCP Website"
-    kind_description: ClassVar[str] = "GCP Website refers to the official website of Google Cloud Platform where users can access information, documentation, and resources related to Google's cloud services and products."
+    kind_description: ClassVar[str] = (
+        "GCP Website refers to the official website of Google Cloud Platform where"
+        " users can access information, documentation, and resources related to"
+        " Google's cloud services and products."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "main_page_suffix": S("mainPageSuffix"),
         "not_found_page": S("notFoundPage"),
@@ -258,7 +318,11 @@ class GcpObject(GcpResource):
     # they are not intended to be collected and stored in the graph
     kind: ClassVar[str] = "gcp_object"
     kind_display: ClassVar[str] = "GCP Object"
-    kind_description: ClassVar[str] = "GCP Object is a generic term referring to any type of object stored in Google Cloud Platform. It can include files, images, documents, or any other digital asset."
+    kind_description: ClassVar[str] = (
+        "GCP Object is a generic term referring to any type of object stored in"
+        " Google Cloud Platform. It can include files, images, documents, or any other"
+        " digital asset."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="storage",
         version="v1",
@@ -279,7 +343,10 @@ class GcpObject(GcpResource):
 class GcpBucket(GcpResource):
     kind: ClassVar[str] = "gcp_bucket"
     kind_display: ClassVar[str] = "GCP Bucket"
-    kind_description: ClassVar[str] = "A GCP Bucket is a cloud storage container provided by Google Cloud Platform, allowing users to store and access data in a scalable and durable manner."
+    kind_description: ClassVar[str] = (
+        "A GCP Bucket is a cloud storage container provided by Google Cloud Platform,"
+        " allowing users to store and access data in a scalable and durable manner."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="storage",
         version="v1",
