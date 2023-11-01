@@ -11,6 +11,8 @@ from resotolib.baseresources import (
 @define(eq=False, slots=False)
 class DockerHubResource:
     kind: ClassVar[str] = "dockerhub_resource"
+    kind_display: ClassVar[str] = "DockerHub Resource"
+    kind_description: ClassVar[str] = "A DockerHub Resource."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -25,6 +27,8 @@ class DockerHubResource:
 @define(eq=False, slots=False)
 class DockerHubNamespace(DockerHubResource, BaseAccount):
     kind: ClassVar[str] = "dockerhub_namespace"
+    kind_display: ClassVar[str] = "DockerHub Namespace"
+    kind_description: ClassVar[str] = "A DockerHub Namespace."
 
     count: Optional[int] = None
 
@@ -32,6 +36,8 @@ class DockerHubNamespace(DockerHubResource, BaseAccount):
 @define(eq=False, slots=False)
 class DockerHubRepository(DockerHubResource, BaseResource):
     kind: ClassVar[str] = "dockerhub_repository"
+    kind_display: ClassVar[str] = "DockerHub Repository"
+    kind_description: ClassVar[str] = "A DockerHub Repository."
 
     repository_type: Optional[str] = None
     is_private: Optional[bool] = None
