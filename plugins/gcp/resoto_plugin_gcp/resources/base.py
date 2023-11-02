@@ -5,7 +5,7 @@ import logging
 from concurrent.futures import Future
 from threading import Lock
 from types import TracebackType
-from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set
+from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set, Tuple
 
 from attr import define, field
 from google.auth.credentials import Credentials as GoogleAuthCredentials
@@ -266,6 +266,11 @@ class GcpResource(BaseResource):
     deprecation_status: Optional[GcpDeprecationStatus] = None
     link: Optional[str] = None
     label_fingerprint: Optional[str] = None
+
+    def _keys(self) -> Tuple[Any, ...]:
+        if self.link is not None:
+            return tuple(list(super()._keys()) + [self.link])
+        return super()._keys()
 
     def delete(self, graph: Graph) -> bool:
         if not self.api_spec:

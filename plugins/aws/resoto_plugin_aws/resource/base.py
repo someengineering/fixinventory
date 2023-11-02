@@ -5,7 +5,7 @@ from abc import ABC
 from concurrent.futures import Future
 from datetime import datetime, timezone, timedelta
 from functools import lru_cache
-from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar, Tuple
 from math import ceil
 
 from attr import evolve
@@ -106,6 +106,11 @@ class AwsResource(BaseResource, ABC):
 
     # The AWS specific identifier of the resource. Not available for all resources.
     arn: Optional[str] = None
+
+    def _keys(self) -> Tuple[Any, ...]:
+        if self.arn is not None:
+            return tuple(list(super()._keys()) + [self.arn])
+        return super()._keys()
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return False

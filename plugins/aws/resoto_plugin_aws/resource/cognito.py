@@ -1,5 +1,5 @@
 from attrs import define, field
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Tuple, Any
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.iam import AwsIamRole
@@ -91,6 +91,13 @@ class AwsCognitoUser(AwsResource, BaseUser):
     enabled: Optional[bool] = field(default=None)
     user_status: Optional[str] = field(default=None)
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
+    pool_name: Optional[str] = None
+
+    def _keys(self) -> Tuple[Any, ...]:
+        # in case different user pools include the same user: we add the pool name to the keys
+        if self.pool_name is not None:
+            return tuple(list(super()._keys()) + [self.pool_name])
+        return super()._keys()
 
     @classmethod
     def service_name(cls) -> str:
@@ -197,6 +204,7 @@ class AwsCognitoUserPool(AwsResource):
                 builder.submit_work(service_name, add_tags, pool_instance)
                 for user in builder.client.list(service_name, "list-users", "Users", UserPoolId=pool_instance.id):
                     if user_instance := AwsCognitoUser.from_api(user, builder):
+                        user_instance.pool_name = pool_instance.name
                         builder.add_node(user_instance, user)
                         builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
                 for group in builder.client.list(service_name, "list-groups", "Groups", UserPoolId=pool_instance.id):
