@@ -78,8 +78,8 @@ class AwsCognitoMFAOptionType:
     kind: ClassVar[str] = "aws_cognito_mfa_option_type"
     kind_display: ClassVar[str] = "AWS Cognito MFA Option Type"
     kind_description: ClassVar[str] = (
-        "MFA Option Type is a setting in AWS Cognito that allows users to enable or"
-        " disable Multi-Factor Authentication (MFA) for their accounts."
+        "AWS Cognito MFA (Multi-Factor Authentication) Option Type refers to the methods of multi-factor"
+        " authentication available in Amazon Cognito for user accounts."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "delivery_medium": S("DeliveryMedium"),

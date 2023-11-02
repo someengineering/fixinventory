@@ -69,11 +69,8 @@ class AwsCloudTrailStatus:
     kind: ClassVar[str] = "aws_cloud_trail_status"
     kind_display: ClassVar[str] = "AWS CloudTrail Status"
     kind_description: ClassVar[str] = (
-        "CloudTrail is a service that enables governance, compliance, operational"
-        " auditing, and risk auditing of your AWS account. CloudTrail provides event"
-        " history of your AWS account activity, including actions taken through the"
-        " AWS Management Console, AWS SDKs, command line tools, and other AWS"
-        " services."
+        "CloudTrail Status reflects the current operational status, including logging activities"
+        " and any errors, of a specified CloudTrail trail."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "is_logging": S("IsLogging"),

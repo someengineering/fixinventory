@@ -389,9 +389,8 @@ class AwsApiGatewayDeployment(AwsResource):
     kind: ClassVar[str] = "aws_api_gateway_deployment"
     kind_display: ClassVar[str] = "AWS API Gateway Deployment"
     kind_description: ClassVar[str] = (
-        "API Gateway Deployments refer to the process of deploying the API"
-        " configurations created in AWS API Gateway to make them accessible for"
-        " clients."
+        "API Gateway Deployments represents a deployment of an API to an API Gateway stage."
+        " This allows the API to be invocable by end-users."
     )
     # edge to aws_api_gateway_stage is established in AwsApiGatewayRestApi.collect()
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}

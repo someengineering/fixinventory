@@ -101,8 +101,9 @@ class AwsCloudwatchMetric:
     kind: ClassVar[str] = "aws_cloudwatch_metric"
     kind_display: ClassVar[str] = "AWS CloudWatch Metric"
     kind_description: ClassVar[str] = (
-        "AWS CloudWatch Metric is a service that provides monitoring for AWS"
-        " resources and the applications you run on AWS."
+        "AWS CloudWatch Metric is a time-ordered set of data points that represent a measurable aspect of your AWS"
+        " resources or applications, such as CPU utilization or request counts, which can be tracked for"
+        " analysis and alerting."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "namespace": S("Namespace"),
@@ -119,9 +120,9 @@ class AwsCloudwatchMetricStat:
     kind: ClassVar[str] = "aws_cloudwatch_metric_stat"
     kind_display: ClassVar[str] = "AWS CloudWatch Metric Stat"
     kind_description: ClassVar[str] = (
-        "CloudWatch Metric Stat is a service provided by AWS that allows users to"
-        " collect and track metrics, monitor log files, and set alarms for their AWS"
-        " resources."
+        "AWS CloudWatch Metric Stat refers to a set of statistical values (e.g., average, sum, minimum, maximum)"
+        " computed from the metric data points over a specified time period, providing insights into the metric's"
+        " behavior and performance."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric": S("Metric") >> Bend(AwsCloudwatchMetric.mapping),
@@ -140,9 +141,9 @@ class AwsCloudwatchMetricDataQuery:
     kind: ClassVar[str] = "aws_cloudwatch_metric_data_query"
     kind_display: ClassVar[str] = "AWS CloudWatch Metric Data Query"
     kind_description: ClassVar[str] = (
-        "CloudWatch Metric Data Query is a feature in Amazon CloudWatch that allows"
-        " you to retrieve and analyze metric data across multiple resources and time"
-        " periods."
+        "AWS CloudWatch Metric Data Query is a structure used in CloudWatch to specify the metric data to retrieve"
+        " and how to process it, allowing users to aggregate, transform, and filter metric data points for analysis"
+        " or visualization in CloudWatch dashboards."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),

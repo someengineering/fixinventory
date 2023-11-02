@@ -52,9 +52,8 @@ class AwsAthenaEngineVersion:
     kind: ClassVar[str] = "aws_athena_engine_version"
     kind_display: ClassVar[str] = "AWS Athena Engine Version"
     kind_description: ClassVar[str] = (
-        "AWS Athena Engine Version is a service provided by Amazon Web Services for"
-        " querying and analyzing data stored in Amazon S3 using standard SQL"
-        " statements."
+        "AWS Athena Engine Version refers to the underlying query engine version, based on Presto,"
+        " that Amazon Athena uses to process SQL queries against datasets."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "selected_engine_version": S("SelectedEngineVersion"),
@@ -69,8 +68,8 @@ class AwsAthenaWorkGroupConfiguration:
     kind: ClassVar[str] = "aws_athena_work_group_configuration"
     kind_display: ClassVar[str] = "AWS Athena Work Group Configuration"
     kind_description: ClassVar[str] = (
-        "Athena work group configuration in Amazon Web Services, which allows users"
-        " to configure settings for managing and executing queries in Athena."
+        "Athena work group configuration allows users to configure settings"
+        " for managing and executing queries in Athena."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "result_configuration": S("ResultConfiguration") >> Bend(AwsAthenaResultConfiguration.mapping),
@@ -92,9 +91,10 @@ class AwsAthenaWorkGroupConfiguration:
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     kind_display: ClassVar[str] = "AWS Athena Work Group"
-    kind_description: ClassVar[
-        str
-    ] = "Athena Work Group is a logical container for AWS Glue Data Catalog metadata and query statistics."
+    kind_description: ClassVar[str] = (
+        "An AWS Athena Work Group is a named set of query execution and data usage controls that"
+        " Athena users can share among workloads and teams."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

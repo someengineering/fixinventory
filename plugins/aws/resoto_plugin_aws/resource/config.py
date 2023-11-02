@@ -19,9 +19,9 @@ class AwsConfigRecorderStatus:
     kind: ClassVar[str] = "aws_config_recorder_status"
     kind_display: ClassVar[str] = "AWS Config Recorder Status"
     kind_description: ClassVar[str] = (
-        "AWS Config Recorder Status is a service that records configuration changes"
-        " made to AWS resources and evaluates the recorded configurations for rule"
-        " compliance."
+        "AWS Config Recorder Status indicates whether the AWS Config service is actively recording changes"
+        " to AWS resources and configurations in the account, along with details like the last start or"
+        " stop time, any errors, and the recording mode (all resources or selective resource types)."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_start_time": S("lastStartTime"),
