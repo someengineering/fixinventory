@@ -122,9 +122,8 @@ class AwsEc2DiskInfo:
     kind: ClassVar[str] = "aws_ec2_disk_info"
     kind_display: ClassVar[str] = "AWS EC2 Disk Info"
     kind_description: ClassVar[str] = (
-        "EC2 Disk Info refers to the information about the disk storage associated"
-        " with an EC2 instance in Amazon Web Services. It provides details such as"
-        " disk size, type, and usage statistics."
+        "AWS EC2 Disk Info refers to the details about the storage disk(s) attached to an Amazon EC2 instance,"
+        " including volume type, size, IOPS, throughput, and encryption status."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"size_in_gb": S("SizeInGB"), "count": S("Count"), "type": S("Type")}
     size_in_gb: Optional[int] = field(default=None)
@@ -202,9 +201,7 @@ class AwsEc2NetworkCardInfo:
     kind_display: ClassVar[str] = "AWS EC2 Network Card Info"
     kind_description: ClassVar[str] = (
         "AWS EC2 Network Card Info refers to the information related to the network"
-        " cards associated with EC2 instances in Amazon Web Services. It includes"
-        " details such as the network card ID, description, and network interface"
-        " attachments."
+        " cards associated with EC2 instances in Amazon Web Services."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_card_index": S("NetworkCardIndex"),

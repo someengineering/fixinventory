@@ -115,8 +115,8 @@ class AwsDynamoDbProjection:
     kind: ClassVar[str] = "aws_dynamo_db_projection"
     kind_display: ClassVar[str] = "AWS DynamoDB Projection"
     kind_description: ClassVar[str] = (
-        "DynamoDB Projections allow you to specify which attributes should be"
-        " included in the index of a table for efficient querying."
+        "AWS DynamoDB Projection specifies the set of attributes that are projected into a DynamoDB secondary"
+        " index, which can be keys only, a selection of attributes, or all attributes from the base table."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "projection_type": S("ProjectionType"),
@@ -131,9 +131,9 @@ class AwsDynamoDbLocalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_local_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Local Secondary Index Description"
     kind_description: ClassVar[str] = (
-        "DynamoDB Local Secondary Indexes provide additional querying flexibility on"
-        " non-key attributes in DynamoDB tables, enhancing the performance and"
-        " efficiency of data retrieval in Amazon's NoSQL database service."
+        "AWS DynamoDB Local Secondary Index Description provides details about a local secondary index for a"
+        " DynamoDB table, including index name, key schema, projection details (attributes included in the"
+        " index), and index size along with item count."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
@@ -187,8 +187,9 @@ class AwsDynamoDbStreamSpecification:
     kind: ClassVar[str] = "aws_dynamo_db_stream_specification"
     kind_display: ClassVar[str] = "AWS DynamoDB Stream Specification"
     kind_description: ClassVar[str] = (
-        "DynamoDB Streams provide a time-ordered sequence of item-level modifications"
-        " made to data in a DynamoDB table."
+        "AWS DynamoDB Stream Specification defines whether a stream is enabled on a DynamoDB table and the"
+        " type of information that will be written to the stream, such as keys only, new image, old image,"
+        " or both new and old images of the item."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "stream_enabled": S("StreamEnabled"),
@@ -203,9 +204,9 @@ class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_replica_global_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Replica Global Secondary Index Description"
     kind_description: ClassVar[str] = (
-        "DynamoDB Replica Global Secondary Index is a replicated index in DynamoDB"
-        " that allows you to perform fast and efficient queries on replicated data"
-        " across multiple AWS Regions."
+        "AWS DynamoDB Replica Global Secondary Index Description contains information about the global secondary"
+        " indexes on the replica table in a DynamoDB global table setup, including details like the index name,"
+        " status, provisioned read and write capacity, and index size."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
@@ -331,9 +332,9 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamo_db_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Table"
     kind_description: ClassVar[str] = (
-        "DynamoDB is a NoSQL database service provided by Amazon Web Services,"
-        " allowing users to store and retrieve data using flexible schema and high-"
-        " performance queries."
+        "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
+        " a fully managed NoSQL database service that provides fast and predictable performance with seamless"
+        " scalability."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
     reference_kinds: ClassVar[ModelReference] = {
