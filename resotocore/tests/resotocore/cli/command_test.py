@@ -602,7 +602,7 @@ async def test_list_command(cli: CLI) -> None:
 
     # List supports markdown output
     result = await cli.execute_cli_command(
-        'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1} | list --table name, some_int', stream.list
+        'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1} | list --json-table name, some_int', stream.list
     )
     assert result[0] == [
         {

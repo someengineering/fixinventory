@@ -2555,7 +2555,7 @@ class ListCommand(CLICommand, OutputTransformer):
         return [
             ArgInfo("--csv", help_text="format", option_group="format"),
             ArgInfo("--markdown", help_text="format", option_group="format"),
-            ArgInfo("--table", help_text="format", option_group="format"),
+            ArgInfo("--json-table", help_text="format", option_group="format"),
             ArgInfo(
                 expects_value=True,
                 help_text="comma separated list of properties to show",
@@ -2568,7 +2568,7 @@ class ListCommand(CLICommand, OutputTransformer):
         output_type = parser.add_mutually_exclusive_group()
         output_type.add_argument("--csv", dest="csv", action="store_true")
         output_type.add_argument("--markdown", dest="markdown", action="store_true")
-        output_type.add_argument("--table", dest="table", action="store_true")
+        output_type.add_argument("--json-table", dest="json_table", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
 
@@ -2665,7 +2665,7 @@ class ListCommand(CLICommand, OutputTransformer):
                             result.append(value)
                         yield to_csv_string(result)
 
-        async def table_stream(in_stream: JsStream, model: Model) -> JsGen:
+        async def json_table_stream(in_stream: JsStream, model: Model) -> JsGen:
             def kind_of(path: List[str]) -> str:
                 if path[0] in Section.lookup_sections:
                     return kind_of(path[2:])
@@ -2768,12 +2768,12 @@ class ListCommand(CLICommand, OutputTransformer):
                 return csv_stream(in_stream)
             elif parsed.markdown:
                 return markdown_stream(in_stream)
-            elif parsed.table:
+            elif parsed.json_table:
 
                 async def load_model() -> Model:
                     return await self.dependencies.model_handler.load_model(ctx.graph_name)
 
-                return stream.flatmap(stream.call(load_model), partial(table_stream, in_stream))
+                return stream.flatmap(stream.call(load_model), partial(json_table_stream, in_stream))
             else:
                 return stream.map(in_stream, lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
