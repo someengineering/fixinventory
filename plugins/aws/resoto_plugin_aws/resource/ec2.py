@@ -219,7 +219,7 @@ class AwsEc2NetworkInfo:
     kind_display: ClassVar[str] = "AWS EC2 Network Info"
     kind_description: ClassVar[
         str
-    ] = "EC2 Network Info provides information about the networking details of EC2 instances in Amazon's cloud."
+    ] = "AWS EC2 Network Info provides details on the networking capabilities of an EC2 instance."
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_performance": S("NetworkPerformance"),
         "maximum_network_interfaces": S("MaximumNetworkInterfaces"),
@@ -253,10 +253,9 @@ class AwsEc2GpuDeviceInfo:
     kind: ClassVar[str] = "aws_ec2_gpu_device_info"
     kind_display: ClassVar[str] = "AWS EC2 GPU Device Info"
     kind_description: ClassVar[str] = (
-        "EC2 GPU Device Info provides information about the GPU devices available in"
-        " the Amazon EC2 instances. It includes details such as GPU model, memory"
-        " size, and utilization. This information is useful for optimizing performance"
-        " and managing GPU resources in EC2 instances."
+        "AWS EC2 GPU Device Info includes specifications such as model, quantity, memory size, and performance"
+        " of the GPU devices available on certain Amazon EC2 instances that are designed for graphic-intensive"
+        " tasks or machine learning workloads."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
@@ -375,9 +374,9 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     kind_display: ClassVar[str] = "AWS EC2 Instance Type"
     kind_description: ClassVar[str] = (
-        "The type of EC2 instance determines the hardware of the host computer used"
-        " for the instance and the number of virtual CPUs, amount of memory, and"
-        " storage capacity provided."
+        "AWS EC2 Instance Type refers to the classification of an EC2 instance based on the resources and"
+        " capabilities it offers, such as CPU, memory, storage, and networking capacity, tailored for different"
+        " workload requirements and applications."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
     reference_kinds: ClassVar[ModelReference] = {
@@ -704,7 +703,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     kind_display: ClassVar[str] = "AWS EC2 Snapshot"
     kind_description: ClassVar[str] = (
-        "EC2 Snapshots are incremental backups of Amazon Elastic Block Store (EBS)"
+        "EC2 Snapshots are backups of Amazon Elastic Block Store (EBS)"
         " volumes, allowing users to capture and store point-in-time copies of their"
         " data."
     )
