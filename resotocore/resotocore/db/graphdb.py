@@ -170,6 +170,8 @@ class GraphDB(ABC):
         part: Literal["attributes", "values"],
         limit: Optional[int] = None,
         skip: Optional[int] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
     ) -> AsyncCursorContext:
         pass
 
@@ -1535,8 +1537,10 @@ class EventGraphDB(GraphDB):
         part: Literal["attributes", "values"],
         limit: Optional[int] = None,
         skip: Optional[int] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
     ) -> AsyncCursorContext:
-        return await self.real.list_possible_values(query, path_or_predicate, part, limit, skip)
+        return await self.real.list_possible_values(query, path_or_predicate, part, limit, skip, with_count, timeout)
 
     async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any

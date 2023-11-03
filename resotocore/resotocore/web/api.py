@@ -27,6 +27,7 @@ from typing import (
     Callable,
     Awaitable,
     Iterable,
+    Literal,
 )
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
@@ -58,7 +59,6 @@ from resotoui import ui_path
 
 from resotocore.analytics import AnalyticsEvent
 from resotocore.cli.command import alias_names
-from resotocore.dependencies import Dependencies, TenantDependencies
 from resotocore.cli.model import (
     ParsedCommandLine,
     CLIContext,
@@ -73,6 +73,8 @@ from resotocore.config import ConfigValidation, ConfigEntity
 from resotocore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from resotocore.db.graphdb import GraphDB, HistoryChange
 from resotocore.db.model import QueryModel
+from resotocore.dependencies import Dependencies, TenantDependencies
+from resotocore.dependencies import TenantDependencyProvider
 from resotocore.error import NotFoundError, NotEnoughPermissions
 from resotocore.ids import (
     TaskId,
@@ -91,6 +93,8 @@ from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
 from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
+from resotocore.query.model import Predicate, PathRoot, variable_to_absolute
+from resotocore.query.query_parser import predicate_term
 from resotocore.report import Benchmark, ReportCheck
 from resotocore.service import Service
 from resotocore.task.model import Subscription
@@ -99,7 +103,6 @@ from resotocore.user.model import Permission, AuthorizedUser
 from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
 from resotocore.web.auth import raw_jwt_from_auth_message, LoginWithCode, AuthHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
-from resotocore.dependencies import TenantDependencyProvider
 from resotocore.web.directives import (
     metrics_handler,
     error_handler,
@@ -226,6 +229,8 @@ class Api(Service):
                 web.post(prefix + "/graph/{graph_id}/search/aggregate", require(self.query_aggregation, r)),
                 web.post(prefix + "/graph/{graph_id}/search/history/list", require(self.query_history, r)),
                 web.post(prefix + "/graph/{graph_id}/search/history/aggregate", require(self.query_history, r)),
+                web.post(prefix + "/graph/{graph_id}/property/attributes", require(self.possible_values, r)),
+                web.post(prefix + "/graph/{graph_id}/property/values", require(self.possible_values, r)),
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, a)),
                 web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, a)),
@@ -1015,6 +1020,25 @@ class Api(Service):
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
+
+    async def possible_values(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        graph_db, query_model = await self.graph_query_model_from_request(request, deps)
+        section = section_of(request)
+        detail: Literal["attributes", "values"] = "attributes" if request.path.endswith("attributes") else "values"
+        root_or_section = None if section is None or section == PathRoot else section
+        fn = partial(variable_to_absolute, root_or_section)
+        prop = request.query["prop"]  # fail if not provided
+        limit = if_set(request.query.get("limit"), int)
+        skip = if_set(request.query.get("skip"), int)
+        count = request.query.get("count", "true").lower() != "false"
+        try:
+            prop_or_predicate: Union[Predicate, str] = predicate_term.parse(prop).change_variable(fn)
+        except Exception:
+            prop_or_predicate = fn(prop)
+        async with await graph_db.list_possible_values(
+            query_model, prop_or_predicate, detail, limit, skip, count
+        ) as cursor:
+            return await self.stream_response_from_gen(request, cursor, cursor.count())
 
     async def query_structure(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         _, query_model = await self.graph_query_model_from_request(request, deps)
