@@ -290,3 +290,26 @@ jobs:
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/someengineering/fix-collect-single/actions/workflows/docker_build.yml/dispatches \
           -d '{"ref":"main"}'
+
+      - name: Authenticate with GitHub CLI
+        if: github.event_name != 'pull_request'
+        run: |
+          gh auth login --with-token <<< "${{ secrets.SOME_CI_PAT }}"
+
+      - name: Bump tag version
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.SOME_CI_PAT }}
+        run: |
+          git config --global user.email "ci@some.engineering"
+          git config --global user.name "Some CI"
+          git clone "https://$GITHUB_TOKEN@github.com/someengineering/setup-infra.git"
+          git_sha="${{ github.sha }}"
+          short_sha="${git_sha:0:7}"
+          echo "Use short SHA: $short_sha"
+          # update the tag
+          cd setup-infra
+          yq eval ".images[] |= select(.name == \"someengineering/resotocore\").newTag |= \"${short_sha}\"" -i argocd/envs/dev/inventory/kustomization.yaml
+          git add .
+          git commit -m "Bump fix-inventory on dev to ${short_sha}"
+          git push origin main
