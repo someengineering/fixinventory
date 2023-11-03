@@ -3,7 +3,7 @@ import logging
 import re
 from collections import defaultdict
 from textwrap import dedent
-from typing import Union, List, Tuple, Any, Optional, Dict, Set
+from typing import Union, List, Tuple, Any, Optional, Dict, Set, Literal
 
 from arango.typings import Json
 from attrs import evolve
@@ -749,6 +749,82 @@ def query_string(
             query_str += f" LET {nxt} = (FOR res in {tagged_union} RETURN res)"
             resulting_cursor = nxt
     return resulting_cursor, query_str
+
+
+def possible_values(
+    db: Any,
+    query: QueryModel,
+    path_or_predicate: Union[str, Predicate],
+    detail: Literal["attributes", "values"],
+    limit: Optional[int] = None,
+    skip: Optional[int] = None,
+) -> Tuple[str, Json]:
+    path = path_or_predicate if isinstance(path_or_predicate, str) else path_or_predicate.name
+    counters: Dict[str, int] = defaultdict(lambda: 0)
+
+    def next_counter(name: str) -> int:
+        count = counters[name]
+        counters[name] = count + 1
+        return count
+
+    def next_crs(name: str = "m") -> str:
+        return f"{name}{next_counter(name)}"
+
+    bind_vars: Json = {}
+    start = f"`{db.vertex_name}`"
+    cursor, query_str = query_string(db, query.query, query, start, False, bind_vars, counters, id_column="_key")
+
+    # iterate over the result
+    let_cursor = next_crs()
+    query_str += f" LET {let_cursor} = ("
+    next_cursor = next_crs()
+    query_str += f" FOR {next_cursor} in {cursor}"
+    cursor = next_cursor
+
+    # expand array paths
+    ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(path)]
+    prop_name = None if path.endswith("[]") or path.endswith("[*]") else ars.pop()
+    for ar in ars:
+        nxt_crs = next_crs()
+        query_str += f" FOR {nxt_crs} IN TO_ARRAY({cursor}.{ar})"
+        cursor = nxt_crs
+    access_path = f"{cursor}.{prop_name}" if prop_name is not None else cursor
+
+    # access the detail
+    if detail == "attributes":
+        cursor = next_crs()
+        query_str += (
+            f" FILTER IS_OBJECT({access_path}) FOR {cursor} IN ATTRIBUTES({access_path}, true) RETURN {cursor})"
+        )
+    elif detail == "values":
+        query_str += f" RETURN {access_path})"
+    else:
+        raise AttributeError(f"Unknown detail: {detail}")
+
+    # result stream of matching entries: filter and sort
+    sorted_let = next_crs()
+    next_cursor = next_crs()
+    query_str += f" LET {sorted_let} = (FOR {next_cursor} IN {let_cursor} FILTER {next_cursor}!=null"
+    cursor = next_cursor
+    if isinstance(path_or_predicate, Predicate):
+        p: Predicate = path_or_predicate
+        bvn = f'b{next_counter("bind_vars")}'
+        prop = query.model.property_by_path(Section.without_section(p.name))
+        pk = prop.kind
+        op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
+        bind_vars[bvn] = [pk.coerce(a) for a in p.value] if isinstance(p.value, list) else pk.coerce(p.value)
+        if op == "=~":  # use regex_test to do case-insensitive matching
+            query_str += f" FILTER REGEX_TEST({cursor}, @{bvn}, true)"
+        else:
+            query_str += f" FILTER {cursor} {op} @{bvn}"
+    query_str += f" RETURN DISTINCT {cursor})"
+    cursor = sorted_let
+    next_cursor = next_crs()
+    query_str += f"FOR {next_cursor} IN {cursor} SORT {next_cursor} ASC"
+    if limit:
+        query_str += f" LIMIT {skip if skip else 0}, {limit}"
+    query_str += f" RETURN {next_cursor}"
+    return query_str, bind_vars
 
 
 async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedSearchCost:

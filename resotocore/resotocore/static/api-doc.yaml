@@ -1806,6 +1806,129 @@ paths:
             application/x-ndjson:
               schema:
                 $ref: "#/components/schemas/Aggregated"
+  /graph/{graph_id}/property/attributes:
+    post:
+      summary: "Search the graph and return all possible attribute names for given property path."
+      tags:
+        - graph_search
+      parameters:
+        - name: graph_id
+          in: path
+          example: resoto
+          description: "The identifier of the graph"
+          required: true
+          schema:
+            type: string
+        - name: prop
+          in: query
+          example: |
+            tags
+          description: "The property path to search for with an optional predicate"
+          required: true
+          schema:
+            type: string
+        - name: section
+          in: query
+          description: "The name of the section used for all property paths. If not defined root is assumed."
+          required: false
+          schema:
+            type: string
+            enum:
+              - reported
+              - desired
+              - metadata
+        - name: count
+          in: query
+          description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+          required: false
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        description: "The search to perform"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: is(graph_root) and reported.name=="root" -->
+      responses:
+        "200":
+          description: "The result of this search in the defined format"
+          content:
+            "application/json":
+              schema:
+                type: array
+                example: |
+                  [
+                    "owner",
+                    "checksum/secret",
+                    "prometheus.io/path",
+                  ]
+                items:
+                  type: string
+  /graph/{graph_id}/property/values:
+    post:
+      summary: "Search the graph and return all possible attribute values for given property path."
+      tags:
+        - graph_search
+      parameters:
+        - name: graph_id
+          in: path
+          example: resoto
+          description: "The identifier of the graph"
+          required: true
+          schema:
+            type: string
+        - name: prop
+          in: query
+          example: |
+            tags
+          description: "The property path to search for with an optional predicate"
+          required: true
+          schema:
+            type: string
+        - name: section
+          in: query
+          description: "The name of the section used for all property paths. If not defined root is assumed."
+          required: false
+          schema:
+            type: string
+            enum:
+              - reported
+              - desired
+              - metadata
+        - name: count
+          in: query
+          description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
+          required: false
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        description: "The search to perform"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: is(graph_root) and reported.name=="root" -->
+      responses:
+        "200":
+          description: "The result of this search in the defined format"
+          content:
+            "application/json":
+              schema:
+                type: array
+                example: |
+                  [
+                    "owner",
+                    "checksum/secret",
+                    "prometheus.io/path",
+                  ]
+                items:
+                  type: string
+
+
+
   # endregion
 
   # region events

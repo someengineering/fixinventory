@@ -20,6 +20,8 @@ from typing import (
     TypeVar,
     cast,
     AsyncIterator,
+    Literal,
+    Union,
 )
 
 from aiostream import stream
@@ -51,7 +53,7 @@ from resotocore.model.model import (
     synthetic_metadata_kinds,
 )
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
-from resotocore.query.model import Query, FulltextTerm, MergeTerm, P
+from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
 from resotocore.report import ReportSeverity
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
@@ -157,6 +159,19 @@ class GraphDB(ABC):
         with_count: bool = False,
         timeout: Optional[timedelta] = None,
         **kwargs: Any,
+    ) -> AsyncCursorContext:
+        pass
+
+    @abstractmethod
+    async def list_possible_values(
+        self,
+        query: QueryModel,
+        path_or_predicate: Union[str, Predicate],
+        part: Literal["attributes", "values"],
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
     ) -> AsyncCursorContext:
         pass
 
@@ -527,6 +542,25 @@ class ArangoGraphDB(GraphDB):
     async def by_id_with(self, db: AsyncArangoDBBase, node_id: NodeId) -> Optional[Json]:
         with await db.aql(query=self.query_node_by_id(), bind_vars={"rid": node_id}) as cursor:
             return cursor.next() if not cursor.empty() else None
+
+    async def list_possible_values(
+        self,
+        query: QueryModel,
+        path_or_predicate: Union[str, Predicate],
+        part: Literal["attributes", "values"],
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+    ) -> AsyncCursorContext:
+        q_string, bind = arango_query.possible_values(self, query, path_or_predicate, part, limit, skip)
+        return await self.db.aql_cursor(
+            query=q_string,
+            count=with_count,
+            bind_vars=bind,
+            batch_size=10000,
+            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
+        )
 
     async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
@@ -1495,6 +1529,18 @@ class EventGraphDB(GraphDB):
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())
         await self.real.abort_update(batch_id)
         await self.event_sender.core_event(CoreEvent.BatchUpdateAborted, {"graph": self.graph_name, "batch": info})
+
+    async def list_possible_values(
+        self,
+        query: QueryModel,
+        path_or_predicate: Union[str, Predicate],
+        part: Literal["attributes", "values"],
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+        with_count: bool = False,
+        timeout: Optional[timedelta] = None,
+    ) -> AsyncCursorContext:
+        return await self.real.list_possible_values(query, path_or_predicate, part, limit, skip, with_count, timeout)
 
     async def search_list(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any

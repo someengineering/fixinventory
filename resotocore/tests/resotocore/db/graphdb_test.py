@@ -3,7 +3,7 @@ import string
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 from random import SystemRandom
-from typing import List, Optional, Any, Dict, cast, AsyncIterator, Tuple
+from typing import List, Optional, Any, Dict, cast, AsyncIterator, Tuple, Union, Literal
 
 from arango.database import StandardDatabase
 from arango.typings import Json
@@ -20,8 +20,8 @@ from resotocore.ids import NodeId, GraphName
 from resotocore.model.graph_access import GraphAccess, EdgeTypes, Section
 from resotocore.model.model import Model, UsageDatapoint
 from resotocore.model.typed_model import from_js, to_js
-from resotocore.query.model import Query, P, Navigation
-from resotocore.query.query_parser import parse_query
+from resotocore.query.model import Query, P, Navigation, Predicate
+from resotocore.query.query_parser import parse_query, predicate_term
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
 from tests.resotocore.utils import eventually
@@ -665,6 +665,21 @@ async def test_db_copy(graph_db: ArangoGraphDB, foo_model: Model, db_access: DbA
 
     # clean up
     await snapshot_db.wipe()
+
+
+@mark.asyncio
+async def test_list_possible_values(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def pv(q: str, path_or_pred: Union[str, Predicate], detail: Literal["attributes", "values"]) -> List[Any]:
+        qm = QueryModel(parse_query(q), foo_model)
+        async with await filled_graph_db.list_possible_values(qm, path_or_pred, detail) as cursor:
+            return [a async for a in cursor]
+
+    props_of_b = ["ctime", "f", "g", "h", "identifier", "kind", "name", "now"]
+    assert await pv("is(bla)", "reported.f", "values") == [23]
+    assert await pv("is(bla)", "reported.h.inner[*].inner[*].name", "values") == ["in_0_0", "in_0_1"]
+    assert await pv("is(bla)", "reported.g[*]", "values") == [1, 2, 3, 4]
+    assert await pv("is(bla)", "reported", "attributes") == props_of_b
+    assert await pv("is(bla)", predicate_term.parse('reported=~"^[fgh]"'), "attributes") == ["f", "g", "h"]
 
 
 @mark.asyncio
