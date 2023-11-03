@@ -83,8 +83,8 @@ class AwsLambdaEnvironmentResponse:
     kind: ClassVar[str] = "aws_lambda_environment_response"
     kind_display: ClassVar[str] = "AWS Lambda Environment Response"
     kind_description: ClassVar[str] = (
-        "AWS Lambda Environment Response is a service that provides information about"
-        " the runtime environment of an AWS Lambda function."
+        "The AWS Lambda Environment Response provides information about the environment variables configured"
+        " for a Lambda function, including their values and any errors associated with retrieving them."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "variables": S("Variables"),
@@ -166,9 +166,8 @@ class AwsLambdaImageConfigResponse:
     kind: ClassVar[str] = "aws_lambda_image_config_response"
     kind_display: ClassVar[str] = "AWS Lambda Image Configuration Response"
     kind_description: ClassVar[str] = (
-        "AWS Lambda Image Configuration Response is the response object returned when"
-        " configuring an image for AWS Lambda, which is a compute service that lets"
-        " you run code without provisioning or managing servers."
+        "The AWS Lambda Image Configuration Response provides information about the container image"
+        " configuration for a Lambda function and any errors if the configuration failed to apply."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "image_config": S("ImageConfig") >> Bend(AwsLambdaImageConfig.mapping),
@@ -209,8 +208,8 @@ class AwsLambdaFunctionUrlConfig:
     kind: ClassVar[str] = "aws_lambda_function_url_config"
     kind_display: ClassVar[str] = "AWS Lambda Function URL Config"
     kind_description: ClassVar[str] = (
-        "URL configuration for AWS Lambda function, allowing users to specify the"
-        " trigger URL and other related settings."
+        "The AWS Lambda Function URL Config enables direct invocation of Lambda functions over"
+        " the web using HTTP(S) endpoints, with customizable authentication and cross-origin access."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "function_url": S("FunctionUrl"),

@@ -167,9 +167,9 @@ class AwsRdsPendingCloudwatchLogsExports:
     kind: ClassVar[str] = "aws_rds_pending_cloudwatch_logs_exports"
     kind_display: ClassVar[str] = "AWS RDS Pending CloudWatch Logs Exports"
     kind_description: ClassVar[str] = (
-        "RDS Pending CloudWatch Logs Exports represent the logs that are being"
-        " exported from an Amazon RDS database to Amazon CloudWatch Logs but are still"
-        " in a pending state."
+        "AWS RDS Pending CloudWatch Logs Exports configuration manages the pending changes to"
+        " the log types that are enabled or disabled for export to CloudWatch Logs for an RDS"
+        " instance, providing control over which logs are actively monitored and which are not."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "log_types_to_enable": S("LogTypesToEnable", default=[]),
@@ -301,9 +301,11 @@ class AwsRdsDomainMembership:
 class AwsRdsDBRole:
     kind: ClassVar[str] = "aws_rds_db_role"
     kind_display: ClassVar[str] = "AWS RDS DB Role"
-    kind_description: ClassVar[
-        str
-    ] = "RDS DB Roles are a way to manage user access to Amazon RDS database instances using IAM."
+    kind_description: ClassVar[str] = (
+        "The AWS RDS DB Role configuration associates an AWS Identity and Access Management (IAM) role"
+        " with an Amazon RDS DB instance to provide access to AWS features and services specified by"
+        " the feature name."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "role_arn": S("RoleArn"),
         "feature_name": S("FeatureName"),

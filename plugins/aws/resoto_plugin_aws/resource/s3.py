@@ -129,9 +129,8 @@ class AwsS3TargetGrant:
     kind: ClassVar[str] = "aws_s3_target_grant"
     kind_display: ClassVar[str] = "AWS S3 Target Grant"
     kind_description: ClassVar[str] = (
-        "Target grants in AWS S3 provide permissions for cross-account replication,"
-        " allowing one AWS S3 bucket to grant another AWS S3 bucket permissions to"
-        " perform replication."
+        "The AWS S3 Target Grant is a Container for granting information."
+        " By specifying a grantee and the type of permission, you can control how your S3 content is shared."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "grantee": S("Grantee") >> Bend(AwsS3Grantee.mapping),

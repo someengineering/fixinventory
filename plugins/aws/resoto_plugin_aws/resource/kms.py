@@ -17,8 +17,9 @@ class AwsKmsMultiRegionPrimaryKey:
     kind: ClassVar[str] = "aws_kms_multiregion_primary_key"
     kind_display: ClassVar[str] = "AWS KMS Multiregion Primary Key"
     kind_description: ClassVar[str] = (
-        "AWS KMS Multiregion Primary Key is a cryptographic key used for encryption"
-        " and decryption of data in multiple AWS regions."
+        "The AWS KMS Multi-Region Primary Key setting specifies the main encryption key and its associated"
+        " AWS region in a multi-region key setup, which is used to encrypt and decrypt data across"
+        " different geographic locations."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
@@ -30,10 +31,9 @@ class AwsKmsMultiRegionReplicaKey:
     kind: ClassVar[str] = "aws_kms_multiregion_replica_key"
     kind_display: ClassVar[str] = "AWS KMS Multi-Region Replica Key"
     kind_description: ClassVar[str] = (
-        "AWS KMS Multi-Region Replica Key is a feature of AWS Key Management Service"
-        " (KMS) that allows for the replication of customer master keys (CMKs) across"
-        " multiple AWS regions for improved availability and durability of encryption"
-        " operations."
+        "The AWS KMS Multi-Region Replica Key is part of a multi-region key configuration that serves as a"
+        " secondary copy of the primary encryption key, residing in a different AWS region to support"
+        " cross-regional failover and localized encryption operations."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "region": S("Region")}
     arn: Optional[str] = field(default=None)
@@ -45,10 +45,9 @@ class AwsKmsMultiRegionConfig:
     kind: ClassVar[str] = "aws_kms_multiregion_config"
     kind_display: ClassVar[str] = "AWS KMS Multi-Region Config"
     kind_description: ClassVar[str] = (
-        "AWS KMS Multi-Region Config is a feature in Amazon Key Management Service"
-        " (KMS) that allows you to configure cross-region replication of KMS keys."
-        " This helps you ensure availability and durability of your keys in multiple"
-        " regions."
+        "The AWS KMS Multi-Region Config allows for the creation and management of AWS KMS keys that"
+        " are replicated across multiple AWS regions, enabling a centralized encryption key strategy"
+        " with regional redundancies for improved availability and latency."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "multi_region_key_type": S("MultiRegionKeyType"),

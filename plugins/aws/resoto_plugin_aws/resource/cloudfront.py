@@ -680,9 +680,10 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     kind_display: ClassVar[str] = "AWS CloudFront Public Key"
-    kind_description: ClassVar[
-        str
-    ] = "AWS CloudFront Public Key is a public key used for encrypting content stored on AWS CloudFront."
+    kind_description: ClassVar[str] = (
+        "AWS CloudFront Public Key is a public key used in conjunction with a private key for managing the"
+        " identity of the content distributors and validating access to content served by AWS CloudFront."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -724,9 +725,8 @@ class AwsCloudFrontEndPoint:
     kind: ClassVar[str] = "aws_cloudfront_end_point"
     kind_display: ClassVar[str] = "AWS CloudFront End Point"
     kind_description: ClassVar[str] = (
-        "CloudFront End Points provide a globally distributed content delivery"
-        " network (CDN) that delivers data, videos, applications, and APIs to viewers"
-        " with low latency and high transfer speeds."
+        "An AWS CloudFront End Point is the DNS domain name that CloudFront assigns when you create a distribution."
+        " You use this domain name in all URLs for your files."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "stream_type": S("StreamType"),
@@ -801,9 +801,9 @@ class AwsCloudFrontResponseHeadersPolicyXSSProtection:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_xss_protection"
     kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy XSS Protection"
     kind_description: ClassVar[str] = (
-        "The AWS CloudFront Response Headers Policy XSS Protection allows users to"
-        " configure Cross-Site Scripting (XSS) protection in the response headers of"
-        " their CloudFront distributions."
+        "AWS CloudFront Response Headers Policy XSS Protection are settings within the policy that control the"
+        " `X-XSS-Protection` header, which can be used to enable a browser's built-in cross-site scripting (XSS)"
+        " filters to prevent and mitigate XSS attacks on web content served through CloudFront."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "override": S("Override"),
@@ -822,9 +822,10 @@ class AwsCloudFrontResponseHeadersPolicyFrameOptions:
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy_frame_options"
     kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy Frame Options"
     kind_description: ClassVar[str] = (
-        "CloudFront Response Headers Policy Frame Options is a feature of Amazon"
-        " CloudFront that allows you to control the frame options in HTTP responses"
-        " sent by CloudFront distributions."
+        "AWS CloudFront Response Headers Policy Frame Options within a response headers policy dictate how browsers"
+        " should handle the framing of pages, typically used to configure the `X-Frame-Options` header for"
+        " clickjacking protection by specifying whether content can be displayed within frames and under"
+        " what conditions."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"override": S("Override"), "frame_option": S("FrameOption")}
     override: Optional[bool] = field(default=None)
@@ -1062,9 +1063,9 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
     kind_description: ClassVar[str] = (
-        "CloudFront Origin Access Control is a feature in AWS CloudFront that allows"
-        " you to restrict access to your origin server by using an Amazon S3 bucket or"
-        " an HTTP server as the source for your website or application files."
+        "AWS CloudFront Origin Access Control is a security feature that allows you to control access"
+        " to your S3 bucket or custom origin, ensuring that your content can only be accessed via"
+        " CloudFront distributions and not directly from the origin itself."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-origin-access-controls", "OriginAccessControlList.Items"
@@ -1098,9 +1099,9 @@ class AwsCloudFrontCachePolicyHeadersConfig:
     kind: ClassVar[str] = "aws_cloudfront_cache_policy_headers_config"
     kind_display: ClassVar[str] = "AWS CloudFront Cache Policy Headers Config"
     kind_description: ClassVar[str] = (
-        "The AWS CloudFront Cache Policy Headers Config allows users to configure the"
-        " cache headers for content in the CloudFront CDN, determining how long"
-        " content is cached and how it is delivered to end users."
+        "AWS CloudFront Cache Policy Headers Config specifies which HTTP headers CloudFront includes in the cache key"
+        " and, consequently, which headers it uses to determine whether to serve a cached response or to forward a"
+        " request to the origin. This configuration influences cache hit ratios and content delivery performance."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_behavior": S("HeaderBehavior"),
@@ -1229,9 +1230,10 @@ class AwsCloudFrontQueryArgProfile:
     kind: ClassVar[str] = "aws_cloudfront_query_arg_profile"
     kind_display: ClassVar[str] = "AWS CloudFront Query Argument Profile"
     kind_description: ClassVar[str] = (
-        "CloudFront Query Argument Profile in AWS is a configuration that allows you"
-        " to control how CloudFront caches and forwards query strings in the URLs of"
-        " your content."
+        "AWS CloudFront Query Argument Profile is part of CloudFront's Field-Level Encryption feature;"
+        " it specifies how CloudFront handles query arguments by applying field patterns that match and"
+        " encrypt query argument values when they are forwarded to the origin, enhancing the security"
+        " of sensitive data."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"query_arg": S("QueryArg"), "profile_id": S("ProfileId")}
     query_arg: Optional[str] = field(default=None)
@@ -1243,9 +1245,10 @@ class AwsCloudFrontQueryArgProfileConfig:
     kind: ClassVar[str] = "aws_cloudfront_query_arg_profile_config"
     kind_display: ClassVar[str] = "AWS CloudFront Query Arg Profile Config"
     kind_description: ClassVar[str] = (
-        "CloudFront Query Arg Profile Config is a feature in AWS CloudFront that"
-        " allows you to configure personalized caching behavior for different query"
-        " strings on your website."
+        "CloudFront Query Arg Profile Config is a configuration within AWS CloudFront's Field-Level Encryption"
+        " setup that specifies the profiles to use for encrypting specific query arguments in viewer requests,"
+        " enhancing security by ensuring sensitive information is encrypted as it passes from CloudFront"
+        " to the origin."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_query_arg_profile_is_unknown": S("ForwardWhenQueryArgProfileIsUnknown"),
@@ -1261,9 +1264,9 @@ class AwsCloudFrontContentTypeProfile:
     kind: ClassVar[str] = "aws_cloudfront_content_type_profile"
     kind_display: ClassVar[str] = "AWS CloudFront Content Type Profile"
     kind_description: ClassVar[str] = (
-        "AWS CloudFront Content Type Profiles help you manage the behavior of"
-        " CloudFront by configuring how it handles content types for different file"
-        " extensions or MIME types."
+        "AWS CloudFront Content Type Profile is a configuration option within CloudFront that maps file extensions"
+        " to content types, which is used in Field-Level Encryption to apply encryption based on the content type"
+        " of the forwarded content in a request."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "format": S("Format"),
@@ -1280,9 +1283,10 @@ class AwsCloudFrontContentTypeProfileConfig:
     kind: ClassVar[str] = "aws_cloudfront_content_type_profile_config"
     kind_display: ClassVar[str] = "AWS CloudFront Content Type Profile Config"
     kind_description: ClassVar[str] = (
-        "AWS CloudFront Content Type Profile Config is a configuration object that"
-        " allows you to specify how CloudFront should interpret and act upon the"
-        " Content-Type header of viewer requests for your content."
+        "AWS CloudFront Content Type Profile Config is a setting within AWS CloudFront's Field-Level Encryption"
+        " that defines a set of profiles mapping query argument or form field names to their respective content"
+        " type, which is used to determine how specified fields in viewer requests are encrypted before being"
+        " forwarded to the origin."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "forward_when_content_type_is_unknown": S("ForwardWhenContentTypeIsUnknown"),
@@ -1298,9 +1302,9 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
     kind_description: ClassVar[str] = (
-        "AWS CloudFront Field-Level Encryption Configuration is a feature that allows"
-        " you to encrypt selected fields in HTTP requests and responses before they"
-        " are sent and after they are received by CloudFront."
+        "AWS CloudFront Field-Level Encryption Configuration is a feature that helps you to protect sensitive data"
+        " by encrypting specific HTTP fields at CloudFront edge locations. It allows you to encrypt data within"
+        " each individual field of an HTTPS request or response."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"

@@ -39,8 +39,9 @@ class AwsGlacierSelectParameters:
     kind: ClassVar[str] = "aws_glacier_job_select_parameters"
     kind_display: ClassVar[str] = "AWS Glacier Job Select Parameters"
     kind_description: ClassVar[str] = (
-        "AWS Glacier Job Select Parameters are specific options and configurations"
-        " for selecting and querying data from Glacier vaults for retrieval."
+        "The AWS Glacier Job Select Parameters are used to configure data retrieval jobs in Amazon Glacier,"
+        " allowing you to define the format of the input data, the type of queries, the query expressions"
+        " themselves, and the format of the output data."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "input_serialization": S("InputSerialization"),
@@ -59,9 +60,9 @@ class AwsGlacierBucketEncryption:
     kind: ClassVar[str] = "aws_glacier_bucket_encryption"
     kind_display: ClassVar[str] = "AWS Glacier Bucket Encryption"
     kind_description: ClassVar[str] = (
-        "AWS Glacier is a long-term archival storage service, and AWS Glacier Bucket"
-        " Encryption provides the ability to encrypt data at rest in Glacier buckets"
-        " to enhance data security and compliance."
+        "The AWS Glacier Bucket Encryption settings define the method and keys used to secure data in an Amazon"
+        " Glacier storage bucket, providing options for server-side encryption and specifying the use of AWS"
+        " Key Management Service (KMS) keys where applicable."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "encryption_type": S("EncryptionType"),
@@ -94,9 +95,8 @@ class AwsGlacierJobBucket:
     kind: ClassVar[str] = "aws_glacier_job_bucket"
     kind_display: ClassVar[str] = "AWS Glacier Job Bucket"
     kind_description: ClassVar[str] = (
-        "The AWS Glacier Job Bucket is a storage location used for managing jobs in"
-        " Amazon Glacier, a secure and durable storage service for long-term data"
-        " archiving and backup."
+        "The AWS Glacier Job Bucket is a setting for defining where and how the output of a"
+        " data retrieval job from Amazon Glacier is stored and managed in Amazon S3."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bucket_name": S("BucketName"),

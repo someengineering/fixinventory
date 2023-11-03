@@ -286,8 +286,9 @@ class AwsAlbAction:
     kind: ClassVar[str] = "aws_alb_action"
     kind_display: ClassVar[str] = "AWS Application Load Balancer Action"
     kind_description: ClassVar[str] = (
-        "An AWS Application Load Balancer Action defines how the load balancer should"
-        " distribute incoming requests to target instances or services."
+        "An AWS Application Load Balancer Action determines what action to take when a request fulfills a listener"
+        " rule. This could be to forward requests to a target group, redirect requests to another URL, or return a"
+        " custom HTTP response."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "type": S("Type"),

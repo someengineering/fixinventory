@@ -92,8 +92,9 @@ class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     kind_display: ClassVar[str] = "AWS Athena Work Group"
     kind_description: ClassVar[str] = (
-        "An AWS Athena Work Group is a named set of query execution and data usage controls that"
-        " Athena users can share among workloads and teams."
+        "Amazon Athena Work Groups are a resource type for isolating query execution and history among different"
+        " users, teams, or applications within the same AWS account, with features for access control, cost"
+        " management, and integration with AWS CloudWatch for metrics monitoring."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {

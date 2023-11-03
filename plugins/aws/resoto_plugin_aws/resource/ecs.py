@@ -176,9 +176,9 @@ class AwsEcsAttachment:
     kind: ClassVar[str] = "aws_ecs_attachment"
     kind_display: ClassVar[str] = "AWS ECS Attachment"
     kind_description: ClassVar[str] = (
-        "ECS Attachments are links between ECS tasks and Elastic Network Interfaces"
-        " (ENIs) that enable containerized applications running in the ECS service to"
-        " communicate with other resources within a Virtual Private Cloud (VPC)."
+        "AWS ECS Attachment represents a link between an ECS resource, like a container instance,"
+        " and a network or security group. It includes identifiers and status information that"
+        " help manage and track the resource's integration and operational state within the ECS environment."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -218,9 +218,9 @@ class AwsEcsNetworkBinding:
     kind: ClassVar[str] = "aws_ecs_network_binding"
     kind_display: ClassVar[str] = "AWS ECS Network Binding"
     kind_description: ClassVar[str] = (
-        "ECS network binding is a service in Amazon's Elastic Container Service that"
-        " allows containers within a task to communicate with each other and external"
-        " services securely."
+        "The AWS ECS Network Binding sets up the networking parameters for an ECS container,"
+        " defining how a container port is bound to a host port, the IP address it should bind"
+        " to, and the network protocol to be used."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bind_ip": S("bindIP"),
@@ -326,9 +326,9 @@ class AwsEcsInferenceAccelerator:
     kind: ClassVar[str] = "aws_ecs_inference_accelerator"
     kind_display: ClassVar[str] = "AWS ECS Inference Accelerator"
     kind_description: ClassVar[str] = (
-        "ECS Inference Accelerators are resources used by Amazon ECS to accelerate"
-        " deep learning inference workloads, improving performance and reducing"
-        " latency."
+        "The AWS ECS Inference Accelerator is a resource that provides machine learning inference acceleration"
+        " for containers. It is specified by a device name and device type to identify the accelerator hardware"
+        " to be used by ECS tasks."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"device_name": S("deviceName"), "device_type": S("deviceType")}
     device_name: Optional[str] = field(default=None)
@@ -367,9 +367,8 @@ class AwsEcsContainerOverride:
     kind: ClassVar[str] = "aws_ecs_container_override"
     kind_display: ClassVar[str] = "AWS ECS Container Override"
     kind_description: ClassVar[str] = (
-        "ECS Container Overrides allow users to override the default values of"
-        " container instance attributes defined in a task definition for a specific"
-        " task run."
+        "AWS ECS Container Override allows you to change the settings for a container within a task,"
+        " such as command, environment variables, and resource allocation, on a per-task basis."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
@@ -611,9 +610,9 @@ class AwsEcsDevice:
     kind: ClassVar[str] = "aws_ecs_device"
     kind_display: ClassVar[str] = "AWS ECS Device"
     kind_description: ClassVar[str] = (
-        "ECS Device refers to a device connected to Amazon Elastic Container Service,"
-        " which is a container management service that allows you to easily run and"
-        " scale containerized applications."
+        "The AWS ECS Device configuration specifies a host machine's device to be mapped to a container,"
+        " along with the path it should be mounted to inside the container and the permissions the"
+        " container has on the device."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host_path": S("hostPath"),
@@ -706,9 +705,8 @@ class AwsEcsHostEntry:
     kind: ClassVar[str] = "aws_ecs_host_entry"
     kind_display: ClassVar[str] = "AWS ECS Host Entry"
     kind_description: ClassVar[str] = (
-        "ECS Host Entries are configurations that specify the IP address and hostname"
-        " of a registered container instance in Amazon Elastic Container Service"
-        " (ECS)."
+        "The AWS ECS Host Entry configuration specifies a custom host-to-IP address mapping to be added"
+        " to a container's `/etc/hosts` file, allowing for custom hostname resolutions within the container."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"hostname": S("hostname"), "ip_address": S("ipAddress")}
     hostname: Optional[str] = field(default=None)
@@ -782,9 +780,9 @@ class AwsEcsSystemControl:
     kind: ClassVar[str] = "aws_ecs_system_control"
     kind_display: ClassVar[str] = "AWS ECS System Control"
     kind_description: ClassVar[str] = (
-        "ECS System Control is a service in AWS ECS (Elastic Container Service) that"
-        " allows users to manage and control the deployment of containers on a cloud"
-        " environment."
+        "The AWS ECS System Control is a configuration that allows you to set namespaced kernel parameters"
+        " for containers, controlling system-level behaviors at runtime by specifying the namespace"
+        " and the corresponding value."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"namespace": S("namespace"), "value": S("value")}
     namespace: Optional[str] = field(default=None)
@@ -925,9 +923,8 @@ class AwsEcsEFSAuthorizationConfig:
     kind: ClassVar[str] = "aws_ecs_efs_authorization_config"
     kind_display: ClassVar[str] = "AWS ECS EFS Authorization Config"
     kind_description: ClassVar[str] = (
-        "ECS EFS Authorization Config is a feature in AWS ECS (Elastic Container"
-        " Service) that allows fine-grained permission control for using Amazon EFS"
-        " (Elastic File System) with ECS tasks."
+        "The AWS ECS EFS Authorization Config is a setting that allows ECS tasks to use an Amazon EFS file system,"
+        " specifying the EFS access point ID and whether or not IAM authorization should be used for access control."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"access_point_id": S("accessPointId"), "iam": S("iam")}
     access_point_id: Optional[str] = field(default=None)
@@ -995,9 +992,8 @@ class AwsEcsVolume:
     kind: ClassVar[str] = "aws_ecs_volume"
     kind_display: ClassVar[str] = "AWS ECS Volume"
     kind_description: ClassVar[str] = (
-        "ECS Volumes are persistent block storage devices that can be attached to"
-        " Amazon ECS containers, providing data storage for applications running on"
-        " the Amazon Elastic Container Service."
+        "ECS Volumes are container volumes that can be used for persistent data storage and"
+        " sharing in Amazon Elastic Container Service."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
@@ -1246,9 +1242,9 @@ class AwsEcsDeploymentCircuitBreaker:
     kind: ClassVar[str] = "aws_ecs_deployment_circuit_breaker"
     kind_display: ClassVar[str] = "AWS ECS Deployment Circuit Breaker"
     kind_description: ClassVar[str] = (
-        "Circuit Breaker is a feature in Amazon Elastic Container Service (ECS) that"
-        " helps prevent application failures by stopping the deployment of a new"
-        " version if it exceeds a specified error rate or latency threshold."
+        "The AWS ECS Deployment Circuit Breaker is a feature that can automatically stop and rollback"
+        " a deployment if it's not proceeding as expected, helping to maintain service stability and"
+        " minimize downtime during updates."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "rollback": S("rollback")}
     enable: Optional[bool] = field(default=None)
@@ -1684,8 +1680,9 @@ class AwsEcsVersionInfo:
     kind: ClassVar[str] = "aws_ecs_version_info"
     kind_display: ClassVar[str] = "AWS ECS Version Info"
     kind_description: ClassVar[str] = (
-        "ECS Version Info provides information about the different versions of Amazon"
-        " Elastic Container Service (ECS) available in the AWS cloud."
+        "AWS ECS Version Info provides details about the software versions running on the ECS container agent,"
+        " including the version of the ECS agent itself, its hash identifier, and the version of Docker"
+        " that is being used."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "agent_version": S("agentVersion"),

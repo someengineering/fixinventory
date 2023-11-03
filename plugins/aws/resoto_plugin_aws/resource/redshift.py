@@ -347,9 +347,8 @@ class AwsRedshiftAquaConfiguration:
     kind: ClassVar[str] = "aws_redshift_aqua_configuration"
     kind_display: ClassVar[str] = "AWS Redshift Aqua Configuration"
     kind_description: ClassVar[str] = (
-        "Aqua is a feature of Amazon Redshift that allows you to offload and"
-        " accelerate the execution of certain types of queries using machine learning"
-        " and columnar storage technology."
+        "The AWS Redshift Aqua Configuration relates to the status and management settings of AQUA"
+        " (Advanced Query Accelerator), which enhances the performance of certain types of queries in Amazon Redshift."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aqua_status": S("AquaStatus"),

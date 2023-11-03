@@ -696,9 +696,8 @@ class AwsSagemakerAlgorithmValidationProfile:
     kind: ClassVar[str] = "aws_sagemaker_algorithm_validation_profile"
     kind_display: ClassVar[str] = "AWS SageMaker Algorithm Validation Profile"
     kind_description: ClassVar[str] = (
-        "SageMaker Algorithm Validation Profile is a resource in Amazon SageMaker"
-        " that allows you to define validation rules for algorithms used in machine"
-        " learning models."
+        "The AWS SageMaker Algorithm Validation Profile is a configuration tool in AWS SageMaker"
+        " that helps ensure your machine learning algorithms function correctly before deployment."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "profile_name": S("ProfileName"),
@@ -979,8 +978,9 @@ class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
     kind_display: ClassVar[str] = "AWS SageMaker App"
     kind_description: ClassVar[str] = (
-        "SageMaker App is a development environment provided by Amazon Web Services"
-        " for building, training, and deploying machine learning models."
+        "The AWS SageMaker App facilitates the creation and management of machine learning applications, enabling"
+        " users to engage in interactive model building and analysis. It provides a user-centric, customizable"
+        " workspace, complete with monitoring of app health and activity."
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1150,9 +1150,8 @@ class AwsSagemakerKernelGatewayAppSettings:
     kind: ClassVar[str] = "aws_sagemaker_kernel_gateway_app_settings"
     kind_display: ClassVar[str] = "AWS SageMaker Kernel Gateway App Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker Kernel Gateway App Settings is a service by AWS that allows users"
-        " to configure and manage settings for their SageMaker kernel gateway"
-        " applications."
+        "AWS SageMaker Kernel Gateway App Settings allows customization and optimization of the compute environment"
+        " for Jupyter kernels, including specifying lifecycle configurations and using custom images."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
@@ -1233,8 +1232,8 @@ class AwsSagemakerCanvasAppSettings:
     kind: ClassVar[str] = "aws_sagemaker_canvas_app_settings"
     kind_display: ClassVar[str] = "AWS SageMaker Canvas App Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker Canvas App Settings are configurations for custom user interfaces"
-        " built using Amazon SageMaker's visual interface"
+        "The AWS SageMaker Canvas App Settings facilitate the configuration of time series"
+        " forecasting features within the SageMaker Canvas visual data preparation tool."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "time_series_forecasting_settings": S("TimeSeriesForecastingSettings")
@@ -1301,10 +1300,9 @@ class AwsSagemakerDomainSettings:
     kind: ClassVar[str] = "aws_sagemaker_domain_settings"
     kind_display: ClassVar[str] = "AWS SageMaker Domain Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker Domain Settings allow you to configure and manage domains in"
-        " Amazon SageMaker, a fully managed machine learning service. Domains provide"
-        " a central location for managing notebooks, experiments, and models in"
-        " SageMaker."
+        "AWS SageMaker Domain Settings define the specific configurations and behaviors within a SageMaker Domain."
+        " These settings can include the configuration for RStudio Server (a popular integrated development"
+        " environment for R), security settings, and resource management policies. "
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "security_group_ids": S("SecurityGroupIds", default=[]),
@@ -1322,8 +1320,8 @@ class AwsSagemakerDefaultSpaceSettings:
     kind: ClassVar[str] = "aws_sagemaker_default_space_settings"
     kind_display: ClassVar[str] = "AWS SageMaker Default Space Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker Default Space Settings refer to the default configurations and"
-        " preferences for organizing machine learning projects in Amazon SageMaker."
+        "AWS SageMaker Default Space Settings are used to configure default workspace environments"
+        " in SageMaker, encompassing aspects such as access, security, and operational behaviors for user workspaces."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "execution_role": S("ExecutionRole"),
@@ -1344,8 +1342,9 @@ class AwsSagemakerDomain(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_domain"
     kind_display: ClassVar[str] = "AWS SageMaker Domain"
     kind_description: ClassVar[str] = (
-        "SageMaker Domains are AWS services that provide a complete set of tools and"
-        " resources for building, training, and deploying machine learning models."
+        "A SageMaker Domain in AWS is a dedicated, managed environment within Amazon SageMaker that provides"
+        " data scientists and developers with the necessary tools and permissions to build, train, and deploy"
+        " machine learning models."
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1530,8 +1529,8 @@ class AwsSagemakerExperimentSource:
     kind: ClassVar[str] = "aws_sagemaker_experiment_source"
     kind_display: ClassVar[str] = "AWS SageMaker Experiment Source"
     kind_description: ClassVar[str] = (
-        "SageMaker Experiment Source is a resource in AWS SageMaker that represents"
-        " the source data used for machine learning experiments."
+        "AWS SageMaker Experiment Source tracks the origin and type of SageMaker resources,"
+        " that contribute to a machine learning experiment."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"source_arn": S("SourceArn"), "source_type": S("SourceType")}
     source_arn: Optional[str] = field(default=None)
@@ -1755,9 +1754,8 @@ class AwsSagemakerCodeRepository(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_code_repository"
     kind_display: ClassVar[str] = "AWS SageMaker Code Repository"
     kind_description: ClassVar[str] = (
-        "SageMaker Code Repository is a managed service in Amazon SageMaker that"
-        " allows you to store, share, and manage machine learning code artifacts such"
-        " as notebooks, scripts, and libraries."
+        "The AWS SageMaker Code Repository is a managed Git-based code repository for storing and versioning"
+        " your machine learning code, making it easy to maintain and share code within your SageMaker projects."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-code-repositories", "CodeRepositorySummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1956,9 +1954,8 @@ class AwsSagemakerAutoRollbackConfig:
     kind: ClassVar[str] = "aws_sagemaker_auto_rollback_config"
     kind_display: ClassVar[str] = "AWS SageMaker Auto Rollback Configuration"
     kind_description: ClassVar[str] = (
-        "SageMaker Auto Rollback Configuration is a feature in AWS SageMaker that"
-        " allows you to configure automatic rollback of machine learning models in"
-        " case of deployment errors or issues."
+        "The AWS SageMaker Auto Rollback Configuration automatically reverts"
+        " a deployment if specified alarms are triggered."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"alarms": S("Alarms", default=[]) >> ForallBend(S("AlarmName"))}
     alarms: List[str] = field(factory=list)
@@ -2072,8 +2069,9 @@ class AwsSagemakerPendingDeploymentSummary:
     kind: ClassVar[str] = "aws_sagemaker_pending_deployment_summary"
     kind_display: ClassVar[str] = "AWS SageMaker Pending Deployment Summary"
     kind_description: ClassVar[str] = (
-        "AWS SageMaker Pending Deployment Summary provides information about pending"
-        " deployments in Amazon SageMaker, a fully managed machine learning service."
+        "AWS SageMaker Pending Deployment Summary provides details about an ongoing deployment process"
+        " in SageMaker, including the configuration name, the variants being deployed, and the"
+        " initiation time of the deployment."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "endpoint_config_name": S("EndpointConfigName"),
@@ -2091,9 +2089,9 @@ class AwsSagemakerClarifyInferenceConfig:
     kind: ClassVar[str] = "aws_sagemaker_clarify_inference_config"
     kind_display: ClassVar[str] = "AWS SageMaker Clarify Inference Config"
     kind_description: ClassVar[str] = (
-        "SageMaker Clarify Inference Config is a configuration for running inference"
-        " on machine learning models using Amazon SageMaker Clarify. It provides tools"
-        " for explaining and bringing transparency to model predictions."
+        "The AWS SageMaker Clarify Inference Config is designed to configure inference requests and"
+        " results for models, enabling users to understand predictions by specifying various attributes,"
+        " such as the input features and the format of the output."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "features_attribute": S("FeaturesAttribute"),
@@ -2147,9 +2145,9 @@ class AwsSagemakerClarifyTextConfig:
     kind: ClassVar[str] = "aws_sagemaker_clarify_text_config"
     kind_display: ClassVar[str] = "AWS SageMaker Clarify Text Config"
     kind_description: ClassVar[str] = (
-        "AWS SageMaker Clarify is a machine learning service that helps identify"
-        " potential bias and explainability issues in text data by providing data"
-        " insights and model explanations."
+        "The AWS SageMaker Clarify Text Config is a configuration setup that specifies the language"
+        " and granularity for analyzing text data within SageMaker Clarify, facilitating natural"
+        " language processing and understanding."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"language": S("Language"), "granularity": S("Granularity")}
     language: Optional[str] = field(default=None)
@@ -2203,9 +2201,9 @@ class AwsSagemakerExplainerConfig:
     kind: ClassVar[str] = "aws_sagemaker_explainer_config"
     kind_display: ClassVar[str] = "AWS Sagemaker Explainer Config"
     kind_description: ClassVar[str] = (
-        "Sagemaker Explainer Config is a configuration setting in AWS Sagemaker that"
-        " allows users to specify how to explain the output of a machine learning"
-        " model trained with Sagemaker."
+        "AWS SageMaker Explainer Config facilitates the configuration of Amazon SageMaker Clarify"
+        " to provide explanations for the predictions made by machine learning models, helping to"
+        " understand model behavior."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "clarify_explainer_config": S("ClarifyExplainerConfig") >> Bend(AwsSagemakerClarifyExplainerConfig.mapping)
@@ -2367,8 +2365,8 @@ class AwsSagemakerArtifactSourceType:
     kind: ClassVar[str] = "aws_sagemaker_artifact_source_type"
     kind_display: ClassVar[str] = "AWS SageMaker Artifact Source Type"
     kind_description: ClassVar[str] = (
-        "SageMaker Artifact Source Type is a resource in Amazon SageMaker that"
-        " represents the type of artifact source used for machine learning workloads."
+        "The Amazon SageMaker artifact source type identifies the origin of an artifact, such as a dataset"
+        " or model, using a specific type and corresponding value to facilitate tracking and lineage."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"source_id_type": S("SourceIdType"), "value": S("Value")}
     source_id_type: Optional[str] = field(default=None)
@@ -2397,8 +2395,8 @@ class AwsSagemakerArtifact(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_artifact"
     kind_display: ClassVar[str] = "AWS SageMaker Artifact"
     kind_description: ClassVar[str] = (
-        "SageMaker Artifacts are reusable machine learning assets, such as algorithms"
-        " and models, that can be stored and accessed in Amazon SageMaker."
+        "An Amazon SageMaker artifact is used for tracking the origin and usage of data"
+        " or models within ML workflows, providing a clear history for auditing and reproducibility."
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2597,8 +2595,10 @@ class AwsSagemakerCognitoMemberDefinition:
     kind: ClassVar[str] = "aws_sagemaker_cognito_member_definition"
     kind_display: ClassVar[str] = "AWS SageMaker Cognito Member Definition"
     kind_description: ClassVar[str] = (
-        "SageMaker Cognito Member Definitions are used to define the access policies"
-        " for Amazon Cognito users in Amazon SageMaker."
+        "The AWS SageMaker Cognito Member Definition refers to the configuration that integrates Amazon"
+        " Cognito with SageMaker, allowing for the use of a Cognito User Pool to manage user access to"
+        " SageMaker resources. This definition specifies which Cognito User Pool and group should be used for"
+        " authenticating users, as well as the Client ID associated with the application within Cognito."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "user_pool": S("UserPool"),
@@ -2615,9 +2615,9 @@ class AwsSagemakerOidcMemberDefinition:
     kind: ClassVar[str] = "aws_sagemaker_oidc_member_definition"
     kind_display: ClassVar[str] = "AWS SageMaker OIDC Member Definition"
     kind_description: ClassVar[str] = (
-        "SageMaker OIDC Member Definition is a resource in AWS SageMaker that allows"
-        " you to define an OpenID Connect (OIDC) user or group and their access"
-        " permissions for a specific SageMaker resource."
+        "AWS SageMaker OIDC Member Definition is used for managing user access in SageMaker, typically"
+        " specifying groups from an OpenID Connect (OIDC) identity provider that are allowed to perform"
+        " certain actions or access specific resources within SageMaker."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"groups": S("Groups", default=[])}
     groups: List[str] = field(factory=list)
@@ -2628,9 +2628,10 @@ class AwsSagemakerMemberDefinition:
     kind: ClassVar[str] = "aws_sagemaker_member_definition"
     kind_display: ClassVar[str] = "AWS SageMaker Member Definition"
     kind_description: ClassVar[str] = (
-        "SageMaker Member Definition is a resource in AWS SageMaker that allows users"
-        " to define and manage members for their SageMaker projects, enabling"
-        " collaboration and shared access to machine learning resources."
+        "AWS SageMaker Member Definition defines the authentication information for individuals participating"
+        " in a SageMaker work team. It specifies the type of member, such as users authenticated via Amazon"
+        " Cognito or through an OpenID Connect (OIDC) identity provider. This setup is critical for managing"
+        " user access and permissions within SageMaker projects and workstreams."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cognito_member_definition": S("CognitoMemberDefinition") >> Bend(AwsSagemakerCognitoMemberDefinition.mapping),
@@ -2810,9 +2811,8 @@ class AwsSagemakerAutoMLSecurityConfig:
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_security_config"
     kind_display: ClassVar[str] = "AWS SageMaker AutoML Security Config"
     kind_description: ClassVar[str] = (
-        "This resource pertains to the security configuration for the AWS SageMaker"
-        " AutoML service, which enables automatic machine learning model development"
-        " and deployment on AWS SageMaker."
+        "The AWS SageMaker AutoML Security Config ensures the security of AutoML"
+        " jobs with encryption and network settings."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "volume_kms_key_id": S("VolumeKmsKeyId"),
@@ -3339,10 +3339,10 @@ class AwsSagemakerEdgeOutputConfig:
     kind: ClassVar[str] = "aws_sagemaker_edge_output_config"
     kind_display: ClassVar[str] = "AWS SageMaker Edge Output Configuration"
     kind_description: ClassVar[str] = (
-        "SageMaker Edge Output Config is a feature in Amazon SageMaker that enables"
-        " you to configure the destination for edge device output when using SageMaker"
-        " Edge Manager. It allows you to specify the S3 bucket where the output"
-        " artifacts from the edge devices will be stored."
+        "The AWS SageMaker Edge Output Configuration pertains to how models are deployed and managed on edge"
+        " devices using Amazon SageMaker Edge Manager. It specifies where the model artifacts and other Edge"
+        " Manager outputs will be stored, typically in an S3 bucket, and how they will be encrypted, using an"
+        " optional AWS KMS key."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "s3_output_location": S("S3OutputLocation"),
@@ -3756,9 +3756,8 @@ class AwsSagemakerObjectiveStatusCounters:
     kind: ClassVar[str] = "aws_sagemaker_objective_status_counters"
     kind_display: ClassVar[str] = "AWS SageMaker Objective Status Counters"
     kind_description: ClassVar[str] = (
-        "AWS SageMaker Objective Status Counters are metrics or counters that track"
-        " the progress and status of objectives in Amazon SageMaker, a fully-managed"
-        " machine learning service by AWS."
+        "AWS SageMaker Objective Status Counters track the progress and outcomes of training jobs or"
+        " hyperparameter tuning jobs by counting how many have succeeded, are still pending, or have failed."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"succeeded": S("Succeeded"), "pending": S("Pending"), "failed": S("Failed")}
     succeeded: Optional[int] = field(default=None)
@@ -4150,9 +4149,9 @@ class AwsSagemakerModelLatencyThreshold:
     kind: ClassVar[str] = "aws_sagemaker_model_latency_threshold"
     kind_display: ClassVar[str] = "AWS SageMaker Model Latency Threshold"
     kind_description: ClassVar[str] = (
-        "SageMaker Model Latency Threshold is a parameter used to set the maximum"
-        " acceptable latency for predictions made by a model deployed on Amazon"
-        " SageMaker."
+        "The AWS SageMaker Model Latency Threshold setting is used to monitor the performance of a machine learning"
+        " model by specifying the acceptable latency threshold in milliseconds for a given percentile of"
+        " inference requests."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "percentile": S("Percentile"),
@@ -4206,8 +4205,8 @@ class AwsSagemakerEndpointOutputConfiguration:
     kind: ClassVar[str] = "aws_sagemaker_endpoint_output_configuration"
     kind_display: ClassVar[str] = "AWS SageMaker Endpoint Output Configuration"
     kind_description: ClassVar[str] = (
-        "The output configuration for the SageMaker endpoint, specifying where the"
-        " predictions should be stored or streamed."
+        "AWS SageMaker Endpoint Output Configuration sets up the deployment of a model,"
+        " specifying endpoint characteristics, hosting resources, and initial scale."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "endpoint_name": S("EndpointName"),
@@ -4259,9 +4258,9 @@ class AwsSagemakerInferenceRecommendation:
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendation"
     kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendation"
     kind_description: ClassVar[str] = (
-        "Amazon SageMaker Inference Recommendation is a service that provides real-"
-        " time recommendations using machine learning models deployed on the Amazon"
-        " SageMaker platform."
+        "AWS SageMaker Inference Recommendation is a feature that provides optimized configurations"
+        " and recommendations for deploying machine learning models in SageMaker, based on performance"
+        " metrics and specific model requirements."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "metrics": S("Metrics") >> Bend(AwsSagemakerRecommendationMetrics.mapping),
@@ -4309,9 +4308,9 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
     kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendations Job"
     kind_description: ClassVar[str] = (
-        "SageMaker Inference Recommendations Jobs are used in Amazon SageMaker to"
-        " create recommendation models that can generate personalized recommendations"
-        " based on user data."
+        "AWS SageMaker Inference Recommendations Job evaluates different configurations for deploying machine"
+        " learning models, providing suggestions to optimize performance and efficiency, along with monitoring"
+        " job progress and outcomes."
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -4419,9 +4418,9 @@ class AwsSagemakerLabelCounters:
     kind: ClassVar[str] = "aws_sagemaker_label_counters"
     kind_display: ClassVar[str] = "AWS SageMaker Label Counters"
     kind_description: ClassVar[str] = (
-        "SageMaker Label Counters are a feature in Amazon SageMaker that enables you"
-        " to track the distribution of labels in your dataset, helping you analyze and"
-        " manage label imbalances."
+        "AWS SageMaker Label Counters provide metrics on the labeling process of a dataset, indicating the total"
+        " number of items labeled, the split between human and machine labeling, any failures, and the"
+        " number of items still unlabeled."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "total_labeled": S("TotalLabeled"),
@@ -4637,9 +4636,9 @@ class AwsSagemakerLabelingJobOutput:
     kind: ClassVar[str] = "aws_sagemaker_labeling_job_output"
     kind_display: ClassVar[str] = "AWS SageMaker Labeling Job Output"
     kind_description: ClassVar[str] = (
-        "SageMaker Labeling Job Output is the result of a machine learning labeling"
-        " job on the AWS SageMaker platform, which provides a managed environment for"
-        " building, training, and deploying machine learning models."
+        "AWS SageMaker Labeling Job Output refers to the storage location of datasets annotated during a labeling job"
+        " and the ARN of the final machine learning model used if active learning was employed to assist humans in"
+        " the labeling process."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "output_dataset_s3_uri": S("OutputDatasetS3Uri"),
@@ -4813,9 +4812,8 @@ class AwsSagemakerAthenaDatasetDefinition:
     kind: ClassVar[str] = "aws_sagemaker_athena_dataset_definition"
     kind_display: ClassVar[str] = "AWS SageMaker Athena Dataset Definition"
     kind_description: ClassVar[str] = (
-        "Athena Dataset Definitions in SageMaker is used to define and create"
-        " datasets that can be accessed and used for machine learning projects in AWS"
-        " SageMaker."
+        "The AWS SageMaker Athena Dataset Definition specifies the configuration for"
+        " querying data with Athena, detailing the output format and location in S3."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "catalog": S("Catalog"),
@@ -4873,8 +4871,9 @@ class AwsSagemakerDatasetDefinition:
     kind: ClassVar[str] = "aws_sagemaker_dataset_definition"
     kind_display: ClassVar[str] = "AWS SageMaker Dataset Definition"
     kind_description: ClassVar[str] = (
-        "SageMaker Dataset Definition is a resource in Amazon SageMaker that"
-        " specifies the location and format of input data for training and inference."
+        "The AWS SageMaker Dataset Definition specifies configurations for datasets used in SageMaker, including"
+        " those from Athena and Redshift, along with local storage options, data distribution types, and the mode"
+        " in which the dataset is inputted into SageMaker for processing."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "athena_dataset_definition": S("AthenaDatasetDefinition") >> Bend(AwsSagemakerAthenaDatasetDefinition.mapping),
@@ -5259,9 +5258,8 @@ class AwsSagemakerCollectionConfiguration:
     kind: ClassVar[str] = "aws_sagemaker_collection_configuration"
     kind_display: ClassVar[str] = "AWS SageMaker Collection Configuration"
     kind_description: ClassVar[str] = (
-        "SageMaker Collection Configuration is a feature in Amazon SageMaker that"
-        " allows users to configure data collection during model training, enabling"
-        " the capturing of input data for further analysis and improvement."
+        "AWS SageMaker Collection Configuration organizes machine learning resources or data"
+        " by name and specified parameters within SageMaker."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "collection_name": S("CollectionName"),
@@ -5641,9 +5639,8 @@ class AwsSagemakerModelClientConfig:
     kind: ClassVar[str] = "aws_sagemaker_model_client_config"
     kind_display: ClassVar[str] = "AWS SageMaker Model Client Config"
     kind_description: ClassVar[str] = (
-        "SageMaker Model Client Config is a configuration for the SageMaker Python"
-        " SDK to interact with SageMaker models. It contains information such as the"
-        " endpoint name, instance type, and model name."
+        "AWS SageMaker Model Client Config optimizes model inference by setting a timeout"
+        " for prediction invocations and specifying the maximum number of retry attempts."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "invocations_timeout_in_seconds": S("InvocationsTimeoutInSeconds"),
@@ -5658,9 +5655,8 @@ class AwsSagemakerBatchDataCaptureConfig:
     kind: ClassVar[str] = "aws_sagemaker_batch_data_capture_config"
     kind_display: ClassVar[str] = "AWS SageMaker Batch Data Capture Config"
     kind_description: ClassVar[str] = (
-        "SageMaker Batch Data Capture Config is a feature of AWS SageMaker that"
-        " allows capturing data for model monitoring and analysis during batch"
-        " processing."
+        "The AWS SageMaker Batch Data Capture Config allows for the collection and storage of"
+        " inference data, with options for encryption and inference ID generation, to an S3 location."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "destination_s3_uri": S("DestinationS3Uri"),

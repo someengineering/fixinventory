@@ -189,9 +189,8 @@ class AwsElbSourceSecurityGroup:
     kind: ClassVar[str] = "aws_elb_source_security_group"
     kind_display: ClassVar[str] = "AWS ELB Source Security Group"
     kind_description: ClassVar[str] = (
-        "ELB Source Security Group is a feature in AWS Elastic Load Balancing that"
-        " allows you to control access to your load balancer by specifying the source"
-        " security group of the instances."
+        "The AWS ELB Source Security Group is used to control access to an Elastic Load Balancer"
+        " by identifying a trusted group of sources that can send traffic to it."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"owner_alias": S("OwnerAlias"), "group_name": S("GroupName")}
     owner_alias: Optional[str] = field(default=None)

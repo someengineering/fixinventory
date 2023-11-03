@@ -818,10 +818,9 @@ class AwsEc2Placement:
     kind: ClassVar[str] = "aws_ec2_placement"
     kind_display: ClassVar[str] = "AWS EC2 Placement"
     kind_description: ClassVar[str] = (
-        "EC2 Placement refers to the process of selecting a suitable physical host"
-        " within an AWS Availability Zone to run an EC2 instance. It helps optimize"
-        " performance, availability, and cost by considering factors such as instance"
-        " type, size, and availability of resources on the host."
+        "AWS EC2 Placement specifies the placement settings for an EC2 instance, including the Availability Zone,"
+        " placement group, and tenancy options, which determine how instances are distributed within the AWS"
+        " infrastructure for performance and isolation."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "availability_zone": S("AvailabilityZone"),
@@ -949,9 +948,9 @@ class AwsEc2ElasticInferenceAcceleratorAssociation:
     kind: ClassVar[str] = "aws_ec2_elastic_inference_accelerator_association"
     kind_display: ClassVar[str] = "AWS EC2 Elastic Inference Accelerator Association"
     kind_description: ClassVar[str] = (
-        "Elastic Inference Accelerator Association allows users to attach elastic"
-        " inference accelerators to EC2 instances in order to accelerate their machine"
-        " learning inference workloads."
+        "AWS EC2 Elastic Inference Accelerator Association refers to the connection between an EC2 instance and"
+        " an Elastic Inference (EI) Accelerator, which provides additional, scalable inference computing"
+        " resources to run deep learning models with improved performance-cost ratio."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "elastic_inference_accelerator_arn": S("ElasticInferenceAcceleratorArn"),
@@ -1121,9 +1120,9 @@ class AwsEc2CapacityReservationTargetResponse:
     kind: ClassVar[str] = "aws_ec2_capacity_reservation_target_response"
     kind_display: ClassVar[str] = "AWS EC2 Capacity Reservation Target Response"
     kind_description: ClassVar[str] = (
-        "This resource represents the response for querying capacity reservation"
-        " targets available for EC2 instances in AWS. It provides information about"
-        " the different capacity reservation options and their availability."
+        "Capacity Reservation Target Response is used in AWS to specify the Amazon Resource Name (ARN)"
+        " of the Capacity Reservation target in AWS EC2. This is used when you launch an instance or"
+        " when you allocate an elastic IP address."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservation_id": S("CapacityReservationId"),
@@ -1479,8 +1478,8 @@ class AwsEc2RecurringCharge:
     kind: ClassVar[str] = "aws_ec2_recurring_charge"
     kind_display: ClassVar[str] = "AWS EC2 Recurring Charge"
     kind_description: ClassVar[str] = (
-        "There is no specific resource or service named 'aws_ec2_recurring_charge' in"
-        " AWS. Please provide a valid resource name."
+        "AWS EC2 Recurring Charge is a cost structure applied to certain EC2 instances, where users pay a fixed"
+        " price at regular intervals for the use of the instance, typically offering savings over on-demand pricing."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"amount": S("Amount"), "frequency": S("Frequency")}
     amount: Optional[float] = field(default=None)
@@ -2303,8 +2302,9 @@ class AwsEc2SubnetCidrBlockState:
     kind: ClassVar[str] = "aws_ec2_subnet_cidr_block_state"
     kind_display: ClassVar[str] = "AWS EC2 Subnet CIDR Block State"
     kind_description: ClassVar[str] = (
-        "The state of the CIDR block for a subnet in AWS EC2. It indicates whether"
-        " the CIDR block is associated with a subnet or not."
+        "The AWS EC2 Subnet CIDR Block State is an indication of the status of a CIDR block within a subnet,"
+        " such as whether it's active, pending, or in some error state, along with a message that may provide"
+        " additional details about that status."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"state": S("State"), "status_message": S("StatusMessage")}
     state: Optional[str] = field(default=None)
@@ -2468,9 +2468,10 @@ class AwsEc2UserIdGroupPair:
     kind: ClassVar[str] = "aws_ec2_user_id_group_pair"
     kind_display: ClassVar[str] = "AWS EC2 User ID Group Pair"
     kind_description: ClassVar[str] = (
-        "User ID Group Pair is a configuration in EC2 that associates a user ID with"
-        " a security group, allowing or denying traffic based on the specified source"
-        " or destination IP address range."
+        "The AWS EC2 User ID Group Pair is a networking configuration setting within EC2 that defines"
+        " a relationship between a user's account and a security group. It typically includes information"
+        " about the security group and its permissions, and is used for setting up network access controls"
+        " in VPC peering connections."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("Description"),
@@ -2638,8 +2639,9 @@ class AwsEc2ProvisionedBandwidth:
     kind: ClassVar[str] = "aws_ec2_provisioned_bandwidth"
     kind_display: ClassVar[str] = "AWS EC2 Provisioned Bandwidth"
     kind_description: ClassVar[str] = (
-        "EC2 Provisioned Bandwidth refers to the ability to provision high-bandwidth"
-        " connections between EC2 instances and other AWS services."
+        "AWS EC2 Provisioned Bandwidth refers to the amount of bandwidth that an AWS EC2 instance"
+        " is guaranteed to have based on its instance type. This provisioned capacity is dedicated"
+        " to the instance for network resources, ensuring consistent performance for network-intensive applications."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "provision_time": S("ProvisionTime"),
@@ -3097,8 +3099,8 @@ class AwsEc2DestinationOption:
     kind: ClassVar[str] = "aws_ec2_destination_option"
     kind_display: ClassVar[str] = "AWS EC2 Destination Option"
     kind_description: ClassVar[str] = (
-        "EC2 Destination Options allow users to specify the destinations for traffic"
-        " within a VPC, providing flexibility and control over network traffic flows."
+        "AWS EC2 Destination Options allow you to configure the storage format, Hive compatibility,"
+        " and hourly partitioning of EC2 flow logs in Amazon S3, facilitating customized log management and analysis."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "file_format": S("FileFormat"),

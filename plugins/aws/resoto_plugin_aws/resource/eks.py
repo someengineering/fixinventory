@@ -174,9 +174,9 @@ class AwsEksLaunchTemplateSpecification:
     kind: ClassVar[str] = "aws_eks_launch_template_specification"
     kind_display: ClassVar[str] = "AWS EKS Launch Template Specification"
     kind_description: ClassVar[str] = (
-        "EKS Launch Template Specification refers to a configuration template used to"
-        " provision Amazon Elastic Kubernetes Service (EKS) clusters with pre-"
-        " configured instances."
+        "The AWS EKS Launch Template Specification defines a template by its name,"
+        " version, and ID that describes the EC2 instance configuration to use when"
+        " launching nodes in an Amazon EKS cluster."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "version": S("version"), "id": S("id")}
     name: Optional[str] = field(default=None)
@@ -379,8 +379,9 @@ class AwsEksConnectorConfig:
     kind: ClassVar[str] = "aws_eks_connector_config"
     kind_display: ClassVar[str] = "AWS EKS Connector Config"
     kind_description: ClassVar[str] = (
-        "The AWS EKS Connector Config is used to configure the connection between a"
-        " Kubernetes cluster in Amazon EKS and external resources or services."
+        "The AWS EKS Connector Config is a set of parameters used to connect external Kubernetes clusters"
+        " to Amazon EKS, specifying the details needed for activation (such as activation ID and code), the"
+        " expiry time of the activation, the cluster provider, and the role ARN for permissions."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "activation_id": S("activationId"),

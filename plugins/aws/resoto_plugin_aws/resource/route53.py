@@ -38,9 +38,8 @@ class AwsRoute53LinkedService:
     kind: ClassVar[str] = "aws_route53_linked_service"
     kind_display: ClassVar[str] = "AWS Route 53 Linked Service"
     kind_description: ClassVar[str] = (
-        "Route 53 Linked Service is a feature in AWS Route 53 that allows you to link"
-        " your domain name to other AWS services, such as an S3 bucket or CloudFront"
-        " distribution."
+        "The AWS Route 53 Linked Service is a configuration that integrates Route 53 with other AWS services"
+        " via a service principal, which is an identifier that is used to grant permissions."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"service_principal": S("ServicePrincipal"), "description": S("Description")}
     service_principal: Optional[str] = field(default=None)
@@ -52,9 +51,8 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     kind_display: ClassVar[str] = "AWS Route 53 Zone"
     kind_description: ClassVar[str] = (
-        "Route 53 is a scalable domain name system (DNS) web service designed to"
-        " provide highly reliable and cost-effective domain registration, DNS routing,"
-        " and health checking of resources within the AWS cloud."
+        "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
+        " internet traffic for their domains through various DNS records."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
     reference_kinds: ClassVar[ModelReference] = {
@@ -200,9 +198,8 @@ class AwsRoute53CidrRoutingConfig:
     kind: ClassVar[str] = "aws_route53_cidr_routing_config"
     kind_display: ClassVar[str] = "AWS Route 53 CIDR Routing Config"
     kind_description: ClassVar[str] = (
-        "CIDR Routing Config is a feature in AWS Route 53 that allows you to route"
-        " traffic based on CIDR blocks, enabling more granular control over how your"
-        " DNS queries are resolved."
+        "The AWS Route 53 CIDR Routing Config is a feature for managing how traffic is routed based"
+        " on IP address location, allowing for more precise traffic routing decisions in Amazon Route 53 services."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"collection_id": S("CollectionId"), "location_name": S("LocationName")}
     collection_id: Optional[str] = field(default=None)

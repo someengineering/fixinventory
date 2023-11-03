@@ -214,9 +214,9 @@ class AwsCloudFormationAutoDeployment:
     kind: ClassVar[str] = "aws_cloudformation_auto_deployment"
     kind_display: ClassVar[str] = "AWS CloudFormation Auto Deployment"
     kind_description: ClassVar[str] = (
-        "AWS CloudFormation Auto Deployment is a service that automates the"
-        " deployment of CloudFormation templates in the AWS Cloud, making it easier to"
-        " provision and manage a stack of AWS resources."
+        "AWS CloudFormation Auto Deployment is a setting within AWS CloudFormation that enables the automatic"
+        " deployment and updating of stacks or resources, typically in response to direct changes to source"
+        " code or a deployment pipeline, streamlining the deployment process."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
@@ -349,8 +349,8 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
     kind_description: ClassVar[str] = (
-        "CloudFormation Stack Instance Summary provides a summary of instances in a"
-        " CloudFormation stack, including instance ID, status, and stack name."
+        "CloudFormation Stack Instance Summary provides a summary of the overall stacks in a CloudFormation"
+        " deployment. The information includes current status, name, and any associated resources or parameters."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": F(_stack_instance_id),

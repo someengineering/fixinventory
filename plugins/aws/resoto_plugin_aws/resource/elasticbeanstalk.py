@@ -248,9 +248,9 @@ class AwsBeanstalkQueueDescription:
     kind: ClassVar[str] = "aws_beanstalk_queue_description"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Queue Description"
     kind_description: ClassVar[str] = (
-        "Elastic Beanstalk is a platform for deploying and running web applications."
-        " This resource represents the description of a queue within the Elastic"
-        " Beanstalk environment."
+        "AWS Elastic Beanstalk Queue Description outlines the details of a message queue, such as Amazon Simple"
+        " Queue Service (SQS), that's integrated with an Elastic Beanstalk application, providing information on"
+        " the queue's configurations and attributes for message processing."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "queue_name": S("Name"),
@@ -287,9 +287,9 @@ class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
     kind_description: ClassVar[str] = (
-        "AWS Elastic Beanstalk is a service that makes it easy to deploy, run, and"
-        " scale applications in the AWS cloud. An Elastic Beanstalk environment is a"
-        " version of your application that is deployed and running on AWS."
+        "An AWS Elastic Beanstalk environment is a collection of AWS resources running an application version."
+        " It includes an application server, server instances, load balancers, and optionally, a database."
+        " Each environment runs only one application and one version of that application at a time."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-environments", "Environments")
     reference_kinds: ClassVar[ModelReference] = {

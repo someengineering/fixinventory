@@ -131,9 +131,9 @@ class AwsDynamoDbLocalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_local_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Local Secondary Index Description"
     kind_description: ClassVar[str] = (
-        "AWS DynamoDB Local Secondary Index Description provides details about a local secondary index for a"
-        " DynamoDB table, including index name, key schema, projection details (attributes included in the"
-        " index), and index size along with item count."
+        "The AWS DynamoDB Local Secondary Index Description provides details about a Local Secondary Index (LSI)"
+        " associated with a DynamoDB table. This includes information such as the index name, the key schema, the"
+        " projection, and throughput information if provisioned throughput is specified."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
@@ -204,9 +204,12 @@ class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
     kind: ClassVar[str] = "aws_dynamo_db_replica_global_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Replica Global Secondary Index Description"
     kind_description: ClassVar[str] = (
-        "AWS DynamoDB Replica Global Secondary Index Description contains information about the global secondary"
-        " indexes on the replica table in a DynamoDB global table setup, including details like the index name,"
-        " status, provisioned read and write capacity, and index size."
+        "The AWS DynamoDB Replica Global Secondary Index Description details the properties of a"
+        " Global Secondary Index (GSI) on a replica table in a DynamoDB global table configuration."
+        " It includes the index name, key schema, attribute projections, provisioned read and write"
+        " capacity (if not using on-demand capacity), index status, and other metrics such as"
+        " index size and item count. GSIs on replicas enable fast, efficient query performance"
+        " across multiple geographically dispersed tables."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "index_name": S("IndexName"),
@@ -221,10 +224,8 @@ class AwsDynamoDbTableClassSummary:
     kind: ClassVar[str] = "aws_dynamo_db_table_class_summary"
     kind_display: ClassVar[str] = "AWS DynamoDB Table Class Summary"
     kind_description: ClassVar[str] = (
-        "DynamoDB Table Class Summary provides information about the classes of"
-        " tables in Amazon DynamoDB, a fully managed NoSQL database service provided"
-        " by AWS. It enables users to store and retrieve any amount of data with high"
-        " availability and durability."
+        "The AWS DynamoDB Table Class Summary provides an overview of the table class for"
+        " a DynamoDB table, which reflects the cost and performance characteristics of the table."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "table_class": S("TableClass"),
