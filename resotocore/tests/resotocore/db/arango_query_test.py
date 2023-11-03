@@ -1,12 +1,12 @@
 import pytest
 
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating
-from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine
+from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine, possible_values
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
 from resotocore.query.model import Query, Sort, P
-from resotocore.query.query_parser import parse_query
+from resotocore.query.query_parser import parse_query, predicate_term
 
 
 def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> None:
@@ -196,3 +196,79 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0, '
         '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
+
+
+def test_possible_values(foo_model: Model, graph_db: GraphDB) -> None:
+    # attributes: simple path
+    model = QueryModel(parse_query("is(foo)"), foo_model)
+    pv, bv = possible_values(graph_db, model, "reported.tags", "attributes")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "  # query
+        "LET m2 = ( FOR m3 in filter0 FILTER IS_OBJECT(m3.reported.tags) "  # make sure that the property is an object
+        "FOR m4 IN ATTRIBUTES(m3.reported.tags, true) RETURN m4) "  # iterate over all properties of the object path
+        "FOR m5 IN m2 FILTER m5!=null SORT m5 ASC RETURN DISTINCT m5"  # filter null, sort, distinct
+    )
+    assert bv == {"b0": "foo"}
+    # attributes: predicate
+    tags_with_a = predicate_term.parse('reported.tags =~ "^a.*"')
+    pv, bv = possible_values(graph_db, model, tags_with_a, "attributes")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "
+        "LET m2 = ( FOR m3 in filter0 FILTER IS_OBJECT(m3.reported.tags) "
+        "FOR m4 IN ATTRIBUTES(m3.reported.tags, true) RETURN m4) "
+        "FOR m5 IN m2 FILTER m5!=null FILTER REGEX_TEST(m5, @b1, true) "  # filter by null and regex
+        "SORT m5 ASC RETURN DISTINCT m5"
+    )
+    assert bv == {"b0": "foo", "b1": "^a.*"}
+    # attributes: predicate over array value
+    pred = predicate_term.parse("reported.pod_spec.containers[*].security_context.run_as_user not in [1000, 10001]")
+    pv, bv = possible_values(graph_db, model, pred, "attributes")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "
+        "LET m2 = ( FOR m3 in filter0 FOR m4 IN TO_ARRAY(m3.reported.pod_spec.containers) "  # expand nested arrays
+        "FILTER IS_OBJECT(m4.security_context.run_as_user) "
+        "FOR m5 IN ATTRIBUTES(m4.security_context.run_as_user, true) RETURN m5) "
+        "FOR m6 IN m2 FILTER m6!=null FILTER m6 not in @b1 SORT m6 ASC RETURN DISTINCT m6"
+    )
+    assert bv == {"b0": "foo", "b1": [1000, 10001]}
+    # attributes: array as last element
+    pv, bv = possible_values(graph_db, model, "reported.pod_spec.containers[*]", "attributes")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "
+        "LET m2 = ( FOR m3 in filter0 FOR m4 IN TO_ARRAY(m3.reported.pod_spec.containers[*]) "
+        "FILTER IS_OBJECT(m4) FOR m5 IN ATTRIBUTES(m4, true) RETURN m5) "
+        "FOR m6 IN m2 FILTER m6!=null SORT m6 ASC RETURN DISTINCT m6"
+    )
+    # values: simple path
+    pv, bv = possible_values(graph_db, model, "reported.tags.test", "values")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "  # query
+        "LET m2 = ( FOR m3 in filter0 RETURN m3.reported.tags.test) "  # select the property value
+        "FOR m4 IN m2 FILTER m4!=null SORT m4 ASC RETURN DISTINCT m4"  # filter null, sort, distinct
+    )
+    assert bv == {"b0": "foo"}
+    # values: predicate
+    pv, bv = possible_values(graph_db, model, tags_with_a, "values")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "
+        "LET m2 = ( FOR m3 in filter0 RETURN m3.reported.tags) "
+        "FOR m4 IN m2 FILTER m4!=null FILTER REGEX_TEST(m4, @b1, true) "  # filter by null and regex
+        "SORT m4 ASC RETURN DISTINCT m4"
+    )
+    assert bv == {"b0": "foo", "b1": "^a.*"}
+    # values: predicate over array value
+    pv, bv = possible_values(graph_db, model, pred, "attributes")
+    assert pv == (
+        "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0) "
+        "LET m2 = ( FOR m3 in filter0 FOR m4 IN TO_ARRAY(m3.reported.pod_spec.containers) "  # expand nested arrays
+        "FILTER IS_OBJECT(m4.security_context.run_as_user) "
+        "FOR m5 IN ATTRIBUTES(m4.security_context.run_as_user, true) RETURN m5) "
+        "FOR m6 IN m2 FILTER m6!=null FILTER m6 not in @b1 SORT m6 ASC RETURN DISTINCT m6"
+    )
+    assert bv == {"b0": "foo", "b1": [1000, 10001]}
+    # limit the result
+    pv, bv = possible_values(graph_db, model, "reported.tags", "values", limit=10)
+    assert pv.endswith("SORT m4 ASC LIMIT 0, 10 RETURN DISTINCT m4")
+    # skip and limit the result
+    pv, bv = possible_values(graph_db, model, "reported.tags", "values", limit=10, skip=20)
+    assert pv.endswith("SORT m4 ASC LIMIT 20, 10 RETURN DISTINCT m4")
