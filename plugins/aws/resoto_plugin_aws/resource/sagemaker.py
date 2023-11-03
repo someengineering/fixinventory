@@ -1198,9 +1198,8 @@ class AwsSagemakerRSessionAppSettings:
     kind: ClassVar[str] = "aws_sagemaker_r_session_app_settings"
     kind_display: ClassVar[str] = "AWS SageMaker R Session App Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker R Session App Settings is a resource in Amazon SageMaker that"
-        " allows configuring and managing R session settings for machine learning"
-        " workloads."
+        "The AWS SageMaker R Session App Settings facilitate the configuration of default resources and"
+        " the use of custom images for R sessions within SageMaker Studio."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_resource_spec": S("DefaultResourceSpec") >> Bend(AwsSagemakerResourceSpec.mapping),
@@ -1279,9 +1278,9 @@ class AwsSagemakerRStudioServerProDomainSettings:
     kind: ClassVar[str] = "aws_sagemaker_r_studio_server_pro_domain_settings"
     kind_display: ClassVar[str] = "AWS SageMaker R Studio Server Pro Domain Settings"
     kind_description: ClassVar[str] = (
-        "SageMaker R Studio Server Pro Domain Settings is a feature of Amazon"
-        " SageMaker that allows users to customize the domain configuration for R"
-        " Studio Server Pro instances in their SageMaker environment."
+        "AWS SageMaker R Studio Server Pro Domain Settings are used to configure the execution role and set URLs for"
+        " RStudio Connect and RStudio Package Manager within a domain, as well as to specify the default resources"
+        " for the domain."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain_execution_role_arn": S("DomainExecutionRoleArn"),
@@ -1575,8 +1574,8 @@ class AwsSagemakerTrialSource:
     kind: ClassVar[str] = "aws_sagemaker_trial_source"
     kind_display: ClassVar[str] = "AWS SageMaker Trial Source"
     kind_description: ClassVar[str] = (
-        "SageMaker Trial Source is a resource in Amazon SageMaker that allows users"
-        " to define the data source for a machine learning trial."
+        "AWS SageMaker Trial Source defines the origin and type of a trial's data source,"
+        " typically an ARN, indicating where the trial data is stored and what kind of data source it is."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"source_arn": S("SourceArn"), "source_type": S("SourceType")}
     source_arn: Optional[str] = field(default=None)
@@ -1622,8 +1621,9 @@ class AwsSagemakerTrial(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_trial"
     kind_display: ClassVar[str] = "AWS SageMaker Trial"
     kind_description: ClassVar[str] = (
-        "SageMaker Trial is a service offered by Amazon Web Services that provides a"
-        " platform for building, training, and deploying machine learning models."
+        "AWS SageMaker Trial represents a series of steps, known as trial components, which lead to the creation of"
+        " a machine learning model. It is nested within a single SageMaker experiment for organizational"
+        " and tracking purposes."
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1825,8 +1825,9 @@ class AwsSagemakerProductionVariantServerlessConfig:
     kind: ClassVar[str] = "aws_sagemaker_production_variant_serverless_config"
     kind_display: ClassVar[str] = "AWS SageMaker Production Variant Serverless Config"
     kind_description: ClassVar[str] = (
-        "This is a configuration for a serverless variant for production usage in AWS"
-        " SageMaker, which is Amazon's fully managed machine learning service."
+        "The AWS SageMaker Production Variant Serverless Config is a configuration that specifies the memory"
+        " allocation and the maximum number of concurrent invocations for a serverless deployment of a"
+        " SageMaker model variant."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "memory_size_in_mb": S("MemorySizeInMB"),
@@ -2032,9 +2033,9 @@ class AwsSagemakerPendingProductionVariantSummary:
     kind: ClassVar[str] = "aws_sagemaker_pending_production_variant_summary"
     kind_display: ClassVar[str] = "AWS SageMaker Pending Production Variant Summary"
     kind_description: ClassVar[str] = (
-        "SageMaker Pending Production Variant Summary represents the pending state of"
-        " a production variant in Amazon SageMaker, which is a machine learning"
-        " service provided by AWS."
+        "The AWS SageMaker Pending Production Variant Summary provides a snapshot of a SageMaker production"
+        " variant's update status, detailing configurations about to be deployed, such as capacity and"
+        " resource allocation changes."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "variant_name": S("VariantName"),
@@ -3008,9 +3009,8 @@ class AwsSagemakerResolvedAttributes:
     kind: ClassVar[str] = "aws_sagemaker_resolved_attributes"
     kind_display: ClassVar[str] = "AWS SageMaker Resolved Attributes"
     kind_description: ClassVar[str] = (
-        "SageMaker Resolved Attributes are the feature groups used in Amazon"
-        " SageMaker for model training and inference. They provide an organized and"
-        " structured way to input and process data for machine learning tasks."
+        "AWS SageMaker Resolved Attributes define the objective and criteria for an AutoML job,"
+        " determining how the model is optimized and when the job is complete."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_ml_job_objective": S("AutoMLJobObjective", "MetricName"),
@@ -3192,9 +3192,9 @@ class AwsSagemakerTargetPlatform:
     kind: ClassVar[str] = "aws_sagemaker_target_platform"
     kind_display: ClassVar[str] = "AWS SageMaker Target Platform"
     kind_description: ClassVar[str] = (
-        "SageMaker Target Platform is a service provided by Amazon Web Services that"
-        " allows users to specify the target platform for training and deploying"
-        " machine learning models using Amazon SageMaker."
+        "AWS SageMaker Target Platform specifies the operating system, architecture, and accelerator type for a model"
+        " compiled with SageMaker Neo, allowing you to optimize the model for deployment on a specific hardware"
+        " platform."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"os": S("Os"), "arch": S("Arch"), "accelerator": S("Accelerator")}
     os: Optional[str] = field(default=None)
@@ -3988,9 +3988,9 @@ class AwsSagemakerPhase:
     kind: ClassVar[str] = "aws_sagemaker_phase"
     kind_display: ClassVar[str] = "AWS SageMaker Phase"
     kind_description: ClassVar[str] = (
-        "SageMaker Phase is a component of Amazon SageMaker, which is a fully-managed"
-        " machine learning service that enables developers to build, train, and deploy"
-        " machine learning models at scale."
+        "The AWS SageMaker Phase setting is used to control the traffic pattern or user ramp-up strategy for"
+        " load testing in a SageMaker environment, defining the start size, how quickly to add users, and the"
+        " duration of the test phase."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "initial_number_of_users": S("InitialNumberOfUsers"),
@@ -4025,9 +4025,8 @@ class AwsSagemakerRecommendationJobResourceLimit:
     kind: ClassVar[str] = "aws_sagemaker_recommendation_job_resource_limit"
     kind_display: ClassVar[str] = "AWS SageMaker Recommendation Job Resource Limit"
     kind_description: ClassVar[str] = (
-        "SageMaker Recommendation Job Resource Limit specifies the maximum resources,"
-        " such as memory and compute, that can be allocated to a recommendation job in"
-        " Amazon SageMaker."
+        "AWS SageMaker Recommendation Job Resource Limit sets the maximum number of tests"
+        " and the maximum number of parallel tests allowed for model evaluations."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_number_of_tests": S("MaxNumberOfTests"),
@@ -4076,8 +4075,8 @@ class AwsSagemakerRecommendationJobPayloadConfig:
     kind: ClassVar[str] = "aws_sagemaker_recommendation_job_payload_config"
     kind_display: ClassVar[str] = "AWS SageMaker Recommendation Job Payload Config"
     kind_description: ClassVar[str] = (
-        "SageMaker recommendation job payload configuration specifies the data format"
-        " and location of the input payload for a recommendation job on AWS SageMaker."
+        "AWS SageMaker Recommendation Job Payload Config specifies the location of sample payloads"
+        " and the content types that are supported for model evaluations."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "sample_payload_url": S("SamplePayloadUrl"),
@@ -4092,10 +4091,8 @@ class AwsSagemakerRecommendationJobContainerConfig:
     kind: ClassVar[str] = "aws_sagemaker_recommendation_job_container_config"
     kind_display: ClassVar[str] = "AWS SageMaker Recommendation Job Container Config"
     kind_description: ClassVar[str] = (
-        "This resource represents the container configuration for a recommendation"
-        " job in AWS SageMaker. SageMaker is a fully-managed machine learning service"
-        " by Amazon that allows you to build, train, and deploy machine learning"
-        " models."
+        "AWS SageMaker Recommendation Job Container Config outlines the framework and version for machine"
+        " learning tasks, including the domain and task type, as well as model and instance preferences."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain": S("Domain"),
@@ -4166,9 +4163,8 @@ class AwsSagemakerRecommendationJobStoppingConditions:
     kind: ClassVar[str] = "aws_sagemaker_recommendation_job_stopping_conditions"
     kind_display: ClassVar[str] = "AWS SageMaker Recommendation Job Stopping Conditions"
     kind_description: ClassVar[str] = (
-        "SageMaker Recommendation Job Stopping Conditions in AWS allow you to specify"
-        " conditions that determine when the recommendation job should stop, based on"
-        " factors such as maximum runtime or model metric threshold."
+        "AWS SageMaker Recommendation Job Stopping Conditions determine when a model evaluation"
+        " job should be halted, based on the maximum number of model invocations or the threshold for model latency."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_invocations": S("MaxInvocations"),
@@ -4548,9 +4544,9 @@ class AwsSagemakerUiConfig:
     kind: ClassVar[str] = "aws_sagemaker_ui_config"
     kind_display: ClassVar[str] = "AWS SageMaker UI Config"
     kind_description: ClassVar[str] = (
-        "SageMaker UI Config is a feature of Amazon SageMaker, a machine learning"
-        " service provided by AWS. It allows users to configure the user interface for"
-        " their SageMaker notebooks and experiments."
+        "AWS SageMaker UI Config refers to the configuration for user interfaces used in SageMaker,"
+        " specifying the Amazon S3 location of the UI template and the Amazon Resource Name (ARN)"
+        " for the human task user interface."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ui_template_s3_uri": S("UiTemplateS3Uri"),
@@ -4840,9 +4836,9 @@ class AwsSagemakerRedshiftDatasetDefinition:
     kind: ClassVar[str] = "aws_sagemaker_redshift_dataset_definition"
     kind_display: ClassVar[str] = "AWS SageMaker Redshift Dataset Definition"
     kind_description: ClassVar[str] = (
-        "SageMaker Redshift Dataset Definition is a resource in Amazon SageMaker that"
-        " allows you to define datasets for training machine learning models using"
-        " data stored in Amazon Redshift."
+        "AWS SageMaker Redshift Dataset Definition is a configuration that identifies a specific Redshift cluster"
+        " and database to create datasets, defines the SQL query for data extraction, and sets the S3 storage and"
+        " output format for SageMaker use."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cluster_id": S("ClusterId"),
@@ -5324,9 +5320,8 @@ class AwsSagemakerTensorBoardOutputConfig:
     kind: ClassVar[str] = "aws_sagemaker_tensor_board_output_config"
     kind_display: ClassVar[str] = "AWS SageMaker TensorBoard Output Config"
     kind_description: ClassVar[str] = (
-        "SageMaker TensorBoard Output Config is a resource in AWS SageMaker that"
-        " specifies the configuration for exporting training job tensorboard data to"
-        " an S3 bucket for visualization and analysis."
+        "AWS SageMaker TensorBoard Output Config sets up the storage location for TensorBoard"
+        " data, allowing you to specify local file paths and an S3 bucket for output."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"local_path": S("LocalPath"), "s3_output_path": S("S3OutputPath")}
     local_path: Optional[str] = field(default=None)
@@ -5361,9 +5356,9 @@ class AwsSagemakerProfilerConfig:
     kind: ClassVar[str] = "aws_sagemaker_profiler_config"
     kind_display: ClassVar[str] = "AWS SageMaker Profiler Configuration"
     kind_description: ClassVar[str] = (
-        "SageMaker Profiler is an Amazon Web Services capability that automatically"
-        " analyzes your model's training data and provides recommendations for"
-        " optimizing performance."
+        "The AWS SageMaker Profiler Configuration is used to set up the output location for profiling data,"
+        " the frequency of profiling, and additional parameters for detailed control over the profiling"
+        " behavior of SageMaker training jobs."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "s3_output_path": S("S3OutputPath"),
