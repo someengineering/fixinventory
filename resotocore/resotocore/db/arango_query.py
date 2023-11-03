@@ -802,8 +802,9 @@ def possible_values(
         raise AttributeError(f"Unknown detail: {detail}")
 
     # result stream of matching entries: filter and sort
+    sorted_let = next_crs()
     next_cursor = next_crs()
-    query_str += f" FOR {next_cursor} IN {let_cursor} FILTER {next_cursor}!=null"
+    query_str += f" LET {sorted_let} = (FOR {next_cursor} IN {let_cursor} FILTER {next_cursor}!=null"
     cursor = next_cursor
     if isinstance(path_or_predicate, Predicate):
         p: Predicate = path_or_predicate
@@ -816,11 +817,13 @@ def possible_values(
             query_str += f" FILTER REGEX_TEST({cursor}, @{bvn}, true)"
         else:
             query_str += f" FILTER {cursor} {op} @{bvn}"
-
-    query_str += f" SORT {cursor} ASC"
+    query_str += f" RETURN DISTINCT {cursor})"
+    cursor = sorted_let
+    next_cursor = next_crs()
+    query_str += f"FOR {next_cursor} IN {cursor} SORT {next_cursor} ASC"
     if limit:
         query_str += f" LIMIT {skip if skip else 0}, {limit}"
-    query_str += f" RETURN DISTINCT {cursor}"
+    query_str += f" RETURN {next_cursor}"
     return query_str, bind_vars
 
 
