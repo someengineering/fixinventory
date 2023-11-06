@@ -860,10 +860,10 @@ class Api(Service):
             md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_prop_types)
         if filter_names := request.query.get("filter"):
             parts = filter_names.split(",")
-            md = md.filter_complex(lambda x: any(x in p for p in parts), with_bases, with_prop_types)
+            md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_prop_types)
 
         export_format = request.query.get("format")
-        # default to internal model format, but allow to request json schema format
+        # default to internal model format, but allow requesting json schema format
         if export_format == "schema" or request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
         elif export_format == "simple":
