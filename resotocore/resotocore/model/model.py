@@ -1410,7 +1410,7 @@ class Model:
 
         return Model(updated)
 
-    def flat_kinds(self) -> List[Kind]:
+    def flat_kinds(self) -> Model:
         """
         Returns a list of all kinds. The hierarchy of complex kinds is flattened:
         - all properties of all base kinds.
@@ -1456,7 +1456,37 @@ class Model:
                 )
             else:
                 result.append(kind)
-        return result
+        return Model.from_kinds(result)
+
+    def filter_complex(
+        self, filter_fn: Callable[[ComplexKind], bool], with_bases: bool = True, with_prop_types: bool = True
+    ) -> Model:
+        """
+        Returns a model that contains only the aggregates for which the filter function returns true.
+        """
+        visited: Set[str] = set()
+        kinds: Dict[str, Kind] = {}
+
+        def add_kind(cpl: ComplexKind) -> None:
+            if cpl.fqn in visited:
+                return
+            visited.add(cpl.fqn)
+            kinds[cpl.fqn] = cpl
+            # add bases
+            if with_bases:
+                for _, base in cpl.resolved_bases().items():
+                    add_kind(base)
+            # add prop types
+            if with_prop_types:
+                for prop in cpl.resolved_properties():
+                    if isinstance(prop.kind, ComplexKind):
+                        add_kind(prop.kind)
+
+        for kind in self.kinds.values():
+            if isinstance(kind, ComplexKind) and filter_fn(kind):
+                add_kind(kind)
+
+        return Model(kinds)
 
 
 @frozen

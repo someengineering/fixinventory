@@ -207,6 +207,41 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: kind
+          description: "Only return information about this kind"
+          in: query
+          schema:
+            type: string
+            default: null
+        - name: filter
+          description: "Only return information about kinds matched by this regexp"
+          in: query
+          schema:
+            type: string
+            default: null
+        - name: with_bases
+          description: "Render all base classes. Only together with kind or filter"
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: format
+          description: "The format of the returned json"
+          in: query
+          schema:
+            type: string
+            default: null
+            enum:
+              - schema
+              - simple
+        - name: with_prop_types
+          description: "Render types of property values. Only together with kind or filter"
+          in: query
+          schema:
+            type: boolean
+            default: false
+
+
       responses:
         "200":
           description: "The list of all kinds."
