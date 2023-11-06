@@ -208,14 +208,16 @@ paths:
             type: boolean
             default: false
         - name: kind
-          description: "Only return information about this kind"
+          description: "Only return information about the defined kinds. Comma separated list."
           in: query
+          explode: false
           schema:
             type: string
             default: null
         - name: filter
-          description: "Only return information about kinds matched by this regexp"
+          description: "Only return information about kinds that include given string. Comma separated list."
           in: query
+          explode: false
           schema:
             type: string
             default: null

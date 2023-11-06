@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 import string
 import tempfile
@@ -857,10 +856,11 @@ class Api(Service):
         with_bases = if_set(request.query.get("with_bases"), lambda x: x.lower() == "true", False)
         with_prop_types = if_set(request.query.get("with_prop_types"), lambda x: x.lower() == "true", False)
         if kind := request.query.get("kind"):
-            md = md.filter_complex(lambda x: x.fqn == kind, with_bases, with_prop_types)
+            kinds = set(kind.split(","))
+            md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_prop_types)
         if filter_names := request.query.get("filter"):
-            fr = re.compile(filter_names)
-            md = md.filter_complex(lambda x: fr.fullmatch(x.fqn) is not None, with_bases, with_prop_types)
+            parts = filter_names.split(",")
+            md = md.filter_complex(lambda x: any(x in p for p in parts), with_bases, with_prop_types)
 
         export_format = request.query.get("format")
         # default to internal model format, but allow to request json schema format
