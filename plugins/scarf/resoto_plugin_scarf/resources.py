@@ -11,6 +11,8 @@ from resotolib.baseresources import (
 @define(eq=False, slots=False)
 class ScarfResource:
     kind: ClassVar[str] = "scarf_resource"
+    kind_display: ClassVar[str] = "Scarf Resource"
+    kind_description: ClassVar[str] = "A Scarf Resource."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -25,6 +27,8 @@ class ScarfResource:
 @define(eq=False, slots=False)
 class ScarfOrganization(ScarfResource, BaseAccount):
     kind: ClassVar[str] = "scarf_organization"
+    kind_display: ClassVar[str] = "Scarf Organization"
+    kind_description: ClassVar[str] = "A Scarf Organization."
     description: Optional[str] = None
     billing_email: Optional[str] = None
     website: Optional[str] = None
@@ -44,6 +48,8 @@ class ScarfOrganization(ScarfResource, BaseAccount):
 @define(eq=False, slots=False)
 class ScarfPackage(ScarfResource, BaseResource):
     kind: ClassVar[str] = "scarf_package"
+    kind_display: ClassVar[str] = "Scarf Package"
+    kind_description: ClassVar[str] = "A Scarf Package."
 
     short_description: Optional[str] = None
     long_description: Optional[str] = None

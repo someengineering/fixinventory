@@ -18,6 +18,12 @@ service_name = "sqs"
 @define(eq=False, slots=False)
 class AwsSqsRedrivePolicy:
     kind: ClassVar[str] = "aws_sqs_redrive_policy"
+    kind_display: ClassVar[str] = "AWS SQS Redrive Policy"
+    kind_description: ClassVar[str] = (
+        "The AWS SQS Redrive Policy enables you to configure dead-letter queues for"
+        " your Amazon Simple Queue Service (SQS) queues. Dead-letter queues are used"
+        " to store messages that cannot be processed successfully by the main queue."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "dead_letter_target_arn": S("deadLetterTargetArn"),
         "max_receive_count": S("maxReceiveCount"),
@@ -29,6 +35,12 @@ class AwsSqsRedrivePolicy:
 @define(eq=False, slots=False)
 class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
+    kind_display: ClassVar[str] = "AWS SQS Queue"
+    kind_description: ClassVar[str] = (
+        "SQS (Simple Queue Service) is a fully managed message queuing service"
+        " provided by Amazon Web Services. It enables you to decouple and scale"
+        " microservices, distributed systems, and serverless applications."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-queues", "QueueUrls")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},

@@ -85,6 +85,12 @@ class LogsTaggable:
 @define(eq=False, slots=False)
 class AwsCloudwatchDimension:
     kind: ClassVar[str] = "aws_cloudwatch_dimension"
+    kind_display: ClassVar[str] = "AWS CloudWatch Dimension"
+    kind_description: ClassVar[str] = (
+        "CloudWatch Dimensions are used to categorize and filter metrics in Amazon"
+        " CloudWatch. They can be used to add more context to the metrics and make it"
+        " easier to monitor and analyze cloud resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -93,6 +99,12 @@ class AwsCloudwatchDimension:
 @define(eq=False, slots=False)
 class AwsCloudwatchMetric:
     kind: ClassVar[str] = "aws_cloudwatch_metric"
+    kind_display: ClassVar[str] = "AWS CloudWatch Metric"
+    kind_description: ClassVar[str] = (
+        "AWS CloudWatch Metric is a time-ordered set of data points that represent a measurable aspect of your AWS"
+        " resources or applications, such as CPU utilization or request counts, which can be tracked for"
+        " analysis and alerting."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "namespace": S("Namespace"),
         "metric_name": S("MetricName"),
@@ -106,6 +118,12 @@ class AwsCloudwatchMetric:
 @define(eq=False, slots=False)
 class AwsCloudwatchMetricStat:
     kind: ClassVar[str] = "aws_cloudwatch_metric_stat"
+    kind_display: ClassVar[str] = "AWS CloudWatch Metric Stat"
+    kind_description: ClassVar[str] = (
+        "AWS CloudWatch Metric Stat refers to a set of statistical values (e.g., average, sum, minimum, maximum)"
+        " computed from the metric data points over a specified time period, providing insights into the metric's"
+        " behavior and performance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric": S("Metric") >> Bend(AwsCloudwatchMetric.mapping),
         "period": S("Period"),
@@ -121,6 +139,12 @@ class AwsCloudwatchMetricStat:
 @define(eq=False, slots=False)
 class AwsCloudwatchMetricDataQuery:
     kind: ClassVar[str] = "aws_cloudwatch_metric_data_query"
+    kind_display: ClassVar[str] = "AWS CloudWatch Metric Data Query"
+    kind_description: ClassVar[str] = (
+        "AWS CloudWatch Metric Data Query is a structure used in CloudWatch to specify the metric data to retrieve"
+        " and how to process it, allowing users to aggregate, transform, and filter metric data points for analysis"
+        " or visualization in CloudWatch dashboards."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "metric_stat": S("MetricStat") >> Bend(AwsCloudwatchMetricStat.mapping),
@@ -142,6 +166,10 @@ class AwsCloudwatchMetricDataQuery:
 @define(eq=False, slots=False)
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
+    kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
+    kind_description: ClassVar[
+        str
+    ] = "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-alarms", "MetricAlarms")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
@@ -233,6 +261,12 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
+    kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
+    kind_description: ClassVar[str] = (
+        "CloudWatch Log Groups are containers for log streams in Amazon's CloudWatch"
+        " service, enabling centralized storage and analysis of log data from various"
+        " AWS resources."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
@@ -270,6 +304,12 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudwatchMetricTransformation:
     kind: ClassVar[str] = "aws_cloudwatch_metric_transformation"
+    kind_display: ClassVar[str] = "AWS CloudWatch Metric Transformation"
+    kind_description: ClassVar[str] = (
+        "CloudWatch Metric Transformation is a service provided by Amazon Web"
+        " Services that allows users to create custom metrics by manipulating existing"
+        " CloudWatch metrics."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric_name": S("metricName"),
         "metric_namespace": S("metricNamespace"),
@@ -289,6 +329,12 @@ class AwsCloudwatchMetricTransformation:
 @define(eq=False, slots=False)
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
+    kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
+    kind_description: ClassVar[str] = (
+        "CloudWatch Metric Filter is a feature in Amazon CloudWatch that allows you"
+        " to define a pattern to extract information from your log events and use it"
+        " to create CloudWatch metrics."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-metric-filters", "metricFilters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_cloudwatch_log_group"]},

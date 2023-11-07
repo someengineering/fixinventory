@@ -17,6 +17,12 @@ service_name = "cognito-idp"
 class AwsCognitoGroup(AwsResource):
     # collection of group resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_group"
+    kind_display: ClassVar[str] = "AWS Cognito Group"
+    kind_description: ClassVar[str] = (
+        "Cognito Groups are a way to manage and organize users in AWS Cognito, a"
+        " fully managed service for user authentication, registration, and access"
+        " control."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
@@ -57,6 +63,11 @@ class AwsCognitoGroup(AwsResource):
 @define(eq=False, slots=False)
 class AwsCognitoAttributeType:
     kind: ClassVar[str] = "aws_cognito_attribute_type"
+    kind_display: ClassVar[str] = "AWS Cognito Attribute Type"
+    kind_description: ClassVar[str] = (
+        "Cognito Attribute Type is used in AWS Cognito to define the type of user"
+        " attribute, such as string, number, or boolean."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "value": S("Value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -65,6 +76,11 @@ class AwsCognitoAttributeType:
 @define(eq=False, slots=False)
 class AwsCognitoMFAOptionType:
     kind: ClassVar[str] = "aws_cognito_mfa_option_type"
+    kind_display: ClassVar[str] = "AWS Cognito MFA Option Type"
+    kind_description: ClassVar[str] = (
+        "AWS Cognito MFA (Multi-Factor Authentication) Option Type refers to the methods of multi-factor"
+        " authentication available in Amazon Cognito for user accounts."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "delivery_medium": S("DeliveryMedium"),
         "attribute_name": S("AttributeName"),
@@ -77,6 +93,12 @@ class AwsCognitoMFAOptionType:
 class AwsCognitoUser(AwsResource, BaseUser):
     # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
+    kind_display: ClassVar[str] = "AWS Cognito User"
+    kind_description: ClassVar[str] = (
+        "AWS Cognito User represents a user account in the AWS Cognito service, which"
+        " provides secure user authentication and authorization for web and mobile"
+        " applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Username"),
         "name": S("Username"),
@@ -107,6 +129,12 @@ class AwsCognitoUser(AwsResource, BaseUser):
 @define(eq=False, slots=False)
 class AwsCognitoCustomSMSLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_sms_lambda_version_config_type"
+    kind_display: ClassVar[str] = "AWS Cognito Custom SMS Lambda Version Config Type"
+    kind_description: ClassVar[str] = (
+        "AWS Cognito Custom SMS Lambda Version Config Type defines the configuration"
+        " for a custom SMS Lambda version in AWS Cognito, allowing users to customize"
+        " the behavior of SMS messages sent during user authentication."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
     lambda_version: Optional[str] = field(default=None)
     lambda_arn: Optional[str] = field(default=None)
@@ -115,6 +143,12 @@ class AwsCognitoCustomSMSLambdaVersionConfigType:
 @define(eq=False, slots=False)
 class AwsCognitoCustomEmailLambdaVersionConfigType:
     kind: ClassVar[str] = "aws_cognito_custom_email_lambda_version_config_type"
+    kind_display: ClassVar[str] = "AWS Cognito Custom Email Lambda Version Config Type"
+    kind_description: ClassVar[str] = (
+        "This resource represents the configuration type for a custom email lambda"
+        " version in AWS Cognito. It allows you to customize the email delivery"
+        " process for user verification and notification emails in Cognito."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"lambda_version": S("LambdaVersion"), "lambda_arn": S("LambdaArn")}
     lambda_version: Optional[str] = field(default=None)
     lambda_arn: Optional[str] = field(default=None)
@@ -123,6 +157,12 @@ class AwsCognitoCustomEmailLambdaVersionConfigType:
 @define(eq=False, slots=False)
 class AwsCognitoLambdaConfigType:
     kind: ClassVar[str] = "aws_cognito_lambda_config_type"
+    kind_display: ClassVar[str] = "AWS Cognito Lambda Config Type"
+    kind_description: ClassVar[str] = (
+        "The AWS Cognito Lambda Config Type refers to the configuration for Lambda"
+        " functions used with AWS Cognito, which allows developers to customize user"
+        " sign-in and sign-up experiences in their applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "pre_sign_up": S("PreSignUp"),
         "custom_message": S("CustomMessage"),
@@ -156,6 +196,12 @@ class AwsCognitoLambdaConfigType:
 @define(eq=False, slots=False)
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
+    kind_display: ClassVar[str] = "AWS Cognito User Pool"
+    kind_description: ClassVar[str] = (
+        "An AWS Cognito User Pool is a managed user directory that enables user"
+        " registration, authentication, and access control for your web and mobile"
+        " apps."
+    )
     # this call requires the MaxResult parameter, 60 is the maximum valid input
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-user-pools", "UserPools", {"MaxResults": 60})
     reference_kinds: ClassVar[ModelReference] = {

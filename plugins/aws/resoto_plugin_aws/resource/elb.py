@@ -56,6 +56,12 @@ class ElbTaggable:
 @define(eq=False, slots=False)
 class AwsElbListener:
     kind: ClassVar[str] = "aws_elb_listener"
+    kind_display: ClassVar[str] = "AWS ELB Listener"
+    kind_description: ClassVar[str] = (
+        "ELB (Elastic Load Balancer) Listeners define the rules for how traffic"
+        " should be distributed between registered instances in an application load"
+        " balancer or network load balancer."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "protocol": S("Protocol"),
         "load_balancer_port": S("LoadBalancerPort"),
@@ -73,6 +79,12 @@ class AwsElbListener:
 @define(eq=False, slots=False)
 class AwsElbListenerDescription:
     kind: ClassVar[str] = "aws_elb_listener_description"
+    kind_display: ClassVar[str] = "AWS ELB Listener Description"
+    kind_description: ClassVar[str] = (
+        "ELB Listener Description provides information about a listener used in"
+        " Elastic Load Balancing (ELB) service in AWS. It contains details such as the"
+        " protocol, port, and SSL certificate configuration for the listener."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "listener": S("Listener") >> Bend(AwsElbListener.mapping),
         "policy_names": S("PolicyNames", default=[]),
@@ -84,6 +96,12 @@ class AwsElbListenerDescription:
 @define(eq=False, slots=False)
 class AwsElbAppCookieStickinessPolicy:
     kind: ClassVar[str] = "aws_elb_app_cookie_stickiness_policy"
+    kind_display: ClassVar[str] = "AWS ELB Application Cookie Stickiness Policy"
+    kind_description: ClassVar[str] = (
+        "ELB Application Cookie Stickiness Policy is a feature provided by AWS"
+        " Elastic Load Balancer that allows the load balancer to bind a user's session"
+        " to a specific instance based on the provided application cookie."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"policy_name": S("PolicyName"), "cookie_name": S("CookieName")}
     policy_name: Optional[str] = field(default=None)
     cookie_name: Optional[str] = field(default=None)
@@ -92,6 +110,12 @@ class AwsElbAppCookieStickinessPolicy:
 @define(eq=False, slots=False)
 class AwsElbLBCookieStickinessPolicy:
     kind: ClassVar[str] = "aws_elb_lb_cookie_stickiness_policy"
+    kind_display: ClassVar[str] = "AWS ELB LB Cookie Stickiness Policy"
+    kind_description: ClassVar[str] = (
+        "Cookie stickiness policy for an Elastic Load Balancer (ELB) in Amazon Web"
+        " Services (AWS) ensures that subsequent requests from a client are sent to"
+        " the same backend server, based on the presence of a cookie."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "policy_name": S("PolicyName"),
         "cookie_expiration_period": S("CookieExpirationPeriod"),
@@ -103,6 +127,11 @@ class AwsElbLBCookieStickinessPolicy:
 @define(eq=False, slots=False)
 class AwsElbPolicies:
     kind: ClassVar[str] = "aws_elb_policies"
+    kind_display: ClassVar[str] = "AWS ELB Policies"
+    kind_description: ClassVar[str] = (
+        "ELB Policies are rules that define how the Elastic Load Balancer distributes"
+        " incoming traffic to the registered instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "app_cookie_stickiness_policies": S("AppCookieStickinessPolicies", default=[])
         >> ForallBend(AwsElbAppCookieStickinessPolicy.mapping),
@@ -118,6 +147,12 @@ class AwsElbPolicies:
 @define(eq=False, slots=False)
 class AwsElbBackendServerDescription:
     kind: ClassVar[str] = "aws_elb_backend_server_description"
+    kind_display: ClassVar[str] = "AWS ELB Backend Server Description"
+    kind_description: ClassVar[str] = (
+        "This is a description of the backend server in an AWS Elastic Load Balancer"
+        " (ELB). The backend server is the target where the ELB forwards incoming"
+        " requests."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_port": S("InstancePort"),
         "policy_names": S("PolicyNames", default=[]),
@@ -129,6 +164,12 @@ class AwsElbBackendServerDescription:
 @define(eq=False, slots=False)
 class AwsElbHealthCheck:
     kind: ClassVar[str] = "aws_elb_health_check"
+    kind_display: ClassVar[str] = "AWS ELB Health Check"
+    kind_description: ClassVar[str] = (
+        "ELB Health Check is a feature provided by Amazon Web Services to monitor the"
+        " health of resources behind an Elastic Load Balancer (ELB) and automatically"
+        " adjust traffic flow based on the health check results."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "target": S("Target"),
         "interval": S("Interval"),
@@ -146,6 +187,11 @@ class AwsElbHealthCheck:
 @define(eq=False, slots=False)
 class AwsElbSourceSecurityGroup:
     kind: ClassVar[str] = "aws_elb_source_security_group"
+    kind_display: ClassVar[str] = "AWS ELB Source Security Group"
+    kind_description: ClassVar[str] = (
+        "The AWS ELB Source Security Group is used to control access to an Elastic Load Balancer"
+        " by identifying a trusted group of sources that can send traffic to it."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"owner_alias": S("OwnerAlias"), "group_name": S("GroupName")}
     owner_alias: Optional[str] = field(default=None)
     group_name: Optional[str] = field(default=None)
@@ -154,6 +200,13 @@ class AwsElbSourceSecurityGroup:
 @define(eq=False, slots=False)
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
+    kind_display: ClassVar[str] = "AWS ELB"
+    kind_description: ClassVar[str] = (
+        "ELB stands for Elastic Load Balancer. It is a service provided by Amazon Web"
+        " Services that automatically distributes incoming application traffic across"
+        " multiple Amazon EC2 instances, making it easier to achieve fault tolerance"
+        " in your applications."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-load-balancers",

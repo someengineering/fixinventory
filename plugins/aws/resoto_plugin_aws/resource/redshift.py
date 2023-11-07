@@ -21,6 +21,12 @@ service_name = "redshift"
 @define(eq=False, slots=False)
 class AwsRedshiftNetworkInterface:
     kind: ClassVar[str] = "aws_redshift_network_interface"
+    kind_display: ClassVar[str] = "AWS Redshift Network Interface"
+    kind_description: ClassVar[str] = (
+        "Redshift Network Interface is a network interface attached to an Amazon"
+        " Redshift cluster, providing connectivity to the cluster from other resources"
+        " in the same VPC."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "network_interface_id": S("NetworkInterfaceId"),
         "subnet_id": S("SubnetId"),
@@ -36,6 +42,13 @@ class AwsRedshiftNetworkInterface:
 @define(eq=False, slots=False)
 class AwsRedshiftVpcEndpoint:
     kind: ClassVar[str] = "aws_redshift_vpc_endpoint"
+    kind_display: ClassVar[str] = "AWS Redshift VPC Endpoint"
+    kind_description: ClassVar[str] = (
+        "Redshift VPC Endpoint is a secure and private connection between Amazon"
+        " Redshift and an Amazon Virtual Private Cloud (VPC). It allows data to be"
+        " transferred between the VPC and Redshift cluster without going through the"
+        " internet."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "vpc_endpoint_id": S("VpcEndpointId"),
         "vpc_id": S("VpcId"),
@@ -49,6 +62,12 @@ class AwsRedshiftVpcEndpoint:
 @define(eq=False, slots=False)
 class AwsRedshiftEndpoint:
     kind: ClassVar[str] = "aws_redshift_endpoint"
+    kind_display: ClassVar[str] = "AWS Redshift Endpoint"
+    kind_description: ClassVar[str] = (
+        "An AWS Redshift Endpoint is the unique network address for connecting to an"
+        " Amazon Redshift cluster, allowing users to run queries and perform data"
+        " analysis on large datasets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "address": S("Address"),
         "port": S("Port"),
@@ -62,6 +81,12 @@ class AwsRedshiftEndpoint:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterSecurityGroupMembership:
     kind: ClassVar[str] = "aws_redshift_cluster_security_group_membership"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster Security Group Membership"
+    kind_description: ClassVar[str] = (
+        "Redshift Cluster Security Group Membership allows you to manage the security"
+        " group membership for an Amazon Redshift cluster. Security groups control"
+        " inbound and outbound traffic to your cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cluster_security_group_name": S("ClusterSecurityGroupName"),
         "status": S("Status"),
@@ -73,6 +98,12 @@ class AwsRedshiftClusterSecurityGroupMembership:
 @define(eq=False, slots=False)
 class AwsRedshiftVpcSecurityGroupMembership:
     kind: ClassVar[str] = "aws_redshift_vpc_security_group_membership"
+    kind_display: ClassVar[str] = "AWS Redshift VPC Security Group Membership"
+    kind_description: ClassVar[str] = (
+        "Redshift VPC Security Group Membership is a feature in Amazon Redshift that"
+        " allows you to associate Redshift clusters with Amazon Virtual Private Cloud"
+        " (VPC) security groups for enhanced network security."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"vpc_security_group_id": S("VpcSecurityGroupId"), "status": S("Status")}
     vpc_security_group_id: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -81,6 +112,11 @@ class AwsRedshiftVpcSecurityGroupMembership:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterParameterStatus:
     kind: ClassVar[str] = "aws_redshift_cluster_parameter_status"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster Parameter Status"
+    kind_description: ClassVar[str] = (
+        "AWS Redshift Cluster Parameter Status provides information about the status"
+        " and configuration of parameters for an Amazon Redshift cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "parameter_name": S("ParameterName"),
         "parameter_apply_status": S("ParameterApplyStatus"),
@@ -94,6 +130,12 @@ class AwsRedshiftClusterParameterStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterParameterGroupStatus:
     kind: ClassVar[str] = "aws_redshift_cluster_parameter_group_status"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster Parameter Group Status"
+    kind_description: ClassVar[str] = (
+        "Redshift Cluster Parameter Group Status provides information about the"
+        " status of a parameter group in Amazon Redshift, which is used to manage the"
+        " configuration settings for a Redshift cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "parameter_group_name": S("ParameterGroupName"),
         "parameter_apply_status": S("ParameterApplyStatus"),
@@ -108,6 +150,11 @@ class AwsRedshiftClusterParameterGroupStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftPendingModifiedValues:
     kind: ClassVar[str] = "aws_redshift_pending_modified_values"
+    kind_display: ClassVar[str] = "AWS Redshift Pending Modified Values"
+    kind_description: ClassVar[str] = (
+        "Redshift Pending Modified Values represents the configuration changes that"
+        " are currently pending for an Amazon Redshift cluster."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "master_user_password": S("MasterUserPassword"),
         "node_type": S("NodeType"),
@@ -137,6 +184,12 @@ class AwsRedshiftPendingModifiedValues:
 @define(eq=False, slots=False)
 class AwsRedshiftRestoreStatus:
     kind: ClassVar[str] = "aws_redshift_restore_status"
+    kind_display: ClassVar[str] = "AWS Redshift Restore Status"
+    kind_description: ClassVar[str] = (
+        "Redshift Restore Status refers to the current status of a restore operation"
+        " in Amazon Redshift, which is a fully managed data warehouse service in the"
+        " cloud."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "status": S("Status"),
         "current_restore_rate_in_mega_bytes_per_second": S("CurrentRestoreRateInMegaBytesPerSecond"),
@@ -156,6 +209,12 @@ class AwsRedshiftRestoreStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftDataTransferProgress:
     kind: ClassVar[str] = "aws_redshift_data_transfer_progress"
+    kind_display: ClassVar[str] = "AWS Redshift Data Transfer Progress"
+    kind_description: ClassVar[str] = (
+        "AWS Redshift Data Transfer Progress provides information about the progress"
+        " of data transfer operations in Amazon Redshift, a fully-managed data"
+        " warehouse service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "status": S("Status"),
         "current_rate_in_mega_bytes_per_second": S("CurrentRateInMegaBytesPerSecond"),
@@ -175,6 +234,11 @@ class AwsRedshiftDataTransferProgress:
 @define(eq=False, slots=False)
 class AwsRedshiftHsmStatus:
     kind: ClassVar[str] = "aws_redshift_hsm_status"
+    kind_display: ClassVar[str] = "AWS Redshift HSM Status"
+    kind_description: ClassVar[str] = (
+        "The AWS Redshift HSM Status provides information about the status of the"
+        " Hardware Security Module (HSM) used to encrypt data in Amazon Redshift."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "hsm_client_certificate_identifier": S("HsmClientCertificateIdentifier"),
         "hsm_configuration_identifier": S("HsmConfigurationIdentifier"),
@@ -188,6 +252,8 @@ class AwsRedshiftHsmStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterSnapshotCopyStatus:
     kind: ClassVar[str] = "aws_redshift_cluster_snapshot_copy_status"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster Snapshot Copy Status"
+    kind_description: ClassVar[str] = "The status of the copy operation for a snapshot of an Amazon Redshift cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "destination_region": S("DestinationRegion"),
         "retention_period": S("RetentionPeriod"),
@@ -203,6 +269,12 @@ class AwsRedshiftClusterSnapshotCopyStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterNode:
     kind: ClassVar[str] = "aws_redshift_cluster_node"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster Node"
+    kind_description: ClassVar[str] = (
+        "Redshift Cluster Node is a compute resource within an Amazon Redshift"
+        " cluster that runs the database queries and stores the data in Redshift data"
+        " warehouse."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "node_role": S("NodeRole"),
         "private_ip_address": S("PrivateIPAddress"),
@@ -216,6 +288,8 @@ class AwsRedshiftClusterNode:
 @define(eq=False, slots=False)
 class AwsRedshiftElasticIpStatus:
     kind: ClassVar[str] = "aws_redshift_elastic_ip_status"
+    kind_display: ClassVar[str] = "AWS Redshift Elastic IP Status"
+    kind_description: ClassVar[str] = "The status of an Elastic IP assigned to an Amazon Redshift cluster."
     mapping: ClassVar[Dict[str, Bender]] = {"elastic_ip": S("ElasticIp"), "status": S("Status")}
     elastic_ip: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
@@ -224,6 +298,10 @@ class AwsRedshiftElasticIpStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftClusterIamRole:
     kind: ClassVar[str] = "aws_redshift_cluster_iam_role"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster IAM Role"
+    kind_description: ClassVar[
+        str
+    ] = "An IAM role that is used to grant permissions to an Amazon Redshift cluster to access other AWS services."
     mapping: ClassVar[Dict[str, Bender]] = {"iam_role_arn": S("IamRoleArn"), "apply_status": S("ApplyStatus")}
     iam_role_arn: Optional[str] = field(default=None)
     apply_status: Optional[str] = field(default=None)
@@ -232,6 +310,11 @@ class AwsRedshiftClusterIamRole:
 @define(eq=False, slots=False)
 class AwsRedshiftDeferredMaintenanceWindow:
     kind: ClassVar[str] = "aws_redshift_deferred_maintenance_window"
+    kind_display: ClassVar[str] = "AWS Redshift Deferred Maintenance Window"
+    kind_description: ClassVar[str] = (
+        "Deferred Maintenance Window is a feature in AWS Redshift that allows users"
+        " to postpone maintenance activities for their Redshift clusters."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "defer_maintenance_identifier": S("DeferMaintenanceIdentifier"),
         "defer_maintenance_start_time": S("DeferMaintenanceStartTime"),
@@ -245,6 +328,12 @@ class AwsRedshiftDeferredMaintenanceWindow:
 @define(eq=False, slots=False)
 class AwsRedshiftResizeInfo:
     kind: ClassVar[str] = "aws_redshift_resize_info"
+    kind_display: ClassVar[str] = "AWS Redshift Resize Info"
+    kind_description: ClassVar[str] = (
+        "Redshift Resize Info provides information about the resizing process of an"
+        " AWS Redshift cluster, which allows users to easily scale their data"
+        " warehouse to handle larger workloads."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "resize_type": S("ResizeType"),
         "allow_cancel_resize": S("AllowCancelResize"),
@@ -256,6 +345,11 @@ class AwsRedshiftResizeInfo:
 @define(eq=False, slots=False)
 class AwsRedshiftAquaConfiguration:
     kind: ClassVar[str] = "aws_redshift_aqua_configuration"
+    kind_display: ClassVar[str] = "AWS Redshift Aqua Configuration"
+    kind_description: ClassVar[str] = (
+        "The AWS Redshift Aqua Configuration relates to the status and management settings of AQUA"
+        " (Advanced Query Accelerator), which enhances the performance of certain types of queries in Amazon Redshift."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aqua_status": S("AquaStatus"),
         "aqua_configuration_status": S("AquaConfigurationStatus"),
@@ -267,6 +361,12 @@ class AwsRedshiftAquaConfiguration:
 @define(eq=False, slots=False)
 class AwsRedshiftReservedNodeExchangeStatus:
     kind: ClassVar[str] = "aws_redshift_reserved_node_exchange_status"
+    kind_display: ClassVar[str] = "AWS Redshift Reserved Node Exchange Status"
+    kind_description: ClassVar[str] = (
+        "Reserved Node Exchange Status provides information about the status of a"
+        " reserved node exchange in Amazon Redshift, a fully managed data warehouse"
+        " service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "reserved_node_exchange_request_id": S("ReservedNodeExchangeRequestId"),
         "status": S("Status"),
@@ -292,6 +392,10 @@ class AwsRedshiftReservedNodeExchangeStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
+    kind_display: ClassVar[str] = "AWS Redshift Cluster"
+    kind_description: ClassVar[
+        str
+    ] = "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

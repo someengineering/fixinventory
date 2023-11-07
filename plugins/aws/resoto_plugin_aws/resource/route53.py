@@ -23,6 +23,11 @@ service_name = "route53"
 @define(eq=False, slots=False)
 class AwsRoute53ZoneConfig:
     kind: ClassVar[str] = "aws_route53_zone_config"
+    kind_display: ClassVar[str] = "AWS Route53 Zone Config"
+    kind_description: ClassVar[str] = (
+        "Route53 Zone Config is a service provided by Amazon Web Services that allows"
+        " users to configure DNS settings for their domain names in the cloud."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"comment": S("Comment"), "private_zone": S("PrivateZone")}
     comment: Optional[str] = field(default=None)
     private_zone: Optional[bool] = field(default=None)
@@ -31,6 +36,11 @@ class AwsRoute53ZoneConfig:
 @define(eq=False, slots=False)
 class AwsRoute53LinkedService:
     kind: ClassVar[str] = "aws_route53_linked_service"
+    kind_display: ClassVar[str] = "AWS Route 53 Linked Service"
+    kind_description: ClassVar[str] = (
+        "The AWS Route 53 Linked Service is a configuration that integrates Route 53 with other AWS services"
+        " via a service principal, which is an identifier that is used to grant permissions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"service_principal": S("ServicePrincipal"), "description": S("Description")}
     service_principal: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
@@ -39,6 +49,11 @@ class AwsRoute53LinkedService:
 @define(eq=False, slots=False)
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
+    kind_display: ClassVar[str] = "AWS Route 53 Zone"
+    kind_description: ClassVar[str] = (
+        "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
+        " internet traffic for their domains through various DNS records."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -142,6 +157,12 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
 @define(eq=False, slots=False)
 class AwsRoute53GeoLocation:
     kind: ClassVar[str] = "aws_route53_geo_location"
+    kind_display: ClassVar[str] = "AWS Route53 Geo Location"
+    kind_description: ClassVar[str] = (
+        "Route53 Geo Location is a feature of AWS Route53 DNS service that allows you"
+        " to route traffic based on the geographic location of your users, providing"
+        " low latency and improved user experience."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "continent_code": S("ContinentCode"),
         "country_code": S("CountryCode"),
@@ -155,6 +176,13 @@ class AwsRoute53GeoLocation:
 @define(eq=False, slots=False)
 class AwsRoute53AliasTarget:
     kind: ClassVar[str] = "aws_route53_alias_target"
+    kind_display: ClassVar[str] = "AWS Route 53 Alias Target"
+    kind_description: ClassVar[str] = (
+        "AWS Route 53 Alias Target is a feature of Amazon Route 53, a scalable domain"
+        " name system web service that translates domain names to IP addresses. Alias"
+        " Target allows you to route traffic to other AWS resources such as Amazon S3"
+        " buckets, CloudFront distributions, and Elastic Load Balancers."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "hosted_zone_id": S("HostedZoneId"),
         "dns_name": S("DNSName"),
@@ -168,6 +196,11 @@ class AwsRoute53AliasTarget:
 @define(eq=False, slots=False)
 class AwsRoute53CidrRoutingConfig:
     kind: ClassVar[str] = "aws_route53_cidr_routing_config"
+    kind_display: ClassVar[str] = "AWS Route 53 CIDR Routing Config"
+    kind_description: ClassVar[str] = (
+        "The AWS Route 53 CIDR Routing Config is a feature for managing how traffic is routed based"
+        " on IP address location, allowing for more precise traffic routing decisions in Amazon Route 53 services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"collection_id": S("CollectionId"), "location_name": S("LocationName")}
     collection_id: Optional[str] = field(default=None)
     location_name: Optional[str] = field(default=None)
@@ -176,6 +209,11 @@ class AwsRoute53CidrRoutingConfig:
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
+    kind_display: ClassVar[str] = "AWS Route 53 Resource Record"
+    kind_description: ClassVar[str] = (
+        "Route 53 Resource Records are domain name system (DNS) records used by AWS"
+        " Route 53 to route traffic to AWS resources or to external resources."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -191,6 +229,12 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
+    kind_display: ClassVar[str] = "AWS Route 53 Resource Record Set"
+    kind_description: ClassVar[str] = (
+        "Route 53 Resource Record Sets are DNS records that map domain names to IP"
+        " addresses or other DNS resources, allowing users to manage domain name"
+        " resolution in the Amazon Route 53 service."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_route53_resource_record"],

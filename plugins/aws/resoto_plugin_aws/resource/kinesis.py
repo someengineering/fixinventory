@@ -18,6 +18,12 @@ service_name = "kinesis"
 @define(eq=False, slots=False)
 class AwsKinesisHashKeyRange:
     kind: ClassVar[str] = "aws_kinesis_hash_key_range"
+    kind_display: ClassVar[str] = "AWS Kinesis Hash Key Range"
+    kind_description: ClassVar[str] = (
+        "AWS Kinesis Hash Key Range is a range of hash keys used for partitioning"
+        " data in Amazon Kinesis streams, allowing for efficient and scalable data"
+        " processing and analysis."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "starting_hash_key": S("StartingHashKey"),
         "ending_hash_key": S("EndingHashKey"),
@@ -29,6 +35,13 @@ class AwsKinesisHashKeyRange:
 @define(eq=False, slots=False)
 class AwsKinesisSequenceNumberRange:
     kind: ClassVar[str] = "aws_kinesis_sequence_number_range"
+    kind_display: ClassVar[str] = "AWS Kinesis Sequence Number Range"
+    kind_description: ClassVar[str] = (
+        "Kinesis Sequence Number Range represents a range of sequence numbers"
+        " associated with data records in an Amazon Kinesis data stream. It is used to"
+        " specify a starting and ending sequence number when retrieving records from"
+        " the stream."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "starting_sequence_number": S("StartingSequenceNumber"),
         "ending_sequence_number": S("EndingSequenceNumber"),
@@ -40,6 +53,11 @@ class AwsKinesisSequenceNumberRange:
 @define(eq=False, slots=False)
 class AwsKinesisShard:
     kind: ClassVar[str] = "aws_kinesis_shard"
+    kind_display: ClassVar[str] = "AWS Kinesis Shard"
+    kind_description: ClassVar[str] = (
+        "An AWS Kinesis Shard is a sequence of data records in an Amazon Kinesis"
+        " stream, used for storing and processing real-time streaming data."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "shard_id": S("ShardId"),
         "parent_shard_id": S("ParentShardId"),
@@ -57,6 +75,12 @@ class AwsKinesisShard:
 @define(eq=False, slots=False)
 class AwsKinesisEnhancedMetrics:
     kind: ClassVar[str] = "aws_kinesis_enhanced_metrics"
+    kind_display: ClassVar[str] = "AWS Kinesis Enhanced Metrics"
+    kind_description: ClassVar[str] = (
+        "Kinesis Enhanced Metrics is a feature provided by AWS Kinesis that enables"
+        " enhanced monitoring and analysis of data streams with additional metrics and"
+        " statistics."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"shard_level_metrics": S("ShardLevelMetrics", default=[])}
     shard_level_metrics: List[str] = field(factory=list)
 
@@ -64,6 +88,12 @@ class AwsKinesisEnhancedMetrics:
 @define(eq=False, slots=False)
 class AwsKinesisStream(AwsResource):
     kind: ClassVar[str] = "aws_kinesis_stream"
+    kind_display: ClassVar[str] = "AWS Kinesis Stream"
+    kind_description: ClassVar[str] = (
+        "Kinesis Streams are scalable and durable real-time data streaming services"
+        " in Amazon's cloud, enabling users to capture, process, and analyze data in"
+        " real-time."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],

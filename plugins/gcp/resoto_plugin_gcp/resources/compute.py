@@ -33,6 +33,12 @@ def health_check_types() -> Tuple[Type[GcpResource], ...]:
 @define(eq=False, slots=False)
 class GcpAcceleratorType(GcpResource):
     kind: ClassVar[str] = "gcp_accelerator_type"
+    kind_display: ClassVar[str] = "GCP Accelerator Type"
+    kind_description: ClassVar[str] = (
+        "GCP Accelerator Types are specialized hardware accelerators offered by"
+        " Google Cloud Platform (GCP) that are designed to enhance the performance of"
+        " certain workloads, such as machine learning models or graphics processing."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -61,6 +67,12 @@ class GcpAcceleratorType(GcpResource):
 @define(eq=False, slots=False)
 class GcpAddress(GcpResource):
     kind: ClassVar[str] = "gcp_address"
+    kind_display: ClassVar[str] = "GCP Address"
+    kind_description: ClassVar[str] = (
+        "GCP Address is a resource in Google Cloud Platform that provides a static IP"
+        " address for virtual machine instances or other resources within the Google"
+        " Cloud network."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_subnetwork"]},
         "successors": {
@@ -120,6 +132,13 @@ class GcpAddress(GcpResource):
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyCpuUtilization:
     kind: ClassVar[str] = "gcp_autoscaling_policy_cpu_utilization"
+    kind_display: ClassVar[str] = "GCP Autoscaling Policy - CPU Utilization"
+    kind_description: ClassVar[str] = (
+        "GCP Autoscaling Policy - CPU Utilization is a resource in Google Cloud"
+        " Platform that allows for automatic scaling of resources based on CPU"
+        " utilization metrics. This helps optimize resource allocation and ensures"
+        " optimal performance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "predictive_method": S("predictiveMethod"),
         "utilization_target": S("utilizationTarget"),
@@ -131,6 +150,12 @@ class GcpAutoscalingPolicyCpuUtilization:
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyCustomMetricUtilization:
     kind: ClassVar[str] = "gcp_autoscaling_policy_custom_metric_utilization"
+    kind_display: ClassVar[str] = "GCP Autoscaling Policy Custom Metric Utilization"
+    kind_description: ClassVar[str] = (
+        "GCP Autoscaling Policy Custom Metric Utilization is a feature in Google"
+        " Cloud Platform that allows users to define custom metrics to automatically"
+        " scale resources based on specific utilization levels."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "filter": S("filter"),
         "metric": S("metric"),
@@ -148,6 +173,11 @@ class GcpAutoscalingPolicyCustomMetricUtilization:
 @define(eq=False, slots=False)
 class GcpFixedOrPercent:
     kind: ClassVar[str] = "gcp_fixed_or_percent"
+    kind_display: ClassVar[str] = "GCP Fixed or Percent"
+    kind_description: ClassVar[str] = (
+        "GCP Fixed or Percent refers to a configuration within GCP's autoscaling policy that allows"
+        " for scale-in control based on either a fixed number or a percentage of instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"calculated": S("calculated"), "fixed": S("fixed"), "percent": S("percent")}
     calculated: Optional[int] = field(default=None)
     fixed: Optional[int] = field(default=None)
@@ -157,6 +187,12 @@ class GcpFixedOrPercent:
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyScaleInControl:
     kind: ClassVar[str] = "gcp_autoscaling_policy_scale_in_control"
+    kind_display: ClassVar[str] = "GCP Autoscaling Policy Scale In Control"
+    kind_description: ClassVar[str] = (
+        "The GCP Autoscaling Policy Scale In Control allows users to control how"
+        " instances are scaled in during autoscaling events in the Google Cloud"
+        " Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_scaled_in_replicas": S("maxScaledInReplicas", default={}) >> Bend(GcpFixedOrPercent.mapping),
         "time_window_sec": S("timeWindowSec"),
@@ -168,6 +204,12 @@ class GcpAutoscalingPolicyScaleInControl:
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicyScalingSchedule:
     kind: ClassVar[str] = "gcp_autoscaling_policy_scaling_schedule"
+    kind_display: ClassVar[str] = "GCP Autoscaling Policy Scaling Schedule"
+    kind_description: ClassVar[str] = (
+        "A scaling schedule is used in Google Cloud Platform (GCP) autoscaling"
+        " policies to define when and how many instances should be added or removed"
+        " from an autoscaling group based on predefined time intervals or conditions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "disabled": S("disabled"),
@@ -187,6 +229,12 @@ class GcpAutoscalingPolicyScalingSchedule:
 @define(eq=False, slots=False)
 class GcpAutoscalingPolicy:
     kind: ClassVar[str] = "gcp_autoscaling_policy"
+    kind_display: ClassVar[str] = "GCP Autoscaling Policy"
+    kind_description: ClassVar[str] = (
+        "Autoscaling policies in Google Cloud Platform allow automatic adjustment of"
+        " resources based on predefined conditions, ensuring efficient utilization and"
+        " responsiveness in handling varying workloads."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cool_down_period_sec": S("coolDownPeriodSec"),
         "cpu_utilization": S("cpuUtilization", default={}) >> Bend(GcpAutoscalingPolicyCpuUtilization.mapping),
@@ -214,6 +262,12 @@ class GcpAutoscalingPolicy:
 @define(eq=False, slots=False)
 class GcpScalingScheduleStatus:
     kind: ClassVar[str] = "gcp_scaling_schedule_status"
+    kind_display: ClassVar[str] = "GCP Scaling Schedule Status"
+    kind_description: ClassVar[str] = (
+        "GCP Scaling Schedule Status represents the current status of a scaling"
+        " schedule in Google Cloud Platform, providing information about when and how"
+        " the scaling is performed."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_start_time": S("lastStartTime"),
         "next_start_time": S("nextStartTime"),
@@ -227,6 +281,11 @@ class GcpScalingScheduleStatus:
 @define(eq=False, slots=False)
 class GcpAutoscalerStatusDetails:
     kind: ClassVar[str] = "gcp_autoscaler_status_details"
+    kind_display: ClassVar[str] = "GCP Autoscaler Status Details"
+    kind_description: ClassVar[str] = (
+        "Autoscaler Status Details provide information about the scaling behavior of"
+        " an autoscaler in the Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"message": S("message"), "type": S("type")}
     message: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -235,6 +294,12 @@ class GcpAutoscalerStatusDetails:
 @define(eq=False, slots=False)
 class GcpAutoscaler(GcpResource):
     kind: ClassVar[str] = "gcp_autoscaler"
+    kind_display: ClassVar[str] = "GCP Autoscaler"
+    kind_description: ClassVar[str] = (
+        "GCP Autoscaler is a feature in Google Cloud Platform that automatically"
+        " adjusts the number of instances in a managed instance group based on the"
+        " workload, helping to maintain cost efficiency and performance."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["gcp_instance_group_manager"],
@@ -286,6 +351,12 @@ class GcpAutoscaler(GcpResource):
 @define(eq=False, slots=False)
 class GcpBackendBucketCdnPolicyCacheKeyPolicy:
     kind: ClassVar[str] = "gcp_backend_bucket_cdn_policy_cache_key_policy"
+    kind_display: ClassVar[str] = "GCP Backend Bucket CDN Policy Cache Key Policy"
+    kind_description: ClassVar[str] = (
+        "The GCP Backend Bucket CDN Policy Cache Key Policy is a policy that"
+        " specifies how content is cached on the CDN (Content Delivery Network) for a"
+        " backend bucket in Google Cloud Platform (GCP)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "include_http_headers": S("includeHttpHeaders", default=[]),
         "query_string_whitelist": S("queryStringWhitelist", default=[]),
@@ -297,6 +368,13 @@ class GcpBackendBucketCdnPolicyCacheKeyPolicy:
 @define(eq=False, slots=False)
 class GcpBackendBucketCdnPolicyNegativeCachingPolicy:
     kind: ClassVar[str] = "gcp_backend_bucket_cdn_policy_negative_caching_policy"
+    kind_display: ClassVar[str] = "GCP Backend Bucket CDN Policy Negative Caching Policy"
+    kind_description: ClassVar[str] = (
+        "This resource represents the negative caching policy of a CDN policy for a"
+        " Google Cloud Platform backend bucket. Negative caching allows the CDN to"
+        " cache and serve error responses to clients, improving performance and"
+        " reducing load on the backend servers."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("code"), "ttl": S("ttl")}
     code: Optional[int] = field(default=None)
     ttl: Optional[int] = field(default=None)
@@ -305,6 +383,13 @@ class GcpBackendBucketCdnPolicyNegativeCachingPolicy:
 @define(eq=False, slots=False)
 class GcpBackendBucketCdnPolicy:
     kind: ClassVar[str] = "gcp_backend_bucket_cdn_policy"
+    kind_display: ClassVar[str] = "GCP Backend Bucket CDN Policy"
+    kind_description: ClassVar[str] = (
+        "CDN Policy is a feature in Google Cloud Platform that allows you to"
+        " configure the behavior of the Content Delivery Network (CDN) for a Backend"
+        " Bucket. It includes settings such as cache expiration, cache control, and"
+        " content encoding."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bypass_cache_on_request_headers": S("bypassCacheOnRequestHeaders", default=[]) >> ForallBend(S("headerName")),
         "cache_key_policy": S("cacheKeyPolicy", default={}) >> Bend(GcpBackendBucketCdnPolicyCacheKeyPolicy.mapping),
@@ -337,6 +422,11 @@ class GcpBackendBucketCdnPolicy:
 @define(eq=False, slots=False)
 class GcpBackendBucket(GcpResource):
     kind: ClassVar[str] = "gcp_backend_bucket"
+    kind_display: ClassVar[str] = "GCP Backend Bucket"
+    kind_description: ClassVar[str] = (
+        "A GCP Backend Bucket is a storage bucket used to distribute static content"
+        " for a load balanced website or application running on Google Cloud Platform."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -375,6 +465,13 @@ class GcpBackendBucket(GcpResource):
 @define(eq=False, slots=False)
 class GcpBackend:
     kind: ClassVar[str] = "gcp_backend"
+    kind_display: ClassVar[str] = "GCP Backend"
+    kind_description: ClassVar[str] = (
+        "A GCP backend refers to the infrastructure and services that power"
+        " applications and services on the Google Cloud Platform. It includes compute,"
+        " storage, networking, and other resources needed to support the backend"
+        " operations of GCP applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "balancing_mode": S("balancingMode"),
         "capacity_scaler": S("capacityScaler"),
@@ -406,6 +503,11 @@ class GcpBackend:
 @define(eq=False, slots=False)
 class GcpCacheKeyPolicy:
     kind: ClassVar[str] = "gcp_cache_key_policy"
+    kind_display: ClassVar[str] = "GCP Cache Key Policy"
+    kind_description: ClassVar[str] = (
+        "A cache key policy in Google Cloud Platform (GCP) is used to define the"
+        " criteria for caching content in a cache storage system."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "include_host": S("includeHost"),
         "include_http_headers": S("includeHttpHeaders", default=[]),
@@ -427,6 +529,12 @@ class GcpCacheKeyPolicy:
 @define(eq=False, slots=False)
 class GcpBackendServiceCdnPolicyNegativeCachingPolicy:
     kind: ClassVar[str] = "gcp_backend_service_cdn_policy_negative_caching_policy"
+    kind_display: ClassVar[str] = "GCP Backend Service CDN Policy - Negative Caching Policy"
+    kind_description: ClassVar[str] = (
+        "Negative Caching Policy is a feature of the GCP Backend Service CDN Policy"
+        " that allows caching of responses with error status codes, reducing the load"
+        " on the origin server for subsequent requests."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("code"), "ttl": S("ttl")}
     code: Optional[int] = field(default=None)
     ttl: Optional[int] = field(default=None)
@@ -435,6 +543,13 @@ class GcpBackendServiceCdnPolicyNegativeCachingPolicy:
 @define(eq=False, slots=False)
 class GcpBackendServiceCdnPolicy:
     kind: ClassVar[str] = "gcp_backend_service_cdn_policy"
+    kind_display: ClassVar[str] = "GCP Backend Service CDN Policy"
+    kind_description: ClassVar[str] = (
+        "A CDN Policy is a configuration that specifies how a content delivery"
+        " network (CDN) delivers content for a backend service in Google Cloud"
+        " Platform (GCP). It includes rules for cache settings, cache key"
+        " preservation, and request routing."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bypass_cache_on_request_headers": S("bypassCacheOnRequestHeaders", default=[]) >> ForallBend(S("headerName")),
         "cache_key_policy": S("cacheKeyPolicy", default={}) >> Bend(GcpCacheKeyPolicy.mapping),
@@ -467,6 +582,11 @@ class GcpBackendServiceCdnPolicy:
 @define(eq=False, slots=False)
 class GcpCircuitBreakers:
     kind: ClassVar[str] = "gcp_circuit_breakers"
+    kind_display: ClassVar[str] = "GCP Circuit Breakers"
+    kind_description: ClassVar[str] = (
+        "GCP Backend Service Circuit Breakers set limits on connections, pending"
+        " requests, and retries to prevent overloading backend resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_connections": S("maxConnections"),
         "max_pending_requests": S("maxPendingRequests"),
@@ -484,6 +604,11 @@ class GcpCircuitBreakers:
 @define(eq=False, slots=False)
 class GcpBackendServiceConnectionTrackingPolicy:
     kind: ClassVar[str] = "gcp_backend_service_connection_tracking_policy"
+    kind_display: ClassVar[str] = "GCP Backend Service Connection Tracking Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Backend Service Connection Tracking Policy defines the parameters for managing connections,"
+        " including persistence on unhealthy backends, affinity strength, idle timeout, and tracking mode."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "connection_persistence_on_unhealthy_backends": S("connectionPersistenceOnUnhealthyBackends"),
         "enable_strong_affinity": S("enableStrongAffinity"),
@@ -499,6 +624,8 @@ class GcpBackendServiceConnectionTrackingPolicy:
 @define(eq=False, slots=False)
 class GcpDuration:
     kind: ClassVar[str] = "gcp_duration"
+    kind_display: ClassVar[str] = "GCP Duration"
+    kind_description: ClassVar[str] = "Duration represents a length of time in Google Cloud Platform (GCP) services."
     mapping: ClassVar[Dict[str, Bender]] = {"nanos": S("nanos"), "seconds": S("seconds")}
     nanos: Optional[int] = field(default=None)
     seconds: Optional[str] = field(default=None)
@@ -507,6 +634,12 @@ class GcpDuration:
 @define(eq=False, slots=False)
 class GcpConsistentHashLoadBalancerSettingsHttpCookie:
     kind: ClassVar[str] = "gcp_consistent_hash_load_balancer_settings_http_cookie"
+    kind_display: ClassVar[str] = "GCP Consistent Hash Load Balancer with HTTP Cookie"
+    kind_description: ClassVar[str] = (
+        "Consistent Hash Load Balancer with HTTP Cookie is a load balancing setting"
+        " in Google Cloud Platform (GCP) that uses consistent hashing with the HTTP"
+        " cookie to route requests to backend services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "path": S("path"),
@@ -520,6 +653,13 @@ class GcpConsistentHashLoadBalancerSettingsHttpCookie:
 @define(eq=False, slots=False)
 class GcpConsistentHashLoadBalancerSettings:
     kind: ClassVar[str] = "gcp_consistent_hash_load_balancer_settings"
+    kind_display: ClassVar[str] = "GCP Consistent Hash Load Balancer Settings"
+    kind_description: ClassVar[str] = (
+        "Consistent Hash Load Balancer Settings in Google Cloud Platform (GCP) allow"
+        " you to route incoming requests to different backend instances based on the"
+        " hashed value of certain request components, providing a consistent routing"
+        " mechanism."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "http_cookie": S("httpCookie", default={}) >> Bend(GcpConsistentHashLoadBalancerSettingsHttpCookie.mapping),
         "http_header_name": S("httpHeaderName"),
@@ -533,6 +673,12 @@ class GcpConsistentHashLoadBalancerSettings:
 @define(eq=False, slots=False)
 class GcpBackendServiceFailoverPolicy:
     kind: ClassVar[str] = "gcp_backend_service_failover_policy"
+    kind_display: ClassVar[str] = "GCP Backend Service Failover Policy"
+    kind_description: ClassVar[str] = (
+        "A failover policy for Google Cloud Platform backend services, which"
+        " determines how traffic is redirected to different backends in the event of a"
+        " failure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "disable_connection_drain_on_failover": S("disableConnectionDrainOnFailover"),
         "drop_traffic_if_unhealthy": S("dropTrafficIfUnhealthy"),
@@ -546,6 +692,12 @@ class GcpBackendServiceFailoverPolicy:
 @define(eq=False, slots=False)
 class GcpBackendServiceIAP:
     kind: ClassVar[str] = "gcp_backend_service_iap"
+    kind_display: ClassVar[str] = "GCP Backend Service IAP"
+    kind_description: ClassVar[str] = (
+        "GCP Backend Service IAP is a feature in Google Cloud Platform that provides"
+        " Identity-Aware Proxy (IAP) for a backend service, allowing fine-grained"
+        " access control to the backend resources based on user identity and context."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
         "oauth2_client_id": S("oauth2ClientId"),
@@ -561,6 +713,14 @@ class GcpBackendServiceIAP:
 @define(eq=False, slots=False)
 class GcpBackendServiceLocalityLoadBalancingPolicyConfigCustomPolicy:
     kind: ClassVar[str] = "gcp_backend_service_locality_load_balancing_policy_config_custom_policy"
+    kind_display: ClassVar[str] = "GCP Backend Service Locality Load Balancing Policy Config Custom Policy"
+    kind_description: ClassVar[str] = (
+        "This resource allows customization of the locality load balancing policy"
+        " configuration for a Google Cloud Platform (GCP) Backend Service. Locality"
+        " load balancing is a policy that optimizes traffic distribution based on the"
+        " proximity of backend services to clients, improving the overall performance"
+        " and latency of the system."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"data": S("data"), "name": S("name")}
     data: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -569,6 +729,13 @@ class GcpBackendServiceLocalityLoadBalancingPolicyConfigCustomPolicy:
 @define(eq=False, slots=False)
 class GcpBackendServiceLocalityLoadBalancingPolicyConfig:
     kind: ClassVar[str] = "gcp_backend_service_locality_load_balancing_policy_config"
+    kind_display: ClassVar[str] = "GCP Backend Service Locality Load Balancing Policy Config"
+    kind_description: ClassVar[str] = (
+        "This is a configuration for the locality load balancing policy in Google"
+        " Cloud Platform's Backend Service, which enables routing of traffic to"
+        " backend instances based on their geographical locality for better"
+        " performance and availability."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "custom_policy": S("customPolicy", default={})
         >> Bend(GcpBackendServiceLocalityLoadBalancingPolicyConfigCustomPolicy.mapping),
@@ -581,6 +748,12 @@ class GcpBackendServiceLocalityLoadBalancingPolicyConfig:
 @define(eq=False, slots=False)
 class GcpBackendServiceLogConfig:
     kind: ClassVar[str] = "gcp_backend_service_log_config"
+    kind_display: ClassVar[str] = "GCP Backend Service Log Config"
+    kind_description: ClassVar[str] = (
+        "Backend Service Log Config allows you to configure logging for a Google"
+        " Cloud Platform (GCP) backend service, providing visibility into the requests"
+        " and responses processed by the service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "sample_rate": S("sampleRate")}
     enable: Optional[bool] = field(default=None)
     sample_rate: Optional[float] = field(default=None)
@@ -589,6 +762,12 @@ class GcpBackendServiceLogConfig:
 @define(eq=False, slots=False)
 class GcpOutlierDetection:
     kind: ClassVar[str] = "gcp_outlier_detection"
+    kind_display: ClassVar[str] = "GCP Outlier Detection"
+    kind_description: ClassVar[str] = (
+        "GCP Outlier Detection is a service feature within Google Cloud's Backend Services that identifies"
+        " instances in a load balancing pool which are performing suboptimally and temporarily removes them"
+        " from the service rotation based on various health checks and error thresholds."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "base_ejection_time": S("baseEjectionTime", default={}) >> Bend(GcpDuration.mapping),
         "consecutive_errors": S("consecutiveErrors"),
@@ -618,6 +797,12 @@ class GcpOutlierDetection:
 @define(eq=False, slots=False)
 class GcpSecuritySettings:
     kind: ClassVar[str] = "gcp_security_settings"
+    kind_display: ClassVar[str] = "GCP Security Settings"
+    kind_description: ClassVar[str] = (
+        "GCP Security Settings refers to the configuration options and policies that"
+        " are put in place to ensure the security of resources and data on the Google"
+        " Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "client_tls_policy": S("clientTlsPolicy"),
         "subject_alt_names": S("subjectAltNames", default=[]),
@@ -629,6 +814,12 @@ class GcpSecuritySettings:
 @define(eq=False, slots=False)
 class GcpBackendService(GcpResource):
     kind: ClassVar[str] = "gcp_backend_service"
+    kind_display: ClassVar[str] = "GCP Backend Service"
+    kind_description: ClassVar[str] = (
+        "GCP Backend Service is a managed load balancing service provided by Google"
+        " Cloud Platform that allows you to distribute traffic across multiple"
+        " backends and regions in a flexible and scalable manner."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_network"],
@@ -752,6 +943,11 @@ class GcpBackendService(GcpResource):
 @define(eq=False, slots=False)
 class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
+    kind_display: ClassVar[str] = "GCP Disk Type"
+    kind_description: ClassVar[str] = (
+        "GCP Disk Types are storage options provided by Google Cloud Platform, which"
+        " define the performance characteristics and pricing of persistent disks."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -835,6 +1031,12 @@ class GcpDiskType(GcpResource, BaseVolumeType):
 @define(eq=False, slots=False)
 class GcpCustomerEncryptionKey:
     kind: ClassVar[str] = "gcp_customer_encryption_key"
+    kind_display: ClassVar[str] = "GCP Customer Encryption Key"
+    kind_description: ClassVar[str] = (
+        "Customer Encryption Keys (CEK) allow Google Cloud Platform customers to"
+        " encrypt their data using keys that they manage and control, providing an"
+        " extra layer of security for sensitive data."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "kms_key_name": S("kmsKeyName"),
         "kms_key_service_account": S("kmsKeyServiceAccount"),
@@ -852,6 +1054,12 @@ class GcpCustomerEncryptionKey:
 @define(eq=False, slots=False)
 class GcpDiskParams:
     kind: ClassVar[str] = "gcp_disk_params"
+    kind_display: ClassVar[str] = "GCP Disk Params"
+    kind_description: ClassVar[str] = (
+        "GCP Disk Params refers to the parameters associated with disks in the Google"
+        " Cloud Platform (GCP). Disks in GCP provide a persistent block storage option"
+        " for virtual machine instances in GCP."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"resource_manager_tags": S("resourceManagerTags")}
     resource_manager_tags: Optional[Dict[str, str]] = field(default=None)
 
@@ -859,6 +1067,11 @@ class GcpDiskParams:
 @define(eq=False, slots=False)
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
+    kind_display: ClassVar[str] = "GCP Disk"
+    kind_description: ClassVar[str] = (
+        "GCP Disk is a persistent block storage service provided by Google Cloud"
+        " Platform, allowing users to store and manage data in the cloud."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_disk_type", "gcp_instance"]},
         "successors": {"delete": ["gcp_instance"]},
@@ -968,6 +1181,12 @@ class GcpDisk(GcpResource, BaseVolume):
 @define(eq=False, slots=False)
 class GcpExternalVpnGatewayInterface:
     kind: ClassVar[str] = "gcp_external_vpn_gateway_interface"
+    kind_display: ClassVar[str] = "GCP External VPN Gateway Interface"
+    kind_description: ClassVar[str] = (
+        "External VPN Gateway Interface is a network interface in Google Cloud"
+        " Platform used to connect on-premises networks to virtual private networks"
+        " (VPNs) in GCP."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "ip_address": S("ipAddress")}
     id: Optional[int] = field(default=None)
     ip_address: Optional[str] = field(default=None)
@@ -976,6 +1195,11 @@ class GcpExternalVpnGatewayInterface:
 @define(eq=False, slots=False)
 class GcpExternalVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_external_vpn_gateway"
+    kind_display: ClassVar[str] = "GCP External VPN Gateway"
+    kind_description: ClassVar[str] = (
+        "GCP External VPN Gateway is a resource that provides connectivity from Google Cloud to external networks"
+        " via VPN, featuring interfaces for tunnel configuration and redundancy options for high availability."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1006,6 +1230,13 @@ class GcpExternalVpnGateway(GcpResource):
 @define(eq=False, slots=False)
 class GcpFirewallPolicyAssociation:
     kind: ClassVar[str] = "gcp_firewall_policy_association"
+    kind_display: ClassVar[str] = "GCP Firewall Policy Association"
+    kind_description: ClassVar[str] = (
+        "Firewall Policy Association is a feature in Google Cloud Platform that"
+        " allows you to associate firewall policies with target resources, such as"
+        " virtual machines or subnets, to control incoming and outgoing traffic based"
+        " on predefined rules."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "attachment_target": S("attachmentTarget"),
         "display_name": S("displayName"),
@@ -1023,6 +1254,13 @@ class GcpFirewallPolicyAssociation:
 @define(eq=False, slots=False)
 class GcpFirewallPolicyRuleMatcherLayer4Config:
     kind: ClassVar[str] = "gcp_firewall_policy_rule_matcher_layer4_config"
+    kind_display: ClassVar[str] = "GCP Firewall Policy Rule Matcher Layer4 Config"
+    kind_description: ClassVar[str] = (
+        "GCP Firewall Policy Rule Matcher Layer4 Config is a configuration for"
+        " matching Layer 4 (transport layer) parameters in firewall rules in Google"
+        " Cloud Platform. This configuration allows you to customize and control"
+        " network traffic based on protocols, ports, and IP addresses."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("ipProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
     ports: Optional[List[str]] = field(default=None)
@@ -1031,6 +1269,11 @@ class GcpFirewallPolicyRuleMatcherLayer4Config:
 @define(eq=False, slots=False)
 class GcpFirewallPolicyRuleSecureTag:
     kind: ClassVar[str] = "gcp_firewall_policy_rule_secure_tag"
+    kind_display: ClassVar[str] = "GCP Firewall Policy Rule Secure Tag"
+    kind_description: ClassVar[str] = (
+        "GCP Firewall Policy Rule Secure Tag is an identifier used to specify a secure tag"
+        " for matching criteria within a firewall policy rule in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "firewall_policy_rule_secure_tag_state": S("state")}
     name: Optional[str] = field(default=None)
     firewall_policy_rule_secure_tag_state: Optional[str] = field(default=None)
@@ -1039,6 +1282,12 @@ class GcpFirewallPolicyRuleSecureTag:
 @define(eq=False, slots=False)
 class GcpFirewallPolicyRuleMatcher:
     kind: ClassVar[str] = "gcp_firewall_policy_rule_matcher"
+    kind_display: ClassVar[str] = "GCP Firewall Policy Rule Matcher"
+    kind_description: ClassVar[str] = (
+        "This resource represents a rule matcher within a firewall policy in Google"
+        " Cloud Platform (GCP). It is used to define specific match criteria for"
+        " incoming or outgoing traffic."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "dest_ip_ranges": S("destIpRanges", default=[]),
         "layer4_configs": S("layer4Configs", default=[])
@@ -1055,6 +1304,11 @@ class GcpFirewallPolicyRuleMatcher:
 @define(eq=False, slots=False)
 class GcpFirewallPolicyRule:
     kind: ClassVar[str] = "gcp_firewall_policy_rule"
+    kind_display: ClassVar[str] = "GCP Firewall Policy Rule"
+    kind_description: ClassVar[str] = (
+        "A GCP Firewall Policy Rule is a set of instructions that define how traffic"
+        " is allowed or denied on a Google Cloud Platform virtual network."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action"),
         "description": S("description"),
@@ -1087,6 +1341,11 @@ class GcpFirewallPolicyRule:
 @define(eq=False, slots=False)
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
+    kind_display: ClassVar[str] = "GCP Firewall Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Firewall Policy is a security rule set that controls incoming and"
+        " outgoing network traffic for resources in the Google Cloud Platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -1135,6 +1394,11 @@ class GcpFirewallPolicy(GcpResource):
 @define(eq=False, slots=False)
 class GcpAllowed:
     kind: ClassVar[str] = "gcp_allowed"
+    kind_display: ClassVar[str] = "GCP Allowed"
+    kind_description: ClassVar[str] = (
+        "GCP Allowed defines the protocols and ports that are permitted to pass through"
+        " a firewall rule in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("IPProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
     ports: Optional[List[str]] = field(default=None)
@@ -1143,6 +1407,11 @@ class GcpAllowed:
 @define(eq=False, slots=False)
 class GcpDenied:
     kind: ClassVar[str] = "gcp_denied"
+    kind_display: ClassVar[str] = "GCP Denied"
+    kind_description: ClassVar[str] = (
+        "GCP Denied settings within a GCP Firewall rule specify the types of network traffic"
+        " that are not allowed through, based on the IP protocol and port numbers."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"ip_protocol": S("IPProtocol"), "ports": S("ports", default=[])}
     ip_protocol: Optional[str] = field(default=None)
     ports: Optional[List[str]] = field(default=None)
@@ -1151,6 +1420,13 @@ class GcpDenied:
 @define(eq=False, slots=False)
 class GcpFirewallLogConfig:
     kind: ClassVar[str] = "gcp_firewall_log_config"
+    kind_display: ClassVar[str] = "GCP Firewall Log Config"
+    kind_description: ClassVar[str] = (
+        "Firewall Log Config is a feature in Google Cloud Platform that allows you to"
+        " configure logging for network firewall rules. It provides detailed"
+        " information about the traffic that matches the firewall rules, helping you"
+        " monitor and analyze network activities in your GCP environment."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "metadata": S("metadata")}
     enable: Optional[bool] = field(default=None)
     metadata: Optional[str] = field(default=None)
@@ -1159,6 +1435,12 @@ class GcpFirewallLogConfig:
 @define(eq=False, slots=False)
 class GcpFirewall(GcpResource):
     kind: ClassVar[str] = "gcp_firewall"
+    kind_display: ClassVar[str] = "GCP Firewall"
+    kind_description: ClassVar[str] = (
+        "GCP Firewall is a network security feature provided by Google Cloud Platform"
+        " that controls incoming and outgoing traffic to and from virtual machine"
+        " instances."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -1216,6 +1498,11 @@ class GcpFirewall(GcpResource):
 @define(eq=False, slots=False)
 class GcpMetadataFilterLabelMatch:
     kind: ClassVar[str] = "gcp_metadata_filter_label_match"
+    kind_display: ClassVar[str] = "GCP Metadata Filter Label Match"
+    kind_description: ClassVar[str] = (
+        "GCP Metadata Filter Label Match is a feature that allows you to filter"
+        " virtual machine instances based on labels in Google Cloud Platform metadata."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -1224,6 +1511,8 @@ class GcpMetadataFilterLabelMatch:
 @define(eq=False, slots=False)
 class GcpMetadataFilter:
     kind: ClassVar[str] = "gcp_metadata_filter"
+    kind_display: ClassVar[str] = "GCP Metadata Filter"
+    kind_description: ClassVar[str] = ""
     mapping: ClassVar[Dict[str, Bender]] = {
         "filter_labels": S("filterLabels", default=[]) >> ForallBend(GcpMetadataFilterLabelMatch.mapping),
         "filter_match_criteria": S("filterMatchCriteria"),
@@ -1235,6 +1524,12 @@ class GcpMetadataFilter:
 @define(eq=False, slots=False)
 class GcpForwardingRuleServiceDirectoryRegistration:
     kind: ClassVar[str] = "gcp_forwarding_rule_service_directory_registration"
+    kind_display: ClassVar[str] = "GCP Forwarding Rule Service Directory Registration"
+    kind_description: ClassVar[str] = (
+        "The GCP Forwarding Rule Service Directory Registration enables a forwarding rule to register itself with a"
+        " specific service in Google Cloud's Service Directory, specifying the namespace and region for service"
+        " discovery and routing."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "namespace": S("namespace"),
         "service": S("service"),
@@ -1248,6 +1543,12 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 @define(eq=False, slots=False)
 class GcpForwardingRule(GcpResource):
     kind: ClassVar[str] = "gcp_forwarding_rule"
+    kind_display: ClassVar[str] = "GCP Forwarding Rule"
+    kind_description: ClassVar[str] = (
+        "Forwarding rules are used in Google Cloud Platform to route traffic to"
+        " different destinations based on the configuration settings. They can be used"
+        " to load balance or redirect traffic within a network or between networks."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"]},
         "successors": {
@@ -1349,6 +1650,11 @@ class GcpForwardingRule(GcpResource):
 @define(eq=False, slots=False)
 class GcpNetworkEndpointGroupAppEngine:
     kind: ClassVar[str] = "gcp_network_endpoint_group_app_engine"
+    kind_display: ClassVar[str] = "GCP Network Endpoint Group App Engine"
+    kind_description: ClassVar[str] = (
+        "The GCP Network Endpoint Group App Engine configuration defines how traffic is directed to different"
+        " versions of a deployed App Engine service, potentially using URL masks for routing."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"service": S("service"), "url_mask": S("urlMask"), "version": S("version")}
     service: Optional[str] = field(default=None)
     url_mask: Optional[str] = field(default=None)
@@ -1358,6 +1664,12 @@ class GcpNetworkEndpointGroupAppEngine:
 @define(eq=False, slots=False)
 class GcpNetworkEndpointGroupCloudFunction:
     kind: ClassVar[str] = "gcp_network_endpoint_group_cloud_function"
+    kind_display: ClassVar[str] = "GCP Network Endpoint Group Cloud Function"
+    kind_description: ClassVar[str] = (
+        "The GCP Network Endpoint Group Cloud Function configuration specifies the details for routing network"
+        " traffic to a particular Google Cloud Function, including the function identifier and the URL"
+        " mask for matching request paths."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"function": S("function"), "url_mask": S("urlMask")}
     function: Optional[str] = field(default=None)
     url_mask: Optional[str] = field(default=None)
@@ -1366,6 +1678,12 @@ class GcpNetworkEndpointGroupCloudFunction:
 @define(eq=False, slots=False)
 class GcpNetworkEndpointGroupCloudRun:
     kind: ClassVar[str] = "gcp_network_endpoint_group_cloud_run"
+    kind_display: ClassVar[str] = "GCP Network Endpoint Group Cloud Run"
+    kind_description: ClassVar[str] = (
+        "The GCP Network Endpoint Group Cloud Run configuration determines how traffic is directed to a specific"
+        " Cloud Run service, utilizing a URL mask for path matching and an optional tag to identify a specific"
+        " service deployment or revision."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"service": S("service"), "tag": S("tag"), "url_mask": S("urlMask")}
     service: Optional[str] = field(default=None)
     tag: Optional[str] = field(default=None)
@@ -1375,6 +1693,12 @@ class GcpNetworkEndpointGroupCloudRun:
 @define(eq=False, slots=False)
 class GcpNetworkEndpointGroupPscData:
     kind: ClassVar[str] = "gcp_network_endpoint_group_psc_data"
+    kind_display: ClassVar[str] = "GCP Network Endpoint Group PSC Data"
+    kind_description: ClassVar[str] = (
+        "The GCP Network Endpoint Group PSC Data settings manage the Private Service Connect (PSC) endpoint"
+        " connections, detailing the consumer's PSC address, the unique connection identifier, and the"
+        " current status of the PSC connection."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "consumer_psc_address": S("consumerPscAddress"),
         "psc_connection_id": S("pscConnectionId"),
@@ -1388,6 +1712,12 @@ class GcpNetworkEndpointGroupPscData:
 @define(eq=False, slots=False)
 class GcpNetworkEndpointGroup(GcpResource):
     kind: ClassVar[str] = "gcp_network_endpoint_group"
+    kind_display: ClassVar[str] = "GCP Network Endpoint Group"
+    kind_description: ClassVar[str] = (
+        "A GCP Network Endpoint Group is a logical grouping of network endpoints,"
+        " allowing users to distribute network traffic across multiple endpoints in"
+        " Google Cloud Platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
     }
@@ -1447,6 +1777,10 @@ class GcpNetworkEndpointGroup(GcpResource):
 @define(eq=False, slots=False)
 class GcpErrorInfo:
     kind: ClassVar[str] = "gcp_error_info"
+    kind_display: ClassVar[str] = "GCP Error Info"
+    kind_description: ClassVar[
+        str
+    ] = "GCP Error Info provides information about errors encountered in Google Cloud Platform services."
     mapping: ClassVar[Dict[str, Bender]] = {"domain": S("domain"), "metadatas": S("metadatas"), "reason": S("reason")}
     domain: Optional[str] = field(default=None)
     metadatas: Optional[Dict[str, str]] = field(default=None)
@@ -1456,6 +1790,12 @@ class GcpErrorInfo:
 @define(eq=False, slots=False)
 class GcpHelpLink:
     kind: ClassVar[str] = "gcp_help_link"
+    kind_display: ClassVar[str] = "GCP Help Link"
+    kind_description: ClassVar[str] = (
+        "A link to the Google Cloud Platform documentation and support resources to"
+        " help users troubleshoot and find information about GCP services and"
+        " features."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"description": S("description"), "url": S("url")}
     description: Optional[str] = field(default=None)
     url: Optional[str] = field(default=None)
@@ -1464,6 +1804,12 @@ class GcpHelpLink:
 @define(eq=False, slots=False)
 class GcpHelp:
     kind: ClassVar[str] = "gcp_help"
+    kind_display: ClassVar[str] = "GCP Help"
+    kind_description: ClassVar[str] = (
+        "GCP Help is a service provided by Google Cloud Platform that offers"
+        " assistance and support to users in using and managing their resources and"
+        " services on GCP."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"links": S("links", default=[]) >> ForallBend(GcpHelpLink.mapping)}
     links: Optional[List[GcpHelpLink]] = field(default=None)
 
@@ -1471,6 +1817,11 @@ class GcpHelp:
 @define(eq=False, slots=False)
 class GcpLocalizedMessage:
     kind: ClassVar[str] = "gcp_localized_message"
+    kind_display: ClassVar[str] = "GCP Localized Message"
+    kind_description: ClassVar[str] = (
+        "GCP Localized Message provides user-friendly error messages appropriate to the locale specified"
+        " in the context of Google Cloud Platform operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"locale": S("locale"), "message": S("message")}
     locale: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)
@@ -1479,6 +1830,11 @@ class GcpLocalizedMessage:
 @define(eq=False, slots=False)
 class GcpErrordetails:
     kind: ClassVar[str] = "gcp_errordetails"
+    kind_display: ClassVar[str] = "GCP Error Details"
+    kind_description: ClassVar[str] = (
+        "Error details in Google Cloud Platform (GCP) provide additional information"
+        " about errors that occur while using GCP services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "error_info": S("errorInfo", default={}) >> Bend(GcpErrorInfo.mapping),
         "help": S("help", default={}) >> Bend(GcpHelp.mapping),
@@ -1492,6 +1848,10 @@ class GcpErrordetails:
 @define(eq=False, slots=False)
 class GcpErrors:
     kind: ClassVar[str] = "gcp_errors"
+    kind_display: ClassVar[str] = "GCP Errors"
+    kind_description: ClassVar[
+        str
+    ] = "GCP Errors refer to any kind of error encountered while using Google Cloud Platform services."
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
         "error_details": S("errorDetails", default=[]) >> ForallBend(GcpErrordetails.mapping),
@@ -1507,6 +1867,11 @@ class GcpErrors:
 @define(eq=False, slots=False)
 class GcpError:
     kind: ClassVar[str] = "gcp_error"
+    kind_display: ClassVar[str] = "GCP Error"
+    kind_description: ClassVar[str] = (
+        "An error that occurs within Google Cloud Platform (GCP). Please provide more"
+        " specific information about the error message for further assistance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"errors": S("errors", default=[]) >> ForallBend(GcpErrors.mapping)}
     errors: Optional[List[GcpErrors]] = field(default=None)
 
@@ -1514,6 +1879,11 @@ class GcpError:
 @define(eq=False, slots=False)
 class GcpData:
     kind: ClassVar[str] = "gcp_data"
+    kind_display: ClassVar[str] = "GCP Data"
+    kind_description: ClassVar[str] = (
+        "GCP Data refers to data storage and processing services offered by Google"
+        " Cloud Platform, such as Cloud Storage, BigQuery, and Dataflow."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("key"), "value": S("value")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -1522,6 +1892,11 @@ class GcpData:
 @define(eq=False, slots=False)
 class GcpWarnings:
     kind: ClassVar[str] = "gcp_warnings"
+    kind_display: ClassVar[str] = "GCP Warnings"
+    kind_description: ClassVar[str] = (
+        "GCP Warnings are notifications issued by Google Cloud Platform to alert"
+        " users about potential issues or concerns in their cloud resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
         "data": S("data", default=[]) >> ForallBend(GcpData.mapping),
@@ -1535,6 +1910,11 @@ class GcpWarnings:
 @define(eq=False, slots=False)
 class GcpOperation(GcpResource):
     kind: ClassVar[str] = "gcp_operation"
+    kind_display: ClassVar[str] = "GCP Operation"
+    kind_description: ClassVar[str] = (
+        "An operation represents a long-running asynchronous API call in Google Cloud"
+        " Platform (GCP), allowing users to create, update, or delete resources"
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             # operation can target multiple resources, unclear which others are possible
@@ -1603,6 +1983,11 @@ class GcpOperation(GcpResource):
 @define(eq=False, slots=False)
 class GcpPublicDelegatedPrefixPublicDelegatedSubPrefix:
     kind: ClassVar[str] = "gcp_public_delegated_prefix_public_delegated_sub_prefix"
+    kind_display: ClassVar[str] = "GCP Public Delegated Sub-Prefix"
+    kind_description: ClassVar[str] = (
+        "A GCP Public Delegated Sub-Prefix is a range of public IP addresses that can"
+        " be used within a Google Cloud Platform (GCP) project."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "delegatee_project": S("delegateeProject"),
         "description": S("description"),
@@ -1624,6 +2009,12 @@ class GcpPublicDelegatedPrefixPublicDelegatedSubPrefix:
 @define(eq=False, slots=False)
 class GcpPublicDelegatedPrefix(GcpResource):
     kind: ClassVar[str] = "gcp_public_delegated_prefix"
+    kind_display: ClassVar[str] = "GCP Public Delegated Prefix"
+    kind_description: ClassVar[str] = (
+        "A Public Delegated Prefix in Google Cloud Platform (GCP) allows customers to"
+        " use their own IPv6 addresses on GCP resources for public internet"
+        " connectivity."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1663,6 +2054,12 @@ class GcpPublicDelegatedPrefix(GcpResource):
 @define(eq=False, slots=False)
 class GcpGRPCHealthCheck:
     kind: ClassVar[str] = "gcp_grpc_health_check"
+    kind_display: ClassVar[str] = "GCP gRPC Health Check"
+    kind_description: ClassVar[str] = (
+        "gRPC Health Check is a health checking mechanism in Google Cloud Platform"
+        " (GCP) that allows monitoring and validating the health of gRPC-based"
+        " services running on GCP infrastructure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "grpc_service_name": S("grpcServiceName"),
         "port": S("port"),
@@ -1678,6 +2075,12 @@ class GcpGRPCHealthCheck:
 @define(eq=False, slots=False)
 class GcpHTTP2HealthCheck:
     kind: ClassVar[str] = "gcp_http2_health_check"
+    kind_display: ClassVar[str] = "GCP HTTP/2 Health Check"
+    kind_description: ClassVar[str] = (
+        "HTTP/2 Health Check is a health monitoring mechanism provided by Google"
+        " Cloud Platform, which allows you to check the health of your HTTP/2 services"
+        " or endpoints."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host": S("host"),
         "port": S("port"),
@@ -1699,6 +2102,12 @@ class GcpHTTP2HealthCheck:
 @define(eq=False, slots=False)
 class GcpHTTPHealthCheckSpec:
     kind: ClassVar[str] = "gcp_http_health_check_spec"
+    kind_display: ClassVar[str] = "GCP HTTP Health Check Specification"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Health Check Specification is a configuration for monitoring the"
+        " health of HTTP-based services in Google Cloud Platform by periodically"
+        " sending health check requests and verifying the responses."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host": S("host"),
         "port": S("port"),
@@ -1720,6 +2129,12 @@ class GcpHTTPHealthCheckSpec:
 @define(eq=False, slots=False)
 class GcpHTTPSHealthCheckSpec:
     kind: ClassVar[str] = "gcp_https_health_check_spec"
+    kind_display: ClassVar[str] = "GCP HTTPS Health Check Spec"
+    kind_description: ClassVar[str] = (
+        "GCP HTTPS Health Check Spec is a specification for a health check resource"
+        " in Google Cloud Platform (GCP), used to monitor the health of HTTPS-based"
+        " services by sending periodic requests and checking for valid responses."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host": S("host"),
         "port": S("port"),
@@ -1741,6 +2156,12 @@ class GcpHTTPSHealthCheckSpec:
 @define(eq=False, slots=False)
 class GcpSSLHealthCheck:
     kind: ClassVar[str] = "gcp_ssl_health_check"
+    kind_display: ClassVar[str] = "GCP SSL Health Check"
+    kind_description: ClassVar[str] = (
+        "GCP SSL Health Check is a monitoring service used to check the health of SSL-based services by sending"
+        " a request and verifying the response over the specified port, optionally using a named port and"
+        " managing proxy header configurations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "port": S("port"),
         "port_name": S("portName"),
@@ -1760,6 +2181,12 @@ class GcpSSLHealthCheck:
 @define(eq=False, slots=False)
 class GcpTCPHealthCheck:
     kind: ClassVar[str] = "gcp_tcp_health_check"
+    kind_display: ClassVar[str] = "GCP TCP Health Check"
+    kind_description: ClassVar[str] = (
+        "GCP TCP Health Check is a feature in the Google Cloud Platform which"
+        " monitors the availability and health of TCP-based services by periodically"
+        " sending TCP connection requests to the specified endpoint."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "port": S("port"),
         "port_name": S("portName"),
@@ -1779,6 +2206,12 @@ class GcpTCPHealthCheck:
 @define(eq=False, slots=False)
 class GcpHealthCheck(GcpResource):
     kind: ClassVar[str] = "gcp_health_check"
+    kind_display: ClassVar[str] = "GCP Health Check"
+    kind_description: ClassVar[str] = (
+        "Health Check is a feature in Google Cloud Platform that allows you to"
+        " monitor the health and availability of your resources by periodically"
+        " sending requests to them and verifying the responses."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1829,6 +2262,12 @@ class GcpHealthCheck(GcpResource):
 @define(eq=False, slots=False)
 class GcpHttpHealthCheck(GcpResource):
     kind: ClassVar[str] = "gcp_http_health_check"
+    kind_display: ClassVar[str] = "GCP HTTP Health Check"
+    kind_description: ClassVar[str] = (
+        "HTTP Health Checks are used by Google Cloud Platform to monitor the health"
+        " of web services and determine if they are reachable and responding correctly"
+        " to requests."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1869,6 +2308,12 @@ class GcpHttpHealthCheck(GcpResource):
 @define(eq=False, slots=False)
 class GcpHttpsHealthCheck(GcpResource):
     kind: ClassVar[str] = "gcp_https_health_check"
+    kind_display: ClassVar[str] = "GCP HTTPS Health Check"
+    kind_description: ClassVar[str] = (
+        "The GCP HTTPS Health Check is a monitoring service that allows users to"
+        " check the availability and performance of their HTTPS endpoints on Google"
+        " Cloud Platform."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -1909,6 +2354,11 @@ class GcpHttpsHealthCheck(GcpResource):
 @define(eq=False, slots=False)
 class GcpRawdisk:
     kind: ClassVar[str] = "gcp_rawdisk"
+    kind_display: ClassVar[str] = "GCP Raw Disk"
+    kind_description: ClassVar[str] = (
+        "GCP Raw Disk are a property of a GCP Image. They are a disk image that represents the exact"
+        " byte-for-byte contents of a disk."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "container_type": S("containerType"),
         "sha1_checksum": S("sha1Checksum"),
@@ -1922,6 +2372,11 @@ class GcpRawdisk:
 @define(eq=False, slots=False)
 class GcpFileContentBuffer:
     kind: ClassVar[str] = "gcp_file_content_buffer"
+    kind_display: ClassVar[str] = "GCP File Content Buffer"
+    kind_description: ClassVar[str] = (
+        "GCP File Content Buffer is a specification for storing initial content and defining its"
+        " type within a file for a virtual machine image in Google Cloud."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"content": S("content"), "file_type": S("fileType")}
     content: Optional[str] = field(default=None)
     file_type: Optional[str] = field(default=None)
@@ -1930,6 +2385,11 @@ class GcpFileContentBuffer:
 @define(eq=False, slots=False)
 class GcpInitialStateConfig:
     kind: ClassVar[str] = "gcp_initial_state_config"
+    kind_display: ClassVar[str] = "GCP Initial State Config"
+    kind_description: ClassVar[str] = (
+        "GCP Initial State Config refers to the configuration parameters for the initial setup"
+        " of a virtual machine image."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "dbs": S("dbs", default=[]) >> ForallBend(GcpFileContentBuffer.mapping),
         "dbxs": S("dbxs", default=[]) >> ForallBend(GcpFileContentBuffer.mapping),
@@ -1945,6 +2405,11 @@ class GcpInitialStateConfig:
 @define(eq=False, slots=False)
 class GcpImage(GcpResource):
     kind: ClassVar[str] = "gcp_image"
+    kind_display: ClassVar[str] = "GCP Image"
+    kind_description: ClassVar[str] = (
+        "GCP Images are pre-configured virtual machine templates that can be used to"
+        " create and deploy virtual machines in the Google Cloud Platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
 
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -2026,6 +2491,12 @@ class GcpImage(GcpResource):
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerAutoHealingPolicy:
     kind: ClassVar[str] = "gcp_instance_group_manager_auto_healing_policy"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Auto Healing Policy"
+    kind_description: ClassVar[str] = (
+        "Auto Healing Policy is a feature of GCP Instance Group Manager that"
+        " automatically replaces unhealthy instances within an instance group to"
+        " maintain availability and ensure application uptime."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"health_check": S("healthCheck"), "initial_delay_sec": S("initialDelaySec")}
     health_check: Optional[str] = field(default=None)
     initial_delay_sec: Optional[int] = field(default=None)
@@ -2034,6 +2505,12 @@ class GcpInstanceGroupManagerAutoHealingPolicy:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerActionsSummary:
     kind: ClassVar[str] = "gcp_instance_group_manager_actions_summary"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Actions Summary"
+    kind_description: ClassVar[str] = (
+        "The GCP Instance Group Manager Actions Summary provides a summary of the"
+        " actions performed on instance groups in the Google Cloud Platform, such as"
+        " scaling, updating, or deleting instances in a group."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "abandoning": S("abandoning"),
         "creating": S("creating"),
@@ -2067,6 +2544,14 @@ class GcpInstanceGroupManagerActionsSummary:
 @define(eq=False, slots=False)
 class GcpDistributionPolicy:
     kind: ClassVar[str] = "gcp_distribution_policy"
+    kind_display: ClassVar[str] = "GCP Distribution Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Distribution Policy is a feature provided by Google Cloud Platform that"
+        " allows users to define how resources are distributed across multiple zones"
+        " within a region. This enables users to ensure high availability and fault"
+        " tolerance for their applications and services by ensuring that they are"
+        " spread across multiple physical locations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "target_shape": S("targetShape"),
         "zones": S("zones", default=[]) >> ForallBend(S("zone")),
@@ -2078,6 +2563,12 @@ class GcpDistributionPolicy:
 @define(eq=False, slots=False)
 class GcpNamedPort:
     kind: ClassVar[str] = "gcp_named_port"
+    kind_display: ClassVar[str] = "GCP Named Port"
+    kind_description: ClassVar[str] = (
+        "A named port is a service port with a user-defined name associated with a"
+        " specific port number. It is used in Google Cloud Platform to help identify"
+        " and manage networking services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "port": S("port")}
     name: Optional[str] = field(default=None)
     port: Optional[int] = field(default=None)
@@ -2086,6 +2577,11 @@ class GcpNamedPort:
 @define(eq=False, slots=False)
 class GcpStatefulPolicyPreservedStateDiskDevice:
     kind: ClassVar[str] = "gcp_stateful_policy_preserved_state_disk_device"
+    kind_display: ClassVar[str] = "GCP Stateful Policy Preserved State Disk Device"
+    kind_description: ClassVar[str] = (
+        "The GCP Stateful Policy Preserved State Disk Device setting determines whether a disk attached to a virtual"
+        " machine in a managed instance group should be automatically deleted when the virtual machine is deleted."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"auto_delete": S("autoDelete")}
     auto_delete: Optional[str] = field(default=None)
 
@@ -2093,6 +2589,12 @@ class GcpStatefulPolicyPreservedStateDiskDevice:
 @define(eq=False, slots=False)
 class GcpStatefulPolicyPreservedState:
     kind: ClassVar[str] = "gcp_stateful_policy_preserved_state"
+    kind_display: ClassVar[str] = "GCP Stateful Policy Preserved State"
+    kind_description: ClassVar[str] = (
+        "The GCP Stateful Policy's Preserved State feature involves a set of rules defining how individual disks"
+        " should be treated on instances within a managed instance group, such as whether they should be retained"
+        " or deleted during specific group operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "stateful_policy_preserved_state_disks": S("disks", default={})
         >> MapDict(value_bender=Bend(GcpStatefulPolicyPreservedStateDiskDevice.mapping))
@@ -2105,6 +2607,12 @@ class GcpStatefulPolicyPreservedState:
 @define(eq=False, slots=False)
 class GcpStatefulPolicy:
     kind: ClassVar[str] = "gcp_stateful_policy"
+    kind_display: ClassVar[str] = "GCP Stateful Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Stateful Policy refers to a configuration that specifies how certain resources and disk states should be"
+        " maintained when managing instances within a group, ensuring that specific instance properties persist"
+        " across various lifecycle events."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "preserved_state": S("preservedState", default={}) >> Bend(GcpStatefulPolicyPreservedState.mapping)
     }
@@ -2114,6 +2622,12 @@ class GcpStatefulPolicy:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerStatusStateful:
     kind: ClassVar[str] = "gcp_instance_group_manager_status_stateful"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Status Stateful"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Group Manager Status Stateful indicates the status of an instance group manager's stateful"
+        " configuration, showing whether a stateful configuration is applied and the status of instance-specific"
+        " configurations within the group."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "has_stateful_config": S("hasStatefulConfig"),
         "per_instance_configs": S("perInstanceConfigs", "allEffective"),
@@ -2125,6 +2639,12 @@ class GcpInstanceGroupManagerStatusStateful:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerStatus:
     kind: ClassVar[str] = "gcp_instance_group_manager_status"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Status"
+    kind_description: ClassVar[str] = (
+        "Instance Group Manager Status represents the current state of an instance"
+        " group manager in Google Cloud Platform. It provides information about the"
+        " status of the managed instances within the group and their health."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "autoscaler": S("autoscaler"),
         "is_stable": S("isStable"),
@@ -2140,6 +2660,12 @@ class GcpInstanceGroupManagerStatus:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerUpdatePolicy:
     kind: ClassVar[str] = "gcp_instance_group_manager_update_policy"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Update Policy"
+    kind_description: ClassVar[str] = (
+        "The GCP Instance Group Manager Update Policy is a configuration setting that"
+        " determines how a managed instance group is automatically updated with new"
+        " instance template versions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_redistribution_type": S("instanceRedistributionType"),
         "max_surge": S("maxSurge", default={}) >> Bend(GcpFixedOrPercent.mapping),
@@ -2161,6 +2687,12 @@ class GcpInstanceGroupManagerUpdatePolicy:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManagerVersion:
     kind: ClassVar[str] = "gcp_instance_group_manager_version"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager Version"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Group Manager Version outlines the template and size details for a specific version of managed"
+        " instances, enabling the management of different instance templates and scaling properties within a"
+        " single group manager."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_template": S("instanceTemplate"),
         "name": S("name"),
@@ -2174,6 +2706,11 @@ class GcpInstanceGroupManagerVersion:
 @define(eq=False, slots=False)
 class GcpInstanceGroupManager(GcpResource):
     kind: ClassVar[str] = "gcp_instance_group_manager"
+    kind_display: ClassVar[str] = "GCP Instance Group Manager"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Group Manager is a resource in Google Cloud Platform that helps"
+        " manage and scale groups of Compute Engine instances."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_instance_group"],
@@ -2251,6 +2788,11 @@ class GcpInstanceGroupManager(GcpResource):
 @define(eq=False, slots=False)
 class GcpInstanceGroup(GcpResource):
     kind: ClassVar[str] = "gcp_instance_group"
+    kind_display: ClassVar[str] = "GCP Instance Group"
+    kind_description: ClassVar[str] = (
+        "Instance Group is a resource in Google Cloud Platform that allows you to"
+        " manage and scale multiple instances together as a single unit."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
     }
@@ -2298,6 +2840,12 @@ class GcpInstanceGroup(GcpResource):
 @define(eq=False, slots=False)
 class GcpAdvancedMachineFeatures:
     kind: ClassVar[str] = "gcp_advanced_machine_features"
+    kind_display: ClassVar[str] = "GCP Advanced Machine Features"
+    kind_description: ClassVar[str] = (
+        "Advanced Machine Features are advanced functionalities provided by Google"
+        " Cloud Platform (GCP) that enhance the capabilities of virtual machine"
+        " instances and improve performance, scalability, and security."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_nested_virtualization": S("enableNestedVirtualization"),
         "enable_uefi_networking": S("enableUefiNetworking"),
@@ -2313,6 +2861,12 @@ class GcpAdvancedMachineFeatures:
 @define(eq=False, slots=False)
 class GcpAttachedDiskInitializeParams:
     kind: ClassVar[str] = "gcp_attached_disk_initialize_params"
+    kind_display: ClassVar[str] = "GCP Attached Disk Initialize Params"
+    kind_description: ClassVar[str] = (
+        "Initialize parameters for a Google Cloud Platform attached disk, used to"
+        " specify the size and type of the disk, as well as other configuration"
+        " options."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "architecture": S("architecture"),
         "description": S("description"),
@@ -2352,6 +2906,12 @@ class GcpAttachedDiskInitializeParams:
 @define(eq=False, slots=False)
 class GcpAttachedDisk:
     kind: ClassVar[str] = "gcp_attached_disk"
+    kind_display: ClassVar[str] = "GCP Attached Disk"
+    kind_description: ClassVar[str] = (
+        "GCP Attached Disk is a disk storage resource that can be attached to compute"
+        " instances in Google Cloud Platform, providing persistent block storage for"
+        " your data."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "architecture": S("architecture"),
         "auto_delete": S("autoDelete"),
@@ -2392,6 +2952,12 @@ class GcpAttachedDisk:
 @define(eq=False, slots=False)
 class GcpAcceleratorConfig:
     kind: ClassVar[str] = "gcp_accelerator_config"
+    kind_display: ClassVar[str] = "GCP Accelerator Config"
+    kind_description: ClassVar[str] = (
+        "GCP Accelerator Config is a configuration option for Google Cloud Platform"
+        " (GCP) that allows users to attach Nvidia GPUs to their virtual machine"
+        " instances for faster computational processing."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "accelerator_count": S("acceleratorCount"),
         "accelerator_type": S("acceleratorType"),
@@ -2403,6 +2969,11 @@ class GcpAcceleratorConfig:
 @define(eq=False, slots=False)
 class GcpItems:
     kind: ClassVar[str] = "gcp_items"
+    kind_display: ClassVar[str] = "GCP Items"
+    kind_description: ClassVar[str] = (
+        "GCP Items refer to the metadata key-value pairs associated with a Google Cloud instance,"
+        " allowing customization of instance configuration and behavior."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("key"), "value": S("value")}
     key: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -2411,6 +2982,12 @@ class GcpItems:
 @define(eq=False, slots=False)
 class GcpMetadata:
     kind: ClassVar[str] = "gcp_metadata"
+    kind_display: ClassVar[str] = "GCP Metadata"
+    kind_description: ClassVar[str] = (
+        "GCP Metadata provides information about the Google Cloud Platform virtual"
+        " machine instance, such as its attributes, startup scripts, and custom"
+        " metadata."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "fingerprint": S("fingerprint"),
         "items": S("items", default=[]) >> ForallBend(GcpItems.mapping),
@@ -2422,6 +2999,11 @@ class GcpMetadata:
 @define(eq=False, slots=False)
 class GcpAccessConfig:
     kind: ClassVar[str] = "gcp_access_config"
+    kind_display: ClassVar[str] = "GCP Access Config"
+    kind_description: ClassVar[str] = (
+        "Access Config is a GCP feature that allows you to assign internal and"
+        " external IP addresses to your virtual machine instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "external_ipv6": S("externalIpv6"),
         "external_ipv6_prefix_length": S("externalIpv6PrefixLength"),
@@ -2445,6 +3027,11 @@ class GcpAccessConfig:
 @define(eq=False, slots=False)
 class GcpAliasIpRange:
     kind: ClassVar[str] = "gcp_alias_ip_range"
+    kind_display: ClassVar[str] = "GCP Alias IP Range"
+    kind_description: ClassVar[str] = (
+        "Alias IP Range is a feature in Google Cloud Platform that allows you to"
+        " assign additional IP addresses to virtual machines within a subnet."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_cidr_range": S("ipCidrRange"),
         "subnetwork_range_name": S("subnetworkRangeName"),
@@ -2456,6 +3043,11 @@ class GcpAliasIpRange:
 @define(eq=False, slots=False)
 class GcpNetworkInterface:
     kind: ClassVar[str] = "gcp_network_interface"
+    kind_display: ClassVar[str] = "GCP Network Interface"
+    kind_description: ClassVar[str] = (
+        "A network interface is a virtual network interface card (NIC) that enables"
+        " VM instances to send and receive network packets."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_configs": S("accessConfigs", default=[]) >> ForallBend(GcpAccessConfig.mapping),
         "alias_ip_ranges": S("aliasIpRanges", default=[]) >> ForallBend(GcpAliasIpRange.mapping),
@@ -2491,6 +3083,12 @@ class GcpNetworkInterface:
 @define(eq=False, slots=False)
 class GcpReservationAffinity:
     kind: ClassVar[str] = "gcp_reservation_affinity"
+    kind_display: ClassVar[str] = "GCP Reservation Affinity"
+    kind_description: ClassVar[str] = (
+        "GCP Reservation Affinity is a configuration setting within GCP Instance Properties that controls how"
+        " instances use reservations for resources, specifying whether and how instances should consume"
+        " reserved compute capacity in GCP."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "consume_reservation_type": S("consumeReservationType"),
         "key": S("key"),
@@ -2504,6 +3102,12 @@ class GcpReservationAffinity:
 @define(eq=False, slots=False)
 class GcpSchedulingNodeAffinity:
     kind: ClassVar[str] = "gcp_scheduling_node_affinity"
+    kind_display: ClassVar[str] = "GCP Scheduling Node Affinity"
+    kind_description: ClassVar[str] = (
+        "GCP Scheduling Node Affinity allows you to schedule your workloads on"
+        " specific nodes in Google Cloud Platform, based on node labels and"
+        " expressions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "key": S("key"),
         "operator": S("operator"),
@@ -2517,6 +3121,12 @@ class GcpSchedulingNodeAffinity:
 @define(eq=False, slots=False)
 class GcpScheduling:
     kind: ClassVar[str] = "gcp_scheduling"
+    kind_display: ClassVar[str] = "GCP Scheduling"
+    kind_description: ClassVar[str] = (
+        "GCP Scheduling refers to the ability to set up automated, recurring tasks on"
+        " Google Cloud Platform, allowing users to schedule actions like running"
+        " scripts or executing compute instances at specified intervals."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "automatic_restart": S("automaticRestart"),
         "instance_termination_action": S("instanceTerminationAction"),
@@ -2540,6 +3150,12 @@ class GcpScheduling:
 @define(eq=False, slots=False)
 class GcpServiceAccount:
     kind: ClassVar[str] = "gcp_service_account"
+    kind_display: ClassVar[str] = "GCP Service Account"
+    kind_description: ClassVar[str] = (
+        "A GCP Service Account is a special account that represents an application"
+        " rather than an individual user. It allows applications to authenticate and"
+        " access Google Cloud Platform resources securely."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"email": S("email"), "scopes": S("scopes", default=[])}
     email: Optional[str] = field(default=None)
     scopes: Optional[List[str]] = field(default=None)
@@ -2548,6 +3164,12 @@ class GcpServiceAccount:
 @define(eq=False, slots=False)
 class GcpShieldedInstanceConfig:
     kind: ClassVar[str] = "gcp_shielded_instance_config"
+    kind_display: ClassVar[str] = "GCP Shielded Instance Config"
+    kind_description: ClassVar[str] = (
+        "Shielded Instance Config enables enhanced security and protection for"
+        " virtual machines on Google Cloud Platform by validating the integrity of the"
+        " boot firmware and verifying the virtual machine's identity."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_integrity_monitoring": S("enableIntegrityMonitoring"),
         "enable_secure_boot": S("enableSecureBoot"),
@@ -2561,6 +3183,11 @@ class GcpShieldedInstanceConfig:
 @define(eq=False, slots=False)
 class GcpTags:
     kind: ClassVar[str] = "gcp_tags"
+    kind_display: ClassVar[str] = "GCP Tags"
+    kind_description: ClassVar[str] = (
+        "GCP Tags are used to identify and group virtual machine instances within the Google Cloud Platform, allowing"
+        " for batch management and network firewall rule application based on these identifiers."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"fingerprint": S("fingerprint"), "items": S("items", default=[])}
     fingerprint: Optional[str] = field(default=None)
     items: Optional[List[str]] = field(default=None)
@@ -2569,6 +3196,11 @@ class GcpTags:
 @define(eq=False, slots=False)
 class GcpInstanceProperties:
     kind: ClassVar[str] = "gcp_instance_properties"
+    kind_display: ClassVar[str] = "GCP Instance Properties"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Properties are specific attributes and configurations for"
+        " virtual machine instances in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "advanced_machine_features": S("advancedMachineFeatures", default={})
         >> Bend(GcpAdvancedMachineFeatures.mapping),
@@ -2619,6 +3251,12 @@ class GcpInstanceProperties:
 @define(eq=False, slots=False)
 class GcpDiskInstantiationConfig:
     kind: ClassVar[str] = "gcp_disk_instantiation_config"
+    kind_display: ClassVar[str] = "GCP Disk Instantiation Config"
+    kind_description: ClassVar[str] = (
+        "GCP Disk Instantiation Config is a configuration used for creating and"
+        " customizing disks in Google Cloud Platform (GCP) that are used for storing"
+        " data and attaching to virtual machines."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_delete": S("autoDelete"),
         "custom_image": S("customImage"),
@@ -2634,6 +3272,11 @@ class GcpDiskInstantiationConfig:
 @define(eq=False, slots=False)
 class GcpSourceInstanceParams:
     kind: ClassVar[str] = "gcp_source_instance_params"
+    kind_display: ClassVar[str] = "GCP Source Instance Params"
+    kind_description: ClassVar[str] = (
+        "GCP Source Instance Params within an Instance Template define the configurations for disks when"
+        " creating instances from the template, allowing for customization of storage options."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "disk_configs": S("diskConfigs", default=[]) >> ForallBend(GcpDiskInstantiationConfig.mapping)
     }
@@ -2643,6 +3286,11 @@ class GcpSourceInstanceParams:
 @define(eq=False, slots=False)
 class GcpInstanceTemplate(GcpResource):
     kind: ClassVar[str] = "gcp_instance_template"
+    kind_display: ClassVar[str] = "GCP Instance Template"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Templates are reusable configuration templates that define the"
+        " settings for Google Compute Engine virtual machine instances."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_machine_type"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -2681,6 +3329,12 @@ class GcpInstanceTemplate(GcpResource):
 @define(eq=False, slots=False)
 class GcpInstanceParams:
     kind: ClassVar[str] = "gcp_instance_params"
+    kind_display: ClassVar[str] = "GCP Instance Parameters"
+    kind_description: ClassVar[str] = (
+        "GCP Instance Parameters are specific settings and configurations, such as"
+        " machine type, disk size, and network settings, that can be applied to Google"
+        " Cloud Platform virtual machine instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"resource_manager_tags": S("resourceManagerTags")}
     resource_manager_tags: Optional[Dict[str, str]] = field(default=None)
 
@@ -2688,6 +3342,11 @@ class GcpInstanceParams:
 @define(eq=False, slots=False)
 class GcpInstance(GcpResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
+    kind_display: ClassVar[str] = "GCP Instance"
+    kind_description: ClassVar[str] = (
+        "GCP Instances are virtual machines in Google Cloud Platform that can be used"
+        " to run applications and services on Google's infrastructure."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_network", "gcp_subnetwork", "gcp_machine_type"],
@@ -2862,6 +3521,12 @@ class GcpInstance(GcpResource, BaseInstance):
 @define(eq=False, slots=False)
 class GcpInterconnectAttachmentPartnerMetadata:
     kind: ClassVar[str] = "gcp_interconnect_attachment_partner_metadata"
+    kind_display: ClassVar[str] = "GCP Interconnect Attachment Partner Metadata"
+    kind_description: ClassVar[str] = (
+        "Partner metadata for a Google Cloud Platform (GCP) Interconnect Attachment,"
+        " which provides additional information about the partner associated with the"
+        " interconnect attachment."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "interconnect_name": S("interconnectName"),
         "partner_name": S("partnerName"),
@@ -2875,6 +3540,12 @@ class GcpInterconnectAttachmentPartnerMetadata:
 @define(eq=False, slots=False)
 class GcpInterconnectAttachment(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect_attachment"
+    kind_display: ClassVar[str] = "GCP Interconnect Attachment"
+    kind_description: ClassVar[str] = (
+        "Interconnect Attachment is a resource that allows you to connect your on-"
+        " premises network to Google Cloud Platform (GCP) using a dedicated physical"
+        " link."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -2956,6 +3627,11 @@ class GcpInterconnectAttachment(GcpResource):
 @define(eq=False, slots=False)
 class GcpInterconnectLocationRegionInfo:
     kind: ClassVar[str] = "gcp_interconnect_location_region_info"
+    kind_display: ClassVar[str] = "GCP Interconnect Location Region Info"
+    kind_description: ClassVar[str] = (
+        "GCP Interconnect Location Region Info pertains to the specifications of network latency"
+        " and regional availability for a Google Cloud interconnection point."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "expected_rtt_ms": S("expectedRttMs"),
         "location_presence": S("locationPresence"),
@@ -2969,6 +3645,13 @@ class GcpInterconnectLocationRegionInfo:
 @define(eq=False, slots=False)
 class GcpInterconnectLocation(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect_location"
+    kind_display: ClassVar[str] = "GCP Interconnect Location"
+    kind_description: ClassVar[str] = (
+        "GCP Interconnect Location refers to the physical location where Google Cloud"
+        " Platform (GCP) Interconnects are available. Interconnects provide dedicated"
+        " connectivity options between an organization's on-premises network and GCP's"
+        " network."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3015,6 +3698,12 @@ class GcpInterconnectLocation(GcpResource):
 @define(eq=False, slots=False)
 class GcpInterconnectCircuitInfo:
     kind: ClassVar[str] = "gcp_interconnect_circuit_info"
+    kind_display: ClassVar[str] = "GCP Interconnect Circuit Info"
+    kind_description: ClassVar[str] = (
+        "Interconnect Circuit Info provides details about the dedicated network"
+        " connection between an on-premises network and Google Cloud Platform (GCP)"
+        " for faster and more reliable communication."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "customer_demarc_id": S("customerDemarcId"),
         "google_circuit_id": S("googleCircuitId"),
@@ -3028,6 +3717,12 @@ class GcpInterconnectCircuitInfo:
 @define(eq=False, slots=False)
 class GcpInterconnectOutageNotification:
     kind: ClassVar[str] = "gcp_interconnect_outage_notification"
+    kind_display: ClassVar[str] = "GCP Interconnect Outage Notification"
+    kind_description: ClassVar[str] = (
+        "GCP Interconnect Outage Notification is a service provided by Google Cloud"
+        " Platform to inform users about any disruptions or outages in their"
+        " Interconnect connectivity to the GCP network."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "affected_circuits": S("affectedCircuits", default=[]),
         "description": S("description"),
@@ -3051,6 +3746,12 @@ class GcpInterconnectOutageNotification:
 @define(eq=False, slots=False)
 class GcpInterconnect(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect"
+    kind_display: ClassVar[str] = "GCP Interconnect"
+    kind_description: ClassVar[str] = (
+        "GCP Interconnect is a dedicated connection between your on-premises network"
+        " and Google Cloud Platform, providing a high-speed and reliable link for data"
+        " transfer."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3110,6 +3811,11 @@ class GcpInterconnect(GcpResource):
 @define(eq=False, slots=False)
 class GcpLicenseResourceRequirements:
     kind: ClassVar[str] = "gcp_license_resource_requirements"
+    kind_display: ClassVar[str] = "GCP License Resource Requirements"
+    kind_description: ClassVar[str] = (
+        "GCP License Resource Requirements refers to the set of criteria that must be met in terms of computational"
+        " resources when you want to bring your own licenses (BYOL) to the Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_guest_cpu_count": S("minGuestCpuCount"),
         "min_memory_mb": S("minMemoryMb"),
@@ -3121,6 +3827,10 @@ class GcpLicenseResourceRequirements:
 @define(eq=False, slots=False)
 class GcpLicense(GcpResource):
     kind: ClassVar[str] = "gcp_license"
+    kind_display: ClassVar[str] = "GCP License"
+    kind_description: ClassVar[
+        str
+    ] = "GCP Licenses are used to authorize the use of certain Google Cloud Platform services and resources."
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3155,6 +3865,12 @@ class GcpLicense(GcpResource):
 @define(eq=False, slots=False)
 class GcpSavedDisk:
     kind: ClassVar[str] = "gcp_saved_disk"
+    kind_display: ClassVar[str] = "GCP Saved Disk"
+    kind_description: ClassVar[str] = (
+        "The GCP Saved Disk refers to a snapshot of a virtual machine disk that has been saved within a machine"
+        " image, which includes details about the architecture, the original disk source, the size of the stored"
+        " data, and the status of the storage usage."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "architecture": S("architecture"),
         "source_disk": S("sourceDisk"),
@@ -3170,6 +3886,12 @@ class GcpSavedDisk:
 @define(eq=False, slots=False)
 class GcpSourceDiskEncryptionKey:
     kind: ClassVar[str] = "gcp_source_disk_encryption_key"
+    kind_display: ClassVar[str] = "GCP Source Disk Encryption Key"
+    kind_description: ClassVar[str] = (
+        "A GCP Source Disk Encryption Key is used to encrypt the disk images that are"
+        " used as the sources for creating new disk images in Google Cloud Platform,"
+        " ensuring data privacy and security."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "disk_encryption_key": S("diskEncryptionKey", default={}) >> Bend(GcpCustomerEncryptionKey.mapping),
         "source_disk": S("sourceDisk"),
@@ -3181,6 +3903,12 @@ class GcpSourceDiskEncryptionKey:
 @define(eq=False, slots=False)
 class GcpSavedAttachedDisk:
     kind: ClassVar[str] = "gcp_saved_attached_disk"
+    kind_display: ClassVar[str] = "GCP Saved Attached Disk"
+    kind_description: ClassVar[str] = (
+        "GCP Saved Attached Disk is a disk storage resource in Google Cloud Platform"
+        " that is attached to a virtual machine instance and can be saved as a"
+        " separate resource for future use."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_delete": S("autoDelete"),
         "boot": S("boot"),
@@ -3218,6 +3946,13 @@ class GcpSavedAttachedDisk:
 @define(eq=False, slots=False)
 class GcpSourceInstanceProperties:
     kind: ClassVar[str] = "gcp_source_instance_properties"
+    kind_display: ClassVar[str] = "GCP Source Instance Properties"
+    kind_description: ClassVar[str] = (
+        "GCP Source Instance Properties refers to the configuration and"
+        " characteristics of a virtual machine instance in Google Cloud Platform"
+        " (GCP). It includes information such as the instance name, machine type,"
+        " network settings, and attached disks."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "can_ip_forward": S("canIpForward"),
         "deletion_protection": S("deletionProtection"),
@@ -3253,6 +3988,12 @@ class GcpSourceInstanceProperties:
 @define(eq=False, slots=False)
 class GcpMachineImage(GcpResource):
     kind: ClassVar[str] = "gcp_machine_image"
+    kind_display: ClassVar[str] = "GCP Machine Image"
+    kind_description: ClassVar[str] = (
+        "Machine Images in Google Cloud Platform are snapshots of a virtual machine's"
+        " disk that can be used to create new instances with the same configuration"
+        " and data."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_disk"],
@@ -3317,6 +4058,12 @@ class GcpMachineImage(GcpResource):
 @define(eq=False, slots=False)
 class GcpAccelerators:
     kind: ClassVar[str] = "gcp_accelerators"
+    kind_display: ClassVar[str] = "GCP Accelerators"
+    kind_description: ClassVar[str] = (
+        "Accelerators in Google Cloud Platform provide specialized hardware to"
+        " enhance the performance of compute-intensive workloads, such as machine"
+        " learning and high-performance computing tasks."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "guest_accelerator_count": S("guestAcceleratorCount"),
         "guest_accelerator_type": S("guestAcceleratorType"),
@@ -3328,6 +4075,11 @@ class GcpAccelerators:
 @define(eq=False, slots=False)
 class GcpMachineType(GcpResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
+    kind_display: ClassVar[str] = "GCP Machine Type"
+    kind_description: ClassVar[str] = (
+        "GCP Machine Types are predefined hardware configurations that define the"
+        " virtualized hardware resources for Google Cloud Platform virtual machines."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3494,6 +4246,12 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 @define(eq=False, slots=False)
 class GcpNetworkEdgeSecurityService(GcpResource):
     kind: ClassVar[str] = "gcp_network_edge_security_service"
+    kind_display: ClassVar[str] = "GCP Network Edge Security Service"
+    kind_description: ClassVar[str] = (
+        "GCP Network Edge Security Service provides secure and reliable access to"
+        " resources in the Google Cloud Platform network, reducing the risk of"
+        " unauthorized access and data breaches."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3529,6 +4287,12 @@ class GcpNetworkEdgeSecurityService(GcpResource):
 @define(eq=False, slots=False)
 class GcpNetworkPeering:
     kind: ClassVar[str] = "gcp_network_peering"
+    kind_display: ClassVar[str] = "GCP Network Peering"
+    kind_description: ClassVar[str] = (
+        "Network Peering in Google Cloud Platform enables direct connectivity between"
+        " two Virtual Private Cloud (VPC) networks, allowing them to communicate"
+        " securely and efficiently with each other."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "auto_create_routes": S("autoCreateRoutes"),
         "exchange_subnet_routes": S("exchangeSubnetRoutes"),
@@ -3560,6 +4324,11 @@ class GcpNetworkPeering:
 @define(eq=False, slots=False)
 class GcpNetwork(GcpResource):
     kind: ClassVar[str] = "gcp_network"
+    kind_display: ClassVar[str] = "GCP Network"
+    kind_description: ClassVar[str] = (
+        "GCP Network is a virtual network infrastructure that allows users to"
+        " securely connect and isolate their resources in the Google Cloud Platform."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3610,6 +4379,12 @@ class GcpNetwork(GcpResource):
 @define(eq=False, slots=False)
 class GcpNodeGroupAutoscalingPolicy:
     kind: ClassVar[str] = "gcp_node_group_autoscaling_policy"
+    kind_display: ClassVar[str] = "GCP Node Group Autoscaling Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Node Group Autoscaling Policy is a feature in Google Cloud Platform that"
+        " allows automatic adjustment of the number of nodes in a node group based on"
+        " demand, ensuring optimal resource utilization and performance."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"max_nodes": S("maxNodes"), "min_nodes": S("minNodes"), "mode": S("mode")}
     max_nodes: Optional[int] = field(default=None)
     min_nodes: Optional[int] = field(default=None)
@@ -3619,6 +4394,13 @@ class GcpNodeGroupAutoscalingPolicy:
 @define(eq=False, slots=False)
 class GcpNodeGroupMaintenanceWindow:
     kind: ClassVar[str] = "gcp_node_group_maintenance_window"
+    kind_display: ClassVar[str] = "GCP Node Group Maintenance Window"
+    kind_description: ClassVar[str] = (
+        "GCP Node Group Maintenance Window is a feature in Google Cloud Platform that"
+        " allows users to schedule maintenance windows for node groups, during which"
+        " the nodes can undergo maintenance operations without disrupting the"
+        " applications running on them."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "maintenance_duration": S("maintenanceDuration", default={}) >> Bend(GcpDuration.mapping),
         "start_time": S("startTime"),
@@ -3630,6 +4412,11 @@ class GcpNodeGroupMaintenanceWindow:
 @define(eq=False, slots=False)
 class GcpShareSettingsProjectConfig:
     kind: ClassVar[str] = "gcp_share_settings_project_config"
+    kind_display: ClassVar[str] = "GCP Share Settings Project Config"
+    kind_description: ClassVar[str] = (
+        "The GCP Share Settings Project Config within the Node Group service framework outlines the specific"
+        " project identifier for which the share settings are applicable."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"project_id": S("projectId")}
     project_id: Optional[str] = field(default=None)
 
@@ -3637,6 +4424,11 @@ class GcpShareSettingsProjectConfig:
 @define(eq=False, slots=False)
 class GcpShareSettings:
     kind: ClassVar[str] = "gcp_share_settings"
+    kind_display: ClassVar[str] = "GCP Share Settings"
+    kind_description: ClassVar[str] = (
+        "GCP Share Settings in the context of a Node Group dictate how compute resources are distributed and"
+        " shared among various projects within a specific group or type."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "project_map": S("projectMap", default={}) >> MapDict(value_bender=Bend(GcpShareSettingsProjectConfig.mapping)),
         "share_type": S("shareType"),
@@ -3648,6 +4440,12 @@ class GcpShareSettings:
 @define(eq=False, slots=False)
 class GcpNodeGroup(GcpResource):
     kind: ClassVar[str] = "gcp_node_group"
+    kind_display: ClassVar[str] = "GCP Node Group"
+    kind_description: ClassVar[str] = (
+        "The GCP Node Group is a service that manages groups of sole-tenant nodes in Google Cloud, providing"
+        " capabilities for autoscaling, scheduled maintenance, and specifying node affinity to optimize placement"
+        " and utilization."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_node_template"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3697,6 +4495,13 @@ class GcpNodeGroup(GcpResource):
 @define(eq=False, slots=False)
 class GcpLocalDisk:
     kind: ClassVar[str] = "gcp_local_disk"
+    kind_display: ClassVar[str] = "GCP Local Disk"
+    kind_description: ClassVar[str] = (
+        "GCP Local Disk is a type of storage device provided by Google Cloud Platform"
+        " that allows users to store and access data on a virtual machine's local"
+        " disk. It provides high-performance and low-latency storage for temporary or"
+        " frequently accessed data."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "disk_count": S("diskCount"),
         "disk_size_gb": S("diskSizeGb"),
@@ -3710,6 +4515,10 @@ class GcpLocalDisk:
 @define(eq=False, slots=False)
 class GcpNodeTemplateNodeTypeFlexibility:
     kind: ClassVar[str] = "gcp_node_template_node_type_flexibility"
+    kind_display: ClassVar[str] = "GCP Node Template Node Type Flexibility"
+    kind_description: ClassVar[
+        str
+    ] = "This resource allows for flexible node type configuration in Google Cloud Platform node templates."
     mapping: ClassVar[Dict[str, Bender]] = {"cpus": S("cpus"), "local_ssd": S("localSsd"), "memory": S("memory")}
     cpus: Optional[str] = field(default=None)
     local_ssd: Optional[str] = field(default=None)
@@ -3719,6 +4528,11 @@ class GcpNodeTemplateNodeTypeFlexibility:
 @define(eq=False, slots=False)
 class GcpNodeTemplate(GcpResource):
     kind: ClassVar[str] = "gcp_node_template"
+    kind_display: ClassVar[str] = "GCP Node Template"
+    kind_description: ClassVar[str] = (
+        "GCP Node Template is a reusable configuration template used to create and"
+        " manage virtual machine instances in the Google Cloud Platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk_type"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3770,6 +4584,12 @@ class GcpNodeTemplate(GcpResource):
 @define(eq=False, slots=False)
 class GcpNodeType(GcpResource):
     kind: ClassVar[str] = "gcp_node_type"
+    kind_display: ClassVar[str] = "GCP Node Type"
+    kind_description: ClassVar[str] = (
+        "GCP Node Types determine the hardware configuration of virtual machines in"
+        " Google Cloud Platform (GCP). Each node type has specific CPU, memory, and"
+        " storage capacity."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -3804,6 +4624,11 @@ class GcpNodeType(GcpResource):
 @define(eq=False, slots=False)
 class GcpPacketMirroringForwardingRuleInfo:
     kind: ClassVar[str] = "gcp_packet_mirroring_forwarding_rule_info"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Forwarding Rule Info"
+    kind_description: ClassVar[str] = (
+        "Packet Mirroring Forwarding Rule Info provides information about the"
+        " forwarding rules used for packet mirroring in Google Cloud Platform (GCP)."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"canonical_url": S("canonicalUrl"), "url": S("url")}
     canonical_url: Optional[str] = field(default=None)
     url: Optional[str] = field(default=None)
@@ -3812,6 +4637,12 @@ class GcpPacketMirroringForwardingRuleInfo:
 @define(eq=False, slots=False)
 class GcpPacketMirroringFilter:
     kind: ClassVar[str] = "gcp_packet_mirroring_filter"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Filter"
+    kind_description: ClassVar[str] = (
+        "GCP Packet Mirroring Filter is a feature in Google Cloud Platform that"
+        " allows filtering of network packets for traffic analysis and troubleshooting"
+        " purposes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_protocols": S("IPProtocols", default=[]),
         "cidr_ranges": S("cidrRanges", default=[]),
@@ -3825,6 +4656,12 @@ class GcpPacketMirroringFilter:
 @define(eq=False, slots=False)
 class GcpPacketMirroringMirroredResourceInfoInstanceInfo:
     kind: ClassVar[str] = "gcp_packet_mirroring_mirrored_resource_info_instance_info"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Mirrored Resource Instance Info"
+    kind_description: ClassVar[str] = (
+        "Packet Mirroring in Google Cloud Platform allows you to monitor and capture"
+        " network traffic in real-time. This particular resource provides information"
+        " about the instance being mirrored."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"canonical_url": S("canonicalUrl"), "url": S("url")}
     canonical_url: Optional[str] = field(default=None)
     url: Optional[str] = field(default=None)
@@ -3833,6 +4670,12 @@ class GcpPacketMirroringMirroredResourceInfoInstanceInfo:
 @define(eq=False, slots=False)
 class GcpPacketMirroringMirroredResourceInfoSubnetInfo:
     kind: ClassVar[str] = "gcp_packet_mirroring_mirrored_resource_info_subnet_info"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Mirrored Resource Info Subnet Info"
+    kind_description: ClassVar[str] = (
+        "GCP Packet Mirroring Mirrored Resource Info Subnet Info is related to the configuration for selecting"
+        " specific subnets whose traffic is to be mirrored for inspection or monitoring purposes in the Google"
+        " Cloud Packet Mirroring service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"canonical_url": S("canonicalUrl"), "url": S("url")}
     canonical_url: Optional[str] = field(default=None)
     url: Optional[str] = field(default=None)
@@ -3841,6 +4684,12 @@ class GcpPacketMirroringMirroredResourceInfoSubnetInfo:
 @define(eq=False, slots=False)
 class GcpPacketMirroringMirroredResourceInfo:
     kind: ClassVar[str] = "gcp_packet_mirroring_mirrored_resource_info"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Mirrored Resource Info"
+    kind_description: ClassVar[str] = (
+        "Packet Mirroring Mirrored Resource Info is a feature in Google Cloud"
+        " Platform that allows users to collect and analyze network traffic by"
+        " duplicating packets from a specific resource in the network."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instances": S("instances", default=[])
         >> ForallBend(GcpPacketMirroringMirroredResourceInfoInstanceInfo.mapping),
@@ -3856,6 +4705,12 @@ class GcpPacketMirroringMirroredResourceInfo:
 @define(eq=False, slots=False)
 class GcpPacketMirroringNetworkInfo:
     kind: ClassVar[str] = "gcp_packet_mirroring_network_info"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring Network Info"
+    kind_description: ClassVar[str] = (
+        "Packet Mirroring Network Info in Google Cloud Platform allows users to copy"
+        " and analyze network traffic in virtual machine instances for monitoring,"
+        " troubleshooting, and security purposes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"canonical_url": S("canonicalUrl"), "url": S("url")}
     canonical_url: Optional[str] = field(default=None)
     url: Optional[str] = field(default=None)
@@ -3864,6 +4719,12 @@ class GcpPacketMirroringNetworkInfo:
 @define(eq=False, slots=False)
 class GcpPacketMirroring(GcpResource):
     kind: ClassVar[str] = "gcp_packet_mirroring"
+    kind_display: ClassVar[str] = "GCP Packet Mirroring"
+    kind_description: ClassVar[str] = (
+        "GCP Packet Mirroring is a service provided by Google Cloud Platform that"
+        " allows users to capture and mirror network traffic in order to monitor and"
+        " analyze network data for security and troubleshooting purposes."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_instance", "gcp_subnetwork"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3911,6 +4772,12 @@ class GcpPacketMirroring(GcpResource):
 @define(eq=False, slots=False)
 class GcpPublicAdvertisedPrefixPublicDelegatedPrefix:
     kind: ClassVar[str] = "gcp_public_advertised_prefix_public_delegated_prefix"
+    kind_display: ClassVar[str] = "GCP Public Advertised Prefix - Public Delegated Prefix"
+    kind_description: ClassVar[str] = (
+        "A GCP Public Advertised Prefix - Public Delegated Prefix is a range of IP"
+        " addresses that can be advertised and delegated within the Google Cloud"
+        " Platform network for public connectivity."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_range": S("ipRange"),
         "name": S("name"),
@@ -3928,6 +4795,11 @@ class GcpPublicAdvertisedPrefixPublicDelegatedPrefix:
 @define(eq=False, slots=False)
 class GcpPublicAdvertisedPrefix(GcpResource):
     kind: ClassVar[str] = "gcp_public_advertised_prefix"
+    kind_display: ClassVar[str] = "GCP Public Advertised Prefix"
+    kind_description: ClassVar[str] = (
+        "A GCP Public Advertised Prefix is a range of IP addresses that can be"
+        " advertised over the internet to allow communication with GCP resources."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_public_delegated_prefix"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -3974,6 +4846,13 @@ class GcpPublicAdvertisedPrefix(GcpResource):
 @define(eq=False, slots=False)
 class GcpLicenseResourceCommitment:
     kind: ClassVar[str] = "gcp_license_resource_commitment"
+    kind_display: ClassVar[str] = "GCP License Resource Commitment"
+    kind_description: ClassVar[str] = (
+        "A GCP license resource commitment is a commitment made by a customer to use"
+        " a specific software license offered by Google Cloud Platform (GCP) for a"
+        " predetermined period of time. This commitment ensures consistent usage and"
+        " cost savings for the customer."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "amount": S("amount"),
         "cores_per_license": S("coresPerLicense"),
@@ -3987,6 +4866,12 @@ class GcpLicenseResourceCommitment:
 @define(eq=False, slots=False)
 class GcpAllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk:
     kind: ClassVar[str] = "gcp_allocation_specific_sku_allocation_allocated_instance_properties_reserved_disk"
+    kind_display: ClassVar[str] = "GCP Specific SKU Allocation Allocated Instance Properties Reserved Disk"
+    kind_description: ClassVar[str] = (
+        "This resource refers to the reserved disk attached to a specific SKU"
+        " allocation in Google Cloud Platform. Reserved disks are persistent storage"
+        " devices used by virtual machine instances."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"disk_size_gb": S("diskSizeGb") >> AsInt(), "interface": S("interface")}
     disk_size_gb: Optional[int] = field(default=None)
     interface: Optional[str] = field(default=None)
@@ -3995,6 +4880,12 @@ class GcpAllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk:
 @define(eq=False, slots=False)
 class GcpAllocationSpecificSKUAllocationReservedInstanceProperties:
     kind: ClassVar[str] = "gcp_allocation_specific_sku_allocation_reserved_instance_properties"
+    kind_display: ClassVar[str] = "GCP Allocation Specific SKU Allocation Reserved Instance Properties"
+    kind_description: ClassVar[str] = (
+        "Reserved Instance Properties allow users to allocate specific SKUs for"
+        " reserved instances in Google Cloud Platform, optimizing usage and cost"
+        " management."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "guest_accelerators": S("guestAccelerators", default=[]) >> ForallBend(GcpAcceleratorConfig.mapping),
         "local_ssds": S("localSsds", default=[])
@@ -4015,6 +4906,11 @@ class GcpAllocationSpecificSKUAllocationReservedInstanceProperties:
 @define(eq=False, slots=False)
 class GcpAllocationSpecificSKUReservation:
     kind: ClassVar[str] = "gcp_allocation_specific_sku_reservation"
+    kind_display: ClassVar[str] = "GCP Allocation Specific SKU Reservation"
+    kind_description: ClassVar[str] = (
+        "A reservation for a specified SKU in Google Cloud Platform, allowing users"
+        " to allocate and secure resources for future use."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "assured_count": S("assuredCount"),
         "count": S("count"),
@@ -4031,6 +4927,12 @@ class GcpAllocationSpecificSKUReservation:
 @define(eq=False, slots=False)
 class GcpReservation:
     kind: ClassVar[str] = "gcp_reservation"
+    kind_display: ClassVar[str] = "GCP Reservation"
+    kind_description: ClassVar[str] = (
+        "GCP Reservation is a feature in Google Cloud Platform that allows users to"
+        " reserve resources like virtual machine instances for future use, ensuring"
+        " availability and cost savings."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "commitment": S("commitment"),
         "creation_timestamp": S("creationTimestamp"),
@@ -4063,6 +4965,12 @@ class GcpReservation:
 @define(eq=False, slots=False)
 class GcpResourceCommitment:
     kind: ClassVar[str] = "gcp_resource_commitment"
+    kind_display: ClassVar[str] = "GCP Resource Commitment"
+    kind_description: ClassVar[str] = (
+        "GCP Resource Commitment is a way to reserve resources in Google Cloud"
+        " Platform for a specific period, ensuring availability and capacity for your"
+        " applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "accelerator_type": S("acceleratorType"),
         "amount": S("amount"),
@@ -4076,6 +4984,11 @@ class GcpResourceCommitment:
 @define(eq=False, slots=False)
 class GcpCommitment(GcpResource):
     kind: ClassVar[str] = "gcp_commitment"
+    kind_display: ClassVar[str] = "GCP Commitment"
+    kind_description: ClassVar[str] = (
+        "A GCP Commitment is a pre-purchased commitment in Google Cloud Platform,"
+        " which provides discounted pricing for certain services and resources."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4129,6 +5042,12 @@ class GcpCommitment(GcpResource):
 @define(eq=False, slots=False)
 class GcpHealthCheckService(GcpResource):
     kind: ClassVar[str] = "gcp_health_check_service"
+    kind_display: ClassVar[str] = "GCP Health Check Service"
+    kind_description: ClassVar[str] = (
+        "The GCP Health Check Service is a feature provided by Google Cloud Platform"
+        " (GCP) that monitors the health and availability of backend services and"
+        " instances."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4165,6 +5084,13 @@ class GcpHealthCheckService(GcpResource):
 @define(eq=False, slots=False)
 class GcpNotificationEndpointGrpcSettings:
     kind: ClassVar[str] = "gcp_notification_endpoint_grpc_settings"
+    kind_display: ClassVar[str] = "GCP Notification Endpoint gRPC Settings"
+    kind_description: ClassVar[str] = (
+        "gRPC settings for a notification endpoint in Google Cloud Platform (GCP)."
+        " gRPC is a high-performance, open-source remote procedure call (RPC)"
+        " framework that can be used to build efficient and scalable communication"
+        " between client and server applications."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "authority": S("authority"),
         "endpoint": S("endpoint"),
@@ -4182,6 +5108,11 @@ class GcpNotificationEndpointGrpcSettings:
 @define(eq=False, slots=False)
 class GcpNotificationEndpoint(GcpResource):
     kind: ClassVar[str] = "gcp_notification_endpoint"
+    kind_display: ClassVar[str] = "GCP Notification Endpoint"
+    kind_description: ClassVar[str] = (
+        "A GCP Notification Endpoint is a specific destination to send notifications"
+        " from Google Cloud Platform services to, such as Pub/Sub or HTTP endpoints."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4213,6 +5144,12 @@ class GcpNotificationEndpoint(GcpResource):
 @define(eq=False, slots=False)
 class GcpSecurityPolicyAdaptiveProtectionConfigLayer7DdosDefenseConfig:
     kind: ClassVar[str] = "gcp_security_policy_adaptive_protection_config_layer7_ddos_defense_config"
+    kind_display: ClassVar[str] = "GCP Security Policy Adaptive Protection Config Layer 7 DDoS Defense Config"
+    kind_description: ClassVar[str] = (
+        "The Layer 7 DDoS Defense Config in a GCP Security Policy Adaptive Protection Config refers to the options"
+        " that control the activation and transparency of rules designed to mitigate Distributed Denial of Service"
+        " (DDoS) attacks at the application layer."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "rule_visibility": S("ruleVisibility")}
     enable: Optional[bool] = field(default=None)
     rule_visibility: Optional[str] = field(default=None)
@@ -4221,6 +5158,11 @@ class GcpSecurityPolicyAdaptiveProtectionConfigLayer7DdosDefenseConfig:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyAdaptiveProtectionConfig:
     kind: ClassVar[str] = "gcp_security_policy_adaptive_protection_config"
+    kind_display: ClassVar[str] = "GCP Security Policy Adaptive Protection Config"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy Adaptive Protection Config within a GCP Security Policy pertains to the configuration"
+        " settings that govern the adaptive security mechanisms against Layer 7 DDoS attacks."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "layer7_ddos_defense_config": S("layer7DdosDefenseConfig", default={})
         >> Bend(GcpSecurityPolicyAdaptiveProtectionConfigLayer7DdosDefenseConfig.mapping)
@@ -4233,6 +5175,11 @@ class GcpSecurityPolicyAdaptiveProtectionConfig:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyAdvancedOptionsConfigJsonCustomConfig:
     kind: ClassVar[str] = "gcp_security_policy_advanced_options_config_json_custom_config"
+    kind_display: ClassVar[str] = "GCP Security Policy Advanced Options Config JSON Custom Config"
+    kind_description: ClassVar[str] = (
+        "This resource allows users to configure advanced options for security"
+        " policies in Google Cloud Platform (GCP) using custom config in JSON format."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"content_types": S("contentTypes", default=[])}
     content_types: Optional[List[str]] = field(default=None)
 
@@ -4240,6 +5187,12 @@ class GcpSecurityPolicyAdvancedOptionsConfigJsonCustomConfig:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyAdvancedOptionsConfig:
     kind: ClassVar[str] = "gcp_security_policy_advanced_options_config"
+    kind_display: ClassVar[str] = "GCP Security Policy Advanced Options Config"
+    kind_description: ClassVar[str] = (
+        "This is a configuration for advanced options in a Google Cloud Platform"
+        " (GCP) Security Policy. It allows for fine-grained control and customization"
+        " of the security policies for different resources in the GCP environment."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "json_custom_config": S("jsonCustomConfig", default={})
         >> Bend(GcpSecurityPolicyAdvancedOptionsConfigJsonCustomConfig.mapping),
@@ -4254,6 +5207,11 @@ class GcpSecurityPolicyAdvancedOptionsConfig:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption:
     kind: ClassVar[str] = "gcp_security_policy_rule_http_header_action_http_header_option"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule HTTP Header Action HTTP Header Option"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy Rule HTTP Header Option allows for the specification of custom header names and"
+        " values that can be added to requests matched by security policy rules."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"header_name": S("headerName"), "header_value": S("headerValue")}
     header_name: Optional[str] = field(default=None)
     header_value: Optional[str] = field(default=None)
@@ -4262,6 +5220,11 @@ class GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleHttpHeaderAction:
     kind: ClassVar[str] = "gcp_security_policy_rule_http_header_action"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule HTTP Header Action"
+    kind_description: ClassVar[str] = (
+        "The HTTP Header Action within a GCP Security Policy Rule specifies headers that are added to requests"
+        " as they are forwarded to a backend service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "request_headers_to_adds": S("requestHeadersToAdds", default=[])
         >> ForallBend(GcpSecurityPolicyRuleHttpHeaderActionHttpHeaderOption.mapping)
@@ -4272,6 +5235,12 @@ class GcpSecurityPolicyRuleHttpHeaderAction:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleMatcherConfig:
     kind: ClassVar[str] = "gcp_security_policy_rule_matcher_config"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule Matcher Config"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy Rule Matcher Config represents the configuration"
+        " settings used to specify the matching criteria for security policy rules in"
+        " Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"src_ip_ranges": S("srcIpRanges", default=[])}
     src_ip_ranges: Optional[List[str]] = field(default=None)
 
@@ -4279,6 +5248,12 @@ class GcpSecurityPolicyRuleMatcherConfig:
 @define(eq=False, slots=False)
 class GcpExpr:
     kind: ClassVar[str] = "gcp_expr"
+    kind_display: ClassVar[str] = "GCP Expr"
+    kind_description: ClassVar[str] = (
+        "GCP Expr refers to an expression in a GCP Security Policy Rule Matcher that defines conditions"
+        " for enforcing security rules, with fields to specify its logic, location within the request,"
+        " and additional metadata."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "expression": S("expression"),
@@ -4294,6 +5269,12 @@ class GcpExpr:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleMatcher:
     kind: ClassVar[str] = "gcp_security_policy_rule_matcher"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule Matcher"
+    kind_description: ClassVar[str] = (
+        "A rule matcher in the Google Cloud Platform (GCP) Security Policy that"
+        " defines the conditions for matching traffic and applying relevant security"
+        " policy rules."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "config": S("config", default={}) >> Bend(GcpSecurityPolicyRuleMatcherConfig.mapping),
         "expr": S("expr", default={}) >> Bend(GcpExpr.mapping),
@@ -4307,6 +5288,12 @@ class GcpSecurityPolicyRuleMatcher:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleRateLimitOptionsThreshold:
     kind: ClassVar[str] = "gcp_security_policy_rule_rate_limit_options_threshold"
+    kind_display: ClassVar[str] = "GCP Security Policy Rate Limit Options Threshold"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy Rate Limit Options Threshold is a set of parameters that specify the number of requests"
+        " (count) allowed over a defined interval in seconds (interval_sec) before triggering rate limiting actions"
+        " under a security policy."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"count": S("count"), "interval_sec": S("intervalSec")}
     count: Optional[int] = field(default=None)
     interval_sec: Optional[int] = field(default=None)
@@ -4315,6 +5302,11 @@ class GcpSecurityPolicyRuleRateLimitOptionsThreshold:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleRedirectOptions:
     kind: ClassVar[str] = "gcp_security_policy_rule_redirect_options"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule Redirect Options"
+    kind_description: ClassVar[str] = (
+        "The GCP Security Policy Rule Redirect Options specify how traffic should be redirected; it defines the target"
+        " to which the traffic should be sent and the type of redirect that should be applied."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"target": S("target"), "type": S("type")}
     target: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -4323,6 +5315,12 @@ class GcpSecurityPolicyRuleRedirectOptions:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRuleRateLimitOptions:
     kind: ClassVar[str] = "gcp_security_policy_rule_rate_limit_options"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule Rate Limit Options"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy Rule Rate Limit Options define the parameters for rate limiting requests that match"
+        " specific conditions in a security policy, including actions to take when thresholds are exceeded and"
+        " settings for banning offenders for a specified duration."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ban_duration_sec": S("banDurationSec"),
         "ban_threshold": S("banThreshold", default={}) >> Bend(GcpSecurityPolicyRuleRateLimitOptionsThreshold.mapping),
@@ -4348,6 +5346,11 @@ class GcpSecurityPolicyRuleRateLimitOptions:
 @define(eq=False, slots=False)
 class GcpSecurityPolicyRule:
     kind: ClassVar[str] = "gcp_security_policy_rule"
+    kind_display: ClassVar[str] = "GCP Security Policy Rule"
+    kind_description: ClassVar[str] = (
+        "A GCP Security Policy Rule defines the allowed or denied traffic for a"
+        " particular network resource in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action"),
         "description": S("description"),
@@ -4371,6 +5374,12 @@ class GcpSecurityPolicyRule:
 @define(eq=False, slots=False)
 class GcpSecurityPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_security_policy"
+    kind_display: ClassVar[str] = "GCP Security Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Security Policy is a feature of Google Cloud Platform that allows users"
+        " to define and enforce security rules and policies for their virtual machine"
+        " instances."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4413,6 +5422,12 @@ class GcpSecurityPolicy(GcpResource):
 @define(eq=False, slots=False)
 class GcpSslCertificateManagedSslCertificate:
     kind: ClassVar[str] = "gcp_ssl_certificate_managed_ssl_certificate"
+    kind_display: ClassVar[str] = "GCP SSL Certificate (Managed SSL Certificate)"
+    kind_description: ClassVar[str] = (
+        "Managed SSL Certificates in Google Cloud Platform provide secure HTTPS"
+        " connections for websites and applications, safeguarding data transmitted"
+        " over the internet."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "domain_status": S("domainStatus"),
         "domains": S("domains", default=[]),
@@ -4426,6 +5441,12 @@ class GcpSslCertificateManagedSslCertificate:
 @define(eq=False, slots=False)
 class GcpSslCertificateSelfManagedSslCertificate:
     kind: ClassVar[str] = "gcp_ssl_certificate_self_managed_ssl_certificate"
+    kind_display: ClassVar[str] = "GCP Self-Managed SSL Certificate"
+    kind_description: ClassVar[str] = (
+        "A self-managed SSL certificate is a digital certificate issued by an"
+        " organization for its own use, allowing secure communication between a client"
+        " and a server. GCP allows users to manage their own SSL certificates."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"certificate": S("certificate"), "private_key": S("privateKey")}
     certificate: Optional[str] = field(default=None)
     private_key: Optional[str] = field(default=None)
@@ -4434,6 +5455,12 @@ class GcpSslCertificateSelfManagedSslCertificate:
 @define(eq=False, slots=False)
 class GcpSslCertificate(GcpResource):
     kind: ClassVar[str] = "gcp_ssl_certificate"
+    kind_display: ClassVar[str] = "GCP SSL Certificate"
+    kind_description: ClassVar[str] = (
+        "SSL Certificate is a digital certificate that authenticates the identity of"
+        " a website and encrypts information sent to the server, ensuring secure"
+        " communication over the Google Cloud Platform."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4474,6 +5501,11 @@ class GcpSslCertificate(GcpResource):
 @define(eq=False, slots=False)
 class GcpSslPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_ssl_policy"
+    kind_display: ClassVar[str] = "GCP SSL Policy"
+    kind_description: ClassVar[str] = (
+        "SSL policies in Google Cloud Platform (GCP) manage how SSL/TLS connections"
+        " are established and maintained for HTTPS services."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4512,6 +5544,11 @@ class GcpSslPolicy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetHttpProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_http_proxy"
+    kind_display: ClassVar[str] = "GCP Target HTTP Proxy"
+    kind_description: ClassVar[str] = (
+        "GCP Target HTTP Proxy is a resource in Google Cloud Platform that allows for"
+        " load balancing and routing of HTTP traffic to backend services."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_url_map"]},
         "successors": {"default": ["gcp_url_map"]},
@@ -4552,6 +5589,12 @@ class GcpTargetHttpProxy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetHttpsProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
+    kind_display: ClassVar[str] = "GCP Target HTTPS Proxy"
+    kind_description: ClassVar[str] = (
+        "A GCP Target HTTPS Proxy is a Google Cloud Platform resource that enables"
+        " you to configure SSL/TLS termination for HTTP(S) load balancing, allowing"
+        " secure communication between clients and your backend services."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_ssl_certificate", "gcp_ssl_policy"], "delete": ["gcp_url_map"]},
         "successors": {"default": ["gcp_url_map"]},
@@ -4609,6 +5652,12 @@ class GcpTargetHttpsProxy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetTcpProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_tcp_proxy"
+    kind_display: ClassVar[str] = "GCP Target TCP Proxy"
+    kind_description: ClassVar[str] = (
+        "Target TCP Proxy is a Google Cloud Platform service that allows you to load"
+        " balance TCP traffic to backend instances based on target proxy"
+        " configuration."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_backend_service"]},
         "successors": {"default": ["gcp_backend_service"]},
@@ -4649,6 +5698,12 @@ class GcpTargetTcpProxy(GcpResource):
 @define(eq=False, slots=False)
 class GcpCorsPolicy:
     kind: ClassVar[str] = "gcp_cors_policy"
+    kind_display: ClassVar[str] = "GCP CORS Policy"
+    kind_description: ClassVar[str] = (
+        "CORS (Cross-Origin Resource Sharing) Policy in Google Cloud Platform allows"
+        " controlled sharing of resources between different origins, enabling web"
+        " applications to make requests to resources from other domains."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "allow_credentials": S("allowCredentials"),
         "allow_headers": S("allowHeaders", default=[]),
@@ -4672,6 +5727,12 @@ class GcpCorsPolicy:
 @define(eq=False, slots=False)
 class GcpHttpFaultAbort:
     kind: ClassVar[str] = "gcp_http_fault_abort"
+    kind_display: ClassVar[str] = "GCP HTTP Fault Abort"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Fault Abort allows you to specify an HTTP status code that the load balancer should return,"
+        " simulating an abort condition for a set percentage of requests to test the client's handling of"
+        " backend failures."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"http_status": S("httpStatus"), "percentage": S("percentage")}
     http_status: Optional[int] = field(default=None)
     percentage: Optional[float] = field(default=None)
@@ -4680,6 +5741,11 @@ class GcpHttpFaultAbort:
 @define(eq=False, slots=False)
 class GcpHttpFaultDelay:
     kind: ClassVar[str] = "gcp_http_fault_delay"
+    kind_display: ClassVar[str] = "GCP HTTP Fault Delay"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Fault Delay introduces a specified delay for a percentage of requests, testing the"
+        " client's tolerance to increased latencies from the backend service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "fixed_delay": S("fixedDelay", default={}) >> Bend(GcpDuration.mapping),
         "percentage": S("percentage"),
@@ -4691,6 +5757,12 @@ class GcpHttpFaultDelay:
 @define(eq=False, slots=False)
 class GcpHttpFaultInjection:
     kind: ClassVar[str] = "gcp_http_fault_injection"
+    kind_display: ClassVar[str] = "GCP HTTP Fault Injection"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Fault Injection is a feature in Google Cloud Platform that allows"
+        " injecting faults into HTTP requests to test the resilience of applications"
+        " and services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "abort": S("abort", default={}) >> Bend(GcpHttpFaultAbort.mapping),
         "delay": S("delay", default={}) >> Bend(GcpHttpFaultDelay.mapping),
@@ -4702,6 +5774,12 @@ class GcpHttpFaultInjection:
 @define(eq=False, slots=False)
 class GcpHttpRetryPolicy:
     kind: ClassVar[str] = "gcp_http_retry_policy"
+    kind_display: ClassVar[str] = "GCP HTTP Retry Policy"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Retry Policy allows users to define and configure retry behavior"
+        " for HTTP requests made to resources in the Google Cloud Platform"
+        " infrastructure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "num_retries": S("numRetries"),
         "per_try_timeout": S("perTryTimeout", default={}) >> Bend(GcpDuration.mapping),
@@ -4715,6 +5793,11 @@ class GcpHttpRetryPolicy:
 @define(eq=False, slots=False)
 class GcpUrlRewrite:
     kind: ClassVar[str] = "gcp_url_rewrite"
+    kind_display: ClassVar[str] = "GCP URL Rewrite"
+    kind_description: ClassVar[str] = (
+        "GCP URL Rewrite is a feature in Google Cloud Platform that allows users to"
+        " modify and redirect incoming URLs based on predefined rules."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host_rewrite": S("hostRewrite"),
         "path_prefix_rewrite": S("pathPrefixRewrite"),
@@ -4726,6 +5809,12 @@ class GcpUrlRewrite:
 @define(eq=False, slots=False)
 class GcpHttpHeaderOption:
     kind: ClassVar[str] = "gcp_http_header_option"
+    kind_display: ClassVar[str] = "GCP HTTP Header Option"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Header Option allows the specification of custom HTTP header names and values, with an option"
+        " to replace existing headers, to tailor how requests and responses are handled by services such"
+        " as load balancers or routing rules."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "header_name": S("headerName"),
         "header_value": S("headerValue"),
@@ -4739,6 +5828,12 @@ class GcpHttpHeaderOption:
 @define(eq=False, slots=False)
 class GcpHttpHeaderAction:
     kind: ClassVar[str] = "gcp_http_header_action"
+    kind_display: ClassVar[str] = "GCP HTTP Header Action"
+    kind_description: ClassVar[str] = (
+        "The GCP HTTP Header Action feature enables you to add or remove specified HTTP headers from requests and"
+        " responses as they route through load balancers, allowing for customized content delivery and client"
+        " request handling."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "request_headers_to_add": S("requestHeadersToAdd", default=[]) >> ForallBend(GcpHttpHeaderOption.mapping),
         "request_headers_to_remove": S("requestHeadersToRemove", default=[]),
@@ -4754,6 +5849,11 @@ class GcpHttpHeaderAction:
 @define(eq=False, slots=False)
 class GcpWeightedBackendService:
     kind: ClassVar[str] = "gcp_weighted_backend_service"
+    kind_display: ClassVar[str] = "GCP Weighted Backend Service"
+    kind_description: ClassVar[str] = (
+        "A GCP Weighted Backend Service is a load balancer that distributes traffic"
+        " across multiple backend services using weights assigned to each service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "backend_service": S("backendService"),
         "header_action": S("headerAction", default={}) >> Bend(GcpHttpHeaderAction.mapping),
@@ -4767,6 +5867,12 @@ class GcpWeightedBackendService:
 @define(eq=False, slots=False)
 class GcpHttpRouteAction:
     kind: ClassVar[str] = "gcp_http_route_action"
+    kind_display: ClassVar[str] = "GCP HTTP Route Action"
+    kind_description: ClassVar[str] = (
+        "HTTP Route Action is a feature in Google Cloud Platform that allows users to"
+        " define the actions to be performed on HTTP requests (e.g., forwarding,"
+        " redirecting) within a route."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "cors_policy": S("corsPolicy", default={}) >> Bend(GcpCorsPolicy.mapping),
         "fault_injection_policy": S("faultInjectionPolicy", default={}) >> Bend(GcpHttpFaultInjection.mapping),
@@ -4791,6 +5897,11 @@ class GcpHttpRouteAction:
 @define(eq=False, slots=False)
 class GcpHttpRedirectAction:
     kind: ClassVar[str] = "gcp_http_redirect_action"
+    kind_display: ClassVar[str] = "GCP HTTP Redirect Action"
+    kind_description: ClassVar[str] = (
+        "HTTP Redirect Action is a resource in Google Cloud Platform (GCP) that"
+        " allows you to redirect incoming HTTP requests to another URL."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "host_redirect": S("hostRedirect"),
         "https_redirect": S("httpsRedirect"),
@@ -4810,6 +5921,12 @@ class GcpHttpRedirectAction:
 @define(eq=False, slots=False)
 class GcpHostRule:
     kind: ClassVar[str] = "gcp_host_rule"
+    kind_display: ClassVar[str] = "GCP Host Rule"
+    kind_description: ClassVar[str] = (
+        "A GCP Host Rule is a configuration that maps a hostname to a specific"
+        " backend service in Google Cloud Platform, allowing for customized routing of"
+        " incoming traffic based on the requested domain name."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "hosts": S("hosts", default=[]),
@@ -4823,6 +5940,11 @@ class GcpHostRule:
 @define(eq=False, slots=False)
 class GcpPathRule:
     kind: ClassVar[str] = "gcp_path_rule"
+    kind_display: ClassVar[str] = "GCP Path Rule"
+    kind_description: ClassVar[str] = (
+        "GCP Path Rule is a routing rule defined in Google Cloud Platform (GCP) to"
+        " direct incoming traffic to specific destinations based on the URL path."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "paths": S("paths", default=[]),
         "route_action": S("routeAction", default={}) >> Bend(GcpHttpRouteAction.mapping),
@@ -4838,6 +5960,11 @@ class GcpPathRule:
 @define(eq=False, slots=False)
 class GcpInt64RangeMatch:
     kind: ClassVar[str] = "gcp_int64_range_match"
+    kind_display: ClassVar[str] = "GCP Int64 Range Match"
+    kind_description: ClassVar[str] = (
+        "GCP Int64 Range Match allows for the comparison of integer values within HTTP headers against a defined"
+        " start and end range."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"range_end": S("rangeEnd"), "range_start": S("rangeStart")}
     range_end: Optional[str] = field(default=None)
     range_start: Optional[str] = field(default=None)
@@ -4846,6 +5973,12 @@ class GcpInt64RangeMatch:
 @define(eq=False, slots=False)
 class GcpHttpHeaderMatch:
     kind: ClassVar[str] = "gcp_http_header_match"
+    kind_display: ClassVar[str] = "GCP HTTP Header Match"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Header Match is a feature in Google Cloud Platform that allows"
+        " users to match HTTP headers in order to control traffic routing, load"
+        " balancing, and other network operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "exact_match": S("exactMatch"),
         "header_name": S("headerName"),
@@ -4869,6 +6002,11 @@ class GcpHttpHeaderMatch:
 @define(eq=False, slots=False)
 class GcpHttpQueryParameterMatch:
     kind: ClassVar[str] = "gcp_http_query_parameter_match"
+    kind_display: ClassVar[str] = "GCP HTTP Query Parameter Match"
+    kind_description: ClassVar[str] = (
+        "GCP HTTP Query Parameter Match defines criteria for matching HTTP query parameters in requests"
+        " against specified patterns or conditions to determine if an HTTP Route Rule should apply."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "exact_match": S("exactMatch"),
         "name": S("name"),
@@ -4884,6 +6022,12 @@ class GcpHttpQueryParameterMatch:
 @define(eq=False, slots=False)
 class GcpHttpRouteRuleMatch:
     kind: ClassVar[str] = "gcp_http_route_rule_match"
+    kind_display: ClassVar[str] = "GCP HTTP Route Rule Match"
+    kind_description: ClassVar[str] = (
+        "HTTP Route Rule Match is a feature in Google Cloud Platform (GCP) that"
+        " allows fine-grained control and management of HTTP traffic routing within"
+        " GCP infrastructure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "full_path_match": S("fullPathMatch"),
         "header_matches": S("headerMatches", default=[]) >> ForallBend(GcpHttpHeaderMatch.mapping),
@@ -4906,6 +6050,12 @@ class GcpHttpRouteRuleMatch:
 @define(eq=False, slots=False)
 class GcpHttpRouteRule:
     kind: ClassVar[str] = "gcp_http_route_rule"
+    kind_display: ClassVar[str] = "GCP HTTP Route Rule"
+    kind_description: ClassVar[str] = (
+        "HTTP Route Rule is a configuration in Google Cloud Platform (GCP) that"
+        " defines how incoming HTTP requests should be routed to different backend"
+        " services or resources based on matching conditions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "header_action": S("headerAction", default={}) >> Bend(GcpHttpHeaderAction.mapping),
@@ -4927,6 +6077,11 @@ class GcpHttpRouteRule:
 @define(eq=False, slots=False)
 class GcpPathMatcher:
     kind: ClassVar[str] = "gcp_path_matcher"
+    kind_display: ClassVar[str] = "GCP Path Matcher"
+    kind_description: ClassVar[str] = (
+        "A GCP Path Matcher is used for defining the path patterns that a request URL"
+        " must match in order to be routed to a specific backend service."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_route_action": S("defaultRouteAction", default={}) >> Bend(GcpHttpRouteAction.mapping),
         "default_service": S("defaultService"),
@@ -4950,6 +6105,12 @@ class GcpPathMatcher:
 @define(eq=False, slots=False)
 class GcpUrlMapTestHeader:
     kind: ClassVar[str] = "gcp_url_map_test_header"
+    kind_display: ClassVar[str] = "GCP URL Map Test Header"
+    kind_description: ClassVar[str] = (
+        "GCP URL Map Test Header is a configuration feature in Google Cloud Platform"
+        " that allows users to test and validate different HTTP headers for load"
+        " balancing purposes."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None)
     value: Optional[str] = field(default=None)
@@ -4958,6 +6119,10 @@ class GcpUrlMapTestHeader:
 @define(eq=False, slots=False)
 class GcpUrlMapTest:
     kind: ClassVar[str] = "gcp_url_map_test"
+    kind_display: ClassVar[str] = "GCP URL Map Test"
+    kind_description: ClassVar[
+        str
+    ] = "GCP URL Map Test is a test configuration for mapping URLs to backend services in Google Cloud Platform."
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "expected_output_url": S("expectedOutputUrl"),
@@ -4979,6 +6144,12 @@ class GcpUrlMapTest:
 @define(eq=False, slots=False)
 class GcpUrlMap(GcpResource):
     kind: ClassVar[str] = "gcp_url_map"
+    kind_display: ClassVar[str] = "GCP URL Map"
+    kind_description: ClassVar[str] = (
+        "A GCP URL Map is a resource that maps a URL path to a specific backend"
+        " service in Google Cloud Platform. It allows for routing of requests based on"
+        " the URL path."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -5026,6 +6197,13 @@ class GcpUrlMap(GcpResource):
 @define(eq=False, slots=False)
 class GcpResourcePolicyGroupPlacementPolicy:
     kind: ClassVar[str] = "gcp_resource_policy_group_placement_policy"
+    kind_display: ClassVar[str] = "GCP Resource Policy Group Placement Policy"
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Group Placement Policy is a configuration within Google Cloud's Resource Policies"
+        " that manages the physical placement of VM instances to optimize for either availability or co-location,"
+        " with settings that include the number of availability domains used and the number of VMs that should be"
+        " grouped together."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "availability_domain_count": S("availabilityDomainCount"),
         "collocation": S("collocation"),
@@ -5039,6 +6217,12 @@ class GcpResourcePolicyGroupPlacementPolicy:
 @define(eq=False, slots=False)
 class GcpResourcePolicyInstanceSchedulePolicy:
     kind: ClassVar[str] = "gcp_resource_policy_instance_schedule_policy"
+    kind_display: ClassVar[str] = "GCP Resource Policy Instance Schedule Policy"
+    kind_description: ClassVar[str] = (
+        "Resource policy instance schedule policy is a policy in Google Cloud"
+        " Platform that allows users to define schedules for starting and stopping"
+        " instances to optimize cost and manage resource usage."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "expiration_time": S("expirationTime"),
         "start_time": S("startTime"),
@@ -5056,6 +6240,11 @@ class GcpResourcePolicyInstanceSchedulePolicy:
 @define(eq=False, slots=False)
 class GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus:
     kind: ClassVar[str] = "gcp_resource_policy_resource_status_instance_schedule_policy_status"
+    kind_display: ClassVar[str] = "GCP Resource Policy Resource Status Instance Schedule Policy Status"
+    kind_description: ClassVar[str] = (
+        "GCP Resource Policy Resource Status Instance Schedule Policy Status tracks the timing of the scheduled"
+        " operations for resources, indicating the most recent and upcoming start times for policy-driven actions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_run_start_time": S("lastRunStartTime"),
         "next_run_start_time": S("nextRunStartTime"),
@@ -5067,6 +6256,12 @@ class GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus:
 @define(eq=False, slots=False)
 class GcpResourcePolicyResourceStatus:
     kind: ClassVar[str] = "gcp_resource_policy_resource_status"
+    kind_display: ClassVar[str] = "GCP Resource Policy Resource Status"
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Resource Status provides the operational status of an instance schedule policy"
+        " within a resource policy, indicating whether it's active or in any other state based on the scheduling"
+        " configurations set."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_schedule_policy": S("instanceSchedulePolicy", default={})
         >> Bend(GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus.mapping)
@@ -5079,6 +6274,11 @@ class GcpResourcePolicyResourceStatus:
 @define(eq=False, slots=False)
 class GcpResourcePolicySnapshotSchedulePolicyRetentionPolicy:
     kind: ClassVar[str] = "gcp_resource_policy_snapshot_schedule_policy_retention_policy"
+    kind_display: ClassVar[str] = "GCP Resource Policy Snapshot Schedule Policy Retention Policy"
+    kind_description: ClassVar[str] = (
+        "Retention policy for snapshot schedules in Google Cloud Platform's resource"
+        " policy allows users to define how long the snapshots will be retained."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_retention_days": S("maxRetentionDays"),
         "on_source_disk_delete": S("onSourceDiskDelete"),
@@ -5090,6 +6290,12 @@ class GcpResourcePolicySnapshotSchedulePolicyRetentionPolicy:
 @define(eq=False, slots=False)
 class GcpResourcePolicyDailyCycle:
     kind: ClassVar[str] = "gcp_resource_policy_daily_cycle"
+    kind_display: ClassVar[str] = "GCP Resource Policy Daily Cycle"
+    kind_description: ClassVar[str] = (
+        "GCP Resource Policy Daily Cycle is a feature in Google Cloud Platform that"
+        " allows you to define and enforce policies for your cloud resources on a"
+        " daily basis."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "days_in_cycle": S("daysInCycle"),
         "duration": S("duration"),
@@ -5103,6 +6309,12 @@ class GcpResourcePolicyDailyCycle:
 @define(eq=False, slots=False)
 class GcpResourcePolicyHourlyCycle:
     kind: ClassVar[str] = "gcp_resource_policy_hourly_cycle"
+    kind_display: ClassVar[str] = "GCP Resource Policy Hourly Cycle"
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Hourly Cycle dictates how a specific resource policy, such as a snapshot schedule,"
+        " should operate on an hourly basis, including the frequency per cycle, the cycle's duration, and the"
+        " precise start time for the policy's action to be triggered."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "duration": S("duration"),
         "hours_in_cycle": S("hoursInCycle"),
@@ -5116,6 +6328,11 @@ class GcpResourcePolicyHourlyCycle:
 @define(eq=False, slots=False)
 class GcpResourcePolicyWeeklyCycleDayOfWeek:
     kind: ClassVar[str] = "gcp_resource_policy_weekly_cycle_day_of_week"
+    kind_display: ClassVar[str] = "GCP Resource Policy Weekly Cycle Day of Week"
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Weekly Cycle Day of Week defines the specific days within the week when particular"
+        " operations or actions should occur, including the start time and duration of these actions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"day": S("day"), "duration": S("duration"), "start_time": S("startTime")}
     day: Optional[str] = field(default=None)
     duration: Optional[str] = field(default=None)
@@ -5125,6 +6342,12 @@ class GcpResourcePolicyWeeklyCycleDayOfWeek:
 @define(eq=False, slots=False)
 class GcpResourcePolicyWeeklyCycle:
     kind: ClassVar[str] = "gcp_resource_policy_weekly_cycle"
+    kind_display: ClassVar[str] = "GCP Resource Policy Weekly Cycle"
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Weekly Cycle is a scheduling configuration that specifies on which days of the"
+        " week, at what times, and for how long certain operations on resources should take place as part of the"
+        " resource policy."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "day_of_weeks": S("dayOfWeeks", default=[]) >> ForallBend(GcpResourcePolicyWeeklyCycleDayOfWeek.mapping)
     }
@@ -5134,6 +6357,11 @@ class GcpResourcePolicyWeeklyCycle:
 @define(eq=False, slots=False)
 class GcpResourcePolicySnapshotSchedulePolicySchedule:
     kind: ClassVar[str] = "gcp_resource_policy_snapshot_schedule_policy_schedule"
+    kind_display: ClassVar[str] = "GCP Resource Policy Snapshot Schedule Policy Schedule"
+    kind_description: ClassVar[str] = (
+        "This resource represents a schedule for snapshot policies in Google Cloud"
+        " Platform's resource policy framework."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "daily_schedule": S("dailySchedule", default={}) >> Bend(GcpResourcePolicyDailyCycle.mapping),
         "hourly_schedule": S("hourlySchedule", default={}) >> Bend(GcpResourcePolicyHourlyCycle.mapping),
@@ -5147,6 +6375,12 @@ class GcpResourcePolicySnapshotSchedulePolicySchedule:
 @define(eq=False, slots=False)
 class GcpResourcePolicySnapshotSchedulePolicySnapshotProperties:
     kind: ClassVar[str] = "gcp_resource_policy_snapshot_schedule_policy_snapshot_properties"
+    kind_display: ClassVar[str] = "GCP Resource Policy Snapshot Schedule Policy Snapshot Properties"
+    kind_description: ClassVar[str] = (
+        "This represents the snapshot schedule policy properties for GCP resource"
+        " policies, allowing users to configure automated snapshot creation and"
+        " deletion for their resources in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "chain_name": S("chainName"),
         "guest_flush": S("guestFlush"),
@@ -5162,6 +6396,12 @@ class GcpResourcePolicySnapshotSchedulePolicySnapshotProperties:
 @define(eq=False, slots=False)
 class GcpResourcePolicySnapshotSchedulePolicy:
     kind: ClassVar[str] = "gcp_resource_policy_snapshot_schedule_policy"
+    kind_display: ClassVar[str] = "GCP Resource Policy Snapshot Schedule Policy"
+    kind_description: ClassVar[str] = (
+        "Resource Policy Snapshot Schedule Policy is a feature in Google Cloud"
+        " Platform that allows users to define a policy for creating and managing"
+        " scheduled snapshots of resources."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "retention_policy": S("retentionPolicy", default={})
         >> Bend(GcpResourcePolicySnapshotSchedulePolicyRetentionPolicy.mapping),
@@ -5177,6 +6417,12 @@ class GcpResourcePolicySnapshotSchedulePolicy:
 @define(eq=False, slots=False)
 class GcpResourcePolicy(GcpResource):
     kind: ClassVar[str] = "gcp_resource_policy"
+    kind_display: ClassVar[str] = "GCP Resource Policy"
+    kind_description: ClassVar[str] = (
+        "GCP Resource Policy is a tool that helps manage compute resources for VM instances in Google"
+        " Cloud, enabling users to define scheduling for instance creation, automated snapshots, and"
+        " resource grouping, which can optimize costs and maintain the necessary resource availability."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -5217,6 +6463,12 @@ class GcpResourcePolicy(GcpResource):
 @define(eq=False, slots=False)
 class GcpRouterAdvertisedIpRange:
     kind: ClassVar[str] = "gcp_router_advertised_ip_range"
+    kind_display: ClassVar[str] = "GCP Router Advertised IP Range"
+    kind_description: ClassVar[str] = (
+        "GCP Router Advertised IP Range is a range of IP addresses that are"
+        " advertised by the Google Cloud Platform (GCP) router, allowing communication"
+        " between different networks within the GCP infrastructure."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"description": S("description"), "range": S("range")}
     description: Optional[str] = field(default=None)
     range: Optional[str] = field(default=None)
@@ -5225,6 +6477,12 @@ class GcpRouterAdvertisedIpRange:
 @define(eq=False, slots=False)
 class GcpRouterBgp:
     kind: ClassVar[str] = "gcp_router_bgp"
+    kind_display: ClassVar[str] = "GCP Router BGP"
+    kind_description: ClassVar[str] = (
+        "GCP Router BGP is a feature in Google Cloud Platform that enables Border"
+        " Gateway Protocol (BGP) routing between Google's network and external"
+        " networks, providing improved network scalability and flexibility."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "advertise_mode": S("advertiseMode"),
         "advertised_groups": S("advertisedGroups", default=[]),
@@ -5242,6 +6500,12 @@ class GcpRouterBgp:
 @define(eq=False, slots=False)
 class GcpRouterBgpPeerBfd:
     kind: ClassVar[str] = "gcp_router_bgp_peer_bfd"
+    kind_display: ClassVar[str] = "GCP Router BGP Peer BFD"
+    kind_description: ClassVar[str] = (
+        "BFD (Bidirectional Forwarding Detection) is a feature in Google Cloud"
+        " Platform (GCP) that allows BGP (Border Gateway Protocol) peers to quickly"
+        " detect and recover from network failures."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_receive_interval": S("minReceiveInterval"),
         "min_transmit_interval": S("minTransmitInterval"),
@@ -5257,6 +6521,12 @@ class GcpRouterBgpPeerBfd:
 @define(eq=False, slots=False)
 class GcpRouterBgpPeer:
     kind: ClassVar[str] = "gcp_router_bgp_peer"
+    kind_display: ClassVar[str] = "GCP Router BGP Peer"
+    kind_description: ClassVar[str] = (
+        "A BGP (Border Gateway Protocol) Peer associated with a Google Cloud Platform"
+        " (GCP) Router. BGP Peers are used to establish and manage a routing session"
+        " between routers in order to exchange routing information."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "advertise_mode": S("advertiseMode"),
         "advertised_groups": S("advertisedGroups", default=[]),
@@ -5298,6 +6568,11 @@ class GcpRouterBgpPeer:
 @define(eq=False, slots=False)
 class GcpRouterInterface:
     kind: ClassVar[str] = "gcp_router_interface"
+    kind_display: ClassVar[str] = "GCP Router Interface"
+    kind_description: ClassVar[str] = (
+        "A router interface in Google Cloud Platform (GCP) is a connection point for"
+        " a virtual network to interconnect with other networks or the internet."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_range": S("ipRange"),
         "linked_interconnect_attachment": S("linkedInterconnectAttachment"),
@@ -5321,6 +6596,11 @@ class GcpRouterInterface:
 @define(eq=False, slots=False)
 class GcpRouterMd5AuthenticationKey:
     kind: ClassVar[str] = "gcp_router_md5_authentication_key"
+    kind_display: ClassVar[str] = "GCP Router MD5 Authentication Key"
+    kind_description: ClassVar[str] = (
+        "The GCP Router MD5 Authentication Key is a security feature for routers that uses an MD5 key for"
+        " authentication, ensuring secure exchange of routing updates."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"key": S("key"), "name": S("name")}
     key: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -5329,6 +6609,11 @@ class GcpRouterMd5AuthenticationKey:
 @define(eq=False, slots=False)
 class GcpRouterNatLogConfig:
     kind: ClassVar[str] = "gcp_router_nat_log_config"
+    kind_display: ClassVar[str] = "GCP Router NAT Log Config"
+    kind_description: ClassVar[str] = (
+        "The GCP Router NAT Log Config is a configuration option for logging NAT"
+        " (Network Address Translation) events in Google Cloud Platform routers."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"enable": S("enable"), "filter": S("filter")}
     enable: Optional[bool] = field(default=None)
     filter: Optional[str] = field(default=None)
@@ -5337,6 +6622,13 @@ class GcpRouterNatLogConfig:
 @define(eq=False, slots=False)
 class GcpRouterNatRuleAction:
     kind: ClassVar[str] = "gcp_router_nat_rule_action"
+    kind_display: ClassVar[str] = "GCP Router NAT Rule Action"
+    kind_description: ClassVar[str] = (
+        "A GCP Router NAT Rule Action is used in Google Cloud Platform to configure"
+        " the action for Network Address Translation (NAT) rules on a router. NAT"
+        " rules determine how network traffic is translated between different IP"
+        " address ranges."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "source_nat_active_ips": S("sourceNatActiveIps", default=[]),
         "source_nat_drain_ips": S("sourceNatDrainIps", default=[]),
@@ -5348,6 +6640,12 @@ class GcpRouterNatRuleAction:
 @define(eq=False, slots=False)
 class GcpRouterNatRule:
     kind: ClassVar[str] = "gcp_router_nat_rule"
+    kind_display: ClassVar[str] = "GCP Router NAT Rule"
+    kind_description: ClassVar[str] = (
+        "GCP Router NAT Rule allows users to configure Network Address Translation"
+        " (NAT) rules on Google Cloud Platform's routers, enabling communication"
+        " between networks with different IP address ranges."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action", default={}) >> Bend(GcpRouterNatRuleAction.mapping),
         "description": S("description"),
@@ -5363,6 +6661,12 @@ class GcpRouterNatRule:
 @define(eq=False, slots=False)
 class GcpRouterNatSubnetworkToNat:
     kind: ClassVar[str] = "gcp_router_nat_subnetwork_to_nat"
+    kind_display: ClassVar[str] = "GCP Router NAT Subnetwork-to-NAT"
+    kind_description: ClassVar[str] = (
+        "This resource in Google Cloud Platform (GCP) allows you to configure Network"
+        " Address Translation (NAT) for subnetworks, enabling communication between"
+        " private subnet resources and external networks."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "secondary_ip_range_names": S("secondaryIpRangeNames", default=[]),
@@ -5376,6 +6680,12 @@ class GcpRouterNatSubnetworkToNat:
 @define(eq=False, slots=False)
 class GcpRouterNat:
     kind: ClassVar[str] = "gcp_router_nat"
+    kind_display: ClassVar[str] = "GCP Router NAT"
+    kind_description: ClassVar[str] = (
+        "GCP Router NAT is a Cloud NAT service provided by Google Cloud Platform,"
+        " which allows virtual machine instances without external IP addresses to"
+        " access the internet and receive inbound traffic."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "drain_nat_ips": S("drainNatIps", default=[]),
         "enable_dynamic_port_allocation": S("enableDynamicPortAllocation"),
@@ -5419,6 +6729,11 @@ class GcpRouterNat:
 @define(eq=False, slots=False)
 class GcpRouter(GcpResource):
     kind: ClassVar[str] = "gcp_router"
+    kind_display: ClassVar[str] = "GCP Router"
+    kind_description: ClassVar[str] = (
+        "GCP Router is a networking component in Google Cloud Platform that directs"
+        " traffic between virtual networks."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
@@ -5467,6 +6782,11 @@ class GcpRouter(GcpResource):
 @define(eq=False, slots=False)
 class GcpRouteAsPath:
     kind: ClassVar[str] = "gcp_route_as_path"
+    kind_display: ClassVar[str] = "GCP Route AS Path"
+    kind_description: ClassVar[str] = (
+        "AS Path is a attribute in BGP routing protocol that represents the sequence"
+        " of Autonomous System numbers that a route has traversed."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "as_lists": S("asLists", default=[]),
         "path_segment_type": S("pathSegmentType"),
@@ -5478,6 +6798,11 @@ class GcpRouteAsPath:
 @define(eq=False, slots=False)
 class GcpRoute(GcpResource):
     kind: ClassVar[str] = "gcp_route"
+    kind_display: ClassVar[str] = "GCP Route"
+    kind_description: ClassVar[str] = (
+        "A GCP Route is a rule that specifies the next-hop information for network"
+        " traffic within a Google Cloud Platform virtual network."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
@@ -5541,6 +6866,12 @@ class GcpRoute(GcpResource):
 @define(eq=False, slots=False)
 class GcpServiceAttachmentConnectedEndpoint:
     kind: ClassVar[str] = "gcp_service_attachment_connected_endpoint"
+    kind_display: ClassVar[str] = "GCP Service Attachment Connected Endpoint"
+    kind_description: ClassVar[str] = (
+        "A connected endpoint in Google Cloud Platform (GCP) service attachment"
+        " represents the network endpoint that is connected to a service attachment,"
+        " allowing communication between the attachment and the endpoint."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "endpoint": S("endpoint"),
         "psc_connection_id": S("pscConnectionId"),
@@ -5554,6 +6885,11 @@ class GcpServiceAttachmentConnectedEndpoint:
 @define(eq=False, slots=False)
 class GcpServiceAttachmentConsumerProjectLimit:
     kind: ClassVar[str] = "gcp_service_attachment_consumer_project_limit"
+    kind_display: ClassVar[str] = "GCP Service Attachment Consumer Project Limit"
+    kind_description: ClassVar[str] = (
+        "GCP Service Attachment Consumer Project Limit manages the maximum number of connections a specific consumer"
+        " project can establish with a service provider through the service attachment feature."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "connection_limit": S("connectionLimit"),
         "project_id_or_num": S("projectIdOrNum"),
@@ -5565,6 +6901,12 @@ class GcpServiceAttachmentConsumerProjectLimit:
 @define(eq=False, slots=False)
 class GcpUint128:
     kind: ClassVar[str] = "gcp_uint128"
+    kind_display: ClassVar[str] = "GCP Uint128"
+    kind_description: ClassVar[str] = (
+        "A GCP Uint128 is a large numerical identifier comprising two sequential numerical parts that"
+        " enable a vast range of unique identifiers, typically utilized for resources requiring a very"
+        " large space of IDs."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"high": S("high"), "low": S("low")}
     high: Optional[str] = field(default=None)
     low: Optional[str] = field(default=None)
@@ -5573,6 +6915,12 @@ class GcpUint128:
 @define(eq=False, slots=False)
 class GcpServiceAttachment(GcpResource):
     kind: ClassVar[str] = "gcp_service_attachment"
+    kind_display: ClassVar[str] = "GCP Service Attachment"
+    kind_description: ClassVar[str] = (
+        "GCP Service Attachment is a networking feature that manages connectivity and security policies between"
+        " Google Cloud services and external services, offering controls like connection preferences, domain"
+        " names management, and protocol support."
+    )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service", "gcp_subnetwork"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -5631,6 +6979,11 @@ class GcpServiceAttachment(GcpResource):
 @define(eq=False, slots=False)
 class GcpSnapshot(GcpResource):
     kind: ClassVar[str] = "gcp_snapshot"
+    kind_display: ClassVar[str] = "GCP Snapshot"
+    kind_description: ClassVar[str] = (
+        "GCP Snapshot is a point-in-time copy of the data in a persistent disk in"
+        " Google Cloud Platform, allowing for data backup and recovery."
+    )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
@@ -5705,6 +7058,13 @@ class GcpSnapshot(GcpResource):
 @define(eq=False, slots=False)
 class GcpSubnetworkLogConfig:
     kind: ClassVar[str] = "gcp_subnetwork_log_config"
+    kind_display: ClassVar[str] = "GCP Subnetwork Log Config"
+    kind_description: ClassVar[str] = (
+        "GCP Subnetwork Log Config is a feature provided by Google Cloud Platform"
+        " (GCP) that allows users to configure logging for subnetworks. It enables the"
+        " collection and analysis of network traffic logs for better network security"
+        " and troubleshooting."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aggregation_interval": S("aggregationInterval"),
         "enable": S("enable"),
@@ -5724,6 +7084,12 @@ class GcpSubnetworkLogConfig:
 @define(eq=False, slots=False)
 class GcpSubnetworkSecondaryRange:
     kind: ClassVar[str] = "gcp_subnetwork_secondary_range"
+    kind_display: ClassVar[str] = "GCP Subnetwork Secondary Range"
+    kind_description: ClassVar[str] = (
+        "GCP Subnetwork Secondary Range is a range of IP addresses that can be used"
+        " for assigning to instances or services within a Google Cloud Platform"
+        " subnetwork."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"ip_cidr_range": S("ipCidrRange"), "range_name": S("rangeName")}
     ip_cidr_range: Optional[str] = field(default=None)
     range_name: Optional[str] = field(default=None)
@@ -5732,6 +7098,12 @@ class GcpSubnetworkSecondaryRange:
 @define(eq=False, slots=False)
 class GcpSubnetwork(GcpResource):
     kind: ClassVar[str] = "gcp_subnetwork"
+    kind_display: ClassVar[str] = "GCP Subnetwork"
+    kind_description: ClassVar[str] = (
+        "A GCP Subnetwork is a segmented network within a Virtual Private Cloud (VPC)"
+        " that allows for more granular control over network traffic and IP address"
+        " allocation."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
@@ -5799,6 +7171,11 @@ class GcpSubnetwork(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetGrpcProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
+    kind_display: ClassVar[str] = "GCP Target gRPC Proxy"
+    kind_description: ClassVar[str] = (
+        "GCP Target gRPC Proxy is a service in Google Cloud Platform that allows you"
+        " to load balance gRPC traffic to backend services."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["gcp_url_map"],
@@ -5843,6 +7220,11 @@ class GcpTargetGrpcProxy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetInstance(GcpResource):
     kind: ClassVar[str] = "gcp_target_instance"
+    kind_display: ClassVar[str] = "GCP Target Instance"
+    kind_description: ClassVar[str] = (
+        "Target Instances in Google Cloud Platform are virtual machine instances that"
+        " are used as forwarding targets for load balancing and traffic routing."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_instance"]},
         "successors": {"default": ["gcp_instance"]},
@@ -5885,6 +7267,12 @@ class GcpTargetInstance(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetPool(GcpResource):
     kind: ClassVar[str] = "gcp_target_pool"
+    kind_display: ClassVar[str] = "GCP Target Pool"
+    kind_description: ClassVar[str] = (
+        "Target Pools in Google Cloud Platform (GCP) are groups of instances that can"
+        " receive traffic from a load balancer. They are used to distribute incoming"
+        " requests across multiple backend instances."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
         "successors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
@@ -5933,6 +7321,12 @@ class GcpTargetPool(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetSslProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_ssl_proxy"
+    kind_display: ClassVar[str] = "GCP Target SSL Proxy"
+    kind_description: ClassVar[str] = (
+        "A GCP Target SSL Proxy is a resource that terminates SSL/TLS traffic for a"
+        " specific target HTTPS or SSL Proxy load balancing setup in Google Cloud"
+        " Platform."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_ssl_certificate", "gcp_backend_service"]},
         "successors": {"default": ["gcp_ssl_certificate", "gcp_backend_service"]},
@@ -5980,6 +7374,12 @@ class GcpTargetSslProxy(GcpResource):
 @define(eq=False, slots=False)
 class GcpTargetVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_target_vpn_gateway"
+    kind_display: ClassVar[str] = "GCP Target VPN Gateway"
+    kind_description: ClassVar[str] = (
+        "Target VPN Gateway is a virtual private network (VPN) gateway that allows"
+        " secure communication between on-premises networks and networks running on"
+        " Google Cloud Platform (GCP)."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
     }
@@ -6021,6 +7421,12 @@ class GcpTargetVpnGateway(GcpResource):
 @define(eq=False, slots=False)
 class GcpVpnGatewayVpnGatewayInterface:
     kind: ClassVar[str] = "gcp_vpn_gateway_vpn_gateway_interface"
+    kind_display: ClassVar[str] = "GCP VPN Gateway VPN Gateway Interface"
+    kind_description: ClassVar[str] = (
+        "The VPN Gateway Interface is a network interface used by the VPN Gateway in"
+        " Google Cloud Platform to establish secure connections between on-premises"
+        " networks and GCP virtual networks."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "interconnect_attachment": S("interconnectAttachment"),
@@ -6034,6 +7440,12 @@ class GcpVpnGatewayVpnGatewayInterface:
 @define(eq=False, slots=False)
 class GcpVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_vpn_gateway"
+    kind_display: ClassVar[str] = "GCP VPN Gateway"
+    kind_description: ClassVar[str] = (
+        "GCP VPN Gateway is a virtual private network (VPN) gateway on Google Cloud"
+        " Platform that allows users to securely connect their on-premises network to"
+        " their GCP network."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
         "successors": {"default": ["gcp_interconnect_attachment"]},
@@ -6077,6 +7489,12 @@ class GcpVpnGateway(GcpResource):
 @define(eq=False, slots=False)
 class GcpVpnTunnel(GcpResource):
     kind: ClassVar[str] = "gcp_vpn_tunnel"
+    kind_display: ClassVar[str] = "GCP VPN Tunnel"
+    kind_description: ClassVar[str] = (
+        "A GCP VPN Tunnel is a secure virtual connection that allows users to connect"
+        " their on-premises network to their Google Cloud Platform (GCP) Virtual"
+        " Private Cloud (VPC)."
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["gcp_target_vpn_gateway", "gcp_vpn_gateway", "gcp_router"],
