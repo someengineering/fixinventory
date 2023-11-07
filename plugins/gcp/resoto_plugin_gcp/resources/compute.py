@@ -3812,9 +3812,10 @@ class GcpInterconnect(GcpResource):
 class GcpLicenseResourceRequirements:
     kind: ClassVar[str] = "gcp_license_resource_requirements"
     kind_display: ClassVar[str] = "GCP License Resource Requirements"
-    kind_description: ClassVar[
-        str
-    ] = "GCP License Resource Requirements refers to the set of criteria that must be met in terms of computational resources when you want to bring your own licenses (BYOL) to the Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP License Resource Requirements refers to the set of criteria that must be met in terms of computational"
+        " resources when you want to bring your own licenses (BYOL) to the Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_guest_cpu_count": S("minGuestCpuCount"),
         "min_memory_mb": S("minMemoryMb"),
@@ -6328,9 +6329,10 @@ class GcpResourcePolicyHourlyCycle:
 class GcpResourcePolicyWeeklyCycleDayOfWeek:
     kind: ClassVar[str] = "gcp_resource_policy_weekly_cycle_day_of_week"
     kind_display: ClassVar[str] = "GCP Resource Policy Weekly Cycle Day of Week"
-    kind_description: ClassVar[
-        str
-    ] = "The GCP Resource Policy Weekly Cycle Day of Week defines the specific days within the week when particular operations or actions should occur, including the start time and duration of these actions."
+    kind_description: ClassVar[str] = (
+        "The GCP Resource Policy Weekly Cycle Day of Week defines the specific days within the week when particular"
+        " operations or actions should occur, including the start time and duration of these actions."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"day": S("day"), "duration": S("duration"), "start_time": S("startTime")}
     day: Optional[str] = field(default=None)
     duration: Optional[str] = field(default=None)
