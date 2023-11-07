@@ -871,12 +871,14 @@ class ComplexKind(Kind):
     def copy(
         self,
         *,
+        bases: Optional[List[str]] = None,
         properties: Optional[List[Property]] = None,
         successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
         predecessor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
         metadata: Optional[Json] = None,
     ) -> ComplexKind:
         result = copy.copy(self)
+        result.bases = bases or self.bases
         result.properties = properties or self.properties
         result.successor_kinds = successor_kinds or self.successor_kinds
         result._predecessor_kinds = predecessor_kinds or self._predecessor_kinds
@@ -1462,6 +1464,13 @@ class Model:
         def get_complex(name: str) -> ComplexKind:
             return ck if isinstance(ck := model.get(name), ComplexKind) else empty_complex_kind
 
+        def all_bases(kind: ComplexKind) -> Set[str]:
+            bases: Set[str] = set()
+            for base, base_kind in kind.resolved_bases().items():
+                bases.add(base)
+                bases |= all_bases(base_kind)
+            return bases
+
         def all_props(kind: ComplexKind) -> Dict[str, Property]:
             props_by_name = {}
             for props in [all_props(get_complex(fqn)) for fqn in kind.bases] + [{p.name: p for p in kind.properties}]:
@@ -1486,7 +1495,7 @@ class Model:
         def all_predecessor_kinds(kind: ComplexKind) -> Dict[EdgeType, List[str]]:
             predecessor_kinds = kind.predecessor_kinds().copy()
             for base in kind.bases:
-                for edge_type, succ in all_successor_kinds(get_complex(base)).items():
+                for edge_type, succ in all_predecessor_kinds(get_complex(base)).items():
                     predecessor_kinds[edge_type] = predecessor_kinds.get(edge_type, []) + succ
             return predecessor_kinds
 
@@ -1494,6 +1503,7 @@ class Model:
         for kind in self.kinds.values():
             if isinstance(kind, ComplexKind):
                 result[kind.fqn] = kind.copy(
+                    bases=list(all_bases(kind)),
                     properties=list(all_props(kind).values()),
                     successor_kinds=all_successor_kinds(kind),
                     predecessor_kinds=all_predecessor_kinds(kind),
