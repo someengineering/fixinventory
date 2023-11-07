@@ -147,7 +147,7 @@ class KubernetesNodeStatusConfigSource:
     kind_display: ClassVar[str] = "Kubernetes Node Status Config Active ConfigMap"
     kind_description: ClassVar[
         str
-    ] = "This resource represents the active configuration map for the node status in a Kubernetes cluster."
+    ] = "This represents the active configuration map for the node status in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_config_key": S("kubeletConfigKey"),
         "name": S("name"),
@@ -196,8 +196,8 @@ class KubernetesDaemonEndpoint:
     kind: ClassVar[str] = "kubernetes_daemon_endpoint"
     kind_display: ClassVar[str] = "Kubernetes Daemon Endpoint"
     kind_description: ClassVar[str] = (
-        "Kubernetes Daemon Endpoint is a network endpoint used for communication"
-        " between the Kubernetes master and worker nodes."
+        "A Kubernetes Daemon Endpoint refers to the network endpoint (usually an IP and port) for a daemon service"
+        " running on a Kubernetes node, often used for metrics and health checks of system daemons."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "port": S("Port"),
@@ -210,9 +210,8 @@ class KubernetesNodeDaemonEndpoint:
     kind: ClassVar[str] = "kubernetes_node_daemon_endpoint"
     kind_display: ClassVar[str] = "Kubernetes Node Daemon Endpoint"
     kind_description: ClassVar[str] = (
-        "The Kubernetes Node Daemon Endpoint is an endpoint that allows communication"
-        " between the Kubernetes control plane and the daemons running on the node,"
-        " such as the kubelet and kube-proxy."
+        "The Kubernetes Node Daemon Endpoint refers to the network endpoint for the kubelet on a node within"
+        " the cluster's node status details."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_endpoint": S("kubeletEndpoint") >> Bend(KubernetesDaemonEndpoint.mapping),
@@ -225,10 +224,8 @@ class KubernetesNodeStatusImages:
     kind: ClassVar[str] = "kubernetes_node_status_images"
     kind_display: ClassVar[str] = "Kubernetes Node Status Images"
     kind_description: ClassVar[str] = (
-        "Kubernetes Node Status Images refer to the images that display the current"
-        " status of worker nodes in a Kubernetes cluster. These images provide visual"
-        " indications of whether a node is healthy, ready for workloads, or"
-        " experiencing issues."
+        "Kubernetes Node Status Images provides details about the container images available on the node, including"
+        " the names of the images and their respective sizes in bytes."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "names": S("names", default=[]),
@@ -276,9 +273,8 @@ class KubernetesAttachedVolume:
     kind: ClassVar[str] = "kubernetes_attached_volume"
     kind_display: ClassVar[str] = "Kubernetes Attached Volume"
     kind_description: ClassVar[str] = (
-        "Kubernetes Attached Volume refers to a storage volume that is attached to a"
-        " container in a Kubernetes cluster, allowing it to persist data across"
-        " container restarts and failures."
+        "Kubernetes Attached Volumes are storage volumes attached to pods in a Kubernetes cluster, allowing"
+        " the pod to persist data across restarts and failures."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "device_path": S("devicePath"),
@@ -1748,8 +1744,8 @@ class KubernetesReplicationControllerStatusConditions:
     kind: ClassVar[str] = "kubernetes_replication_controller_status_conditions"
     kind_display: ClassVar[str] = "Kubernetes Replication Controller Status Conditions"
     kind_description: ClassVar[str] = (
-        "Represents the status conditions of a Kubernetes Replication Controller,"
-        " indicating the state of the controller and any potential problems or errors."
+        "Kubernetes Replication Controller Status Conditions track the current state of a Replication Controller,"
+        " including any events and their reasons, status, and types."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
@@ -2413,11 +2409,11 @@ class KubernetesHorizontalPodAutoscalerStatus:
 
 @define
 class KubernetesCrossVersionObjectReference:
-    kind: ClassVar[str] = "kubernetes_cross_object_reference"
-    kind_display: ClassVar[str] = "Kubernetes Cross Object Reference"
+    kind: ClassVar[str] = "kubernetes_cross_version_object_reference"
+    kind_display: ClassVar[str] = "Kubernetes Cross Version Object Reference"
     kind_description: ClassVar[str] = (
-        "Kubernetes Cross Object Reference is a feature that allows referencing"
-        " objects in other namespaces within a Kubernetes cluster."
+        "The `scale_target_ref` in a Kubernetes Horizontal Pod Autoscaler Spec is a reference to another resource,"
+        " whose replicas the autoscaler should manage."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "api_version": S("apiVersion"),
@@ -2701,8 +2697,8 @@ class KubernetesFlowSchemaStatus:
     kind: ClassVar[str] = "kubernetes_flow_schema_status"
     kind_display: ClassVar[str] = "Kubernetes Flow Schema Status"
     kind_description: ClassVar[str] = (
-        "The status of a flow schema in Kubernetes, which is used to define network"
-        " traffic policies for specific workloads and namespaces."
+        "The Kubernetes Flow Schema Status represents the current state of a FlowSchema resource, indicating whether"
+        " it is actively being used in the API server to manage traffic flow and priorities."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
@@ -2717,9 +2713,8 @@ class KubernetesFlowSchema(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_flow_schema"
     kind_display: ClassVar[str] = "Kubernetes Flow Schema"
     kind_description: ClassVar[str] = (
-        "Kubernetes Flow Schema is a feature in Kubernetes that allows for network"
-        " traffic control and policy enforcement within a cluster, providing fine-"
-        " grained control over how traffic flows between pods and namespaces."
+        "A Kubernetes Flow Schema configures the prioritization and fairness for requests in the API server, managing"
+        " the sequence and concurrency of request processing."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "flow_schema_status": S("status") >> Bend(KubernetesFlowSchemaStatus.mapping),
@@ -2754,9 +2749,8 @@ class KubernetesPriorityLevelConfigurationStatus:
     kind: ClassVar[str] = "kubernetes_priority_level_configuration_status"
     kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration Status"
     kind_description: ClassVar[str] = (
-        "Priority Level Configuration Status in Kubernetes is used to specify and"
-        " manage the priority and fairness of pods in a cluster based on different"
-        " priority levels."
+        "Kubernetes Priority Level Configuration Status provides the current state of a priority level configuration,"
+        " including information on operational parameters and health."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
@@ -2771,9 +2765,8 @@ class KubernetesPriorityLevelConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_level_configuration"
     kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration"
     kind_description: ClassVar[str] = (
-        "Kubernetes Priority Level Configuration is a feature that allows users to"
-        " define priority classes for pods, enabling effective prioritization and"
-        " scheduling of workloads based on their importance or criticality."
+        "The Kubernetes Priority Level Configuration represents resource configuration for establishing priority"
+        " levels of network traffic in a cluster."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "priority_level_configuration_status": S("status") >> Bend(KubernetesPriorityLevelConfigurationStatus.mapping),
@@ -2786,10 +2779,9 @@ class KubernetesIngressStatusLoadbalancerIngressPorts:
     kind: ClassVar[str] = "kubernetes_ingress_status_loadbalancer_ingress_ports"
     kind_display: ClassVar[str] = "Kubernetes Ingress Status LoadBalancer Ingress Ports"
     kind_description: ClassVar[str] = (
-        "This represents the ports on a load balancer that is associated with a"
-        " Kubernetes Ingress resource. Load balancer ingress ports are used to route"
-        " incoming traffic to the appropriate backend services within a Kubernetes"
-        " cluster."
+        "Kubernetes Ingress Status LoadBalancer Ingress Ports indicate the ports on the load balancer through which"
+        " traffic is routed to the Ingress, including any errors encountered, the specific ports used, and the"
+        " protocols (such as HTTP or HTTPS) associated with those ports."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "error": S("error"),
@@ -2825,8 +2817,7 @@ class KubernetesIngressStatusLoadbalancer:
     kind_display: ClassVar[str] = "Kubernetes Ingress Status LoadBalancer"
     kind_description: ClassVar[str] = (
         "Kubernetes Ingress Status LoadBalancer represents the status of a load"
-        " balancer associated with a Kubernetes Ingress. It provides information about"
-        " the load balancer's configuration and routing rules."
+        " balancer associated with a Kubernetes Ingress."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesIngressStatusLoadbalancerIngress.mapping),
@@ -2991,8 +2982,8 @@ class KubernetesNetworkPolicyStatusConditions:
     kind: ClassVar[str] = "kubernetes_network_policy_status_conditions"
     kind_display: ClassVar[str] = "Kubernetes Network Policy Status Conditions"
     kind_description: ClassVar[str] = (
-        "Kubernetes Network Policy Status Conditions represent the current state and"
-        " status of network policies in a Kubernetes cluster."
+        "Kubernetes Network Policy Status Conditions track the health and status changes of a network policy,"
+        " including reasons and timestamps."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
@@ -3014,9 +3005,10 @@ class KubernetesNetworkPolicyStatusConditions:
 class KubernetesNetworkPolicyStatus:
     kind: ClassVar[str] = "kubernetes_network_policy_status"
     kind_display: ClassVar[str] = "Kubernetes Network Policy Status"
-    kind_description: ClassVar[
-        str
-    ] = "Kubernetes Network Policy Status represents the current status of network policies in a Kubernetes cluster"
+    kind_description: ClassVar[str] = (
+        "The status of a Kubernetes Network Policy indicates the current operational condition of the network"
+        " policy, such as whether it's active or encountering issues."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
         >> SortTransitionTime
@@ -3056,10 +3048,8 @@ class KubernetesPodDisruptionBudgetStatusConditions:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status_conditions"
     kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Status Conditions"
     kind_description: ClassVar[str] = (
-        "Pod Disruption Budget Status Conditions are conditions that represent the"
-        " status of a Pod Disruption Budget in a Kubernetes cluster. They provide"
-        " information about the conditions that must be met for the Pod Disruption"
-        " Budget to function properly."
+        "The Kubernetes Pod Disruption Budget Status Conditions reflect the detailed status"
+        " and transitions of a Pod Disruption Budget."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
@@ -3082,10 +3072,8 @@ class KubernetesPodDisruptionBudgetStatus:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_status"
     kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Status"
     kind_description: ClassVar[str] = (
-        "Pod Disruption Budget (PDB) is a Kubernetes resource that ensures a minimum"
-        " number of pods of a specific deployment or replica set are available during"
-        " maintenance or disruption events. This status resource provides information"
-        " about the current status of the PDB."
+        "The Kubernetes Pod Disruption Budget Status provides a snapshot of the current state of the"
+        " pod disruption budget including health and disruption information."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "conditions": S("conditions", default=[])
@@ -3112,9 +3100,8 @@ class KubernetesPodDisruptionBudgetSpec:
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget_spec"
     kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget Spec"
     kind_description: ClassVar[str] = (
-        "A Pod Disruption Budget (PDB) is a Kubernetes resource that specifies the"
-        " minimum number or percentage of pods that must remain available during a"
-        " disruption or maintenance event."
+        "A Kubernetes Pod Disruption Budget Spec defines the criteria for evicting pods"
+        " from a node in a controlled way."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_unavailable": S("maxUnavailable"),
@@ -3131,9 +3118,8 @@ class KubernetesPodDisruptionBudget(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget"
     kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget"
     kind_description: ClassVar[str] = (
-        "Pod Disruption Budget is a Kubernetes resource that specifies the minimum"
-        " number of pods that must be available and the maximum number of pods that"
-        " can be unavailable during a disruption."
+        "A Kubernetes Pod Disruption Budget (PDB) is used to ensure that a specified number or percentage of"
+        " pods within a replicated application remain available during voluntary disruptions."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "pod_disruption_budget_status": S("status") >> Bend(KubernetesPodDisruptionBudgetStatus.mapping),
@@ -3210,8 +3196,9 @@ class KubernetesCSINode(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_node"
     kind_display: ClassVar[str] = "Kubernetes CSI Node"
     kind_description: ClassVar[str] = (
-        "CSI (Container Storage Interface) node is a Kubernetes concept that allows"
-        " dynamic provisioning and management of volume resources for containers."
+        "A Kubernetes CSI (Container Storage Interface) Node is a cluster node where a CSI driver is installed,"
+        " enabling it to interact with the storage backends to attach, mount, or unmount volumes as required"
+        " by Pods on that node."
     )
 
 
@@ -3257,11 +3244,9 @@ class KubernetesVolumeError:
 class KubernetesVolumeAttachmentStatus:
     kind: ClassVar[str] = "kubernetes_volume_attachment_status"
     kind_display: ClassVar[str] = "Kubernetes Volume Attachment Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Volume Attachment Status represents the status of the attachment"
-        " of a volume to a Kubernetes pod, indicating whether the attachment is"
-        " successful or in progress."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Volume Attachment Status reflects the current attachment state of a volume to a node."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_error": S("attachError") >> Bend(KubernetesVolumeError.mapping),
         "attached": S("attached"),
