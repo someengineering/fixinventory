@@ -50,6 +50,7 @@ def json_export_simple_schema(model: Model) -> List[Json]:
             fqn=kind.fqn,
             bases=kind.bases,
             allow_unknown_props=kind.allow_unknown_props,
+            predecessor_kinds=kind.predecessor_kinds(),
             successor_kinds=kind.successor_kinds,
             aggregate_root=kind.aggregate_root,
             metadata=kind.metadata,
