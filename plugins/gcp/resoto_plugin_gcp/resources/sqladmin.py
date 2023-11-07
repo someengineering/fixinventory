@@ -177,8 +177,8 @@ class GcpSqlIpMapping:
     kind: ClassVar[str] = "gcp_sql_ip_mapping"
     kind_display: ClassVar[str] = "GCP SQL IP Mapping"
     kind_description: ClassVar[str] = (
-        "GCP SQL IP Mapping is a feature in Google Cloud Platform that allows mapping"
-        " of IP addresses to Google Cloud SQL instances."
+        "The GCP SQL IP Mapping configures the IP address allocation for a Cloud SQL database instance, detailing"
+        " the assigned IP, its type, and any scheduled retirement."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip_address": S("ipAddress"),
@@ -210,9 +210,8 @@ class GcpSqlOnPremisesConfiguration:
     kind: ClassVar[str] = "gcp_sql_on_premises_configuration"
     kind_display: ClassVar[str] = "GCP SQL On-Premises Configuration"
     kind_description: ClassVar[str] = (
-        "GCP SQL On-Premises Configuration provides the ability to configure and"
-        " manage Google Cloud SQL databases that are located on customer's own on-"
-        " premises infrastructure."
+        "The GCP SQL On-Premises Configuration is used for setting up secure connections and credentials for migrating"
+        " or syncing data between an on-premises database and a GCP SQL Database Instance."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "ca_certificate": S("caCertificate"),
@@ -238,9 +237,10 @@ class GcpSqlOnPremisesConfiguration:
 class GcpSqlSqlOutOfDiskReport:
     kind: ClassVar[str] = "gcp_sql_sql_out_of_disk_report"
     kind_display: ClassVar[str] = "GCP SQL Out of Disk Report"
-    kind_description: ClassVar[
-        str
-    ] = "This resource represents a report that indicates when a Google Cloud SQL instance runs out of disk space."
+    kind_description: ClassVar[str] = (
+        "The GCP SQL Out of Disk Report provides insights into the storage status of a SQL database instance,"
+        " including recommendations on the minimum size increase necessary to prevent running out of disk space."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "sql_min_recommended_increase_size_gb": S("sqlMinRecommendedIncreaseSizeGb"),
         "sql_out_of_disk_state": S("sqlOutOfDiskState"),
@@ -301,13 +301,12 @@ class GcpSqlReplicaConfiguration:
 
 
 @define(eq=False, slots=False)
-class GcpSqlSqlScheduledMaintenance:
-    kind: ClassVar[str] = "gcp_sql_sql_scheduled_maintenance"
-    kind_display: ClassVar[str] = "GCP SQL SQL Scheduled Maintenance"
+class GcpSqlScheduledMaintenance:
+    kind: ClassVar[str] = "gcp_sql_scheduled_maintenance"
+    kind_display: ClassVar[str] = "GCP SQL Scheduled Maintenance"
     kind_description: ClassVar[str] = (
-        "SQL Scheduled Maintenance is a feature in Google Cloud Platform's SQL"
-        " service that allows users to schedule maintenance tasks for their SQL"
-        " instances, ensuring minimal downtime and disruption."
+        "GCP SQL Scheduled Maintenance is a feature that allows database administrators to schedule maintenance"
+        " operations for a SQL database instance, with options to defer and reschedule within a specified deadline."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "can_defer": S("canDefer"),
@@ -415,9 +414,8 @@ class GcpSqlDenyMaintenancePeriod:
     kind: ClassVar[str] = "gcp_sql_deny_maintenance_period"
     kind_display: ClassVar[str] = "GCP SQL Deny Maintenance Period"
     kind_description: ClassVar[str] = (
-        "GCP SQL Deny Maintenance Period is a feature in Google Cloud Platform that"
-        " allows users to specify a period of time during which maintenance updates or"
-        " patches will not be applied to SQL instances."
+        "GCP SQL Deny Maintenance Period specifies a time frame during which maintenance activities by GCP on a SQL"
+        " database instance are not allowed, ensuring uninterrupted service during critical business periods."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"end_date": S("endDate"), "start_date": S("startDate"), "time": S("time")}
     end_date: Optional[str] = field(default=None)
@@ -695,7 +693,7 @@ class GcpSqlDatabaseInstance(GcpResource):
         "replica_names": S("replicaNames", default=[]),
         "root_password": S("rootPassword"),
         "satisfies_pzs": S("satisfiesPzs"),
-        "scheduled_maintenance": S("scheduledMaintenance", default={}) >> Bend(GcpSqlSqlScheduledMaintenance.mapping),
+        "scheduled_maintenance": S("scheduledMaintenance", default={}) >> Bend(GcpSqlScheduledMaintenance.mapping),
         "secondary_gce_zone": S("secondaryGceZone"),
         "server_ca_cert": S("serverCaCert", default={}) >> Bend(GcpSqlSslCert.mapping),
         "service_account_email_address": S("serviceAccountEmailAddress"),
@@ -728,7 +726,7 @@ class GcpSqlDatabaseInstance(GcpResource):
     replica_names: Optional[List[str]] = field(default=None)
     root_password: Optional[str] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
-    scheduled_maintenance: Optional[GcpSqlSqlScheduledMaintenance] = field(default=None)
+    scheduled_maintenance: Optional[GcpSqlScheduledMaintenance] = field(default=None)
     secondary_gce_zone: Optional[str] = field(default=None)
     server_ca_cert: Optional[GcpSqlSslCert] = field(default=None)
     service_account_email_address: Optional[str] = field(default=None)
@@ -798,9 +796,8 @@ class GcpSqlSqlexportoptions:
     kind: ClassVar[str] = "gcp_sql_sqlexportoptions"
     kind_display: ClassVar[str] = "GCP SQL SQLExportOptions"
     kind_description: ClassVar[str] = (
-        "SQLExportOptions is a feature in Google Cloud Platform's SQL service that"
-        " allows users to export their SQL databases to different formats, such as CSV"
-        " or JSON."
+        "GCP SQL SQLExportOptions is a set of configurations for exporting data from a SQL database instance,"
+        " including options for MySQL specific exports, schema-only exports, and selecting specific tables to export."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "mysql_export_options": S("mysqlExportOptions", default={}) >> Bend(GcpSqlMysqlexportoptions.mapping),
@@ -817,9 +814,9 @@ class GcpSqlExportContext:
     kind: ClassVar[str] = "gcp_sql_export_context"
     kind_display: ClassVar[str] = "GCP SQL Export Context"
     kind_description: ClassVar[str] = (
-        "GCP SQL Export Context is a feature in Google Cloud Platform that allows"
-        " users to export data from SQL databases to other storage or analysis"
-        " services."
+        "GCP SQL Export Context defines the parameters and settings for exporting data from a SQL database instance"
+        " in GCP, including the data format, destination URI, database selection, and whether the operation should"
+        " be offloaded to avoid impacting database performance."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "csv_export_options": S("csvExportOptions", default={}) >> Bend(GcpSqlCsvexportoptions.mapping),
@@ -898,8 +895,8 @@ class GcpSqlImportContext:
     kind: ClassVar[str] = "gcp_sql_import_context"
     kind_display: ClassVar[str] = "GCP SQL Import Context"
     kind_description: ClassVar[str] = (
-        "SQL Import Context is a feature provided by Google Cloud Platform to provide"
-        " contextual information while importing SQL databases."
+        "GCP SQL Import Context defines the settings for importing data into a Cloud SQL database,"
+        " including file type and source URI."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "bak_import_options": S("bakImportOptions", default={}) >> Bend(GcpSqlBakimportoptions.mapping),
@@ -922,8 +919,9 @@ class GcpSqlOperation(GcpResource):
     kind: ClassVar[str] = "gcp_sql_operation"
     kind_display: ClassVar[str] = "GCP SQL Operation"
     kind_description: ClassVar[str] = (
-        "SQL Operation is a service in Google Cloud Platform (GCP) that provides"
-        " fully managed and highly available relational databases."
+        "The GCP SQL Operation is a representation of an administrative operation performed on a GCP SQL Database"
+        " instance, such as backups, imports, and exports, including details about execution times, status, and any"
+        " errors encountered."
     )
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(

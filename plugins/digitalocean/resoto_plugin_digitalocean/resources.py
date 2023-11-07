@@ -273,9 +273,8 @@ class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource)
     kind: ClassVar[str] = "digitalocean_droplet_neighborhood"
     kind_display: ClassVar[str] = "DigitalOcean Droplet Neighborhood"
     kind_description: ClassVar[str] = (
-        "Droplet Neighborhood is a feature in DigitalOcean that allows users to"
-        " deploy Droplets (virtual machines) in the same datacenter to achieve low"
-        " latency communication and high reliability."
+        "A Droplet Neighborhood refers to a group of Droplets that are running on the"
+        " same physical hardware or in close proximity within a data center."
     )
     droplets: Optional[List[str]] = None
 

@@ -64,11 +64,10 @@ class GcpBucketAccessControl:
 @define(eq=False, slots=False)
 class GcpAutoclass:
     kind: ClassVar[str] = "gcp_autoclass"
-    kind_display: ClassVar[str] = "GCP AutoML AutoClass"
+    kind_display: ClassVar[str] = "GCP Autoclass"
     kind_description: ClassVar[str] = (
-        "GCP AutoML AutoClass is a machine learning service provided by Google Cloud"
-        " Platform that automates the classification of data into different"
-        " categories."
+        "GCP Autoclass for a bucket indicates if automatic data classification is enabled"
+        " and the timestamp when this setting was last changed."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime")}
     enabled: Optional[bool] = field(default=None)
@@ -80,9 +79,8 @@ class GcpCors:
     kind: ClassVar[str] = "gcp_cors"
     kind_display: ClassVar[str] = "GCP CORS"
     kind_description: ClassVar[str] = (
-        "Cross-Origin Resource Sharing (CORS) in Google Cloud Platform allows web"
-        " applications running on different domains to make requests to resources in a"
-        " more secure manner."
+        "GCP CORS settings for a bucket in Google Cloud Storage define which origins can access resources"
+        " in the bucket, what HTTP methods are allowed, and which response headers can be exposed to the client."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "max_age_seconds": S("maxAgeSeconds"),
@@ -152,10 +150,8 @@ class GcpUniformbucketlevelaccess:
     kind: ClassVar[str] = "gcp_uniformbucketlevelaccess"
     kind_display: ClassVar[str] = "GCP Uniform Bucket Level Access"
     kind_description: ClassVar[str] = (
-        "Uniform bucket-level access is a feature in Google Cloud Platform that"
-        " allows for fine-grained access control to Google Cloud Storage buckets. It"
-        " provides more control and security for managing access to your storage"
-        " buckets."
+        "GCP Uniform Bucket Level Access is a Google Cloud Storage feature that, when enabled, applies consistent"
+        " IAM policies across all objects in a bucket, eliminating the need for individual object permissions."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
@@ -237,8 +233,8 @@ class GcpRule:
     kind: ClassVar[str] = "gcp_rule"
     kind_display: ClassVar[str] = "GCP Rule"
     kind_description: ClassVar[str] = (
-        "GCP Rules are a set of policies or conditions defined to govern the behavior"
-        " of resources in the Google Cloud Platform."
+        "A GCP Rule for a Bucket refers to an object lifecycle management rule, which automates the deletion"
+        " or transition of objects to less expensive storage classes based on specified conditions and actions."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action", default={}) >> Bend(GcpAction.mapping),
@@ -319,9 +315,8 @@ class GcpObject(GcpResource):
     kind: ClassVar[str] = "gcp_object"
     kind_display: ClassVar[str] = "GCP Object"
     kind_description: ClassVar[str] = (
-        "GCP Object is a generic term referring to any type of object stored in"
-        " Google Cloud Platform. It can include files, images, documents, or any other"
-        " digital asset."
+        "GCP Object, specifically referring to the Google Cloud Storage, is a basic unit of data that is stored"
+        " in Google Cloud Storage, often matching to an individual file."
     )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="storage",

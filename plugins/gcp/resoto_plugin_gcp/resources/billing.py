@@ -196,9 +196,8 @@ class GcpGeoTaxonomy:
     kind: ClassVar[str] = "gcp_geo_taxonomy"
     kind_display: ClassVar[str] = "GCP Geo Taxonomy"
     kind_description: ClassVar[str] = (
-        "GCP Geo Taxonomy is a resource in Google Cloud Platform that provides a"
-        " hierarchical taxonomy for geographic locations, ensuring consistent and"
-        " accurate data for geospatial analysis and visualization."
+        "GCP Geo Taxonomy within a SKU refers to the classification of Google Cloud resources"
+        " based on geographic regions and types, which impacts pricing and availability."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"regions": S("regions", default=[]), "type": S("type")}
     regions: List[str] = field(factory=list)
@@ -209,11 +208,9 @@ class GcpGeoTaxonomy:
 class GcpAggregationInfo:
     kind: ClassVar[str] = "gcp_aggregation_info"
     kind_display: ClassVar[str] = "GCP Aggregation Info"
-    kind_description: ClassVar[str] = (
-        "GCP Aggregation Info refers to aggregated data about resources in Google"
-        " Cloud Platform, providing insights and metrics for monitoring and analysis"
-        " purposes."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "GCP Aggregation Info refers to how usage and cost data are compiled and summarized over time."
     mapping: ClassVar[Dict[str, Bender]] = {
         "aggregation_count": S("aggregationCount"),
         "aggregation_interval": S("aggregationInterval"),
@@ -265,9 +262,9 @@ class GcpPricingExpression:
     kind: ClassVar[str] = "gcp_pricing_expression"
     kind_display: ClassVar[str] = "GCP Pricing Expression"
     kind_description: ClassVar[str] = (
-        "GCP Pricing Expression is a mechanism used in Google Cloud Platform to"
-        " calculate the cost of resources and services based on configuration and"
-        " usage."
+        "GCP Pricing Expression delineates the structure of pricing for a particular service, including the base"
+        " units of measurement, conversion factors, detailed descriptions, and tiered pricing rates to calculate"
+        " the cost based on usage."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "base_unit": S("baseUnit"),
