@@ -853,14 +853,14 @@ class Api(Service):
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         full_model = await deps.model_handler.load_model(graph_id)
         with_bases = if_set(request.query.get("with_bases"), lambda x: x.lower() == "true", False)
-        with_prop_types = if_set(request.query.get("with_prop_types"), lambda x: x.lower() == "true", False)
+        with_property_kinds = if_set(request.query.get("with_property_kinds"), lambda x: x.lower() == "true", False)
         md = full_model
         if kind := request.query.get("kind"):
             kinds = set(kind.split(","))
-            md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_prop_types)
+            md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_property_kinds)
         if filter_names := request.query.get("filter"):
             parts = filter_names.split(",")
-            md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_prop_types)
+            md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_property_kinds)
         md = md.flat_kinds(full_model) if request.query.get("flat", "false") == "true" else md
 
         export_format = request.query.get("format")

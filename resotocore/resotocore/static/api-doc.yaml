@@ -236,7 +236,7 @@ paths:
             enum:
               - schema
               - simple
-        - name: with_prop_types
+        - name: with_property_kinds
           description: "Render types of property values. Only together with kind or filter"
           in: query
           schema:
