@@ -53,6 +53,7 @@ from resotocore.model.model import (
     synthetic_metadata_kinds,
 )
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver
+from resotocore.model.typed_model import to_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
 from resotocore.report import ReportSeverity
 from resotocore.types import JsonElement, EdgeType
@@ -569,7 +570,7 @@ class ArangoGraphDB(GraphDB):
         q_string, bind = await self.to_query(query)
         return await self.db.aql_cursor(
             query=q_string,
-            trafo=self.document_to_instance_fn(query.model, query.query),
+            trafo=self.document_to_instance_fn(query.model, query),
             count=with_count,
             bind_vars=bind,
             batch_size=10000,
@@ -605,7 +606,10 @@ class ArangoGraphDB(GraphDB):
             None
             if query.query.aggregate
             else self.document_to_instance_fn(
-                query.model, query.query, ["change", "changed_at", "created", "updated", "deleted"], id_column="id"
+                query.model,
+                query,
+                ["change", "changed_at", "created", "updated", "deleted"],
+                id_column="id",
             )
         )
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
@@ -620,7 +624,7 @@ class ArangoGraphDB(GraphDB):
         query_string, bind = await self.to_query(query, with_edges=True)
         return await self.db.aql_cursor(
             query=query_string,
-            trafo=self.document_to_instance_fn(query.model, query.query),
+            trafo=self.document_to_instance_fn(query.model, query),
             bind_vars=bind,
             count=with_count,
             batch_size=10000,
@@ -655,11 +659,12 @@ class ArangoGraphDB(GraphDB):
     @staticmethod
     def document_to_instance_fn(
         model: Model,
-        query: Optional[Query] = None,
+        query: Optional[QueryModel] = None,
         additional_root_props: Optional[List[str]] = None,
         id_column: str = "_key",
     ) -> Callable[[Json], Json]:
         synthetic_metadata = model.predefined_synthetic_props(synthetic_metadata_kinds)
+        with_kinds = query and query.is_set("with-kind")
 
         def props(doc: Json, result: Json, definition: Iterable[str]) -> None:
             for prop in definition:
@@ -682,11 +687,13 @@ class ArangoGraphDB(GraphDB):
                 if "_rev" in doc:
                     result["revision"] = doc["_rev"]
                 props(doc, result, Section.content_ordered)
+                kind = model.get(doc[Section.reported])
                 if root_level:
                     props(doc, result, Section.lookup_sections_ordered)
                     if additional_root_props:
                         props(doc, result, additional_root_props)
-                kind = model.get(doc[Section.reported])
+                    if with_kinds and kind is not None:
+                        result["kind"] = to_js(kind)
                 if isinstance(kind, ComplexKind):
                     synth_props(doc, result, Section.reported, kind.synthetic_props())
                     synth_props(doc, result, Section.metadata, synthetic_metadata)
@@ -709,7 +716,7 @@ class ArangoGraphDB(GraphDB):
         def merge_results(doc: Json) -> Json:
             rendered = render_prop(doc, True)
             if query:
-                render_merge_results(doc, rendered, query)
+                render_merge_results(doc, rendered, query.query)
             return rendered
 
         return merge_results

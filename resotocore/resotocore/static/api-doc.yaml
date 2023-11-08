@@ -194,13 +194,7 @@ paths:
       tags:
         - model
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: flat
           description: "If true, the hierarchy of complex kinds is flattened, holding all properties and all merged metadata."
           in: query
@@ -256,13 +250,7 @@ paths:
       tags:
         - model
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
       requestBody:
         description: "Complete model or part of the model."
         content:
@@ -288,13 +276,7 @@ paths:
       tags:
         - model
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: output
           description: The output format.
           in: query
@@ -413,13 +395,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
       responses:
         "200":
           description: "The graph with the root node"
@@ -434,13 +410,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
       responses:
         "200":
           description: "The created graph with the root node"
@@ -453,13 +423,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: truncate
           in: query
           schema:
@@ -478,13 +442,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: wait_for_result
           in: query
           description: >
@@ -528,13 +486,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: batch_id
           in: query
           description: >
@@ -588,13 +540,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
       responses:
         "200":
           description: "Ok message"
@@ -611,13 +557,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: batch_id
           in: path
           description: "A batch identifier is a string that uniquely identifies the batch update."
@@ -640,13 +580,7 @@ paths:
       tags:
         - graph_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: batch_id
           in: path
           description: "A batch identifier is a string that uniquely identifies the batch update."
@@ -673,13 +607,7 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
       requestBody:
         description: "The partial object data to patch."
         content:
@@ -738,13 +666,7 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: node_id
           in: path
           description: "The identifier of the node"
@@ -779,13 +701,7 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: node_id
           in: path
           description: "The identifier of the node"
@@ -807,13 +723,7 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: node_id
           in: path
           description: "The identifier of the node"
@@ -842,13 +752,7 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
         - name: node_id
           in: path
           description: "The identifier of the node"
@@ -867,29 +771,14 @@ paths:
       tags:
         - node_management
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: node_id
           in: path
           description: "The identifier of the node"
           required: true
           schema:
             type: string
-        - name: section
-          in: path
-          description: "The identifier of the section"
-          required: true
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
       requestBody:
         description: "The partial object data to patch."
         content:
@@ -916,23 +805,8 @@ paths:
       tags:
         - debug
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: at
           in: query
           description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
@@ -964,23 +838,9 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          example: resoto
-          description: "The identifier of the graph"
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - $ref: "#/components/parameters/with-kind"
         - name: count
           in: query
           description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -1174,23 +1034,9 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - $ref: "#/components/parameters/with-kind"
         - name: count
           in: query
           description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -1390,23 +1236,9 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - $ref: "#/components/parameters/with-kind"
         - name: at
           in: query
           description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
@@ -1440,23 +1272,8 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: at
           in: query
           description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
@@ -1577,23 +1394,8 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: at
           in: query
           description: "The timestamp to use for the search. If not defined the latest version of the graph is used."
@@ -1625,23 +1427,9 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          example: resoto
-          description: "The identifier of the graph"
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - $ref: "#/components/parameters/with-kind"
         - name: count
           in: query
           description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -1777,23 +1565,8 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          description: "The identifier of the graph"
-          example: resoto
-          required: true
-          schema:
-            type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: before
           in: query
           description: "Optional parameter to get all history events before the given timestamp"
@@ -1849,13 +1622,8 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          example: resoto
-          description: "The identifier of the graph"
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: prop
           in: query
           example: |
@@ -1864,16 +1632,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
         - name: count
           in: query
           description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -1909,13 +1667,8 @@ paths:
       tags:
         - graph_search
       parameters:
-        - name: graph_id
-          in: path
-          example: resoto
-          description: "The identifier of the graph"
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
         - name: prop
           in: query
           example: |
@@ -1924,16 +1677,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: section
-          in: query
-          description: "The name of the section used for all property paths. If not defined root is assumed."
-          required: false
-          schema:
-            type: string
-            enum:
-              - reported
-              - desired
-              - metadata
         - name: count
           in: query
           description: "Optional parameter to get a Ck-Element-Count header which returns the number of returned json elements"
@@ -2930,19 +2673,13 @@ paths:
       tags:
         - report
       parameters:
+        - $ref: "#/components/parameters/graph_id"
         - name: benchmark
           in: path
           description: "The name of the benchmark to perform"
           schema:
             type: string
           example: "aws_cis_1.5"
-          required: true
-        - name: graph_id
-          in: path
-          description: "The id of the graph to perform this operation."
-          schema:
-            type: string
-          example: "resoto"
           required: true
         - name: accounts
           description: |
@@ -2985,13 +2722,7 @@ paths:
       tags:
         - report
       parameters:
-        - name: graph_id
-          in: path
-          description: "The ID of the graph to check."
-          schema:
-            type: string
-          example: "resoto"
-          required: true
+        - $ref: "#/components/parameters/graph_id"
         - name: check_id
           in: path
           description: "The ID of the check to perform."
@@ -3027,13 +2758,7 @@ paths:
       tags:
         - report
       parameters:
-        - name: graph_id
-          in: path
-          description: "The ID of the graph to check."
-          schema:
-            type: string
-          example: "resoto"
-          required: true
+        - $ref: "#/components/parameters/graph_id"
         - name: provider
           in: query
           description: "Filter by provider."
@@ -3451,6 +3176,34 @@ paths:
   # endregion
 
 components:
+  parameters:
+    graph_id:
+      name: graph_id
+      in: path
+      example: resoto
+      description: "The identifier of the graph"
+      required: true
+      schema:
+        type: string
+    section:
+      name: section
+      in: query
+      description: "The name of the section used for all property paths. If not defined root is assumed."
+      required: false
+      schema:
+        type: string
+        enum:
+          - reported
+          - desired
+          - metadata
+    with-kind:
+      name: with-kind
+      description: "Include the kind of the node in the result node."
+      schema:
+        type: boolean
+        default: false
+      in: query
+      required: false
   schemas:
     AnalyticsEvent:
       description: "An analytics event."
