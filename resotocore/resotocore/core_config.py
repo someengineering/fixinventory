@@ -587,6 +587,10 @@ class CoreConfig(ConfigObject):
         return cast(bool, self.args.multi_tenant_setup)
 
     @property
+    def no_scheduling(self) -> bool:
+        return cast(bool, self.args.no_scheduling)
+
+    @property
     def editable(self) -> "EditableConfig":
         return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows)
 
