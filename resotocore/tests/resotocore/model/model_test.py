@@ -400,12 +400,12 @@ def test_load(model_json: str) -> None:
 def test_graph(person_model: Model) -> None:
     graph: DiGraph = person_model.graph()
     assert len(graph.nodes()) == 11
-    assert len(graph.edges()) == 9
+    assert len(graph.edges()) == 10
 
 
 def test_flatten(person_model: Model) -> None:
     cpl = {m.fqn: m for m in person_model.complex_kinds()}
-    flat = {m.fqn: m for m in person_model.flat_kinds() if isinstance(m, ComplexKind)}
+    flat = {m.fqn: m for m in person_model.flat_kinds().kinds.values() if isinstance(m, ComplexKind)}
     # base property is unchanged
     assert len(flat["Base"].properties) == len(cpl["Base"].properties)
     # address has all properties of base and address
@@ -571,6 +571,15 @@ def test_yaml(person_model: Model) -> None:
     )
 
     assert person == yaml.safe_load(person_kind.create_yaml(person))
+
+
+def test_filter_model(person_model: Model) -> None:
+    md = person_model.filter_complex(lambda x: x.fqn == "Person")
+    assert md.kinds.keys() == {"Person", "Base", "Address"}
+    fmd = md.flat_kinds(person_model)
+    address = cast(ComplexKind, fmd["Address"])
+    # filtered, flattened model should preserve the computed predecessor kinds
+    assert address.predecessor_kinds() == {"default": ["Person"], "delete": []}
 
 
 @given(json_object_gen)

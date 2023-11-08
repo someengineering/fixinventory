@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import re
 import sys
@@ -42,6 +43,7 @@ from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
 from resotolib.utils import is_env_var_string
 
 T = TypeVar("T")
+AvailableEdgeTypes: List[EdgeType] = ["default", "delete"]
 
 
 def check_type_fn(t: type, type_name: str) -> ValidationFn:
@@ -303,7 +305,15 @@ class Kind(ABC):
             successor_kinds = js.get("successor_kinds")
             aggregate_root = js.get("aggregate_root", True)
             metadata = js.get("metadata")
-            return ComplexKind(js["fqn"], bases, props, allow_unknown_props, successor_kinds, aggregate_root, metadata)
+            return ComplexKind(
+                fqn=js["fqn"],
+                bases=bases,
+                properties=props,
+                allow_unknown_props=allow_unknown_props,
+                successor_kinds=successor_kinds,
+                aggregate_root=aggregate_root,
+                metadata=metadata,
+            )
         else:
             raise JSONDecodeError("Given type can not be read.", json.dumps(js), 0)
 
@@ -848,6 +858,7 @@ class ComplexKind(Kind):
         self.successor_kinds = successor_kinds or {}
         self.aggregate_root = aggregate_root
         self.metadata = metadata or {}
+        self._predecessor_kinds: Dict[EdgeType, List[str]] = {}
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
         self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
@@ -856,6 +867,23 @@ class ComplexKind(Kind):
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__property_by_path: List[ResolvedProperty] = []
         self.__synthetic_props: List[ResolvedProperty] = []
+
+    def copy(
+        self,
+        *,
+        bases: Optional[List[str]] = None,
+        properties: Optional[List[Property]] = None,
+        successor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
+        predecessor_kinds: Optional[Dict[EdgeType, List[str]]] = None,
+        metadata: Optional[Json] = None,
+    ) -> ComplexKind:
+        result = copy.copy(self)
+        result.bases = bases or self.bases
+        result.properties = properties or self.properties
+        result.successor_kinds = successor_kinds or self.successor_kinds
+        result._predecessor_kinds = predecessor_kinds or self._predecessor_kinds
+        result.metadata = metadata or self.metadata
+        return result
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
@@ -886,8 +914,17 @@ class ComplexKind(Kind):
 
             # property path -> kind
             self.__property_by_path = ComplexKind.resolve_properties(self, model)
-
             self.__synthetic_props = [p for p in self.__property_by_path if p.prop.synthetic]
+
+            # resolve predecessor kinds
+            self._predecessor_kinds = {
+                edge_type: [
+                    kind.fqn
+                    for kind in model.values()
+                    if isinstance(kind, ComplexKind) and self.fqn in kind.successor_kinds.get(edge_type, [])
+                ]
+                for edge_type in AvailableEdgeTypes
+            }
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, ComplexKind):
@@ -939,6 +976,9 @@ class ComplexKind(Kind):
 
     def synthetic_props(self) -> List[ResolvedProperty]:
         return self.__synthetic_props
+
+    def predecessor_kinds(self) -> Dict[EdgeType, List[str]]:
+        return self._predecessor_kinds
 
     def transitive_complex_types(self, with_bases: bool = True, with_properties: bool = True) -> List[ComplexKind]:
         result: Dict[str, ComplexKind] = {}
@@ -1174,6 +1214,7 @@ boolean_kind = BooleanKind("boolean")
 date_kind = DateKind("date")
 datetime_kind = DateTimeKind("datetime")
 duration_kind = DurationKind("duration")
+empty_complex_kind = ComplexKind("empty", [], [], allow_unknown_props=True)
 
 # Define synthetic properties in the metadata section (not defined in the model)
 # The predefined_properties kind is used to define the properties there.
@@ -1234,7 +1275,7 @@ allowed_simple_type_changes: List[Tuple[Optional[str], Optional[str]]] = [
 class Model:
     @staticmethod
     def empty() -> Model:
-        return Model({})
+        return Model({}, [])
 
     @staticmethod
     def from_kinds(kinds: List[Kind]) -> Model:
@@ -1242,20 +1283,21 @@ class Model:
         kind_dict = {kind.fqn: kind for kind in all_kinds}
         for kind in all_kinds:
             kind.resolve(kind_dict)
-        return Model(kind_dict)
-
-    def __init__(self, kinds: Dict[str, Kind]):
-        self.kinds = kinds
-        self.__property_kind_by_path: List[ResolvedProperty] = list(
+        resolved = list(
             # several complex kinds might have the same property
             # reduce the list by hash over the path.
             {
                 r.path: r
-                for c in kinds.values()
+                for c in all_kinds
                 if isinstance(c, ComplexKind) and c.aggregate_root
                 for r in c.resolved_properties()
             }.values()
         )
+        return Model(kind_dict, resolved)
+
+    def __init__(self, kinds: Dict[str, Kind], property_kind_by_path: List[ResolvedProperty]):
+        self.kinds = kinds
+        self.__property_kind_by_path: List[ResolvedProperty] = property_kind_by_path
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
@@ -1408,27 +1450,37 @@ class Model:
         if check_overlap:
             check_overlap_for([to_js(a) for a in updated.values()])
 
-        return Model(updated)
+        return Model.from_kinds(list(updated.values()))
 
-    def flat_kinds(self) -> List[Kind]:
+    def flat_kinds(self, lookup_model: Optional[Model] = None) -> Model:
         """
         Returns a list of all kinds. The hierarchy of complex kinds is flattened:
         - all properties of all base kinds.
         - all metadata merged in hierarchy.
         - all successor kinds combined in hierarchy.
         """
-        cpl: Dict[str, ComplexKind] = {kind.fqn: kind for kind in self.complex_kinds()}
+        model = lookup_model if lookup_model else self
+
+        def get_complex(name: str) -> ComplexKind:
+            return ck if isinstance(ck := model.get(name), ComplexKind) else empty_complex_kind
+
+        def all_bases(kind: ComplexKind) -> Set[str]:
+            bases: Set[str] = set()
+            for base, base_kind in kind.resolved_bases().items():
+                bases.add(base)
+                bases |= all_bases(base_kind)
+            return bases
 
         def all_props(kind: ComplexKind) -> Dict[str, Property]:
             props_by_name = {}
-            for props in [all_props(cpl[fqn]) for fqn in kind.bases] + [{p.name: p for p in kind.properties}]:
+            for props in [all_props(get_complex(fqn)) for fqn in kind.bases] + [{p.name: p for p in kind.properties}]:
                 for key, value in props.items():
                     props_by_name[key] = value
             return props_by_name
 
         def all_metadata(kind: ComplexKind) -> Dict[str, Any]:
             metadata = {}
-            for meta in [all_metadata(cpl[fqn]) for fqn in kind.bases] + [kind.metadata]:
+            for meta in [all_metadata(get_complex(fqn)) for fqn in kind.bases] + [kind.metadata]:
                 for key, value in meta.items():
                     metadata[key] = value
             return metadata
@@ -1436,27 +1488,60 @@ class Model:
         def all_successor_kinds(kind: ComplexKind) -> Dict[EdgeType, List[str]]:
             successor_kinds = kind.successor_kinds.copy()
             for base in kind.bases:
-                for edge_type, succ in all_successor_kinds(cpl[base]).items():
+                for edge_type, succ in all_successor_kinds(get_complex(base)).items():
                     successor_kinds[edge_type] = successor_kinds.get(edge_type, []) + succ
             return successor_kinds
 
-        result: List[Kind] = []
+        def all_predecessor_kinds(kind: ComplexKind) -> Dict[EdgeType, List[str]]:
+            predecessor_kinds = kind.predecessor_kinds().copy()
+            for base in kind.bases:
+                for edge_type, succ in all_predecessor_kinds(get_complex(base)).items():
+                    predecessor_kinds[edge_type] = predecessor_kinds.get(edge_type, []) + succ
+            return predecessor_kinds
+
+        result: Dict[str, Kind] = {}
         for kind in self.kinds.values():
             if isinstance(kind, ComplexKind):
-                result.append(
-                    ComplexKind(
-                        fqn=kind.fqn,
-                        bases=kind.bases,
-                        properties=list(all_props(kind).values()),
-                        allow_unknown_props=kind.allow_unknown_props,
-                        successor_kinds=all_successor_kinds(kind),
-                        aggregate_root=kind.aggregate_root,
-                        metadata=all_metadata(kind),
-                    )
+                result[kind.fqn] = kind.copy(
+                    bases=list(all_bases(kind)),
+                    properties=list(all_props(kind).values()),
+                    successor_kinds=all_successor_kinds(kind),
+                    predecessor_kinds=all_predecessor_kinds(kind),
+                    metadata=all_metadata(kind),
                 )
             else:
-                result.append(kind)
-        return result
+                result[kind.fqn] = kind
+        return Model(result, self.__property_kind_by_path)
+
+    def filter_complex(
+        self, filter_fn: Callable[[ComplexKind], bool], with_bases: bool = True, with_prop_types: bool = True
+    ) -> Model:
+        """
+        Returns a model that contains only the aggregates for which the filter function returns true.
+        """
+        visited: Set[str] = set()
+        kinds: Dict[str, Kind] = {}
+
+        def add_kind(cpl: ComplexKind) -> None:
+            if cpl.fqn in visited:
+                return
+            visited.add(cpl.fqn)
+            kinds[cpl.fqn] = cpl
+            # add bases
+            if with_bases:
+                for _, base in cpl.resolved_bases().items():
+                    add_kind(base)
+            # add prop types
+            if with_prop_types:
+                for prop in cpl.resolved_properties():
+                    if isinstance(prop.kind, ComplexKind):
+                        add_kind(prop.kind)
+
+        for kind in self.kinds.values():
+            if isinstance(kind, ComplexKind) and filter_fn(kind):
+                add_kind(kind)
+
+        return Model(kinds, self.__property_kind_by_path)
 
 
 @frozen

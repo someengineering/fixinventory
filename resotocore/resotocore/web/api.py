@@ -26,7 +26,6 @@ from typing import (
     Tuple,
     Callable,
     Awaitable,
-    Iterable,
     Literal,
 )
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
@@ -55,8 +54,6 @@ from aiostream import stream
 from attrs import evolve
 from dateutil import parser as date_parser
 from networkx.readwrite import cytoscape_data
-from resotoui import ui_path
-
 from resotocore.analytics import AnalyticsEvent
 from resotocore.cli.command import alias_names
 from resotocore.cli.model import (
@@ -89,9 +86,10 @@ from resotocore.ids import (
 )
 from resotocore.message_bus import Message, ActionDone, Action, ActionError, ActionInfo, ActionProgress
 from resotocore.metrics import timed
+from resotocore.model.exportable_model import json_export_simple_schema
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
-from resotocore.model.model import Kind, Model
+from resotocore.model.model import Kind
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query.model import Predicate, PathRoot, variable_to_absolute
 from resotocore.query.query_parser import predicate_term
@@ -121,6 +119,7 @@ from resotocore.worker_task_queue import (
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 from resotolib.x509 import cert_to_bytes
+from resotoui import ui_path
 
 log = logging.getLogger(__name__)
 
@@ -523,7 +522,7 @@ class Api(Service):
     async def get_configs_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         model = await deps.config_handler.get_configs_model()
         if request.query.get("flat", "false") == "true":
-            model = Model.from_kinds(model.flat_kinds())
+            model = model.flat_kinds()
         return await single_result(request, to_js(model, strip_nulls=True))
 
     async def update_configs_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -852,16 +851,26 @@ class Api(Service):
 
     async def get_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
-        md = await deps.model_handler.load_model(graph_id)
-        # default to internal model format, but allow to request json schema format
-        if request.headers.get("accept") == "application/schema+json":
+        full_model = await deps.model_handler.load_model(graph_id)
+        with_bases = if_set(request.query.get("with_bases"), lambda x: x.lower() == "true", False)
+        with_property_kinds = if_set(request.query.get("with_property_kinds"), lambda x: x.lower() == "true", False)
+        md = full_model
+        if kind := request.query.get("kind"):
+            kinds = set(kind.split(","))
+            md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_property_kinds)
+        if filter_names := request.query.get("filter"):
+            parts = filter_names.split(",")
+            md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_property_kinds)
+        md = md.flat_kinds(full_model) if request.query.get("flat", "false") == "true" else md
+
+        export_format = request.query.get("format")
+        # default to internal model format, but allow requesting json schema format
+        if export_format == "schema" or request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
-        kinds: Iterable[Kind]
-        if request.query.get("flat", "false") == "true":
-            kinds = md.flat_kinds()
+        elif export_format == "simple":
+            return await single_result(request, json_export_simple_schema(md))
         else:
-            kinds = md.kinds.values()
-        return await single_result(request, to_js(kinds, strip_nulls=True))
+            return await single_result(request, to_js(md.kinds.values(), strip_nulls=True))
 
     async def update_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))

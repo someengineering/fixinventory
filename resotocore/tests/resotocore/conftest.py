@@ -322,6 +322,7 @@ def person_model() -> Model:
             Property("addresses", "Address[]", description="The list of addresses."),
             Property("any", "any", description="Some arbitrary value."),
         ],
+        successor_kinds={EdgeTypes.default: ["Address"]},
     )
     any_foo = ComplexKind(
         "any_foo",
