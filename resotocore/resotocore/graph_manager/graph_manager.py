@@ -102,7 +102,7 @@ class GraphManager(Service):
 
     async def start(self) -> None:
         self.lock = Lock()
-        if not self.config.multi_tenant_setup:
+        if not self.config.multi_tenant_setup and not self.config.no_scheduling:
             # initialize the snapshot schedule
             await self._on_config_updated(ResotoCoreSnapshotsConfigId)
             await self.__setup_cleanup_old_snapshots_worker(self.config.snapshots)
