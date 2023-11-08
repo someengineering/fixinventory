@@ -28,6 +28,7 @@ from typing import (
     Awaitable,
     Iterable,
     Literal,
+    cast,
 )
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
@@ -1008,7 +1009,7 @@ class Api(Service):
         graph_db = deps.db_access.get_graph_db(graph_name)
         q = await deps.template_expander.parse_query(query_string, section, **request.query)
         m = await deps.model_handler.load_model(graph_name)
-        return graph_db, QueryModel(q, m)
+        return graph_db, QueryModel(q, m, cast(Dict[str, Any], request.query))
 
     async def raw(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)

@@ -707,6 +707,17 @@ def test_render_metadata_section(foo_model: Model) -> None:
     assert "exported_age" in out["metadata"]  # exported_age is not part of the document, but should be added
 
 
+def test_with_kind_section(foo_model: Model) -> None:
+    qm = QueryModel(Query.by("foo"), foo_model, {"with-kind": "true"})
+    p1 = ArangoGraphDB.document_to_instance_fn(foo_model)
+    p2 = ArangoGraphDB.document_to_instance_fn(foo_model, qm)
+    # no kind is rendered
+    assert p1({"_key": "1", "reported": {"kind": "foo"}}) == {"id": "1", "type": "node", "reported": {"kind": "foo"}}
+    # kind is rendered
+    wk = p2({"_key": "1", "reported": {"kind": "foo"}})
+    assert wk["kind"]["fqn"] == "foo"
+
+
 @mark.asyncio
 async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Model) -> None:
     async def query_vulnerable() -> List[Json]:

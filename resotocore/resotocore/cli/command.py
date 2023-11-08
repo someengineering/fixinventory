@@ -1446,7 +1446,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
 
         async def load_query_model(db: GraphDB, graph_name: GraphName) -> QueryModel:
             model = await self.dependencies.model_handler.load_model(graph_name)
-            query_model = QueryModel(query, model)
+            query_model = QueryModel(query, model, ctx.env)
             await db.to_query(query_model)  # only here to validate the query itself (can throw)
             return query_model
 
@@ -3127,7 +3127,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                     .merge_with("ancestors.region", NavigateUntilRoot, P.of_kind("region"))
                     .merge_with("ancestors.zone", NavigateUntilRoot, P.of_kind("zone"))
                 ).rewrite_for_ancestors_descendants(variables)
-                query_model = QueryModel(query, model)
+                query_model = QueryModel(query, model, env)
                 async with await self.dependencies.db_access.get_graph_db(GraphName(env["graph"])).search_list(
                     query_model
                 ) as crs:
@@ -5889,7 +5889,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     query = Query(parts=[Part(term=IsTerm(["graph_root"]), navigation=NavigateUntilLeaf)])
                     graph_db = self.dependencies.db_access.get_graph_db(ctx.graph_name)
                     async with await graph_db.search_graph_gen(
-                        QueryModel(query, resoto_model), timeout=timedelta(weeks=200000)
+                        QueryModel(query, resoto_model, ctx.env), timeout=timedelta(weeks=200000)
                     ) as cursor:
                         await sync_fn(query=query, in_stream=stream.iterate(cursor))
 
