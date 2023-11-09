@@ -24,7 +24,6 @@ from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
 from resotocore.db.packagedb import app_package_entity_db
 from resotocore.db.runningtaskdb import running_task_db
-from resotocore.db.subscriberdb import subscriber_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
@@ -46,7 +45,6 @@ class DbAccess(Service):
         event_sender: AnalyticsEventSender,
         adjust_node: AdjustNode,
         config: CoreConfig,
-        subscriber_name: str = "subscribers",
         running_task_name: str = "running_tasks",
         job_name: str = "jobs",
         deferred_outer_edge_name: str = "deferred_outer_edges",
@@ -62,7 +60,6 @@ class DbAccess(Service):
         self.db = AsyncArangoDB(arango_database)
         self.adjust_node = adjust_node
         self.graph_model_dbs: Dict[GraphName, ModelDb] = {}
-        self.subscribers_db = EventEntityDb(subscriber_db(self.db, subscriber_name), event_sender, subscriber_name)
         self.system_data_db = SystemDataDb(self.db)
         self.running_task_db = running_task_db(self.db, running_task_name)
         self.deferred_outer_edge_db = deferred_outer_edge_db(self.db, deferred_outer_edge_name)
@@ -78,7 +75,6 @@ class DbAccess(Service):
 
     async def start(self) -> None:
         if not self.config.multi_tenant_setup:
-            await self.subscribers_db.create_update_schema()
             await self.running_task_db.create_update_schema()
             await self.job_db.create_update_schema()
             await self.config_entity_db.create_update_schema()
