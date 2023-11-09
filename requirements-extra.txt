@@ -89,7 +89,7 @@ prompt-toolkit==3.0.39
 protobuf==4.24.4
 psutil==5.9.6
 psycopg2-binary==2.9.9
-pyarrow==13.0.0
+pyarrow==14.0.1
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pycares==4.4.0
