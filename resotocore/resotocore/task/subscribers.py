@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import timedelta, datetime
 from typing import Optional, Iterable, Dict, List
 
-from resotocore.db.subscriberdb import SubscriberDb
 from resotocore.ids import SubscriberId
 from resotocore.message_bus import MessageBus
 from resotocore.service import Service
@@ -52,10 +51,6 @@ class SubscriptionHandler(Service, ABC):
     def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
         pass
 
-    @abstractmethod
-    def update_subscriber_by_event(self, subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
-        pass
-
 
 class SubscriptionHandlerService(SubscriptionHandler):
     """
@@ -64,21 +59,17 @@ class SubscriptionHandlerService(SubscriptionHandler):
     This handler belongs to the event system, which assumes there is only one instance running in each cluster!
     """
 
-    def __init__(self, db: SubscriberDb, message_bus: MessageBus) -> None:
+    def __init__(self, message_bus: MessageBus) -> None:
         super().__init__()
-        self.db = db
         self.message_bus = message_bus
         self._subscribers_by_id: Dict[SubscriberId, Subscriber] = {}
         self._subscribers_by_event: Dict[str, List[Subscriber]] = {}
         self.started_at = utc()
         self.cleaner = Periodic("subscription_cleaner", self.check_outdated_handler, timedelta(seconds=10))
         self.not_connected_since: Dict[str, datetime] = {}
-        self.lock: Optional[Lock] = None
+        self.lock: Lock = Lock()
 
     async def start(self) -> None:
-        self.lock = Lock()
-        await self.__load_from_db()
-        log.info(f"Loaded {len(self._subscribers_by_id)} subscribers for {len(self._subscribers_by_event)} events")
         await self.cleaner.start()
 
     async def stop(self) -> None:
@@ -100,8 +91,7 @@ class SubscriptionHandlerService(SubscriptionHandler):
         updated = existing.add_subscription(event_type, wait_for_completion, timeout)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: add subscription={event_type} ({wait_for_completion}, {timeout})")
-            await self.db.update(updated)
-            await self.__load_from_db()
+            await self.__update_subscriber(updated)
         return updated
 
     async def remove_subscription(self, subscriber_id: SubscriberId, event_type: str) -> Subscriber:
@@ -109,11 +99,7 @@ class SubscriptionHandlerService(SubscriptionHandler):
         updated = existing.remove_subscription(event_type)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: remove subscription={event_type}")
-            if updated.subscriptions:
-                await self.db.update(updated)
-            else:
-                await self.db.delete(subscriber_id)
-            await self.__load_from_db()
+            await self.__update_subscriber(updated)
         return updated
 
     async def update_subscriptions(self, subscriber_id: SubscriberId, subscriptions: List[Subscription]) -> Subscriber:
@@ -121,33 +107,32 @@ class SubscriptionHandlerService(SubscriptionHandler):
         updated = Subscriber.from_list(subscriber_id, subscriptions)
         if existing != updated:
             log.info(f"Subscriber {subscriber_id}: update all subscriptions={subscriptions}")
-            await self.db.update(updated)
-            await self.__load_from_db()
+            await self.__update_subscriber(updated)
         return updated
 
     async def remove_subscriber(self, subscriber_id: SubscriberId) -> Optional[Subscriber]:
         existing = self._subscribers_by_id.get(subscriber_id, None)
         if existing:
             log.info(f"Subscriber {subscriber_id}: remove subscriber")
-            await self.db.delete(subscriber_id)
-            await self.__load_from_db()
+            async with self.lock:
+                self._subscribers_by_id.pop(subscriber_id, None)
+                self.__update_subscriber_by_event()
         return existing
-
-    async def __load_from_db(self) -> None:
-        assert self.lock is not None
-        async with self.lock:
-            self._subscribers_by_id = {s.id: s async for s in self.db.all()}
-            self._subscribers_by_event = self.update_subscriber_by_event(self._subscribers_by_id.values())
 
     def subscribers_by_event(self) -> Dict[str, List[Subscriber]]:
         return self._subscribers_by_event
 
-    def update_subscriber_by_event(self, subscribers: Iterable[Subscriber]) -> Dict[str, List[Subscriber]]:
+    def __update_subscriber_by_event(self) -> None:
         result: Dict[str, List[Subscriber]] = defaultdict(list)
-        for subscriber in subscribers:
+        for subscriber in self._subscribers_by_id.values():
             for subscription in subscriber.subscriptions.values():
                 result[subscription.message_type].append(subscriber)
-        return result
+        self._subscribers_by_event = result
+
+    async def __update_subscriber(self, subscriber: Subscriber) -> None:
+        async with self.lock:
+            self._subscribers_by_id[subscriber.id] = subscriber
+            self.__update_subscriber_by_event()
 
     async def check_outdated_handler(self) -> None:
         """

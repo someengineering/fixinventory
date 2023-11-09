@@ -198,9 +198,7 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     cli = deps.add(ServiceNames.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
     deps.add(ServiceNames.template_expander, TemplateExpanderService(db.template_entity_db, cli))
     inspector = deps.add(ServiceNames.inspector, InspectorConfigService(cli))
-    subscriptions = deps.add(
-        ServiceNames.subscription_handler, SubscriptionHandlerService(db.subscribers_db, message_bus)
-    )
+    subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandlerService(message_bus))
     core_config_handler = deps.add(
         ServiceNames.core_config_handler,
         CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
