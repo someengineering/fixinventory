@@ -150,7 +150,7 @@ def dataclasses_to_resotocore_model(
     aggregate_root: Optional[Type[Any]] = None,
     walk_subclasses: bool = True,
     use_optional_as_required: bool = False,
-    with_description: bool = False,
+    with_description: bool = True,
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -246,10 +246,10 @@ def dataclasses_to_resotocore_model(
         kind = model_name(clazz)
         metadata: Json = {}
         if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
-            metadata = m
-        if (s := getattr(clazz, "kind_display", None)) and isinstance(s, str):
+            metadata = m.copy()
+        if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
             metadata["name"] = s
-        if with_description and (s := getattr(clazz, "kind_description", None)) and isinstance(s, str):
+        if with_description and (s := clazz.__dict__.get("kind_description", None)) and isinstance(s, str):
             metadata["description"] = s
 
         model.append(
