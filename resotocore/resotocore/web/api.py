@@ -855,6 +855,10 @@ class Api(Service):
         full_model = await deps.model_handler.load_model(graph_id)
         with_bases = if_set(request.query.get("with_bases"), lambda x: x.lower() == "true", False)
         with_property_kinds = if_set(request.query.get("with_property_kinds"), lambda x: x.lower() == "true", False)
+        with_properties = if_set(request.query.get("with_properties"), lambda x: x.lower() == "true", True)
+        with_relatives = if_set(request.query.get("with_relatives"), lambda x: x.lower() == "true", True)
+        with_metadata = if_set(request.query.get("with_metadata"), lambda x: x.lower() == "true", True)
+        aggregate_roots_only = if_set(request.query.get("aggregate_roots_only"), lambda x: x.lower() == "true", False)
         md = full_model
         if kind := request.query.get("kind"):
             kinds = set(kind.split(","))
@@ -862,6 +866,8 @@ class Api(Service):
         if filter_names := request.query.get("filter"):
             parts = filter_names.split(",")
             md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_property_kinds)
+        if aggregate_roots_only:
+            md = md.filter_complex(lambda x: x.aggregate_root, with_bases, with_property_kinds)
         md = md.flat_kinds(full_model) if request.query.get("flat", "false") == "true" else md
 
         export_format = request.query.get("format")
@@ -869,9 +875,15 @@ class Api(Service):
         if export_format == "schema" or request.headers.get("accept") == "application/schema+json":
             return json_response(json_schema(md), content_type="application/schema+json")
         elif export_format == "simple":
-            return await single_result(request, json_export_simple_schema(md))
+            return await single_result(
+                request, json_export_simple_schema(md, with_properties, with_relatives, with_metadata)
+            )
         else:
-            return await single_result(request, to_js(md.kinds.values(), strip_nulls=True))
+            json_model = [
+                m.as_json(with_properties=with_properties, with_relatives=with_relatives, with_metadata=with_metadata)
+                for m in md.kinds.values()
+            ]
+            return await single_result(request, json.loads(json.dumps(json_model, sort_keys=True)))
 
     async def update_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
