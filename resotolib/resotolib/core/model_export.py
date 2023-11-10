@@ -244,7 +244,7 @@ def dataclasses_to_resotocore_model(
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
-        metadata: Optional[Json] = {}
+        metadata: Json = {}
         if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
             metadata = m
         if (s := getattr(clazz, "kind_display", None)) and isinstance(s, str):
