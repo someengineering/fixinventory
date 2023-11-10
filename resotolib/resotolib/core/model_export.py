@@ -260,7 +260,7 @@ def dataclasses_to_resotocore_model(
                 "allow_unknown_props": allow_unknown_props,
                 "successor_kinds": successors.get(kind, None),
                 "aggregate_root": root,
-                "metadata": metadata if metadata else None,
+                "metadata": metadata or None,
             }
         )
 
