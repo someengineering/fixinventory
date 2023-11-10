@@ -14,7 +14,13 @@ from resotocore.model.model import (
 from resotocore.types import Json, JsonElement
 
 
-def json_export_simple_schema(model: Model) -> List[Json]:
+def json_export_simple_schema(
+    model: Model,
+    with_properties: bool = True,
+    with_relatives: bool = True,
+    with_metadata: bool = True,
+    aggregate_roots_only: bool = False,
+) -> List[Json]:
     def export_simple(kind: SimpleKind) -> Json:
         result = kind.as_json()
         result["type"] = "simple"
@@ -45,17 +51,21 @@ def json_export_simple_schema(model: Model) -> List[Json]:
         return p
 
     def export_complex(kind: ComplexKind) -> Json:
-        return dict(
+        result = dict(
             type="object",
             fqn=kind.fqn,
-            bases=kind.bases,
-            allow_unknown_props=kind.allow_unknown_props,
-            predecessor_kinds=kind.predecessor_kinds(),
-            successor_kinds=kind.successor_kinds,
             aggregate_root=kind.aggregate_root,
-            metadata=kind.metadata,
-            properties={prop.name: export_property(prop, kind) for prop, kind in kind.all_props_with_kind()},
         )
+        if with_metadata:
+            result["metadata"] = kind.metadata
+        if with_properties:
+            result["allow_unknown_props"] = kind.allow_unknown_props
+            result["properties"] = {prop.name: export_property(prop, kind) for prop, kind in kind.all_props_with_kind()}
+        if with_relatives:
+            result["bases"] = kind.bases
+            result["predecessor_kinds"] = kind.predecessor_kinds()
+            result["successor_kinds"] = kind.successor_kinds
+        return result
 
     def export_kind(kind: Kind) -> Json:
         if isinstance(kind, SimpleKind):

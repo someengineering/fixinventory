@@ -110,6 +110,7 @@ class Property:
 
     def meta(self, name: str, clazz: Type[T]) -> Optional[T]:
         meta = self.metadata
+        # noinspection PyUnboundLocalVariable
         return v if meta is not None and (v := meta.get(name)) is not None and isinstance(v, clazz) else None
 
     def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
@@ -255,6 +256,14 @@ class Kind(ABC):
         - if obj is not valid and can not be coerced: raise an exception
         """
 
+    @staticmethod
+    def to_json(obj: Kind, **kwargs: Any) -> Json:
+        return obj.as_json(**kwargs)
+
+    @abstractmethod
+    def as_json(self, **kwargs: bool) -> Json:
+        pass
+
     def resolve(self, model: Dict[str, Kind]) -> None:
         pass
 
@@ -383,13 +392,8 @@ class SimpleKind(Kind, ABC):
         """
         return None
 
-    def as_json(self) -> Json:
+    def as_json(self, **kwargs: bool) -> Json:
         return {"fqn": self.fqn, "runtime_kind": self.runtime_kind}
-
-    # noinspection PyUnusedLocal
-    @staticmethod
-    def to_json(obj: SimpleKind, **kw_args: object) -> Json:
-        return obj.as_json()
 
 
 class AnyKind(SimpleKind):
@@ -456,8 +460,8 @@ class StringKind(SimpleKind):
         else:
             return json.dumps(value)
 
-    def as_json(self) -> Json:
-        js = super().as_json()
+    def as_json(self, **kwargs: bool) -> Json:
+        js = super().as_json(**kwargs)
         if self.pattern:
             js["pattern"] = self.pattern
         if self.enum:
@@ -521,8 +525,8 @@ class NumberKind(SimpleKind):
             except ValueError:
                 return None
 
-    def as_json(self) -> Json:
-        js = super().as_json()
+    def as_json(self, **kwargs: bool) -> Json:
+        js = super().as_json(**kwargs)
         if self.enum:
             js["enum"] = self.enum
         if self.minimum:
@@ -743,7 +747,7 @@ class TransformKind(SimpleKind):
         else:
             raise AttributeError(f"Underlying kind not known: {self.destination_fqn}")
 
-    def as_json(self) -> Json:
+    def as_json(self, **kwargs: bool) -> Json:
         return {
             "fqn": self.fqn,
             "runtime_kind": self.runtime_kind,
@@ -757,6 +761,9 @@ class ArrayKind(Kind):
     def __init__(self, inner: Kind):
         super().__init__(f"{inner.fqn}[]")
         self.inner = inner
+
+    def as_json(self, **kwargs: bool) -> Json:
+        return {"fqn": self.fqn, "inner": self.inner.as_json(**kwargs)}
 
     def resolve(self, model: Dict[str, Kind]) -> None:
         self.inner.resolve(model)
@@ -804,6 +811,13 @@ class DictionaryKind(Kind):
         super().__init__(f"dictionary[{key_kind.fqn}, {value_kind.fqn}]")
         self.key_kind = key_kind
         self.value_kind = value_kind
+
+    def as_json(self, **kwargs: bool) -> Json:
+        return {
+            "fqn": self.fqn,
+            "key_kind": self.key_kind.as_json(**kwargs),
+            "value_kind": self.value_kind.as_json(**kwargs),
+        }
 
     def check_valid(self, obj: JsonElement, **kwargs: bool) -> ValidationResult:
         if isinstance(obj, dict):
@@ -867,6 +881,18 @@ class ComplexKind(Kind):
         self.__resolved_hierarchy: Set[str] = {fqn}
         self.__property_by_path: List[ResolvedProperty] = []
         self.__synthetic_props: List[ResolvedProperty] = []
+
+    def as_json(self, **kwargs: bool) -> Json:
+        result: Json = {"fqn": self.fqn, "aggregate_root": self.aggregate_root}
+        if kwargs.get("with_metadata", True):
+            result["metadata"] = self.metadata
+        if kwargs.get("with_properties", True):
+            result["allow_unknown_props"] = self.allow_unknown_props
+            result["properties"] = [to_js(prop) for prop in self.properties]
+        if kwargs.get("with_relatives", True):
+            result["bases"] = self.bases
+            result["successor_kinds"] = self.successor_kinds
+        return result
 
     def copy(
         self,
@@ -1569,4 +1595,4 @@ class UsageDatapoint:
 
 # register serializer for this class
 set_deserializer(Kind.from_json, Kind)
-set_serializer(SimpleKind.to_json, SimpleKind)
+set_serializer(Kind.to_json, Kind)

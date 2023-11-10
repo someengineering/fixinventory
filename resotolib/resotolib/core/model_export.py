@@ -150,6 +150,7 @@ def dataclasses_to_resotocore_model(
     aggregate_root: Optional[Type[Any]] = None,
     walk_subclasses: bool = True,
     use_optional_as_required: bool = False,
+    with_description: bool = True,
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -162,6 +163,7 @@ def dataclasses_to_resotocore_model(
     :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
     :param walk_subclasses: if true, all subclasses of the given classes will be analyzed as well.
     :param use_optional_as_required: if true, all non-optional fields will be considered required.
+    :param with_description: if true, include the description for classes and properties.
     :return: the model definition in the resotocore json format.
     """
 
@@ -169,11 +171,12 @@ def dataclasses_to_resotocore_model(
         # the field itself can define the type via a type hint
         # this is useful for int and float in python where the representation can not be
         # detected by the type itself. Example: int32/int64 or float/double
-        # If not defined, we fallback to the largest container: int64 and double
+        # If not defined, we fall back to the largest container: int64 and double
         name = field.name
         meta = field.metadata.copy()
         kind = meta.pop("type_hint", model_name(field.type))
-        desc = meta.pop("description", "")
+        desc = meta.pop("description", None)
+        desc = desc if with_description else None
         required = meta.pop("required", use_optional_as_required and not is_optional(field.type))  # type: ignore
         synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
@@ -181,7 +184,12 @@ def dataclasses_to_resotocore_model(
             meta.pop(ps, None)
 
         def json(
-            name: str, kind_str: str, required: bool, description: str, meta: Optional[Dict[str, str]], **kwargs: Any
+            name: str,
+            kind_str: str,
+            required: bool,
+            description: Optional[str],
+            meta: Optional[Dict[str, str]],
+            **kwargs: Any,
         ) -> Json:
             js = {"name": name, "kind": kind_str, "required": required, "description": description, **kwargs}
             if meta:
@@ -193,7 +201,7 @@ def dataclasses_to_resotocore_model(
                 synth_prop,
                 synth_trafo,
                 False,
-                f"Synthetic prop {synth_trafo} on {name}",
+                None,
                 None,
                 synthetic={"path": [name]},
             )
@@ -236,9 +244,13 @@ def dataclasses_to_resotocore_model(
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
-        metadata: Optional[Json] = None
+        metadata: Json = {}
         if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
-            metadata = m
+            metadata = m.copy()
+        if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
+            metadata["name"] = s
+        if with_description and (s := clazz.__dict__.get("kind_description", None)) and isinstance(s, str):
+            metadata["description"] = s
 
         model.append(
             {
@@ -248,7 +260,7 @@ def dataclasses_to_resotocore_model(
                 "allow_unknown_props": allow_unknown_props,
                 "successor_kinds": successors.get(kind, None),
                 "aggregate_root": root,
-                "metadata": metadata,
+                "metadata": metadata or None,
             }
         )
 
