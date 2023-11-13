@@ -336,7 +336,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
     arg_parser.add_argument(
         "--idle-timeout",
-        help="Maximum number of seconds after startup to wait for a task (default: disabled)",
+        help="Time limit in seconds to wait for a collect task after startup (default: no limit)",
         dest="idle_timeout",
         type=int,
     )
