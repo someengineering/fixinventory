@@ -18,12 +18,7 @@ from resotolib.core import add_args as core_add_args, resotocore, wait_for_resot
 from resotolib.core.actions import CoreActions, CoreFeedback
 from resotolib.core.ca import TLSData
 from resotolib.core.tasks import CoreTasks, CoreTaskHandler
-from resotolib.event import (
-    add_event_listener,
-    Event,
-    EventType,
-    dispatch_event,
-)
+from resotolib.event import add_event_listener, Event, EventType, dispatch_event
 from resotolib.jwt import add_args as jwt_add_args
 from resotolib.logger import log, setup_logger, add_args as logging_add_args
 from resotolib.core.custom_command import command_definitions
