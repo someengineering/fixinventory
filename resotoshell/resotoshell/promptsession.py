@@ -82,7 +82,7 @@ ArgsInfo = Union[
 @define
 class CommandInfo:
     name: str
-    args: ArgsInfo = field(factory=dict)  # type: ignore
+    args: ArgsInfo = field(factory=dict)
     source: bool = True
     info: str = ""
     help: str = ""

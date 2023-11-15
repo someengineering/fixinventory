@@ -75,7 +75,7 @@ def register_json(
     """
     log.trace("Register json structure hooks for class %s", cls.__name__)
     if from_json_fn is not None:
-        __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))  # type: ignore
+        __converter.register_structure_hook(cls, lambda obj, _: from_json_fn(obj))
     if to_json_fn is not None:
         __converter.register_unstructure_hook(cls, to_json_fn)
 

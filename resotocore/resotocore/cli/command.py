@@ -71,12 +71,12 @@ from resotocore.cli import (
     is_edge,
     is_node,
     js_value_at,
-    js_value_get,
     key_values_parser,
     parse_time_or_delta,
     strip_quotes,
     key_value_parser,
     JsStream,
+    js_value_get,
 )
 from resotocore.cli.model import (
     CLICommand,
@@ -1463,9 +1463,9 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             if history:
-                before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
-                after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
-                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])  # type: ignore
+                before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))
+                after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))
+                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])
                 context = await db.search_history(query_model, change, before, after, timeout=timeout)
             elif query.aggregate:
                 context = await db.search_aggregation(query_model)
@@ -3770,9 +3770,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
             fn = self.already_file_stream
         else:
             fn = self.write_result_to_file
-        return CLIFlow(
-            lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath, required_permissions={Permission.read}
-        )
+        return CLIFlow(lambda in_stream: fn(in_stream, arg), MediaType.FilePath, required_permissions={Permission.read})
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):

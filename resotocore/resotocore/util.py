@@ -278,7 +278,7 @@ def if_set(x: Optional[AnyT], func: Callable[[AnyT], Any], if_not: Any = None) -
 
 def value_in_path_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
     result = value_in_path(element, path_or_name)
-    return result if result is not None and isinstance(result, type(if_none)) else if_none
+    return result if result is not None and isinstance(result, type(if_none)) else if_none  # type: ignore
 
 
 def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
