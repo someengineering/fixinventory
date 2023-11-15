@@ -2636,11 +2636,8 @@ class ListCommand(CLICommand, OutputTransformer):
             names: Set[str] = set()
 
             def unique_name(path: List[str], current: str) -> str:
-                # check if current name is already defined
-                if current not in names:
-                    return current
                 # compute the name by parameter path
-                current = "_".join(path)
+                current = "_".join(path) if path else current
                 if current not in names:
                     return current
                 # compute the name by parameter path and current name
