@@ -114,7 +114,11 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def update_security_section(
-        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, Json]], model: Model
+        self,
+        report_run_id: str,
+        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        model: Model,
+        accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:
         pass
 
@@ -447,7 +451,11 @@ class ArangoGraphDB(GraphDB):
             await self.db.delete_vertex(self.name, {"_id": f'{self.vertex_name}/{node["id"]}'})
 
     async def update_security_section(
-        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, Json]], model: Model
+        self,
+        report_run_id: str,
+        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        model: Model,
+        accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:  # inserted, updated
         temp_collection = await self.get_tmp_collection(report_run_id)
         now = utc_str()
@@ -508,13 +516,14 @@ class ArangoGraphDB(GraphDB):
 
         async def move_security_temp_to_proper() -> None:
             temp_name = temp_collection.name
+            account_filter = ("and e.refs.account_id in [" + ",".join(accounts) + "]") if accounts else ""
             aql_updates = [
                 # Select all new or updated vulnerable nodes. Insert into history and update vertex.
                 f'for e in {temp_name} filter e.action=="node_vulnerable" insert e.data in {self.node_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
                 # Update security.run_id for all items with the same security issues
                 f'for e in {temp_name} filter e.action=="mark" update {{_key: e.node_id, security: {{run_id: e.run_id}}}} in {self.vertex_name} OPTIONS {{mergeObjects: true}}',  # noqa
                 # Select all remaining nodes with a different run_id -> they are compliant again
-                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "node_compliant", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.node_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
+                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" {account_filter} insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "node_compliant", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.node_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
             ]
             updates = ";\n".join(map(lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()", aql_updates))
             await self.db.execute_transaction(
@@ -1477,9 +1486,13 @@ class EventGraphDB(GraphDB):
             yield a
 
     async def update_security_section(
-        self, report_run_id: str, iterator: AsyncIterator[Tuple[NodeId, Json]], model: Model
+        self,
+        report_run_id: str,
+        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        model: Model,
+        accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:
-        return await self.real.update_security_section(report_run_id, iterator, model)
+        return await self.real.update_security_section(report_run_id, iterator, model, accounts)
 
     async def merge_graph(
         self,
