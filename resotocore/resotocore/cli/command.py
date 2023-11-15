@@ -76,6 +76,7 @@ from resotocore.cli import (
     strip_quotes,
     key_value_parser,
     JsStream,
+    js_value_get,
 )
 from resotocore.cli.model import (
     CLICommand,
@@ -156,7 +157,6 @@ from resotocore.util import (
     restart_service,
     combine_optional,
     value_in_path,
-    value_in_path_get,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -1331,7 +1331,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
             async with in_streamer.stream() as streamer:
                 async for elem in streamer:
                     name = js_value_at(elem, name_path)
-                    count = value_in_path_get(elem, count_path, 0)
+                    count = js_value_get(elem, count_path, 0)
                     if name is None:
                         null_value = count
                     else:
@@ -2086,9 +2086,9 @@ class CleanCommand(SetDesiredStateBase):
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
             uid = js_value_at(elem, NodePath.node_id)
-            r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
-            r_name = value_in_path_get(elem, NodePath.reported_name, "<no name>")
-            r_kind = value_in_path_get(elem, NodePath.reported_kind, "<no kind>")
+            r_id = js_value_get(elem, NodePath.reported_id, "<no id>")
+            r_name = js_value_get(elem, NodePath.reported_name, "<no name>")
+            r_kind = js_value_get(elem, NodePath.reported_kind, "<no kind>")
             log.info(f"Node id={r_id}, name={r_name}, kind={r_kind} marked for cleanup. {reason}. ({uid})")
             yield elem
 
