@@ -208,7 +208,7 @@ class InspectorService(Inspector, Service):
             # In case no run_id is provided, we invent a report run id here.
             run_id = report_run_id or uuid_str()
             await self.db_access.get_graph_db(graph).update_security_section(
-                run_id, self.__benchmarks_to_security_iterator(result), model
+                run_id, self.__benchmarks_to_security_iterator(result), model, accounts
             )
         return result
 
