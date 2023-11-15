@@ -71,7 +71,6 @@ from resotocore.cli import (
     is_edge,
     is_node,
     js_value_at,
-    js_value_get,
     key_values_parser,
     parse_time_or_delta,
     strip_quotes,
@@ -157,6 +156,7 @@ from resotocore.util import (
     restart_service,
     combine_optional,
     value_in_path,
+    value_in_path_get,
 )
 from resotocore.web.content_renderer import (
     respond_ndjson,
@@ -1331,7 +1331,7 @@ class AggregateToCountCommand(CLICommand, InternalPart):
             async with in_streamer.stream() as streamer:
                 async for elem in streamer:
                     name = js_value_at(elem, name_path)
-                    count = js_value_get(elem, count_path, 0)
+                    count = value_in_path_get(elem, count_path, 0)
                     if name is None:
                         null_value = count
                     else:
@@ -1463,9 +1463,9 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             if history:
-                before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
-                after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))  # type: ignore
-                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])  # type: ignore
+                before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))
+                after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))
+                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])
                 context = await db.search_history(query_model, change, before, after, timeout=timeout)
             elif query.aggregate:
                 context = await db.search_aggregation(query_model)
@@ -2086,9 +2086,9 @@ class CleanCommand(SetDesiredStateBase):
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
             uid = js_value_at(elem, NodePath.node_id)
-            r_id = js_value_get(elem, NodePath.reported_id, "<no id>")
-            r_name = js_value_get(elem, NodePath.reported_name, "<no name>")
-            r_kind = js_value_get(elem, NodePath.reported_kind, "<no kind>")
+            r_id = value_in_path_get(elem, NodePath.reported_id, "<no id>")
+            r_name = value_in_path_get(elem, NodePath.reported_name, "<no name>")
+            r_kind = value_in_path_get(elem, NodePath.reported_kind, "<no kind>")
             log.info(f"Node id={r_id}, name={r_name}, kind={r_kind} marked for cleanup. {reason}. ({uid})")
             yield elem
 
@@ -3770,9 +3770,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
             fn = self.already_file_stream
         else:
             fn = self.write_result_to_file
-        return CLIFlow(
-            lambda in_stream: fn(in_stream, cast(str, arg)), MediaType.FilePath, required_permissions={Permission.read}
-        )
+        return CLIFlow(lambda in_stream: fn(in_stream, arg), MediaType.FilePath, required_permissions={Permission.read})
 
 
 class TemplatesCommand(CLICommand, PreserveOutputFormat):

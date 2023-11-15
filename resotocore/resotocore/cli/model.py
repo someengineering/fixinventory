@@ -388,7 +388,7 @@ class CLICommand(ABC):
     @staticmethod
     def get_from(name: str, kind: Type[T], kwargs: Dict[str, Any]) -> Optional[T]:
         if (kd := kwargs.get(name)) and isinstance(kd, kind):
-            return kd
+            return kd  # type: ignore
         return None
 
     @staticmethod

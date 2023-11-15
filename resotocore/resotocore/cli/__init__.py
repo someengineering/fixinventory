@@ -10,7 +10,7 @@ from parsy import Parser, regex, string
 
 from resotocore.model.graph_access import Section
 from resotocore.types import JsonElement
-from resotocore.util import AnyT, utc, parse_utc
+from resotocore.util import utc, parse_utc
 from resotolib.durations import parse_duration, DurationRe
 from resotolib.parse_util import (
     make_parser,
@@ -154,11 +154,6 @@ def parse_path_index(path: str) -> Tuple[str, Union[bool, int, None]]:
 # Is able to read iso timestamps: 2020-01-01T00:00:00.000Z, as well as durations like 1d, 3h, 5m, 10s
 def parse_time_or_delta(time_or_delta: str) -> datetime:
     return utc() - parse_duration(time_or_delta) if DurationRe.fullmatch(time_or_delta) else parse_utc(time_or_delta)
-
-
-def js_value_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
-    result = js_value_at(element, path_or_name)
-    return result if result and isinstance(result, type(if_none)) else if_none
 
 
 def js_value_at(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:

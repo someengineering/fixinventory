@@ -84,7 +84,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
             if walk_subclasses:
                 for subclass in clazz.__subclasses__():
                     check(subclass)
-            for field in attrs.fields(clazz):  # type: ignore
+            for field in attrs.fields(clazz):
                 check(field.type)
         elif is_enum(clazz):
             all_classes.add(clazz)
@@ -125,7 +125,7 @@ def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
         # since union types are not supported, we fallback to any here
         return "any"
     elif isinstance(to_check, TypeVar):
-        return model_name(get_args(to_check))  # type: ignore
+        return model_name(get_args(to_check))
     elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
     elif attrs.has(to_check):
@@ -240,7 +240,7 @@ def dataclasses_to_resotocore_model(
         base_names = [model_name(base) for base in bases]
         base_props: Set[Attribute] = reduce(lambda result, base: result | set(attrs.fields(base)), bases, set())  # type: ignore # noqa: E501
         props = [
-            p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)  # type: ignore # noqa: E501
+            p for field in attrs.fields(clazz) if field not in base_props and should_export(field) for p in prop(field)
         ]
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
