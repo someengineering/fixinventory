@@ -2535,6 +2535,12 @@ class ListCommand(CLICommand, OutputTransformer):
         (["change"], "change"),
         (["changed_at"], "changed_at"),
     ]
+    default_properties_to_ignore = {
+        "ancestors.cloud.reported.id",
+        "ancestors.account.reported.id",
+        "ancestors.region.reported.id",
+        "ancestors.zone.reported.id",
+    }
     all_default_props = {
         ".".join(path)
         for path, _ in default_properties_to_show
@@ -2585,7 +2591,9 @@ class ListCommand(CLICommand, OutputTransformer):
             # add all predicates the user has queried
             if ctx.query:
                 # add all predicates the user has queried
-                predicate_names = (p.name for p in ctx.query.visible_predicates)
+                predicate_names = (
+                    p.name for p in ctx.query.visible_predicates if p.name not in self.default_properties_to_ignore
+                )
                 # add sort keys of the last part the user has defined
                 sort_names = (s.name for s in ctx.query.current_part.sort)
                 for name in chain(predicate_names, sort_names):
@@ -2623,7 +2631,42 @@ class ListCommand(CLICommand, OutputTransformer):
                 props.append((path, as_name))
             return props
 
+        def create_unique_names(all_props: List[Tuple[List[str], str]]) -> List[Tuple[List[str], str]]:
+            result = []
+            names: Set[str] = set()
+
+            def unique_name(path: List[str], current: str) -> str:
+                # check if current name is already defined
+                if current not in names:
+                    return current
+                # compute the name by parameter path
+                current = "_".join(path)
+                if current not in names:
+                    return current
+                # compute the name by parameter path and current name
+                count = 0
+                attempt = current
+                while attempt in names:
+                    count += 1
+                    attempt = f"{current}_{count}"
+                return attempt
+
+            for path, name in all_props:
+                if name in names:
+                    if len(path) <= 1:
+                        name = unique_name(path, name)
+                    elif path[0] in ("ancestors", "descendants"):
+                        name = unique_name([path[1]] + path[3:], name)
+                    elif path[0] in Section.all:
+                        name = unique_name(path[1:], name)
+                    else:
+                        name = unique_name(path, name)
+                names.add(name)
+                result.append((path, name))
+            return result
+
         props_to_show = parse_props_to_show(properties) if properties is not None else default_props_to_show()
+        props_to_show = create_unique_names(props_to_show)
 
         def fmt_json(elem: Json) -> JsonElement:
             if is_node(elem):

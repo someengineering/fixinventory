@@ -583,14 +583,12 @@ async def test_list_command(cli: CLI) -> None:
     assert result[0] == ["some_string=hello, some_int=0, node_id=sub_root"]
 
     # List supports csv output
-    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     result = await cli.execute_cli_command(
         f"json {json.dumps(props)} | list --csv a,b,c,d,e,f,non_existent", stream.list
     )
     assert result[0] == ['"a","b","c","d","e","f","non_existent"', '"a",True,False,"",12,1.234,""']
 
     # List supports markdown output
-    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     result = await cli.execute_cli_command(
         f"json {json.dumps(props)} | list --markdown a,b,c,d,e,f,non_existent", stream.list
     )
@@ -615,9 +613,18 @@ async def test_list_command(cli: CLI) -> None:
     ]
 
     # List supports only markdown or csv, but not both at the same time
-    props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
     with pytest.raises(CLIParseError):
         await cli.execute_cli_command(f"json {json.dumps(props)}" " | list --csv --markdown", stream.list)
+
+    # List command will make sure to make the column name unique
+    props = dict(id="123", reported=props, ancestors={"account": {"reported": props}})
+    result = await cli.execute_cli_command(
+        f"json {json.dumps(props)} | list reported.a, reported.b as a, reported.c as a, reported.c, "
+        f"ancestors.account.reported.a, ancestors.account.reported.a, ancestors.account.reported.a as foo",
+        stream.list,
+    )
+    # b as a ==> b, c as a ==> c, c ==> c_1, ancestors.account.reported.a ==> account_a, again ==> _1
+    assert result[0][0] == "a=a, b=true, c=false, c_1=false, account_a=a, account_a_1=a, foo=a"
 
 
 @pytest.mark.asyncio
