@@ -3,7 +3,14 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, AzureSubResource, AzureSku
+from resoto_plugin_azure.resource.base import (
+    AzureResource,
+    AzureSubResource,
+    AzureSku,
+    AzureExtendedLocation,
+    AzurePrincipalidClientid,
+    AzurePrivateLinkServiceConnectionState,
+)
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringToUnitNumber
 
 
@@ -754,27 +761,6 @@ class AzureApplicationGatewayPrivateLinkConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureExtendedLocation:
-    kind: ClassVar[str] = "azure_extended_location"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the extended location."})
-    type: Optional[str] = field(default=None, metadata={'description': 'The supported ExtendedLocation types. Currently only EdgeZone is supported in Microsoft.Network resources.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={'description': 'Indicates whether the connection has been Approved/Rejected/Removed by the owner of the service.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzurePrivateLinkServiceConnection(AzureSubResource):
     kind: ClassVar[str] = "azure_private_link_service_connection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
@@ -956,14 +942,6 @@ class AzureApplicationGatewayGlobalConfiguration:
     }
     enable_request_buffering: Optional[bool] = field(default=None, metadata={'description': 'Enable request buffering.'})  # fmt: skip
     enable_response_buffering: Optional[bool] = field(default=None, metadata={'description': 'Enable response buffering.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrincipalidClientid:
-    kind: ClassVar[str] = "azure_principalid_clientid"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2487,8 +2465,8 @@ class AzurePrivateLinkServiceIpConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzurePrivateEndpointConnection(AzureSubResource):
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
+class AzureLinkServicePrivateEndpointConnection(AzureSubResource):
+    kind: ClassVar[str] = "azure_link_service_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
         "link_identifier": S("properties", "linkIdentifier"),
@@ -2535,7 +2513,7 @@ class AzurePrivateLinkService:
         "location": S("location"),
         "name": S("name"),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzurePrivateEndpointConnection.mapping),
+        >> ForallBend(AzureLinkServicePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "tags": S("tags"),
         "type": S("type"),
@@ -2552,7 +2530,7 @@ class AzurePrivateLinkService:
     load_balancer_frontend_ip_configurations: Optional[List[AzureFrontendIPConfiguration]] = field(default=None, metadata={'description': 'An array of references to the load balancer IP configurations.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
+    private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})

@@ -275,6 +275,35 @@ class AzureResourceGroup(AzureResource):
 
 
 @define(eq=False, slots=False)
+class AzureExtendedLocation:
+    kind: ClassVar[str] = "azure_extended_location"
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the extended location."})
+    type: Optional[str] = field(default=None, metadata={"description": "The type of extendedlocation."})
+
+
+@define(eq=False, slots=False)
+class AzurePrincipalidClientid:
+    kind: ClassVar[str] = "azure_principalid_clientid"
+    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
+    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzurePrivateLinkServiceConnectionState:
+    kind: ClassVar[str] = "azure_private_link_service_connection_state"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "actions_required": S("actionsRequired"),
+        "description": S("description"),
+        "status": S("status"),
+    }
+    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
+    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
+
+
+@define(eq=False, slots=False)
 class AzureSubscriptionPolicies:
     kind: ClassVar[str] = "azure_subscription_policies"
     mapping: ClassVar[Dict[str, Bender]] = {

@@ -4,7 +4,16 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, GraphBuilder, AzureSubResource, AzureSystemData, AzureSku
+from resoto_plugin_azure.resource.base import (
+    AzureResource,
+    GraphBuilder,
+    AzureSubResource,
+    AzureSystemData,
+    AzureSku,
+    AzureExtendedLocation,
+    AzurePrincipalidClientid,
+    AzurePrivateLinkServiceConnectionState,
+)
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
@@ -459,14 +468,6 @@ class AzureDiskSku:
 
 
 @define(eq=False, slots=False)
-class AzureExtendedLocation:
-    kind: ClassVar[str] = "azure_extended_location"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the extended location."})
-    type: Optional[str] = field(default=None, metadata={"description": "The type of extendedlocation."})
-
-
-@define(eq=False, slots=False)
 class AzurePurchasePlan:
     kind: ClassVar[str] = "azure_purchase_plan"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -719,21 +720,8 @@ class AzureDisk(AzureResource, BaseVolume):
 
 
 @define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
-class AzurePrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
+class AzureDiskAccessPrivateEndpointConnection:
+    kind: ClassVar[str] = "azure_disk_access_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -772,22 +760,14 @@ class AzureDiskAccess(AzureResource):
         "atime": K(None),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzurePrivateEndpointConnection.mapping),
+        >> ForallBend(AzureDiskAccessPrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "time_created": S("properties", "timeCreated"),
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
+    private_endpoint_connections: Optional[List[AzureDiskAccessPrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The disk access resource provisioning state.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk access was created.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrincipalidClientid:
-    kind: ClassVar[str] = "azure_principalid_clientid"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
