@@ -90,7 +90,7 @@ from resotocore.metrics import timed
 from resotocore.model.exportable_model import json_export_simple_schema
 from resotocore.model.graph_access import Section
 from resotocore.model.json_schema import json_schema
-from resotocore.model.model import Kind
+from resotocore.model.model import Kind, Model
 from resotocore.model.typed_model import to_json, from_js, to_js_str, to_js
 from resotocore.query.model import Predicate, PathRoot, variable_to_absolute
 from resotocore.query.query_parser import predicate_term
@@ -231,6 +231,7 @@ class Api(Service):
                 web.post(prefix + "/graph/{graph_id}/search/history/aggregate", require(self.query_history, r)),
                 web.post(prefix + "/graph/{graph_id}/property/attributes", require(self.possible_values, r)),
                 web.post(prefix + "/graph/{graph_id}/property/values", require(self.possible_values, r)),
+                web.post(prefix + "/graph/{graph_id}/property/path/complete", require(self.property_path_complete, r)),
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, a)),
                 web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, a)),
@@ -1012,11 +1013,7 @@ class Api(Service):
         await graph_db.abort_update(batch_id)
         return web.HTTPOk(body="Batch aborted.")
 
-    async def graph_query_model_from_request(
-        self, request: Request, deps: TenantDependencies
-    ) -> Tuple[GraphDB, QueryModel]:
-        section = section_of(request)
-        query_string = await request.text()
+    async def graph_model_from_request(self, request: Request, deps: TenantDependencies) -> Tuple[GraphName, Model]:
         graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         raw_at = request.query.get("at")
         at = date_parser.parse(raw_at) if raw_at else None
@@ -1027,10 +1024,17 @@ class Api(Service):
                 raise ValueError(f"No snapshot found for {graph_name} at {at}")
 
         graph_name = snapshot_name or graph_name
+        return graph_name, await deps.model_handler.load_model(graph_name)
+
+    async def graph_query_model_from_request(
+        self, request: Request, deps: TenantDependencies
+    ) -> Tuple[GraphDB, QueryModel]:
+        section = section_of(request)
+        query_string = await request.text()
+        graph_name, model = await self.graph_model_from_request(request, deps)
         graph_db = deps.db_access.get_graph_db(graph_name)
         q = await deps.template_expander.parse_query(query_string, section, **request.query)
-        m = await deps.model_handler.load_model(graph_name)
-        return graph_db, QueryModel(q, m, cast(Dict[str, Any], request.query))
+        return graph_db, QueryModel(q, model, cast(Dict[str, Any], request.query))
 
     async def raw(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
@@ -1042,6 +1046,20 @@ class Api(Service):
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         result = await graph_db.explain(query_model)
         return web.json_response(to_js(result))
+
+    async def property_path_complete(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        _, model = await self.graph_model_from_request(request, deps)
+        body = await request.json()
+        path = variable_to_absolute(section_of(request), body.get("path", PathRoot)).rstrip(".\n\t")
+        prop = body.get("prop", "")
+        filter_kinds = body.get("kinds")
+        fuzzy = body.get("fuzzy", False)
+        limit = body.get("limit", 20)
+        skip = body.get("skip", 0)
+        assert skip >= 0, "Skip must be positive"
+        assert limit > 0, "Limit must be positive"
+        count, result = model.complete_path(path, prop, filter_kinds=filter_kinds, fuzzy=fuzzy, skip=skip, limit=limit)
+        return await single_result(request, result, {"Total-Count": str(count)})
 
     async def possible_values(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)

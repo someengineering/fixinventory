@@ -23,6 +23,7 @@ from typing import (
     Tuple,
     Iterable,
     TypeVar,
+    Iterator,
 )
 
 import yaml
@@ -1352,8 +1353,15 @@ class Model:
         else:
             return None
 
-    def complex_kinds(self) -> List[ComplexKind]:
-        return [k for k in self.kinds.values() if isinstance(k, ComplexKind)]
+    def complex_kinds(self) -> Iterator[ComplexKind]:
+        for k in self.kinds.values():
+            if isinstance(k, ComplexKind):
+                yield k
+
+    def aggregate_roots(self) -> Iterator[ComplexKind]:
+        for k in self.complex_kinds():
+            if k.aggregate_root:
+                yield k
 
     def property_by_path(self, path_: str) -> ResolvedProperty:
         path = PropertyPath.from_path(path_)
@@ -1568,6 +1576,64 @@ class Model:
                 add_kind(kind)
 
         return Model(kinds, self.__property_kind_by_path)
+
+    def complete_path(
+        self,
+        path: str,
+        prop: str,
+        *,
+        filter_kinds: Optional[List[str]] = None,
+        fuzzy: bool = False,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> Tuple[int, Dict[str, str]]:
+        filter_prop: Callable[[str], bool] = (
+            (lambda p: re.match(prop, p) is not None) if fuzzy else (lambda p: p.startswith(prop))
+        )
+
+        def from_prop_path(kinds: Iterable[ComplexKind]) -> Tuple[int, Dict[str, str]]:
+            props: Dict[str, str] = {}
+            for kind in kinds:
+                for p, pk in kind.all_props_with_kind():
+                    if filter_prop(p.name):
+                        if isinstance(pk, ArrayKind):
+                            props[p.name + "[*]"] = pk.inner.fqn
+                        elif isinstance(pk, TransformKind):
+                            props[p.name] = (pk.source_kind or any_kind).fqn
+                        else:
+                            props[p.name] = pk.fqn
+            return len(props), {k: props[k] for k in sorted(props)[skip : skip + limit]}
+
+        def from_aggregate_roots() -> Tuple[int, Dict[str, str]]:
+            roots: Dict[str, str] = {}
+            for kind in self.aggregate_roots():
+                if filter_prop(kind.fqn) and (not filter_kinds or kind.fqn in filter_kinds):
+                    roots[kind.fqn] = "node"
+            return len(roots), {k: roots[k] for k in sorted(roots)[skip : skip + limit]}
+
+        if path:
+            parts = path.split(".")
+            if parts[0] in ("ancestors", "descendants"):
+                if len(parts) == 1:
+                    return from_aggregate_roots()
+                elif len(parts) == 2:
+                    return 1, {"reported": "resource"}
+                elif len(parts) == 3 and parts[2] == "reported" and (kind := self.get(parts[1])):
+                    return from_prop_path([kind]) if isinstance(kind, ComplexKind) else (0, {})
+                elif len(parts) > 3 and parts[2] == "reported":
+                    parts = parts[3:]
+                else:
+                    return 0, {}
+            elif parts[0] in ("reported", "metadata", "desired"):
+                parts = parts[1:]
+            path = ".".join(parts)
+
+        if path:
+            resolved = self.property_by_path(path)
+            return from_prop_path([resolved.kind]) if isinstance(resolved.kind, ComplexKind) else (0, {})
+        else:
+            roots = [k for k in self.aggregate_roots() if not filter_kinds or k.fqn in filter_kinds]
+            return from_prop_path(roots)
 
 
 @frozen

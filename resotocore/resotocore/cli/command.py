@@ -5907,7 +5907,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
             resoto_model = await self.dependencies.model_handler.load_model(ctx.graph_name)
 
             if complete_model:
-                complex_kinds = resoto_model.complex_kinds()
+                complex_kinds = list(resoto_model.complex_kinds())
                 kinds = list(resoto_model.kinds.values())
             else:
                 # only export the kinds that are exported by this query
