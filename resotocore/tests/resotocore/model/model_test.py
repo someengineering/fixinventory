@@ -582,6 +582,42 @@ def test_filter_model(person_model: Model) -> None:
     assert address.predecessor_kinds() == {"default": ["Person"], "delete": []}
 
 
+def test_complete_path(person_model: Model) -> None:
+    count, all_props = person_model.complete_path("", "", fuzzy=False, skip=0, limit=4)
+    assert count == 21  # total
+    assert all_props == {"address": "Address", "addresses[*]": "Address", "age": "duration", "any": "any"}
+    # filter by prefix
+    count, all_props = person_model.complete_path("", "ad", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"address": "Address", "addresses[*]": "Address"}
+    # filter by prefix fuzzy
+    count, all_props = person_model.complete_path("", "^a.*s", fuzzy=True, skip=0, limit=4)
+    assert all_props == {"address": "Address", "addresses[*]": "Address"}
+    # skip the first 4
+    count, all_props = person_model.complete_path("", "", fuzzy=False, skip=4, limit=4)
+    assert all_props == {"city": "string", "ctime": "datetime", "expires": "datetime", "exported_age": "duration"}
+    # ask for a nested kind
+    count, all_props = person_model.complete_path("address", "", fuzzy=False, skip=4, limit=4)
+    assert all_props == {"mtime": "datetime", "tags": "dictionary[string, string]", "zip": "zip"}
+    # ask for a nested kind filtered
+    count, all_props = person_model.complete_path("address", "ta", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"tags": "dictionary[string, string]"}
+    # reported section
+    count, all_props = person_model.complete_path("reported.address", "ta", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"tags": "dictionary[string, string]"}
+    # ask for ancestors will list all available kinds
+    count, all_props = person_model.complete_path("ancestors", "", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"Address": "node", "Base": "node", "Person": "node", "account": "node"}
+    # suggest the reported section
+    count, all_props = person_model.complete_path("ancestors.Address", "", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"reported": "resource"}
+    # suggest properties of address
+    count, all_props = person_model.complete_path("ancestors.Address.reported", "", fuzzy=False, skip=0, limit=4)
+    assert all_props == {"city": "string", "id": "string", "kind": "string", "list[*]": "string"}
+    # filter by kinds
+    count, all_props = person_model.complete_path("", "", filter_kinds=["Address"], skip=5)
+    assert all_props == {"tags": "dictionary[string, string]", "zip": "zip"}
+
+
 @given(json_object_gen)
 @settings(max_examples=200, suppress_health_check=list(HealthCheck))
 def test_yaml_generation(js: Json) -> None:

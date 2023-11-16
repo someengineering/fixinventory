@@ -226,10 +226,10 @@ paths:
           in: query
           schema:
             type: string
-            default: null
             enum:
               - schema
               - simple
+          required: false
         - name: with_property_kinds
           description: "Render types of property values. Only together with kind or filter"
           in: query
@@ -772,7 +772,7 @@ paths:
         - node_management
       parameters:
         - $ref: "#/components/parameters/graph_id"
-        - $ref: "#/components/parameters/section"
+        - $ref: "#/components/parameters/section-path"
         - name: node_id
           in: path
           description: "The identifier of the node"
@@ -1694,6 +1694,75 @@ paths:
       responses:
         "200":
           description: "The result of this search in the defined format"
+          content:
+            "application/json":
+              schema:
+                type: array
+                example: |
+                  [
+                    "owner",
+                    "checksum/secret",
+                    "prometheus.io/path",
+                  ]
+                items:
+                  type: string
+  /graph/{graph_id}/property/path/complete:
+    post:
+      summary: "Search the graph and return all possible attribute values for given property path."
+      tags:
+        - graph_search
+      parameters:
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: "Parameters to define a property path completion."
+              type: object
+              properties:
+                prop:
+                  type: string
+                  description: |
+                    The last part of the property name used to filter possible results.
+                    All property names that start with this name are returned.
+                    In fuzzy mode, this property is interpreted as regular expression.
+                  example: "ab"
+                path:
+                  type: string
+                  description: Already existing path
+                kinds:
+                  type: array
+                  items:
+                    type: string
+                    description: The list of allowed kinds.
+                fuzzy:
+                  type: boolean
+                  description: |
+                    If true, the prop parameter is interpreted as regular expression.
+                    If false, the prop parameter is interpreted as prefix.
+                  default: false
+                limit:
+                  type: integer
+                  description: |
+                    The maximum number of results to return.
+                    If not defined, the default limit is used.
+                  default: 20
+                skip:
+                  type: integer
+                  description: |
+                    The number of results to skip.
+                    If not defined, the default skip is used.
+                  default: 0
+      responses:
+        "200":
+          description: "The result of this search in the defined format"
+          headers:
+            Total-Count:
+              description: "The number of total available elements"
+              schema:
+                type: integer
+                example: 3
           content:
             "application/json":
               schema:
@@ -3185,6 +3254,17 @@ components:
       required: true
       schema:
         type: string
+    section-path:
+      name: section
+      in: path
+      required: true
+      description: "The name of the section used for all property paths. If not defined root is assumed."
+      schema:
+        type: string
+        enum:
+          - reported
+          - desired
+          - metadata
     section:
       name: section
       in: query
