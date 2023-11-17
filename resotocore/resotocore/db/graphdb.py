@@ -1170,8 +1170,10 @@ class ArangoGraphDB(GraphDB):
                     sparse=False,
                     name="history_access",
                 )
-            if "ttl_index" not in node_history_indexes:
-                node_history.add_ttl_index(["changed"], int(timedelta(days=14).total_seconds()), name="ttl_index")
+            if "ttl_index" in node_history_indexes:
+                node_history.delete_index("ttl_index")
+            if "history_ttl" not in node_history_indexes:
+                node_history.add_ttl_index(["changed_at"], int(timedelta(days=14).total_seconds()), name="history_ttl")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
