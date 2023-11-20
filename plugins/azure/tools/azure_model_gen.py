@@ -243,12 +243,14 @@ def class_method(
     unfold_props = (unfold_properties or set()) | {"properties"}  # always unfold properties
 
     def add_types(acs: Dict[str, AzureClassModel]) -> None:
-        result.update(acs)
+        for k, v in acs.items():
+            if k not in result:
+                result[k] = v
 
     if "properties" in shape or "allOf" in shape:
         name = type_name(shape)
-        if name in result:
-            return {}
+        # if name in result:
+        #     return {}
         props: Dict[str, AzureProperty] = {}
         bases: List[str] = []
         existing_ignored: Dict[str, AzureProperty] = {}
