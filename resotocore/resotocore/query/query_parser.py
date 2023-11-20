@@ -155,7 +155,7 @@ is_term = lexeme(string("is") >> lparen_p >> literal_list_optional_brackets << r
 id_term = lexeme(string("id") >> lparen_p >> literal_list_optional_brackets << rparen_p).map(IdTerm)
 match_all_term = lexeme(string("all")).map(lambda _: AllTerm())
 leaf_term_p = (
-    is_term | id_term | match_all_term | function_term | predicate_term | context_term | not_term | fulltext_term
+    is_term | id_term | function_term | predicate_term | context_term | not_term | fulltext_term | match_all_term
 )
 
 bool_op_p = lexeme(string("and") | string("or"))
