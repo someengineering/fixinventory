@@ -94,6 +94,11 @@ def test_parse_predicate() -> None:
     assert_round_trip(predicate_term, P("num").is_not_in([1, 2, 5]))
 
 
+def test_all_term() -> None:
+    assert_round_trip(query_parser, Query.by(AllTerm()))
+    assert_round_trip(query_parser, Query.by(Query.mk_term(P("allow_users_to_change_password").eq(True))))
+
+
 def test_parse_predicate_array() -> None:
     assert_round_trip(predicate_term, P.array("mem").for_any() < 23)
     assert_round_trip(predicate_term, P.array("mem").for_all() >= 23)
