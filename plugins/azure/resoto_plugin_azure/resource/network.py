@@ -747,14 +747,14 @@ class AzureApplicationGatewayPrivateLinkConfiguration(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_private_link_configuration"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
-        "ip_configurations": S("properties", "ipConfigurations")
+        "link_ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureApplicationGatewayPrivateLinkIpConfiguration.mapping),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    ip_configurations: Optional[List[AzureApplicationGatewayPrivateLinkIpConfiguration]] = field(default=None, metadata={'description': 'An array of application gateway private link ip configurations.'})  # fmt: skip
+    link_ip_configurations: Optional[List[AzureApplicationGatewayPrivateLinkIpConfiguration]] = field(default=None, metadata={'description': 'An array of application gateway private link ip configurations.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'Name of the private link configuration that is unique within an Application Gateway.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
@@ -1547,7 +1547,8 @@ class AzureBastionHost(AzureResource):
         "enable_shareable_link": S("properties", "enableShareableLink"),
         "enable_tunneling": S("properties", "enableTunneling"),
         "etag": S("etag"),
-        "ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureBastionHostIPConfiguration.mapping),
+        "bastion_host_ip_configurations": S("properties", "ipConfigurations")
+        >> ForallBend(AzureBastionHostIPConfiguration.mapping),
         "network_acls": S("properties", "networkAcls") >> Bend(AzureIpRules.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "scale_units": S("properties", "scaleUnits"),
@@ -1562,7 +1563,7 @@ class AzureBastionHost(AzureResource):
     enable_shareable_link: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Shareable Link of the Bastion Host resource.'})  # fmt: skip
     enable_tunneling: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Tunneling feature of the Bastion Host resource.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    ip_configurations: Optional[List[AzureBastionHostIPConfiguration]] = field(default=None, metadata={'description': 'IP configuration of the Bastion Host resource.'})  # fmt: skip
+    bastion_host_ip_configurations: Optional[List[AzureBastionHostIPConfiguration]] = field(default=None, metadata={'description': 'IP configuration of the Bastion Host resource.'})  # fmt: skip
     network_acls: Optional[AzureIpRules] = field(default=None, metadata={"description": ""})
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     scale_units: Optional[int] = field(default=None, metadata={'description': 'The scale units for the Bastion Host resource.'})  # fmt: skip
@@ -2048,7 +2049,7 @@ class AzureNatGateway(AzureResource):
         "public_ip_prefixes": S("properties") >> S("publicIpPrefixes", default=[]) >> ForallBend(S("id")),
         "resource_guid": S("properties", "resourceGuid"),
         "sku": S("sku", "name"),
-        "subnets": S("properties") >> S("subnets", default=[]) >> ForallBend(S("id")),
+        "subnet_ids": S("properties") >> S("subnets", default=[]) >> ForallBend(S("id")),
         "type": S("type"),
         "zones": S("zones"),
     }
@@ -2060,7 +2061,7 @@ class AzureNatGateway(AzureResource):
     public_ip_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'An array of public ip prefixes associated with the nat gateway resource.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the NAT gateway resource.'})  # fmt: skip
     sku: Optional[str] = field(default=None, metadata={"description": "SKU of nat gateway."})
-    subnets: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the subnets using this nat gateway resource.'})  # fmt: skip
+    subnet_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the subnets using this nat gateway resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     zones: Optional[List[str]] = field(default=None, metadata={'description': 'A list of availability zones denoting the zone in which Nat Gateway should be deployed.'})  # fmt: skip
 
@@ -2080,7 +2081,7 @@ class AzurePublicIPAddress(AzureResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "ddos_settings": S("properties", "ddosSettings") >> Bend(AzureDdosSettings.mapping),
         "delete_option": S("properties", "deleteOption"),
-        "dns_settings": S("properties", "dnsSettings") >> Bend(AzurePublicIPAddressDnsSettings.mapping),
+        "ip_dns_settings": S("properties", "dnsSettings") >> Bend(AzurePublicIPAddressDnsSettings.mapping),
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "id": S("id"),
@@ -2103,7 +2104,7 @@ class AzurePublicIPAddress(AzureResource):
     }
     ddos_settings: Optional[AzureDdosSettings] = field(default=None, metadata={'description': 'Contains the DDoS protection settings of the public IP.'})  # fmt: skip
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public IP address when the VM using it is deleted'})  # fmt: skip
-    dns_settings: Optional[AzurePublicIPAddressDnsSettings] = field(default=None, metadata={'description': 'Contains FQDN of the DNS record associated with the public IP address.'})  # fmt: skip
+    ip_dns_settings: Optional[AzurePublicIPAddressDnsSettings] = field(default=None, metadata={'description': 'Contains FQDN of the DNS record associated with the public IP address.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the public IP address.'})  # fmt: skip
@@ -2233,7 +2234,7 @@ class AzureSubnet(AzureSubResource):
         "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id")),
         "ip_configuration_profiles": S("properties", "ipConfigurationProfiles")
         >> ForallBend(AzureIPConfigurationProfile.mapping),
-        "ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureIPConfiguration.mapping),
+        "subnet_ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureIPConfiguration.mapping),
         "name": S("name"),
         "nat_gateway": S("properties", "natGateway", "id"),
         "network_security_group": S("properties", "networkSecurityGroup") >> Bend(AzureNetworkSecurityGroup.mapping),
@@ -2261,7 +2262,7 @@ class AzureSubnet(AzureSubResource):
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ip_allocations: Optional[List[str]] = field(default=None, metadata={'description': 'Array of IpAllocation which reference this subnet.'})  # fmt: skip
     ip_configuration_profiles: Optional[List[AzureIPConfigurationProfile]] = field(default=None, metadata={'description': 'Array of IP configuration profiles which reference this subnet.'})  # fmt: skip
-    ip_configurations: Optional[List[AzureIPConfiguration]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
+    subnet_ip_configurations: Optional[List[AzureIPConfiguration]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
     nat_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     network_security_group: Optional[AzureNetworkSecurityGroup] = field(default=None, metadata={'description': 'NetworkSecurityGroup resource.'})  # fmt: skip
@@ -2541,13 +2542,13 @@ class AzurePrivateLinkService(AzureResource):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "fqdns": S("properties", "fqdns"),
         "id": S("id"),
-        "ip_configurations": S("properties", "ipConfigurations")
+        "link_service_ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzurePrivateLinkServiceIpConfiguration.mapping),
         "load_balancer_frontend_ip_configurations": S("properties", "loadBalancerFrontendIpConfigurations")
         >> ForallBend(AzureFrontendIPConfiguration.mapping),
         "location": S("location"),
         "name": S("name"),
-        "private_endpoint_connections": S("properties", "privateEndpointConnections")
+        "link_service_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureLinkServicePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "tags": S("tags"),
@@ -2560,10 +2561,10 @@ class AzurePrivateLinkService(AzureResource):
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     fqdns: Optional[List[str]] = field(default=None, metadata={"description": "The list of Fqdn."})
-    ip_configurations: Optional[List[AzurePrivateLinkServiceIpConfiguration]] = field(default=None, metadata={'description': 'An array of private link service IP configurations.'})  # fmt: skip
+    link_service_ip_configurations: Optional[List[AzurePrivateLinkServiceIpConfiguration]] = field(default=None, metadata={'description': 'An array of private link service IP configurations.'})  # fmt: skip
     load_balancer_frontend_ip_configurations: Optional[List[AzureFrontendIPConfiguration]] = field(default=None, metadata={'description': 'An array of references to the load balancer IP configurations.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-    private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
+    link_service_private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     visibility: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The visibility list of the private link service.'})  # fmt: skip
@@ -2585,7 +2586,7 @@ class AzureNetworkInterface(AzureResource):
         "auxiliary_mode": S("properties", "auxiliaryMode"),
         "auxiliary_sku": S("properties", "auxiliarySku"),
         "disable_tcp_state_tracking": S("properties", "disableTcpStateTracking"),
-        "dns_settings": S("properties", "dnsSettings") >> Bend(AzureNetworkInterfaceDnsSettings.mapping),
+        "interface_dns_settings": S("properties", "dnsSettings") >> Bend(AzureNetworkInterfaceDnsSettings.mapping),
         "dscp_configuration": S("properties", "dscpConfiguration", "id"),
         "enable_accelerated_networking": S("properties", "enableAcceleratedNetworking"),
         "enable_ip_forwarding": S("properties", "enableIPForwarding"),
@@ -2593,7 +2594,7 @@ class AzureNetworkInterface(AzureResource):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "hosted_workloads": S("properties", "hostedWorkloads"),
         "id": S("id"),
-        "ip_configurations": S("properties", "ipConfigurations")
+        "ip_erface_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureNetworkInterfaceIPConfiguration.mapping),
         "location": S("location"),
         "mac_address": S("properties", "macAddress"),
@@ -2617,14 +2618,14 @@ class AzureNetworkInterface(AzureResource):
     auxiliary_mode: Optional[str] = field(default=None, metadata={'description': 'Auxiliary mode of Network Interface resource.'})  # fmt: skip
     auxiliary_sku: Optional[str] = field(default=None, metadata={'description': 'Auxiliary sku of Network Interface resource.'})  # fmt: skip
     disable_tcp_state_tracking: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether to disable tcp state tracking.'})  # fmt: skip
-    dns_settings: Optional[AzureNetworkInterfaceDnsSettings] = field(default=None, metadata={'description': 'DNS settings of a network interface.'})  # fmt: skip
+    interface_dns_settings_settings: Optional[AzureNetworkInterfaceDnsSettings] = field(default=None, metadata={'description': 'DNS settings of a network interface.'})  # fmt: skip
     dscp_configuration: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     enable_accelerated_networking: Optional[bool] = field(default=None, metadata={'description': 'If the network interface is configured for accelerated networking. Not applicable to VM sizes which require accelerated networking.'})  # fmt: skip
     enable_ip_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether IP forwarding is enabled on this network interface.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     hosted_workloads: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to linked BareMetal resources.'})  # fmt: skip
-    ip_configurations: Optional[List[AzureNetworkInterfaceIPConfiguration]] = field(default=None, metadata={'description': 'A list of IPConfigurations of the network interface.'})  # fmt: skip
+    interface_ip_configurations: Optional[List[AzureNetworkInterfaceIPConfiguration]] = field(default=None, metadata={'description': 'A list of IPConfigurations of the network interface.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     mac_address: Optional[str] = field(default=None, metadata={'description': 'The MAC address of the network interface.'})  # fmt: skip
     migration_phase: Optional[str] = field(default=None, metadata={'description': 'Migration phase of Network Interface resource.'})  # fmt: skip
@@ -3495,7 +3496,7 @@ class AzureFirewallPolicy(AzureResource):
         "atime": K(None),
         "base_policy": S("properties", "basePolicy", "id"),
         "child_policies": S("properties") >> S("childPolicies", default=[]) >> ForallBend(S("id")),
-        "dns_settings": S("properties", "dnsSettings") >> Bend(AzureDnsSettings.mapping),
+        "firewall_policy_dns_settings": S("properties", "dnsSettings") >> Bend(AzureDnsSettings.mapping),
         "etag": S("etag"),
         "explicit_proxy": S("properties", "explicitProxy") >> Bend(AzureExplicitProxy.mapping),
         "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id")),
@@ -3517,7 +3518,7 @@ class AzureFirewallPolicy(AzureResource):
     }
     base_policy: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     child_policies: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Child Firewall Policies.'})  # fmt: skip
-    dns_settings: Optional[AzureDnsSettings] = field(default=None, metadata={'description': 'DNS Proxy Settings in Firewall Policy.'})  # fmt: skip
+    firewall_policy_dns_settings_settings: Optional[AzureDnsSettings] = field(default=None, metadata={'description': 'DNS Proxy Settings in Firewall Policy.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     explicit_proxy: Optional[AzureExplicitProxy] = field(default=None, metadata={'description': 'Explicit Proxy Settings in Firewall Policy.'})  # fmt: skip
     firewalls: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Azure Firewalls that this Firewall Policy is associated with.'})  # fmt: skip
