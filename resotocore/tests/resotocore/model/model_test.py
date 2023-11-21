@@ -597,7 +597,7 @@ def test_complete_path(person_model: Model) -> None:
     assert all_props == {"city": "string", "ctime": "datetime", "expires": "datetime", "exported_age": "duration"}
     # ask for a nested kind
     count, all_props = person_model.complete_path("address", "", fuzzy=False, skip=4, limit=4)
-    assert all_props == {"mtime": "datetime", "tags": "dictionary[string, string]", "zip": "zip"}
+    assert all_props == {"mtime": "datetime", "tags": "dictionary[string, string]", "zip": "string"}
     # ask for a nested kind filtered
     count, all_props = person_model.complete_path("address", "ta", fuzzy=False, skip=0, limit=4)
     assert all_props == {"tags": "dictionary[string, string]"}
@@ -615,7 +615,7 @@ def test_complete_path(person_model: Model) -> None:
     assert all_props == {"city": "string", "id": "string", "kind": "string", "list[*]": "string"}
     # filter by kinds
     count, all_props = person_model.complete_path("", "", filter_kinds=["Address"], skip=5)
-    assert all_props == {"tags": "dictionary[string, string]", "zip": "zip"}
+    assert all_props == {"tags": "dictionary[string, string]", "zip": "string"}
 
 
 @given(json_object_gen)
