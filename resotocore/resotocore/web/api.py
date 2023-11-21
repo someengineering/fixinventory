@@ -55,6 +55,8 @@ from aiostream import stream
 from attrs import evolve
 from dateutil import parser as date_parser
 from networkx.readwrite import cytoscape_data
+from resotoui import ui_path
+
 from resotocore.analytics import AnalyticsEvent
 from resotocore.cli.command import alias_names
 from resotocore.cli.model import (
@@ -99,7 +101,18 @@ from resotocore.service import Service
 from resotocore.task.model import Subscription
 from resotocore.types import Json, JsonElement
 from resotocore.user.model import Permission, AuthorizedUser
-from resotocore.util import uuid_str, force_gen, rnd_str, if_set, duration, utc_str, parse_utc, async_noop, utc
+from resotocore.util import (
+    async_noop,
+    duration,
+    force_gen,
+    if_set,
+    parse_utc,
+    rnd_str,
+    utc,
+    utc_str,
+    uuid_str,
+    value_in_path_get,
+)
 from resotocore.web.auth import raw_jwt_from_auth_message, LoginWithCode, AuthHandler
 from resotocore.web.content_renderer import result_binary_gen, single_result
 from resotocore.web.directives import (
@@ -120,7 +133,6 @@ from resotocore.worker_task_queue import (
 from resotolib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from resotolib.jwt import encode_jwt
 from resotolib.x509 import cert_to_bytes
-from resotoui import ui_path
 
 log = logging.getLogger(__name__)
 
@@ -1050,12 +1062,12 @@ class Api(Service):
     async def property_path_complete(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         _, model = await self.graph_model_from_request(request, deps)
         body = await request.json()
-        path = variable_to_absolute(section_of(request), body.get("path", PathRoot)).rstrip(".\n\t")
-        prop = body.get("prop", "")
+        path = variable_to_absolute(section_of(request), value_in_path_get(body, "path", PathRoot)).rstrip(".\n\t")
+        prop = value_in_path_get(body, "prop", "")
         filter_kinds = body.get("kinds")
-        fuzzy = body.get("fuzzy", False)
-        limit = body.get("limit", 20)
-        skip = body.get("skip", 0)
+        fuzzy = value_in_path_get(body, "fuzzy", False)
+        limit = value_in_path_get(body, "limit", 20)
+        skip = value_in_path_get(body, "skip", 0)
         assert skip >= 0, "Skip must be positive"
         assert limit > 0, "Limit must be positive"
         count, result = model.complete_path(path, prop, filter_kinds=filter_kinds, fuzzy=fuzzy, skip=skip, limit=limit)
