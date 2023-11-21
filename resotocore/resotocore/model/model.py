@@ -1600,6 +1600,8 @@ class Model:
                             props[p.name + "[*]"] = pk.inner.fqn
                         elif isinstance(pk, TransformKind):
                             props[p.name] = (pk.source_kind or any_kind).fqn
+                        elif isinstance(pk, SimpleKind):
+                            props[p.name] = pk.runtime_kind
                         else:
                             props[p.name] = pk.fqn
             return len(props), {k: props[k] for k in sorted(props)[skip : skip + limit]}
