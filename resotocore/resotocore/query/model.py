@@ -916,6 +916,9 @@ class Query:
     def merge_query_by_name(self) -> List[MergeQuery]:
         return [mt for part in self.parts if isinstance(part.term, MergeTerm) for mt in part.term.merge]
 
+    def is_aggregate(self) -> bool:
+        return self.aggregate is not None
+
     def filter(self, term: Union[str, Term], *terms: Union[str, Term]) -> Query:
         res = Query.mk_term(term, *terms)
         parts = self.parts.copy()

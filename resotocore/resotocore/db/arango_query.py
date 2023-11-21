@@ -94,7 +94,9 @@ def to_query(
     bind_vars: Json = {}
     start = from_collection or f"`{db.vertex_name}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count, id_column=id_column)
-    last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
+    last_limit = (
+        f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
+    )
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", bind_vars
 
 
@@ -667,9 +669,10 @@ def query_string(
                 query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
                 return nav_crsr
 
-        # If a with-clause exists, the fiter is applied inside the with clause.
-        # Skip the limit in case of last part - it is applied in the outermost for loop.
-        filter_limit = p.limit if (p.with_clause is None and not last_part) else None
+        # Skip the limit in case of
+        # - with clause: the limit is applied in the with clause
+        # - last part of a non aggregation query: the limit is applied in the outermost for loop
+        filter_limit = p.limit if (p.with_clause is None and (not last_part or query.is_aggregate())) else None
         cursor = in_cursor
         part_term = p.term
         if isinstance(p.term, MergeTerm):
