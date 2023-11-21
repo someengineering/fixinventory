@@ -567,6 +567,7 @@ class ArangoGraphDB(GraphDB):
         return await self.db.aql_cursor(
             query=q_string,
             count=with_count,
+            full_count=with_count,
             bind_vars=bind,
             batch_size=10000,
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
@@ -581,6 +582,7 @@ class ArangoGraphDB(GraphDB):
             query=q_string,
             trafo=self.document_to_instance_fn(query.model, query),
             count=with_count,
+            full_count=with_count,
             bind_vars=bind,
             batch_size=10000,
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
@@ -623,7 +625,13 @@ class ArangoGraphDB(GraphDB):
         )
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
         return await self.db.aql_cursor(
-            query=q_string, trafo=trafo, count=with_count, bind_vars=bind, batch_size=10000, ttl=ttl
+            query=q_string,
+            trafo=trafo,
+            count=with_count,
+            full_count=with_count,
+            bind_vars=bind,
+            batch_size=10000,
+            ttl=ttl,
         )
 
     async def search_graph_gen(
@@ -636,6 +644,7 @@ class ArangoGraphDB(GraphDB):
             trafo=self.document_to_instance_fn(query.model, query),
             bind_vars=bind,
             count=with_count,
+            full_count=with_count,
             batch_size=10000,
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
@@ -990,6 +999,7 @@ class ArangoGraphDB(GraphDB):
             for num, (root, graph) in enumerate(graphs):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
                 if root_kind:
+                    # noinspection PyTypeChecker
                     log.info(f"Update subgraph: root={root} ({root_kind}, {num+1} of {len(roots)})")
                     node_query = self.query_update_nodes(root_kind), {"update_id": root}
                     edge_query = partial(merge_edges, root, root_kind)

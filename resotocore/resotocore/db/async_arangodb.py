@@ -73,6 +73,9 @@ class AsyncCursor(AsyncIterator[Any]):
     def count(self) -> Optional[int]:
         return self.cursor.count()
 
+    def full_count(self) -> Optional[int]:
+        return stats.get("fullCount") if (stats := self.cursor.statistics()) else None
+
     async def next_filtered(self) -> Optional[Json]:
         element = await self.next_from_db()
         vertex: Optional[Json] = None

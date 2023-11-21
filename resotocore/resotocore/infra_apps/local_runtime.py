@@ -113,8 +113,8 @@ class LocalResotocoreAppRuntime(Runtime, Service):
         total_nr_outputs: int = 0
         parsed_commands = await self.cli.evaluate_cli_command(line, ctx, True)
         for parsed in parsed_commands:
-            nr_outputs, command_output_stream = await parsed.execute()
-            total_nr_outputs = total_nr_outputs + (nr_outputs or 0)
+            src_ctx, command_output_stream = await parsed.execute()
+            total_nr_outputs = total_nr_outputs + (src_ctx.count or 0)
             command_streams.append(command_output_stream)
 
         return stream.concat(stream.iterate(command_streams), task_limit=1)
