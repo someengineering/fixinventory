@@ -94,7 +94,10 @@ def to_query(
     bind_vars: Json = {}
     start = from_collection or f"`{db.vertex_name}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count, id_column=id_column)
-    return f"""{query_str} FOR result in {cursor} RETURN UNSET(result, {unset_props})""", bind_vars
+    last_limit = (
+        f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
+    )
+    return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", bind_vars
 
 
 def query_string(
@@ -467,6 +470,7 @@ def query_string(
     def part(p: Part, in_cursor: str, part_idx: int) -> Tuple[Part, str, str, str]:
         query_part = ""
         filtered_out = ""
+        last_part = len(query.parts) == (part_idx + 1)
 
         def filter_statement(current_cursor: str, part_term: Term, limit: Optional[Limit]) -> str:
             if isinstance(part_term, AllTerm) and limit is None and not p.sort:
@@ -665,9 +669,10 @@ def query_string(
                 query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
                 return nav_crsr
 
-        # apply the limit in the filter statement only, when no with clause is present
-        # otherwise the limit is applied in the with clause
-        filter_limit = p.limit if p.with_clause is None else None
+        # Skip the limit in case of
+        # - with clause: the limit is applied in the with clause
+        # - last part of a non aggregation query: the limit is applied in the outermost for loop
+        filter_limit = p.limit if (p.with_clause is None and (not last_part or query.is_aggregate())) else None
         cursor = in_cursor
         part_term = p.term
         if isinstance(p.term, MergeTerm):

@@ -625,6 +625,11 @@ async def test_list_command(cli: CLI) -> None:
     )
     # b as a ==> b, c as a ==> c, c ==> c_1, ancestors.account.reported.a ==> account_a, again ==> _1
     assert result[0][0] == "a=a, b=true, c=false, c_1=false, account_a=a, account_a_1=a, foo=a"
+    # source context is passed correctly
+    parsed = await cli.evaluate_cli_command("search is (bla) | head 10 | list")
+    src_ctx, gen = await parsed[0].execute()
+    assert src_ctx.count == 10
+    assert src_ctx.total_count == 100
 
 
 @pytest.mark.asyncio

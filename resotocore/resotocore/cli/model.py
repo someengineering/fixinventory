@@ -230,10 +230,16 @@ class CLIAction(ABC):
         return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
 
 
+@define
+class CLISourceContext:
+    count: Optional[int] = None
+    total_count: Optional[int] = None
+
+
 class CLISource(CLIAction):
     def __init__(
         self,
-        fn: Callable[[], Union[Tuple[Optional[int], JsGen], Awaitable[Tuple[Optional[int], JsGen]]]],
+        fn: Callable[[], Union[Tuple[CLISourceContext, JsGen], Awaitable[Tuple[CLISourceContext, JsGen]]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
@@ -242,10 +248,25 @@ class CLISource(CLIAction):
         super().__init__(produces, requires, envelope, required_permissions)
         self._fn = fn
 
-    async def source(self) -> Tuple[Optional[int], JsStream]:
+    async def source(self) -> Tuple[CLISourceContext, JsStream]:
         res = self._fn()
-        count, gen = await res if iscoroutine(res) else res
-        return count, self.make_stream(await gen if iscoroutine(gen) else gen)
+        context, gen = await res if iscoroutine(res) else res
+        return context, self.make_stream(await gen if iscoroutine(gen) else gen)
+
+    @staticmethod
+    def only_count(
+        fn: Callable[[], Union[Tuple[int, JsGen], Awaitable[Tuple[int, JsGen]]]],
+        produces: MediaType = MediaType.Json,
+        requires: Optional[List[CLICommandRequirement]] = None,
+        envelope: Optional[Dict[str, str]] = None,
+        required_permissions: Optional[Set[Permission]] = None,
+    ) -> CLISource:
+        async def combine() -> Tuple[CLISourceContext, JsGen]:
+            res = fn()
+            count, gen = await res if iscoroutine(res) else res
+            return CLISourceContext(count=count, total_count=count), gen
+
+        return CLISource(combine, produces, requires, envelope, required_permissions)
 
     @staticmethod
     def no_count(
@@ -266,10 +287,10 @@ class CLISource(CLIAction):
         envelope: Optional[Dict[str, str]] = None,
         required_permissions: Optional[Set[Permission]] = None,
     ) -> CLISource:
-        async def combine() -> Tuple[Optional[int], JsGen]:
+        async def combine() -> Tuple[CLISourceContext, JsGen]:
             res = fn()
             gen = await res if iscoroutine(res) else res
-            return count, gen
+            return CLISourceContext(count=count), gen
 
         return CLISource(combine, produces, requires, envelope, required_permissions)
 
@@ -695,16 +716,16 @@ class ParsedCommandLine:
             return False
         return all(self.ctx.user.has_permission(cmd.action.required_permissions) for cmd in self.executable_commands)
 
-    async def execute(self) -> Tuple[Optional[int], JsStream]:
+    async def execute(self) -> Tuple[CLISourceContext, JsStream]:
         if self.executable_commands:
             source_action = cast(CLISource, self.executable_commands[0].action)
-            count, flow = await source_action.source()
+            context, flow = await source_action.source()
             for command in self.executable_commands[1:]:
                 flow_action = cast(CLIFlow, command.action)
                 flow = await flow_action.flow(flow)
-            return count, flow
+            return context, flow
         else:
-            return 0, stream.empty()
+            return CLISourceContext(count=0), stream.empty()
 
 
 class CLI(ABC):

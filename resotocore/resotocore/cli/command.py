@@ -96,6 +96,7 @@ from resotocore.cli.model import (
     ArgInfo,
     EntityProvider,
     FilePath,
+    CLISourceContext,
 )
 from resotocore.user.model import Permission, AllowedRoleNames
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
@@ -1456,7 +1457,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
             explanation = await db.explain(query_model, with_edges)
             yield to_js(explanation)
 
-        async def prepare() -> Tuple[Optional[int], AsyncIterator[Json]]:
+        async def prepare() -> Tuple[CLISourceContext, AsyncIterator[Json]]:
             db, graph_name = await get_db(at, current_graph_name)
 
             query_model = await load_query_model(db, graph_name)
@@ -1484,7 +1485,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
                 finally:
                     cursor.close()
 
-            return cursor.count(), iterate_and_close()
+            return CLISourceContext(cursor.count(), cursor.full_count()), iterate_and_close()
 
         return (
             CLISource.single(explain_search, required_permissions={Permission.read})
@@ -1951,7 +1952,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 result = sorted([k.fqn for k in model.kinds.values() if isinstance(k, ComplexKind) and show(k)])
                 return len(model.kinds), stream.iterate(result)
 
-        return CLISource(source, required_permissions={Permission.read})
+        return CLISource.only_count(source, required_permissions={Permission.read})
 
 
 class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
@@ -3107,9 +3108,9 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
         elif arg and len(args) == 2:
             raise CLIParseError(f"Does not understand action {args[0]}. Allowed: add, update, delete.")
         elif arg and len(args) == 1 and args[0] == "running":
-            return CLISource(running_jobs, required_permissions={Permission.read})
+            return CLISource.only_count(running_jobs, required_permissions={Permission.read})
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_jobs, required_permissions={Permission.read})
+            return CLISource.only_count(list_jobs, required_permissions={Permission.read})
         else:
             return CLISource.single(show_help, required_permissions={Permission.read})
 
@@ -3895,7 +3896,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
             maybe_template = await self.dependencies.template_expander.get_template(name)
             yield maybe_template.template if maybe_template else f"No template with this name: {name}"
 
-        async def list_templates() -> Tuple[Optional[int], AsyncIterator[Json]]:
+        async def list_templates() -> Tuple[int, AsyncIterator[Json]]:
             templates = await self.dependencies.template_expander.list_templates()
             return len(templates), stream.iterate(template_str(t) for t in templates)
 
@@ -3932,7 +3933,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
         elif arg and len(args) == 1:
             return CLISource.single(partial(get_template, arg.strip()), required_permissions={Permission.read})
         elif not arg:
-            return CLISource(list_templates, required_permissions={Permission.read})
+            return CLISource.only_count(list_templates, required_permissions={Permission.read})
         else:
             raise CLIParseError(f"Can not parse arguments: {arg}")
 
@@ -4431,17 +4432,19 @@ class WorkflowsCommand(CLICommand):
         elif arg and len(args) == 1 and args[0] == "history":
             return CLISource.single(history_aggregation, required_permissions={Permission.read})
         elif arg and len(args) == 2 and args[0] == "history":
-            return CLISource(partial(history_of, re.split("\\s+", args[1])), required_permissions={Permission.read})
+            return CLISource.only_count(
+                partial(history_of, re.split("\\s+", args[1])), required_permissions={Permission.read}
+            )
         elif arg and len(args) == 2 and args[0] == "log":
-            return CLISource(partial(show_log, args[1].strip()), required_permissions={Permission.read})
+            return CLISource.only_count(partial(show_log, args[1].strip()), required_permissions={Permission.read})
         elif arg and len(args) == 2 and args[0] == "run":
             return CLISource.single(partial(run_workflow, args[1].strip()), required_permissions={Permission.admin})
         elif arg and len(args) == 2 and args[0] == "stop":
             return CLISource.single(partial(stop_workflow, args[1].strip()), required_permissions={Permission.admin})
         elif arg and len(args) == 1 and args[0] == "running":
-            return CLISource(running_workflows, required_permissions={Permission.read})
+            return CLISource.only_count(running_workflows, required_permissions={Permission.read})
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_workflows, required_permissions={Permission.read})
+            return CLISource.only_count(list_workflows, required_permissions={Permission.read})
         else:
             return CLISource.single(
                 lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
@@ -4646,7 +4649,7 @@ class ConfigsCommand(CLICommand):
                 required_permissions={Permission.admin},
             )
         elif arg and len(args) == 1 and args[0] == "list":
-            return CLISource(list_configs, required_permissions={Permission.read})
+            return CLISource.only_count(list_configs, required_permissions={Permission.read})
         else:
             return CLISource.single(
                 lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}

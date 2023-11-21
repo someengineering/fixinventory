@@ -373,11 +373,13 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
 
 @mark.asyncio
 async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    async def assert_count(query: str, count: int) -> None:
+    async def assert_count(query: str, count: int, total_count: Optional[int] = None) -> None:
         q = parse_query(query).on_section("reported")
         async with await filled_graph_db.search_list(QueryModel(q, foo_model), with_count=True) as gen:
-            assert gen.cursor.count() == count
+            assert gen.count() == count
             assert len([a async for a in gen]) == count
+            if total_count:
+                assert gen.full_count() == total_count
 
     await assert_count("is(bla) and h.inner[*].inner[*].name=in_0_1", 100)
     await assert_count("is(bla) and h.inner[*].inner[*].inner == []", 100)
@@ -388,6 +390,8 @@ async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) ->
     await assert_count("is(bla) and g[*] any = 2", 100)
     await assert_count("is(bla) and g[*] all = 2", 0)
     await assert_count("is(bla) and g[*] none = 2", 0)
+    await assert_count("is(bla) limit 1", 1, 100)
+    await assert_count("is(bla) limit 10, 10", 10, 100)
 
 
 @mark.asyncio

@@ -658,7 +658,7 @@ class Api(Service):
             raise ValueError(f"Unknown action {action}. One of run or load is expected.")
         result_graph = results[benchmark].to_graph()
         async with stream.iterate(result_graph).stream() as streamer:
-            return await self.stream_response_from_gen(request, streamer, len(result_graph))
+            return await self.stream_response_from_gen(request, streamer, count=len(result_graph))
 
     async def inspection_checks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         provider = request.query.get("provider")
@@ -1076,6 +1076,7 @@ class Api(Service):
     async def possible_values(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         section = section_of(request)
+        # noinspection PyTypeChecker
         detail: Literal["attributes", "values"] = "attributes" if request.path.endswith("attributes") else "values"
         root_or_section = None if section is None or section == PathRoot else section
         fn = partial(variable_to_absolute, root_or_section)
@@ -1090,7 +1091,9 @@ class Api(Service):
         async with await graph_db.list_possible_values(
             query_model, prop_or_predicate, detail, limit, skip, count
         ) as cursor:
-            return await self.stream_response_from_gen(request, cursor, cursor.count())
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            )
 
     async def query_structure(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         _, query_model = await self.graph_query_model_from_request(request, deps)
@@ -1101,7 +1104,9 @@ class Api(Service):
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("search_timeout"), duration)
         async with await graph_db.search_list(query_model, count, timeout) as cursor:
-            return await self.stream_response_from_gen(request, cursor, cursor.count())
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            )
 
     async def cytoscape(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
@@ -1114,12 +1119,16 @@ class Api(Service):
         count = request.query.get("count", "true").lower() != "false"
         timeout = if_set(request.query.get("search_timeout"), duration)
         async with await graph_db.search_graph_gen(query_model, count, timeout) as cursor:
-            return await self.stream_response_from_gen(request, cursor, cursor.count())
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            )
 
     async def query_aggregation(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
-        async with await graph_db.search_aggregation(query_model) as gen:
-            return await self.stream_response_from_gen(request, gen)
+        async with await graph_db.search_aggregation(query_model) as cursor:
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            )
 
     async def query_history(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
@@ -1131,8 +1140,10 @@ class Api(Service):
             change=HistoryChange[change] if change else None,
             before=parse_utc(before) if before else None,
             after=parse_utc(after) if after else None,
-        ) as gen:
-            return await self.stream_response_from_gen(request, gen)
+        ) as cursor:
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            )
 
     async def serve_debug_ui(self, request: Request) -> FileResponse:
         """
@@ -1285,13 +1296,19 @@ class Api(Service):
             return web.json_response(data, status=424)
         elif len(parsed) == 1:
             first_result = parsed[0]
-            count, generator = await first_result.execute()
+            src_ctx, generator = await first_result.execute()
             # flat the results from 0 or 1
             async with generator.stream() as streamer:
                 gen = await force_gen(streamer)
                 if first_result.produces.text:
                     text_gen = ctx.text_generator(first_result, gen)
-                    return await self.stream_response_from_gen(request, text_gen, count, first_result.envelope)
+                    return await self.stream_response_from_gen(
+                        request,
+                        text_gen,
+                        count=src_ctx.count,
+                        total_count=src_ctx.total_count,
+                        additional_header=first_result.envelope,
+                    )
                 elif first_result.produces.file_path:
                     await mp_response.prepare(request)
                     await Api.multi_file_response(first_result, gen, boundary, mp_response)
@@ -1302,7 +1319,7 @@ class Api(Service):
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
-                count, generator = await single.execute()
+                _, generator = await single.execute()
                 async with generator.stream() as streamer:
                     gen = await force_gen(streamer)
                     if single.produces.text:
@@ -1373,15 +1390,22 @@ class Api(Service):
     async def stream_response_from_gen(
         request: Request,
         gen_in: AsyncIterator[JsonElement],
+        *,
         count: Optional[int] = None,
+        total_count: Optional[int] = None,
         additional_header: Optional[Dict[str, str]] = None,
     ) -> StreamResponse:
         # force the async generator, to get an early exception in case of failure
         gen = await force_gen(gen_in)
         content_type, result_gen = await result_binary_gen(request, gen)
-        count_header = {"Resoto-Shell-Element-Count": str(count)} if count else {}
-        hdr = additional_header or {}
-        response = web.StreamResponse(status=200, headers={**hdr, "Content-Type": content_type, **count_header})
+        headers = {"Content-Type": content_type}
+        if additional_header:
+            headers.update(additional_header)
+        if count is not None:
+            headers["Result-Count"] = str(count)
+        if total_count is not None:
+            headers["Total-Count"] = str(total_count)
+        response = web.StreamResponse(status=200, headers=headers)
         enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
         cr = "\n".encode("utf-8")
