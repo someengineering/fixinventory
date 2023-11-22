@@ -47,6 +47,7 @@ class Shell:
         graph: Optional[str] = None,
         section: Optional[str] = None,
         history: Optional[ResotoHistory] = None,
+        additional_headers: Optional[Dict[str, str]] = None,
     ):
         self.client = client
         self.history = history
@@ -55,6 +56,7 @@ class Shell:
         self.color_depth = color_system_to_color_depth.get(color_system) or ColorDepth.DEPTH_8_BIT
         self.graph = graph
         self.section = section
+        self.additional_headers = additional_headers or {}
 
     async def handle_command(
         self,
@@ -63,7 +65,7 @@ class Shell:
         files: Optional[Dict[str, str]] = None,
         no_history: bool = False,
     ) -> None:
-        headers: Dict[str, str] = {}
+        headers: Dict[str, str] = self.additional_headers.copy()
         headers.update({"Accept": "text/plain"})
         headers.update(additional_headers or {})
 

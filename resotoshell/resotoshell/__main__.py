@@ -5,6 +5,7 @@ from argparse import Namespace
 from datetime import datetime
 from signal import SIGTERM
 from threading import Event
+from typing import Tuple
 
 from prompt_toolkit.formatted_text import FormattedText
 from resotoclient.async_client import ResotoClient
@@ -31,9 +32,10 @@ async def main_async() -> None:
     jwt_add_args(arg_parser)
     TLSData.add_args(arg_parser, ca_only=True)
     args: Namespace = arg_parser.parse_args()
+    headers = dict(args.add_headers)
 
     try:
-        wait_for_resotocore(resotocore.http_uri, timeout=args.resotocore_wait)
+        wait_for_resotocore(resotocore.http_uri, timeout=args.resotocore_wait, headers=headers)
     except TimeoutError:
         log.fatal(f"resotocore is not online at {resotocore.http_uri}")
         sys.exit(1)
@@ -61,7 +63,7 @@ async def main_async() -> None:
         cmds, kinds, props = await core_metadata(client)
         history = ResotoHistory.default()
         session = PromptSession(cmds=cmds, kinds=kinds, props=props, history=history)
-        shell = Shell(client, True, detect_color_system(args), history=history)
+        shell = Shell(client, True, detect_color_system(args), history=history, additional_headers=headers)
         await repl(shell, session, args)
 
     # update the eventually changed auth token
@@ -156,6 +158,12 @@ def detect_color_system(args: Namespace) -> str:
 
 
 def add_args(arg_parser: ArgumentParser) -> None:
+    def header_value(s: str) -> Tuple[str, str]:
+        if ":" not in s:
+            raise ValueError("Header must be in the format key:value")
+        k, v = s.split(":", 1)
+        return k, v
+
     arg_parser.add_argument(
         "--resotocore-section",
         help="All queries are interpreted with this section name. If not set, the server default is used.",
@@ -199,6 +207,9 @@ def add_args(arg_parser: ArgumentParser) -> None:
         dest="no_events",
         action="store_true",
         default=False,
+    )
+    arg_parser.add_argument(
+        "--add-headers", help="Add a header to all requests. Format: key:value", nargs="*", type=header_value
     )
 
 
