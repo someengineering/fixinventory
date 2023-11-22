@@ -4,7 +4,7 @@ import warnings
 from resotolib.logger import log
 from resotolib.args import ArgumentParser
 from urllib.parse import urlparse, ParseResult
-from typing import Optional
+from typing import Optional, Dict
 
 
 class CLIEnvelope:
@@ -33,12 +33,12 @@ def add_args(arg_parser: ArgumentParser) -> None:
     )
 
 
-def resotocore_is_up(resotocore_uri: str, timeout: int = 5) -> bool:
+def resotocore_is_up(resotocore_uri: str, timeout: int = 5, headers: Optional[Dict[str, str]] = None) -> bool:
     ready_uri = f"{resotocore_uri}/system/ready"
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            response = requests.get(ready_uri, timeout=timeout, verify=False)
+            response = requests.get(ready_uri, timeout=timeout, verify=False, headers=headers)
             if response.status_code == 200:
                 return True
     except Exception:
@@ -46,14 +46,14 @@ def resotocore_is_up(resotocore_uri: str, timeout: int = 5) -> bool:
     return False
 
 
-def wait_for_resotocore(resotocore_uri: str, timeout: int = 300) -> None:
+def wait_for_resotocore(resotocore_uri: str, timeout: int = 300, headers: Optional[Dict[str, str]] = None) -> None:
     start_time = time.time()
     core_up = False
     wait_time: float = -1
     remaining_wait: float = timeout
     waitlog = log.info
     while wait_time < timeout:
-        if resotocore_is_up(resotocore_uri):
+        if resotocore_is_up(resotocore_uri, headers=headers):
             core_up = True
             break
         else:

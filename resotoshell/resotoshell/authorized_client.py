@@ -28,6 +28,7 @@ class AccessDeniedError(Exception):
 
 
 async def new_client(args: Namespace) -> ResotoClient:
+    headers = dict(args.add_headers)
     # if a PSK was defined on the command line, use it
     if args.psk:
         return ResotoClient(
@@ -35,6 +36,7 @@ async def new_client(args: Namespace) -> ResotoClient:
             psk=args.psk,
             custom_ca_cert_path=args.ca_cert,
             verify=args.verify_certs,
+            additional_headers=headers,
         )
 
     # fetch ssl certificate
@@ -43,7 +45,12 @@ async def new_client(args: Namespace) -> ResotoClient:
     try:
         await fetch_auth_header(resotocore.http_uri, ssl=ssl)
         # no authorization required
-        return ResotoClient(url=resotocore.http_uri, custom_ca_cert_path=args.ca_cert, verify=args.verify_certs)
+        return ResotoClient(
+            url=resotocore.http_uri,
+            custom_ca_cert_path=args.ca_cert,
+            verify=args.verify_certs,
+            additional_headers=headers,
+        )
     except AccessDeniedError:
         config = ReshConfig.default()
         if creds := config.valid_credentials(resotocore.http_uri):
@@ -53,7 +60,7 @@ async def new_client(args: Namespace) -> ResotoClient:
                 url=resotocore.http_uri,
                 custom_ca_cert_path=args.ca_cert,
                 verify=args.verify_certs,
-                additional_headers={"Authorization": f"{method} {auth_token}"},
+                additional_headers={**headers, "Authorization": f"{method} {auth_token}"},
             )
         else:
             # No valid credentials found in config file. Start authorization flow
@@ -70,7 +77,7 @@ async def new_client(args: Namespace) -> ResotoClient:
                         url=resotocore.http_uri,
                         custom_ca_cert_path=args.ca_cert,
                         verify=args.verify_certs,
-                        additional_headers={"Authorization": f"{method} {token}"},
+                        additional_headers={**headers, "Authorization": f"{method} {token}"},
                     )
 
 
