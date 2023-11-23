@@ -123,7 +123,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def delete_node(self, node_id: NodeId, model: Model) -> None:
+    async def delete_node(self, node_id: NodeId, model: Model, keep_history: bool = False) -> None:
         pass
 
     @abstractmethod
@@ -133,6 +133,7 @@ class GraphDB(ABC):
         model: Model,
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
+        update_history: bool = True,
     ) -> Tuple[List[str], GraphUpdate]:
         pass
 
@@ -141,7 +142,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def commit_batch_update(self, batch_id: str) -> None:
+    async def commit_batch_update(self, batch_id: str, update_history: bool = True) -> None:
         pass
 
     @abstractmethod
@@ -435,7 +436,7 @@ class ArangoGraphDB(GraphDB):
             for element in cursor:
                 yield trafo(element)
 
-    async def delete_node(self, node_id: NodeId, model: Model) -> None:
+    async def delete_node(self, node_id: NodeId, model: Model, keep_history: bool = False) -> None:
         async def delete_children(element: Json) -> None:
             with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
                 count = cursor.next()
@@ -444,11 +445,20 @@ class ArangoGraphDB(GraphDB):
                     # Note: this will only work for nodes that are resolved (cloud, account, region, zone...)
                     builder = GraphBuilder(model, node_id)
                     builder.add_node(node_id, reported=element[Section.reported], replace=True)
-                    await self.merge_graph(builder.graph, model, node_id)
+                    await self.merge_graph(builder.graph, model, node_id, update_history=keep_history)
 
-        if node := await self.get_node(model, node_id):
+        async def delete_history(element: Json) -> None:
+            # if this element is a resolved kind, we will delete all nodes from history with a reference to this kind
+            if (kd := GraphResolver.resolved_kind(element)) and (ref := GraphResolver.resolved_ancestors.get(kd)):
+                q = f"FOR doc IN `{self.node_history}` FILTER doc.{ref} == @node_id REMOVE doc IN `{self.node_history}`"
+                with await self.db.aql(query=q, bind_vars={"node_id": node_id}):
+                    pass
+
+        if node := await self.by_id(node_id):
             await delete_children(node)
-            await self.db.delete_vertex(self.name, {"_id": f'{self.vertex_name}/{node["id"]}'})
+            if not keep_history:
+                await delete_history(node)
+            await self.db.delete_vertex(self.name, {"_id": node["_id"]})
 
     async def update_security_section(
         self,
@@ -484,10 +494,13 @@ class ArangoGraphDB(GraphDB):
 
         async def update_chunk(chunk: Dict[NodeId, Json]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
-            async with await self.search_list(QueryModel(Query.by(P.with_id(list(chunk.keys()))), model)) as ctx:
+            async with await self.search_list(
+                QueryModel(Query.by(P.with_id(list(chunk.keys()))), model), no_trafo=True
+            ) as ctx:
                 nodes_to_insert = []
                 async for node in ctx:
-                    node_id = NodeId(value_in_path_get(node, NodePath.node_id, ""))
+                    node_id = NodeId(node.pop("_key", ""))
+                    node["id"] = node_id  # store the id in the id column (not _key)
                     existing: List[Json] = value_in_path_get(node, NodePath.security_issues, [])
                     security_section = chunk[node_id]
                     updated, severity, is_update = update_security_section(existing, security_section.get("issues", []))
@@ -508,6 +521,7 @@ class ArangoGraphDB(GraphDB):
                     elif is_update:  # the content has changed
                         nodes_vulnerable_updated += 1
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
+                        node["before"] = existing
                         node["change"] = "node_vulnerable"
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
@@ -580,7 +594,7 @@ class ArangoGraphDB(GraphDB):
         q_string, bind = await self.to_query(query)
         return await self.db.aql_cursor(
             query=q_string,
-            trafo=self.document_to_instance_fn(query.model, query),
+            trafo=None if kwargs.get("no_trafo") else self.document_to_instance_fn(query.model, query),
             count=with_count,
             full_count=with_count,
             bind_vars=bind,
@@ -755,7 +769,7 @@ class ArangoGraphDB(GraphDB):
         else:
             raise NoSuchChangeError(change_id)
 
-    async def move_temp_to_proper(self, change_id: str, temp_name: str) -> None:
+    async def move_temp_to_proper(self, change_id: str, temp_name: str, update_history: bool = True) -> None:
         change_key = str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))
         log.info(f"Move temp->proper data: change_id={change_id}, change_key={change_key}, temp_name={temp_name}")
         edge_inserts = [
@@ -770,7 +784,7 @@ class ArangoGraphDB(GraphDB):
         ]
         history_updates = [
             f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_updated" insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated, before: node.reported}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
             f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
         ]
         usage_updates = [
@@ -779,7 +793,7 @@ class ArangoGraphDB(GraphDB):
         updates = ";\n".join(
             map(
                 lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()",
-                (history_updates if self.config.keep_history else [])
+                (history_updates if self.config.keep_history and update_history else [])
                 + [
                     f'for e in {temp_name} filter e.action=="node_created" insert e.data in {self.vertex_name}'
                     ' OPTIONS{overwriteMode: "replace"}',
@@ -941,6 +955,7 @@ class ArangoGraphDB(GraphDB):
         model: Model,
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
+        update_history: bool = True,
     ) -> Tuple[List[str], GraphUpdate]:
         change_id = maybe_change_id if maybe_change_id else uuid_str()
 
@@ -1017,7 +1032,7 @@ class ArangoGraphDB(GraphDB):
 
             log.debug(f"Update prepared: {info}. Going to persist the changes.")
             await self.refresh_marked_update(change_id)
-            await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds)
+            await self.persist_update(change_id, is_batch, info, nis, nus, nds, eis, eds, update_history)
             return roots, info
         except Exception as ex:
             await self.delete_marked_update(change_id)
@@ -1033,6 +1048,7 @@ class ArangoGraphDB(GraphDB):
         resource_deletes: List[Json],
         edge_inserts: Dict[EdgeType, List[Json]],
         edge_deletes: Dict[EdgeType, List[Json]],
+        update_history: bool,
     ) -> None:
         async def execute_many_async(
             async_fn: Callable[[str, List[Json]], Any], name: str, array: List[Json], **kwargs: Any
@@ -1074,7 +1090,7 @@ class ArangoGraphDB(GraphDB):
             log.debug(f"Store change in temp collection {temp.name}")
             try:
                 await store_to_tmp_collection(temp)
-                await self.move_temp_to_proper(change_id, temp.name)
+                await self.move_temp_to_proper(change_id, temp.name, update_history)
             finally:
                 log.debug(f"Delete temp collection {temp.name}")
                 await self.db.delete_collection(temp.name)
@@ -1091,7 +1107,7 @@ class ArangoGraphDB(GraphDB):
             await update_via_temp_collection()
         log.debug("Persist update done.")
 
-    async def commit_batch_update(self, batch_id: str) -> None:
+    async def commit_batch_update(self, batch_id: str, update_history: bool = True) -> None:
         temp_table = await self.get_tmp_collection(batch_id, False)
         await self.move_temp_to_proper(batch_id, temp_table.name)
         await self.db.delete_collection(temp_table.name)
@@ -1468,8 +1484,8 @@ class EventGraphDB(GraphDB):
         await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
         return result
 
-    async def delete_node(self, node_id: NodeId, model: Model) -> None:
-        await self.real.delete_node(node_id, model)
+    async def delete_node(self, node_id: NodeId, model: Model, keep_history: bool = False) -> None:
+        await self.real.delete_node(node_id, model, keep_history)
         await self.event_sender.core_event(CoreEvent.NodeDeleted, {"graph": self.graph_name})
 
     def update_nodes(
@@ -1512,8 +1528,9 @@ class EventGraphDB(GraphDB):
         model: Model,
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
+        update_history: bool = True,
     ) -> Tuple[List[str], GraphUpdate]:
-        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch)
+        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch, update_history)
         root_counter: Dict[str, int] = {}
         for root in roots:
             root_node = graph_to_merge.nodes[root]
@@ -1552,9 +1569,9 @@ class EventGraphDB(GraphDB):
     async def list_in_progress_updates(self) -> List[Json]:
         return await self.real.list_in_progress_updates()
 
-    async def commit_batch_update(self, batch_id: str) -> None:
+    async def commit_batch_update(self, batch_id: str, update_history: bool = True) -> None:
         info = first(lambda x: x["id"] == batch_id, await self.real.list_in_progress_updates())
-        await self.real.commit_batch_update(batch_id)
+        await self.real.commit_batch_update(batch_id, update_history)
         await self.event_sender.core_event(CoreEvent.BatchUpdateCommitted, {"graph": self.graph_name, "batch": info})
 
     async def abort_update(self, batch_id: str) -> None:
