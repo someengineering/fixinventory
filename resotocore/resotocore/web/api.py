@@ -939,11 +939,12 @@ class Api(Service):
     async def delete_node(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_name = GraphName(request.match_info.get("graph_id", "resoto"))
         node_id = NodeId(request.match_info.get("node_id", "some_existing"))
+        keep_history = request.query.get("keep_history", "false").lower() == "true"
         if node_id == "root":
             raise AttributeError("Root node can not be deleted!")
         graph = deps.db_access.get_graph_db(graph_name)
         model = await deps.model_handler.load_model(graph_name)
-        await graph.delete_node(node_id, model)
+        await graph.delete_node(node_id, model, keep_history)
         return web.HTTPNoContent()
 
     async def update_nodes(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1016,7 +1017,8 @@ class Api(Service):
     async def commit_batch(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db = deps.db_access.get_graph_db(GraphName(request.match_info.get("graph_id", "resoto")))
         batch_id = request.match_info.get("batch_id", "some_existing")
-        await graph_db.commit_batch_update(batch_id)
+        update_history = request.query.get("update_history", "true").lower() == "true"
+        await graph_db.commit_batch_update(batch_id, update_history)
         return web.HTTPOk(body="Batch committed.")
 
     async def abort_batch(self, request: Request, deps: TenantDependencies) -> StreamResponse:
