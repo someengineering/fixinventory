@@ -244,6 +244,7 @@ class ArangoGraphDB(GraphDB):
         return self.document_to_instance_fn(model)(node) if node is not None else None
 
     async def create_node(self, model: Model, node_id: NodeId, data: Json, under_node_id: NodeId) -> Json:
+        log.info(f"Create node: node_id={node_id}, under_node_id={under_node_id}, data={data}")
         graph = GraphBuilder(model, uuid_str())
         graph.add_node(node_id, data)
         graph.add_edge(under_node_id, node_id, EdgeTypes.default)
@@ -260,6 +261,7 @@ class ArangoGraphDB(GraphDB):
             return trafo(result["new"])
 
     async def update_deferred_edges(self, edges: List[Tuple[NodeId, NodeId, str]], ts: datetime) -> Tuple[int, int]:
+        log.info(f"Update {len(edges)} deferred edges.")
         default_edges: List[Json] = []
         delete_edges: List[Json] = []
 
@@ -315,6 +317,7 @@ class ArangoGraphDB(GraphDB):
         replace: bool,
         section: Optional[str],
     ) -> Json:
+        log.info(f"Update node with node_id={node_id}, section={section}, replace={replace}, update={patch_or_replace}")
         node = await self.by_id_with(db, node_id)
         if node is None:
             raise AttributeError(f"No document found with this id: {node_id}")
@@ -430,6 +433,7 @@ class ArangoGraphDB(GraphDB):
     async def update_nodes_section_with(
         self, db: AsyncArangoDBBase, model: Model, section: str, patch: Json, node_ids: List[NodeId]
     ) -> AsyncGenerator[Json, None]:
+        log.info(f"Update nodes section: section={section}, patch={patch} on {len(node_ids)} nodes.")
         bind_var = {"patch": patch, "node_ids": node_ids}
         trafo = self.document_to_instance_fn(model)
         with await db.aql(query=self.query_update_desired_metadata_many(section), bind_vars=bind_var) as cursor:
@@ -437,6 +441,8 @@ class ArangoGraphDB(GraphDB):
                 yield trafo(element)
 
     async def delete_node(self, node_id: NodeId, model: Model, keep_history: bool = False) -> None:
+        log.info(f"Delete node {node_id}, keep_history={keep_history}")
+
         async def delete_children(element: Json) -> None:
             with await self.db.aql(query=self.query_count_direct_children(), bind_vars={"rid": node_id}) as cursor:
                 count = cursor.next()
@@ -467,6 +473,7 @@ class ArangoGraphDB(GraphDB):
         model: Model,
         accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:  # inserted, updated
+        log.info(f"Update security section. run_id={report_run_id} for accounts={accounts}")
         temp_collection = await self.get_tmp_collection(report_run_id)
         now = utc_str()
         nodes_vulnerable_new = 0
@@ -986,7 +993,7 @@ class ArangoGraphDB(GraphDB):
             return graph_info, ni, nu, nd, edge_inserts, edge_deletes
 
         roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
-        logging.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
+        log.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
 
         def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
             edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]

@@ -62,6 +62,7 @@ from resotocore.task.subscribers import SubscriptionHandlerService
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.user.user_management import UserManagementService
 from resotocore.util import shutdown_process, utc
+from resotocore.web.accesslog import ResotoAccessLogger
 from resotocore.web.api import Api
 from resotocore.web.certificate_handler import CertificateHandlerWithCA, CertificateHandlerNoCA
 from resotocore.worker_task_queue import WorkerTaskQueue
@@ -332,6 +333,7 @@ def with_config(
         http_port=config.api.http_port,
         default_port=8900,
         ssl_context=deps.cert_handler.host_context,
+        access_log_class=ResotoAccessLogger,
     )
 
 
