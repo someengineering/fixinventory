@@ -47,6 +47,26 @@
                         "type": "Microsoft.Network/loadBalancers/backendAddressPools",
                         "properties": {
                             "provisioningState": "Succeeded",
+                            "virtualNetwork": {
+                                "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1"
+                            },
+                            "loadBalancingRules": [
+                                {
+                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/loadBalancingRules/rulelb"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "telb",
+                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/backendAddressPools/telb",
+                        "etag": "W/\"00000000-0000-0000-0000-00000000\"",
+                        "type": "Microsoft.Network/loadBalancers/backendAddressPools",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "virtualNetwork": {
+                                "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet2"
+                            },
                             "loadBalancingRules": [
                                 {
                                     "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/loadBalancingRules/rulelb"

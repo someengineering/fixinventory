@@ -134,7 +134,6 @@ def roundtrip_check(
         # since we can not compare objects, we use the json representation to see that no information is lost
         again_js = again.to_json()
         assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
-    print(resources)
     return resources
 
 

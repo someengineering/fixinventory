@@ -1101,11 +1101,6 @@ class AzureProximityPlacementGroup(AzureResource):
                 if vmss_id := vmss.id:
                     builder.add_edge(self, clazz=AzureVirtualMachineScaleSet, id=vmss_id)
 
-    #     if vms := self.virtual_machines_status:
-    #         for vm in vms:
-    #             if vm_id := vm.id:
-    #                 builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
-
 
 @define(eq=False, slots=False)
 class AzureResourceSkuCapacity:
