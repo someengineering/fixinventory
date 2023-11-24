@@ -14,6 +14,12 @@ from resoto_plugin_azure.resource.base import (
     AzurePrincipalidClientid,
     AzurePrivateLinkServiceConnectionState,
 )
+from resoto_plugin_azure.resource.network import (
+    AzureNetworkSecurityGroup,
+    AzureSubnet,
+    AzureNetworkInterface,
+    AzureLoadBalancer,
+)
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
@@ -25,7 +31,6 @@ from resotolib.baseresources import (
     BaseAutoScalingGroup,
     InstanceStatus,
     ModelReference,
-    EdgeType,
 )
 
 
@@ -84,12 +89,10 @@ class AzureAvailabilitySet(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
-            builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
-            )
+            builder.add_edge(self, clazz=AzureProximityPlacementGroup, id=placement_group_id)
         if virtual_machines := self.virtual_machines_availability:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+                builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -137,7 +140,7 @@ class AzureCapacityReservationGroup(AzureResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if virtual_machines := self.virtual_machines_associated:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+                builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -353,7 +356,7 @@ class AzureComputeOperationValue(AzureResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
@@ -714,9 +717,9 @@ class AzureDisk(AzureResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if disk_id := self.id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskAccess, id=disk_id)
+            builder.add_edge(self, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
+            builder.add_edge(self, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
 
 
 @define(eq=False, slots=False)
@@ -1065,6 +1068,9 @@ class AzureProximityPlacementGroup(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_virtual_machine_scale_set"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1088,6 +1094,17 @@ class AzureProximityPlacementGroup(AzureResource):
     proximity_placement_group_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the type of the proximity placement group. Possible values are: **standard** : co-locate resources within an azure region or availability zone. **ultra** : for future use.'})  # fmt: skip
     virtual_machine_scale_sets: Optional[List[AzureSubResourceWithColocationStatus]] = field(default=None, metadata={'description': 'A list of references to all virtual machine scale sets in the proximity placement group.'})  # fmt: skip
     virtual_machines_status: Optional[List[AzureSubResourceWithColocationStatus]] = field(default=None, metadata={'description': 'A list of references to all virtual machines in the proximity placement group.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if vmsss := self.virtual_machine_scale_sets:
+            for vmss in vmsss:
+                if vmss_id := vmss.id:
+                    builder.add_edge(self, clazz=AzureVirtualMachineScaleSet, id=vmss_id)
+
+    #     if vms := self.virtual_machines_status:
+    #         for vm in vms:
+    #             if vm_id := vm.id:
+    #                 builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -1740,7 +1757,7 @@ class AzureRestorePointCollection(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (source_id := self.source) and (vm_id := source_id.id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+            builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -1843,7 +1860,7 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=disk_id)
+            builder.add_edge(self, clazz=AzureDisk, id=disk_id)
 
 
 @define(eq=False, slots=False)
@@ -2505,7 +2522,17 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_proximity_placement_group", "azure_image", "azure_disk"]},
+        "successors": {
+            "default": [
+                "azure_proximity_placement_group",
+                "azure_image",
+                "azure_disk",
+                "azure_network_security_group",
+                "azure_subnet",
+                "azure_network_interface",
+                "azure_load_balancer",
+            ]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2586,16 +2613,14 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
-            builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
-            )
+            builder.add_edge(self, clazz=AzureProximityPlacementGroup, id=placement_group_id)
 
         if (
             (sp := self.virtual_machine_storage_profile)
             and (image_ref := sp.image_reference)
             and (image_reference_id := image_ref.id)
         ):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureImage, id=image_reference_id)
+            builder.add_edge(self, clazz=AzureImage, id=image_reference_id)
 
         if (
             (sp := self.virtual_machine_storage_profile)
@@ -2603,7 +2628,27 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             and (managed := disk.managed_disk)
             and (managed_disk_id := managed.id)
         ):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=managed_disk_id)
+            builder.add_edge(self, clazz=AzureDisk, id=managed_disk_id)
+
+        if (vm_network_profile := self.virtual_machine_network_profile) and (
+            ni_cofigurations := vm_network_profile.network_interface_configurations
+        ):
+            for ni_configuration in ni_cofigurations:
+                if nsg_id := ni_configuration.network_security_group:
+                    builder.add_edge(self, clazz=AzureNetworkSecurityGroup, id=nsg_id)
+                if ip_configurations := ni_configuration.ip_configurations:
+                    for ip_configuration in ip_configurations:
+                        if subnet_id := ip_configuration.subnet:
+                            builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+                        if lbbap_id := ip_configuration.load_balancer_backend_address_pools:
+                            builder.add_edge(self, clazz=AzureLoadBalancer, id=lbbap_id)
+
+        if (vm_network_profile := self.virtual_machine_network_profile) and (
+            network_interfaces := vm_network_profile.network_interfaces
+        ):
+            for network_interface in network_interfaces:
+                if ni_id := network_interface.id:
+                    builder.add_edge(self, clazz=AzureNetworkInterface, id=ni_id)
 
 
 @define(eq=False, slots=False)
@@ -3126,7 +3171,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
