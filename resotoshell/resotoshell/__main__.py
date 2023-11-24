@@ -209,7 +209,11 @@ def add_args(arg_parser: ArgumentParser) -> None:
         default=False,
     )
     arg_parser.add_argument(
-        "--add-headers", help="Add a header to all requests. Format: key:value", nargs="*", type=header_value
+        "--add-headers",
+        help="Add a header to all requests. Format: key:value",
+        nargs="*",
+        default=[],
+        type=header_value,
     )
 
 
