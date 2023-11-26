@@ -100,6 +100,11 @@ def test_ip_group(builder: GraphBuilder) -> None:
 
 def test_load_balancer(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureLoadBalancer, builder)
+    assert collected[0].lb_type == "Microsoft.Network/loadBalancers"
+    assert collected[0].backends == [
+        "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1",
+        "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet2",
+    ]
     assert len(collected) == 2
 
 
@@ -175,6 +180,11 @@ def test_vpn_gateway(builder: GraphBuilder) -> None:
 
 def test_vpn_server_configuration(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVpnServerConfiguration, builder)
+    assert len(collected) == 2
+
+
+def test_vpn_site(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureVpnSite, builder)
     assert len(collected) == 2
 
 

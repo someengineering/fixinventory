@@ -4096,7 +4096,6 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_virtual_network", "azure_subnet"]},
-        "successors": {"default": ["azure_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4119,9 +4118,6 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
         "resource_guid": S("properties", "resourceGuid"),
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "lb_type": S("type"),
-        "public_ip_address": S(
-            "properties", "frontendIPConfigurations", "properties", "publicIPAddress", "properties", "ipAddress"
-        ),
         "backends": S("properties", "backendAddressPools")
         >> ForallBend(AzureBackendAddressPool.mapping)
         >> ForallBend(S("virtual_network", default=[])),
@@ -4140,49 +4136,13 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the load balancer resource.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
-    _vmss_and_lb_ids: Optional[List[Tuple[str, str]]] = None
-
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_vmss_ids() -> None:
-            resources_api_spec = AzureApiSpec(
-                service="compute",
-                version="2023-07-01",
-                path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualMachineScaleSets",
-                path_parameters=["subscriptionId"],
-                query_parameters=["api-version"],
-                access_path="value",
-                expect_array=True,
-            )
-
-            self._vmss_and_lb_ids = [
-                (backend_address_pool["id"], resource["id"])
-                for resource in graph_builder.client.list(resources_api_spec)
-                for vm_profile in [resource.get("properties", {}).get("virtualMachineProfile", {})]
-                if isinstance(vm_profile, dict)
-                for nic_config in vm_profile.get("networkProfile", {}).get("networkInterfaceConfigurations", [])
-                for ip_config in nic_config.get("properties", {}).get("ipConfigurations", [])
-                for backend_address_pool in ip_config.get("properties", {}).get("loadBalancerBackendAddressPools", [])
-            ]
-
-        graph_builder.submit_work(collect_vmss_ids)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # Import placed inside the method due to circular import error resolution
-        from resoto_plugin_azure.resource.compute import (  # pylint: disable=import-outside-toplevel
-            AzureVirtualMachineScaleSet,
-        )
-
         if vns := self.backends:
             for vn_id in vns:
                 builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
         if baps := self.backend_address_pools:
             for bap in baps:
-                if bap_id := bap.id:
-                    if vmsss_info := self._vmss_and_lb_ids:
-                        for info in vmsss_info:
-                            r_bap_id, vmss_id = info
-                            if r_bap_id == bap_id:
-                                builder.add_edge(self, clazz=AzureVirtualMachineScaleSet, id=vmss_id)
                 if lbbas := bap.load_balancer_backend_addresses:
                     for lbba in lbbas:
                         if subnet_id := lbba.subnet:

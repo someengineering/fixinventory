@@ -3094,6 +3094,9 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_load_balancer"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -3151,6 +3154,20 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     upgrade_policy: Optional[AzureUpgradePolicy] = field(default=None, metadata={'description': 'Describes an upgrade policy - automatic, manual, or rolling.'})  # fmt: skip
     virtual_machine_profile: Optional[AzureVirtualMachineScaleSetVMProfile] = field(default=None, metadata={'description': 'Describes a virtual machine scale set virtual machine profile.'})  # fmt: skip
     zone_balance: Optional[bool] = field(default=None, metadata={'description': 'Whether to force strictly even virtual machine distribution cross x-zones in case there is zone outage. Zonebalance property can only be set if the zones property of the scale set contains more than one zone. If there are no zones or only one zone specified, then zonebalance property should not be set.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (
+            (vm_profile := self.virtual_machine_profile)
+            and (net_profile := vm_profile.network_profile)
+            and (net_i_configs := net_profile.network_interface_configurations)
+        ):
+            for net_i_config in net_i_configs:
+                if ip_configs := net_i_config.ip_configurations:
+                    for ip_config in ip_configs:
+                        if baps := ip_config.load_balancer_backend_address_pools:
+                            for bap in baps:
+                                if bap_id := bap:
+                                    builder.add_edge(self, clazz=AzureLoadBalancer, id=bap_id)
 
 
 @define(eq=False, slots=False)
