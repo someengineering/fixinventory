@@ -20,6 +20,7 @@ from resotolib.baseresources import (
     BaseNetwork,
     BasePeeringConnection,
     ModelReference,
+    EdgeType,
 )
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringToUnitNumber
 from resotolib.types import Json
@@ -1113,17 +1114,19 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
             for ip_conf in ip_confs:
                 if subnet := ip_conf.subnet:
                     vn_id = extract_vn_id(subnet)
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if firewall_policy := self.firewall_policy:
-            builder.add_edge(self, clazz=AzureWebApplicationFirewallPolicy, id=firewall_policy)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureWebApplicationFirewallPolicy, id=firewall_policy
+            )
         if pl_configurations := self.private_link_configurations:
             for pl_configuration in pl_configurations:
                 if ip_configurations := pl_configuration.link_ip_configurations:
                     for ip_configuration in ip_configurations:
                         if subnet_id := ip_configuration.subnet:
-                            builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
                             vn_id = extract_vn_id(subnet_id)
-                            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
 
 
 @define(eq=False, slots=False)
@@ -1495,12 +1498,12 @@ class AzureFirewall(AzureResource, BaseFirewall):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if policy_id := self.firewall_policy:
-            builder.add_edge(self, clazz=AzureFirewallPolicy, id=policy_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFirewallPolicy, id=policy_id)
         if ip_confs := self.firewall_ip_configurations:
             for ip_conf in ip_confs:
                 if subnet := ip_conf.subnet:
                     vn_id = extract_vn_id(subnet)
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if rule_collections := self.application_rule_collections:
             for rule_collection in rule_collections:
                 if rules := rule_collection.rules:
@@ -1508,9 +1511,11 @@ class AzureFirewall(AzureResource, BaseFirewall):
                         fqdn_tags = rule.fqdn_tags
                         if fqdn_tags:
                             for fqdn_tag_id in fqdn_tags:
-                                builder.add_edge(self, clazz=AzureFirewallFqdnTag, id=fqdn_tag_id)
+                                builder.add_edge(
+                                    self, edge_type=EdgeType.default, clazz=AzureFirewallFqdnTag, id=fqdn_tag_id
+                                )
         if vh_id := self.virtual_hub:
-            builder.add_edge(self, clazz=AzureVirtualHub, id=vh_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualHub, id=vh_id)
 
 
 @define(eq=False, slots=False)
@@ -1651,13 +1656,13 @@ class AzureBastionHost(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vn_id := self.virtual_network:
-            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if ip_configurations := self.bastion_host_ip_configurations:
             for ip_configuration in ip_configurations:
                 if subnet_id := ip_configuration.subnet:
-                    builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
                 if p_ip_address := ip_configuration.public_ip_address:
-                    builder.add_edge(self, clazz=AzurePublicIPAddress, id=p_ip_address)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address)
 
 
 @define(eq=False, slots=False)
@@ -1720,7 +1725,7 @@ class AzureCustomIpPrefix(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vn_address := self.cidr:
-            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_address)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_address)
 
 
 @define(eq=False, slots=False)
@@ -1760,10 +1765,10 @@ class AzureDdosProtectionPlan(AzureResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vns := self.virtual_networks:
             for vn_id in vns:
-                builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if p_ip_addresses := self.public_ip_addresses:
             for p_ip_address in p_ip_addresses:
-                builder.add_edge(self, clazz=AzurePublicIPAddress, id=p_ip_address)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address)
 
 
 @define(eq=False, slots=False)
@@ -2240,9 +2245,9 @@ class AzurePublicIPAddress(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if p_ip_prefix_id := self.public_ip_prefix:
-            builder.add_edge(self, clazz=AzurePublicIPPrefix, id=p_ip_prefix_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPPrefix, id=p_ip_prefix_id)
         if (nat_gateway := self.nat_gateway) and (nat_gateway_id := nat_gateway.id):
-            builder.add_edge(self, clazz=AzureNatGateway, id=nat_gateway_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
 
 
 @define(eq=False, slots=False)
@@ -2791,15 +2796,15 @@ class AzureNetworkInterface(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dscp_config_id := self.dscp_configuration:
-            builder.add_edge(self, clazz=AzureDscpConfiguration, id=dscp_config_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDscpConfiguration, id=dscp_config_id)
         if tap_configs := self.tap_configurations:
             for tap_config in tap_configs:
                 if vn_tap_id := tap_config.id:
-                    builder.add_edge(self, clazz=AzureVirtualNetworkTap, id=vn_tap_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetworkTap, id=vn_tap_id)
         if nsg_id := self._network_security_group:
-            builder.add_edge(self, clazz=AzureNetworkSecurityGroup, id=nsg_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
         if p_l_service_id := self.private_link_service:
-            builder.add_edge(self, clazz=AzurePrivateLinkService, id=p_l_service_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePrivateLinkService, id=p_l_service_id)
 
 
 @define(eq=False, slots=False)
@@ -2861,7 +2866,7 @@ class AzureDscpConfiguration(AzureResource):
                     for ip_conf in ip_confs:
                         if (subnet := ip_conf.subnet) and (subnet_id := subnet.id):
                             vn_id = extract_vn_id(subnet_id)
-                            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
 
 
 @define(eq=False, slots=False)
@@ -3153,7 +3158,7 @@ class AzureExpressRouteCircuit(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if route_port_id := self.express_route_port:
-            builder.add_edge(self, clazz=AzureExpressRoutePort, id=route_port_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureExpressRoutePort, id=route_port_id)
         if (
             (provider_properties := self.service_provider_properties)
             and (location_name := provider_properties.peering_location)
@@ -3162,13 +3167,15 @@ class AzureExpressRouteCircuit(AzureResource):
             for info in names_and_ids:
                 erplocation, erplocation_id = info
                 if erplocation == location_name:
-                    builder.add_edge(self, clazz=AzureExpressRoutePortsLocation, id=erplocation_id)
+                    builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureExpressRoutePortsLocation, id=erplocation_id
+                    )
         if c_peerings := self.circuit_peerings:
             for c_peering in c_peerings:
                 if p_address := c_peering.primary_peer_address_prefix:
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=p_address)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=p_address)
                 if s_address := c_peering.secondary_peer_address_prefix:
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=s_address)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=s_address)
 
 
 @define(eq=False, slots=False)
@@ -3791,9 +3798,9 @@ class AzureIpAllocation(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vn_id := self.virtual_network:
-            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if subnet_id := self.subnet:
-            builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -3857,7 +3864,7 @@ class AzureIpGroup(AzureResource):
                     vn_ips, vn_id = info
                     for vn_address in vn_ips:
                         if ip_address == vn_address:
-                            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
 
 
 @define(eq=False, slots=False)
@@ -4140,13 +4147,13 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vns := self.backends:
             for vn_id in vns:
-                builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if baps := self.backend_address_pools:
             for bap in baps:
                 if lbbas := bap.load_balancer_backend_addresses:
                     for lbba in lbbas:
                         if subnet_id := lbba.subnet:
-                            builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -4282,7 +4289,7 @@ class AzureNetworkProfile(AzureResource):
                     for ip_configuration in ip_configurations:
                         if subnet := ip_configuration.subnet:
                             vn_id = extract_vn_id(subnet)
-                            builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
 
                 if (container_ni_ids := container.container_network_interfaces) and (
                     ni_ids_and_vm_ids := self._network_interfaces_and_vm_ids
@@ -4291,7 +4298,7 @@ class AzureNetworkProfile(AzureResource):
                         for info in ni_ids_and_vm_ids:
                             network_interface_id, vm_id = info
                             if ni_id == network_interface_id:
-                                builder.add_edge(self, clazz=AzureVirtualMachine, id=vm_id)
+                                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -4446,11 +4453,13 @@ class AzureNetworkVirtualAppliance(AzureResource):
             for info in vendors:
                 vendor_name, nvasku_id = info
                 if vendor_name == nva_vendor:
-                    builder.add_edge(self, clazz=AzureNetworkVirtualApplianceSku, id=nvasku_id)
+                    builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, id=nvasku_id
+                    )
         if virtual_appliances := self.virtual_appliance_nics:
             for va in virtual_appliances:
                 if private_address := va.private_ip_address:
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=private_address)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=private_address)
 
 
 @define(eq=False, slots=False)
@@ -4546,7 +4555,7 @@ class AzureNetworkWatcher(AzureResource):
             for info in vns_info:
                 vn_location, vn_id = info
                 if vn_location == nw_location:
-                    builder.add_edge(self, clazz=AzureVirtualNetwork, id=vn_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
 
 
 @define(eq=False, slots=False)
@@ -4699,7 +4708,7 @@ class AzureP2SVpnGateway(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vh_id := self.virtual_hub:
-            builder.add_edge(self, clazz=AzureVirtualHub, id=vh_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualHub, id=vh_id)
 
 
 @define(eq=False, slots=False)
@@ -5029,17 +5038,19 @@ class AzureVirtualHub(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if er_gateway_id := self.express_route_gateway:
-            builder.add_edge(self, clazz=AzureExpressRouteGateway, id=er_gateway_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureExpressRouteGateway, id=er_gateway_id)
         if vpn_gateway_id := self.vpn_gateway:
-            builder.add_edge(self, clazz=AzureVpnGateway, id=vpn_gateway_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVpnGateway, id=vpn_gateway_id)
         if vw_id := self.virtual_wan:
-            builder.add_edge(self, clazz=AzureVirtualWAN, id=vw_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualWAN, id=vw_id)
         if (ip_config_ids := self.ip_configuration_ids) and (p_ip_a_and_ip_conf_ids := self._p_ip_addresses_ip_c_ids):
             for ip_config_id in ip_config_ids:
                 for info in p_ip_a_and_ip_conf_ids:
                     p_ip_address_id, collected_ip_conf_id = info
                     if ip_config_id == collected_ip_conf_id:
-                        builder.add_edge(self, clazz=AzurePublicIPAddress, id=p_ip_address_id)
+                        builder.add_edge(
+                            self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id
+                        )
 
 
 @define(eq=False, slots=False)
@@ -5175,9 +5186,9 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
         if subnets := self.subnets:
             for subnet in subnets:
                 if subnet_id := subnet.id:
-                    builder.add_edge(self, clazz=AzureSubnet, id=subnet_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
                 if nat_gateway_id := subnet.nat_gateway:
-                    builder.add_edge(self, clazz=AzureNatGateway, id=nat_gateway_id)
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
 
 
 @define(eq=False, slots=False)
@@ -5763,7 +5774,7 @@ class AzureVpnSite(AzureResource, BasePeeringConnection):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vw_id := self.virtual_wan:
-            builder.add_edge(self, clazz=AzureVirtualWAN, id=vw_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualWAN, id=vw_id)
 
 
 @define(eq=False, slots=False)
