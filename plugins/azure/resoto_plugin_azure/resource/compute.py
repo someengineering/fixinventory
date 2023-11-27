@@ -720,7 +720,7 @@ class AzureDisk(AzureResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if disk_id := self.id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskAccess, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
 
@@ -1858,7 +1858,7 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDisk, id=disk_id)
 
 
 @define(eq=False, slots=False)
@@ -2520,15 +2520,19 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
+        "predecessors": {
             "default": [
                 "azure_proximity_placement_group",
-                "azure_image",
-                "azure_disk",
                 "azure_network_security_group",
                 "azure_subnet",
-                "azure_network_interface",
                 "azure_load_balancer",
+            ]
+        },
+        "successors": {
+            "default": [
+                "azure_image",
+                "azure_disk",
+                "azure_network_interface",
             ]
         },
     }
@@ -2612,7 +2616,11 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
             builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureProximityPlacementGroup,
+                id=placement_group_id,
             )
 
         if (
@@ -3173,7 +3181,11 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                             for bap in baps:
                                 if bap_id := bap:
                                     builder.add_edge(
-                                        self, edge_type=EdgeType.default, clazz=AzureLoadBalancer, id=bap_id
+                                        self,
+                                        edge_type=EdgeType.default,
+                                        reverse=True,
+                                        clazz=AzureLoadBalancer,
+                                        id=bap_id,
                                     )
 
 
