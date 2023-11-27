@@ -4304,7 +4304,7 @@ class AzureNetworkProfile(AzureResource):
             for container in container_nic:
                 if ip_configurations := container.ip_configurations:
                     for ip_configuration in ip_configurations:
-                        if subnet := ip_configuration.subnet:
+                        if subnet := ip_configuration._subnet_id:
                             vn_id = extract_vn_id(subnet)
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id

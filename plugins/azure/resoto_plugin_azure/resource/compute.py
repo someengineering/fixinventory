@@ -720,7 +720,7 @@ class AzureDisk(AzureResource, BaseVolume):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if disk_id := self.id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
 
@@ -1858,7 +1858,7 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDisk, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, id=disk_id)
 
 
 @define(eq=False, slots=False)
@@ -2618,7 +2618,6 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             builder.add_edge(
                 self,
                 edge_type=EdgeType.default,
-                reverse=True,
                 clazz=AzureProximityPlacementGroup,
                 id=placement_group_id,
             )
