@@ -48,7 +48,7 @@ def test_disks(builder: GraphBuilder) -> None:
     resource_types: List[Type[AzureResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureDisk, AzureDiskAccess)) == 2
+    assert len(builder.edges_of(AzureDiskAccess, AzureDisk)) == 2
     assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
 
 
@@ -114,7 +114,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureImage, AzureDisk]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualMachine, AzureProximityPlacementGroup)) == 2
+    assert len(builder.edges_of(AzureProximityPlacementGroup, AzureVirtualMachine)) == 2
     assert len(builder.edges_of(AzureVirtualMachine, AzureImage)) == 2
     assert len(builder.edges_of(AzureVirtualMachine, AzureDisk)) == 2
 
@@ -149,7 +149,7 @@ def test_snapshot(builder: GraphBuilder) -> None:
     resource_type: List[Type[AzureResource]] = [AzureDisk]
     connect_resources(builder, resource_type)
 
-    assert len(builder.edges_of(AzureSnapshot, AzureDisk)) == 1
+    assert len(builder.edges_of(AzureDisk, AzureSnapshot)) == 1
 
 
 def test_snapshot_resources(builder: GraphBuilder) -> None:
