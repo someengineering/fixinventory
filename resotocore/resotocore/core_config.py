@@ -192,6 +192,9 @@ class DatabaseConfig(ConfigObject):
         default=False, metadata={"description": "If the connection should not be verified (default: False)"}
     )
     request_timeout: int = field(default=900, metadata={"description": "Request timeout in seconds (default: 900)"})
+    time_series_ttl: timedelta = field(
+        default=timedelta(days=90), metadata={"description": "Time series TTL (default: 90d)"}
+    )
 
 
 @define(order=True, hash=True, frozen=True)

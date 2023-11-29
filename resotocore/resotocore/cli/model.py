@@ -116,6 +116,10 @@ class CLIContext:
         return GraphName(self.env["graph"])
 
     @property
+    def section(self) -> str:
+        return self.env.get("section", PathRoot)
+
+    @property
     def user_permissions(self) -> Set[Permission]:
         return self.user.permissions if self.user else set()
 

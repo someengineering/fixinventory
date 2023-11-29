@@ -235,7 +235,7 @@ def test_query_with_preamble() -> None:
     q1 = parse_query('(edge_type=delete): id("root") -[0:1]->')
     assert q1.parts[0].navigation.edge_types == ["delete"]  # type: ignore
     # edge type can be defined via kwargs
-    q2 = parse_query('id("root") -[0:1]->', edge_type="delete")
+    q2 = parse_query('id("root") -[0:1]->', dict(edge_type="delete"))
     assert q2.parts[0].navigation.edge_types == ["delete"]  # type: ignore
     # aggregation and preamble
     q3 = parse_query('aggregate(region: sum(cpu))(edge_type=delete): id("root") -[0:1]->')

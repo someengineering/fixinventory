@@ -1,6 +1,6 @@
 from datetime import timedelta
 from functools import reduce
-from typing import List
+from typing import List, Optional, Dict
 
 import parsy
 from attrs import evolve
@@ -466,7 +466,7 @@ def query_parser() -> Parser:
     return Query(parts[::-1], preamble, maybe_aggregate)
 
 
-def parse_query(query: str, **env: str) -> Query:
+def parse_query(query: str, env: Optional[Dict[str, str]] = None) -> Query:
     def set_edge_type_if_not_set(part: Part, edge_types: List[EdgeType]) -> Part:
         def set_in_with_clause(wc: WithClause) -> WithClause:
             nav = wc.navigation
@@ -485,6 +485,7 @@ def parse_query(query: str, **env: str) -> Query:
     try:
         parsed: Query = query_parser.parse(query.strip())
         pre = parsed.preamble
+        env = env or {}
         ets: List[EdgeType] = pre.get("edge_type", env.get("edge_type", EdgeTypes.default)).split(",")  # type: ignore
         for et in ets:
             if et not in EdgeTypes.all:

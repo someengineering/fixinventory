@@ -32,6 +32,8 @@ tags:
     description: Endpoints to get information about the system.
   - name: debug
     description: Endpoints to debug the system.
+  - name: timeseries
+    description: Endpoints to access time series data.
   - name: tsdb
     description: Endpoints to access the time series database.
   - name: authorization
@@ -3093,6 +3095,81 @@ paths:
                 type: string
                 example: "1.1 node1"
           description: "The response from the tsdb."
+
+  # endregion
+
+  # region timeseries
+
+  /timeseries/{timeseries}:
+    post:
+      summary: Load time series data.
+      parameters:
+        - name: timeseries
+          description: "The name of the time series."
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "some_name"
+      requestBody:
+        description: Parameters of the time series request.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                  description: The start of the time series. If not defined 7 days from now into the past.
+                end:
+                  type: string
+                  format: date-time
+                  description: The end of the time series. If not defined now.
+                group:
+                  type: array
+                  items:
+                      type: string
+                  description: Reduce the available groups to the set of defined ones.
+                filter:
+                  type: array
+                  items:
+                      type: string
+                  description: |
+                    Filter available group members by predicate.
+                    Only time series values with matching group criteria will be selected.
+                  example: group_var_foo == "bla"
+                granularity:
+                  type: string
+                  format: duration
+                  description: |
+                    The granularity of the time series.
+                    This can be either a duration or the number of items for the time window that is selected.
+                    The granularity can not go below one hour.
+                    It defaults to (end-start) / 20.
+      tags:
+        - timeseries
+      responses:
+        "400":
+          description: "A required property is missing or the request can not be read."
+          content:
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: The time series data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+              example: |
+                {
+                  "time": "2021-01-01T00:00:00Z",
+                  "value": 1
+                }
+
+
 
   # endregion
 

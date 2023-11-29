@@ -602,6 +602,7 @@ class ArangoGraphDB(GraphDB):
         return await self.db.aql_cursor(
             query=q_string,
             trafo=None if kwargs.get("no_trafo") else self.document_to_instance_fn(query.model, query),
+            flatten_nodes_and_edges=True,
             count=with_count,
             full_count=with_count,
             bind_vars=bind,
@@ -663,6 +664,7 @@ class ArangoGraphDB(GraphDB):
         return await self.db.aql_cursor(
             query=query_string,
             trafo=self.document_to_instance_fn(query.model, query),
+            flatten_nodes_and_edges=True,
             bind_vars=bind,
             count=with_count,
             full_count=with_count,
@@ -1470,6 +1472,10 @@ class EventGraphDB(GraphDB):
     @property
     def name(self) -> GraphName:
         return self.real.name
+
+    @property
+    def vertex_name(self) -> str:
+        return self.real.vertex_name
 
     async def get_node(self, model: Model, node_id: NodeId) -> Optional[Json]:
         return await self.real.get_node(model, node_id)

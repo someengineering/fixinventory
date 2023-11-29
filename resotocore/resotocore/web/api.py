@@ -28,6 +28,7 @@ from typing import (
     Awaitable,
     Literal,
     cast,
+    Set,
 )
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
@@ -275,6 +276,8 @@ class Api(Service):
                 web.get(prefix + "/report/checks/graph/{graph_id}", require(self.perform_benchmark_on_checks, r)),
                 web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", require(self.inspection_results, r)),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", require(self.perform_benchmark, r)),
+                # time series
+                web.post(prefix + "/timeseries/{timeseries}", require(self.load_time_series, r)),
                 # CLI
                 web.post(prefix + "/cli/evaluate", require(self.evaluate, r)),
                 web.post(prefix + "/cli/execute", require(self.execute, r)),
@@ -704,6 +707,29 @@ class Api(Service):
         inspections = await deps.inspector.list_failing_resources(graph, check_id, accounts)
         return await self.stream_response_from_gen(request, inspections)
 
+    async def load_time_series(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        def parse_duration_or_int(s: str) -> Union[int, timedelta]:
+            try:
+                return duration(s)
+            except Exception:
+                return int(s)
+
+        name = request.match_info["timeseries"]
+        body = await request.json() if request.content_length else {}
+        start = if_set(body.get("start"), parse_utc, utc() - timedelta(days=7))
+        end = if_set(body.get("end"), parse_utc, utc())
+        group_by: Optional[Set[str]] = if_set(body.get("group"), set)
+        filter_by: Optional[List[Predicate]] = if_set(
+            body.get("filter"), lambda x: [predicate_term.parse(y) for y in x]  # type: ignore
+        )
+        granularity: Optional[Union[int, timedelta]] = if_set(body.get("granularity"), parse_duration_or_int)
+        cursor = await deps.db_access.time_series_db.load_time_series(
+            name, start, end, group_by=group_by, filter_by=filter_by, granularity=granularity
+        )
+        return await self.stream_response_from_gen(
+            request, cursor, count=cursor.count(), total_count=cursor.full_count()
+        )
+
     async def handle_events(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         show = request.query["show"].split(",") if "show" in request.query else ["*"]
         return await self.listen_to_events(request, deps, SubscriberId(str(uuid.uuid1())), show)
@@ -1047,7 +1073,7 @@ class Api(Service):
         query_string = await request.text()
         graph_name, model = await self.graph_model_from_request(request, deps)
         graph_db = deps.db_access.get_graph_db(graph_name)
-        q = await deps.template_expander.parse_query(query_string, section, **request.query)
+        q = await deps.template_expander.parse_query(query_string, section, env=cast(Dict[str, str], request.query))
         return graph_db, QueryModel(q, model, cast(Dict[str, Any], request.query))
 
     async def raw(self, request: Request, deps: TenantDependencies) -> StreamResponse:
