@@ -6070,10 +6070,10 @@ class TimeSeriesCommand(CLICommand):
 
     ```
     # compute the number of instances per instance type and store it in a time series
-    > timeseries snapshot --name "instances" aggregate(instance_type: sum(1)): is(instance)
+    > timeseries snapshot --name instances aggregate(instance_type: sum(1)): is(instance)
 
     # retrieve the number of instances per instance type since yesterday
-    > timeseries get --name "instances" --start @yesterday@ --end @now@
+    > timeseries get --name instances --start @yesterday@ --end @now@
     ```
     """
 
