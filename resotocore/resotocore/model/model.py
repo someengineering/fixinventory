@@ -179,6 +179,9 @@ class PropertyPath:
         update.append(part)
         return PropertyPath(update)
 
+    def unescaped_parts(self) -> List[str]:
+        return [p.strip("`") for p in self.path if p is not None]
+
     @property
     def last_part(self) -> Optional[str]:
         return self.path[-1] if self.path else None
