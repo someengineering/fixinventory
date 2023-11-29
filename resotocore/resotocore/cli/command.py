@@ -2599,7 +2599,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 for name in chain(predicate_names, sort_names):
                     if name not in self.all_default_props and name not in local_paths:
                         local_paths.add(name)
-                        path = [p.strip("`") for p in PropertyPath.from_path(name).path]
+                        path = PropertyPath.from_path(name).unescaped_parts()
                         result.append((path, path[-1]))
             if ctx.query_options.get("history") is not True:
                 result.extend(self.default_live_properties_to_show)
@@ -2608,7 +2608,7 @@ class ListCommand(CLICommand, OutputTransformer):
             return result
 
         def adjust_path(prop_path: str) -> List[str]:
-            return [p.strip("`") for p in PropertyPath.from_path(ctx.variable_in_section(prop_path)).path]
+            return PropertyPath.from_path(ctx.variable_in_section(prop_path)).unescaped_parts()
 
         def to_str(name: str, elem: JsonElement) -> str:
             if isinstance(elem, dict):
