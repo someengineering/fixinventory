@@ -1407,7 +1407,7 @@ async def test_timeseries(cli: CLI) -> None:
     in_one_min = utc_str(now + timedelta(minutes=1))
     one_min_ago = utc_str(now - timedelta(minutes=1))
     # Create a time series based on all foo entries
-    res = await exec("timeseries create --name test 'search aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)'")  # fmt: skip
+    res = await exec("timeseries snapshot --name test 'search aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)'")  # fmt: skip
     assert res[0] == "10 entries added to time series test."
     # Get the time series combined with each complete group
     res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min}")
