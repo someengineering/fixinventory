@@ -584,7 +584,7 @@ async def test_list_command(cli: CLI) -> None:
 
     # List supports csv output
     result = await cli.execute_cli_command(
-        f"json {json.dumps(props)} | list --csv a,b,c,d,e,f,non_existent", stream.list
+        f"json {json.dumps(props)} | list --csv a,`b`,c,`d`,e,`f`,non_existent", stream.list
     )
     assert result[0] == ['"a","b","c","d","e","f","non_existent"', '"a",True,False,"",12,1.234,""']
 

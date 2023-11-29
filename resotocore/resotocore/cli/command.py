@@ -2549,7 +2549,6 @@ class ListCommand(CLICommand, OutputTransformer):
         + default_history_properties_to_show
         + default_live_properties_to_show
     }
-    dot_re = re.compile("[.]")
 
     @property
     def name(self) -> str:
@@ -2600,7 +2599,8 @@ class ListCommand(CLICommand, OutputTransformer):
                 for name in chain(predicate_names, sort_names):
                     if name not in self.all_default_props and name not in local_paths:
                         local_paths.add(name)
-                        result.append((self.dot_re.split(name), name.rsplit(".", 1)[-1]))
+                        path = [p.strip("`") for p in PropertyPath.from_path(name).path]
+                        result.append((path, path[-1]))
             if ctx.query_options.get("history") is not True:
                 result.extend(self.default_live_properties_to_show)
             # add all context properties
@@ -2608,7 +2608,7 @@ class ListCommand(CLICommand, OutputTransformer):
             return result
 
         def adjust_path(prop_path: str) -> List[str]:
-            return self.dot_re.split(ctx.variable_in_section(prop_path))
+            return [p.strip("`") for p in PropertyPath.from_path(ctx.variable_in_section(prop_path)).path]
 
         def to_str(name: str, elem: JsonElement) -> str:
             if isinstance(elem, dict):
