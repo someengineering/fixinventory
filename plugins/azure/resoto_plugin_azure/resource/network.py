@@ -2371,8 +2371,7 @@ class AzureSubnet(AzureSubResource):
         "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id")),
         "ip_configuration_profiles": S("properties", "ipConfigurationProfiles")
         >> ForallBend(AzureIPConfigurationProfile.mapping),
-        "_ip_configurations_id": S("properties", "ipConfigurations") >> ForallBend(S("id")),
-        "name": S("name"),
+        "_ip_configuration_ids": S("properties", "ipConfigurations", default=[]) >> ForallBend(S("id")),
         "nat_gateway_id": S("properties", "natGateway", "id"),
         "network_security_group": S("properties", "networkSecurityGroup") >> Bend(AzureNetworkSecurityGroup.mapping),
         "private_endpoint_network_policies": S("properties", "privateEndpointNetworkPolicies"),
@@ -2399,7 +2398,7 @@ class AzureSubnet(AzureSubResource):
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ip_allocations: Optional[List[str]] = field(default=None, metadata={'description': 'Array of IpAllocation which reference this subnet.'})  # fmt: skip
     ip_configuration_profiles: Optional[List[AzureIPConfigurationProfile]] = field(default=None, metadata={'description': 'Array of IP configuration profiles which reference this subnet.'})  # fmt: skip
-    _ip_configurations_id: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
+    _ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
     nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     network_security_group: Optional[AzureNetworkSecurityGroup] = field(default=None, metadata={'description': 'NetworkSecurityGroup resource.'})  # fmt: skip
@@ -2688,8 +2687,10 @@ class AzurePrivateLinkService(AzureResource):
         "fqdns": S("properties", "fqdns"),
         "link_service_ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzurePrivateLinkServiceIpConfiguration.mapping),
-        "load_balancer_frontend_ip_configurations": S("properties", "loadBalancerFrontendIpConfigurations")
-        >> ForallBend(AzureFrontendIPConfiguration.mapping),
+        "_load_balancer_frontend_ip_configuration_ids": S(
+            "properties", "loadBalancerFrontendIpConfigurations", default=[]
+        )
+        >> ForallBend(S("id")),
         "location": S("location"),
         "link_service_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureLinkServicePrivateEndpointConnection.mapping),
@@ -2704,7 +2705,7 @@ class AzurePrivateLinkService(AzureResource):
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     fqdns: Optional[List[str]] = field(default=None, metadata={"description": "The list of Fqdn."})
     link_service_ip_configurations: Optional[List[AzurePrivateLinkServiceIpConfiguration]] = field(default=None, metadata={'description': 'An array of private link service IP configurations.'})  # fmt: skip
-    load_balancer_frontend_ip_configurations: Optional[List[AzureFrontendIPConfiguration]] = field(default=None, metadata={'description': 'An array of references to the load balancer IP configurations.'})  # fmt: skip
+    _load_balancer_frontend_ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the load balancer IP configurations.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     link_service_private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -3937,8 +3938,7 @@ class AzureBackendAddressPool(AzureSubResource):
         >> ForallBend(AzureGatewayLoadBalancerTunnelInterface.mapping),
         "type": S("type"),
         "virtual_network": S("properties", "virtualNetwork", "id"),
-        "backend_ip_configurations": S("properties", "backendIPConfigurations")
-        >> ForallBend(AzureNetworkInterfaceIPConfiguration.mapping),
+        "_backend_ip_configuration_ids": S("properties", "backendIPConfigurations", default=[]) >> ForallBend(S("id")),
     }
     drain_period_in_seconds: Optional[int] = field(default=None, metadata={'description': 'Amount of seconds Load Balancer waits for before sending RESET to client and backend address.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -3954,7 +3954,7 @@ class AzureBackendAddressPool(AzureSubResource):
     tunnel_interfaces: Optional[List[AzureGatewayLoadBalancerTunnelInterface]] = field(default=None, metadata={'description': 'An array of gateway load balancer tunnel interfaces.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
     virtual_network: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
-    backend_ip_configurations: Optional[AzureNetworkInterfaceIPConfiguration] = field(
+    _backend_ip_configuration_ids: Optional[List[str]] = field(
         default=None, metadata={"description": "An array of references to IP addresses defined in network interfaces."}
     )
 
@@ -4125,7 +4125,7 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
         "lb_type": S("type"),
         "backends": S("properties", "backendAddressPools")
         >> ForallBend(AzureBackendAddressPool.mapping)
-        >> ForallBend(S("virtual_network", default=[])),
+        >> ForallBend(S("virtual_network"), default=[]),
     }
     backend_address_pools: Optional[List[AzureBackendAddressPool]] = field(default=None, metadata={'description': 'Collection of backend address pools used by a load balancer.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -6030,6 +6030,7 @@ resources: List[Type[AzureResource]] = [
     AzurePublicIPPrefix,
     AzureRouteFilter,
     AzureSecurityPartnerProvider,
+    # AzureSubnet, # TODO: collect azure subnets properly
     AzureUsage,
     AzureVirtualHub,
     AzureVirtualNetwork,
