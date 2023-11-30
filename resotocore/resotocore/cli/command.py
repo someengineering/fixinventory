@@ -1467,7 +1467,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
                 before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))
                 after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))
                 change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])
-                context = await db.search_history(query_model, change, before, after, timeout=timeout)
+                context = await db.search_history(query_model, change, before, after, with_count=count, timeout=timeout)
             elif query.aggregate:
                 context = await db.search_aggregation(query_model)
             elif with_edges:
