@@ -149,7 +149,15 @@ class AzureResourceManagementClient(AzureClient):
         params["api-version"] = _SERIALIZER.query("api_version", spec.version, "str")  # type: ignore
 
         # Construct url
-        path = spec.path.format_map({"subscriptionId": self.subscription_id, "location": self.location, **params})
+        path = spec.path.format_map(
+            {
+                "subscriptionId": self.subscription_id,
+                "location": self.location,
+                "resourceGroupName": kwargs.pop("resourceGroupName", ""),
+                "virtualNetworkName": kwargs.pop("virtualNetworkName", ""),
+                **params,
+            }
+        )
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
         # Construct and send request
@@ -165,7 +173,6 @@ class AzureResourceManagementClient(AzureClient):
             raise HttpResponseError(response=response, error_format=ARMErrorFormat)
 
         # Parse json content
-        # TODO: handle pagination
         js: Union[Json, List[Json]] = response.json()
         if spec.access_path and isinstance(js, dict):
             js = js[spec.access_path]

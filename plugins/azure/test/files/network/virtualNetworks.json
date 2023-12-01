@@ -26,7 +26,8 @@
                 ],
                 "virtualNetworkPeerings": [],
                 "provisioningState": "Succeeded"
-            }
+            },
+            "resourceGroup": "rg1"
         },
         {
             "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet2",
@@ -44,10 +45,20 @@
                         "8.8.8.8"
                     ]
                 },
-                "subnets": [],
+                "subnets": [
+                    {
+                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1/subnets/test-2",
+                        "name": "test-2",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/32",
+                            "provisioningState": "Succeeded"
+                        }
+                    }
+                ],
                 "virtualNetworkPeerings": [],
                 "provisioningState": "Succeeded"
-            }
+            },
+            "resourceGroup": "rg1"
         }
     ]
 }

@@ -2358,9 +2358,23 @@ class AzureDelegation(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureSubnet(AzureSubResource):
+class AzureSubnet(AzureResource):
     kind: ClassVar[str] = "azure_subnet"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_nat_gateway",
+                "azure_network_security_group",
+            ]
+        },
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
         "address_prefix": S("properties", "addressPrefix"),
         "address_prefixes": S("properties", "addressPrefixes"),
         "application_gateway_ip_configurations": S("properties", "applicationGatewayIPConfigurations")
@@ -2413,6 +2427,12 @@ class AzureSubnet(AzureSubResource):
     service_endpoint_policies: Optional[List[AzureServiceEndpointPolicy]] = field(default=None, metadata={'description': 'An array of service endpoint policies.'})  # fmt: skip
     service_endpoints: Optional[List[AzureServiceEndpointPropertiesFormat]] = field(default=None, metadata={'description': 'An array of service endpoints.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if nat_gateway_id := self.nat_gateway_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
+        if nsg_id := self.network_security_group:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
 
 
 @define(eq=False, slots=False)
@@ -5117,7 +5137,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_subnet", "azure_nat_gateway"]},
+        "successors": {"default": ["azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -5140,7 +5160,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
         "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
-        "subnets": S("properties", "subnets") >> ForallBend(AzureSubnet.mapping),
+        "_subnet_ids": S("properties", "subnets", default=[]) >> ForallBend(S("id")),
         "virtual_network_peerings": S("properties", "virtualNetworkPeerings")
         >> ForallBend(AzureVirtualNetworkPeering.mapping),
     }
@@ -5158,16 +5178,36 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
     ip_allocations: Optional[List[str]] = field(default=None, metadata={'description': 'Array of IpAllocation which reference this VNET.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resourceGuid property of the Virtual Network resource.'})  # fmt: skip
-    subnets: Optional[List[AzureSubnet]] = field(default=None, metadata={'description': 'A list of subnets in a Virtual Network.'})  # fmt: skip
+    _subnet_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A list of subnets in a Virtual Network.'})  # fmt: skip
     virtual_network_peerings: Optional[List[AzureVirtualNetworkPeering]] = field(default=None, metadata={'description': 'A list of peerings in a Virtual Network.'})  # fmt: skip
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_subnets() -> None:
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2023-05-01",
+                path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets",
+                path_parameters=["subscriptionId", "resourceGroupName", "virtualNetworkName"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            resource_group_name = self.extract_part("resourceGroupName")
+            virtual_network_name = self.name if self.name else ""
+
+            items = graph_builder.client.list(
+                api_spec,
+                resourceGroupName=resource_group_name,
+                virtualNetworkName=virtual_network_name,
+            )
+            AzureSubnet.collect(items, graph_builder)
+
+        graph_builder.submit_work(collect_subnets)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if subnets := self.subnets:
-            for subnet in subnets:
-                if subnet_id := subnet.id:
-                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
-                if nat_gateway_id := subnet.nat_gateway_id:
-                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
+        if subnets := self._subnet_ids:
+            for subnet_id in subnets:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -6030,7 +6070,6 @@ resources: List[Type[AzureResource]] = [
     AzurePublicIPPrefix,
     AzureRouteFilter,
     AzureSecurityPartnerProvider,
-    # AzureSubnet, # TODO: collect azure subnets properly
     AzureUsage,
     AzureVirtualHub,
     AzureVirtualNetwork,

@@ -44,16 +44,43 @@ class AzureResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
-    def resource_subscription_id(self) -> str:
+    def extract_part(self, part: str) -> str:
         """
-        Extracts {subscriptionId} value from a resource ID.
+        Extracts a specific part from a resource ID.
 
-        e.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
+        The function takes a resource ID and a specified part to extract, such as 'subscriptionId'
+        or 'resourceGroupName'. The resource ID is expected to follow the Azure Resource Manager
+        path format.
+
+        Example:
+        For the resource ID "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...",
+        calling extract_part("subscriptionId") would return the value within the curly braces,
+        representing the subscription ID.
+
+        Parameters:
+        - part (str): The part to extract from the resource ID.
 
         Returns:
-        str: The extracted subscription ID.
+        str: The extracted part of the resource ID.
         """
-        return self.id.split("/")[2]
+        id_parts = self.id.split("/")
+
+        if part == "subscriptionId":
+            if "subscriptions" in id_parts:
+                index = id_parts.index("subscriptions")
+                return id_parts[index + 1]
+            else:
+                raise ValueError(f"Id {self.id} does not have any subscriptionId info")
+
+        elif part == "resourceGroupName":
+            if "resourceGroups" in id_parts:
+                index = id_parts.index("resourceGroups")
+                return id_parts[index + 1]
+            else:
+                raise ValueError(f"Id {self.id} does not have any resourceGroupName info")
+
+        else:
+            raise ValueError(f"Value {part} does not have any cases to match")
 
     def delete(self, graph: Graph) -> bool:
         """
@@ -62,7 +89,7 @@ class AzureResource(BaseResource):
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.extract_part("subscriptionId")
         return get_client(subscription_id).delete(self.id)
 
     def delete_tag(self, key: str) -> bool:
@@ -71,7 +98,7 @@ class AzureResource(BaseResource):
         This method removes a specific value from a tag associated with a subscription, while keeping the tag itself intact.
         The tag remains on the account, but the specified value will be deleted.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.extract_part("subscriptionId")
         return get_client(subscription_id).delete_resource_tag(tag_name=key, resource_id=self.id)
 
     def update_tag(self, key: str, value: str) -> bool:
@@ -80,7 +107,7 @@ class AzureResource(BaseResource):
         This method allows for the creation or update of a tag value associated with the specified tag name.
         The tag name must already exist for the operation to be successful.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.extract_part("subscriptionId")
         return get_client(subscription_id).update_resource_tag(tag_name=key, tag_value=value, resource_id=self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
