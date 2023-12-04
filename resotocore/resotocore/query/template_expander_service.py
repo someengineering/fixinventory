@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from resotocore.cli import strip_quotes
 from resotocore.cli.model import CLI, CLIContext
@@ -34,8 +34,10 @@ class TemplateExpanderService(TemplateExpanderBase, Service):
     async def list_templates(self) -> List[Template]:
         return [t async for t in self.db.all()]
 
-    async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
-        final_env = {**env, "section": on_section, "no_rewrite": "true"}
+    async def parse_query_from_command_line(
+        self, to_parse: str, on_section: str, env: Optional[Dict[str, str]] = None
+    ) -> str:
+        final_env = {**(env or {}), "section": on_section, "no_rewrite": "true"}
         parsed = await self.cli.evaluate_cli_command(to_parse, CLIContext(env=final_env), replace_place_holder=False)
         if len(parsed) == 1:
             first_line = parsed[0]

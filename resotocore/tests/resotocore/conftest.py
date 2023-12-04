@@ -52,6 +52,7 @@ from resotocore.db.jobdb import JobDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.system_data_db import SystemDataDb
+from resotocore.db.timeseriesdb import TimeSeriesDB
 from resotocore.dependencies import DirectTenantDependencyProvider, TenantDependencies
 from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
@@ -208,6 +209,15 @@ async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredOuterEdge
     await edges_db.create_update_schema()
     await edges_db.wipe()
     return edges_db
+
+
+@fixture
+async def timeseries_db(async_db: AsyncArangoDB) -> TimeSeriesDB:
+    db = TimeSeriesDB(async_db, "ts", timedelta(hours=1))
+    await db.create_update_schema()
+    with suppress(Exception):
+        async_db.db.collection("ts").delete_index("ttl", ignore_missing=True)  # remove index for tests
+    return db
 
 
 @fixture()

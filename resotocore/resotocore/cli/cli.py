@@ -394,7 +394,7 @@ class CLIService(CLI, Service):
             query_part = "all" if query_part.strip() == "" else query_part
             # section expansion is disabled here: it will happen on the final query after all parts have been combined
             return await self.dependencies.template_expander.parse_query(
-                "".join(query_part), None, omit_section_expansion=True, **ctx.env
+                "".join(query_part), None, omit_section_expansion=True, env=ctx.env
             )
 
         query: Query = Query.by(AllTerm())

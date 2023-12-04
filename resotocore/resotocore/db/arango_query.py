@@ -2,8 +2,9 @@ import json
 import logging
 import re
 from collections import defaultdict
+from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import Union, List, Tuple, Any, Optional, Dict, Set, Literal
+from typing import Union, List, Tuple, Any, Optional, Dict, Set, Literal, Collection
 
 from arango.typings import Json
 from attrs import evolve
@@ -82,6 +83,28 @@ array_marker = re.compile(r"\[]|\[[*]]")
 array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
 
 
+class ArangoQueryContext:
+    def __init__(self) -> None:
+        self.counters: Dict[str, int] = defaultdict(lambda: 0)
+        self.bind_vars: Dict[str, Any] = {}
+
+    def next_counter(self, name: str) -> int:
+        count = self.counters[name]
+        self.counters[name] = count + 1
+        return count
+
+    def next_crs(self, name: str = "m") -> str:
+        return f"{name}{self.next_counter(name)}"
+
+    def next_bind_var_name(self) -> str:
+        return f'b{self.next_counter("bind_vars")}'
+
+    def add_bind_var(self, value: Any) -> str:
+        bvn = self.next_bind_var_name()
+        self.bind_vars[bvn] = value
+        return bvn
+
+
 def to_query(
     db: Any,
     query_model: QueryModel,
@@ -89,15 +112,14 @@ def to_query(
     from_collection: Optional[str] = None,
     id_column: str = "_key",
 ) -> Tuple[str, Json]:
-    count: Dict[str, int] = defaultdict(lambda: 0)
+    ctx = ArangoQueryContext()
     query = query_model.query
-    bind_vars: Json = {}
     start = from_collection or f"`{db.vertex_name}`"
-    cursor, query_str = query_string(db, query, query_model, start, with_edges, bind_vars, count, id_column=id_column)
+    cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
     last_limit = (
         f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
     )
-    return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", bind_vars
+    return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
 
 
 def query_string(
@@ -106,8 +128,7 @@ def query_string(
     query_model: QueryModel,
     start_cursor: str,
     with_edges: bool,
-    bind_vars: Json,
-    counters: Dict[str, int],
+    ctx: ArangoQueryContext,
     *,
     outer_merge: Optional[str] = None,
     id_column: str = "_key",
@@ -117,17 +138,6 @@ def query_string(
     model = query_model.model
     # combine merge names from the query as well as the default ancestor merge names
     merge_names: Set[str] = query_model.query.merge_names | ancestor_merges
-
-    def next_counter(name: str) -> int:
-        count = counters[name]
-        counters[name] = count + 1
-        return count
-
-    def next_crs(name: str = "m") -> str:
-        return f"{name}{next_counter(name)}"
-
-    def next_bind_var_name() -> str:
-        return f'b{next_counter("bind_vars")}'
 
     def prop_name_kind(
         path: str, context_path: Optional[str] = None
@@ -161,7 +171,7 @@ def query_string(
         nested = {name for agg in a.group_by for name in agg.all_names() if array_marker_in_path_regexp.search(name)}
         # If we have a nested array, we need to unfold the array and create a new for loop for each array access.
         if nested:
-            cursor = next_crs("agg")
+            cursor = ctx.next_crs("agg")
             for_loop = f"for {cursor} in {in_cursor}"
             internals = []
             for ag in nested:
@@ -172,14 +182,14 @@ def query_string(
                     ar_parts.append(ar)
                     if tuple(ar_parts) in cursor_lookup:
                         continue
-                    nxt_crs = next_crs("pre")
+                    nxt_crs = ctx.next_crs("pre")
                     cursor_lookup[tuple(ar_parts)] = nxt_crs
                     for_loop += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({inner_crsr}.{ar}), {{_internal: true}})"
                     internals.append(f"{nxt_crs}._internal!=true")
                     inner_crsr = nxt_crs
             for_loop += f" FILTER {' OR '.join(internals)}"
         else:
-            cursor = next_crs("agg")
+            cursor = ctx.next_crs("agg")
             for_loop = f"for {cursor} in {in_cursor}"
 
         # the property needs to be accessed from the correct cursor
@@ -229,7 +239,7 @@ def query_string(
             if len(ars) == 1:
                 return None
             # array access without a related group variable.
-            res = next_crs("agg_let")
+            res = ctx.next_crs("agg_let")
             nested_function_lookup[fn] = res
             pre = ""
             current = cursor
@@ -240,7 +250,7 @@ def query_string(
                 if tcar in cursor_lookup:
                     current = cursor_lookup[tcar]
                     continue
-                nxt_crs = next_crs("inner")
+                nxt_crs = ctx.next_crs("inner")
                 pre += f" FOR {nxt_crs} IN TO_ARRAY({current}.{ar})"
                 current = nxt_crs
             return f"LET {res} = {fn.function}({pre} RETURN {current}.{ars[-1]})"
@@ -279,7 +289,7 @@ def query_string(
         ars_stmts = []
         prop_name = ars.pop()
         for ar in ars:
-            nxt_crs = next_crs("pre")
+            nxt_crs = ctx.next_crs("pre")
             ars_stmts.append(f"{nxt_crs}._internal!=true")
             # append an internal element to make sure this for loop always yields at least one result
             # this value will be filtered out explicitly later on.
@@ -290,12 +300,12 @@ def query_string(
             pre += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({cursor}.{ar}), {{_internal: true}})"
             cursor = nxt_crs
 
-        bvn = next_bind_var_name()
+        bvn = ctx.next_bind_var_name()
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
-            bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
+            ctx.bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
         else:
-            bind_vars[bvn] = prop.kind.coerce(p.value)
+            ctx.bind_vars[bvn] = prop.kind.coerce(p.value)
         var_name = f"{cursor}.{prop_name}"
         if op == "=~":  # use regex_test to do case-insensitive matching
             p_term = f"REGEX_TEST({var_name}, @{bvn}, true)"
@@ -318,7 +328,7 @@ def query_string(
             if spath[-1] == "":
                 spath = spath[:-1]
             for ar in [a.lstrip(".") for a in spath]:
-                nxt_crs = next_crs("pre")
+                nxt_crs = ctx.next_crs("pre")
                 predicate_statement += f" FOR {nxt_crs} IN TO_ARRAY({path_cursor}.{ar})"
                 path_cursor = nxt_crs
             ps, fs = term(path_cursor, aep.term, context_path)
@@ -334,12 +344,12 @@ def query_string(
         return predicate_statement, filter_statement
 
     def with_id(cursor: str, t: IdTerm) -> str:
-        bvn = next_bind_var_name()
+        bvn = ctx.next_bind_var_name()
         if len(t.ids) == 1:
-            bind_vars[bvn] = t.ids[0]
+            ctx.bind_vars[bvn] = t.ids[0]
             return f"{cursor}.{id_column} == @{bvn}"
         else:
-            bind_vars[bvn] = t.ids
+            ctx.bind_vars[bvn] = t.ids
             return f"{cursor}.{id_column} in @{bvn}"
 
     def is_term(cursor: str, t: IsTerm) -> str:
@@ -347,8 +357,8 @@ def query_string(
         for kind in t.kinds:
             if kind not in model:
                 raise AttributeError(f"Given kind does not exist: {kind}")
-            bvn = next_bind_var_name()
-            bind_vars[bvn] = kind
+            bvn = ctx.next_bind_var_name()
+            ctx.bind_vars[bvn] = kind
             is_results.append(f"@{bvn} IN {cursor}.kinds")
         is_result = " or ".join(is_results)
         return is_result if len(is_results) == 1 else f"({is_result})"
@@ -357,9 +367,9 @@ def query_string(
         # This fulltext filter can not take advantage of the fulltext search index.
         # Instead, we filter the resulting entry to match a regular expression derived from the term.
         # The flat property is used via a regexp search.
-        bvn = next_bind_var_name()
+        bvn = ctx.next_bind_var_name()
         dl = fulltext_delimiter_regexp
-        bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
+        ctx.bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
         return f"REGEX_TEST({cursor}.flat, @{bvn}, true)"
 
     def not_term(cursor: str, t: NotTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
@@ -374,7 +384,7 @@ def query_string(
         if isinstance(ab_term, ContextTerm):
             return context_term(cursor, ab_term, context_path)
         elif isinstance(ab_term, FunctionTerm):
-            return None, as_arangodb_function(cursor, bind_vars, ab_term, query_model)
+            return None, as_arangodb_function(cursor, ctx.bind_vars, ab_term, query_model)
         elif isinstance(ab_term, IdTerm):
             return None, with_id(cursor, ab_term)
         elif isinstance(ab_term, IsTerm):
@@ -392,8 +402,8 @@ def query_string(
             raise AttributeError(f"Do not understand: {ab_term}")
 
     def merge(cursor: str, merge_queries: List[MergeQuery]) -> Tuple[str, str]:  # cursor, query
-        result_cursor = next_crs("merge_result")
-        merge_cursor = next_crs()
+        result_cursor = ctx.next_crs("merge_result")
+        merge_cursor = ctx.next_crs()
         merge_result = f"LET {result_cursor} = (FOR {merge_cursor} in {cursor} "
         merge_parts: Json = {}
 
@@ -404,7 +414,7 @@ def query_string(
             assert (
                 f.term == AllTerm() and not f.sort and not f.limit and not f.with_clause and not f.tag
             ), "Merge query needs to start with navigation!"
-            merge_crsr = next_crs("merge_part")
+            merge_crsr = ctx.next_crs("merge_part")
             # make sure the limit only yields one element
             mg_crs, mg_query = query_string(
                 db,
@@ -412,8 +422,7 @@ def query_string(
                 query_model,
                 merge_cursor,
                 with_edges,
-                bind_vars,
-                counters,
+                ctx,
                 outer_merge=merge_crsr,
                 id_column=id_column,
             )
@@ -452,7 +461,7 @@ def query_string(
             )
 
         for mq_in in merge_queries:
-            part_res = next_crs("part_res")
+            part_res = ctx.next_crs("part_res")
             resolved = is_already_resolved(mq_in.query)
             if resolved:
                 merge_result += f'LET {part_res} = DOCUMENT("{db.vertex_name}", {merge_cursor}.refs.{resolved}_id)'
@@ -476,8 +485,8 @@ def query_string(
             if isinstance(part_term, AllTerm) and limit is None and not p.sort:
                 return current_cursor
             nonlocal query_part, filtered_out
-            crsr = next_crs()
-            filtered_out = next_crs("filter")
+            crsr = ctx.next_crs()
+            filtered_out = ctx.next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
             pre, term_string = term(crsr, part_term)
@@ -485,9 +494,9 @@ def query_string(
             for_stmt = f"FOR {crsr} in {current_cursor} {pre_string} {term_string}"
             # in case nested properties get unfolded, we need to make the list distinct again
             if pre:
-                nested_distinct = next_crs("nested_distinct")
+                nested_distinct = ctx.next_crs("nested_distinct")
                 for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
-                crsr = next_crs()
+                crsr = ctx.next_crs()
                 sort_by = sort(crsr, p.sort) if p.sort else " "
                 for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited}"
             else:
@@ -509,17 +518,17 @@ def query_string(
             after_filter_cursor = filter_statement(in_crsr, before_term, limit=limit if after_term.is_all else None)
 
             # add the usage predicates
-            usage_crs = next_crs("with_usage")
-            start = next_bind_var_name()
-            end = next_bind_var_name()
-            start_s = next_bind_var_name()
-            duration = next_bind_var_name()
+            usage_crs = ctx.next_crs("with_usage")
+            start = ctx.next_bind_var_name()
+            end = ctx.next_bind_var_name()
+            start_s = ctx.next_bind_var_name()
+            duration = ctx.next_bind_var_name()
             start_time = usage.start_from_now()
             end_time = usage.end_from_now()
-            bind_vars[start] = start_time.timestamp()
-            bind_vars[end] = end_time.timestamp()
-            bind_vars[start_s] = utc_str(start_time)
-            bind_vars[duration] = duration_str(end_time - start_time)
+            ctx.bind_vars[start] = start_time.timestamp()
+            ctx.bind_vars[end] = end_time.timestamp()
+            ctx.bind_vars[start_s] = utc_str(start_time)
+            ctx.bind_vars[duration] = duration_str(end_time - start_time)
             avgs = []
             merges = []
             for mn in usage.metrics:
@@ -565,7 +574,7 @@ def query_string(
             # COLLECT l2_cloud = l3_cloud WITH COUNT INTO counter1
             # FILTER (counter1>=0) //counter is +1 since the node itself is always bypassed
             # RETURN ({cloud: l2_cloud._key, count:counter1})
-            current = next_counter("with_clause")
+            current = ctx.next_counter("with_clause")
 
             def cursor_in(depth: int) -> str:
                 return f"c{current}_{depth}"
@@ -608,7 +617,7 @@ def query_string(
                 inner = collect_filter(cl.with_clause, depth + 1) if cl.with_clause else ""
                 return inner + f"COLLECT {collects} WITH COUNT INTO counter{depth} {filter_term} "
 
-            out = next_crs()
+            out = ctx.next_crs()
 
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
             query_part += (
@@ -622,10 +631,10 @@ def query_string(
 
         def inout(in_crsr: str, start: int, until: int, edge_type: str, direction: str) -> str:
             nonlocal query_part
-            in_c = next_crs("io_in")
-            out = next_crs("io_out")
-            out_crsr = next_crs("io_crs")
-            link = next_crs("io_link")
+            in_c = ctx.next_crs("io_in")
+            out = ctx.next_crs("io_out")
+            out_crsr = ctx.next_crs("io_crs")
+            link = ctx.next_crs("io_link")
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
             link_str = f", {link}" if with_edges else ""
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
@@ -664,7 +673,7 @@ def query_string(
             if len(all_walks) == 1:
                 return all_walks[0]
             else:
-                nav_crsr = next_crs()
+                nav_crsr = ctx.next_crs()
                 all_walks_combined = ",".join(all_walks)
                 query_part += f"LET {nav_crsr} = UNION_DISTINCT({all_walks_combined})"
                 return nav_crsr
@@ -708,8 +717,8 @@ def query_string(
             if isinstance(ab_term, NotTerm):
                 return f"NOT ({ft_term(cursor, ab_term.term)})"
             elif isinstance(ab_term, FulltextTerm):
-                bvn = next_bind_var_name()
-                bind_vars[bvn] = ab_term.text
+                bvn = ctx.next_bind_var_name()
+                ctx.bind_vars[bvn] = ab_term.text
                 # the fulltext index is based on the flat property. The full text term is tokenized.
                 return f"PHRASE({cursor}.flat, @{bvn})"
             elif isinstance(ab_term, CombinedTerm):
@@ -721,7 +730,7 @@ def query_string(
 
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
         query_parts[0] = evolve(query_parts[0], term=filter_term)
-        crs = next_crs()
+        crs = ctx.next_crs()
         doc = f"search_{db.vertex_name}"
         ftt = ft_term("ft", ft_part)
         q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
@@ -737,7 +746,7 @@ def query_string(
 
     query_str = fulltext_part + " ".join(p[3] for p in parts)
     resulting_cursor = crsr
-    nxt = next_crs()
+    nxt = ctx.next_crs()
     if query.aggregate:  # return aggregate
         resulting_cursor, aggregation = aggregate(resulting_cursor, query.aggregate)
         query_str += aggregation
@@ -765,24 +774,14 @@ def possible_values(
     skip: Optional[int] = None,
 ) -> Tuple[str, Json]:
     path = path_or_predicate if isinstance(path_or_predicate, str) else path_or_predicate.name
-    counters: Dict[str, int] = defaultdict(lambda: 0)
-
-    def next_counter(name: str) -> int:
-        count = counters[name]
-        counters[name] = count + 1
-        return count
-
-    def next_crs(name: str = "m") -> str:
-        return f"{name}{next_counter(name)}"
-
-    bind_vars: Json = {}
     start = f"`{db.vertex_name}`"
-    cursor, query_str = query_string(db, query.query, query, start, False, bind_vars, counters, id_column="_key")
+    ctx = ArangoQueryContext()
+    cursor, query_str = query_string(db, query.query, query, start, False, ctx, id_column="_key")
 
     # iterate over the result
-    let_cursor = next_crs()
+    let_cursor = ctx.next_crs()
     query_str += f" LET {let_cursor} = ("
-    next_cursor = next_crs()
+    next_cursor = ctx.next_crs()
     query_str += f" FOR {next_cursor} in {cursor}"
     cursor = next_cursor
 
@@ -790,14 +789,14 @@ def possible_values(
     ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(path)]
     prop_name = None if path.endswith("[]") or path.endswith("[*]") else ars.pop()
     for ar in ars:
-        nxt_crs = next_crs()
+        nxt_crs = ctx.next_crs()
         query_str += f" FOR {nxt_crs} IN TO_ARRAY({cursor}.{ar})"
         cursor = nxt_crs
     access_path = f"{cursor}.{prop_name}" if prop_name is not None else cursor
 
     # access the detail
     if detail == "attributes":
-        cursor = next_crs()
+        cursor = ctx.next_crs()
         query_str += (
             f" FILTER IS_OBJECT({access_path}) FOR {cursor} IN ATTRIBUTES({access_path}, true) RETURN {cursor})"
         )
@@ -807,29 +806,92 @@ def possible_values(
         raise AttributeError(f"Unknown detail: {detail}")
 
     # result stream of matching entries: filter and sort
-    sorted_let = next_crs()
-    next_cursor = next_crs()
+    sorted_let = ctx.next_crs()
+    next_cursor = ctx.next_crs()
     query_str += f" LET {sorted_let} = (FOR {next_cursor} IN {let_cursor} FILTER {next_cursor}!=null"
     cursor = next_cursor
     if isinstance(path_or_predicate, Predicate):
         p: Predicate = path_or_predicate
-        bvn = f'b{next_counter("bind_vars")}'
+        bvn = f'b{ctx.next_counter("bind_vars")}'
         prop = query.model.property_by_path(Section.without_section(p.name))
         pk = prop.kind
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
-        bind_vars[bvn] = [pk.coerce(a) for a in p.value] if isinstance(p.value, list) else pk.coerce(p.value)
+        ctx.bind_vars[bvn] = [pk.coerce(a) for a in p.value] if isinstance(p.value, list) else pk.coerce(p.value)
         if op == "=~":  # use regex_test to do case-insensitive matching
             query_str += f" FILTER REGEX_TEST({cursor}, @{bvn}, true)"
         else:
             query_str += f" FILTER {cursor} {op} @{bvn}"
     query_str += f" RETURN DISTINCT {cursor})"
     cursor = sorted_let
-    next_cursor = next_crs()
+    next_cursor = ctx.next_crs()
     query_str += f"FOR {next_cursor} IN {cursor} SORT {next_cursor} ASC"
     if limit:
         query_str += f" LIMIT {skip if skip else 0}, {limit}"
     query_str += f" RETURN {next_cursor}"
-    return query_str, bind_vars
+    return query_str, ctx.bind_vars
+
+
+def create_time_series(
+    query_model: QueryModel, db: Any, time_series_collection: str, time_series: str, at: int
+) -> Tuple[str, Json]:
+    query = query_model.query
+    ctx = ArangoQueryContext()
+    start = f"`{db.vertex_name}`"
+    cursor, query_str = query_string(db, query, query_model, start, False, ctx)
+    next_crs = ctx.next_crs()
+    at_bvn = ctx.add_bind_var(at)
+    ts_bvn = ctx.add_bind_var(time_series)
+    insert = (
+        query_str + f" for {next_crs} in {cursor} insert MERGE({next_crs}, {{at:@{at_bvn}, ts:@{ts_bvn}}})"
+        f" into `{time_series_collection}` collect with count into length return length"
+    )
+    return insert, ctx.bind_vars
+
+
+def load_time_series(
+    time_series_collection: str,
+    time_series: str,
+    start: datetime,
+    end: datetime,
+    granularity: timedelta,
+    group_by: Optional[Collection[str]] = None,
+    group_filter: Optional[List[Predicate]] = None,
+) -> Tuple[str, Json]:
+    ctx = ArangoQueryContext()
+    bv_name = ctx.add_bind_var(time_series)
+    bv_start = ctx.add_bind_var(int(start.timestamp()))
+    bv_end = ctx.add_bind_var(int(end.timestamp()))
+
+    query = f"FOR d in `{time_series_collection}` FILTER d.ts==@{bv_name} AND d.at>=@{bv_start} AND d.at<=@{bv_end}"
+    if group_filter:
+        parts = []
+        for f in group_filter:
+            bv = ctx.add_bind_var(f.value)
+            parts.append(f"d.group.{f.name}{f.op}@{bv}")
+        query += f" FILTER {' AND '.join(parts)}"
+    time_slot = ctx.next_crs()
+    slotter = int(granularity.total_seconds())
+    gran = ctx.add_bind_var(slotter)
+    offset = start.timestamp() - ((start.timestamp() // slotter) * slotter)
+    query += f" LET {time_slot} = (FLOOR(d.at / @{gran}) * @{gran}) + @{ctx.add_bind_var(offset)}"
+    # create the groups to collect
+    collect = [f"group_slot={time_slot}"]
+    group = ""
+    if group_by is None:
+        collect.append("complete_group=d.group")
+        group = "group: complete_group,"
+    elif len(group_by) == 0:
+        pass  # no other groups
+    else:
+        parts = []
+        for g in group_by:
+            collect.append(f"group_{g}=d.group.{g}")
+            parts.append(f"{g}: group_{g}")
+        group = f"group: {{ {', '.join(parts)} }},"
+
+    query += f" COLLECT {', '.join(collect)} INTO group"
+    query += f" SORT group_slot RETURN {{at: group_slot, {group} v: AVG(group[*].d.v)}}"
+    return query, ctx.bind_vars
 
 
 async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedSearchCost:

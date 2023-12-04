@@ -1393,3 +1393,34 @@ async def test_db(cli: CLI) -> None:
 
     # make sure argsinfo is available
     assert "sync" in cli.direct_commands["db"].args_info()
+
+
+@pytest.mark.asyncio
+async def test_timeseries(cli: CLI) -> None:
+    async def exec(cmd: str) -> List[JsonElement]:
+        res = await cli.execute_cli_command(cmd, stream.list)
+        return cast(List[JsonElement], res[0])
+
+    tsdb = cli.dependencies.db_access.time_series_db
+    await tsdb.wipe()  # create a clean slate
+    now = utc()
+    in_one_min = utc_str(now + timedelta(minutes=1))
+    one_min_ago = utc_str(now - timedelta(minutes=1))
+    # Create a time series based on all foo entries
+    res = await exec("timeseries snapshot --name test 'search aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)'")  # fmt: skip
+    assert res[0] == "10 entries added to time series test."
+    # Get the time series combined with each complete group
+    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min}")
+    assert len(res) == 10
+    # Get the time series combined over all groups --> only one entry for one timestamp
+    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group")
+    assert len(res) == 1
+    # Combine over some_int (which has only one) --> only one entry for one timestamp
+    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group some_int")
+    assert len(res) == 1
+    # Combine over identifier (which is unique for each entry) --> 10 entries for one timestamp
+    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier")
+    assert len(res) == 10
+    # Combine over identifier (which is unique for each entry), filter for identifier==2 --> 1 entry for one timestamp
+    res = await exec(f'timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier --filter identifier=="2"')  # fmt: skip
+    assert len(res) == 1

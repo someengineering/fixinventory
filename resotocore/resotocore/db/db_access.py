@@ -26,6 +26,7 @@ from resotocore.db.packagedb import app_package_entity_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
+from resotocore.db.timeseriesdb import TimeSeriesDB
 from resotocore.error import NoSuchGraph, RequiredDependencyMissingError
 from resotocore.ids import GraphName
 from resotocore.model.adjust_node import AdjustNode
@@ -53,6 +54,7 @@ class DbAccess(Service):
         configs_model: str = "configs_model",
         template_entity: str = "templates",
         infra_app_packages: str = "infra_app_packages",
+        time_series: str = "ts",
     ):
         super().__init__()
         self.event_sender = event_sender
@@ -69,6 +71,7 @@ class DbAccess(Service):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
+        self.time_series_db = TimeSeriesDB(self.db, time_series, config.db.time_series_ttl)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -83,6 +86,7 @@ class DbAccess(Service):
             await self.template_entity_db.create_update_schema()
             await self.deferred_outer_edge_db.create_update_schema()
             await self.package_entity_db.create_update_schema()
+            await self.time_series_db.create_update_schema()
             for graph in cast(List[Json], self.database.graphs()):
                 graph_name = GraphName(graph["name"])
 

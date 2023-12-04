@@ -1,7 +1,9 @@
+from datetime import timedelta, datetime
+
 import pytest
 
 from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating
-from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine, possible_values
+from resotocore.db.arango_query import to_query, query_cost, fulltext_term_combine, possible_values, load_time_series
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.model.model import Model
@@ -279,3 +281,51 @@ def test_possible_values(foo_model: Model, graph_db: GraphDB) -> None:
     # skip and limit the result
     pv, bv = possible_values(graph_db, model, "reported.tags", "values", limit=10, skip=20)
     assert pv.endswith("SORT m6 ASC LIMIT 20, 10 RETURN m6")
+
+
+def test_load_time_series() -> None:
+    now = datetime.fromtimestamp(1700000000)
+    one_hour = timedelta(hours=1)
+    # group_by=[] --> no group by any value
+    q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=[])
+    assert (
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "COLLECT group_slot=m0 INTO group "
+        "SORT group_slot "
+        "RETURN {at: group_slot,  v: AVG(group[*].d.v)}"
+    )
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    # no group by defined --> group by all values
+    q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour)
+    assert (
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "COLLECT group_slot=m0, complete_group=d.group INTO group "
+        "SORT group_slot "
+        "RETURN {at: group_slot, group: complete_group, v: AVG(group[*].d.v)}"
+    )
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    # group by specific group variables
+    q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"])
+    assert (
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
+        "SORT group_slot "
+        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: AVG(group[*].d.v)}"
+    )
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    # group by specific group variables and filter by group variables
+    q, bv = load_time_series(
+        "ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"], group_filter=[P("a").eq("a")]
+    )
+    assert (
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        "FILTER d.group.a==@b3 "
+        "LET m0 = (FLOOR(d.at / @b4) * @b4) + @b5 "
+        "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
+        "SORT group_slot "
+        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: AVG(group[*].d.v)}"
+    )
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 800}

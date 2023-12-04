@@ -2,7 +2,7 @@ import functools
 import json
 import re
 from abc import abstractmethod
-from typing import Any, Union, Iterable, Tuple, List, Optional, cast
+from typing import Any, Union, Iterable, Tuple, List, Optional, cast, Dict
 
 from parsy import string, Parser, regex, any_char
 from ustache import default_getter, default_virtuals, render, PropertyGetter, TagsTuple, default_tags
@@ -123,16 +123,21 @@ class TemplateExpanderBase(TemplateExpander):
         return name
 
     async def parse_query(
-        self, to_parse: str, on_section: Optional[str], *, omit_section_expansion: bool = False, **env: str
+        self,
+        to_parse: str,
+        on_section: Optional[str],
+        *,
+        omit_section_expansion: bool = False,
+        env: Optional[Dict[str, str]] = None,
     ) -> Query:
         # if the query starts with the term "search " then we parse it as command line
         if to_parse.strip().startswith("search "):
             in_section = PathRoot if omit_section_expansion else on_section or PathRoot
-            to_parse = await self.parse_query_from_command_line(to_parse, in_section, **env)
+            to_parse = await self.parse_query_from_command_line(to_parse, in_section, env=env)
             omit_section_expansion = True  # already done
         rendered = self.render(to_parse, env) if env else to_parse
         expanded, _ = await self.expand(rendered)
-        result = query_parser.parse_query(expanded, **env)
+        result = query_parser.parse_query(expanded, env)
         result = result.change_variable(self.change_well_known_names)
         return result if omit_section_expansion else result.on_section(on_section)
 
@@ -164,7 +169,9 @@ class TemplateExpanderBase(TemplateExpander):
         pass
 
     @abstractmethod
-    async def parse_query_from_command_line(self, to_parse: str, on_section: str, **env: str) -> str:
+    async def parse_query_from_command_line(
+        self, to_parse: str, on_section: str, env: Optional[Dict[str, str]] = None
+    ) -> str:
         pass
 
 

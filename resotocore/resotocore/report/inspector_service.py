@@ -289,7 +289,7 @@ class InspectorService(Inspector, Service):
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
-            query = await self.template_expander.parse_query(search, on_section="reported", **env)
+            query = await self.template_expander.parse_query(search, on_section="reported", env=env)
             # filter only relevant accounts if provided
             if context.accounts:
                 query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
@@ -415,7 +415,7 @@ class InspectorService(Inspector, Service):
                 try:
                     env = check.default_values or {}
                     if search := check.detect.get("resoto"):
-                        await self.template_expander.parse_query(search, on_section="reported", **env)
+                        await self.template_expander.parse_query(search, on_section="reported", env=env)
                     elif cmd := check.detect.get("resoto_cmd"):
                         await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
                     elif check.detect.get("manual"):

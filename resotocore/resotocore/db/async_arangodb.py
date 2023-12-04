@@ -35,7 +35,9 @@ log = logging.getLogger(__name__)
 
 
 class AsyncCursor(AsyncIterator[Any]):
-    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]]):
+    def __init__(
+        self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]], flatten_nodes_and_edges: bool = False
+    ):
         self.cursor = cursor
         self.visited_node: Set[str] = set()
         self.visited_edge: Set[str] = set()
@@ -44,7 +46,9 @@ class AsyncCursor(AsyncIterator[Any]):
         self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity  # type: ignore
         self.vt_len: Optional[int] = None
         self.on_hold: Optional[Json] = None
-        self.get_next: Callable[[], Awaitable[Optional[Json]]] = self.next_filtered if trafo else self.next_from_db
+        self.get_next: Callable[[], Awaitable[Optional[Json]]] = (
+            self.next_filtered if flatten_nodes_and_edges else self.next_element
+        )
 
     async def __anext__(self) -> Any:
         # if there is an on-hold element: unset and return it
@@ -75,6 +79,10 @@ class AsyncCursor(AsyncIterator[Any]):
 
     def full_count(self) -> Optional[int]:
         return stats.get("fullCount") if (stats := self.cursor.statistics()) else None
+
+    async def next_element(self) -> Optional[Json]:
+        element = await self.next_from_db()
+        return self.trafo(element)
 
     async def next_filtered(self) -> Optional[Json]:
         element = await self.next_from_db()
@@ -141,13 +149,8 @@ class AsyncCursor(AsyncIterator[Any]):
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
-    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]]):
-        self._cursor = cursor
-        self._trafo = trafo
-
-    @property
-    def cursor(self) -> AsyncCursor:
-        return AsyncCursor(self._cursor, self._trafo)
+    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]], flatten_nodes_and_edges: bool):
+        self.cursor = AsyncCursor(cursor, trafo, flatten_nodes_and_edges)
 
     async def __aenter__(self) -> AsyncCursor:
         return self.cursor
@@ -164,6 +167,7 @@ class AsyncArangoDBBase:
         self,
         query: str,
         trafo: Optional[Callable[[Json], Optional[Any]]] = None,
+        flatten_nodes_and_edges: Optional[bool] = None,
         count: bool = False,
         batch_size: Optional[int] = None,
         ttl: Optional[Number] = None,
@@ -207,7 +211,7 @@ class AsyncArangoDBBase:
             skip_inaccessible_cols,
             max_runtime,
         )
-        return AsyncCursorContext(cursor, trafo)
+        return AsyncCursorContext(cursor, trafo, flatten_nodes_and_edges or False)
 
     async def aql(
         self,
