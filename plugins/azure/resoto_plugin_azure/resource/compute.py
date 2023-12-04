@@ -1858,7 +1858,7 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDisk, id=disk_id)
 
 
 @define(eq=False, slots=False)

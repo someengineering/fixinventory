@@ -2214,7 +2214,7 @@ class AzurePublicIPAddress(AzureResource):
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
         "location": S("location"),
         "migration_phase": S("properties", "migrationPhase"),
-        "nat_gateway": S("properties", "natGateway") >> Bend(AzureNatGateway.mapping),
+        "_nat_gateway_id": S("properties", "natGateway") >> Bend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
@@ -2234,7 +2234,7 @@ class AzurePublicIPAddress(AzureResource):
     ip_tags: Optional[List[AzureIpTag]] = field(default=None, metadata={'description': 'The list of tags associated with the public IP address.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     migration_phase: Optional[str] = field(default=None, metadata={'description': 'Migration phase of Public IP Address.'})  # fmt: skip
-    nat_gateway: Optional[AzureNatGateway] = field(default=None, metadata={"description": "Nat Gateway resource."})
+    _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Nat Gateway resource."})
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
     public_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
@@ -2249,7 +2249,7 @@ class AzurePublicIPAddress(AzureResource):
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzurePublicIPPrefix, id=p_ip_prefix_id
             )
-        if (nat_gateway := self.nat_gateway) and (nat_gateway_id := nat_gateway.id):
+        if nat_gateway_id := self._nat_gateway_id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureNatGateway, id=nat_gateway_id)
 
 
@@ -2262,14 +2262,14 @@ class AzureIPConfiguration(AzureSubResource):
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress") >> Bend(AzurePublicIPAddress.mapping),
+        "_public_ip_address_id": S("properties", "publicIPAddress") >> Bend(S("id")),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
     private_ip_address: Optional[str] = field(default=None, metadata={'description': 'The private IP address of the IP configuration.'})  # fmt: skip
     private_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    public_ip_address: Optional[AzurePublicIPAddress] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
+    _public_ip_address_id: Optional[str] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2386,8 +2386,8 @@ class AzureSubnet(AzureResource):
         "ip_configuration_profiles": S("properties", "ipConfigurationProfiles")
         >> ForallBend(AzureIPConfigurationProfile.mapping),
         "_ip_configuration_ids": S("properties", "ipConfigurations", default=[]) >> ForallBend(S("id")),
-        "nat_gateway_id": S("properties", "natGateway", "id"),
-        "network_security_group": S("properties", "networkSecurityGroup") >> Bend(AzureNetworkSecurityGroup.mapping),
+        "_nat_gateway_id": S("properties", "natGateway", "id"),
+        "_network_security_group_id": S("properties", "networkSecurityGroup") >> Bend(S("id")),
         "private_endpoint_network_policies": S("properties", "privateEndpointNetworkPolicies"),
         "private_endpoints": S("properties", "privateEndpoints") >> ForallBend(AzurePrivateEndpoint.mapping),
         "private_link_service_network_policies": S("properties", "privateLinkServiceNetworkPolicies"),
@@ -2414,8 +2414,8 @@ class AzureSubnet(AzureResource):
     ip_configuration_profiles: Optional[List[AzureIPConfigurationProfile]] = field(default=None, metadata={'description': 'Array of IP configuration profiles which reference this subnet.'})  # fmt: skip
     _ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
-    nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
-    network_security_group: Optional[AzureNetworkSecurityGroup] = field(default=None, metadata={'description': 'NetworkSecurityGroup resource.'})  # fmt: skip
+    _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
+    _network_security_group_id: Optional[str] = field(default=None, metadata={'description': 'NetworkSecurityGroup resource.'})  # fmt: skip
     private_endpoint_network_policies: Optional[str] = field(default=None, metadata={'description': 'Enable or Disable apply network policies on private end point in the subnet.'})  # fmt: skip
     private_endpoints: Optional[List[AzurePrivateEndpoint]] = field(default=None, metadata={'description': 'An array of references to private endpoints.'})  # fmt: skip
     private_link_service_network_policies: Optional[str] = field(default=None, metadata={'description': 'Enable or Disable apply network policies on private link service in the subnet.'})  # fmt: skip
@@ -2429,9 +2429,9 @@ class AzureSubnet(AzureResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if nat_gateway_id := self.nat_gateway_id:
+        if nat_gateway_id := self._nat_gateway_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
-        if nsg_id := self.network_security_group:
+        if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
 
 
@@ -2450,7 +2450,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress") >> Bend(AzurePublicIPAddress.mapping),
+        "_public_ip_address_id": S("properties", "publicIPAddress") >> Bend(S("id")),
         "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
         "subnet": S("properties", "subnet") >> Bend(AzureSubnet.mapping),
         "type": S("type"),
@@ -2467,7 +2467,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
     private_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
     private_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    public_ip_address: Optional[AzurePublicIPAddress] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
+    _public_ip_address_id: Optional[str] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
     public_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     subnet: Optional[AzureSubnet] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
@@ -2586,7 +2586,7 @@ class AzureNetworkInterfaceIPConfiguration(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "_public_ip_id": S("properties", "publicIPAddress", "id"),
         "type": S("type"),
-        "virtual_network_taps": S("properties", "virtualNetworkTaps") >> ForallBend(AzureVirtualNetworkTap.mapping),
+        "_virtual_network_tap_ids": S("properties", "virtualNetworkTaps") >> ForallBend(S("id")),
         "_subnet_id": S("properties", "subnet", "id"),
     }
     application_gateway_backend_address_pools: Optional[List[AzureApplicationGatewayBackendAddressPool]] = field(default=None, metadata={'description': 'The reference to ApplicationGatewayBackendAddressPool resource.'})  # fmt: skip
@@ -2603,7 +2603,7 @@ class AzureNetworkInterfaceIPConfiguration(AzureSubResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     _public_ip_id: Optional[str] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
-    virtual_network_taps: Optional[List[AzureVirtualNetworkTap]] = field(default=None, metadata={'description': 'The reference to Virtual Network Taps.'})  # fmt: skip
+    _virtual_network_tap_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The reference to Virtual Network Taps.'})  # fmt: skip
     _subnet_id: Optional[str] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
 
 
@@ -2781,7 +2781,7 @@ class AzureNetworkInterface(AzureResource):
         "nic_type": S("properties", "nicType"),
         "primary": S("properties", "primary"),
         "private_endpoint": S("properties", "privateEndpoint") >> Bend(AzurePrivateEndpoint.mapping),
-        "private_link_service": S("properties", "privateLinkService") >> Bend(AzurePrivateLinkService.mapping),
+        "_private_link_service_id": S("properties", "privateLinkService") >> Bend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
         "tap_configurations": S("properties", "tapConfigurations")
@@ -2809,7 +2809,7 @@ class AzureNetworkInterface(AzureResource):
     nic_type: Optional[str] = field(default=None, metadata={"description": "Type of Network Interface resource."})
     primary: Optional[bool] = field(default=None, metadata={'description': 'Whether this is a primary network interface on a virtual machine.'})  # fmt: skip
     private_endpoint: Optional[AzurePrivateEndpoint] = field(default=None, metadata={'description': 'Private endpoint resource.'})  # fmt: skip
-    private_link_service: Optional[AzurePrivateLinkService] = field(default=None, metadata={'description': 'Private link service resource.'})  # fmt: skip
+    _private_link_service_id: Optional[str] = field(default=None, metadata={'description': 'Private link service resource.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the network interface resource.'})  # fmt: skip
     tap_configurations: Optional[List[AzureNetworkInterfaceTapConfiguration]] = field(default=None, metadata={'description': 'A list of TapConfigurations of the network interface.'})  # fmt: skip
@@ -2829,7 +2829,7 @@ class AzureNetworkInterface(AzureResource):
                     )
         if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSecurityGroup, id=nsg_id)
-        if (p_l_service := self.private_link_service) and (p_l_service_id := p_l_service.id):
+        if p_l_service_id := self._private_link_service_id:
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzurePrivateLinkService, id=p_l_service_id
             )
@@ -2857,8 +2857,7 @@ class AzureDscpConfiguration(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "associated_network_interfaces": S("properties", "associatedNetworkInterfaces")
-        >> ForallBend(AzureNetworkInterface.mapping),
+        "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces") >> ForallBend(S("id")),
         "destination_ip_ranges": S("properties", "destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
         "destination_port_ranges": S("properties", "destinationPortRanges") >> ForallBend(AzureQosPortRange.mapping),
         "etag": S("etag"),
@@ -2872,7 +2871,7 @@ class AzureDscpConfiguration(AzureResource):
         "source_ip_ranges": S("properties", "sourceIpRanges") >> ForallBend(AzureQosIpRange.mapping),
         "source_port_ranges": S("properties", "sourcePortRanges") >> ForallBend(AzureQosPortRange.mapping),
     }
-    associated_network_interfaces: Optional[List[AzureNetworkInterface]] = field(default=None, metadata={'description': 'Associated Network Interfaces to the DSCP Configuration.'})  # fmt: skip
+    _associated_network_interface_ids: Optional[List[str]] = field(default=None, metadata={'description': 'Associated Network Interfaces to the DSCP Configuration.'})  # fmt: skip
     destination_ip_ranges: Optional[List[AzureQosIpRange]] = field(default=None, metadata={'description': 'Destination IP ranges.'})  # fmt: skip
     destination_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -2888,12 +2887,28 @@ class AzureDscpConfiguration(AzureResource):
     source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if network_interfaces := self.associated_network_interfaces:
-            for network_interface in network_interfaces:
-                if ip_confs := network_interface.interface_ip_configurations:
-                    for ip_conf in ip_confs:
-                        if subnet := ip_conf._subnet_id:
-                            vn_id = extract_virtual_network_id(subnet)
+        binding_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+            ip_config["properties"]["subnet"]["id"]
+            for ip_config in r.get("properties", {}).get("ipConfigurations", [])
+            if "subnet" in ip_config.get("properties", {})
+        ]
+        nis_and_subnet_id = self.fetch_resources(
+            builder,
+            service="network",
+            api_version="2023-05-01",
+            path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
+            path_parameters=["subscriptionId"],
+            query_parameters=["api-version"],
+            compared_property=lambda r: r["id"],
+            binding_property=binding_property,
+        )
+        if (network_interfaces := self._associated_network_interface_ids) and (ni_ids_and_s_id := nis_and_subnet_id):
+            for network_interface_id in network_interfaces:
+                for info in ni_ids_and_s_id:
+                    ni_id, subnet_ids = info
+                    for subnet_id in subnet_ids:
+                        if network_interface_id == ni_id:
+                            vn_id = extract_virtual_network_id(subnet_id)
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                             )
@@ -3172,7 +3187,7 @@ class AzureExpressRouteCircuit(AzureResource):
             builder,
             service="network",
             api_version="2023-05-01",
-            path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
+            path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ExpressRoutePortsLocations",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
             compared_property=lambda r: r["name"],
@@ -4738,7 +4753,7 @@ class AzurePublicIPPrefix(AzureResource):
         "ip_prefix": S("properties", "ipPrefix"),
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
         "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIpConfiguration", "id"),
-        "nat_gateway": S("properties", "natGateway") >> Bend(AzureNatGateway.mapping),
+        "_nat_gateway_id": S("properties", "natGateway") >> Bend(S("id")),
         "prefix_length": S("properties", "prefixLength"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
@@ -4752,7 +4767,7 @@ class AzurePublicIPPrefix(AzureResource):
     ip_prefix: Optional[str] = field(default=None, metadata={"description": "The allocated Prefix."})
     ip_tags: Optional[List[AzureIpTag]] = field(default=None, metadata={'description': 'The list of tags associated with the public IP prefix.'})  # fmt: skip
     load_balancer_frontend_ip_configuration: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
-    nat_gateway: Optional[AzureNatGateway] = field(default=None, metadata={"description": "Nat Gateway resource."})
+    _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Nat Gateway resource."})
     prefix_length: Optional[int] = field(default=None, metadata={"description": "The Length of the Public IP Prefix."})
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
@@ -5018,6 +5033,9 @@ class AzureVirtualHub(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         compared_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+            ip_config["id"] for ip_config in r.get("properties", {}).get("ipConfigurations", [])
+        ]
+        binding_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
             ip_config["properties"]["publicIPAddress"]["id"]
             for ip_config in r.get("properties", {}).get("ipConfigurations", [])
             if "publicIPAddress" in ip_config.get("properties", {})
@@ -5031,7 +5049,7 @@ class AzureVirtualHub(AzureResource):
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
             compared_property=compared_property,
-            binding_property=lambda r: r["id"],
+            binding_property=binding_property,
         )
 
         if er_gateway_id := self.express_route_gateway:
@@ -5045,11 +5063,13 @@ class AzureVirtualHub(AzureResource):
         if (ip_config_ids := self.ip_configuration_ids) and (p_ip_a_and_ip_conf_ids := p_ip_addresses_ip_c_ids):
             for ip_config_id in ip_config_ids:
                 for info in p_ip_a_and_ip_conf_ids:
-                    p_ip_address_id, collected_ip_conf_id = info
-                    if ip_config_id == collected_ip_conf_id:
-                        builder.add_edge(
-                            self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id
-                        )
+                    collected_ip_conf_ids, p_ip_address_ids = info
+                    for collected_ip_conf_id in collected_ip_conf_ids:
+                        if ip_config_id == collected_ip_conf_id:
+                            for p_ip_address_id in p_ip_address_ids:
+                                builder.add_edge(
+                                    self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id
+                                )
 
 
 @define(eq=False, slots=False)
@@ -5192,7 +5212,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
                 access_path="value",
                 expect_array=True,
             )
-            resource_group_name = self.resource_resource_group_name()
+            resource_group_name = self.resource_group_name()
             virtual_network_name = self.name if self.name else ""
 
             items = graph_builder.client.list(
@@ -5638,7 +5658,7 @@ class AzureVpnServerConfiguration(AzureResource):
         "configuration_policy_groups": S("properties", "configurationPolicyGroups")
         >> ForallBend(AzureVpnServerConfigurationPolicyGroup.mapping),
         "etag": S("etag"),
-        "p2s_vpn_gateways": S("properties", "p2SVpnGateways") >> ForallBend(AzureP2SVpnGateway.mapping),
+        "_p2s_vpn_gateway_ids": S("properties", "p2SVpnGateways") >> ForallBend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "radius_client_root_certificates": S("properties", "radiusClientRootCertificates")
         >> ForallBend(AzureVpnServerConfigRadiusClientRootCertificate.mapping),
@@ -5658,7 +5678,7 @@ class AzureVpnServerConfiguration(AzureResource):
     aad_authentication_parameters: Optional[AzureAadAuthenticationParameters] = field(default=None, metadata={'description': 'AAD Vpn authentication type related parameters.'})  # fmt: skip
     configuration_policy_groups: Optional[List[AzureVpnServerConfigurationPolicyGroup]] = field(default=None, metadata={'description': 'List of all VpnServerConfigurationPolicyGroups.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    p2s_vpn_gateways: Optional[List[AzureP2SVpnGateway]] = field(default=None, metadata={'description': 'List of references to P2SVpnGateways.'})  # fmt: skip
+    _p2s_vpn_gateway_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to P2SVpnGateways.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the VpnServerConfiguration resource. Possible values are: Updating , Deleting , and Failed .'})  # fmt: skip
     radius_client_root_certificates: Optional[List[AzureVpnServerConfigRadiusClientRootCertificate]] = field(default=None, metadata={'description': 'Radius client root certificate of VpnServerConfiguration.'})  # fmt: skip
     radius_server_address: Optional[str] = field(default=None, metadata={'description': 'The radius server address property of the VpnServerConfiguration resource for point to site client connection.'})  # fmt: skip
@@ -6015,7 +6035,7 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "application_gateways": S("properties", "applicationGateways") >> ForallBend(AzureApplicationGateway.mapping),
+        "_application_gateway_ids": S("properties", "applicationGateways") >> ForallBend(S("id")),
         "custom_rules": S("properties", "customRules") >> ForallBend(AzureWebApplicationFirewallCustomRule.mapping),
         "etag": S("etag"),
         "gateway_http_listeners": S("properties") >> S("httpListeners", default=[]) >> ForallBend(S("id")),
@@ -6025,7 +6045,7 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
         "provisioning_state": S("properties", "provisioningState"),
         "resource_state": S("properties", "resourceState"),
     }
-    application_gateways: Optional[List[AzureApplicationGateway]] = field(default=None, metadata={'description': 'A collection of references to application gateways.'})  # fmt: skip
+    _application_gateway_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to application gateways.'})  # fmt: skip
     custom_rules: Optional[List[AzureWebApplicationFirewallCustomRule]] = field(default=None, metadata={'description': 'The custom rules inside the policy.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     gateway_http_listeners: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to application gateway http listeners.'})  # fmt: skip

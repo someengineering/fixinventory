@@ -47,7 +47,7 @@ class AzureResource(BaseResource):
     def resource_subscription_id(self) -> str:
         return self.extract_part("subscriptionId")
 
-    def resource_resource_group_name(self) -> str:
+    def resource_group_name(self) -> str:
         return self.extract_part("resourceGroupName")
 
     def extract_part(self, part: str) -> str:
@@ -143,8 +143,8 @@ class AzureResource(BaseResource):
         path_parameters: List[str],
         query_parameters: List[str],
         compared_property: Callable[[Json], Union[List[str], str]],
-        binding_property: Callable[[Json], str],
-    ) -> List[Tuple[Union[str, List[str]], str]]:
+        binding_property: Callable[[Json], Union[List[str], str]],
+    ) -> List[Tuple[Union[str, List[str]], Union[str, List[str]]]]:
         """
         Fetch additional resources from the Azure API for further connection using the connect_in_graph method.
 
