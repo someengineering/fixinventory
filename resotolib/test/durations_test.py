@@ -98,6 +98,7 @@ def test_parse_duration() -> None:
 
 
 def test_parse_is08601_duration() -> None:
+    assert parse_duration("P1Y") == timedelta(days=365)
     assert parse_duration("PT1S") == timedelta(seconds=1)
     assert parse_duration("P4D") == timedelta(days=4)
     assert parse_duration("PT1H") == timedelta(hours=1)
