@@ -41,7 +41,7 @@
         {
             "name": "logs_s3_bucket_is_not_publicly_accessible",
             "title": "Ensure the S3 bucket CloudTrail logs is not publicly accessible",
-            "result_kind": "aws_cloud_trail",
+            "result_kind": "aws_s3_bucket",
             "categories": [
                 "security",
                 "compliance"
