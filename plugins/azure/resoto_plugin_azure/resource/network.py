@@ -2214,7 +2214,7 @@ class AzurePublicIPAddress(AzureResource):
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
         "location": S("location"),
         "migration_phase": S("properties", "migrationPhase"),
-        "_nat_gateway_id": S("properties", "natGateway") >> Bend(S("id")),
+        "_nat_gateway_id": S("properties", "natGateway", "id"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
@@ -2262,7 +2262,7 @@ class AzureIPConfiguration(AzureSubResource):
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "_public_ip_address_id": S("properties", "publicIPAddress") >> Bend(S("id")),
+        "_public_ip_address_id": S("properties", "publicIPAddress", "id"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
@@ -2387,7 +2387,7 @@ class AzureSubnet(AzureResource):
         >> ForallBend(AzureIPConfigurationProfile.mapping),
         "_ip_configuration_ids": S("properties", "ipConfigurations", default=[]) >> ForallBend(S("id")),
         "_nat_gateway_id": S("properties", "natGateway", "id"),
-        "_network_security_group_id": S("properties", "networkSecurityGroup") >> Bend(S("id")),
+        "_network_security_group_id": S("properties", "networkSecurityGroup", "id"),
         "private_endpoint_network_policies": S("properties", "privateEndpointNetworkPolicies"),
         "private_endpoints": S("properties", "privateEndpoints") >> ForallBend(AzurePrivateEndpoint.mapping),
         "private_link_service_network_policies": S("properties", "privateLinkServiceNetworkPolicies"),
@@ -2450,7 +2450,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "_public_ip_address_id": S("properties", "publicIPAddress") >> Bend(S("id")),
+        "_public_ip_address_id": S("properties", "publicIPAddress", "id"),
         "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
         "subnet": S("properties", "subnet") >> Bend(AzureSubnet.mapping),
         "type": S("type"),
@@ -2586,7 +2586,7 @@ class AzureNetworkInterfaceIPConfiguration(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "_public_ip_id": S("properties", "publicIPAddress", "id"),
         "type": S("type"),
-        "_virtual_network_tap_ids": S("properties", "virtualNetworkTaps") >> ForallBend(S("id")),
+        "_virtual_network_tap_ids": S("properties", "virtualNetworkTaps", default=[]) >> ForallBend(S("id")),
         "_subnet_id": S("properties", "subnet", "id"),
     }
     application_gateway_backend_address_pools: Optional[List[AzureApplicationGatewayBackendAddressPool]] = field(default=None, metadata={'description': 'The reference to ApplicationGatewayBackendAddressPool resource.'})  # fmt: skip
@@ -2781,7 +2781,7 @@ class AzureNetworkInterface(AzureResource):
         "nic_type": S("properties", "nicType"),
         "primary": S("properties", "primary"),
         "private_endpoint": S("properties", "privateEndpoint") >> Bend(AzurePrivateEndpoint.mapping),
-        "_private_link_service_id": S("properties", "privateLinkService") >> Bend(S("id")),
+        "_private_link_service_id": S("properties", "privateLinkService", "id"),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
         "tap_configurations": S("properties", "tapConfigurations")
@@ -2857,7 +2857,8 @@ class AzureDscpConfiguration(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces") >> ForallBend(S("id")),
+        "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces", default=[])
+        >> ForallBend(S("id")),
         "destination_ip_ranges": S("properties", "destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
         "destination_port_ranges": S("properties", "destinationPortRanges") >> ForallBend(AzureQosPortRange.mapping),
         "etag": S("etag"),
@@ -4753,7 +4754,7 @@ class AzurePublicIPPrefix(AzureResource):
         "ip_prefix": S("properties", "ipPrefix"),
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
         "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIpConfiguration", "id"),
-        "_nat_gateway_id": S("properties", "natGateway") >> Bend(S("id")),
+        "_nat_gateway_id": S("properties", "natGateway", "id"),
         "prefix_length": S("properties", "prefixLength"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
@@ -5658,7 +5659,7 @@ class AzureVpnServerConfiguration(AzureResource):
         "configuration_policy_groups": S("properties", "configurationPolicyGroups")
         >> ForallBend(AzureVpnServerConfigurationPolicyGroup.mapping),
         "etag": S("etag"),
-        "_p2s_vpn_gateway_ids": S("properties", "p2SVpnGateways") >> ForallBend(S("id")),
+        "_p2s_vpn_gateway_ids": S("properties", "p2SVpnGateways", default=[]) >> ForallBend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "radius_client_root_certificates": S("properties", "radiusClientRootCertificates")
         >> ForallBend(AzureVpnServerConfigRadiusClientRootCertificate.mapping),
@@ -6035,7 +6036,7 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "_application_gateway_ids": S("properties", "applicationGateways") >> ForallBend(S("id")),
+        "_application_gateway_ids": S("properties", "applicationGateways", default=[]) >> ForallBend(S("id")),
         "custom_rules": S("properties", "customRules") >> ForallBend(AzureWebApplicationFirewallCustomRule.mapping),
         "etag": S("etag"),
         "gateway_http_listeners": S("properties") >> S("httpListeners", default=[]) >> ForallBend(S("id")),
