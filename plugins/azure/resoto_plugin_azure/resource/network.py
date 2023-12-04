@@ -26,7 +26,7 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringT
 from resotolib.types import Json
 
 
-def extract_vn_id(subnet_id: str) -> str:
+def extract_virtual_network_id(subnet_id: str) -> str:
     """
     Extracts {virtualNetworkName} value from a subnet ID and create virtual network ID
 
@@ -1122,7 +1122,7 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
-                            vn_id = extract_vn_id(subnet_id)
+                            vn_id = extract_virtual_network_id(subnet_id)
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                             )
@@ -1501,7 +1501,7 @@ class AzureFirewall(AzureResource, BaseFirewall):
         if ip_confs := self.firewall_ip_configurations:
             for ip_conf in ip_confs:
                 if subnet := ip_conf.subnet:
-                    vn_id = extract_vn_id(subnet)
+                    vn_id = extract_virtual_network_id(subnet)
                     builder.add_edge(
                         self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                     )
@@ -2893,7 +2893,7 @@ class AzureDscpConfiguration(AzureResource):
                 if ip_confs := network_interface.interface_ip_configurations:
                     for ip_conf in ip_confs:
                         if subnet := ip_conf._subnet_id:
-                            vn_id = extract_vn_id(subnet)
+                            vn_id = extract_virtual_network_id(subnet)
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                             )
@@ -4300,7 +4300,7 @@ class AzureNetworkProfile(AzureResource):
                 if ip_configurations := container.ip_configurations:
                     for ip_configuration in ip_configurations:
                         if subnet := ip_configuration._subnet_id:
-                            vn_id = extract_vn_id(subnet)
+                            vn_id = extract_virtual_network_id(subnet)
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                             )
@@ -4541,14 +4541,14 @@ class AzureNetworkWatcher(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         locations_and_ids_in_vn = self.fetch_resources(
-            builder,
-            "network",
-            "2023-05-01",
-            "/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks",
-            ["subscriptionId"],
-            ["api-version"],
-            lambda r: r["location"],
-            lambda r: r["id"],
+            builder=builder,
+            service="network",
+            api_version="2023-05-01",
+            path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks",
+            path_parameters=["subscriptionId"],
+            query_parameters=["api-version"],
+            compared_property=lambda r: r["location"],
+            binding_property=lambda r: r["id"],
         )
 
         if (nw_location := self.location) and (vns_info := locations_and_ids_in_vn):
@@ -5192,7 +5192,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
                 access_path="value",
                 expect_array=True,
             )
-            resource_group_name = self.extract_part("resourceGroupName")
+            resource_group_name = self.resource_resource_group_name()
             virtual_network_name = self.name if self.name else ""
 
             items = graph_builder.client.list(

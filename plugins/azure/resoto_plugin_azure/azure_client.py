@@ -148,16 +148,12 @@ class AzureResourceManagementClient(AzureClient):
         params = case_insensitive_dict(kwargs.pop("params", {}) or {})
         params["api-version"] = _SERIALIZER.query("api_version", spec.version, "str")  # type: ignore
 
+        # Define url map
+        format_map_paths = {"subscriptionId": self.subscription_id, "location": self.location, **params}
+        format_map_paths.update({param: kwargs.pop(param, "") for param in spec.path_parameters if param in kwargs})
+
         # Construct url
-        path = spec.path.format_map(
-            {
-                "subscriptionId": self.subscription_id,
-                "location": self.location,
-                "resourceGroupName": kwargs.pop("resourceGroupName", ""),
-                "virtualNetworkName": kwargs.pop("virtualNetworkName", ""),
-                **params,
-            }
-        )
+        path = spec.path.format_map(format_map_paths)
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
         # Construct and send request
