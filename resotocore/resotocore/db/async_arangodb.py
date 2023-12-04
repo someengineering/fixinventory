@@ -64,7 +64,7 @@ class AsyncCursor(AsyncIterator[Any]):
             try:
                 while True:
                     element = await self.get_next()
-                    if element:
+                    if element is not None:
                         return element
             except StopAsyncIteration:
                 # iterator exhausted: all elements have been processed. Now yield all deferred edges.
