@@ -681,7 +681,7 @@ async def test_list_possible_values(filled_graph_db: ArangoGraphDB, foo_model: M
     props_of_b = ["ctime", "f", "g", "h", "identifier", "kind", "name", "now"]
     assert await pv("is(bla)", "reported.f", "values") == [23]
     assert await pv("is(bla)", "reported.h.inner[*].inner[*].name", "values") == ["in_0_0", "in_0_1"]
-    assert await pv("is(bla)", "reported.g[*]", "values") == [1, 2, 3, 4]
+    assert await pv("is(bla)", "reported.g[*]", "values") == [0, 1, 2, 3, 4]
     assert await pv("is(bla)", "reported", "attributes") == props_of_b
     assert await pv("is(bla)", predicate_term.parse('reported=~"^[fgh]"'), "attributes") == ["f", "g", "h"]
 
