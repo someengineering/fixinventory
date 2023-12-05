@@ -473,7 +473,8 @@ class ArangoGraphDB(GraphDB):
         model: Model,
         accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:  # inserted, updated
-        log.info(f"Update security section. run_id={report_run_id} for accounts={accounts}")
+        accounts_list = accounts or []
+        log.info(f"Update security section. run_id={report_run_id} for accounts={accounts_list}")
         temp_collection = await self.get_tmp_collection(report_run_id)
         now = utc_str()
         nodes_vulnerable_new = 0
@@ -537,7 +538,8 @@ class ArangoGraphDB(GraphDB):
 
         async def move_security_temp_to_proper() -> None:
             temp_name = temp_collection.name
-            account_filter = ("and e.refs.account_id in [" + ",".join(accounts) + "]") if accounts else ""
+            accounts_quoted = ",".join(f'"{acc}"' for acc in accounts_list)
+            account_filter = f"and e.refs.account_id in [{accounts_quoted}]" if accounts else ""
             aql_updates = [
                 # Select all new or updated vulnerable nodes. Insert into history and update vertex.
                 f'for e in {temp_name} filter e.action=="node_vulnerable" insert e.data in {self.node_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
