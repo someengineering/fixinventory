@@ -20,13 +20,14 @@ from resotolib.parse_util import (
     space_dp,
     double_quote_dp,
     single_quote_dp,
-    any_non_white_space_string,
+    any_non_whitespace_string,
     comma_p,
     double_quoted_string_part_dp,
     backslash_dp,
     single_quoted_string_part_dp,
     dash_dp,
     equals_p,
+    whitespace,
 )
 
 T = TypeVar("T")
@@ -96,14 +97,14 @@ cmd_with_args_parser = (escaped_token | double_quoted_string | single_quoted_str
 # argument parser which will read the argument list while removing single and double quotes
 # command line arguments: foo "bla: 'foo = bla' -> [foo, bla, foo = bla]
 args_parts_unquoted_parser = (
-    escaped_token | double_quoted_raw_string | single_quoted_raw_string | any_non_white_space_string
-).sep_by(space_dp)
+    escaped_token | double_quoted_raw_string | single_quoted_raw_string | any_non_whitespace_string
+).sep_by(whitespace, min=1)
 
 # argument parser which will read the argument list while removing single quotes
 # Example: "--a \"a or b\" --b 'b or c' --c c d" -> ["--a", "\"a or b\"", "--b", "b or c", "--c", "c", "d"]
 args_parts_parser = (
-    escaped_token | double_quoted_string | single_quoted_raw_string | any_non_white_space_string
-).sep_by(space_dp, min=1)
+    escaped_token | double_quoted_string | single_quoted_raw_string | any_non_whitespace_string
+).sep_by(whitespace, min=1)
 
 
 def strip_quotes(maybe_quoted: str) -> str:
