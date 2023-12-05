@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from aiostream import stream
 
-from resotocore.cli import strip_quotes, js_value_at
+from resotocore.cli import strip_quotes, js_value_at, args_parts_parser, args_parts_unquoted_parser
 from resotocore.cli.cli import multi_command_parser, CLIService
 from resotocore.cli.command import (
     ExecuteSearchCommand,
@@ -32,6 +32,15 @@ from resotocore.util import utc
 def test_strip() -> None:
     assert strip_quotes("'test'") == "test"
     assert strip_quotes('"test"') == "test"
+
+
+def test_split_args_parser() -> None:
+    assert args_parts_parser.parse("1 2   3    4") == ["1", "2", "3", "4"]
+    assert args_parts_parser.parse('(id == "1  \\"2 3 () 4 5")') == ["(id", "==", '"1  \\"2 3 () 4 5"', ")"]
+    assert args_parts_parser.parse("'doo' \"bla\" '\\'bar'") == ["doo", '"bla"', "\\'bar"]
+    assert args_parts_unquoted_parser.parse("1 2   3    4") == ["1", "2", "3", "4"]
+    assert args_parts_unquoted_parser.parse('(id == "1  \\"2 3 () 4 5")') == ["(id", "==", '1  \\"2 3 () 4 5', ")"]
+    assert args_parts_unquoted_parser.parse("'doo' \"bla\" '\\'bar'") == ["doo", "bla", "\\'bar"]
 
 
 def test_command_line_parser() -> None:
