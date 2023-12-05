@@ -26,24 +26,6 @@ from resotolib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringT
 from resotolib.types import Json
 
 
-def extract_virtual_network_id(subnet_id: str) -> str:
-    """
-    Extracts {virtualNetworkName} value from a subnet ID and create virtual network ID
-
-    e.g. /subscriptions/{subscriptionId}/.../virtualNetworks/{virtualNetworkName}/subnets/{subnetName}
-
-    -> /subscriptions/{subscriptionId}/.../virtualNetworks/{virtualNetworkName}
-
-    Returns:
-    str: Virtual network ID.
-    """
-    # Split the subnet ID by "/"
-    parts = subnet_id.split("/")
-    # Extract the Virtual Network ID
-    virtual_network_id = "/".join(parts[:-2])
-    return virtual_network_id
-
-
 @define(eq=False, slots=False)
 class AzureApplicationGatewaySku:
     kind: ClassVar[str] = "azure_application_gateway_sku"
@@ -1002,7 +984,7 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network", "azure_subnet"]},
+        "predecessors": {"default": ["azure_subnet"]},
         "successors": {"default": ["azure_web_application_firewall_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1121,10 +1103,6 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
                         if subnet_id := ip_configuration.subnet:
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
-                            )
-                            vn_id = extract_virtual_network_id(subnet_id)
-                            builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
                             )
 
 
@@ -1448,7 +1426,7 @@ class AzureFirewall(AzureResource, BaseFirewall):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
+        "predecessors": {"default": ["azure_subnet"]},
         "successors": {"default": ["azure_firewall_fqdn_tag", "azure_firewall_policy", "azure_virtual_hub"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1500,11 +1478,9 @@ class AzureFirewall(AzureResource, BaseFirewall):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFirewallPolicy, id=policy_id)
         if ip_confs := self.firewall_ip_configurations:
             for ip_conf in ip_confs:
-                if subnet := ip_conf.subnet:
-                    vn_id = extract_virtual_network_id(subnet)
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
-                    )
+                if subnet_id := ip_conf.subnet:
+                    builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+
         if rule_collections := self.application_rule_collections:
             for rule_collection in rule_collections:
                 if rules := rule_collection.rules:
@@ -2452,7 +2428,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "_public_ip_address_id": S("properties", "publicIPAddress", "id"),
         "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
-        "subnet": S("properties", "subnet") >> Bend(AzureSubnet.mapping),
+        "_subnet_id": S("properties", "subnet", "id"),
         "type": S("type"),
         "zones": S("zones"),
     }
@@ -2469,7 +2445,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     _public_ip_address_id: Optional[str] = field(default=None, metadata={'description': 'Public IP address resource.'})  # fmt: skip
     public_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
-    subnet: Optional[AzureSubnet] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
+    _subnet_id: Optional[str] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
     zones: Optional[List[str]] = field(default=None, metadata={'description': 'A list of availability zones denoting the IP allocated for the resource needs to come from.'})  # fmt: skip
 
@@ -2635,7 +2611,7 @@ class AzurePrivateLinkServiceIpConfiguration(AzureSubResource):
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "subnet": S("properties", "subnet") >> Bend(AzureSubnet.mapping),
+        "_subnet_id": S("properties", "subnet", "id"),
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -2645,7 +2621,7 @@ class AzurePrivateLinkServiceIpConfiguration(AzureSubResource):
     private_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
     private_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    subnet: Optional[AzureSubnet] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
+    _subnet_id: Optional[str] = field(default=None, metadata={'description': 'Subnet in a virtual network resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The resource type."})
 
 
@@ -2848,7 +2824,7 @@ class AzureDscpConfiguration(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
+        "predecessors": {"default": ["azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2909,9 +2885,8 @@ class AzureDscpConfiguration(AzureResource):
                     ni_id, subnet_ids = info
                     for subnet_id in subnet_ids:
                         if network_interface_id == ni_id:
-                            vn_id = extract_virtual_network_id(subnet_id)
                             builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
+                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
 
 
@@ -4270,7 +4245,7 @@ class AzureNetworkProfile(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
+        "predecessors": {"default": ["azure_subnet"]},
         "successors": {"default": ["azure_virtual_machine"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4315,10 +4290,9 @@ class AzureNetworkProfile(AzureResource):
             for container in container_nic:
                 if ip_configurations := container.ip_configurations:
                     for ip_configuration in ip_configurations:
-                        if subnet := ip_configuration._subnet_id:
-                            vn_id = extract_virtual_network_id(subnet)
+                        if subnet_id := ip_configuration._subnet_id:
                             builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
+                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
 
                 if (container_ni_ids := container.container_network_interfaces) and (

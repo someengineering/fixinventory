@@ -149,11 +149,11 @@ class AzureResourceManagementClient(AzureClient):
         params["api-version"] = _SERIALIZER.query("api_version", spec.version, "str")  # type: ignore
 
         # Define url map
-        format_map_paths = {"subscriptionId": self.subscription_id, "location": self.location, **params}
-        format_map_paths.update({param: kwargs.pop(param, "") for param in spec.path_parameters if param in kwargs})
+        path_format_params = {"subscriptionId": self.subscription_id, "location": self.location, **params}
+        path_format_params.update({param: kwargs.pop(param, "") for param in spec.path_parameters if param in kwargs})
 
         # Construct url
-        path = spec.path.format_map(format_map_paths)
+        path = spec.path.format_map(path_format_params)
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
         # Construct and send request
