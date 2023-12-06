@@ -20,6 +20,9 @@
             "type": "Microsoft.Network/IpAllocations",
             "location": "centraluseuap",
             "properties": {
+                "virtualNetwork": {
+                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1"
+                },
                 "type": "Hypernet",
                 "prefix": "3.2.6.0/24",
                 "ipamAllocationId": "57dc7256-2ff7-43f2-b9c8-85a70b5c6408",

@@ -11,6 +11,12 @@
                 "key1": "value1"
             },
             "properties": {
+                "firewallPolicy": {
+                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/firewallPolicies/firewallPolicy"
+                },
+                "virtualHub": {
+                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualHubs/virtualHub1"
+                },
                 "provisioningState": "Succeeded",
                 "threatIntelMode": "Alert",
                 "ipConfigurations": [

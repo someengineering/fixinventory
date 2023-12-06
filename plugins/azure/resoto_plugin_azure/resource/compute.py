@@ -2652,10 +2652,13 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
-                        if lbbap_id := ip_configuration.load_balancer_backend_address_pools:
-                            builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureLoadBalancer, id=lbbap_id
-                            )
+                        if lbbap_ids := ip_configuration.load_balancer_backend_address_pools:
+                            for lbbap_id in lbbap_ids:
+                                # take only id of load balancer
+                                lbbap_id = "/".join(lbbap_id.split("/")[:-2])
+                                builder.add_edge(
+                                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureLoadBalancer, id=lbbap_id
+                                )
 
         if (vm_network_profile := self.virtual_machine_network_profile) and (
             network_interfaces := vm_network_profile.network_interfaces

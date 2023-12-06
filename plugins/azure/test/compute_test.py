@@ -1,6 +1,7 @@
 from conftest import roundtrip_check, connect_resources
 from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
 from resoto_plugin_azure.resource.compute import *
+from resoto_plugin_azure.resource.network import AzureLoadBalancer, AzureNetworkInterface, AzureNetworkSecurityGroup
 from resotolib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
 
@@ -86,6 +87,11 @@ def test_placement_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureProximityPlacementGroup, builder)
     assert len(collected) == 1
 
+    resource_types: List[Type[AzureResource]] = [AzureVirtualMachineScaleSet]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureProximityPlacementGroup, AzureVirtualMachineScaleSet)) == 1
+
 
 def test_sku(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureResourceSku, builder)
@@ -111,12 +117,22 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureImage, AzureDisk]
+    resource_types: List[Type[AzureResource]] = [
+        AzureProximityPlacementGroup,
+        AzureImage,
+        AzureDisk,
+        AzureNetworkInterface,
+        AzureNetworkSecurityGroup,
+        AzureLoadBalancer,
+    ]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureProximityPlacementGroup, AzureVirtualMachine)) == 2
     assert len(builder.edges_of(AzureVirtualMachine, AzureImage)) == 2
     assert len(builder.edges_of(AzureVirtualMachine, AzureDisk)) == 2
+    assert len(builder.edges_of(AzureVirtualMachine, AzureNetworkInterface)) == 1
+    assert len(builder.edges_of(AzureNetworkSecurityGroup, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachine)) == 1
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:

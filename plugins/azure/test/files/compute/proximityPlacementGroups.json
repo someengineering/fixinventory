@@ -17,7 +17,7 @@
                 ],
                 "virtualMachineScaleSets": [
                     {
-                        "id": "string"
+                        "id": "/subscriptions/{subscription-id}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachineScaleSets/{virtualMachineScaleSetName}"
                     }
                 ],
                 "availabilitySets": [

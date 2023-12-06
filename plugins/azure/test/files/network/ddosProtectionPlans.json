@@ -10,12 +10,12 @@
                 "resourceGuid": "00000000-0000-0000-0000-000000000000",
                 "publicIPAddresses": [
                     {
-                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPAddresses/test-pip"
+                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPAddresses/testDNS-ip"
                     }
                 ],
                 "virtualNetworks": [
                     {
-                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet1"
+                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1"
                     }
                 ]
             }

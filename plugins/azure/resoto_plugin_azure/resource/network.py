@@ -1427,7 +1427,7 @@ class AzureFirewall(AzureResource, BaseFirewall):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_subnet"]},
-        "successors": {"default": ["azure_firewall_fqdn_tag", "azure_firewall_policy", "azure_virtual_hub"]},
+        "successors": {"default": ["azure_firewall_policy", "azure_virtual_hub"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1480,17 +1480,6 @@ class AzureFirewall(AzureResource, BaseFirewall):
             for ip_conf in ip_confs:
                 if subnet_id := ip_conf.subnet:
                     builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
-
-        if rule_collections := self.application_rule_collections:
-            for rule_collection in rule_collections:
-                if rules := rule_collection.rules:
-                    for rule in rules:
-                        fqdn_tags = rule.fqdn_tags
-                        if fqdn_tags:
-                            for fqdn_tag_id in fqdn_tags:
-                                builder.add_edge(
-                                    self, edge_type=EdgeType.default, clazz=AzureFirewallFqdnTag, id=fqdn_tag_id
-                                )
         if vh_id := self.virtual_hub:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualHub, id=vh_id)
 
@@ -1654,9 +1643,6 @@ class AzureCustomIpPrefix(AzureResource):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
-    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1699,10 +1685,6 @@ class AzureCustomIpPrefix(AzureResource):
     public_ip_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'The list of all referenced PublicIpPrefixes.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the custom IP prefix resource.'})  # fmt: skip
     signed_message: Optional[str] = field(default=None, metadata={"description": "Signed message for WAN validation."})
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if vn_address := self.cidr:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_address)
 
 
 @define(eq=False, slots=False)
@@ -4273,14 +4255,18 @@ class AzureNetworkProfile(AzureResource):
         # Import placed inside the method due to circular import error resolution
         from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
-        network_interfaces_and_vm_ids = self.fetch_resources(
+        compared_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+            ip_config["id"] for ip_config in r.get("properties", {}).get("ipConfigurations", [])
+        ]
+
+        ip_confs_and_vm_ids = self.fetch_resources(
             builder,
             service="network",
             api_version="2023-05-01",
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["id"],
+            compared_property=compared_property,
             binding_property=lambda r: r["properties"]["virtualMachine"]["id"]
             if "properties" in r and "virtualMachine" in r["properties"]
             else "",
@@ -4294,15 +4280,14 @@ class AzureNetworkProfile(AzureResource):
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
-
-                if (container_ni_ids := container.container_network_interfaces) and (
-                    ni_ids_and_vm_ids := network_interfaces_and_vm_ids
-                ):
-                    for ni_id in container_ni_ids:
-                        for info in ni_ids_and_vm_ids:
-                            network_interface_id, vm_id = info
-                            if ni_id == network_interface_id:
-                                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+                        if (ni_ids_and_vm_ids := ip_confs_and_vm_ids) and (c_ip_conf_id := ip_configuration.id):
+                            for info in ni_ids_and_vm_ids:
+                                ip_conf_ids, vm_id = info
+                                for ip_conf_id in ip_conf_ids:
+                                    if ip_conf_id == c_ip_conf_id:
+                                        builder.add_edge(
+                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id
+                                        )
 
 
 @define(eq=False, slots=False)
@@ -4442,15 +4427,15 @@ class AzureNetworkVirtualAppliance(AzureResource):
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
             compared_property=lambda r: r["properties"]["vendor"],
-            binding_property=lambda r: r["id"],
+            binding_property=lambda r: r["name"],
         )
 
         if (nva := self.nva_sku) and (nva_vendor := nva.vendor) and (vendors := vendors_in_resource):
             for info in vendors:
-                vendor_name, nvasku_id = info
+                vendor_name, nvasku_name = info
                 if vendor_name == nva_vendor:
                     builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, id=nvasku_id
+                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, id=nvasku_name
                     )
         if virtual_appliances := self.virtual_appliance_nics:
             for va in virtual_appliances:
@@ -4473,7 +4458,7 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
-        version="2023-05-01",
+        version="2023-04-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkVirtualApplianceSkus",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
@@ -5007,10 +4992,10 @@ class AzureVirtualHub(AzureResource):
     vpn_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        compared_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+        compared_property: Callable[[Json], List[str]] = lambda r: [
             ip_config["id"] for ip_config in r.get("properties", {}).get("ipConfigurations", [])
         ]
-        binding_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+        binding_property: Callable[[Json], List[str]] = lambda r: [
             ip_config["properties"]["publicIPAddress"]["id"]
             for ip_config in r.get("properties", {}).get("ipConfigurations", [])
             if "publicIPAddress" in ip_config.get("properties", {})
