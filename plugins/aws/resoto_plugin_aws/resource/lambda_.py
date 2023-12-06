@@ -1,10 +1,9 @@
 import json as json_p
 import logging
 import re
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
-
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
@@ -41,10 +40,10 @@ class AwsLambdaPolicyStatement:
     }
     sid: Optional[str] = field(default=None)
     effect: Optional[str] = field(default=None)
-    principal: Optional[Dict[str, str]] = field(default=None)
-    action: Optional[str] = field(default=None)
-    resource: Optional[str] = field(default=None)
-    condition: Optional[Json] = field(default=None)
+    principal: Optional[Any] = field(default=None)
+    action: Optional[Any] = field(default=None)
+    resource: Optional[Any] = field(default=None)
+    condition: Optional[Any] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -352,7 +351,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         if (
                             statement.principal
                             and statement.condition
-                            and statement.principal["Service"] == "apigateway.amazonaws.com"
+                            and isinstance(statement.principal, dict)
+                            and statement.principal.get("Service") == "apigateway.amazonaws.com"
                             and (arn_like := statement.condition.get("ArnLike")) is not None
                             and (source := arn_like.get("AWS:SourceArn")) is not None
                         ):

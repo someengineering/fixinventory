@@ -256,8 +256,10 @@ class AwsClient:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
         except Exception as e:
-            log.error(f"[Aws] called service={aws_service} action={action}: hit unexpected error: {e}")
-            raise
+            log.error(f"[Aws] called service={aws_service} action={action}: hit unexpected error: {e}", exc_info=e)
+            if self.config.discard_account_on_resource_error:
+                raise
+            return None
 
     @log_runtime
     def call(
@@ -348,7 +350,8 @@ class AwsClient:
         elif code in RetryableErrors:
             log.warning(f"Call to {aws_service} action {action} failed and will be retried eventually. Error: {e}")
             accumulate("FailedAndRetried", f"Retryable call has failed: {code}.")
-            raise e  # already have been retried, give up here
+            if self.config.discard_account_on_resource_error:
+                raise e  # already have been retried, give up here
         else:
             log.error(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
