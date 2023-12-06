@@ -82,7 +82,8 @@ disable=
     too-many-instance-attributes,
     too-many-ancestors,
     duplicate-code,
-    cyclic-import
+    cyclic-import,
+    unnecessary-lambda-assignment
 
 
 [REPORTS]
