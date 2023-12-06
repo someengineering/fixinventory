@@ -1596,9 +1596,14 @@ class Model:
         skip: int = 0,
         limit: int = 20,
     ) -> Tuple[int, Dict[str, str]]:
-        filter_prop: Callable[[str], bool] = (
-            (lambda p: re.match(prop, p) is not None) if fuzzy else (lambda p: p.startswith(prop))
-        )
+        if fuzzy:
+            prop_re = re.compile(f".*{prop}.*")
+            filter_prop: Callable[[str], bool] = lambda p: prop_re.match(p) is not None
+        else:
+            filter_prop = lambda p: p.startswith(prop)  # noqa
+
+        def sort_key(k: str) -> Tuple[int, str]:
+            return 0 if k.startswith(prop) else 1, k
 
         def from_prop_path(kinds: Iterable[ComplexKind]) -> Tuple[int, Dict[str, str]]:
             props: Dict[str, str] = {}
@@ -1613,14 +1618,14 @@ class Model:
                             props[p.name] = pk.runtime_kind
                         else:
                             props[p.name] = pk.fqn
-            return len(props), {k: props[k] for k in sorted(props)[skip : skip + limit]}
+            return len(props), {k: props[k] for k in sorted(props, key=sort_key)[skip : skip + limit]}
 
         def from_aggregate_roots() -> Tuple[int, Dict[str, str]]:
             roots: Dict[str, str] = {}
             for kind in self.aggregate_roots():
                 if filter_prop(kind.fqn) and (not filter_kinds or kind.fqn in filter_kinds):
                     roots[kind.fqn] = "node"
-            return len(roots), {k: roots[k] for k in sorted(roots)[skip : skip + limit]}
+            return len(roots), {k: roots[k] for k in sorted(roots, key=sort_key)[skip : skip + limit]}
 
         if path:
             parts = path.split(".")

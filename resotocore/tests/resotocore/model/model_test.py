@@ -590,8 +590,11 @@ def test_complete_path(person_model: Model) -> None:
     count, all_props = person_model.complete_path("", "ad", fuzzy=False, skip=0, limit=4)
     assert all_props == {"address": "Address", "addresses[*]": "Address"}
     # filter by prefix fuzzy
-    count, all_props = person_model.complete_path("", "^a.*s", fuzzy=True, skip=0, limit=4)
-    assert all_props == {"address": "Address", "addresses[*]": "Address"}
+    count, ap = person_model.complete_path("", "addr", fuzzy=True, skip=0, limit=4)
+    assert ap == {"address": "Address", "addresses[*]": "Address", "other_addresses": "dictionary[string, Address]"}
+    # filter by prefix fuzzy
+    count, ap = person_model.complete_path("", "t", fuzzy=True, skip=0, limit=4)
+    assert ap == {"tags": "dictionary[string, string]", "test": "string", "city": "string", "ctime": "datetime"}
     # skip the first 4
     count, all_props = person_model.complete_path("", "", fuzzy=False, skip=4, limit=4)
     assert all_props == {"city": "string", "ctime": "datetime", "expires": "datetime", "exported_age": "duration"}
