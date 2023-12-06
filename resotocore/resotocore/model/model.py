@@ -161,7 +161,13 @@ array_index_re = re.compile(r"\[(\d+|\*)]")
 
 class PropertyPath:
     @staticmethod
-    def from_path(path: str) -> PropertyPath:
+    def from_list(path: List[str]) -> PropertyPath:
+        # remove index accesses from the path (e.g. [23] -> "[]", [*] -> "[]")
+        no_index = ".".join(array_index_re.sub("[]", a) for a in path)
+        return PropertyPath(path, no_index)
+
+    @staticmethod
+    def from_string(path: str) -> PropertyPath:
         # remove index accesses from the path (e.g. [23] -> "[]", [*] -> "[]")
         no_index = array_index_re.sub("[]", path)
         return PropertyPath(prop_path_parser.parse(no_index), no_index)
@@ -1366,14 +1372,14 @@ class Model:
             if k.aggregate_root:
                 yield k
 
-    def property_by_path(self, path_: str) -> ResolvedProperty:
-        path = PropertyPath.from_path(path_)
+    def property_by_path(self, path_: Union[str, List[str]]) -> ResolvedProperty:
+        path = PropertyPath.from_string(path_) if isinstance(path_, str) else PropertyPath.from_list(path_)
         found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
         # if the path is not known according to known model: it could be anything.
         return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
 
-    def kind_by_path(self, path_: str) -> Kind:
-        return self.property_by_path(path_).kind
+    def kind_by_path(self, path: Union[str, List[str]]) -> Kind:
+        return self.property_by_path(path).kind
 
     def coerce(self, js: Json) -> Json:
         try:

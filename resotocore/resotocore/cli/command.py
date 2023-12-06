@@ -1923,7 +1923,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 return {"name": kind.fqn}
 
         def property_defined_in(model: Model, path_: str) -> List[str]:
-            path = PropertyPath.from_path(path_)
+            path = PropertyPath.from_string(path_)
             return [
                 kind.fqn
                 for kind in model.complex_kinds()
@@ -2600,7 +2600,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 for name in chain(predicate_names, sort_names):
                     if name not in self.all_default_props and name not in local_paths:
                         local_paths.add(name)
-                        path = PropertyPath.from_path(name).unescaped_parts()
+                        path = PropertyPath.from_string(name).unescaped_parts()
                         result.append((path, path[-1]))
             if ctx.query_options.get("history") is not True:
                 result.extend(self.default_live_properties_to_show)
@@ -2609,7 +2609,7 @@ class ListCommand(CLICommand, OutputTransformer):
             return result
 
         def adjust_path(prop_path: str) -> List[str]:
-            return PropertyPath.from_path(ctx.variable_in_section(prop_path)).unescaped_parts()
+            return PropertyPath.from_string(ctx.variable_in_section(prop_path)).unescaped_parts()
 
         def to_str(name: str, elem: JsonElement) -> str:
             if isinstance(elem, dict):
@@ -2713,7 +2713,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     return kind_of(path[2:])
                 if path[0] in Section.content:
                     path = path[1:]
-                kind = model.kind_by_path(".".join(path))
+                kind = model.kind_by_path(path)
                 if isinstance(kind, TransformKind):
                     return kind.source_kind.fqn if kind.source_kind else AnyKind().fqn
                 else:

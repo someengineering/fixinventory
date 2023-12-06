@@ -600,16 +600,18 @@ async def test_list_command(cli: CLI) -> None:
 
     # List supports markdown output
     result = await cli.execute_cli_command(
-        'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1} | list --json-table name, some_int', stream.list
+        'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1, "tags": {"foo․bla․bar.test.rest.best.":"yup"}} | list --json-table name, some_int, tags.`foo․bla․bar.test.rest.best.`',
+        stream.list,
     )
     assert result[0] == [
         {
             "columns": [
                 {"display": "Name", "kind": "string", "name": "name"},
                 {"display": "Some Int", "kind": "int32", "name": "some_int"},
+                {"display": "Foo․bla․bar.test.rest.best.", "kind": "string", "name": "foo․bla․bar.test.rest.best."},
             ],
         },
-        {"id": "foo", "row": {"name": "a", "some_int": 1}},
+        {"id": "foo", "row": {"foo․bla․bar.test.rest.best.": "yup", "name": "a", "some_int": 1}},
     ]
 
     # List supports only markdown or csv, but not both at the same time
