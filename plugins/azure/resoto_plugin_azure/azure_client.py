@@ -153,7 +153,7 @@ class AzureResourceManagementClient(AzureClient):
             if lookup_map.get(param, None) is not None:
                 path_map[param] = lookup_map[param]
             else:
-                raise ValueError(f"Param {param} in lookup_map does not found")
+                raise KeyError(f"Param {param} in lookup_map does not found")
 
         # Construct parameters
         params = case_insensitive_dict()
@@ -163,7 +163,7 @@ class AzureResourceManagementClient(AzureClient):
                 if lookup_map.get(param, None) is not None:
                     params[param] = ser.query(param, lookup_map[param], "str")  # type: ignore # noqa: E501
                 else:
-                    raise ValueError(f"Param {param} in lookup_map does not found")
+                    raise KeyError(f"Param {param} in lookup_map does not found")
 
         # Construct url
         path = spec.path.format_map(path_map)

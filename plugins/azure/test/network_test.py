@@ -25,11 +25,6 @@ def test_application_gateway_web_application_firewall_policy(builder: GraphBuild
     assert len(collected) == 1
 
 
-def test_auto_approved_private_link_service(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureAutoApprovedPrivateLinkService, builder)
-    assert len(collected) == 3
-
-
 def test_available_service_alias(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailableServiceAlias, builder)
     assert len(collected) == 2

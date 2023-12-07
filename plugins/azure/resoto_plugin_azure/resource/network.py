@@ -1169,30 +1169,6 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureAutoApprovedPrivateLinkService(AzureResource):
-    kind: ClassVar[str] = "azure_auto_approved_private_link_service"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/autoApprovedPrivateLinkServices",
-        path_parameters=["location", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("privateLinkService"),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "private_link_service_id": S("privateLinkService"),
-    }
-    private_link_service_id: Optional[str] = field(default=None, metadata={'description': 'The id of the private link service resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureAvailableServiceAlias(AzureResource):
     kind: ClassVar[str] = "azure_available_service_alias"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
@@ -6019,7 +5995,6 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
 resources: List[Type[AzureResource]] = [
     AzureApplicationGateway,
     AzureApplicationGatewayFirewallRuleSet,
-    AzureAutoApprovedPrivateLinkService,
     AzureAvailableServiceAlias,
     AzureFirewall,
     AzureFirewallFqdnTag,

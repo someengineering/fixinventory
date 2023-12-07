@@ -2578,6 +2578,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "user_data": S("properties", "userData"),
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
+        "location": S("location"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
         "instance_status": S("properties", "provisioningState")
         >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
@@ -2612,6 +2613,27 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     user_data: Optional[str] = field(default=None, metadata={'description': 'Userdata for the vm, which must be base-64 encoded. Customer should not pass any secrets in here. Minimum api-version: 2021-03-01.'})  # fmt: skip
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_vms_size() -> None:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2023-03-01",
+                path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
+                path_parameters=["subscriptionId", "location"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            hardware_profile_name = self.instance_type if self.instance_type else ""
+            location = self.location if self.location else ""
+            items = [
+                r for r in graph_builder.client.list(api_spec, location=location) if r["name"] == hardware_profile_name
+            ]
+            AzureVirtualMachineSize.collect(items, graph_builder)
+
+        graph_builder.submit_work(collect_vms_size)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
@@ -3201,17 +3223,8 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
-        path_parameters=["location", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
+        "id": K(None),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
@@ -3251,5 +3264,4 @@ resources: List[Type[AzureResource]] = [
     AzureSshPublicKeyResource,
     AzureVirtualMachine,
     AzureVirtualMachineScaleSet,
-    AzureVirtualMachineSize,
 ]
