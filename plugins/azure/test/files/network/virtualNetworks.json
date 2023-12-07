@@ -26,10 +26,11 @@
                 ],
                 "virtualNetworkPeerings": [],
                 "provisioningState": "Succeeded"
-            }
+            },
+            "resourceGroup": "rg1"
         },
         {
-            "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet2",
+            "id": "/subscriptions/subid/resourceGroups/rg2/providers/Microsoft.Network/virtualNetworks/vnet2",
             "name": "vnet2",
             "type": "Microsoft.Network/virtualNetworks",
             "location": "westus",
@@ -44,10 +45,20 @@
                         "8.8.8.8"
                     ]
                 },
-                "subnets": [],
+                "subnets": [
+                    {
+                        "id": "/subscriptions/subid/resourceGroups/rg2/providers/Microsoft.Network/virtualNetworks/vnet2/subnets/test-2",
+                        "name": "test-2",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/32",
+                            "provisioningState": "Succeeded"
+                        }
+                    }
+                ],
                 "virtualNetworkPeerings": [],
                 "provisioningState": "Succeeded"
-            }
+            },
+            "resourceGroup": "rg2"
         }
     ]
 }

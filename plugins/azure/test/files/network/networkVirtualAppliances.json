@@ -17,7 +17,7 @@
             },
             "properties": {
                 "nvaSku": {
-                    "vendor": "Cisco SDWAN",
+                    "vendor": "Cisco",
                     "bundledScaleUnit": "1",
                     "marketPlaceVersion": "12.1"
                 },

@@ -8,7 +8,7 @@
             "properties": {
                 "provisioningState": "Succeeded",
                 "ipAddresses": [
-                    "13.64.39.16/32",
+                    "10.0.0.0/8",
                     "40.74.146.80/31",
                     "40.74.147.32/28"
                 ],

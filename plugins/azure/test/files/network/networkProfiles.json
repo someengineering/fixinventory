@@ -16,7 +16,7 @@
                             "ipConfigurations": [
                                 {
                                     "name": "ipconfigprofile1",
-                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/networkProfiles/networkProfile1/containerNetworkInterfaceConfigurations/eth0/ipConfigurations/ipconfigprofile1",
+                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/networkInterfaces/test-nic/ipConfigurations/ipconfig1",
                                     "etag": "W/\"4d705a71-752f-4e0a-8057-c02b125b1c08\"",
                                     "type": "Microsoft.Network/networkProfiles/containerNetworkInterfaceConfigurations/ipConfigurations",
                                     "properties": {
@@ -30,8 +30,7 @@
                         },
                         "type": "Microsoft.Network/networkProfiles/containerNetworkInterfaceConfigurations"
                     }
-                ],
-                "containerNetworkInterfaces": []
+                ]
             },
             "type": "Microsoft.Network/networkProfiles",
             "location": "centraluseuap"

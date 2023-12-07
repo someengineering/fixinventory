@@ -65,7 +65,6 @@ class AzureSubscriptionCollector:
             # collect all regional resources
             for location in locations:
                 self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
-
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes

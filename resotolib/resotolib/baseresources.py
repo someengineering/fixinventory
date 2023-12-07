@@ -909,6 +909,14 @@ class BaseNetworkQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
+class BaseFirewall(BaseResource):
+    kind: ClassVar[str] = "firewall"
+    kind_display: ClassVar[str] = "Firewall"
+    kind_description: ClassVar[str] = "A firewall."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
+
+
+@define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
     kind_display: ClassVar[str] = "Database"

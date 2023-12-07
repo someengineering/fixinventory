@@ -4,7 +4,7 @@ import logging
 from concurrent.futures import Future
 from datetime import datetime
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Tuple, Type, Callable, Union, cast
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
@@ -45,15 +45,48 @@ class AzureResource(BaseResource):
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
     def resource_subscription_id(self) -> str:
-        """
-        Extracts {subscriptionId} value from a resource ID.
+        return self.extract_part("subscriptionId")
 
-        e.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
+    def resource_group_name(self) -> str:
+        return self.extract_part("resourceGroupName")
+
+    def extract_part(self, part: str) -> str:
+        """
+        Extracts a specific part from a resource ID.
+
+        The function takes a resource ID and a specified part to extract, such as 'subscriptionId'
+        or 'resourceGroupName'. The resource ID is expected to follow the Azure Resource Manager
+        path format.
+
+        Example:
+        For the resource ID "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...",
+        calling extract_part("subscriptionId") would return the value within the curly braces,
+        representing the subscription ID.
+
+        Parameters:
+        - part (str): The part to extract from the resource ID.
 
         Returns:
-        str: The extracted subscription ID.
+        str: The extracted part of the resource ID.
         """
-        return self.id.split("/")[2]
+        id_parts = self.id.split("/")
+
+        if part == "subscriptionId":
+            if "subscriptions" not in id_parts:
+                raise ValueError(f"Id {self.id} does not have any subscriptionId info")
+            if index := id_parts.index("subscriptions"):
+                return id_parts[index + 1]
+            return ""
+
+        elif part == "resourceGroupName":
+            if "resourceGroups" not in id_parts:
+                raise ValueError(f"Id {self.id} does not have any resourceGroupName info")
+            if index := id_parts.index("resourceGroups"):
+                return id_parts[index + 1]
+            return ""
+
+        else:
+            raise ValueError(f"Value {part} does not have any cases to match")
 
     def delete(self, graph: Graph) -> bool:
         """
@@ -100,6 +133,35 @@ class AzureResource(BaseResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace
         pass
+
+    def fetch_resources(
+        self,
+        builder: GraphBuilder,
+        service: str,
+        api_version: str,
+        path: str,
+        path_parameters: List[str],
+        query_parameters: List[str],
+        compared_property: Callable[[Json], Union[List[str], str]],
+        binding_property: Callable[[Json], Union[List[str], str]],
+    ) -> List[Tuple[Union[str, List[str]], Union[str, List[str]]]]:
+        """
+        Fetch additional resources from the Azure API for further connection using the connect_in_graph method.
+
+        Returns:
+        List[Tuple[Union[str, List[str]], str]]: A list of tuples containing information to compare and connect the retrieved resources.
+        """
+        resources_api_spec = AzureApiSpec(
+            service=service,
+            version=api_version,
+            path=path,
+            path_parameters=path_parameters,
+            query_parameters=query_parameters,
+            access_path="value",
+            expect_array=True,
+        )
+
+        return [(compared_property(r), binding_property(r)) for r in builder.client.list(resources_api_spec)]
 
     @classmethod
     def collect_resources(

@@ -1078,7 +1078,7 @@ class ComplexKind(Kind):
                         )
             return coerced
         else:
-            raise AttributeError("Kind:{self.fqn} expected a complex type but got this: {obj}")
+            raise AttributeError(f"Kind:{self.fqn} expected a complex type but got this: {obj}")
 
     def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[Json]:
         if isinstance(value, dict):

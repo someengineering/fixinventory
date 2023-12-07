@@ -2,7 +2,6 @@
     "value": [
         {
             "properties": {
-                "vmId": "{vmId}",
                 "availabilitySet": {
                     "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
                 },
@@ -126,7 +125,7 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkInterfaces/{networkInterfaceName}",
+                            "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/networkInterfaces/test-nic",
                             "properties": {
                                 "primary": true,
                                 "deleteOption": "Delete"
@@ -145,7 +144,7 @@
                                 "enableFpga": true,
                                 "enableIPForwarding": true,
                                 "networkSecurityGroup": {
-                                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
+                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/networkSecurityGroups/nsg1"
                                 },
                                 "dnsSettings": {
                                     "dnsServers": [
@@ -198,7 +197,7 @@
                                             ],
                                             "loadBalancerBackendAddressPools": [
                                                 {
-                                                    "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
+                                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/backendAddressPools/belb"
                                                 }
                                             ]
                                         }
@@ -281,7 +280,7 @@
             "type": "Microsoft.Compute/virtualMachines",
             "location": "eastus",
             "tags": {},
-            "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{virtualMachineName}",
+            "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1",
             "name": "{virtualMachineName}",
             "plan": {
                 "name": "aaaaaaaaaaaaaaaaaa",

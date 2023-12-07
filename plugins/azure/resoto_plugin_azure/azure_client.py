@@ -133,30 +133,45 @@ class AzureResourceManagementClient(AzureClient):
 
     # noinspection PyProtectedMember
     def _call(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        _SERIALIZER = Serializer()
+        ser = Serializer()
 
         error_map = {
             401: ClientAuthenticationError,
             404: ResourceNotFoundError,
         }
 
+        # Construct lookup map used to fill query and path parameters
+        lookup_map = {"subscriptionId": self.subscription_id, "location": self.location, **kwargs}
+
         # Construct headers
-        headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
-        headers["Accept"] = _SERIALIZER.header("accept", headers.pop("Accept", "application/json"), "str")  # type: ignore # noqa: E501
+        headers = case_insensitive_dict()
+        headers["Accept"] = ser.header("accept", headers.pop("Accept", "application/json"), "str")  # type: ignore # noqa: E501
+
+        # Construct path map
+        path_map = case_insensitive_dict()
+        for param in spec.path_parameters:
+            if lookup_map.get(param, None) is not None:
+                path_map[param] = lookup_map[param]
+            else:
+                raise ValueError(f"Param {param} in lookup_map does not found")
 
         # Construct parameters
-        params = case_insensitive_dict(kwargs.pop("params", {}) or {})
-        params["api-version"] = _SERIALIZER.query("api_version", spec.version, "str")  # type: ignore
+        params = case_insensitive_dict()
+        params["api-version"] = ser.query("api-version", spec.version, "str")  # type: ignore
+        for param in spec.query_parameters:
+            if param not in params:
+                if lookup_map.get(param, None) is not None:
+                    params[param] = ser.query(param, lookup_map[param], "str")  # type: ignore # noqa: E501
+                else:
+                    raise ValueError(f"Param {param} in lookup_map does not found")
 
         # Construct url
-        path = spec.path.format_map({"subscriptionId": self.subscription_id, "location": self.location, **params})
+        path = spec.path.format_map(path_map)
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
         # Construct and send request
-        request = HttpRequest(method="GET", url=url, params=params, headers=headers, **kwargs)
-        pipeline_response: PipelineResponse = self.client._client._pipeline.run(  # type: ignore
-            request, stream=False, **kwargs
-        )
+        request = HttpRequest(method="GET", url=url, params=params, headers=headers)
+        pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
         response = pipeline_response.http_response
 
         # Handle error responses
@@ -165,7 +180,6 @@ class AzureResourceManagementClient(AzureClient):
             raise HttpResponseError(response=response, error_format=ARMErrorFormat)
 
         # Parse json content
-        # TODO: handle pagination
         js: Union[Json, List[Json]] = response.json()
         if spec.access_path and isinstance(js, dict):
             js = js[spec.access_path]
