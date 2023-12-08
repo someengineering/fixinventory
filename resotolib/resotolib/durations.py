@@ -3,9 +3,11 @@ from datetime import timedelta
 from functools import reduce
 import re
 from itertools import chain
-from typing import Union, List, Optional
+from typing import Union, List, Optional, cast
 
+import isodate
 import parsy
+from isodate.isoduration import ISO8601_PERIOD_REGEX
 from parsy import string, Parser
 
 from resotolib.parse_util import lexeme, float_p, integer_p
@@ -26,14 +28,20 @@ time_units = [
 
 time_unit_combines = [",", "and"]
 
-# Check if a string is a valid
-DurationRe = re.compile(
+# Regexp that matches a duration string
+DurationRegexp = re.compile(
     "^[+-]?([\\d.]+\\s*("
     + "|".join(chain.from_iterable(names for unit, names, _ in time_units))
     + ")\\s*("
     + "|".join(time_unit_combines)
     + ")?\\s*)+$"
 )
+
+# Matches the proprietary format as well as ISO8601 durations
+DurationRe = re.compile(f"({DurationRegexp.pattern})|({ISO8601_PERIOD_REGEX.pattern})")
+
+# Simple check to distinguish between ISO8601 and proprietary format
+__ISO8601_PERIOD_PREFIX = re.compile("^([+-])?P")
 
 
 def combine_durations(elems: List[Union[int, float]]) -> Union[int, float]:
@@ -53,7 +61,17 @@ duration_parser = single_duration_parser.sep_by(time_unit_combination.optional()
 
 
 def parse_duration(ds: str) -> timedelta:
-    return timedelta(seconds=duration_parser.parse(ds))
+    if __ISO8601_PERIOD_PREFIX.match(ds):
+        dr = isodate.parse_duration(ds)
+        if isinstance(dr, isodate.Duration):
+            td = dr.tdelta
+            return timedelta(
+                days=float(td.days + 31 * dr.months + 365 * dr.years), seconds=td.seconds, microseconds=td.microseconds
+            )
+        else:
+            return cast(timedelta, dr)
+    else:
+        return timedelta(seconds=duration_parser.parse(ds))
 
 
 def parse_optional_duration(ds: str) -> Optional[timedelta]:

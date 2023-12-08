@@ -3,7 +3,7 @@ from itertools import chain
 from typing import Callable, Any, cast, Optional, TypeVar
 
 from hypothesis import given
-from hypothesis.strategies import sampled_from, tuples, integers, composite, lists, SearchStrategy, just
+from hypothesis.strategies import sampled_from, tuples, integers, composite, lists, SearchStrategy, just, booleans
 
 from resotolib.durations import time_unit_parser, time_units, parse_duration, DurationRe, duration_str
 
@@ -48,8 +48,38 @@ def durations_gen(ud: UD) -> str:
     return result
 
 
+@composite
+def iso8601_durations_gen(ud: UD) -> str:
+    d = Drawer(ud)
+    result = d.draw(sampled_from(["", "+", "-"]))
+    result += "P"
+    with_value = False
+    for dr in ["Y", "M", "W", "D"]:
+        if d.draw(booleans()):
+            with_value = True
+            result += str(d.draw(integers(1, 1000))) + dr
+    if d.draw(booleans()):
+        result += "T"
+        for dr in ["H", "M", "S"]:
+            if d.draw(booleans()):
+                with_value = True
+                result += str(d.draw(integers(1, 1000))) + dr
+    # safe guard for empty durations
+    if not with_value:
+        units = ["H", "M", "S"] if result.endswith("T") else ["Y", "M", "W", "D"]
+        result += str(d.draw(integers(1, 1000))) + d.draw(sampled_from(units))
+    return result
+
+
 @given(durations_gen())
 def test_arbitrary_durations(duration_str: str) -> None:
+    assert DurationRe.fullmatch(duration_str)
+    parse_duration(duration_str)
+
+
+@given(iso8601_durations_gen())
+def test_iso8601_durations(duration_str: str) -> None:
+    print(duration_str)
     assert DurationRe.fullmatch(duration_str)
     parse_duration(duration_str)
 
@@ -65,6 +95,15 @@ def test_parse_duration() -> None:
     assert parse_duration("32days, 4hours and 3min and 3s") == timedelta(days=32, hours=4, minutes=3, seconds=3)
     assert parse_duration("-32days, 4hours and 3min and 3s") == timedelta(days=-32, hours=-4, minutes=-3, seconds=-3)
     assert parse_duration("3d4h6m5s") == timedelta(days=3, hours=4, minutes=6, seconds=5)
+
+
+def test_parse_is08601_duration() -> None:
+    assert parse_duration("P1Y") == timedelta(days=365)
+    assert parse_duration("PT1S") == timedelta(seconds=1)
+    assert parse_duration("P4D") == timedelta(days=4)
+    assert parse_duration("PT1H") == timedelta(hours=1)
+    assert parse_duration("P32DT4H3M3S") == timedelta(days=32, hours=4, minutes=3, seconds=3)
+    assert parse_duration("-P32DT4H3M3S") == timedelta(days=-32, hours=-4, minutes=-3, seconds=-3)
 
 
 def test_duration_string() -> None:
