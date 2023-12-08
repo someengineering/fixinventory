@@ -537,7 +537,7 @@ class PerformActionState(StepState):
 
     def initial_progress(self, progress: ProgressTree) -> None:
         super().initial_progress(progress)
-        if self.wait_for():
+        if self.wait_for() and self.step.name == "collect":  # hard coded for the moment
             progress.add_progress(ProgressDone(self.step.name, 0, 1))
 
     def abort(self) -> Sequence[TaskCommand]:
