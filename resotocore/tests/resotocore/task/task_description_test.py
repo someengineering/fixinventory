@@ -114,7 +114,6 @@ def test_complete_workflow(
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
     assert wi.current_step.name == "wait"
     assert len(events) == 0
-    assert wi.progress.percentage == 33
     handled, events = wi.handle_event(Event("godot", {"a": 2}))
     assert wi.current_step.name == "wait"
     assert handled is False
@@ -123,13 +122,13 @@ def test_complete_workflow(
     assert wi.current_step.name == "collect"
     assert handled is True
     assert len(events) == 2  # event from EmitEvent and action from PerformAction
-    assert wi.progress.percentage == 33
+    assert wi.progress.percentage == 0
     wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 0, 100), utc()))
     wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 50, 100), utc()))
     assert wi.progress.percentage == 50
     wi.handle_progress(ActionProgress("start", wi.id, "start", s1.id, ProgressDone("Test", 90, 100), utc()))
     wi.handle_progress(ActionProgress("start", wi.id, "start", s2.id, ProgressDone("Test", 80, 100), utc()))
-    assert wi.progress.percentage == 60
+    assert wi.progress.percentage == 80
     wi.handle_info(ActionInfo("start", wi.id, "start", s1.id, "error", "echt jetzt"))
     assert len(wi.info_messages) == 1
     events = wi.handle_done(ActionDone("start", wi.id, "start", s1.id))
@@ -141,7 +140,7 @@ def test_complete_workflow(
     events = wi.handle_done(ActionDone("collect", wi.id, "collect", s2.id))
     assert wi.current_step.name == "done"
     assert len(events) == 1
-    assert wi.progress.percentage == 66
+    assert wi.progress.percentage == 100
     events = wi.handle_done(ActionDone("done", wi.id, "done", s1.id))
     assert len(events) == 0
     assert wi.current_step.name == "done"
@@ -202,16 +201,16 @@ def test_task_progress(task_dependencies: TaskDependencies) -> None:
 
     # report progress start on the collect step
     progress("collect", lambda idx: ProgressDone(str(idx), 0, 100, path=["foo", "bla"]))
-    assert [x["name"] for x in rt.progress_json()["parts"]] == ["0", "1", "2", "encode"]
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["0", "1", "2"]
 
     # report index as progress on the collect step
     progress("collect", lambda idx: ProgressDone(str(idx), idx, 100, path=["foo", "bla"]))
-    assert [x["name"] for x in rt.progress_json()["parts"]] == ["2", "1", "0", "encode"]
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["2", "1", "0"]
 
     # report progress done on the collect step
     rt.handle_done(ActionDone("collect", rt.id, "collect", sb.id))
-    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect", "encode"]
-    assert rt.progress.overall_progress().percentage == 50
+    assert [x["name"] for x in rt.progress_json()["parts"]] == ["collect"]
+    assert rt.progress.overall_progress().percentage == 100
 
     # report progress done on the encode step
     progress("encode", lambda idx: ProgressDone(str(idx), 0, 100, path=["foo", "bla"]))
