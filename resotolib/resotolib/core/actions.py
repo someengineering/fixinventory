@@ -4,7 +4,7 @@ from contextlib import suppress
 from logging import Logger
 from queue import Queue
 
-import websocket
+from websocket import WebSocketApp, WebSocket  # type: ignore
 import requests
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -102,7 +102,7 @@ class CoreActions(threading.Thread):
         self.resotocore_ws_uri = resotocore_ws_uri
         self.actions = actions
         self.message_processor = message_processor
-        self.ws: Optional[websocket.WebSocketApp] = None
+        self.ws: Optional[WebSocketApp] = None
         self.incoming_messages = incoming_messages
         self.tls_data = tls_data
         self.shutdown_event = threading.Event()
@@ -152,7 +152,7 @@ class CoreActions(threading.Thread):
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
         try:
-            self.ws = websocket.WebSocketApp(
+            self.ws = WebSocketApp(
                 ws_uri,
                 header=headers,
                 on_open=self.on_open,
@@ -162,14 +162,14 @@ class CoreActions(threading.Thread):
                 on_ping=self.on_ping,
                 on_pong=self.on_pong,
             )
-            sslopt = None
+            sslopt: Dict[Any, Any] = {}
             if self.tls_data:
                 sslopt = {"ca_certs": self.tls_data.ca_cert_path}
             self.ws.run_forever(sslopt=sslopt, ping_interval=20, ping_timeout=10, ping_payload="ping")
         finally:
             self.ws = None
 
-    def shutdown(self, event: Optional[Event] = None) -> None:
+    def shutdown(self, _: Optional[Event] = None) -> None:
         remove_event_listener(EventType.SHUTDOWN, self.shutdown)
         log.debug("Received shutdown event - shutting down resotocore message bus listener")
         self.shutdown_event.set()
@@ -206,7 +206,7 @@ class CoreActions(threading.Thread):
             raise RuntimeError(f'Error during (un)registration for "{action}"' f" actions: {r.content.decode('utf-8')}")
         return True
 
-    def on_message(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_message(self, _: WebSocket, message: str) -> None:
         self.executor.submit(self.process_message, message)
 
     def process_message(self, message: str) -> None:
@@ -229,21 +229,21 @@ class CoreActions(threading.Thread):
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
-    def on_error(self, _: websocket.WebSocketApp, e: Exception) -> None:
+    def on_error(self, _: WebSocket, e: Exception) -> None:
         log.debug(f"{self.identifier} message bus error: {e!r}")
 
-    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+    def on_close(self, _: WebSocket, close_status_code: int, close_msg: str) -> None:
         self.__connected = False
         log.debug(f"{self.identifier} disconnected from resotocore message bus: {close_status_code}: {close_msg}")
 
-    def on_open(self, _: websocket.WebSocketApp) -> None:
+    def on_open(self, _: WebSocket) -> None:
         self.__connected = True
         log.debug(f"{self.identifier} connected to resotocore message bus")
 
-    def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_ping(self, _: WebSocket, message: str) -> None:
         log.debug(f"{self.identifier} actions ping from resotocore message bus")
 
-    def on_pong(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_pong(self, _: WebSocket, message: str) -> None:
         log.debug(f"{self.identifier} actions pong from resotocore message bus")
 
     @staticmethod

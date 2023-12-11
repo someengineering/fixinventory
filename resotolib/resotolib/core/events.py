@@ -1,14 +1,16 @@
 import threading
 import time
-import websocket
 import json
 from urllib.parse import urlencode
+
+from websocket import WebSocketApp, WebSocket  # type: ignore
+
 from resotolib.logger import log
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.args import ArgumentParser
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.core.ca import TLSData
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Optional, Set, Any
 
 from resotolib.types import Json
 
@@ -28,7 +30,7 @@ class CoreEvents(threading.Thread):
             self.ws_uri += f"?{query_string}"
         self.message_processor = message_processor
         self.tls_data = tls_data
-        self.ws: Optional[websocket.WebSocketApp] = None
+        self.ws: Optional[WebSocketApp] = None
         self.shutdown_event = threading.Event()
         self.__connected = False
 
@@ -54,7 +56,7 @@ class CoreEvents(threading.Thread):
         headers: Dict[str, str] = {}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        self.ws = websocket.WebSocketApp(
+        self.ws = WebSocketApp(
             self.ws_uri,
             header=headers,
             on_open=self.on_open,
@@ -64,18 +66,18 @@ class CoreEvents(threading.Thread):
             on_ping=self.on_ping,
             on_pong=self.on_pong,
         )
-        sslopt = None
+        sslopt: Dict[Any, Any] = {}
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
         self.ws.run_forever(sslopt=sslopt, ping_interval=20, ping_timeout=10, ping_payload="ping")
 
-    def shutdown(self, event: Optional[Event] = None) -> None:
+    def shutdown(self, _: Optional[Event] = None) -> None:
         log.debug("Received shutdown event - shutting down resotocore event bus listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()
 
-    def on_message(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_message(self, _: WebSocket, message: str) -> None:
         try:
             json_message: Json = json.loads(message)
         except json.JSONDecodeError:
@@ -88,19 +90,19 @@ class CoreEvents(threading.Thread):
             except Exception:
                 log.exception(f"Something went wrong while processing {message}")
 
-    def on_error(self, _: websocket.WebSocketApp, e: Exception) -> None:
+    def on_error(self, _: WebSocket, e: Exception) -> None:
         log.debug(f"Event bus error: {e!r}")
 
-    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+    def on_close(self, _: WebSocket, close_status_code: int, close_msg: str) -> None:
         self.__connected = False
         log.debug("Disconnected from resotocore event bus")
 
-    def on_open(self, _: websocket.WebSocketApp) -> None:
+    def on_open(self, _: WebSocket) -> None:
         self.__connected = True
         log.debug("Connected to resotocore event bus")
 
-    def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_ping(self, _: WebSocket, message: str) -> None:
         log.debug("Ping from resotocore event bus")
 
-    def on_pong(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_pong(self, _: WebSocket, message: str) -> None:
         log.debug("Pong from resotocore event bus")

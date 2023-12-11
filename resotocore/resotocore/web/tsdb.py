@@ -47,7 +47,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
 
     async def proxy_request(request: Request) -> StreamResponse:
         if api_handler.deps.config.api.tsdb_proxy_url:
-            in_headers = request.headers.copy()
+            in_headers = CIMultiDict(request.headers)
             drop_request_specific_headers(in_headers)
             url = f'{api_handler.deps.config.api.tsdb_proxy_url}/{request.match_info["tail"]}'
             max_retries = 5

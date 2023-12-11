@@ -30,7 +30,13 @@ __converter = cattrs.Converter()
 __converter.register_unstructure_hook_factory(
     attrs.has,
     lambda cls: make_dict_unstructure_fn(
-        cls, __converter, **{a.name: override(omit=True) for a in attrs.fields(cls) if a.name.startswith("_")}
+        cls,
+        __converter,
+        _cattrs_omit_if_default=False,
+        _cattrs_use_linecache=True,
+        _cattrs_use_alias=False,
+        _cattrs_include_init_false=False,
+        **{a.name: override(omit=True) for a in attrs.fields(cls) if a.name.startswith("_")},
     ),
 )
 
