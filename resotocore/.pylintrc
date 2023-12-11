@@ -85,7 +85,6 @@ disable=
     cyclic-import,
     unnecessary-lambda-assignment
 
-
 [REPORTS]
 
 # Set the output format. Available formats are text, parseable, colorized, msvs

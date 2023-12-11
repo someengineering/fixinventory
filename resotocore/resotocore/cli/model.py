@@ -316,7 +316,7 @@ class CLISource(CLIAction):
 class CLIFlow(CLIAction):
     def __init__(
         self,
-        fn: Callable[[JsGen], Union[JsGen, Awaitable[JsGen]]],
+        fn: Callable[[JsStream], Union[JsGen, Awaitable[JsGen]]],
         produces: MediaType = MediaType.Json,
         requires: Optional[List[CLICommandRequirement]] = None,
         envelope: Optional[Dict[str, str]] = None,
@@ -729,7 +729,7 @@ class ParsedCommandLine:
                 flow = await flow_action.flow(flow)
             return context, flow
         else:
-            return CLISourceContext(count=0), stream.empty()
+            return CLISourceContext(count=0), stream.empty()  # type: ignore
 
 
 class CLI(ABC):

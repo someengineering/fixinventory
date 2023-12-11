@@ -1,21 +1,21 @@
+import logging
+from argparse import Namespace
+from pydoc import locate
 from typing import List, AsyncIterator, Type, Optional, Any
-from resotocore.infra_apps.runtime import Runtime
+
+from aiostream import stream, pipe
+from jinja2 import Environment
+
+from resotocore.cli import NoExitArgumentParser, JsStream, JsGen
+from resotocore.cli.model import CLI, CLIContext
+from resotocore.db.model import QueryModel
+from resotocore.ids import GraphName
 from resotocore.infra_apps.manifest import AppManifest
+from resotocore.infra_apps.runtime import Runtime
 from resotocore.service import Service
 from resotocore.types import Json, JsonElement
-from resotocore.ids import GraphName
-from resotocore.db.model import QueryModel
-from resotocore.cli.model import CLI, CLIContext
-from resotocore.cli import NoExitArgumentParser
-from jinja2 import Environment
-import logging
-from aiostream.core import Stream
-from aiostream import stream
-from argparse import Namespace
-from resotolib.durations import parse_optional_duration
 from resotolib.asynchronous.utils import async_lines
-from pydoc import locate
-
+from resotolib.durations import parse_optional_duration
 
 log = logging.getLogger(__name__)
 
@@ -108,8 +108,8 @@ class LocalResotocoreAppRuntime(Runtime, Service):
 
         return parser.parse_args(argv)
 
-    async def _interpret_line(self, line: str, ctx: CLIContext) -> Stream:
-        command_streams: List[Stream] = []
+    async def _interpret_line(self, line: str, ctx: CLIContext) -> JsStream:
+        command_streams: List[JsGen] = []
         total_nr_outputs: int = 0
         parsed_commands = await self.cli.evaluate_cli_command(line, ctx, True)
         for parsed in parsed_commands:
@@ -117,4 +117,4 @@ class LocalResotocoreAppRuntime(Runtime, Service):
             total_nr_outputs = total_nr_outputs + (src_ctx.count or 0)
             command_streams.append(command_output_stream)
 
-        return stream.concat(stream.iterate(command_streams), task_limit=1)
+        return stream.iterate(command_streams) | pipe.concat(task_limit=1)

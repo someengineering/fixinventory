@@ -16,7 +16,7 @@ from queue import Empty
 from typing import Optional, Union, Any, Generator, List, AsyncIterator, Dict
 
 import aiofiles
-from aiostream import stream
+from aiostream import stream, pipe
 from aiostream.core import Stream
 from attrs import define
 
@@ -270,8 +270,11 @@ class GraphMerger(Service):
     async def start(self) -> None:
         async def wait_for_update() -> None:
             log.info("Start waiting for graph updates")
-            cl = stream.cycle(stream.call(self.update_queue.get))
-            fl = stream.map(cl, self.__process_item, task_limit=self.config.graph_update.parallel_imports)
+            fl = (
+                stream.call(self.update_queue.get)  # type: ignore
+                | pipe.cycle()
+                | pipe.map(self.__process_item, task_limit=self.config.graph_update.parallel_imports)  # type: ignore
+            )
             with suppress(CancelledError):
                 async with fl.stream() as streamer:
                     async for update in streamer:
@@ -371,7 +374,7 @@ class GraphMerger(Service):
                 if isinstance(content, Path):
                     await send_to_child(ReadFile(content, task_id))
                 else:
-                    chunked: Stream = stream.chunks(content, BatchSize)
+                    chunked: Stream[List[Union[bytes, Json]]] = stream.chunks(content, BatchSize)  # type: ignore
                     async with chunked.stream() as streamer:
                         async for lines in streamer:
                             if not await send_to_child(ReadElement(lines, task_id)):

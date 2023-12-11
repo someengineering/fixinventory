@@ -35,7 +35,7 @@ dependencies = [
     "aiohttp-jinja2",
     "aiohttp-swagger3",
     "aiohttp[speedups]",
-    "aiostream < 0.5", # TODO: aiostream 0.5 introduces type parameters - need to be supported by mypy
+    "aiostream",
     "cryptography",
     "deepdiff",
     "frozendict",

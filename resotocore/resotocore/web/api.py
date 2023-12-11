@@ -648,7 +648,7 @@ class Api(Service):
         )
         return await single_result(request, to_js(result))
 
-    async def perform_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+    async def perform_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:  # type: ignore
         benchmark = request.match_info["benchmark"]
         graph = GraphName(request.match_info["graph_id"])
         acc = request.query.get("accounts")
@@ -1305,7 +1305,7 @@ class Api(Service):
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    async def execute_parsed(
+    async def execute_parsed(  # type: ignore
         self, request: Request, command: str, parsed: List[ParsedCommandLine], ctx: CLIContext
     ) -> StreamResponse:
         # what is the accepted content type
