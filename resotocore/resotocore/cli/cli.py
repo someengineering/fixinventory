@@ -11,14 +11,13 @@ from typing import Dict, List, Tuple, Union, Sequence
 from typing import Optional, Any, TYPE_CHECKING
 
 from aiostream import stream
-from aiostream.core import Stream
 from attrs import evolve
 from parsy import Parser
 from rich.padding import Padding
 
 from resotocore import version
 from resotocore.analytics import CoreEvent
-from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink, args_values_parser
+from resotocore.cli import cmd_with_args_parser, key_values_parser, T, Sink, args_values_parser, JsGen
 from resotocore.cli.command import (
     SearchPart,
     PredecessorsPart,
@@ -188,7 +187,7 @@ class HelpCommand(CLICommand):
             logo = ctx.render_console(Padding(WelcomeCommand.ck, pad=(0, 0, 0, middle))) if ctx.supports_color() else ""
             return headline + logo + ctx.render_console(result)
 
-        def help_command() -> Stream:
+        def help_command() -> JsGen:
             if not arg:
                 result = overview()
             elif arg == "placeholders":

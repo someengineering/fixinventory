@@ -5,10 +5,12 @@ from collections import defaultdict
 from functools import lru_cache
 from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast
 
-from aiostream import stream
+from aiostream import stream, pipe
+from aiostream.core import Stream
 from attr import define
 
 from resotocore.analytics import CoreEvent
+from resotocore.cli import list_sink
 from resotocore.cli.model import CLIContext, CLI
 from resotocore.config import ConfigEntity, ConfigHandler
 from resotocore.db.model import QueryModel
@@ -302,7 +304,7 @@ class InspectorService(Inspector, Service):
             if context.accounts:
                 account_list = ",".join(f'"{a}"' for a in context.accounts)
                 cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
-            cli_result = await self.cli.execute_cli_command(cmd, stream.list, CLIContext(env=env))
+            cli_result = await self.cli.execute_cli_command(cmd, list_sink, CLIContext(env=env))
             for result in cli_result[0]:
                 yield result
 
@@ -351,7 +353,7 @@ class InspectorService(Inspector, Service):
             id=benchmark.id,
         )
 
-    async def __perform_checks(
+    async def __perform_checks(  # type: ignore
         self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
     ) -> Dict[str, SingleCheckResult]:
         # load model
@@ -362,9 +364,10 @@ class InspectorService(Inspector, Service):
         async def perform_single(check: ReportCheck) -> Tuple[str, SingleCheckResult]:
             return check.id, await self.__perform_check(graph, model, check, cfg, context)
 
-        async with stream.map(
-            stream.iterate(checks), perform_single, ordered=False, task_limit=context.parallel_checks
-        ).stream() as streamer:
+        check_results: Stream[Tuple[str, SingleCheckResult]] = stream.iterate(checks) | pipe.map(
+            perform_single, ordered=False, task_limit=context.parallel_checks  # type: ignore
+        )
+        async with check_results.stream() as streamer:
             return {key: value async for key, value in streamer}
 
     async def __perform_check(

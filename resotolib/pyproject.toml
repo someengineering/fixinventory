@@ -37,6 +37,7 @@ dependencies = [
     "cattrs",
     "cryptography",
     "frozendict",
+    "isodate",
     "jsons",
     "networkx",
     "parsy",

@@ -2,14 +2,25 @@ import re
 from argparse import ArgumentParser
 from datetime import datetime
 from functools import lru_cache
-from typing import TypeVar, Union, Any, Callable, AsyncIterator, NoReturn, Optional, Awaitable, Tuple, List
-from typing_extensions import TypeAlias
+from typing import (
+    TypeVar,
+    Union,
+    Any,
+    Callable,
+    NoReturn,
+    Optional,
+    Awaitable,
+    Tuple,
+    List,
+    AsyncIterable,
+)
 
+from aiostream import stream
 from aiostream.core import Stream
 from parsy import Parser, regex, string
 
 from resotocore.model.graph_access import Section
-from resotocore.types import JsonElement
+from resotocore.types import JsonElement, Json
 from resotocore.util import utc, parse_utc, AnyT
 from resotolib.durations import parse_duration, DurationRe
 from resotolib.parse_util import (
@@ -31,12 +42,12 @@ from resotolib.parse_util import (
 )
 
 T = TypeVar("T")
-# Allow the function to return either a coroutine or the result directly
-Result = Union[T, Awaitable[T]]
-JsStream: TypeAlias = Stream
-JsGen = Union[JsStream, AsyncIterator[JsonElement]]
+JsStream = Stream[JsonElement]
+JsGen = AsyncIterable[JsonElement]
 # A sink function takes a stream and creates a result
-Sink = Callable[[JsGen], Awaitable[T]]
+Sink = Callable[[JsStream], Awaitable[T]]
+
+list_sink: Callable[[JsGen], Awaitable[Any]] = stream.list  # type: ignore
 
 
 @make_parser
@@ -117,6 +128,10 @@ def strip_quotes(maybe_quoted: str) -> str:
 
 
 # check if a is a json node element
+def get_node(a: Any) -> Optional[Json]:
+    return a if isinstance(a, dict) and "id" in a and Section.reported in a else None
+
+
 def is_node(a: Any) -> bool:
     return "id" in a and Section.reported in a if isinstance(a, dict) else False
 

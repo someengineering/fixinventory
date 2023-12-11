@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from aiostream import stream
 
-from resotocore.cli import strip_quotes, js_value_at, args_parts_parser, args_parts_unquoted_parser
+from resotocore.cli import strip_quotes, js_value_at, args_parts_parser, args_parts_unquoted_parser, list_sink
 from resotocore.cli.cli import multi_command_parser, CLIService
 from resotocore.cli.command import (
     ExecuteSearchCommand,
@@ -131,30 +131,30 @@ async def test_order_of_commands(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_help(cli: CLI) -> None:
-    result = await cli.execute_cli_command("help", stream.list)
+    result = await cli.execute_cli_command("help", list_sink)
     assert len(result[0]) == 1
 
     # help for command
-    result = await cli.execute_cli_command("help count", stream.list)
+    result = await cli.execute_cli_command("help count", list_sink)
     assert len(result[0]) == 1
 
     # help for alias
-    result = await cli.execute_cli_command("help kind", stream.list)
+    result = await cli.execute_cli_command("help kind", list_sink)
     assert len(result[0]) == 1
 
     # help for alias template
-    result = await cli.execute_cli_command("help discord", stream.list)
+    result = await cli.execute_cli_command("help discord", list_sink)
     assert len(result[0]) == 1
 
     # help for infra app alias
     cli.register_infra_app_alias(InfraAppAlias("testcommand", "this is a test alias", "this is a readme", []))
-    result = await cli.execute_cli_command("help testcommand", stream.list)
+    result = await cli.execute_cli_command("help testcommand", list_sink)
     assert len(result[0]) == 1
 
 
 @pytest.mark.asyncio
 async def test_parse_env_vars(cli: CLI) -> None:
-    result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', stream.list)
+    result = await cli.execute_cli_command('test=foo bla="bar"   d=true env', list_sink)
     # the env is allowed to have more items. Check only for this subset.
     assert {"test": "foo", "bla": "bar", "d": True}.items() <= result[0][0].items()
 

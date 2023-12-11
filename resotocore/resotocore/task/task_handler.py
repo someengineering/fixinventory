@@ -495,7 +495,7 @@ class TaskHandlerService(TaskHandler, Service):
                         results[command] = None
                     elif isinstance(command, ExecuteOnCLI):
                         ctx = evolve(self.cli_context, env={**command.env, **wi.descriptor.environment})
-                        result = await self.cli.execute_cli_command(command.command, stream.list, ctx)
+                        result = await self.cli.execute_cli_command(command.command, stream.list, ctx)  # type: ignore
                         results[command] = result
                     else:
                         raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")

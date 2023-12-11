@@ -1,7 +1,6 @@
-from typing import AsyncIterator, AsyncGenerator, List, Union
+from typing import AsyncGenerator, List, AsyncIterable
 
 from aiostream import stream
-from aiostream.core import Stream
 from networkx import DiGraph
 from rich._emoji_codes import EMOJI
 
@@ -90,7 +89,7 @@ def render_check_result(check_result: CheckResult, account: str) -> str:
     return result
 
 
-async def respond_benchmark_result(gen: Union[Stream, AsyncIterator[JsonElement]]) -> AsyncGenerator[str, None]:
+async def respond_benchmark_result(gen: AsyncIterable[JsonElement]) -> AsyncGenerator[str, None]:
     # step 1:  read graph
     graph = DiGraph()
     async with stream.iterate(gen).stream() as streamer:

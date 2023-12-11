@@ -24,7 +24,7 @@ from typing import (
     Union,
 )
 
-from aiostream import stream
+from aiostream import stream, pipe
 from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -558,7 +558,7 @@ class ArangoGraphDB(GraphDB):
 
         try:
             # stream updates to the temp collection
-            async with stream.chunks(stream.iterate(iterator), 1000).stream() as streamer:
+            async with (stream.iterate(iterator) | pipe.chunks(1000)).stream() as streamer:
                 async for part in streamer:
                     await update_chunk(dict(part))
             # move temp collection to proper and history collection
