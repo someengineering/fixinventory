@@ -55,6 +55,7 @@ from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
 from aiostream import stream
 from attrs import evolve
 from dateutil import parser as date_parser
+from multidict import MultiDict
 from networkx.readwrite import cytoscape_data
 from resotoui import ui_path
 
@@ -354,7 +355,7 @@ class Api(Service):
 
     @staticmethod
     async def login_with_redirect(request: Request) -> StreamResponse:
-        params = request.query.copy()
+        params = MultiDict(request.query)
         params["redirect"] = request.raw_path
         return web.HTTPSeeOther("/login?" + urlencode(params))
 

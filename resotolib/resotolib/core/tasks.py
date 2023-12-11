@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import queue
 import threading
@@ -6,18 +7,19 @@ import time
 from typing import Callable, Dict, Optional, List, Any
 from urllib.parse import urlunsplit, urlsplit
 
-import websocket
 from attrs import define, field
+from websocket import WebSocketApp, WebSocket  # type: ignore
+
 from resotolib.args import ArgumentParser
 from resotolib.baseresources import BaseResource
 from resotolib.config import current_config
 from resotolib.core.ca import TLSData
+from resotolib.core.custom_command import CommandDefinition
 from resotolib.core.model_export import node_to_dict, node_from_dict
 from resotolib.event import EventType, remove_event_listener, add_event_listener, Event
 from resotolib.json import to_json_str
 from resotolib.jwt import encode_jwt_to_headers
 from resotolib.logger import log
-from resotolib.core.custom_command import CommandDefinition
 from resotolib.types import Json, JsonElement
 
 
@@ -118,7 +120,7 @@ class CoreTasks(threading.Thread):
         self.task_handler = task_handler
         self.max_workers = max_workers
         self.tls_data = tls_data
-        self.ws: Optional[websocket.WebSocketApp] = None
+        self.ws: Optional[WebSocketApp] = None
         self.shutdown_event = threading.Event()
         self.queue: queue.Queue[Json] = queue.Queue()
         self.__connected = False
@@ -157,7 +159,7 @@ class CoreTasks(threading.Thread):
                             self.ws.send(json.dumps(result.to_json()))
                     except Exception as ex:
                         log.exception(f"Something went wrong while processing {message}")
-                        if task_id := message.get("task_id") and self.ws:
+                        if (task_id := message.get("task_id")) and self.ws is not None:
                             self.ws.send(to_json_str(CoreTaskResult(task_id, error=str(ex)).to_json()))
                     break
             self.queue.task_done()
@@ -173,7 +175,7 @@ class CoreTasks(threading.Thread):
         headers: Dict[str, str] = {}
         if getattr(ArgumentParser.args, "psk", None):
             encode_jwt_to_headers(headers, {}, ArgumentParser.args.psk)
-        self.ws = websocket.WebSocketApp(
+        self.ws = WebSocketApp(
             ws_uri,
             header=headers,
             on_open=self.on_open,
@@ -183,18 +185,18 @@ class CoreTasks(threading.Thread):
             on_ping=self.on_ping,
             on_pong=self.on_pong,
         )
-        sslopt = None
+        sslopt: Dict[Any, Any] = {}
         if self.tls_data:
             sslopt = {"ca_certs": self.tls_data.ca_cert_path}
         self.ws.run_forever(sslopt=sslopt, ping_interval=20, ping_timeout=10, ping_payload="ping")
 
-    def shutdown(self, event: Optional[Event] = None) -> None:
+    def shutdown(self, _: Optional[Event] = None) -> None:
         log.debug("Received shutdown event - shutting down resotocore task queue listener")
         self.shutdown_event.set()
         if self.ws:
             self.ws.close()
 
-    def on_message(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_message(self, _: WebSocket, message: str) -> None:
         try:
             jsom_message: Json = json.loads(message)
         except json.JSONDecodeError:
@@ -202,22 +204,22 @@ class CoreTasks(threading.Thread):
             return
         self.queue.put(jsom_message)
 
-    def on_error(self, _: websocket.WebSocketApp, e: Exception) -> None:
+    def on_error(self, _: WebSocket, e: Exception) -> None:
         log.debug(f"{self.identifier} event bus error: {e!r}")
 
-    def on_close(self, _: websocket.WebSocketApp, close_status_code: int, close_msg: str) -> None:
+    def on_close(self, _: WebSocket, close_status_code: int, close_msg: str) -> None:
         self.__connected = False
         log.debug(f"{self.identifier} disconnected from resotocore task queue")
 
-    def on_open(self, ws: websocket.WebSocketApp) -> None:
+    def on_open(self, ws: WebSocket) -> None:
         self.__connected = True
         log.debug(f"{self.identifier} connected to resotocore, register at task queue")
         # when we are connected, we register at the task queue
         # by sending all task handler definitions
         ws.send(json.dumps([handler.core_json() for handler in self.task_handler]))
 
-    def on_ping(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_ping(self, _: WebSocket, message: str) -> None:
         log.debug(f"{self.identifier} tasks ping from resotocore message bus")
 
-    def on_pong(self, _: websocket.WebSocketApp, message: str) -> None:
+    def on_pong(self, _: WebSocket, message: str) -> None:
         log.debug(f"{self.identifier} tasks pong from resotocore message bus")

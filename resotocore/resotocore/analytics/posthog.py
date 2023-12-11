@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from typing import MutableSequence, Optional, List
 
 from aiohttp import ClientSession
-from posthog import Client
+from posthog.client import Client
 
 from resotocore.analytics import AnalyticsEventSender, AnalyticsEvent
 from resotocore.db import SystemData
@@ -45,7 +45,7 @@ class PostHogEventSender(AnalyticsEventSender):
         # In order to circumvent this behaviour, the queue is maintained here with a configurable interval.
         # In case of shutdown all events are flushed directly and the system is stopped.
         # Note 2: the public api-key is fetched on demand
-        self.client = Client(
+        self.client = Client(  # type: ignore
             api_key="n/a", host=host, flush_interval=client_flush_interval, max_retries=client_retries, gzip=True
         )
         self.run_id = uuid_str()  # create a unique id for this instance run
@@ -93,14 +93,14 @@ class PostHogEventSender(AnalyticsEventSender):
         if not self.last_fetched:
             await self.refresh_public_api_key()
             sd = self.system_data
-            self.client.identify(sd.system_id, {"run_id": self.run_id, "created_at": sd.created_at})
+            self.client.identify(sd.system_id, {"run_id": self.run_id, "created_at": sd.created_at})  # type: ignore
         elif (utc() - self.last_fetched) > timedelta(hours=1):
             await self.refresh_public_api_key()
 
         # acquire the lock, send all events to the client and clear the queue
         async with self.lock:
             for event in self.queue:
-                self.client.capture(
+                self.client.capture(  # type: ignore
                     distinct_id=self.system_data.system_id,
                     event=event.kind,
                     properties={
@@ -122,5 +122,5 @@ class PostHogEventSender(AnalyticsEventSender):
         await self.flush()
         if self.session:
             await self.session.close()
-        self.client.shutdown()
+        self.client.shutdown()  # type: ignore
         logging.info("AnalyticsEventSender closed.")
