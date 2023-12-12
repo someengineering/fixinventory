@@ -6,6 +6,7 @@ from attr import define, field
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import (
     AzureResource,
+    AzureResourceType,
     GraphBuilder,
     AzureSubResource,
     AzureSystemData,
@@ -2615,26 +2616,6 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_vms_size() -> None:
-            api_spec = AzureApiSpec(
-                service="compute",
-                version="2023-03-01",
-                path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
-                path_parameters=["subscriptionId", "location"],
-                query_parameters=["api-version"],
-                access_path="value",
-                expect_array=True,
-            )
-            hardware_profile_name = self.instance_type if self.instance_type else ""
-            location = self.location if self.location else ""
-            items = [
-                r for r in graph_builder.client.list(api_spec, location=location) if r["name"] == hardware_profile_name
-            ]
-            AzureVirtualMachineSize.collect(items, graph_builder)
-
-        graph_builder.submit_work(collect_vms_size)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
             builder.add_edge(
@@ -3223,8 +3204,17 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
+    api_spec = AzureApiSpec(
+        service="compute",
+        version="2023-03-01",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
+        path_parameters=["subscriptionId", "location"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
@@ -3245,6 +3235,33 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
 
+    def should_add_to_node(self, builder: GraphBuilder, source: Json, pre_items: Optional[List[str]] = None) -> bool:
+        virtual_machine_size_types = pre_items if pre_items is not None else []
+        vm_size_type = self.instance_type if self.instance_type else ""
+
+        for vm_type in virtual_machine_size_types:
+            if vm_type == vm_size_type:
+                return True
+        return False
+
+    @classmethod
+    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[str]]:
+        api_spec = AzureApiSpec(
+            service="compute",
+            version="2023-03-01",
+            path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
+            path_parameters=["subscriptionId"],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+
+        virtual_machine_size_types = [
+            r["properties"]["hardwareProfile"]["vmSize"] for r in builder.client.list(api_spec)
+        ]
+
+        return virtual_machine_size_types
+
 
 resources: List[Type[AzureResource]] = [
     AzureAvailabilitySet,
@@ -3264,4 +3281,5 @@ resources: List[Type[AzureResource]] = [
     AzureSshPublicKeyResource,
     AzureVirtualMachine,
     AzureVirtualMachineScaleSet,
+    AzureVirtualMachineSize,
 ]

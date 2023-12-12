@@ -2822,7 +2822,7 @@ class AzureDscpConfiguration(AzureResource):
     source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        binding_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+        second_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
             ip_config["properties"]["subnet"]["id"]
             for ip_config in r.get("properties", {}).get("ipConfigurations", [])
             if "subnet" in ip_config.get("properties", {})
@@ -2834,8 +2834,8 @@ class AzureDscpConfiguration(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["id"],
-            binding_property=binding_property,
+            first_property=lambda r: r["id"],
+            second_property=second_property,
         )
         if (network_interfaces := self._associated_network_interface_ids) and (ni_ids_and_s_id := nis_and_subnet_id):
             for network_interface_id in network_interfaces:
@@ -3124,8 +3124,8 @@ class AzureExpressRouteCircuit(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ExpressRoutePortsLocations",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["name"],
-            binding_property=lambda r: r["id"],
+            first_property=lambda r: r["name"],
+            second_property=lambda r: r["id"],
         )
 
         if route_port_id := self.express_route_port:
@@ -3820,8 +3820,8 @@ class AzureIpGroup(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["properties"]["addressSpace"]["addressPrefixes"],
-            binding_property=lambda r: r["id"],
+            first_property=lambda r: r["properties"]["addressSpace"]["addressPrefixes"],
+            second_property=lambda r: r["id"],
         )
 
         if (ip_addresses := self.ip_addresses) and (vns := virtual_networks):
@@ -4231,7 +4231,7 @@ class AzureNetworkProfile(AzureResource):
         # Import placed inside the method due to circular import error resolution
         from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
-        compared_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
+        first_property: Callable[[Json], List[str]] = lambda r: [  # pylint: disable=unnecessary-lambda-assignment
             ip_config["id"] for ip_config in r.get("properties", {}).get("ipConfigurations", [])
         ]
 
@@ -4242,8 +4242,8 @@ class AzureNetworkProfile(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=compared_property,
-            binding_property=lambda r: r["properties"]["virtualMachine"]["id"]
+            first_property=first_property,
+            second_property=lambda r: r["properties"]["virtualMachine"]["id"]
             if "properties" in r and "virtualMachine" in r["properties"]
             else "",
         )
@@ -4402,8 +4402,8 @@ class AzureNetworkVirtualAppliance(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkVirtualApplianceSkus",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["properties"]["vendor"],
-            binding_property=lambda r: r["name"],
+            first_property=lambda r: r["properties"]["vendor"],
+            second_property=lambda r: r["name"],
         )
 
         if (nva := self.nva_sku) and (nva_vendor := nva.vendor) and (vendors := vendors_in_resource):
@@ -4492,14 +4492,14 @@ class AzureNetworkWatcher(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         locations_and_ids_in_vn = self.fetch_resources(
-            builder=builder,
+            builder,
             service="network",
             api_version="2023-05-01",
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=lambda r: r["location"],
-            binding_property=lambda r: r["id"],
+            first_property=lambda r: r["location"],
+            second_property=lambda r: r["id"],
         )
 
         if (nw_location := self.location) and (vns_info := locations_and_ids_in_vn):
@@ -4968,10 +4968,10 @@ class AzureVirtualHub(AzureResource):
     vpn_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        compared_property: Callable[[Json], List[str]] = lambda r: [
+        first_property: Callable[[Json], List[str]] = lambda r: [
             ip_config["id"] for ip_config in r.get("properties", {}).get("ipConfigurations", [])
         ]
-        binding_property: Callable[[Json], List[str]] = lambda r: [
+        second_property: Callable[[Json], List[str]] = lambda r: [
             ip_config["properties"]["publicIPAddress"]["id"]
             for ip_config in r.get("properties", {}).get("ipConfigurations", [])
             if "publicIPAddress" in ip_config.get("properties", {})
@@ -4984,8 +4984,8 @@ class AzureVirtualHub(AzureResource):
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            compared_property=compared_property,
-            binding_property=binding_property,
+            first_property=first_property,
+            second_property=second_property,
         )
 
         if er_gateway_id := self.express_route_gateway:

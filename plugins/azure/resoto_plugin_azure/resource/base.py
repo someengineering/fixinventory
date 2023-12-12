@@ -134,6 +134,16 @@ class AzureResource(BaseResource):
         # Default behavior: add resource to the namespace
         pass
 
+    def should_add_to_node(self, builder: GraphBuilder, source: Json, pre_items: Optional[List[str]] = None) -> bool:
+        """
+        Checks whether this instance should be added to a graph node.
+
+        Returns:
+        bool: True if the instance should be added to the graph node, False otherwise.
+        Default: return True.
+        """
+        return True
+
     def fetch_resources(
         self,
         builder: GraphBuilder,
@@ -142,11 +152,16 @@ class AzureResource(BaseResource):
         path: str,
         path_parameters: List[str],
         query_parameters: List[str],
-        compared_property: Callable[[Json], Union[List[str], str]],
-        binding_property: Callable[[Json], Union[List[str], str]],
+        first_property: Callable[[Json], Union[List[str], str]],
+        second_property: Callable[[Json], Union[List[str], str]],
     ) -> List[Tuple[Union[str, List[str]], Union[str, List[str]]]]:
         """
-        Fetch additional resources from the Azure API for further connection using the connect_in_graph method.
+        Fetch additional resources from the Azure API.
+        Can used for further connection using the connect_in_graph method.
+
+        Parameters:
+        - first_property: Compared property.
+        - second_property: Binding property | Compared property.
 
         Returns:
         List[Tuple[Union[str, List[str]], str]]: A list of tuples containing information to compare and connect the retrieved resources.
@@ -161,7 +176,12 @@ class AzureResource(BaseResource):
             expect_array=True,
         )
 
-        return [(compared_property(r), binding_property(r)) for r in builder.client.list(resources_api_spec)]
+        return [(first_property(r), second_property(r)) for r in builder.client.list(resources_api_spec)]
+
+    @classmethod
+    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[str]]:
+        """Perform any pre-collection steps and return a list of items if needed."""
+        return None
 
     @classmethod
     def collect_resources(
@@ -171,12 +191,18 @@ class AzureResource(BaseResource):
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             # TODO: add error handling
+            pre_items = cls.pre_collect(builder)
             items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder)
+            return cls.collect(items, builder, pre_items)
         return []
 
     @classmethod
-    def collect(cls: Type[AzureResourceType], raw: List[Json], builder: GraphBuilder) -> List[AzureResourceType]:
+    def collect(
+        cls: Type[AzureResourceType],
+        raw: List[Json],
+        builder: GraphBuilder,
+        pre_items: Optional[List[str]] = None,
+    ) -> List[AzureResourceType]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
@@ -187,11 +213,13 @@ class AzureResource(BaseResource):
             # map from api
             instance = cls.from_api(js)
             instance.pre_process(builder, js)
-            # add to graph
-            if (added := builder.add_node(instance, js)) is not None:
-                # post process
-                added.post_process(builder, js)
-                result.append(added)
+            # Check if there is a filter condition specified before adding the instance to the graph node.
+            if instance.should_add_to_node(builder, js, pre_items):
+                # add to graph
+                if (added := builder.add_node(instance, js)) is not None:
+                    # post process
+                    added.post_process(builder, js)
+                    result.append(added)
         return result
 
     @classmethod
