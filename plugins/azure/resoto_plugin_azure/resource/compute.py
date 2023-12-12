@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Any, Type
+from typing import ClassVar, Dict, Optional, List, Any, Tuple, Type
 
 from attr import define, field
 
@@ -3204,7 +3204,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
-    api_spec = AzureApiSpec(
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
@@ -3214,7 +3214,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": K(None),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
@@ -3235,32 +3235,33 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
 
-    def should_add_to_node(self, builder: GraphBuilder, source: Json, pre_items: Optional[List[str]] = None) -> bool:
-        virtual_machine_size_types = pre_items if pre_items is not None else []
-        vm_size_type = self.instance_type if self.instance_type else ""
-
-        for vm_type in virtual_machine_size_types:
-            if vm_type == vm_size_type:
-                return True
+    def should_add_to_node(
+        self, builder: GraphBuilder, source: Json, pre_items: Optional[List[Tuple[str, str]]] = None
+    ) -> bool:
+        if pre_items is not None:
+            vm_type_and_location = pre_items
+            vm_size_type = self.instance_type if self.instance_type else ""
+            vm_size_location = builder.location.name if builder.location else ""
+            for vm_info in vm_type_and_location:
+                vm_type, vm_location = vm_info
+                if vm_size_type == vm_type and vm_size_location == vm_location:
+                    return True
         return False
 
     @classmethod
-    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[str]]:
-        api_spec = AzureApiSpec(
+    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[Tuple[str, str]]]:
+        virtual_machines_info = cls.fetch_resources(
+            builder,
             service="compute",
-            version="2023-03-01",
+            api_version="2023-03-01",
             path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
             path_parameters=["subscriptionId"],
             query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
+            first_property=lambda r: r["properties"]["hardwareProfile"]["vmSize"],
+            second_property=lambda r: r["location"],
         )
 
-        virtual_machine_size_types = [
-            r["properties"]["hardwareProfile"]["vmSize"] for r in builder.client.list(api_spec)
-        ]
-
-        return virtual_machine_size_types
+        return [(str(vm_type), str(vm_location)) for vm_type, vm_location in virtual_machines_info]
 
 
 resources: List[Type[AzureResource]] = [

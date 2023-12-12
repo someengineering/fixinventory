@@ -134,7 +134,9 @@ class AzureResource(BaseResource):
         # Default behavior: add resource to the namespace
         pass
 
-    def should_add_to_node(self, builder: GraphBuilder, source: Json, pre_items: Optional[List[str]] = None) -> bool:
+    def should_add_to_node(
+        self, builder: GraphBuilder, source: Json, pre_items: Optional[List[Tuple[str, str]]] = None
+    ) -> bool:
         """
         Checks whether this instance should be added to a graph node.
 
@@ -144,8 +146,9 @@ class AzureResource(BaseResource):
         """
         return True
 
+    @classmethod
     def fetch_resources(
-        self,
+        cls: Type[AzureResourceType],
         builder: GraphBuilder,
         service: str,
         api_version: str,
@@ -179,7 +182,7 @@ class AzureResource(BaseResource):
         return [(first_property(r), second_property(r)) for r in builder.client.list(resources_api_spec)]
 
     @classmethod
-    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[str]]:
+    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[Tuple[str, str]]]:
         """Perform any pre-collection steps and return a list of items if needed."""
         return None
 
@@ -201,7 +204,7 @@ class AzureResource(BaseResource):
         cls: Type[AzureResourceType],
         raw: List[Json],
         builder: GraphBuilder,
-        pre_items: Optional[List[str]] = None,
+        pre_items: Optional[List[Tuple[str, str]]] = None,
     ) -> List[AzureResourceType]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
