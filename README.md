@@ -9,6 +9,7 @@
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
 [![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/resoto/resotolib/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
 [![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/resoto?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/resoto/)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsomeengineering%2Fresoto.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsomeengineering%2Fresoto?ref=badge_shield)
 
 ## Table of contents
 
@@ -49,3 +50,6 @@ If you have any questions, feel free to [join our Discord](https://discord.gg/so
 
 ## License
 See [LICENSE](LICENSE) for details.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsomeengineering%2Fresoto.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsomeengineering%2Fresoto?ref=badge_large)
