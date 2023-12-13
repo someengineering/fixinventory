@@ -122,8 +122,10 @@ class GcpProjectCollector:
 
         # nodes need to be removed in the correct order
         for resource_class in resources_to_remove:
-            rm_nodes(resource_class)
-        rm_nodes(compute.GcpMachineType, compute.GcpAcceleratorType)  # ignore accelerator types
+            if resource_class == compute.GcpMachineType:
+                rm_nodes(compute.GcpMachineType, compute.GcpAcceleratorType)  # ignore accelerator types
+            else:
+                rm_nodes(resource_class)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources

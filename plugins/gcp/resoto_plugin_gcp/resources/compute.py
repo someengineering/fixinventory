@@ -7627,5 +7627,6 @@ resources: List[Type[GcpResource]] = [
 
 filter_resources = [
     (GcpNodeType, GcpDiskType),
+    GcpMachineType,
     GcpAcceleratorType,
 ]
