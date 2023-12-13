@@ -99,6 +99,7 @@ class GcpProjectCollector:
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def remove_unconnected_nodes(self):
+        resources_to_remove = compute.filter_resources + billing.filter_resources
         remove_nodes = []
 
         def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None) -> None:
@@ -120,11 +121,9 @@ class GcpProjectCollector:
             remove_nodes.clear()
 
         # nodes need to be removed in the correct order
-        rm_nodes((compute.GcpNodeType, compute.GcpDiskType))
+        for resource_class in resources_to_remove:
+            rm_nodes(resource_class)
         rm_nodes(compute.GcpMachineType, compute.GcpAcceleratorType)  # ignore accelerator types
-        rm_nodes(compute.GcpAcceleratorType)
-        rm_nodes(billing.GcpSku)
-        rm_nodes(billing.GcpService)
 
     def collect_region(self, region: GcpRegion, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources

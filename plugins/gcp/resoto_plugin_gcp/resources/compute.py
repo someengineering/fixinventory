@@ -7564,7 +7564,7 @@ class GcpVpnTunnel(GcpResource):
             builder.add_edge(self, link=self.router)
 
 
-resources = [
+resources: List[Type[GcpResource]] = [
     GcpAcceleratorType,
     GcpAddress,
     GcpAutoscaler,
@@ -7623,4 +7623,9 @@ resources = [
     GcpTargetVpnGateway,
     GcpVpnGateway,
     GcpVpnTunnel,
+]
+
+filter_resources = [
+    (GcpNodeType, GcpDiskType),
+    GcpAcceleratorType,
 ]

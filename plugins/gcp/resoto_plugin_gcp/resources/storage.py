@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -465,4 +465,4 @@ class GcpBucket(GcpResource):
         return self.update_tag(key, None)
 
 
-resources = [GcpBucket]
+resources: List[Type[GcpResource]] = [GcpBucket]

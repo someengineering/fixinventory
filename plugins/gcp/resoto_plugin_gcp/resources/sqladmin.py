@@ -1087,4 +1087,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-resources = [GcpSqlDatabaseInstance]
+resources: List[Type[GcpResource]] = [GcpSqlDatabaseInstance]
