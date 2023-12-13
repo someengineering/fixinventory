@@ -511,19 +511,31 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
 
 
 @mark.asyncio
-async def test_update_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    await graph_db.wipe()
-    await graph_db.create_node(foo_model, NodeId("some_other"), to_json(Foo("some_other", "foo")), NodeId("root"))
-    json_patch = await graph_db.update_node(foo_model, NodeId("some_other"), {"name": "bla"}, False, "reported")
-    assert to_foo(json_patch).name == "bla"
-    assert to_foo(await graph_db.get_node(foo_model, NodeId("some_other"))).name == "bla"
-    json_replace = (
-        await graph_db.update_node(
-            foo_model, NodeId("some_other"), {"kind": "bla", "identifier": "123"}, True, "reported"
-        )
-    )["reported"]
-    json_replace.pop("ctime")  # ctime is added by the system automatically. remove it
-    assert json_replace == {"kind": "bla", "identifier": "123"}
+async def test_update_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    nid = NodeId("0")
+    # patch
+    js = await filled_graph_db.update_node(foo_model, nid, {"name": "bla"}, False, "reported")
+    assert to_foo(js).name == "bla"
+    assert to_foo(await filled_graph_db.get_node(foo_model, nid)).name == "bla"
+    # replace
+    js = await filled_graph_db.update_node(foo_model, nid, {"kind": "bla", "identifier": "123"}, True, "reported")
+    reported = js["reported"]
+    reported.pop("ctime")  # ctime is added by the system automatically. remove it
+    assert reported == {"kind": "bla", "identifier": "123"}
+    # also make sure that all resolved ancestor props are changed
+    nid = NodeId("sub_root")
+    # patch
+    js = await filled_graph_db.update_node(foo_model, nid, {"name": "bat"}, False, "reported")
+    assert js["reported"]["name"] == "bat"
+
+    async def elements(history: bool) -> List[Json]:
+        fn = filled_graph_db.search_history if history else filled_graph_db.search_list
+        model = QueryModel(parse_query("ancestors.account.reported.name==bat"), foo_model)
+        async with await fn(query=model) as crs:  # type: ignore
+            return [e async for e in crs]
+
+    assert len(await elements(False)) == 110
+    assert len(await elements(True)) == 111  # history includes the node itself
 
 
 @mark.asyncio

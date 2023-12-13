@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import partial
 from numbers import Number
+from textwrap import dedent
 from typing import (
     DefaultDict,
     Optional,
@@ -52,7 +53,7 @@ from resotocore.model.model import (
     UsageDatapoint,
     synthetic_metadata_kinds,
 )
-from resotocore.model.resolve_in_graph import NodePath, GraphResolver
+from resotocore.model.resolve_in_graph import NodePath, GraphResolver, ResolveProp
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
 from resotocore.report import ReportSeverity
@@ -352,7 +353,27 @@ class ArangoGraphDB(GraphDB):
             if sec in adjusted:
                 update[sec] = adjusted[sec]
 
-        result = await db.update(self.vertex_name, update, return_new=True, merge=not replace)
+        async def update_resolved_property(id_prop: ResolveProp, patch: Json, history: bool) -> None:
+            log.info(f"Update resolved property: {id_prop.to}={patch} for node_id={node_id}")
+            async with await self.db.aql_cursor(
+                query=self.update_resolved(id_prop, history), bind_vars={"node_id": node_id, "patch": patch}
+            ) as crs:
+                async for el in crs:
+                    part = self.node_history if history else self.vertex_name
+                    log.info(f"Updated resolved property in {part}: {el} elements changed.")
+
+        # update resolved properties in vertex and history collection
+        if (ra := GraphResolver.resolve_ancestor_for(update)) and (rid := ra.resolves_id()):
+            changes: Json = {}
+            for prop in ra.resolved_props():
+                if value_in_path(node, prop.extract_path) != (nv := value_in_path(update, prop.extract_path)):
+                    set_value_in_path(nv, prop.to_path, changes)
+            if changes:
+                await update_resolved_property(rid, changes, False)
+                await update_resolved_property(rid, changes, True)
+
+        # update in database
+        result = await self.db.update(self.vertex_name, update, return_new=True, merge=not replace)
         trafo = self.document_to_instance_fn(model)
         return trafo(result["new"])
 
@@ -1463,6 +1484,21 @@ class ArangoGraphDB(GraphDB):
         FILTER d.change == @change
         UPDATE d WITH {{created: DATE_ISO8601(DATE_NOW())}} in `{self.in_progress}`
         """  # noqa: E501
+
+    def update_resolved(
+        self,
+        prop: ResolveProp,
+        history: bool = False,
+    ) -> str:
+        coll = self.node_history if history else self.vertex_name
+        return dedent(
+            f"""
+            FOR d in `{coll}` FILTER d._key!=@node_id and d.{prop.to}==@node_id
+            UPDATE d WITH @patch in `{coll}`
+            COLLECT WITH COUNT INTO count
+            RETURN count
+            """
+        )
 
 
 class EventGraphDB(GraphDB):

@@ -56,6 +56,9 @@ class ResolveAncestor:
     # List of all properties to be resolved.
     resolve: List[ResolveProp]
 
+    def resolved_props(self) -> List[ResolveProp]:
+        return [prop for prop in self.resolve if prop.extract_path != NodePath.node_id]
+
     def resolves_id(self) -> Optional[ResolveProp]:
         for prop in self.resolve:
             if prop.extract_path == NodePath.node_id:
@@ -125,4 +128,12 @@ class GraphResolver:
         for kind in kinds:
             if kind in GraphResolver.resolved_ancestors:
                 return kind
+        return None
+
+    @staticmethod
+    def resolve_ancestor_for(node: Json) -> Optional[ResolveAncestor]:
+        if kind := GraphResolver.resolved_kind(node):
+            for elem in GraphResolver.to_resolve:
+                if elem.kind == kind:
+                    return elem
         return None
