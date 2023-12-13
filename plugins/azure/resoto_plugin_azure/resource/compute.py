@@ -3234,22 +3234,26 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
+    _location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
-    def should_add_to_node(
-        self, builder: GraphBuilder, source: Json, pre_items: Optional[List[Tuple[str, str]]] = None
-    ) -> bool:
-        if pre_items is not None:
-            vm_type_and_location = pre_items
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        self._location = graph_builder.location.name if graph_builder.location else ""
+
+    def filter_node(self, compare_resources: Optional[List[Tuple[str, str]]]) -> bool:
+        if compare_resources is not None:
+            vm_type_and_location = compare_resources
             vm_size_type = self.instance_type if self.instance_type else ""
-            vm_size_location = builder.location.name if builder.location else ""
+            vm_size_location = self._location if self._location else ""
             for vm_info in vm_type_and_location:
                 vm_type, vm_location = vm_info
                 if vm_size_type == vm_type and vm_size_location == vm_location:
-                    return True
-        return False
+                    return False
+        return True
 
     @classmethod
-    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[Tuple[str, str]]]:
+    def collect_resources_for_comparison(
+        cls: Type[AzureResourceType], builder: GraphBuilder
+    ) -> Optional[List[Tuple[str, str]]]:
         virtual_machines_info = cls.fetch_resources(
             builder,
             service="compute",
@@ -3284,3 +3288,5 @@ resources: List[Type[AzureResource]] = [
     AzureVirtualMachineScaleSet,
     AzureVirtualMachineSize,
 ]
+
+filter_resources: List[Type[AzureResource]] = [AzureVirtualMachineSize]

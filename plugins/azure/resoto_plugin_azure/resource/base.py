@@ -134,17 +134,28 @@ class AzureResource(BaseResource):
         # Default behavior: add resource to the namespace
         pass
 
-    def should_add_to_node(
-        self, builder: GraphBuilder, source: Json, pre_items: Optional[List[Tuple[str, str]]] = None
-    ) -> bool:
+    def filter_node(self, compare_resources: Optional[List[Tuple[str, str]]]) -> bool:
         """
-        Checks whether this instance should be added to a graph node.
+        Determine whether the current instance meets exclusion criteria based on a list of resource tuples for comparison.
+
+        Parameters:
+        - compare_resources (Optional[List[Tuple[str, str]]]): A list of resource tuples for comparison.
 
         Returns:
-        bool: True if the instance should be added to the graph node, False otherwise.
-        Default: return True.
+        bool: True if the instance meets exclusion criteria; False if it does not.
+
+        Default: return False. It means that, by default, the node does not need to be excluded.
         """
-        return True
+        return False
+
+    @classmethod
+    def collect_resources_for_comparison(
+        cls: Type[AzureResourceType], builder: GraphBuilder
+    ) -> Optional[List[Tuple[str, str]]]:
+        """
+        Perform any pre-collection steps and return a list of items for comparison if needed.
+        """
+        return None
 
     @classmethod
     def fetch_resources(
@@ -167,7 +178,7 @@ class AzureResource(BaseResource):
         - second_property: Binding property | Compared property.
 
         Returns:
-        List[Tuple[Union[str, List[str]], str]]: A list of tuples containing information to compare and connect the retrieved resources.
+        List[Tuple[Union[str, List[str]], Union[str, List[str]]]]: A list of tuples containing information to compare and connect the retrieved resources.
         """
         resources_api_spec = AzureApiSpec(
             service=service,
@@ -182,11 +193,6 @@ class AzureResource(BaseResource):
         return [(first_property(r), second_property(r)) for r in builder.client.list(resources_api_spec)]
 
     @classmethod
-    def pre_collect(cls: Type[AzureResourceType], builder: GraphBuilder) -> Optional[List[Tuple[str, str]]]:
-        """Perform any pre-collection steps and return a list of items if needed."""
-        return None
-
-    @classmethod
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
@@ -194,9 +200,8 @@ class AzureResource(BaseResource):
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             # TODO: add error handling
-            pre_items = cls.pre_collect(builder)
             items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder, pre_items)
+            return cls.collect(items, builder)
         return []
 
     @classmethod
@@ -204,7 +209,6 @@ class AzureResource(BaseResource):
         cls: Type[AzureResourceType],
         raw: List[Json],
         builder: GraphBuilder,
-        pre_items: Optional[List[Tuple[str, str]]] = None,
     ) -> List[AzureResourceType]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
@@ -216,13 +220,11 @@ class AzureResource(BaseResource):
             # map from api
             instance = cls.from_api(js)
             instance.pre_process(builder, js)
-            # Check if there is a filter condition specified before adding the instance to the graph node.
-            if instance.should_add_to_node(builder, js, pre_items):
-                # add to graph
-                if (added := builder.add_node(instance, js)) is not None:
-                    # post process
-                    added.post_process(builder, js)
-                    result.append(added)
+            # add to graph
+            if (added := builder.add_node(instance, js)) is not None:
+                # post process
+                added.post_process(builder, js)
+                result.append(added)
         return result
 
     @classmethod

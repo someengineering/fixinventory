@@ -5,7 +5,10 @@ from typing import Type, Set, List
 
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
-from resoto_plugin_azure.resource.compute import resources as compute_resources
+from resoto_plugin_azure.resource.compute import (
+    filter_resources as network_filter_resources,
+    resources as compute_resources,
+)
 from resoto_plugin_azure.resource.base import (
     AzureSubscription,
     GraphBuilder,
@@ -78,6 +81,8 @@ class AzureSubscriptionCollector:
                     raise Exception(f"Only Azure resources expected, but got {node}")
             # wait for all work to finish
             queue.wait_for_submitted_work()
+            # filter nodes
+            self.filter_nodes(builder)
             self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
 
@@ -99,3 +104,24 @@ class AzureSubscriptionCollector:
         all_done = GatherFutures.all(group_futures)
         all_done.add_done_callback(work_done)
         return all_done
+
+    def filter_nodes(self, builder: GraphBuilder) -> None:
+        resources_to_remove = network_filter_resources
+        remove_nodes = []
+
+        def rm_nodes(cls: Type[AzureResource]) -> None:
+            to_compare = cls.collect_resources_for_comparison(builder)
+            for node in self.graph.nodes:
+                if isinstance(node, cls) and node.filter_node(to_compare):
+                    remove_nodes.append(node)
+            removed = set()
+            for node in remove_nodes:
+                if node in removed:
+                    continue
+                removed.add(node)
+                self.graph.remove_node(node)
+            log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            remove_nodes.clear()
+
+        for resource_class in resources_to_remove:
+            rm_nodes(resource_class)
