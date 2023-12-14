@@ -534,8 +534,8 @@ async def test_update_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
         async with await fn(query=model) as crs:  # type: ignore
             return [e async for e in crs]
 
-    assert len(await elements(False)) == 110
-    assert len(await elements(True)) == 111  # history includes the node itself
+    assert len(await elements(False)) == 111
+    assert len(await elements(True)) == 111
 
 
 @mark.asyncio

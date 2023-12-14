@@ -1493,7 +1493,7 @@ class ArangoGraphDB(GraphDB):
         coll = self.node_history if history else self.vertex_name
         return dedent(
             f"""
-            FOR d in `{coll}` FILTER d._key!=@node_id and d.{prop.to}==@node_id
+            FOR d in `{coll}` FILTER d.{prop.to}==@node_id
             UPDATE d WITH @patch in `{coll}`
             COLLECT WITH COUNT INTO count
             RETURN count
