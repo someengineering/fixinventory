@@ -1,8 +1,9 @@
 import logging
 import time
+from collections import defaultdict
 from datetime import timedelta, datetime, timezone
 from functools import partial
-from typing import Optional, List, Set, Union, cast, Dict, Callable
+from typing import Optional, List, Set, Union, cast, Callable
 
 from attr import evolve, define
 from resotocore.core_config import CoreConfig
@@ -16,6 +17,8 @@ from resotocore.util import utc_str, utc, if_set, parse_utc
 from resotolib.durations import duration_str
 
 log = logging.getLogger(__name__)
+max_delta = timedelta(days=730)
+last_run_name = "last_run"
 
 
 @define
@@ -29,6 +32,13 @@ class TimeSeriesBucket:
             f"Bucket(start={duration_str(self.start)}, "
             f"end={duration_str(self.end)}, resolution={duration_str(self.resolution)})"
         )
+
+
+@define
+class TimeSeriesMeta:
+    name: str
+    created_at: datetime
+    last_updated: datetime
 
 
 class TimeSeriesDB:
@@ -46,6 +56,17 @@ class TimeSeriesDB:
     ) -> List[JsonElement]:
         async with await (tx or self.db).aql_cursor(query, bind_vars=bind_vars) as crsr:
             return [el async for el in crsr]
+
+    async def list_time_series(self) -> List[TimeSeriesMeta]:
+        all_ts = cast(List[Json], await self.__execute_aql(f"FOR d IN {self.names_db} return d"))
+        return [
+            TimeSeriesMeta(
+                e["_key"],
+                datetime.fromtimestamp(e["created_at"] / 1000.0, timezone.utc),
+                datetime.fromtimestamp(e["last_updated"] / 1000.0, timezone.utc),
+            )
+            for e in all_ts
+        ]
 
     async def add_entries(self, name: str, query_model: QueryModel, graph_db: GraphDB, at: Optional[int] = None) -> int:
         query = query_model.query
@@ -118,7 +139,7 @@ class TimeSeriesDB:
         async with await self.db.aql_cursor(qs, bind_vars=bv, trafo=trafo or result_trafo) as crsr:
             return crsr
 
-    async def compact_time_series(self, now: Optional[datetime] = None) -> None:
+    async def downsample(self, now: Optional[datetime] = None) -> Union[str, Json]:
         def ts_format(ts: str, js: Json) -> Json:
             js["ts"] = ts
             js["at"] = int(js["at"])
@@ -126,50 +147,55 @@ class TimeSeriesDB:
 
         now = now or utc()
         # check if there is something to do
-        one_year_ago = now - timedelta(days=365)
         last_run = if_set(
-            await self.db.get(self.meta_db, "last_run"),
-            lambda d: parse_utc(d["last_run"]),
-            one_year_ago,
+            await self.db.get(self.meta_db, last_run_name), lambda d: parse_utc(d[last_run_name]), now - max_delta
         )
         if (now - last_run) < self.smallest_resolution:
-            return  # nothing to compact
-        all_ts = cast(List[Json], await self.__execute_aql(f"FOR d IN {self.names_db} return d"))
-        times: Dict[str, datetime] = {
-            e["_key"]: datetime.fromtimestamp(e["last_updated"] / 1000.0, timezone.utc) for e in all_ts
-        }
+            return "No changes since last downsample run"
         # acquire a lock and make sure, we are the only ones that enter this
         try:
             ttl = int((now + timedelta(minutes=15)).timestamp())
             await self.db.insert(self.meta_db, dict(_key="lock", expires=ttl))
         except Exception:
-            return  # lock already exists
+            return "Another downsample run is already in progress."
         # do the work while being sure to be the only one
+        result: Json = defaultdict(list)
         try:
-            for ts, last_updated in times.items():
+            for ts in await self.list_time_series():
                 for bucket in self.buckets:
                     c_start = max(now - bucket.end, last_run - bucket.start)
                     c_end = now - bucket.start
-                    if c_end <= c_start or (c_end - c_start) < bucket.resolution or last_updated < c_start:
+                    if c_end <= c_start or (c_end - c_start) < bucket.resolution or ts.last_updated < c_start:
                         continue  # safeguard
                     if ts_data := [
                         e
                         async for e in await self.load_time_series(
-                            ts, c_start, c_end, granularity=bucket.resolution, trafo=partial(ts_format, ts)
+                            ts.name,
+                            c_start,
+                            c_end,
+                            granularity=bucket.resolution,
+                            trafo=partial(ts_format, ts.name),
                         )
                     ]:
-                        log.info(f"Compacting {ts} in bucket {bucket} to {len(ts_data)} entries.")
+                        log.info(f"Compacting {ts.name} in bucket {bucket} to {len(ts_data)} entries.")
+                        result[ts.name].append({"bucket": str(bucket), "data_points": len(ts_data)})
                         async with self.db.begin_transaction(write=self.collection_name) as tx:
                             await self.__execute_aql(
-                                "FOR a in @@coll FILTER a.at>=@start and a.at<=@end REMOVE a IN @@coll",
-                                {"start": c_start.timestamp(), "end": c_end.timestamp(), "@coll": self.collection_name},
+                                "FOR a in @@coll FILTER a.ts==@ts and a.at>=@start and a.at<=@end REMOVE a IN @@coll",
+                                {
+                                    "ts": ts.name,
+                                    "start": c_start.timestamp(),
+                                    "end": c_end.timestamp(),
+                                    "@coll": self.collection_name,
+                                },
                                 tx=tx,
                             )
                             await tx.insert_many(self.collection_name, ts_data)
             # update last run
-            await self.db.insert(self.meta_db, dict(_key="last_run", last_run=utc_str(now)), overwrite=True)
+            await self.db.insert(self.meta_db, {"_key": last_run_name, last_run_name: utc_str(now)}, overwrite=True)
         finally:
             await self.db.delete(self.meta_db, "lock", ignore_missing=True)
+        return result
 
     async def create_update_schema(self) -> None:
         if not await self.db.has_collection(self.collection_name):
@@ -200,9 +226,9 @@ class TimeSeriesDB:
 
     def _buckets(self) -> List[TimeSeriesBucket]:
         result: List[TimeSeriesBucket] = []
-        if bs := self.config.db.time_series_buckets:
+        if bs := self.config.timeseries.buckets:
             cfg = sorted(bs, key=lambda b: b.start)
             for a, z in zip(cfg, cfg[1:] + [None]):
-                end = z.start if z else timedelta(days=730)
-                result.append(TimeSeriesBucket(a.start, end, a.resolution))
+                end = timedelta(seconds=z.start) if z else max_delta
+                result.append(TimeSeriesBucket(timedelta(seconds=a.start), end, timedelta(seconds=a.resolution)))
         return result

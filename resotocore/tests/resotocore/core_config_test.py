@@ -123,6 +123,8 @@ def test_model() -> None:
         "resotocore_cli_config",
         "resotocore_graph_update_config",
         "resotocore_runtime_config",
+        "resotocore_timeseries_bucket_config",
+        "resotocore_timeseries_config",
         "resotocore_workflow_config",
     }
 
@@ -216,6 +218,13 @@ def config_json() -> Json:
                 "log_level": "WARN",
                 "plantuml_server": "https://foo",
                 "start_collect_on_subscriber_connect": True,
+            },
+            "timeseries": {
+                "buckets": [
+                    {"resolution": 14400, "start": 172800},
+                    {"resolution": 86400, "start": 2592000},
+                    {"resolution": 259200, "start": 15552000},
+                ]
             },
             "workflows": {
                 "collect_and_cleanup": {

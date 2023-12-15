@@ -126,6 +126,7 @@ def default_config() -> CoreConfig:
         snapshots=SnapshotsScheduleConfig(),
         args=parse_args(["--analytics-opt-out"]),
         run=RunConfig(),
+        timeseries=ed.timeseries,
     )
 
 

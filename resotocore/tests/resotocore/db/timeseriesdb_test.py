@@ -8,7 +8,6 @@ from resotocore.model.model import Model
 from resotocore.query.model import P
 from resotocore.query.query_parser import parse_query
 from resotocore.types import Json
-from resotocore.util import utc
 
 
 async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
@@ -71,13 +70,26 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
     await create_ts(timedelta(), timedelta(hours=1), 24)
 
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 960
-    await timeseries_db.compact_time_series(now)
+    assert await timeseries_db.downsample(now) == {
+        "test": [
+            {"bucket": "Bucket(start=2d, end=30d, resolution=4h)", "data_points": 70},
+            {"bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)", "data_points": 50},
+            {"bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)", "data_points": 80},
+        ]
+    }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
-    await timeseries_db.compact_time_series(now)  # running it again should not change anything
+    assert await timeseries_db.downsample(now) == "No changes since last downsample run"
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
-    await timeseries_db.compact_time_series(now=now + timedelta(days=27))
+    assert await timeseries_db.downsample(now=now + timedelta(days=27)) == {
+        "test": [
+            {"bucket": "Bucket(start=2d, end=30d, resolution=4h)", "data_points": 70},
+            {"bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)", "data_points": 20},
+        ]
+    }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 220
-    await timeseries_db.compact_time_series(now=now + timedelta(days=200))
+    assert await timeseries_db.downsample(now=now + timedelta(days=200)) == {
+        "test": [{"bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)", "data_points": 50}]
+    }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
-    await timeseries_db.compact_time_series(now=now + timedelta(days=400))
+    assert await timeseries_db.downsample(now=now + timedelta(days=400)) == {}
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
