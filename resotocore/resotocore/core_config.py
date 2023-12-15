@@ -172,6 +172,13 @@ schema_registry.add(
 
 
 @define()
+class TimeSeriesBucketConfig(ConfigObject):
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_timeseries_bucket_config"
+    start: timedelta = field(metadata={"description": "Start of the bucket."})
+    resolution: timedelta = field(metadata={"description": "Resolution of the bucket."})
+
+
+@define()
 class DatabaseConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_database_config"
     server: str = field(
@@ -192,8 +199,13 @@ class DatabaseConfig(ConfigObject):
         default=False, metadata={"description": "If the connection should not be verified (default: False)"}
     )
     request_timeout: int = field(default=900, metadata={"description": "Request timeout in seconds (default: 900)"})
-    time_series_ttl: timedelta = field(
-        default=timedelta(days=90), metadata={"description": "Time series TTL (default: 90d)"}
+    time_series_buckets: List[TimeSeriesBucketConfig] = field(
+        factory=lambda: [
+            TimeSeriesBucketConfig(start=timedelta(days=2), resolution=timedelta(hours=4)),
+            TimeSeriesBucketConfig(start=timedelta(days=30), resolution=timedelta(days=1)),
+            TimeSeriesBucketConfig(start=timedelta(days=180), resolution=timedelta(days=3)),
+        ],
+        metadata={"description": "List of time series buckets."},
     )
 
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, List
 
 from resotocore.db.graphdb import GraphDB
@@ -8,6 +8,7 @@ from resotocore.model.model import Model
 from resotocore.query.model import P
 from resotocore.query.query_parser import parse_query
 from resotocore.types import Json
+from resotocore.util import utc
 
 
 async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
@@ -48,3 +49,35 @@ async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model,
     ## check filter_by is working
     # some_int is the same for all entries: one every hour: 5 entries
     assert len(await load_ts(name="test", start=begin, end=after5h, filter_by=[(P("identifier").eq("1"))])) == 5
+
+
+async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
+    await timeseries_db.wipe()  # clean up
+    qm = QueryModel(parse_query("aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)"), foo_model)
+    now = datetime(2023, 12, 1, tzinfo=timezone.utc)
+
+    async def create_ts(before_now: timedelta, granularity: timedelta, number_of_entries: int) -> None:
+        start = now - before_now
+        for a in range(number_of_entries):
+            await timeseries_db.add_entries("test", qm, filled_graph_db, at=int((start - a * granularity).timestamp()))
+
+    # after 180 days, we want a 3-day resolution: 24 daily entries --> reduce by factor 3
+    await create_ts(timedelta(days=181), timedelta(days=1), 24)
+    # after 30 days, we want a 1-day resolution: 24 entries every 4 hour --> reduce by factor 4
+    await create_ts(timedelta(days=31), timedelta(hours=4), 24)
+    # after 2 days we want a 4-hour resolution: 24 entries --> reduce by factor 4
+    await create_ts(timedelta(days=3), timedelta(hours=1), 24)
+    # after now we want a 1-hour resolution: 24 entries --> no reduction
+    await create_ts(timedelta(), timedelta(hours=1), 24)
+
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 960
+    await timeseries_db.compact_time_series(now)
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
+    await timeseries_db.compact_time_series(now)  # running it again should not change anything
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
+    await timeseries_db.compact_time_series(now=now + timedelta(days=27))
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 220
+    await timeseries_db.compact_time_series(now=now + timedelta(days=200))
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
+    await timeseries_db.compact_time_series(now=now + timedelta(days=400))
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
