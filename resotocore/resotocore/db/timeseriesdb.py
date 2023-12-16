@@ -155,7 +155,7 @@ class TimeSeriesDB:
         # acquire a lock and make sure, we are the only ones that enter this
         try:
             ttl = int((now + timedelta(minutes=15)).timestamp())
-            await self.db.insert(self.meta_db, dict(_key="lock", expires=ttl))
+            await self.db.insert(self.meta_db, dict(_key="lock", expires=ttl), sync=True)
         except Exception:
             return "Another downsample run is already in progress."
         # do the work while being sure to be the only one
