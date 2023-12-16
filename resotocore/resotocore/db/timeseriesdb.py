@@ -187,7 +187,14 @@ class TimeSeriesDB:
                         )
                     ]:
                         log.info(f"Compact {ts.name} bucket {bucket} to {len(ts_data)} entries (last={ts_bucket_last})")
-                        result[ts.name].append({"bucket": str(bucket), "data_points": len(ts_data)})
+                        result[ts.name].append(
+                            {
+                                "bucket": str(bucket),
+                                "start": utc_str(c_start),
+                                "end": utc_str(c_end),
+                                "data_points": len(ts_data),
+                            }
+                        )
                         dst[repr(bucket)] = now  # update last downsample time in this bucket
                         async with self.db.begin_transaction(write=[self.collection_name, self.names_db]) as tx:
                             await self.__execute_aql(

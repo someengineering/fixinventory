@@ -72,9 +72,24 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 960
     assert await timeseries_db.downsample(now) == {
         "test": [
-            {"bucket": "Bucket(start=2d, end=30d, resolution=4h)", "data_points": 70},
-            {"bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)", "data_points": 50},
-            {"bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)", "data_points": 80},
+            {
+                "bucket": "Bucket(start=2d, end=30d, resolution=4h)",
+                "start": "2023-11-01T00:00:00Z",
+                "end": "2023-11-29T00:00:00Z",
+                "data_points": 70,
+            },
+            {
+                "bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)",
+                "start": "2023-06-04T00:00:00Z",
+                "end": "2023-11-01T00:00:00Z",
+                "data_points": 50,
+            },
+            {
+                "bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)",
+                "start": "2021-12-01T00:00:00Z",
+                "end": "2023-06-04T00:00:00Z",
+                "data_points": 80,
+            },
         ]
     }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
@@ -82,13 +97,30 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
     assert await timeseries_db.downsample(now=now + timedelta(days=27)) == {
         "test": [
-            {"bucket": "Bucket(start=2d, end=30d, resolution=4h)", "data_points": 70},
-            {"bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)", "data_points": 20},
+            {
+                "bucket": "Bucket(start=2d, end=30d, resolution=4h)",
+                "start": "2023-11-29T00:00:00Z",
+                "end": "2023-12-26T00:00:00Z",
+                "data_points": 70,
+            },
+            {
+                "bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)",
+                "start": "2023-11-01T00:00:00Z",
+                "end": "2023-11-28T00:00:00Z",
+                "data_points": 20,
+            },
         ]
     }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 220
     assert await timeseries_db.downsample(now=now + timedelta(days=200)) == {
-        "test": [{"bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)", "data_points": 50}]
+        "test": [
+            {
+                "bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)",
+                "start": "2023-06-04T00:00:00Z",
+                "end": "2023-12-21T00:00:00Z",
+                "data_points": 50,
+            }
+        ]
     }
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
     assert await timeseries_db.downsample(now=now + timedelta(days=400)) == {}
