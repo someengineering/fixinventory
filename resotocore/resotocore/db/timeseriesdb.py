@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 from datetime import timedelta, datetime, timezone
 from functools import partial
-from typing import Optional, List, Set, Union, cast, Callable
+from typing import Optional, List, Set, Union, cast, Callable, Dict
 
 from attr import evolve, define
 from resotocore.core_config import CoreConfig
@@ -21,11 +21,14 @@ max_delta = timedelta(days=730)
 last_run_name = "last_run"
 
 
-@define
+@define(repr=False, str=False)
 class TimeSeriesBucket:
     start: timedelta
     end: timedelta
     resolution: timedelta
+
+    def __repr__(self) -> str:
+        return f"{duration_str(self.start)}:{duration_str(self.end)}:{duration_str(self.resolution)}"
 
     def __str__(self) -> str:
         return (
@@ -39,6 +42,7 @@ class TimeSeriesMeta:
     name: str
     created_at: datetime
     last_updated: datetime
+    downsample_times: Dict[str, datetime]
 
 
 class TimeSeriesDB:
@@ -64,6 +68,7 @@ class TimeSeriesDB:
                 e["_key"],
                 datetime.fromtimestamp(e["created_at"] / 1000.0, timezone.utc),
                 datetime.fromtimestamp(e["last_updated"] / 1000.0, timezone.utc),
+                {k: datetime.fromtimestamp(v / 1000.0, timezone.utc) for k, v in e.get("downsample_times", {}).items()},
             )
             for e in all_ts
         ]
@@ -146,27 +151,31 @@ class TimeSeriesDB:
             return js
 
         now = now or utc()
+        oldest = now - max_delta
         # check if there is something to do
-        last_run = if_set(
-            await self.db.get(self.meta_db, last_run_name), lambda d: parse_utc(d[last_run_name]), now - max_delta
-        )
+        last_run = if_set(await self.db.get(self.meta_db, last_run_name), lambda d: parse_utc(d[last_run_name]), oldest)
         if (now - last_run) < self.smallest_resolution:
             return "No changes since last downsample run"
-        # acquire a lock and make sure, we are the only ones that enter this
+        # acquire a lock to ensure exclusive access
         try:
             ttl = int((now + timedelta(minutes=15)).timestamp())
             await self.db.insert(self.meta_db, dict(_key="lock", expires=ttl), sync=True)
         except Exception:
             return "Another downsample run is already in progress."
-        # do the work while being sure to be the only one
+        # If we come here, the lock is acquired: exclusive access.
+        # We only touch time series that are older than the minimal resolution (>1h).
+        # So we never interfere with snapshots that are eventually created concurrently.
         result: Json = defaultdict(list)
         try:
             for ts in await self.list_time_series():
+                dst = ts.downsample_times.copy()
                 for bucket in self.buckets:
-                    c_start = max(now - bucket.end, last_run - bucket.start)
+                    ts_bucket_last = ts.downsample_times.get(repr(bucket), oldest)
+                    c_start = max(now - bucket.end, ts_bucket_last - bucket.start)
                     c_end = now - bucket.start
+                    # Only downsample when the resolution duration is reached
                     if c_end <= c_start or (c_end - c_start) < bucket.resolution or ts.last_updated < c_start:
-                        continue  # safeguard
+                        continue
                     if ts_data := [
                         e
                         async for e in await self.load_time_series(
@@ -177,9 +186,10 @@ class TimeSeriesDB:
                             trafo=partial(ts_format, ts.name),
                         )
                     ]:
-                        log.info(f"Compacting {ts.name} in bucket {bucket} to {len(ts_data)} entries.")
+                        log.info(f"Compact {ts.name} bucket {bucket} to {len(ts_data)} entries (last={ts_bucket_last})")
                         result[ts.name].append({"bucket": str(bucket), "data_points": len(ts_data)})
-                        async with self.db.begin_transaction(write=self.collection_name) as tx:
+                        dst[repr(bucket)] = now  # update last downsample time in this bucket
+                        async with self.db.begin_transaction(write=[self.collection_name, self.names_db]) as tx:
                             await self.__execute_aql(
                                 "FOR a in @@coll FILTER a.ts==@ts and a.at>=@start and a.at<=@end REMOVE a IN @@coll",
                                 {
@@ -191,6 +201,15 @@ class TimeSeriesDB:
                                 tx=tx,
                             )
                             await tx.insert_many(self.collection_name, ts_data)
+                            await self.__execute_aql(
+                                "UPDATE {_key: @key, downsample_times: @dst} IN @@coll",
+                                bind_vars={
+                                    "@coll": self.names_db,
+                                    "key": ts.name,
+                                    "dst": {k: int(v.timestamp() * 1000) for k, v in dst.items()},
+                                },
+                                tx=tx,
+                            )
             # update last run
             await self.db.insert(self.meta_db, {"_key": last_run_name, last_run_name: utc_str(now)}, overwrite=True)
         finally:
