@@ -107,7 +107,7 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
                 "bucket": "Bucket(start=30d, end=5mo25d, resolution=1d)",
                 "start": "2023-11-01T00:00:00Z",
                 "end": "2023-11-28T00:00:00Z",
-                "data_points": 20,
+                "data_points": 10,
             },
         ]
     }

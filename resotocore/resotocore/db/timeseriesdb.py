@@ -198,7 +198,7 @@ class TimeSeriesDB:
                         dst[repr(bucket)] = now  # update last downsample time in this bucket
                         async with self.db.begin_transaction(write=[self.collection_name, self.names_db]) as tx:
                             await self.__execute_aql(
-                                "FOR a in @@coll FILTER a.ts==@ts and a.at>=@start and a.at<=@end REMOVE a IN @@coll",
+                                "FOR a in @@coll FILTER a.ts==@ts and a.at>=@start and a.at<@end REMOVE a IN @@coll",
                                 {
                                     "ts": ts.name,
                                     "start": c_start.timestamp(),

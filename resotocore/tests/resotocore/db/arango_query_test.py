@@ -289,7 +289,7 @@ def test_load_time_series() -> None:
     # group_by=[] --> no group by any value
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=[])
     assert (
-        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0 INTO group "
         "SORT group_slot "
@@ -299,7 +299,7 @@ def test_load_time_series() -> None:
     # no group by defined --> group by all values
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour)
     assert (
-        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0, complete_group=d.group INTO group "
         "SORT group_slot "
@@ -309,7 +309,7 @@ def test_load_time_series() -> None:
     # group by specific group variables
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"])
     assert (
-        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
         "SORT group_slot "
@@ -321,7 +321,7 @@ def test_load_time_series() -> None:
         "ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"], group_filter=[P("a").eq("a")]
     )
     assert (
-        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<=@b2 "
+        q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
         "FILTER d.group.a==@b3 "
         "LET m0 = (FLOOR(d.at / @b4) * @b4) + @b5 "
         "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
