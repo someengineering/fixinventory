@@ -1,8 +1,8 @@
 {
-    "title": "AWS CIS 1.5",
+    "title": "AWS CIS 2.0",
     "framework": "CIS",
     "clouds": ["aws"],
-    "version": "1.5",
+    "version": "2.0",
     "description": "The CIS Amazon Web Services Foundations Benchmark provides prescriptive guidance for configuring security options for a subset of Amazon Web Services with an emphasis on foundational, testable, and architecture agnostic settings.",
     "children": [
         {
@@ -155,6 +155,13 @@
                     "checks": [
                         "aws_iam_check_saml_providers_sts"
                     ]
+                },
+                {
+                    "title": "1.22 Ensure access to AWSCloudShellFullAccess is restricted",
+                    "description": "AWS CloudShell is a convenient way of running CLI commands against AWS services. A managed IAM policy ('AWSCloudShellFullAccess') provides full access to CloudShell, which allows file upload and download capability between a user's local system and the CloudShell environment. Within the CloudShell environment a user has sudo permissions, and can access the internet. So it is feasible to install file transfer software (for example) and move data from CloudShell to external internet servers.",
+                    "checks": [
+                        "aws_iam_check_cloudshell_access_restricted"
+                    ]
                 }
             ]
         },
@@ -166,13 +173,6 @@
                     "title": "2.1 Simple Storage Service (S3)",
                     "description": "This section contains recommendations for configuring AWS Simple Storage Service (S3) Buckets.",
                     "children": [
-                        {
-                            "title": "2.1.1 Ensure all S3 buckets employ encryption-at-rest",
-                            "description": "Amazon S3 provides a variety of no, or low, cost encryption options to protect data at rest.",
-                            "checks": [
-                                "aws_s3_bucket_default_encryption"
-                            ]
-                        },
                         {
                             "title": "2.1.2 Ensure S3 Bucket Policy is set to deny HTTP requests",
                             "description": "At the Amazon S3 bucket level, you can configure permissions through a bucket policy making the objects accessible only through HTTPS.",
@@ -506,13 +506,6 @@
                     "description": "Once a VPC peering connection is established, routing tables must be updated to establish any connections between the peered VPCs. These routes can be as specific as desired - even peering a VPC to only a single host on the other side of the connection.",
                     "checks": [
                         "aws_ec2_routing_tables_with_least_privilege"
-                    ]
-                },
-                {
-                    "title": "5.6 Ensure that EC2 Metadata Service only allows IMDSv2",
-                    "description": "When enabling the Metadata Service on AWS EC2 instances, users have the option of using either Instance Metadata Service Version 1 (IMDSv1; a request/response method) or Instance Metadata Service Version 2 (IMDSv2; a session-oriented method).",
-                    "checks": [
-                        "aws_ec2_instance_imdsv2_enabled"
                     ]
                 }
             ]

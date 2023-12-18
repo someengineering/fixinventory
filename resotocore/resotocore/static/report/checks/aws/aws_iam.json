@@ -318,6 +318,21 @@
                 "text": "Enable SAML provider and use temporary credentials. You can use temporary security credentials to make programmatic requests for AWS resources using the AWS CLI or AWS API (using the AWS SDKs ). The temporary credentials provide the same permissions that you have with use long-term security credentials such as IAM user credentials. In case of not having SAML provider capabilities prevent usage of long-lived credentials.",
                 "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html"
             }
+        },
+        {
+            "name": "check_cloudshell_access_restricted",
+            "title": "Ensure access to AWSCloudShellFullAccess is restricted",
+            "result_kind": ["aws_iam_role", "aws_iam_user"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Access to this policy should be restricted as it presents a potential channel for data exfiltration by malicious cloud admins that are given full permissions to the service. AWS documentation describes how to create a more restrictive IAM policy which denies file transfer permissions.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_iam_policy) and name==AWSCloudShellFullAccess <-- is(aws_iam_user, aws_iam_role)"
+            },
+            "remediation": {
+                "text": "Open the IAM console at https://console.aws.amazon.com/iam/  In the left pane, select Policies. Search for and select AWSCloudShellFullAccess.  On the Entities attached tab, for each item, check the box and select Detach.",
+                "url": "https://docs.aws.amazon.com/cloudshell/latest/userguide/sec-auth-with-identities.html"
+            }
         }
     ]
 }
