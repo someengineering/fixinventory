@@ -287,3 +287,18 @@ class AwsAccountCollector:
             self.account.max_password_age = int(app.get("MaxPasswordAge", 0))
             self.account.password_reuse_prevention = int(app.get("PasswordReusePrevention", 0))
             self.account.hard_expiry = bool(app.get("HardExpiry", None))
+
+        try:
+            org = self.client.get(
+                "organizations",
+                "describe_organization",
+                "Organization",
+                expected_errors=["AWSOrganizationsNotInUseException"],
+            )
+            if org:
+                self.account.is_organization_member = True
+                self.account.is_organization_master = org.get("MasterAccountId") == self.account.id
+                self.account.organization_id = org.get("Id")
+                self.account.organization_arn = org.get("Arn")
+        except Exception as e:
+            log.warning(f"Error getting organization information: {e}")

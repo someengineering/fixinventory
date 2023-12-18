@@ -282,6 +282,10 @@ class AwsAccount(BaseAccount, AwsResource):
     max_password_age: Optional[int] = 0
     password_reuse_prevention: Optional[int] = 0
     hard_expiry: Optional[bool] = None
+    is_organization_member: bool = False
+    is_organization_master: bool = False
+    organization_id: Optional[str] = None
+    organization_arn: Optional[str] = None
 
 
 default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch date
