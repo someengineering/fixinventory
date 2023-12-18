@@ -1603,8 +1603,8 @@ class AzureBastionHost(AzureResource):
             for ip_configuration in ip_configurations:
                 if subnet_id := ip_configuration.subnet:
                     builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
-                if p_ip_address := ip_configuration.public_ip_address:
-                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address)
+                if p_ip_address_id := ip_configuration.public_ip_address:
+                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id)
 
 
 @define(eq=False, slots=False)
@@ -1702,8 +1702,8 @@ class AzureDdosProtectionPlan(AzureResource):
             for vn_id in vns:
                 builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualNetwork, id=vn_id)
         if p_ip_addresses := self.public_ip_addresses:
-            for p_ip_address in p_ip_addresses:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address)
+            for p_ip_address_id in p_ip_addresses:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id)
 
 
 @define(eq=False, slots=False)
@@ -3066,7 +3066,6 @@ class AzureExpressRouteCircuit(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
         "successors": {"default": ["azure_express_route_port", "azure_express_route_ports_location"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3140,16 +3139,6 @@ class AzureExpressRouteCircuit(AzureResource):
                 if erplocation == location_name:
                     builder.add_edge(
                         self, edge_type=EdgeType.default, clazz=AzureExpressRoutePortsLocation, id=erplocation_id
-                    )
-        if c_peerings := self.circuit_peerings:
-            for c_peering in c_peerings:
-                if p_address := c_peering.primary_peer_address_prefix:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=p_address
-                    )
-                if s_address := c_peering.secondary_peer_address_prefix:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=s_address
                     )
 
 
@@ -4339,7 +4328,6 @@ class AzureNetworkVirtualAppliance(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network"]},
         "successors": {"default": ["azure_network_virtual_appliance_sku"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4411,13 +4399,7 @@ class AzureNetworkVirtualAppliance(AzureResource):
                 vendor_name, nvasku_name = info
                 if vendor_name == nva_vendor:
                     builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, id=nvasku_name
-                    )
-        if virtual_appliances := self.virtual_appliance_nics:
-            for va in virtual_appliances:
-                if private_address := va.private_ip_address:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=private_address
+                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, name=nvasku_name
                     )
 
 

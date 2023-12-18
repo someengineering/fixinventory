@@ -134,32 +134,8 @@ class AzureResource(BaseResource):
         # Default behavior: add resource to the namespace
         pass
 
-    def filter_node(self, compare_resources: Optional[List[Tuple[str, str]]]) -> bool:
-        """
-        Determine whether the current instance meets exclusion criteria based on a list of resource tuples for comparison.
-
-        Parameters:
-        - compare_resources (Optional[List[Tuple[str, str]]]): A list of resource tuples for comparison.
-
-        Returns:
-        bool: True if the instance meets exclusion criteria; False if it does not.
-
-        Default: return False. It means that, by default, the node does not need to be excluded.
-        """
-        return False
-
-    @classmethod
-    def collect_resources_for_comparison(
-        cls: Type[AzureResourceType], builder: GraphBuilder
-    ) -> Optional[List[Tuple[str, str]]]:
-        """
-        Perform any pre-collection steps and return a list of items for comparison if needed.
-        """
-        return None
-
-    @classmethod
     def fetch_resources(
-        cls: Type[AzureResourceType],
+        self,
         builder: GraphBuilder,
         service: str,
         api_version: str,

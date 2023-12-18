@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Any, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import (
     AzureResource,
-    AzureResourceType,
     GraphBuilder,
     AzureSubResource,
     AzureSystemData,
@@ -2530,11 +2529,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             ]
         },
         "successors": {
-            "default": [
-                "azure_image",
-                "azure_disk",
-                "azure_network_interface",
-            ]
+            "default": ["azure_image", "azure_disk", "azure_network_interface", "azure_virtual_machine_size"]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2669,6 +2664,10 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             for network_interface in network_interfaces:
                 if ni_id := network_interface.id:
                     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkInterface, id=ni_id)
+        if (vms_type := self.instance_type) and (vm_location := self.location):
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureVirtualMachineSize, name=vms_type, location=vm_location
+            )
 
 
 @define(eq=False, slots=False)
@@ -3214,7 +3213,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": K(None),
@@ -3234,38 +3233,10 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
-    _location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        self._location = graph_builder.location.name if graph_builder.location else ""
-
-    def filter_node(self, compare_resources: Optional[List[Tuple[str, str]]]) -> bool:
-        if compare_resources is not None:
-            vm_type_and_location = compare_resources
-            vm_size_type = self.instance_type if self.instance_type else ""
-            vm_size_location = self._location if self._location else ""
-            for vm_info in vm_type_and_location:
-                vm_type, vm_location = vm_info
-                if vm_size_type == vm_type and vm_size_location == vm_location:
-                    return False
-        return True
-
-    @classmethod
-    def collect_resources_for_comparison(
-        cls: Type[AzureResourceType], builder: GraphBuilder
-    ) -> Optional[List[Tuple[str, str]]]:
-        virtual_machines_info = cls.fetch_resources(
-            builder,
-            service="compute",
-            api_version="2023-03-01",
-            path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
-            path_parameters=["subscriptionId"],
-            query_parameters=["api-version"],
-            first_property=lambda r: r["properties"]["hardwareProfile"]["vmSize"],
-            second_property=lambda r: r["location"],
-        )
-
-        return [(str(vm_type), str(vm_location)) for vm_type, vm_location in virtual_machines_info]
+        self.location = graph_builder.location.name if graph_builder.location else ""
 
 
 resources: List[Type[AzureResource]] = [
@@ -3288,5 +3259,3 @@ resources: List[Type[AzureResource]] = [
     AzureVirtualMachineScaleSet,
     AzureVirtualMachineSize,
 ]
-
-filter_resources: List[Type[AzureResource]] = [AzureVirtualMachineSize]

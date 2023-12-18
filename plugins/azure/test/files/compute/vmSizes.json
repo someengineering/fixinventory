@@ -15,6 +15,86 @@
             "resourceDiskSizeInMB": 20480,
             "memoryInMB": 4096,
             "maxDataDiskCount": 4
+        },
+        {
+            "name": "Standard_B1s",
+            "numberOfCores": 1,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 5120,
+            "memoryInMB": 2048,
+            "maxDataDiskCount": 1
+        },
+        {
+            "name": "Standard_D2s_v3",
+            "numberOfCores": 2,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 20480,
+            "memoryInMB": 8192,
+            "maxDataDiskCount": 4
+        },
+        {
+            "name": "Standard_F4s",
+            "numberOfCores": 4,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 40960,
+            "memoryInMB": 16384,
+            "maxDataDiskCount": 8
+        },
+        {
+            "name": "Standard_DS1_v2",
+            "numberOfCores": 1,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 10240,
+            "memoryInMB": 3584,
+            "maxDataDiskCount": 2
+        },
+        {
+            "name": "Standard_E2s_v4",
+            "numberOfCores": 2,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 20480,
+            "memoryInMB": 8192,
+            "maxDataDiskCount": 4
+        },
+        {
+            "name": "Standard_G1",
+            "numberOfCores": 2,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 51200,
+            "memoryInMB": 8192,
+            "maxDataDiskCount": 8
+        },
+        {
+            "name": "Standard_H8",
+            "numberOfCores": 8,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 102400,
+            "memoryInMB": 65536,
+            "maxDataDiskCount": 16
+        },
+        {
+            "name": "Standard_A4m_v2",
+            "numberOfCores": 4,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 40960,
+            "memoryInMB": 16384,
+            "maxDataDiskCount": 8
+        },
+        {
+            "name": "Standard_NC6",
+            "numberOfCores": 6,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 81920,
+            "memoryInMB": 57344,
+            "maxDataDiskCount": 12
+        },
+        {
+            "name": "Standard_NV12",
+            "numberOfCores": 12,
+            "osDiskSizeInMB": 1047552,
+            "resourceDiskSizeInMB": 102400,
+            "memoryInMB": 57344,
+            "maxDataDiskCount": 24
         }
-    ]
+    ]    
 }
