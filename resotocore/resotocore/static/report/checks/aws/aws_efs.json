@@ -5,7 +5,7 @@
         {
             "name": "storage_encrypted",
             "title": "Check if EFS protects sensitive data with encryption at rest",
-            "result_kind": "aws_efs_file_system",
+            "result_kinds": ["aws_efs_file_system"],
             "categories": ["security", "compliance"],
             "risk": "EFS should be encrypted at rest to prevent exposure of sensitive data to bad actors",
             "severity": "medium",
