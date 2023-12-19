@@ -207,8 +207,10 @@ class AwsAccountCollector:
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AwsResource):
-                    if isinstance(node, AwsAccount):
+                if isinstance(node, (AwsResource, Cloud)):
+                    if isinstance(node, Cloud):
+                        continue
+                    elif isinstance(node, AwsAccount):
                         pass
                     elif isinstance(node, AwsRegion):
                         global_builder.add_edge(self.account, EdgeType.default, node=node)
@@ -332,8 +334,8 @@ class AwsAccountCollector:
             def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]) -> None:
                 accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
                 for account in accounts:
-                    from_node = ByNodeId(value=parent.chksum)
-                    to_node = BySearchCriteria(query=f"is(aws_account) and id == {account['Id']}")
+                    from_node = BySearchCriteria(query=f'is({parent.kind}) and arn = "{parent.arn}"')
+                    to_node = BySearchCriteria(query=f"is(aws_account) and id = {account['Id']}")
                     self.graph.add_deferred_edge(from_node, to_node)
 
             log.debug(f"Creating organization graph for {self.account.rtdname}")
@@ -344,10 +346,7 @@ class AwsAccountCollector:
                     name=root["Name"],
                     arn=root["Arn"],
                 )
-                self.graph.add_node(r)
-                from_node = BySearchCriteria(query=f"is(cloud) and id == {self.cloud.id}")
-                to_node = ByNodeId(value=r.chksum)
-                self.graph.add_deferred_edge(from_node, to_node)
+                self.graph.add_resource(self.cloud, r)
                 add_ou_and_children(r)
                 add_accounts(r)
 
