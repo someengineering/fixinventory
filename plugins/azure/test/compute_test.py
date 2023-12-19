@@ -134,6 +134,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureVirtualMachine, AzureNetworkInterface)) == 1
     assert len(builder.edges_of(AzureNetworkSecurityGroup, AzureVirtualMachine)) == 1
     assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureVirtualMachine, AzureVirtualMachineSize)) == 2
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:

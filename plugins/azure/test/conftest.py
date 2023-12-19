@@ -96,8 +96,10 @@ def builder(
         executor=executor_queue,
         core_feedback=core_feedback,
     )
-    location = AzureLocation(id="westeurope", display_name="West Europe")
-    builder.location_lookup = {"westeurope": location}
+    location_west = AzureLocation(id="westeurope", display_name="West Europe", name="westeurope")
+    location_east = AzureLocation(id="eastus", display_name="East US", name="eastus")
+    builder.location_lookup = {"westeurope": location_west, "eastus": location_east}
+    builder.location = location_east
     return builder
 
 

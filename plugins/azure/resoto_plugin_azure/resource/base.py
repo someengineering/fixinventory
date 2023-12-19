@@ -4,7 +4,7 @@ import logging
 from concurrent.futures import Future
 from datetime import datetime
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Tuple, Type, Callable, Union, cast
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
 from attr import define, field
 from azure.core.utils import CaseInsensitiveDict
@@ -133,40 +133,6 @@ class AzureResource(BaseResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace
         pass
-
-    def fetch_resources(
-        self,
-        builder: GraphBuilder,
-        service: str,
-        api_version: str,
-        path: str,
-        path_parameters: List[str],
-        query_parameters: List[str],
-        first_property: Callable[[Json], Union[List[str], str]],
-        second_property: Callable[[Json], Union[List[str], str]],
-    ) -> List[Tuple[Union[str, List[str]], Union[str, List[str]]]]:
-        """
-        Fetch additional resources from the Azure API.
-        Can used for further connection using the connect_in_graph method.
-
-        Parameters:
-        - first_property: Compared property.
-        - second_property: Binding property | Compared property.
-
-        Returns:
-        List[Tuple[Union[str, List[str]], Union[str, List[str]]]]: A list of tuples containing information to compare and connect the retrieved resources.
-        """
-        resources_api_spec = AzureApiSpec(
-            service=service,
-            version=api_version,
-            path=path,
-            path_parameters=path_parameters,
-            query_parameters=query_parameters,
-            access_path="value",
-            expect_array=True,
-        )
-
-        return [(first_property(r), second_property(r)) for r in builder.client.list(resources_api_spec)]
 
     @classmethod
     def collect_resources(

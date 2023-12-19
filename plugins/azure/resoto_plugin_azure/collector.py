@@ -115,9 +115,7 @@ class AzureSubscriptionCollector:
                 pred = list(self.graph.predecessors(node))
                 if ignore_kinds is not None:
                     pred = [p for p in pred if not isinstance(p, ignore_kinds)]
-
                 if not pred:
-                    remove_nodes.extend(pred)
                     remove_nodes.append(node)
             removed = set()
             for node in remove_nodes:
