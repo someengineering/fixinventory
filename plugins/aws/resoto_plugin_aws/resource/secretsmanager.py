@@ -9,6 +9,8 @@ from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
 
+service_name = "secretsmanager"
+
 
 @define(eq=False, slots=False)
 class AwsSecretsManagerRotationRulesType:
@@ -26,7 +28,7 @@ class AwsSecretsManagerRotationRulesType:
 @define(eq=False, slots=False)
 class AwsSecretsManagerSecret(AwsResource):
     kind: ClassVar[str] = "aws_secrets_manager_secret"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("secretsmanager", "list-secrets", "SecretList")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),
