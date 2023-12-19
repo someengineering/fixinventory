@@ -44,7 +44,7 @@ from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, A
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph, ByNodeId, BySearchCriteria
+from resotolib.graph import Graph, BySearchCriteria
 from resotolib.proc import set_thread_name
 from resotolib.threading import ExecutorQueue, GatherFutures
 from resotolib.types import Json
