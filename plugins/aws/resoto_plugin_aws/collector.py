@@ -218,6 +218,7 @@ class AwsAccountCollector:
                         global_builder.add_edge(self.account, EdgeType.default, node=node)
                     node.connect_in_graph(global_builder, data.get("source", {}))
                 else:
+                    log.error(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
             # wait for all futures to finish
@@ -324,14 +325,13 @@ class AwsAccountCollector:
                         id=organizational_unit["Id"],
                         name=organizational_unit["Name"],
                         arn=organizational_unit["Arn"],
-                        cloud=self.cloud,
                     )
                     log.debug(f"Adding OU {ou} to graph")
                     self.graph.add_resource(parent, ou)
                     add_ou_and_children(ou)
                     add_accounts(ou)
 
-            def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]):
+            def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]) -> None:
                 log.debug(f"Looking up accounts for parent {parent}")
                 accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
                 for account in accounts:
@@ -347,10 +347,13 @@ class AwsAccountCollector:
                     id=root["Id"],
                     name=root["Name"],
                     arn=root["Arn"],
-                    cloud=self.cloud,
                 )
                 log.debug(f"Adding root {r} to graph")
-                self.graph.add_resource(self.cloud, r)
+                self.graph.add_node(r)
+                from_node = BySearchCriteria(query=f"is(cloud) and id == {self.cloud.id}")
+                to_node = ByNodeId(value=r.chksum)
+                log.debug(f"Adding deferred edge from {from_node} to {to_node}")
+                self.graph.add_deferred_edge(from_node, to_node)
                 add_ou_and_children(r)
                 add_accounts(r)
 
