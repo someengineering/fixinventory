@@ -5,7 +5,7 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  #  pip install beautifulsoup4 lxml
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 from jsons import pascalcase
 
@@ -713,6 +713,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Alb",
         # ),
     ],
+    "ecr": [
+        # AwsResotoModel("describe-repositories", "repositories", "Repository", prefix="Ecr"),
+        AwsResotoModel("describe-images", "images", "Image", prefix="Ecr"),
+    ],
     "eks": [
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
@@ -991,19 +995,14 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "ssm": [
-        AwsResotoModel(
-            "describe-instance-information",
-            "InstanceInformationList",
-            "InstanceInformation",
-            prefix="SSM",
-        ),
+        # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
     ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("ssm", "describe-instance-information"), indent=2))
+    print(json.dumps(create_test_response("ecr", "describe-repositories"), indent=2))
 
     """print the class models"""
     # print(default_imports())

@@ -38,6 +38,7 @@ from resoto_plugin_aws.resource import (
     sns,
     sqs,
     ssm,
+    ecr,
 )
 from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
@@ -76,6 +77,7 @@ regional_resources: List[Type[AwsResource]] = (
     + ec2.resources
     + efs.resources
     + ecs.resources
+    + ecr.resources
     + eks.resources
     + elasticbeanstalk.resources
     + elasticache.resources
