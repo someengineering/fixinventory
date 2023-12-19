@@ -37,6 +37,7 @@ from resoto_plugin_aws.resource import (
     service_quotas,
     sns,
     sqs,
+    ssm,
 )
 from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
@@ -87,6 +88,7 @@ regional_resources: List[Type[AwsResource]] = (
     + rds.resources
     + service_quotas.resources
     + sns.resources
+    + ssm.resources
     + sqs.resources
     + redshift.resources
 )

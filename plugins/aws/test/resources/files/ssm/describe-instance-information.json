@@ -1,0 +1,56 @@
+{
+    "InstanceInformationList": [
+        {
+            "InstanceId": "i-1",
+            "PingStatus": "ConnectionLost",
+            "LastPingDateTime": "2023-12-18T16:47:45Z",
+            "AgentVersion": "foo",
+            "IsLatestVersion": true,
+            "PlatformType": "Linux",
+            "PlatformName": "foo",
+            "PlatformVersion": "foo",
+            "ActivationId": "foo",
+            "IamRole": "foo",
+            "RegistrationDate": "2023-12-18T16:47:45Z",
+            "ResourceType": "EC2Instance",
+            "Name": "foo",
+            "IPAddress": "foo",
+            "ComputerName": "foo",
+            "AssociationStatus": "foo",
+            "LastAssociationExecutionDate": "2023-12-18T16:47:45Z",
+            "LastSuccessfulAssociationExecutionDate": "2023-12-18T16:47:45Z",
+            "AssociationOverview": {
+                "DetailedStatus": "foo",
+                "InstanceAssociationStatusAggregatedCount": {
+                    "0": 123,
+                    "1": 123,
+                    "2": 123
+                }
+            },
+            "SourceId": "foo",
+            "SourceType": "AWS::IoT::Thing"
+        },
+        {
+            "AgentVersion": "2.3.871.0",
+            "AssociationOverview": {
+                "DetailedStatus": "Failed",
+                "InstanceAssociationStatusAggregatedCount": {
+                    "Failed": 1,
+                    "Success": 1
+                }
+            },
+            "AssociationStatus": "Failed",
+            "ComputerName": "WIN-11RMS222RPK.WORKGROUP",
+            "IPAddress": "203.0.113.0",
+            "InstanceId": "i-123",
+            "IsLatestVersion": false,
+            "LastAssociationExecutionDate": 1582242019,
+            "LastPingDateTime": 1582242018.094,
+            "PingStatus": "Online",
+            "PlatformName": "Microsoft Windows Server 2008 R2 Datacenter",
+            "PlatformType": "Windows",
+            "PlatformVersion": "6.1.7601",
+            "ResourceType": "EC2Instance"
+        }
+    ]
+}

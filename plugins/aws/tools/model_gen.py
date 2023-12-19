@@ -5,6 +5,7 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
+from bs4 import BeautifulSoup
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 from jsons import pascalcase
 
@@ -25,7 +26,8 @@ class AwsProperty:
 
     def assignment(self) -> str:
         default = self.field_default or ("factory=list" if self.is_array else "default=None")
-        return f"field({default})"
+        description = BeautifulSoup(self.description, "lxml").get_text().strip()
+        return f'field({default}, metadata={{"description": "{description}"}})  # fmt: skip'
 
     def type_string(self) -> str:
         if self.is_array:
@@ -988,15 +990,23 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="configuration_recorder_",
         # ),
     ],
+    "ssm": [
+        AwsResotoModel(
+            "describe-instance-information",
+            "InstanceInformationList",
+            "InstanceInformation",
+            prefix="SSM",
+        ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("logs", "describe-log-groups"), indent=2))
+    print(json.dumps(create_test_response("ssm", "describe-instance-information"), indent=2))
 
     """print the class models"""
     # print(default_imports())
     for model in all_models():
-        # pass
-        print(model.to_class())
+        pass
+        # print(model.to_class())
