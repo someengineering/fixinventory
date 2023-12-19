@@ -1,6 +1,7 @@
 import logging
+from attrs import define
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Type, Optional
+from typing import List, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
 
 from resoto_plugin_aws.aws_client import AwsClient, ErrorAccumulator
@@ -43,7 +44,7 @@ from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, A
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph
+from resotolib.graph import Graph, ByNodeId, BySearchCriteria
 from resotolib.proc import set_thread_name
 from resotolib.threading import ExecutorQueue, GatherFutures
 from resotolib.types import Json
@@ -302,3 +303,73 @@ class AwsAccountCollector:
                 self.account.organization_arn = org.get("Arn")
         except Exception as e:
             log.warning(f"Error getting organization information: {e}")
+
+        def create_org_graph():
+            def add_ou_and_children(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]):
+                child_ous = self.client.list(
+                    "organizations", "list_organizational_units_for_parent", "OrganizationalUnits", ParentId=parent.id
+                )
+                for child_ou in child_ous:
+                    log.debug(f"Looking up OU {child_ou} for parent {parent}")
+                    organizational_unit = self.client.get(
+                        "organizations",
+                        "describe_organizational_unit",
+                        "OrganizationalUnit",
+                        OrganizationalUnitId=child_ou["Id"],
+                    )
+                    if not organizational_unit:
+                        log.warning(f"Could not find OU {child_ou} for parent {parent}")
+                        continue
+                    ou = AwsOrganizationalUnit(
+                        id=organizational_unit["Id"],
+                        name=organizational_unit["Name"],
+                        arn=organizational_unit["Arn"],
+                        cloud=self.cloud,
+                    )
+                    log.debug(f"Adding OU {ou} to graph")
+                    self.graph.add_resource(parent, ou)
+                    add_ou_and_children(ou)
+                    add_accounts(ou)
+
+            def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]):
+                log.debug(f"Looking up accounts for parent {parent}")
+                accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
+                for account in accounts:
+                    from_node = ByNodeId(value=parent.chksum)
+                    to_node = BySearchCriteria(query=f"is(aws_account) and id == {account['Id']}")
+                    log.debug(f"Adding deferred edge from {from_node} to {to_node}")
+                    self.graph.add_deferred_edge(from_node, to_node)
+
+            log.debug(f"Creating organization graph for {self.account.rtdname}")
+            roots = self.client.list("organizations", "list_roots", "Roots")
+            for root in roots:
+                r = AwsOrganizationalRoot(
+                    id=root["Id"],
+                    name=root["Name"],
+                    arn=root["Arn"],
+                    cloud=self.cloud,
+                )
+                log.debug(f"Adding root {r} to graph")
+                self.graph.add_resource(self.cloud, r)
+                add_ou_and_children(r)
+                add_accounts(r)
+
+        if self.account.is_organization_master:
+            try:
+                create_org_graph()
+            except Exception as e:
+                log.exception(f"Error creating organization graph: {e}")
+
+
+@define(eq=False, slots=False)
+class AwsOrganizationalRoot(AwsResource):
+    kind: ClassVar[str] = "aws_organizational_root"
+    kind_display: ClassVar[str] = "AWS Organizational Root"
+    kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
+
+
+@define(eq=False, slots=False)
+class AwsOrganizationalUnit(AwsResource):
+    kind: ClassVar[str] = "aws_organizational_unit"
+    kind_display: ClassVar[str] = "AWS Organizational Unit"
+    kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
