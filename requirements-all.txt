@@ -90,7 +90,7 @@ oauthlib==3.2.2
 onelogin==2.0.4
 ordered-set==4.1.0
 packaging==23.2
-paramiko==3.3.1
+paramiko==3.4.0
 parsy==2.1
 pathspec==0.12.1
 pep8-naming==0.13.3
