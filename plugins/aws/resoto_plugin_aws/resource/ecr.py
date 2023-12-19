@@ -31,14 +31,14 @@ class AwsEcrRepository(AwsResource):
         "registry_id": S("registryId"),
         "repository_uri": S("repositoryUri"),
         "image_tag_mutability": S("imageTagMutability"),
-        "image_scanning_configuration": S("imageScanningConfiguration", "scanOnPush"),
+        "image_scan_on_push": S("imageScanningConfiguration", "scanOnPush"),
         "encryption_configuration": S("encryptionConfiguration") >> Bend(AwsEcrEncryptionConfiguration.mapping),
     }
     repository_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) that identifies the repository. The ARN contains the arn:aws:ecr namespace, followed by the region of the repository, Amazon Web Services account ID of the repository owner, repository namespace, and repository name. For example, arn:aws:ecr:region:012345678910:repository-namespace/repository-name."})  # fmt: skip
     registry_id: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account ID associated with the registry that contains the repository."})  # fmt: skip
     repository_uri: Optional[str] = field(default=None, metadata={"description": "The URI for the repository. You can use this URI for container image push and pull operations."})  # fmt: skip
     image_tag_mutability: Optional[str] = field(default=None, metadata={"description": "The tag mutability setting for the repository."})  # fmt: skip
-    image_scanning_configuration: Optional[bool] = field(default=None, metadata={"description": "The image scanning configuration for a repository."})  # fmt: skip
+    image_scan_on_push: Optional[bool] = field(default=None, metadata={"description": "The image is scanned on every push."})  # fmt: skip
     encryption_configuration: Optional[AwsEcrEncryptionConfiguration] = field(default=None, metadata={"description": "The encryption configuration for the repository. This determines how the contents of your repository are encrypted at rest."})  # fmt: skip
 
 

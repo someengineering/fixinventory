@@ -715,7 +715,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ecr": [
         # AwsResotoModel("describe-repositories", "repositories", "Repository", prefix="Ecr"),
-        AwsResotoModel("describe-images", "images", "Image", prefix="Ecr"),
+        # AwsResotoModel("describe-images", "images", "Image", prefix="Ecr"),
     ],
     "eks": [
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
@@ -997,12 +997,16 @@ models: Dict[str, List[AwsResotoModel]] = {
     "ssm": [
         # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
     ],
+    "secretsmanager": [
+        # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),
+        # AwsResotoModel("list-secrets", "SecretList", "SecretVersionStagesType", prefix="SecretsManager"),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("ecr", "describe-repositories"), indent=2))
+    print(json.dumps(create_test_response("secretsmanager", "list-secrets"), indent=2))
 
     """print the class models"""
     # print(default_imports())

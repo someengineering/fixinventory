@@ -39,6 +39,7 @@ from resoto_plugin_aws.resource import (
     sqs,
     ssm,
     ecr,
+    secretsmanager,
 )
 from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
@@ -88,6 +89,7 @@ regional_resources: List[Type[AwsResource]] = (
     + kms.resources
     + lambda_.resources
     + rds.resources
+    + secretsmanager.resources
     + service_quotas.resources
     + sns.resources
     + ssm.resources
