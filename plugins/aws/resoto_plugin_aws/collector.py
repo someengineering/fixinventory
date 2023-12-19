@@ -44,7 +44,7 @@ from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, A
 from resotolib.baseresources import Cloud, EdgeType
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph, BySearchCriteria
+from resotolib.graph import Graph, BySearchCriteria, ByNodeId
 from resotolib.proc import set_thread_name
 from resotolib.threading import ExecutorQueue, GatherFutures
 from resotolib.types import Json
@@ -326,6 +326,7 @@ class AwsAccountCollector:
                         id=organizational_unit["Id"],
                         name=organizational_unit["Name"],
                         arn=organizational_unit["Arn"],
+                        cloud=self.cloud,
                     )
                     self.graph.add_resource(parent, ou)
                     add_ou_and_children(ou)
@@ -334,7 +335,7 @@ class AwsAccountCollector:
             def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]) -> None:
                 accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
                 for account in accounts:
-                    from_node = BySearchCriteria(query=f'is({parent.kind}) and arn = "{parent.arn}"')
+                    from_node = ByNodeId(value=parent.chksum)
                     to_node = BySearchCriteria(query=f"is(aws_account) and id = {account['Id']}")
                     self.graph.add_deferred_edge(from_node, to_node)
 
@@ -345,6 +346,7 @@ class AwsAccountCollector:
                     id=root["Id"],
                     name=root["Name"],
                     arn=root["Arn"],
+                    cloud=self.cloud,
                 )
                 self.graph.add_resource(self.cloud, r)
                 add_ou_and_children(r)
