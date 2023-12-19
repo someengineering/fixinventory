@@ -304,8 +304,8 @@ class AwsAccountCollector:
         except Exception as e:
             log.warning(f"Error getting organization information: {e}")
 
-        def create_org_graph():
-            def add_ou_and_children(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]):
+        def create_org_graph() -> None:
+            def add_ou_and_children(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]) -> None:
                 child_ous = self.client.list(
                     "organizations", "list_organizational_units_for_parent", "OrganizationalUnits", ParentId=parent.id
                 )
