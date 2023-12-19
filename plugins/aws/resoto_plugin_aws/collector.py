@@ -311,7 +311,6 @@ class AwsAccountCollector:
                     "organizations", "list_organizational_units_for_parent", "OrganizationalUnits", ParentId=parent.id
                 )
                 for child_ou in child_ous:
-                    log.debug(f"Looking up OU {child_ou} for parent {parent}")
                     organizational_unit = self.client.get(
                         "organizations",
                         "describe_organizational_unit",
@@ -326,18 +325,15 @@ class AwsAccountCollector:
                         name=organizational_unit["Name"],
                         arn=organizational_unit["Arn"],
                     )
-                    log.debug(f"Adding OU {ou} to graph")
                     self.graph.add_resource(parent, ou)
                     add_ou_and_children(ou)
                     add_accounts(ou)
 
             def add_accounts(parent: Union[AwsOrganizationalRoot, AwsOrganizationalUnit]) -> None:
-                log.debug(f"Looking up accounts for parent {parent}")
                 accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
                 for account in accounts:
                     from_node = ByNodeId(value=parent.chksum)
                     to_node = BySearchCriteria(query=f"is(aws_account) and id == {account['Id']}")
-                    log.debug(f"Adding deferred edge from {from_node} to {to_node}")
                     self.graph.add_deferred_edge(from_node, to_node)
 
             log.debug(f"Creating organization graph for {self.account.rtdname}")
@@ -348,11 +344,9 @@ class AwsAccountCollector:
                     name=root["Name"],
                     arn=root["Arn"],
                 )
-                log.debug(f"Adding root {r} to graph")
                 self.graph.add_node(r)
                 from_node = BySearchCriteria(query=f"is(cloud) and id == {self.cloud.id}")
                 to_node = ByNodeId(value=r.chksum)
-                log.debug(f"Adding deferred edge from {from_node} to {to_node}")
                 self.graph.add_deferred_edge(from_node, to_node)
                 add_ou_and_children(r)
                 add_accounts(r)
