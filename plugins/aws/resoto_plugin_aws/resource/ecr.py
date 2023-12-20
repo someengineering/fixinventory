@@ -1,10 +1,9 @@
-from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
-from resoto_plugin_aws.utils import TagsValue, ToDict
+from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend
 
 service_name = "ecs"
