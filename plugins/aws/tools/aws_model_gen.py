@@ -5,7 +5,7 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
-from bs4 import BeautifulSoup  #  pip install beautifulsoup4 lxml
+from bs4 import BeautifulSoup  # pip install beautifulsoup4 lxml
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 from jsons import pascalcase
 
