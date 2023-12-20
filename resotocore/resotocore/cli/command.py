@@ -6045,6 +6045,8 @@ class TimeSeriesCommand(CLICommand):
     timeseries snapshot --name <time series> <aggregate search>
     timeseries get --name <time series> --start <time> --end <time> --granularity <duration|integer>
                    --group <group> --filter <var><op><value>
+    timeseries list
+    timeseries downsample
     ```
 
     The timeseries command can be used to add data to a time series or to retrieve data from a time series.
@@ -6057,6 +6059,13 @@ class TimeSeriesCommand(CLICommand):
 
     To retrieve data from a time series, you need to specify the name of the time series, as well as a time range.
     It is possible to group the data by a certain variable, and to filter the data by a certain variable.
+
+    All available timeseries can be retrieved with the `timeseries list` command.
+
+    The `timeseries downsample` command can be used to downsample all time series.
+    See resoto.core db configuration to configure the buckets that are used for downsampling.
+    General idea of downsample: higher resolution and more datapoints for recent data,
+                                lower resolution and less datapoints for older data.
 
     ## Parameters
 
@@ -6076,6 +6085,12 @@ class TimeSeriesCommand(CLICommand):
 
     # retrieve the number of instances per instance type since yesterday
     > timeseries get --name instances --start @yesterday@ --end @now@
+
+    # downsample existing time series
+    > timeseries downsample
+
+    # list all time series
+    > timeseries list
     ```
     """
 
@@ -6088,6 +6103,7 @@ class TimeSeriesCommand(CLICommand):
 
     def args_info(self) -> ArgsInfo:
         return {
+            "list": [],
             "snapshot": [
                 ArgInfo("--name", help_text="<time series>."),
                 ArgInfo(expects_value=True, value_hint="search"),
@@ -6100,6 +6116,7 @@ class TimeSeriesCommand(CLICommand):
                 ArgInfo("--filter", expects_value=True, can_occur_multiple_times=True, help_text="<var><op><value>"),
                 ArgInfo("--granularity", expects_value=True, help_text="<duration|integer>"),
             ],
+            "downsample": [],
         }
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
@@ -6135,6 +6152,19 @@ class TimeSeriesCommand(CLICommand):
             )
             return CLISourceContext(cursor.count(), cursor.full_count()), cursor
 
+        async def list_ts() -> Tuple[int, JsGen]:
+            ts = await self.dependencies.db_access.time_series_db.list_time_series()
+            return len(ts), stream.iterate([to_js(a) for a in ts])
+
+        async def downsample() -> Tuple[int, JsGen]:
+            ts = await self.dependencies.db_access.time_series_db.downsample()
+            if isinstance(ts, str):
+                return 1, stream.just(ts)
+            elif ts:
+                return len(ts), stream.iterate([{k: v} for k, v in ts.items()])
+            else:
+                return 1, stream.just("No time series to downsample.")
+
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "snapshot":
             return CLISource.single(
@@ -6142,6 +6172,10 @@ class TimeSeriesCommand(CLICommand):
             )
         elif arg and len(args) == 2 and args[0] == "get":
             return CLISource(partial(load_time_series, args[1].strip()), required_permissions={Permission.read})
+        elif arg and len(args) == 1 and args[0] == "list":
+            return CLISource.only_count(list_ts, required_permissions={Permission.read})
+        elif arg and len(args) == 1 and args[0] == "downsample":
+            return CLISource.only_count(downsample, required_permissions={Permission.read})
         else:
             return CLISource.single(
                 lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}

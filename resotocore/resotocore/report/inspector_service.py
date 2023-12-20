@@ -136,7 +136,7 @@ class InspectorService(Inspector, Service):
                 (provider is None or provider == inspection.provider)
                 and (service is None or service == inspection.service)
                 and (category is None or category in inspection.categories)
-                and (kind is None or kind == inspection.result_kind)
+                and (kind is None or kind in inspection.result_kinds)
                 and (check_ids is None or inspection.id in check_ids)
                 and (context is None or context.includes_severity(inspection.severity))
             )
@@ -285,9 +285,6 @@ class InspectorService(Inspector, Service):
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(config)
         account_id_prop = "ancestors.account.reported.id"
-        # if the result kind is an account, we need to use the id directly instead of walking the graph
-        if (result_kind := model.get(inspection.result_kind)) and "account" in result_kind.kind_hierarchy():
-            account_id_prop = "reported.id"
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
@@ -374,11 +371,8 @@ class InspectorService(Inspector, Service):
         self, graph: GraphName, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
     ) -> SingleCheckResult:
         resources_by_account = defaultdict(list)
-        # if the result kind is an account, we need to use the id directly instead of walking the graph
-        is_account = (rk := model.get(inspection.result_kind)) and "account" in rk.kind_hierarchy()
-        account_id_path = NodePath.reported_id if is_account else NodePath.ancestor_account_id
         async for resource in await self.__list_failing_resources(graph, model, inspection, config, context):
-            account_id = value_in_path(resource, account_id_path)
+            account_id = value_in_path(resource, NodePath.ancestor_account_id)
             if account_id:
                 resources_by_account[account_id].append(bend(ReportResourceData, resource))
         return resources_by_account

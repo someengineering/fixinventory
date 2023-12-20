@@ -65,7 +65,7 @@ class ReportCheck:
     provider: str
     service: str
     title: str
-    result_kind: str
+    result_kinds: List[str]
     categories: List[str]
     severity: ReportSeverity
     risk: str
@@ -80,6 +80,8 @@ class ReportCheck:
 
     def to_node(self) -> Json:
         reported = to_js(self)
+        # backward compatibility
+        reported["result_kind"] = self.result_kinds[0]
         return dict(id=self.id, kind="report_check", type="node", reported=reported)
 
 
@@ -153,7 +155,7 @@ class CheckResult:
                 provider=reported["provider"],
                 service=reported["service"],
                 title=reported["title"],
-                result_kind=reported["result_kind"],
+                result_kinds=reported["result_kinds"],
                 categories=reported["categories"],
                 severity=ReportSeverity(reported["severity"]),
                 risk=reported["risk"],

@@ -5,7 +5,7 @@
         {
             "name": "bucket_default_encryption",
             "title": "Check if S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it.",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"
@@ -27,7 +27,7 @@
         {
             "name": "bucket_no_mfa_delete",
             "title": "Check if S3 bucket MFA Delete is not enabled.",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"
@@ -49,7 +49,7 @@
         {
             "name": "bucket_secure_transport_policy",
             "title": "Check if S3 buckets have secure transport policy.",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"
@@ -68,7 +68,7 @@
         {
             "name": "macie_is_enabled",
             "title": "Check if Amazon Macie is enabled.",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"
@@ -87,7 +87,7 @@
         {
             "name": "account_level_public_access_blocks",
             "title": "Check S3 Account Level Public Access Block.",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"

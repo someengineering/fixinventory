@@ -172,6 +172,13 @@ schema_registry.add(
 
 
 @define()
+class TimeSeriesBucketConfig(ConfigObject):
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_timeseries_bucket_config"
+    start: int = field(metadata={"description": "Start of the bucket in seconds."})
+    resolution: int = field(metadata={"description": "Resolution of the bucket in seconds."})
+
+
+@define()
 class DatabaseConfig(ConfigObject):
     kind: ClassVar[str] = f"{ResotoCoreRoot}_database_config"
     server: str = field(
@@ -192,9 +199,6 @@ class DatabaseConfig(ConfigObject):
         default=False, metadata={"description": "If the connection should not be verified (default: False)"}
     )
     request_timeout: int = field(default=900, metadata={"description": "Request timeout in seconds (default: 900)"})
-    time_series_ttl: timedelta = field(
-        default=timedelta(days=90), metadata={"description": "Time series TTL (default: 90d)"}
-    )
 
 
 @define(order=True, hash=True, frozen=True)
@@ -572,6 +576,26 @@ class RunConfig(ConfigObject):
     verify: Union[bool, str, None] = None
 
 
+@define
+class TimeSeriesConfig(ConfigObject):
+    kind: ClassVar[str] = f"{ResotoCoreRoot}_timeseries_config"
+
+    buckets: List[TimeSeriesBucketConfig] = field(
+        factory=lambda: [
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=2).total_seconds()), resolution=int(timedelta(hours=4).total_seconds())
+            ),
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=30).total_seconds()), resolution=int(timedelta(days=1).total_seconds())
+            ),
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=180).total_seconds()), resolution=int(timedelta(days=3).total_seconds())
+            ),
+        ],
+        metadata={"description": "List of time series buckets."},
+    )
+
+
 @define()
 class CoreConfig(ConfigObject):
     api: ApiConfig
@@ -584,6 +608,7 @@ class CoreConfig(ConfigObject):
     snapshots: SnapshotsScheduleConfig
     args: Namespace
     run: RunConfig
+    timeseries: TimeSeriesConfig
 
     @property
     def multi_tenant_setup(self) -> bool:
@@ -595,7 +620,7 @@ class CoreConfig(ConfigObject):
 
     @property
     def editable(self) -> "EditableConfig":
-        return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows)
+        return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows, self.timeseries)
 
     def json(self) -> Json:
         return {ResotoCoreRoot: to_js(self.editable, strip_attr="kind")}
@@ -626,6 +651,10 @@ class EditableConfig(ConfigObject):
     workflows: Dict[str, WorkflowConfig] = field(
         factory=lambda: {"collect_and_cleanup": WorkflowConfig(schedule="0 * * * *")},
         metadata={"description": "Workflow related properties."},
+    )
+    timeseries: TimeSeriesConfig = field(
+        factory=TimeSeriesConfig,
+        metadata={"description": "Time series related properties."},
     )
 
 
@@ -740,6 +769,7 @@ def parse_config(
         runtime=ed.runtime,
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run
+        timeseries=ed.timeseries,
     )
 
 

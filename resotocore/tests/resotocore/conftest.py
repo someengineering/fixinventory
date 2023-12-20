@@ -126,6 +126,7 @@ def default_config() -> CoreConfig:
         snapshots=SnapshotsScheduleConfig(),
         args=parse_args(["--analytics-opt-out"]),
         run=RunConfig(),
+        timeseries=ed.timeseries,
     )
 
 
@@ -212,11 +213,9 @@ async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredOuterEdge
 
 
 @fixture
-async def timeseries_db(async_db: AsyncArangoDB) -> TimeSeriesDB:
-    db = TimeSeriesDB(async_db, "ts", timedelta(hours=1))
+async def timeseries_db(async_db: AsyncArangoDB, default_config: CoreConfig) -> TimeSeriesDB:
+    db = TimeSeriesDB(async_db, "ts", default_config)
     await db.create_update_schema()
-    with suppress(Exception):
-        async_db.db.collection("ts").delete_index("ttl", ignore_missing=True)  # remove index for tests
     return db
 
 
@@ -611,7 +610,7 @@ async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
                         "id": "test_test_some_check",
                         "name": "some_check",
                         "title": "Test",
-                        "result_kind": "foo",
+                        "result_kinds": ["foo"],
                         "categories": [],
                         "risk": "Some risk",
                         "severity": "medium",
