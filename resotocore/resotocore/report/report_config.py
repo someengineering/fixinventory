@@ -34,7 +34,9 @@ class ReportCheckConfig:
         }
     )
     title: str = field(metadata={"description": "Title of the check."})
-    result_kind: str = field(metadata={"description": "Resulting kind this check will emit. Example: aws_ec2_instance"})
+    result_kinds: List[str] = field(
+        metadata={"description": "Resulting kind this check will emit. Example: aws_ec2_instance"}
+    )
     categories: List[str] = field(metadata={"description": "Categories of the check. Example: ['security', 'cost']"})
     severity: ReportSeverity = field(metadata={"description": "Severity of the check."})
     risk: str = field(metadata={"description": "What is the risk associated with related resources."})
@@ -86,6 +88,9 @@ class ReportCheckCollectionConfig:
             cr["provider"] = pdr
             cr["service"] = svc
             cr["id"] = f"{pdr}_{svc}_{check['name']}"
+            # handle legacy result_kind
+            if "result_kind" in cr and "result_kinds" not in cr:
+                cr["result_kinds"] = [cr.pop("result_kind")]
             return from_js(cr, ReportCheck)
 
         pdr = js["provider"]

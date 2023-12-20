@@ -610,7 +610,7 @@ async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
                         "id": "test_test_some_check",
                         "name": "some_check",
                         "title": "Test",
-                        "result_kind": "foo",
+                        "result_kinds": ["foo"],
                         "categories": [],
                         "risk": "Some risk",
                         "severity": "medium",

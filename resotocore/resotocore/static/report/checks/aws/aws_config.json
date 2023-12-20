@@ -5,7 +5,7 @@
         {
             "name": "enabled_in_all_regions",
             "title": "Ensure AWS Config is enabled in all regions.",
-            "result_kind": "aws_region",
+            "result_kinds": ["aws_region"],
             "categories": ["security", "compliance"],
             "risk": "The AWS configuration item history captured by AWS Config enables security analysis, resource change tracking and compliance auditing.",
             "severity": "medium",

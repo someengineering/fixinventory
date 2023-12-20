@@ -5,7 +5,7 @@
         {
             "name": "logging_in_all_regions_enabled",
             "title": "Ensure CloudTrail is enabled and set up for logging in all regions",
-            "result_kind": "aws_region",
+            "result_kinds": ["aws_region"],
             "categories": [
                 "security",
                 "compliance"
@@ -23,7 +23,7 @@
         {
             "name": "log_file_validation_enabled",
             "title": "Ensure CloudTrail log file validation is enabled",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -41,7 +41,7 @@
         {
             "name": "logs_s3_bucket_is_not_publicly_accessible",
             "title": "Ensure the S3 bucket CloudTrail logs is not publicly accessible",
-            "result_kind": "aws_s3_bucket",
+            "result_kinds": ["aws_s3_bucket"],
             "categories": [
                 "security",
                 "compliance"
@@ -59,7 +59,7 @@
         {
             "name": "no_logging_enabled",
             "title": "Ensure CloudTrail has logging enabled",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -77,7 +77,7 @@
         {
             "name": "no_recent_log_event",
             "title": "Ensure CloudTrail has log events in the configured duration",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -98,7 +98,7 @@
         {
             "name": "s3_bucket_logging_enabled",
             "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -116,7 +116,7 @@
         {
             "name": "uses_encryption_at_rest",
             "title": "Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -134,7 +134,7 @@
         {
             "name": "s3_data_events_write_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for write events is enabled in CloudTrail.",
-            "result_kind": "aws_region",
+            "result_kinds": ["aws_region"],
             "categories": [
                 "security",
                 "compliance"
@@ -152,7 +152,7 @@
         {
             "name": "s3_data_events_read_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for read events is enabled in CloudTrail.",
-            "result_kind": "aws_region",
+            "result_kinds": ["aws_region"],
             "categories": [
                 "security",
                 "compliance"
@@ -170,7 +170,7 @@
         {
             "name": "log_metric_filters_unauthorized_api_calls",
             "title": "Ensure a log metric filter and alarm exist for unauthorized API calls.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -188,7 +188,7 @@
         {
             "name": "log_metric_filters_sign_in_without_mfa",
             "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -206,7 +206,7 @@
         {
             "name": "log_metric_filters_console_login_no_mfa",
             "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -224,7 +224,7 @@
         {
             "name": "log_metric_filters_root_account_usage",
             "title": "Ensure a log metric filter and alarm exist for usage of root account.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -242,7 +242,7 @@
         {
             "name": "log_metric_filters_iam_policy_changes",
             "title": "Ensure a log metric filter and alarm exist for IAM policy changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -260,7 +260,7 @@
         {
             "name": "log_metric_filters_cloud_trail_configuration_changes",
             "title": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -278,7 +278,7 @@
         {
             "name": "log_metric_filters_authentication_failures",
             "title": "Ensure a log metric filter and alarm exist for AWS Management Console authentication failures.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -296,7 +296,7 @@
         {
             "name": "log_metric_filters_kms_key_deletion",
             "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer created KMS CMKs.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -314,7 +314,7 @@
         {
             "name": "log_metric_filters_s3_bucket_policy_changes",
             "title": "Ensure a log metric filter and alarm exist for S3 bucket policy changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -332,7 +332,7 @@
         {
             "name": "log_metric_filters_config_configuration_changes",
             "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -350,7 +350,7 @@
         {
             "name": "log_metric_filters_security_group_changes",
             "title": "Ensure a log metric filter and alarm exist for security group changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -368,7 +368,7 @@
         {
             "name": "log_metric_filters_network_acl_changes",
             "title": "Ensure a log metric filter and alarm exist for changes to Network Access Control Lists (NACL).",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -386,7 +386,7 @@
         {
             "name": "log_metric_filters_network_gateway_changes",
             "title": "Ensure a log metric filter and alarm exist for changes to network gateways.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -404,7 +404,7 @@
         {
             "name": "log_metric_filters_route_table_changes",
             "title": "Ensure a log metric filter and alarm exist for route table changes",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -422,7 +422,7 @@
         {
             "name": "log_metric_filters_vpc_changes",
             "title": "Ensure a log metric filter and alarm exist for VPC changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -440,7 +440,7 @@
         {
             "name": "log_metric_filters_aws_org_changes",
             "title": "Ensure a log metric filter and alarm exist for AWS Organizations changes.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"
@@ -458,7 +458,7 @@
         {
             "name": "security_hub_enabled",
             "title": "Check if Security Hub is enabled and its standard subscriptions.",
-            "result_kind": "aws_cloud_trail",
+            "result_kinds": ["aws_cloud_trail"],
             "categories": [
                 "security",
                 "compliance"

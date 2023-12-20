@@ -80,8 +80,9 @@ def render_check_result(check_result: CheckResult, account: str) -> str:
     failed = account in check_result.number_of_resources_failing_by_account
     result = f"- {cross_mark if failed else check_mark} **{check.severity.name}**: {check.title}\n\n"
     if failed:
+        kinds = ", ".join(f"`{k}`" for k in check.result_kinds)
         result += f"  - Risk: {check.risk}\n\n"
-        result += f"  - There are {check_result.number_of_resources_failing_by_account[account]} `{check.result_kind}` "
+        result += f"  - There are {check_result.number_of_resources_failing_by_account[account]} {kinds} "
         result += "resources failing this check.\n\n"
         result += (
             f"  - Remediation: {check.remediation.text}. See [Link]({check.remediation.url}) for more details.\n\n"
