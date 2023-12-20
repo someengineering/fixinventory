@@ -6165,7 +6165,7 @@ class DetectSecretsCommand(CLICommand):
 
     ## Parameters
 
-    - `--path` - The property path to check on every incoming element.
+    - `--path` - The property path to check on every incoming element. Can be defined multiple times.
     - `--with-secrets` - Filter elements to only pass if a secret has been detected.
 
     ## Examples
@@ -6193,7 +6193,10 @@ class DetectSecretsCommand(CLICommand):
         return "detect-secrets"
 
     def args_info(self) -> ArgsInfo:
-        return [ArgInfo("--path", expects_value=True, value_hint="property"), ArgInfo("--with-secrets")]
+        return [
+            ArgInfo("--path", expects_value=True, value_hint="property", can_occur_multiple_times=True),
+            ArgInfo("--with-secrets"),
+        ]
 
     def info(self) -> str:
         return "Detect secrets in resources or strings"
@@ -6211,7 +6214,13 @@ class DetectSecretsCommand(CLICommand):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         parser = NoExitArgumentParser()
-        parser.add_argument("--path", type=lambda x: PropertyPath.from_string(ctx.variable_in_section(x)))
+        parser.add_argument(
+            "--path",
+            type=lambda x: PropertyPath.from_string(ctx.variable_in_section(x)),
+            nargs="*",
+            default=[],
+            action="append",
+        )
         parser.add_argument("--with-secrets", action="store_true")
         parsed = parser.parse_args(args_parts_unquoted_parser.parse(arg) if arg else [])
 
@@ -6232,22 +6241,25 @@ class DetectSecretsCommand(CLICommand):
             self.configure_detect()  # make sure all plugins are loaded
             async with content.stream() as in_stream:
                 async for element in in_stream:
-                    path = parsed.path or (PropertyPath.from_list([ctx.section]) if is_node(element) else EmptyPath)
-                    to_check_js = element if path is None else path.value_in(element)
-                    if to_check_js:
-                        found_secrets = False
-                        for secret_string, possible_secret in walk_element(to_check_js):
-                            found_secrets = True
-                            if isinstance(element, dict):
-                                element["info"] = {
-                                    "secret_detected": True,
-                                    "potential_secret": secret_string,
-                                    "secret_type": possible_secret.type,
-                                }
-                            yield element
-                            break
-                        if not found_secrets and not parsed.with_secrets:
-                            yield element
+                    paths = [p for pl in parsed.path for p in pl]
+                    paths = paths or [PropertyPath.from_list([ctx.section]) if is_node(element) else EmptyPath]
+                    found_secrets = False
+                    for path in paths:
+                        if to_check_js := path.value_in(element):
+                            for secret_string, possible_secret in walk_element(to_check_js):
+                                found_secrets = True
+                                if isinstance(element, dict):
+                                    element["info"] = {
+                                        "secret_detected": True,
+                                        "potential_secret": secret_string,
+                                        "secret_type": possible_secret.type,
+                                    }
+                                yield element
+                                break
+                        if found_secrets:
+                            break  # no need to check other paths
+                    if not found_secrets and not parsed.with_secrets:
+                        yield element
 
         return CLIFlow(detect_secrets_in)
 
