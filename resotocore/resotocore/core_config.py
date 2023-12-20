@@ -582,9 +582,15 @@ class TimeSeriesConfig(ConfigObject):
 
     buckets: List[TimeSeriesBucketConfig] = field(
         factory=lambda: [
-            TimeSeriesBucketConfig(start=172800, resolution=14400),
-            TimeSeriesBucketConfig(start=2592000, resolution=86400),
-            TimeSeriesBucketConfig(start=15552000, resolution=259200),
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=2).total_seconds()), resolution=int(timedelta(hours=4).total_seconds())
+            ),
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=30).total_seconds()), resolution=int(timedelta(days=1).total_seconds())
+            ),
+            TimeSeriesBucketConfig(
+                start=int(timedelta(days=180).total_seconds()), resolution=int(timedelta(days=3).total_seconds())
+            ),
         ],
         metadata={"description": "List of time series buckets."},
     )
