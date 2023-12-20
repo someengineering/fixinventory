@@ -862,7 +862,7 @@ def load_time_series(
     bv_start = ctx.add_bind_var(int(start.timestamp()))
     bv_end = ctx.add_bind_var(int(end.timestamp()))
 
-    query = f"FOR d in `{time_series_collection}` FILTER d.ts==@{bv_name} AND d.at>=@{bv_start} AND d.at<=@{bv_end}"
+    query = f"FOR d in `{time_series_collection}` FILTER d.ts==@{bv_name} AND d.at>=@{bv_start} AND d.at<@{bv_end}"
     if group_filter:
         parts = []
         for f in group_filter:

@@ -71,7 +71,7 @@ class DbAccess(Service):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
-        self.time_series_db = TimeSeriesDB(self.db, time_series, config.db.time_series_ttl)
+        self.time_series_db = TimeSeriesDB(self.db, time_series, config)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
