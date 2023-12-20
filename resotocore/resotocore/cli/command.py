@@ -6203,8 +6203,9 @@ class DetectSecretsCommand(CLICommand):
         with default_settings() as settings:
             sj = settings.json()
         # adjust the settings:
-        plugin_settings = defaultdict(dict, {"HexHighEntropyString": {"limit": 3}})
-        sj["plugins_used"] = [p | plugin_settings[p["name"]] for p in sj.get("plugins_used", [])]
+        override = defaultdict(dict, {"HexHighEntropyString": {"limit": 5}, "Base64HighEntropyString": {"limit": 5}})
+        disabled: Set[str] = set()
+        sj["plugins_used"] = [p | override[p["name"]] for p in sj.get("plugins_used", []) if p["name"] not in disabled]
         # make this the default settings
         configure_settings_from_baseline(sj)
 
