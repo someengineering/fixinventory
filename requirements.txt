@@ -31,6 +31,7 @@ cryptography==41.0.7
 deepdiff==6.7.1
 defusedxml==0.7.1
 deprecated==1.2.14
+detect_secrets==1.4.0
 fastjsonschema==2.19.0
 frozendict==2.3.10
 frozenlist==1.4.0

@@ -39,6 +39,7 @@ cryptography==41.0.7
 deepdiff==6.7.1
 defusedxml==0.7.1
 deprecated==1.2.14
+detect_secrets==1.4.0
 dill==0.3.7
 distlib==0.3.7
 fastjsonschema==2.19.0

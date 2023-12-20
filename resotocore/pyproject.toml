@@ -38,6 +38,7 @@ dependencies = [
     "aiostream",
     "cryptography",
     "deepdiff",
+    "detect_secrets",
     "frozendict",
     "jq",
     "jsons",

@@ -37,6 +37,7 @@ from typing import (
     FrozenSet,
     Union,
     TYPE_CHECKING,
+    Iterator,
 )
 from urllib.parse import urlparse, urlunparse
 
@@ -51,6 +52,9 @@ from aiostream.core import Stream
 from attr import evolve
 from attrs import define, field
 from dateutil import parser as date_parser
+from detect_secrets.core import scan, plugins
+from detect_secrets.core.potential_secret import PotentialSecret
+from detect_secrets.settings import configure_settings_from_baseline, default_settings
 from parsy import Parser, string, ParseError
 from resotoclient.models import Model as RCModel, Kind as RCKind
 from resotodatalink import EngineConfig
@@ -123,6 +127,7 @@ from resotocore.model.model import (
     PropertyPath,
     TransformKind,
     AnyKind,
+    EmptyPath,
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js, from_js
@@ -2428,6 +2433,7 @@ class ListCommand(CLICommand, OutputTransformer):
 
     If no prop is defined a predefined list of properties will be shown:
 
+    - /info as info
     - /reported.kind as kind
     - /reported.id as id
     - /reported.name as name
@@ -2520,6 +2526,7 @@ class ListCommand(CLICommand, OutputTransformer):
 
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
+        (["info"], "info"),
         (["reported", "kind"], "kind"),
         (["reported", "id"], "id"),
         (["reported", "name"], "name"),
@@ -6141,6 +6148,109 @@ class TimeSeriesCommand(CLICommand):
             )
 
 
+class DetectSecretsCommand(CLICommand):
+    """
+    ```
+    detect-secrets [--path <path>] [--with-secrets]
+    ```
+
+    The detect-secrets command is able to detect secrets in resources or strings.
+
+    A path can be defined, to not check the whole resource but only a specific property.
+    This is usually recommended, since a lot of the properties are not relevant for secret detection.
+
+    If the `--with-secrets` flag is provided, the command will filter all incoming resources and pass
+    only those that contain secrets.
+
+
+    ## Parameters
+
+    - `--path` - The property path to check on every incoming element.
+    - `--with-secrets` - Filter elements to only pass if a secret has been detected.
+
+    ## Examples
+
+    ```
+    # Detect secrets anywhere in the node. Also return all resources no matter if secrets are found.
+    > search is(kubernetes_pod) | detect-secrets
+    potential_secret=AWS_SECRET_ACCESS_KEY=aeDrhaA3tXjkwIVJ43PHmkCi5, secret_detected=true, secret_type=Secret Keyword,
+    kind=kubernetes_pod, name=collect, age=14d19h, last_update=90s, cloud=k8s, account=dev, region=jobs
+
+    # Detect secrets anywhere in the node. Only return if a secret is found.
+    > search is(kubernetes_pod) | detect-secrets --with-secrets
+    potential_secret=AWS_SECRET_ACCESS_KEY=aeDrhaA3tXjkwIVJ43PHmkCi5, secret_detected=true, secret_type=Secret Keyword,
+    kind=kubernetes_pod, name=collect, age=14d19h, last_update=90s, cloud=k8s, account=dev, region=jobs
+
+    # Find a secret with a specific path in a resource. Only return if a secret is found.
+    > search is(kubernetes_pod) | detect-secrets --with-secrets --path pod_spec.containers[*].args[*]
+    potential_secret=AWS_SECRET_ACCESS_KEY=aeDrhaA3tXjkwIVJ43PHmkCi5, secret_detected=true, secret_type=Secret Keyword,
+    kind=kubernetes_pod, name=collect, age=14d19h, last_update=90s, cloud=k8s, account=dev, region=jobs
+    ```
+    """
+
+    @property
+    def name(self) -> str:
+        return "detect-secrets"
+
+    def args_info(self) -> ArgsInfo:
+        return [ArgInfo("--path", expects_value=True, value_hint="property"), ArgInfo("--with-secrets")]
+
+    def info(self) -> str:
+        return "Detect secrets in resources or strings"
+
+    @lru_cache(maxsize=1)  # cache is only used to not configure multiple times
+    def configure_detect(self) -> None:
+        with default_settings() as settings:
+            sj = settings.json()
+        # adjust the settings:
+        plugin_settings = defaultdict(dict, {"HexHighEntropyString": {"limit": 3}})
+        sj["plugins_used"] = [p | plugin_settings[p["name"]] for p in sj.get("plugins_used", [])]
+        # make this the default settings
+        configure_settings_from_baseline(sj)
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        parser = NoExitArgumentParser()
+        parser.add_argument("--path", type=lambda x: PropertyPath.from_string(ctx.variable_in_section(x)))
+        parser.add_argument("--with-secrets", action="store_true")
+        parsed = parser.parse_args(args_parts_unquoted_parser.parse(arg) if arg else [])
+
+        def walk_element(el: JsonElement) -> Iterator[Tuple[str, PotentialSecret]]:
+            if isinstance(el, dict):
+                for v in el.values():
+                    yield from walk_element(v)
+            elif isinstance(el, list):
+                for v in el:
+                    yield from walk_element(v)
+            elif isinstance(el, str) and len(el):
+                for secret in scan.scan_line(el):
+                    r: str = plugins.initialize.from_secret_type(secret.type).format_scan_result(secret)  # type: ignore
+                    if r.startswith("True"):
+                        yield el, secret
+
+        async def detect_secrets_in(content: JsStream) -> JsGen:
+            self.configure_detect()  # make sure all plugins are loaded
+            async with content.stream() as in_stream:
+                async for element in in_stream:
+                    path = parsed.path or (PropertyPath.from_list([ctx.section]) if is_node(element) else EmptyPath)
+                    to_check_js = element if path is None else path.value_in(element)
+                    if to_check_js:
+                        found_secrets = False
+                        for secret_string, possible_secret in walk_element(to_check_js):
+                            found_secrets = True
+                            if isinstance(element, dict):
+                                element["info"] = {
+                                    "secret_detected": True,
+                                    "potential_secret": secret_string,
+                                    "secret_type": possible_secret.type,
+                                }
+                            yield element
+                            break
+                        if not found_secrets and not parsed.with_secrets:
+                            yield element
+
+        return CLIFlow(detect_secrets_in)
+
+
 def all_commands(d: TenantDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -6151,6 +6261,7 @@ def all_commands(d: TenantDependencies) -> List[CLICommand]:
         CleanCommand(d, "action"),
         ConfigsCommand(d, "setup", allowed_in_source_position=True),
         CountCommand(d, "search"),
+        DetectSecretsCommand(d, "action"),
         DbCommand(d, "action", allowed_in_source_position=True),
         DescendantsPart(d, "search"),
         DumpCommand(d, "format"),

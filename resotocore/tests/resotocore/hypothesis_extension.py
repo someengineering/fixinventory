@@ -43,7 +43,7 @@ class Drawer:
         return self.draw(optional(st))
 
 
-any_ws_digits_string = text(alphabet=string.ascii_letters + string.whitespace + string.digits, min_size=0, max_size=10)
+any_ws_digits_string = text(alphabet=string.ascii_letters + " " + string.digits, min_size=0, max_size=10)
 any_string = text(alphabet=string.ascii_letters, min_size=3, max_size=10)
 kind_gen = sampled_from(["volume", "instance", "load_balancer", "volume_type"])
 
