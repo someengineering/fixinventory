@@ -204,8 +204,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv4",
@@ -220,8 +219,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
@@ -236,8 +234,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_port_mongodb_27017_27018",
@@ -252,8 +249,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22",
@@ -268,8 +264,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv4",
@@ -284,8 +279,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv6",
@@ -300,8 +294,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_ftp_port_20_21",
@@ -316,8 +309,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389",
@@ -332,8 +324,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv4",
@@ -348,8 +339,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv6",
@@ -364,8 +354,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_cassandra_ports",
@@ -380,8 +369,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_kibana_ports",
@@ -396,8 +384,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_kafka_ports",
@@ -412,8 +399,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_memcached_ports",
@@ -428,8 +414,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_mysql_ports",
@@ -444,8 +429,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_oracledb",
@@ -460,8 +444,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_postgresql_ports",
@@ -476,8 +459,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_redis_ports",
@@ -492,8 +474,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_sql_server_ports",
@@ -508,8 +489,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "allow_ingress_from_internet_to_telnet_ports",
@@ -524,8 +504,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "wide_open_ipv4_security_group",
@@ -540,8 +519,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "default_restrict_traffic",
@@ -556,8 +534,7 @@
             "remediation": {
                 "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "routing_tables_with_least_privilege",
@@ -588,8 +565,7 @@
             "remediation": {
                 "text": "Encrypt all EBS volumes and Enable Encryption by default You can configure your AWS account to enforce the encryption of the new EBS volumes and snapshot copies that you create. For example; Amazon EBS encrypts the EBS volumes created when you launch an instance and the snapshots that you copy from an unencrypted snapshot.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
-            },
-            "internal_notes": ""
+            }
         },
         {
             "name": "vpc_flow_logs_enabled",
@@ -604,8 +580,23 @@
             "remediation": {
                 "text": "It is recommended that VPC Flow Logs be enabled for packet Rejects for VPCs.",
                 "url": "http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
+            }
+        },
+        {
+            "name": "instance_imdsv2_enabled",
+            "title": "Ensure that EC2 Metadata Service only allows IMDSv2",
+            "result_kinds": ["aws_ec2_instance"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Allowing Version 1 of the service may open EC2 instances to Server-Side Request Forgery (SSRF) attacks, so Amazon recommends utilizing Version 2 for better instance security.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_instance) and not instance_metadata_options.{(http_endpoint=enabled and http_tokens=required) or http_endpoint=disabled}"
             },
-            "internal_notes": ""
+            "remediation": {
+                "text": "Login to AWS Management Console and open the Amazon EC2 console using https://console.aws.amazon.com/ec2/ Under the Instances menu, select Instances.  For each Instance, select the instance, then choose Actions > Modify instance metadata options.  If the Instance metadata service is enabled, set IMDSv2 to Required.",
+                "awscli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required",
+                "url": "https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/:https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html"
+            }
         }
     ]
 }
