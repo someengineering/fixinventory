@@ -621,6 +621,14 @@ def test_complete_path(person_model: Model) -> None:
     assert all_props == {"tags": "dictionary[string, string]", "zip": "string"}
 
 
+def test_property_path_value() -> None:
+    example = {"test": {"a": {"b": {"c": 1, "d": [{"e": 2}, {"e": 3}], "f": [1, 2, 3, 4]}}}}
+    assert PropertyPath.from_string("test.a.b.c").value_in(example) == 1
+    assert PropertyPath.from_string("test.a.b.d[*].e").value_in(example) == [2, 3]
+    assert PropertyPath.from_string("test.a.b.f").value_in(example) == [1, 2, 3, 4]
+    assert PropertyPath.from_string("test.a.b.f[*]").value_in(example) == [1, 2, 3, 4]
+
+
 @given(json_object_gen)
 @settings(max_examples=200, suppress_health_check=list(HealthCheck))
 def test_yaml_generation(js: Json) -> None:

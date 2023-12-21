@@ -7,7 +7,7 @@ from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseStack
+from resotolib.baseresources import BaseStack, ModelReference
 from resotolib.graph import ByNodeId, BySearchCriteria, Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, F
 from resotolib.types import Json
@@ -95,6 +95,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
         " updated, or deleted together as a single unit."
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-stacks", "Stacks")
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_resource"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -134,6 +135,26 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
     stack_parent_id: Optional[str] = field(default=None)
     stack_root_id: Optional[str] = field(default=None)
     stack_drift_information: Optional[AwsCloudFormationStackDriftInformation] = field(default=None)
+    _stack_resources: Optional[List[Json]] = None
+
+    def post_process(self, builder: GraphBuilder, source: Json) -> None:
+        def stack_resources() -> None:
+            # list all stack resources - we will create edges in connect_in_graph
+            self._stack_resources = builder.client.list(
+                service_name, "list-stack-resources", "StackResourceSummaries", StackName=self.name
+            )
+
+        builder.submit_work(service_name, stack_resources)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self._stack_resources:
+            for resource in self._stack_resources:
+                if (rid := resource.get("PhysicalResourceId")) and (rt := resource.get("ResourceType")):
+                    # we translate the resource type to the internal kind: AWS::IAM::User --> aws_iam_user
+                    # there are a lot of exceptions in AWS, that we need to handle.
+                    kind = rt.replace("::", "_").lower()
+                    # what cloudformation calls "PhysicalResourceId" is the name of the resource
+                    builder.add_edge(self, name=rid, kind=kind)
 
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["delete", "update"]) -> bool:
         tags = dict(self.tags)
@@ -202,7 +223,7 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec(service_name, "list-stacks")]
+        return [cls.api_spec, AwsApiSpec(service_name, "list-stacks"), AwsApiSpec(service_name, "list-stack-resources")]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:

@@ -5,6 +5,7 @@ from typing import List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
+from bs4 import BeautifulSoup  # pip install beautifulsoup4 lxml
 from botocore.model import ServiceModel, StringShape, ListShape, Shape, StructureShape, MapShape
 from jsons import pascalcase
 
@@ -25,7 +26,8 @@ class AwsProperty:
 
     def assignment(self) -> str:
         default = self.field_default or ("factory=list" if self.is_array else "default=None")
-        return f"field({default})"
+        description = BeautifulSoup(self.description, "lxml").get_text().strip()
+        return f'field({default}, metadata={{"description": "{description}"}})  # fmt: skip'
 
     def type_string(self) -> str:
         if self.is_array:
@@ -711,6 +713,10 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prefix="Alb",
         # ),
     ],
+    "ecr": [
+        # AwsResotoModel("describe-repositories", "repositories", "Repository", prefix="Ecr"),
+        # AwsResotoModel("describe-images", "images", "Image", prefix="Ecr"),
+    ],
     "eks": [
         # AwsResotoModel("list-clusters", "clusters", "Cluster", prefix="Eks", prop_prefix="cluster_"),
         # AwsResotoModel("list-nodegroups", "nodegroup", "Nodegroup", prefix="Eks", prop_prefix="group_"),
@@ -988,15 +994,22 @@ models: Dict[str, List[AwsResotoModel]] = {
         #     prop_prefix="configuration_recorder_",
         # ),
     ],
+    "ssm": [
+        # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
+    ],
+    "secretsmanager": [
+        # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),
+        # AwsResotoModel("list-secrets", "SecretList", "SecretVersionStagesType", prefix="SecretsManager"),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("logs", "describe-log-groups"), indent=2))
+    print(json.dumps(create_test_response("secretsmanager", "list-secrets"), indent=2))
 
     """print the class models"""
     # print(default_imports())
     for model in all_models():
-        # pass
-        print(model.to_class())
+        pass
+        # print(model.to_class())

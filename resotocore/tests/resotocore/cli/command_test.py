@@ -5,7 +5,7 @@ import os
 import sqlite3
 from datetime import timedelta
 from functools import partial
-from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable, Set, Awaitable
+from typing import List, Dict, Optional, Any, Tuple, Type, TypeVar, cast, Callable, Set
 
 import pytest
 import yaml
@@ -17,15 +17,15 @@ from attrs import evolve
 from pytest import fixture
 
 from resotocore import version
-from resotocore.cli import is_node, JsGen, JsStream, list_sink
+from resotocore.cli import is_node, JsStream, list_sink
 from resotocore.cli.cli import CLIService
 from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
-from resotocore.dependencies import TenantDependencies
 from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI, FilePath
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from resotocore.db.graphdb import ArangoGraphDB
 from resotocore.db.jobdb import JobDb
+from resotocore.dependencies import TenantDependencies
 from resotocore.error import CLIParseError
 from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import InfraAppName, GraphName
@@ -1428,3 +1428,22 @@ async def test_timeseries(cli: CLI) -> None:
     # Combine over identifier (which is unique for each entry), filter for identifier==2 --> 1 entry for one timestamp
     res = await exec(f'timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier --filter identifier=="2"')  # fmt: skip
     assert len(res) == 1
+
+
+@pytest.mark.asyncio
+async def test_detect_secrets(cli: CLI) -> None:
+    async def detect(to_check: JsonElement) -> List[JsonElement]:
+        res = await cli.execute_cli_command(f"json {json.dumps(to_check)} | detect-secrets --with-secrets", list_sink)
+        return cast(List[JsonElement], res[0])
+
+    assert await detect({"foo": 'AWS_SECRET_ACCESS_KEY="aeDrhaA3tXjkwIVJ43PHmkCi5"'}) == [
+        {
+            "foo": 'AWS_SECRET_ACCESS_KEY="aeDrhaA3tXjkwIVJ43PHmkCi5"',
+            "info": {
+                "potential_secret": 'AWS_SECRET_ACCESS_KEY="aeDrhaA3tXjkwIVJ43PHmkCi5"',
+                "secret_detected": True,
+                "secret_type": "Secret Keyword",
+            },
+        }
+    ]
+    assert await detect({"foo": "innocent string"}) == []

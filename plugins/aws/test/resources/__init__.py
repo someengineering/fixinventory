@@ -62,6 +62,9 @@ class BotoFileClient:
         path = os.path.dirname(__file__) + f"/files/{service}/{action}{vals}.json"
         return os.path.abspath(path)
 
+    def close(self) -> None:
+        pass
+
     def __getattr__(self, action_name: str) -> Callable[[], Any]:
         def call_action(*args: Any, **kwargs: Any) -> Any:
             assert not args, "No arguments allowed!"

@@ -214,6 +214,8 @@ class AwsResource(BaseResource, ABC):
         # In case additional work needs to be done, override this method.
         for js in json:
             if instance := cls.from_api(js, builder):
+                # post process
+                instance.post_process(builder, js)
                 builder.add_node(instance, js)
 
     @classmethod
@@ -233,6 +235,10 @@ class AwsResource(BaseResource, ABC):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return []
+
+    def post_process(self, builder: GraphBuilder, source: Json) -> None:
+        # Default behavior: do nothing
+        pass
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace

@@ -508,7 +508,7 @@ class InspectorConfigService(InspectorService):
         if not self.cli.dependencies.config.multi_tenant_setup:
             # TODO: we need a migration path for checks added in existing configs
             config_ids = {i async for i in self.config_handler.list_config_ids()}
-            overwrite = False  # Only here to simplify development. True until we reach a stable version.
+            overwrite = True  # Only here to simplify development. True until we reach a stable version.
             for name, js in BenchmarkConfig.from_files().items():
                 if overwrite or benchmark_id(name) not in config_ids:
                     cid = benchmark_id(name)

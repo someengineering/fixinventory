@@ -390,7 +390,29 @@ class AsDate(Bender):
         self._format = date_format
 
     def execute(self, source: Any) -> Any:
-        return datetime.strptime(source, self._format) if isinstance(source, str) else source
+        if isinstance(source, str):
+            return datetime.strptime(source, self._format)
+        elif isinstance(source, (int, float)):
+            return datetime.utcfromtimestamp(source)
+        else:
+            return source
+
+
+class AsDateString(Bender):
+    """
+    Parse a given input timestamp as date string.
+    The format of the date needs to be defined.
+    """
+
+    def __init__(self, out_format: str = "%Y-%m-%dT%H:%M:%SZ", **kwargs: Any):
+        super().__init__(**kwargs)
+        self._out_format = out_format
+
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, (int, float)):
+            return datetime.utcfromtimestamp(source).strftime(self._out_format)
+        else:
+            return source
 
 
 class ListOp(Bender, ABC):

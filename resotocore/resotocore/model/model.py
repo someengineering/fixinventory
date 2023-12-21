@@ -207,6 +207,30 @@ class PropertyPath:
         else:
             return False
 
+    def value_in(self, js: JsonElement) -> JsonElement:
+        at = len(self.path)
+
+        def at_idx(current: JsonElement, idx: int) -> Optional[Any]:
+            if at == idx:
+                return current
+            path = self.path[idx]
+            is_array = False
+            if path and path.endswith("[]"):
+                path = path[:-2]
+                is_array = True
+            if current is None or not isinstance(current, dict) or path not in current:
+                return None
+            if is_array:
+                elem = current[path]
+                if isinstance(elem, list):
+                    return [at_idx(a, idx + 1) for a in elem]
+                else:
+                    return None
+            else:
+                return at_idx(current[path], idx + 1)
+
+        return at_idx(js, 0)
+
     def __repr__(self) -> str:
         return self.path_str
 

@@ -1,3 +1,4 @@
+import base64
 import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any
@@ -1341,13 +1342,27 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_ipv6_address: Optional[str] = field(default=None)
     instance_tpm_support: Optional[str] = field(default=None)
     instance_maintenance_options: Optional[str] = field(default=None)
+    instance_user_data: Optional[str] = field(default=None)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def fetch_user_data(instance: AwsEc2Instance) -> None:
+            if (
+                result := builder.client.get(
+                    service_name,
+                    "describe-instance-attribute",
+                    "UserData",
+                    InstanceId=instance.id,
+                    Attribute="userData",
+                )
+            ) and (data := result.get("Value")):
+                instance.instance_user_data = base64.b64decode(data).decode("utf-8")
+
         for reservation in json:
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
+                builder.submit_work(service_name, fetch_user_data, instance)
                 builder.add_node(instance, instance_in)
 
     @classmethod
@@ -1465,7 +1480,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec(service_name, "terminate-instances")]
+        return super().called_mutator_apis() + [
+            AwsApiSpec(service_name, "terminate-instances"),
+            AwsApiSpec(service_name, "describe-instance-attribute"),
+        ]
 
 
 # endregion

@@ -1,0 +1,24 @@
+{
+    "provider": "aws",
+    "service": "sagemaker",
+    "checks": [
+        {
+            "name": "notebook_root_access",
+            "title": "Check if Amazon SageMaker Notebook instances have root access disabled",
+            "result_kind": ["aws_sagemaker_notebook"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Users with root access have administrator privileges. Users can access and edit all files on a notebook instance with root access enabled.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_notebook) and notebook_root_access==Enabled"
+            },
+            "remediation": {
+                "text": "Set the RootAccess field to Disabled. You can also disable root access for users when you create or update a notebook instance in the Amazon SageMaker console.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access.html"
+            }
+        }
+    ]
+}
