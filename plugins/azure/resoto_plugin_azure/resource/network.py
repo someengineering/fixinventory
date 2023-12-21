@@ -2822,17 +2822,15 @@ class AzureDscpConfiguration(AzureResource):
     source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        first_property: Callable[[AzureNetworkInterface], str] = lambda n: n.id or ""
+        nic_id: Callable[[AzureNetworkInterface], str] = lambda n: n.id or ""
 
-        second_property: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+        ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
             ip_config._subnet_id
             for ip_config in n.interface_ip_configurations or []
             if ip_config._subnet_id is not None
         ]
 
-        nis_and_subnet_id = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
-        ]
+        nis_and_subnet_id = [(nic_id(n), ip_conf_subnet_ids(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
 
         if (network_interfaces := self._associated_network_interface_ids) and (ni_ids_and_s_id := nis_and_subnet_id):
             for network_interface_id in network_interfaces:
@@ -3113,12 +3111,12 @@ class AzureExpressRouteCircuit(AzureResource):
     stag: Optional[int] = field(default=None, metadata={'description': 'The identifier of the circuit traffic. Outer tag for QinQ encapsulation.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        first_property: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.name or ""
+        aerpl_name: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.name or ""
 
-        second_property: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.id or ""
+        aerpl_id: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.id or ""
 
         ids_and_names_in_resource = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureExpressRoutePortsLocation)
+            (aerpl_name(n), aerpl_id(n)) for n in builder.nodes(clazz=AzureExpressRoutePortsLocation)
         ]
 
         if route_port_id := self.express_route_port:
@@ -3796,13 +3794,13 @@ class AzureIpGroup(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        first_property: Callable[[AzureVirtualNetwork], List[str]] = (
+        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = (
             lambda n: n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
         )
 
-        second_property: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
+        virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
 
-        virtual_networks = [(first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)]
+        virtual_networks = [(virtual_n_ips(n), virtual_n_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)]
 
         if (ip_addresses := self.ip_addresses) and (vns := virtual_networks):
             for ip_address in ip_addresses:
@@ -4211,15 +4209,13 @@ class AzureNetworkProfile(AzureResource):
         # Import placed inside the method due to circular import error resolution
         from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
-        first_property: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+        ip_config_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
             ip_config.id for ip_config in n.interface_ip_configurations or [] if ip_config.id is not None
         ]
 
-        second_property: Callable[[AzureNetworkInterface], str] = lambda n: n.virtual_machine or ""
+        virtual_m_id: Callable[[AzureNetworkInterface], str] = lambda n: n.virtual_machine or ""
 
-        ip_confs_and_vm_ids = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
-        ]
+        ip_confs_and_vm_ids = [(ip_config_ids(n), virtual_m_id(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
 
         if container_nic := self.container_network_interface_configurations:
             for container in container_nic:
@@ -4376,16 +4372,16 @@ class AzureNetworkVirtualAppliance(AzureResource):
             (va_sku_vendor(n), va_sku_name(n)) for n in builder.nodes(clazz=AzureNetworkVirtualApplianceSku)
         ]
 
-        first_property: Callable[[AzureNetworkInterface], str] = lambda n: n.name or ""
+        ni_name: Callable[[AzureNetworkInterface], str] = lambda n: n.name or ""
 
-        second_property: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+        ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
             ip_config._subnet_id
             for ip_config in n.interface_ip_configurations or []
             if ip_config._subnet_id is not None
         ]
 
         nic_name_and_subnet_ids = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
+            (ni_name(n), ip_conf_subnet_ids(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
         ]
 
         if (nva := self.nva_sku) and (nva_vendor := nva.vendor) and (vendors := vendors_in_resource):
@@ -4483,12 +4479,12 @@ class AzureNetworkWatcher(AzureResource):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        first_property: Callable[[AzureVirtualNetwork], str] = lambda n: n.location or ""
+        virtual_n_location: Callable[[AzureVirtualNetwork], str] = lambda n: n.location or ""
 
-        second_property: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
+        virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
 
         locations_and_ids_in_vn = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)
+            (virtual_n_location(n), virtual_n_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)
         ]
 
         if (nw_location := self.location) and (vns_info := locations_and_ids_in_vn):
@@ -4957,19 +4953,17 @@ class AzureVirtualHub(AzureResource):
     vpn_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        first_property: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+        ip_conf_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
             ip_config.id for ip_config in n.interface_ip_configurations or [] if ip_config.id is not None
         ]
 
-        second_property: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+        ip_conf_p_ip_id: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
             ip_config._public_ip_id
             for ip_config in n.interface_ip_configurations or []
             if ip_config._public_ip_id is not None
         ]
 
-        p_ip_a_and_ip_c_ids = [
-            (first_property(n), second_property(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
-        ]
+        p_ip_a_and_ip_c_ids = [(ip_conf_ids(n), ip_conf_p_ip_id(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
 
         if er_gateway_id := self.express_route_gateway:
             builder.add_edge(
