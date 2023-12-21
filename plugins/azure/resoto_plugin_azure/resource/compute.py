@@ -2529,11 +2529,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             ]
         },
         "successors": {
-            "default": [
-                "azure_image",
-                "azure_disk",
-                "azure_network_interface",
-            ]
+            "default": ["azure_image", "azure_disk", "azure_network_interface", "azure_virtual_machine_size"]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2578,6 +2574,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "user_data": S("properties", "userData"),
         "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
         "vm_id": S("properties", "vmId"),
+        "location": S("location"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
         "instance_status": S("properties", "provisioningState")
         >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
@@ -2612,6 +2609,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     user_data: Optional[str] = field(default=None, metadata={'description': 'Userdata for the vm, which must be base-64 encoded. Customer should not pass any secrets in here. Minimum api-version: 2021-03-01.'})  # fmt: skip
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
@@ -2666,6 +2664,10 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             for network_interface in network_interfaces:
                 if ni_id := network_interface.id:
                     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkInterface, id=ni_id)
+        if (vms_type := self.instance_type) and (vm_location := self.location):
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureVirtualMachineSize, name=vms_type, location=vm_location
+            )
 
 
 @define(eq=False, slots=False)
@@ -3205,7 +3207,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
-        path_parameters=["location", "subscriptionId"],
+        path_parameters=["subscriptionId", "location"],
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
@@ -3231,6 +3233,10 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        self.location = graph_builder.location.name if graph_builder.location else ""
 
 
 resources: List[Type[AzureResource]] = [

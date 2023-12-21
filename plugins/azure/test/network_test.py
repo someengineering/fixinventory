@@ -25,11 +25,6 @@ def test_application_gateway_web_application_firewall_policy(builder: GraphBuild
     assert len(collected) == 1
 
 
-def test_auto_approved_private_link_service(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureAutoApprovedPrivateLinkService, builder)
-    assert len(collected) == 3
-
-
 def test_available_service_alias(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailableServiceAlias, builder)
     assert len(collected) == 2
@@ -93,6 +88,7 @@ def test_express_route_circuit(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
     resource_types: List[Type[AzureResource]] = [AzureExpressRoutePort, AzureExpressRoutePortsLocation]
+    roundtrip_check(AzureExpressRoutePortsLocation, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureExpressRouteCircuit, AzureExpressRoutePort)) == 1
@@ -134,6 +130,7 @@ def test_ip_group(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
     resource_types: List[Type[AzureResource]] = [AzureVirtualNetwork]
+    roundtrip_check(AzureVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureVirtualNetwork, AzureIpGroup)) == 1
@@ -158,9 +155,11 @@ def test_network_profile(builder: GraphBuilder) -> None:
     from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
     collected = roundtrip_check(AzureNetworkProfile, builder)
+
     assert len(collected) == 2
 
     resource_types: List[Type[AzureResource]] = [AzureVirtualMachine]
+    roundtrip_check(AzureNetworkInterface, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureNetworkProfile, AzureVirtualMachine)) == 1
@@ -171,6 +170,7 @@ def test_network_virtual_appliance(builder: GraphBuilder) -> None:
     assert len(collected) == 1
 
     resource_types: List[Type[AzureResource]] = [AzureNetworkVirtualApplianceSku]
+    roundtrip_check(AzureNetworkVirtualApplianceSku, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureNetworkVirtualAppliance, AzureNetworkVirtualApplianceSku)) == 1
@@ -186,6 +186,7 @@ def test_network_watcher(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
     resource_types: List[Type[AzureResource]] = [AzureVirtualNetwork]
+    roundtrip_check(AzureVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureVirtualNetwork, AzureNetworkWatcher)) == 2
@@ -231,6 +232,7 @@ def test_virtual_hub(builder: GraphBuilder) -> None:
         AzureVirtualWAN,
         AzurePublicIPAddress,
     ]
+    roundtrip_check(AzureNetworkInterface, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureExpressRouteGateway, AzureVirtualHub)) == 1

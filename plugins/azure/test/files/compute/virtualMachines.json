@@ -6,7 +6,7 @@
                     "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
                 },
                 "hardwareProfile": {
-                    "vmSize": "Standard_A0",
+                    "vmSize": "Standard_A1_V2",
                     "vmSizeProperties": {
                         "vCPUsAvailable": 7,
                         "vCPUsPerCore": 14
@@ -343,7 +343,7 @@
                     "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
                 },
                 "hardwareProfile": {
-                    "vmSize": "Standard_A0",
+                    "vmSize": "Standard_A2_V2",
                     "vmSizeProperties": {
                         "vCPUsAvailable": 7,
                         "vCPUsPerCore": 14

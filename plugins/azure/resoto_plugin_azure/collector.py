@@ -1,12 +1,15 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Type, Set, List
-
+from typing import Any, Optional, Type, Set, List
 
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
-from resoto_plugin_azure.resource.compute import resources as compute_resources
+from resoto_plugin_azure.resource.compute import (
+    AzureVirtualMachineSize,
+    resources as compute_resources,
+)
 from resoto_plugin_azure.resource.base import (
+    AzureLocation,
     AzureSubscription,
     GraphBuilder,
     AzureResource,
@@ -78,6 +81,8 @@ class AzureSubscriptionCollector:
                     raise Exception(f"Only Azure resources expected, but got {node}")
             # wait for all work to finish
             queue.wait_for_submitted_work()
+            # filter nodes
+            self.filter_nodes()
             self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
 
@@ -99,3 +104,26 @@ class AzureSubscriptionCollector:
         all_done = GatherFutures.all(group_futures)
         all_done.add_done_callback(work_done)
         return all_done
+
+    def filter_nodes(self) -> None:
+        remove_nodes = []
+
+        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None) -> None:  # type: ignore
+            for node in self.graph.nodes:
+                if not isinstance(node, cls):
+                    continue
+                pred = list(self.graph.predecessors(node))
+                if ignore_kinds is not None:
+                    pred = [p for p in pred if not isinstance(p, ignore_kinds)]
+                if not pred:
+                    remove_nodes.append(node)
+            removed = set()
+            for node in remove_nodes:
+                if node in removed:
+                    continue
+                removed.add(node)
+                self.graph.remove_node(node)
+            log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            remove_nodes.clear()
+
+        rm_nodes(AzureVirtualMachineSize, AzureLocation)

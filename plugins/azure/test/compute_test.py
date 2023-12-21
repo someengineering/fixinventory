@@ -124,6 +124,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
         AzureNetworkInterface,
         AzureNetworkSecurityGroup,
         AzureLoadBalancer,
+        AzureVirtualMachineSize,
     ]
     connect_resources(builder, resource_types)
 
@@ -133,11 +134,12 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureVirtualMachine, AzureNetworkInterface)) == 1
     assert len(builder.edges_of(AzureNetworkSecurityGroup, AzureVirtualMachine)) == 1
     assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureVirtualMachine, AzureVirtualMachineSize)) == 2
 
 
 def test_virtual_machine_resources(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)[0]
-    assert collected.instance_type == "Standard_A0"
+    assert collected.instance_type == "Standard_A1_V2"
     assert collected.instance_status == InstanceStatus.RUNNING
 
 
@@ -148,7 +150,7 @@ def test_scale_set(builder: GraphBuilder) -> None:
 
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
-    assert len(collected) == 2
+    assert len(collected) == 12
 
 
 def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
