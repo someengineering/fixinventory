@@ -31,7 +31,7 @@ class AwsProperty:
 
     def type_string(self) -> str:
         if self.is_array:
-            return f"List[{self.type}]"
+            return f"Optional[List[{self.type}]]"
         else:
             return f"Optional[{self.type}]"
 
@@ -1001,12 +1001,15 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),
         # AwsResotoModel("list-secrets", "SecretList", "SecretVersionStagesType", prefix="SecretsManager"),
     ],
+    "opensearch": [
+        # AwsResotoModel( "describe-domains", "DomainStatusList", "DomainStatus", prefix="OpenSearch", name="AwsOpenSearchDomain" ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("secretsmanager", "list-secrets"), indent=2))
+    print(json.dumps(create_test_response("opensearch", "list-domain-names"), indent=2))
 
     """print the class models"""
     # print(default_imports())
