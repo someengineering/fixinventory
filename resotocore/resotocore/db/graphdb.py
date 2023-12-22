@@ -58,7 +58,16 @@ from resotocore.model.typed_model import to_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
 from resotocore.report import ReportSeverity
 from resotocore.types import JsonElement, EdgeType
-from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
+from resotocore.util import (
+    first,
+    value_in_path_get,
+    utc_str,
+    uuid_str,
+    value_in_path,
+    json_hash,
+    set_value_in_path,
+    utc,
+)
 
 log = logging.getLogger(__name__)
 
@@ -250,7 +259,7 @@ class ArangoGraphDB(GraphDB):
         graph.add_node(node_id, data)
         graph.add_edge(under_node_id, node_id, EdgeTypes.default)
         access = GraphAccess(graph.graph, node_id, {under_node_id})
-        _, node_inserts, _, _ = self.prepare_nodes(access, [], model)
+        _, node_inserts, _, _ = self.prepare_nodes(access, [], model, utc())
         _, edge_inserts, _ = self.prepare_edges(access, [], EdgeTypes.default)
         assert len(node_inserts) == 1
         assert len(edge_inserts) == 1
@@ -346,7 +355,9 @@ class ArangoGraphDB(GraphDB):
 
         # call adjuster on resulting node
         ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
-        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime)
+        adjusted = self.adjust_node(
+            model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime, utc()
+        )
         update = {"_key": node["_key"], "hash": adjusted["hash"], "kinds": adjusted["kinds"], "flat": adjusted["flat"]}
         # copy relevant sections into update node
         for sec in [section] if section else Section.content_ordered:
@@ -876,19 +887,24 @@ class ArangoGraphDB(GraphDB):
         doc = {"_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))}
         await db.delete(self.in_progress, doc, ignore_missing=True)
 
-    def adjust_node(self, model: Model, json: Json, created_at: Any) -> Json:
+    def adjust_node(self, model: Model, json: Json, created_at: Any, now: datetime) -> Json:
         reported = json[Section.reported]
         # preserve ctime in reported: if it is not set, use the creation time of the object
         if not reported.get("ctime", None):
             kind = model[reported]
             if isinstance(kind, ComplexKind) and "ctime" in kind:
                 reported["ctime"] = created_at
+        # if no mtime is reported, we set now as modification time
+        if not reported.get("mtime", None):
+            kind = model[reported]
+            if isinstance(kind, ComplexKind) and "mtime" in kind:
+                reported["mtime"] = utc_str(now)
 
         # adjuster has the option to manipulate the resulting json
         return self.node_adjuster.adjust(json)
 
     def prepare_nodes(
-        self, access: GraphAccess, node_cursor: Iterable[Json], model: Model
+        self, access: GraphAccess, node_cursor: Iterable[Json], model: Model, now: datetime
     ) -> Tuple[GraphUpdate, List[Json], List[Json], List[Json]]:
         log.info(f"Prepare nodes for subgraph {access.root()}")
         info = GraphUpdate()
@@ -899,7 +915,7 @@ class ArangoGraphDB(GraphDB):
         optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash"]
 
         def insert_node(node: Json) -> None:
-            elem = self.adjust_node(model, node, access.at_json)
+            elem = self.adjust_node(model, node, access.at_json, now)
             js_doc: Json = {"_key": elem["id"], "created": access.at_json, "updated": access.at_json}
             for prop in optional_properties:
                 value = node.get(prop, None)
@@ -918,7 +934,7 @@ class ArangoGraphDB(GraphDB):
                 info.nodes_deleted += 1
             elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
-                adjusted: Json = self.adjust_node(model, elem, node["created"])
+                adjusted: Json = self.adjust_node(model, elem, node["created"], now)
                 js = {"_key": key, "created": node["created"], "updated": access.at_json}
                 for prop in optional_properties:
                     value = adjusted.get(prop, None)
@@ -990,6 +1006,7 @@ class ArangoGraphDB(GraphDB):
         update_history: bool = True,
     ) -> Tuple[List[str], GraphUpdate]:
         change_id = maybe_change_id if maybe_change_id else uuid_str()
+        now = utc()
 
         async def prepare_graph(
             sub: GraphAccess, node_query: Tuple[str, Json], edge_query: Callable[[EdgeType], Tuple[str, Json]]
@@ -1001,7 +1018,7 @@ class ArangoGraphDB(GraphDB):
             query, bind = node_query
             log.debug(f"Query for nodes: {sub.root()}")
             with await self.db.aql(query, bind_vars=bind, batch_size=50000) as node_cursor:
-                node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor, model)
+                node_info, ni, nu, nd = self.prepare_nodes(sub, node_cursor, model, now)
                 graph_info += node_info
 
             # check all edges in all relevant edge-collections
