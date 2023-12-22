@@ -292,6 +292,7 @@ def test_model_checking(person_model: Model) -> None:
 
 
 def test_property_path() -> None:
+    PropertyPath.from_string("Condition.IpAddress.`aws:SourceIp`[]")
     p1 = PropertyPath(["a", None, "c", None])
     p2 = PropertyPath(["a", "b", "c", "d"])
     p3 = PropertyPath(["a", "b"])
