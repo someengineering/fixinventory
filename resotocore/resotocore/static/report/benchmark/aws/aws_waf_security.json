@@ -1,0 +1,652 @@
+{
+    "title": "AWS Well-Architected Security Pillar",
+    "framework": "WAF",
+    "clouds": [
+        "aws"
+    ],
+    "version": "1.0",
+    "description": "The AWS Well-Architected Framework describes key concepts, design principles, and architectural best practices for designing and running workloads in the cloud. The security pillar focuses on protecting information and systems. Key topics include confidentiality and integrity of data, managing user permissions, and establishing controls to detect security events.",
+    "children": [
+        {
+            "title": "Security",
+            "description": "The security pillar focuses on protecting information and systems. Key topics include confidentiality and integrity of data, managing user permissions, and establishing controls to detect security events.",
+            "children": [
+                {
+                    "title": "SEC01 How do you securely operate your workload?",
+                    "description": "To operate your workload securely, you must apply overarching best practices to every area of security. Take requirements and processes that you have defined in operational excellence at an organizational and workload level, and apply them to all areas. Staying up to date with AWS and industry recommendations and threat intelligence helps you evolve your threat model and control objectives. Automating security processes, testing, and validation allow you to scale your security operations.",
+                    "children": [
+                        {
+                            "title": "SEC01-BP01 Separate workloads using accounts",
+                            "description": "Establish common guardrails and isolation between environments (such as production, development, and test) and workloads through a multi-account strategy. Account-level separation is strongly recommended, as it provides a strong isolation boundary for security, billing, and access.",
+                            "checks": [
+                                "aws_organizations_account_part_of_organizations"
+                            ]
+                        },
+                        {
+                            "title": "SEC01-BP02 Secure account root user and properties",
+                            "description": "The root user is the most privileged user in an AWS account, with full administrative access to all resources within the account, and in some cases cannot be constrained by security policies. Disabling programmatic access to the root user, establishing appropriate controls for the root user, and avoiding routine use of the root user helps reduce the risk of inadvertent exposure of the root credentials and subsequent compromise of the cloud environment.",
+                            "checks": [
+                                "aws_iam_root_hardware_mfa_enabled",
+                                "aws_iam_root_mfa_enabled",
+                                "aws_iam_no_root_access_key"
+                            ]
+                        },
+                        {
+                            "title": "SEC01-BP03 Identify and validate control objectives",
+                            "description": "Based on your compliance requirements and risks identified from your threat model, derive and validate the control objectives and controls that you need to apply to your workload. Ongoing validation of control objectives and controls help you measure the effectiveness of risk mitigation.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC01-BP04 Keep up-to-date with security threats",
+                            "description": "To help you define and implement appropriate controls, recognize attack vectors by staying up to date with the latest security threats. Consume AWS Managed Services to make it easier to receive notification of unexpected or unusual behavior in your AWS accounts. Investigate using AWS Partner tools or third-party threat information feeds as part of your security information flow. The Common Vulnerabilities and Exposures (CVE) List  list contains publicly disclosed cyber security vulnerabilities that you can use to stay up to date.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC01-BP05 Identify and validate control objectives",
+                            "description": "To help you define and implement appropriate controls, recognize attack vectors by staying up to date with the latest security threats. Consume AWS Managed Services to make it easier to receive notification of unexpected or unusual behavior in your AWS accounts. Investigate using AWS Partner tools or third-party threat information feeds as part of your security information flow. The Common Vulnerabilities and Exposures (CVE) List  list contains publicly disclosed cyber security vulnerabilities that you can use to stay up to date.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC01-BP06 Automate testing and validation of security controls in pipelines",
+                            "description": "Establish secure baselines and templates for security mechanisms that are tested and validated as part of your build, pipelines, and processes. Use tools and automation to test and validate all security controls continuously.",
+                            "checks": [
+                                "aws_ec2_instance_profile_attached",
+                                "aws_ec2_instance_managed_by_ssm",
+                                "aws_ecr_image_scan_on_push"
+                            ]
+                        },
+                        {
+                            "title": "SEC01-BP07 Identify threats and prioritize mitigations using a threat model",
+                            "description": "Perform threat modeling to identify and maintain an up-to-date register of potential threats and associated mitigations for your workload. Prioritize your threats and adapt your security control mitigations to prevent, detect, and respond. Revisit and maintain this in the context of your workload, and the evolving security landscape.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC01-BP08 Evaluate and implement new security services and features regularly",
+                            "description": "Evaluate and implement security services and features from AWS and AWS Partners that allow you to evolve the security posture of your workload. The AWS Security Blog highlights new AWS services and features, implementation guides, and general security guidance.",
+                            "checks": [
+                                "aws_config_enabled_in_all_regions",
+                                "aws_config_remediation_enabled"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC02 How do you manage identities for people and machines?",
+                    "description": "There are two types of identities you need to manage when approaching operating secure AWS workloads. Understanding the type of identity you need to manage and grant access helps you ensure the right identities have access to the right resources under the right conditions. Human Identities: Your administrators, developers, operators, and end users require an identity to access your AWS environments and applications. These are members of your organization, or external users with whom you collaborate, and who interact with your AWS resources via a web browser, client application, or interactive command-line tools. Machine Identities: Your service applications, operational tools, and workloads require an identity to make requests to AWS services - for example, to read data. These identities include machines running in your AWS environment such as Amazon EC2 instances or AWS Lambda functions. You may also manage machine identities for external parties who need access. Additionally, you may also have machines outside of AWS that need access to your AWS environment.",
+                    "children": [
+                        {
+                            "title": "SEC02-BP01 Use strong sign-in mechanisms",
+                            "description": "Sign-ins (authentication using sign-in credentials) can present risks when not using mechanisms like multi-factor authentication (MFA), especially in situations where sign-in credentials have been inadvertently disclosed or are easily guessed. Use strong sign-in mechanisms to reduce these risks by requiring MFA and strong password policies.",
+                            "checks": [
+                                "aws_ec2_instance_profile_attached",
+                                "aws_iam_avoid_root_usage",
+                                "aws_iam_no_root_access_key",
+                                "aws_iam_password_policy_lowercase",
+                                "aws_iam_password_policy_minimum_length_14",
+                                "aws_iam_password_policy_number",
+                                "aws_iam_password_policy_reuse_24",
+                                "aws_iam_password_policy_symbol",
+                                "aws_iam_password_policy_uppercase",
+                                "aws_iam_root_mfa_enabled",
+                                "aws_iam_user_hardware_mfa_enabled",
+                                "aws_iam_user_has_two_active_access_keys",
+                                "aws_iam_user_mfa_enabled_console_access",
+                                "aws_iam_user_uses_access_keys_console_access",
+                                "aws_sagemaker_notebook_root_access"
+                            ]
+                        },
+                        {
+                            "title": "SEC02-BP02 Use temporary credentials",
+                            "description": "When doing any type of authentication, it’s best to use temporary credentials instead of long-term credentials to reduce or eliminate risks, such as credentials being inadvertently disclosed, shared, or stolen.",
+                            "checks": [
+                                "aws_iam_disable_old_credentials",
+                                "aws_iam_rotate_access_keys_after_90_days",
+                                "aws_iam_unused_access_keys",
+                                "aws_iam_user_has_two_active_access_keys",
+                                "aws_secretmanager_secret_not_used_90d",
+                                "aws_secretsmanager_secret_not_changed_90d",
+                                "aws_secretsmanager_secret_not_used_90d",
+                                "aws_secretsmanager_secret_rotated_as_scheduled",
+                                "aws_secretsmanager_secret_rotation_enabled"
+
+                            ]
+                        },
+                        {
+                            "title": "SEC02-BP03 Store and use secrets securely",
+                            "description": "A workload requires an automated capability to prove its identity to databases, resources, and third-party services. This is accomplished using secret access credentials, such as API access keys, passwords, and OAuth tokens. Using a purpose-built service to store, manage, and rotate these credentials helps reduce the likelihood that those credentials become compromised.",
+                            "checks": [
+                                "aws_cloudformation_no_secrets_in_output",
+                                "aws_ec2_no_secrets_in_instance_user_data",
+                                "aws_ecs_no_secrets_in_task_definition_env"
+                            ]
+                        },
+                        {
+                            "title": "SEC02-BP05 Audit and rotate credentials periodically",
+                            "description": "Audit and rotate credentials periodically to limit how long the credentials can be used to access your resources. Long-term credentials create many risks, and these risks can be reduced by rotating long-term credentials regularly.",
+                            "checks": [
+                                "aws_iam_rotate_access_keys_after_90_days",
+                                "aws_kms_key_rotation_enabled",
+                                "aws_secretsmanager_secret_rotation_enabled"
+                            ]
+                        },
+                        {
+                            "title": "SEC02-BP06 Audit and rotate credentials periodically",
+                            "description": "As the number of users you manage grows, you will need to determine ways to organize them so that you can manage them at scale. Place users with common security requirements in groups defined by your identity provider, and put mechanisms in place to ensure that user attributes that may be used for access control (for example, department or location) are correct and updated. Use these groups and attributes to control access, rather than individual users. This allows you to manage access centrally by changing a user's group membership or attributes once with a permission set, rather than updating many individual policies when a user's access needs change. You can use AWS IAM Identity Center (successor to AWS Single Sign-On) (IAM Identity Center) to manage user groups and attributes. IAM Identity Center supports most commonly used attributes whether they are entered manually during user creation or automatically provisioned using a synchronization engine, such as defined in the System for Cross-Domain Identity Management (SCIM) specification.",
+                            "checks": [
+                                "aws_iam_policy_attached_only_to_group_or_roles"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC03 How do you manage permissions for people and machines?",
+                    "description": "Manage permissions to control access to people and machine identities that require access to AWS and your workload. Permissions control who can access what, and under what conditions.",
+                    "children": [
+                        {
+                            "title": "SEC03-BP01 Define access requirements",
+                            "description": "Each component or resource of your workload needs to be accessed by administrators, end users, or other components. Have a clear definition of who or what should have access to each component, choose the appropriate identity type and method of authentication and authorization.",
+                            "checks": [
+                                "aws_ec2_instance_uses_imdsv2",
+                                "aws_ec2_instance_profile_attached",
+                                "aws_cloudformation_cross_account_sharing_enabled",
+                                "aws_ecs_host_mode_not_privileged_nor_root"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP02 Grant least privilege access",
+                            "description": "It's a best practice to grant only the access that identities require to perform specific actions on specific resources under specific conditions. Use group and identity attributes to dynamically set permissions at scale, rather than defining permissions for individual users. Users should only have the permissions required to do their job. Users should only be given access to production environments to perform a specific task within a limited time period, and access should be revoked once that task is complete. Permissions should be revoked when no longer needed, including when a user moves onto a different project or job function. Administrator privileges should be given only to a small group of trusted administrators. Permissions should be reviewed regularly to avoid permission creep. Machine or system accounts should be given the smallest set of permissions needed to complete their tasks.",
+                            "checks": [
+                                "aws_ec2_instance_profile_attached",
+                                "aws_iam_policy_with_administrative_privileges_not_in_use",
+                                "aws_iam_user_inline_policy_no_star_star",
+                                "aws_iam_group_inline_policy_no_star_star",
+                                "aws_iam_role_inline_policy_no_star_star",
+                                "aws_opensearch_domain_does_not_use_internal_user_database",
+                                "aws_ecs_writable_root_filesystem_in_ecs_tasks"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP03 Establish emergency access process",
+                            "description": "A process that allows emergency access to your workload in the unlikely event of an automated process or pipeline issue. This will help you rely on least privilege access, but ensure users can obtain the right level of access when they require it. For example, establish a process for administrators to verify and approve their request, such as an emergency AWS cross-account role for access, or a specific process for administrators to follow to validate and approve an emergency request.",
+                            "checks": [
+                                "aws_iam_account_maintain_current_contact_details",
+                                "aws_iam_account_security_contact_information_is_registered",
+                                "aws_iam_account_security_questions_are_registered_in_the_aws_account"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP04 Reduce permissions continuously",
+                            "description": "As your teams determine what access is required, remove unneeded permissions and establish review processes to achieve least privilege permissions. Continually monitor and remove unused identities and permissions for both human and machine access. Permission policies should adhere to the least privilege principle. As job duties and roles become better defined, your permission policies need to be reviewed to remove unnecessary permissions. This approach lessens the scope of impact should credentials be inadvertently exposed or otherwise accessed without authorization.",
+                            "checks": [
+                                "aws_iam_policy_with_administrative_privileges_not_in_use"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP05 Define permission guardrails for your organization",
+                            "description": "Establish common controls that restrict access to all identities in your organization. For example, you can restrict access to specific AWS Regions, or prevent your operators from deleting common resources, such as an IAM role used for your central security team.",
+                            "checks": [
+                                "aws_iam_disable_old_credentials",
+                                "aws_iam_unused_access_keys",
+                                "aws_organizations_account_part_of_organizations"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP06 Manage access based on lifecycle",
+                            "description": "Integrate access controls with operator and application lifecycle and your centralized federation provider. For example, remove a user's access when they leave the organization or change roles. AWS RAM, access to shared resources is automatically granted or revoked as accounts are moved in and out of the Organization or Organization Unit with which they are shared. This helps ensure that resources are only shared with the accounts that you intend.",
+                            "checks": [
+                                "aws_cloudwatch_log_group_retention_days_at_least_365",
+                                "aws_dms_public_ip_address",
+                                "aws_ec2_unused_elastic_ip",
+                                "aws_elb_alb_has_no_listeners",
+                                "aws_elb_elb_has_no_listeners",
+                                "aws_iam_password_policy_expire_90",
+                                "aws_iam_rotate_access_keys_after_90_days",
+                                "aws_iam_unused_access_keys"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP07 Analyze public and cross-account access",
+                            "description": "Continually monitor findings that highlight public and cross-account access. Reduce public access and cross-account access to only the specific resources that require this access. Know which of your AWS resources are shared and with whom. Continually monitor and audit your shared resources to verify they are shared with only authorized principals.",
+                            "checks": [
+                                "aws_autoscaling_launch_config_public_ip_disabled",
+                                "aws_cloudtrail_logs_s3_bucket_is_not_publicly_accessible",
+                                "aws_dms_public_ip_address",
+                                "aws_ec2_ebs_snapshot_not_publicly_restorable",
+                                "aws_ec2_instance_in_vpc",
+                                "aws_ec2_public_ip_address",
+                                "aws_ec2_volume_not_encrypted",
+                                "aws_ecr_repository_prohibit_public_access",
+                                "aws_eks_cluster_endpoint_restrict_public_access",
+                                "aws_glacier_vaults_policy_public_access",
+                                "aws_kms_cmk_policy_prohibit_public_access",
+                                "aws_lambda_function_in_vpc",
+                                "aws_lambda_lambda_function_restrict_public_access",
+                                "aws_opensearch_domains_is_not_publicly_accessible",
+                                "aws_rds_no_public_access",
+                                "aws_rds_snapshot_not_public",
+                                "aws_s3_account_level_public_access_blocks",
+                                "aws_s3_public_bucket",
+                                "aws_secretsmanager_secret_not_used_90d"
+                            ]
+                        },
+                        {
+                            "title": "SEC03-BP08 Share resources securely within your organization",
+                            "description": "As the number of workloads grows, you might need to share access to resources in those workloads or provision the resources multiple times across multiple accounts. You might have constructs to compartmentalize your environment, such as having development, testing, and production environments. However, having separation constructs does not limit you from being able to share securely. By sharing components that overlap, you can reduce operational overhead and allow for a consistent experience without guessing what you might have missed while creating the same resource multiple times.",
+                            "checks": [
+                                "aws_dms_public_ip_address",
+                                "aws_ec2_instance_in_vpc",
+                                "aws_lambda_function_in_vpc",
+                                "aws_secretsmanager_secret_not_used_90d"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC04 How do you detect and investigate security events?",
+                    "description": "Capture and analyze events from logs and metrics to gain visibility. Take action on security events and potential threats to help secure your workload.",
+                    "children": [
+                        {
+                            "title": "SEC04-BP01 Configure service and application logging",
+                            "description": "Retain security event logs from services and applications. This is a fundamental principle of security for audit, investigations, and operational use cases, and a common security requirement driven by governance, risk, and compliance (GRC) standards, policies, and procedures.An organization should be able to reliably and consistently retrieve security event logs from AWS services and applications in a timely manner when required to fulfill an internal process or obligation, such as a security incident response. Consider centralizing logs for better operational results.",
+                            "checks": [
+                                "aws_apigateway_logging_enabled",
+                                "aws_cloudfront_distribution_logging_enabled",
+                                "aws_cloudtrail_log_file_validation_enabled",
+                                "aws_ec2_acm_certificate_transparency_logging_enabled",
+                                "aws_ec2_vpc_flow_logs_enabled",
+                                "aws_eks_cluster_control_plane_audit_logging_enabled",
+                                "aws_rds_db_instance_cloudwatch_logs_enabled",
+                                "aws_redshift_cluster_audit_logging_enabled",
+                                "aws_route53_zone_query_logging_enabled",
+                                "aws_s3_bucket_object_logging_enabled",
+                                "aws_vpc_elb_application_classic_lb_logging_enabled"
+                            ]
+                        },
+                        {
+                            "title": "SEC04-BP02 Analyze logs, findings, and metrics centrally",
+                            "description": "Security operations teams rely on the collection of logs and the use of search tools to discover potential events of interest, which might indicate unauthorized activity or unintentional change. However, simply analyzing collected data and manually processing information is insufficient to keep up with the volume of information flowing from complex architectures. Analysis and reporting alone don’t facilitate the assignment of the right resources to work an event in a timely fashion.",
+                            "checks": [
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
+                                "aws_rds_db_instance_cloudwatch_logs_enabled",
+                                "aws_ec2_vpc_flow_logs_enabled",
+                                "aws_logging_wafv2_web_acl_logging_enabled",
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
+                                "aws_redshift_cluster_audit_logging_enabled",
+                                "aws_config_enabled_in_all_regions"
+                            ]
+                        },
+                        {
+                            "title": "SEC04-BP03 Automate response to events",
+                            "description": "Using automation to investigate and remediate events reduces human effort and error, and allows you to scale investigation capabilities. Regular reviews will help you tune automation tools, and continuously iterate. In AWS, investigating events of interest and information on potentially unexpected changes into an automated workflow can be achieved using Amazon EventBridge. This service provides a scalable rules engine designed to broker both native AWS event formats (such as AWS CloudTrail events), as well as custom events you can generate from your application. Amazon GuardDuty also allows you to route events to a workflow system for those building incident response systems (AWS Step Functions), or to a central Security Account, or to a bucket for further analysis.",
+                            "checks": [
+                                "aws_vpc_elb_application_classic_lb_logging_enabled",
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
+                                "aws_rds_db_instance_cloudwatch_logs_enabled",
+                                "aws_ec2_vpc_flow_logs_enabled",
+                                "aws_logging_wafv2_web_acl_logging_enabled",
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
+                                "aws_redshift_cluster_audit_logging_enabled"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC05 How do you protect your network resources?",
+                    "description": "Any workload that has some form of network connectivity, whether it's the internet or a private network, requires multiple layers of defense to help protect from external and internal network-based threats.",
+                    "children": [
+                        {
+                            "title": "SEC05-BP01 Create network layers",
+                            "description": "Group components that share sensitivity requirements into layers to minimize the potential scope of impact of unauthorized access. For example, a database cluster in a virtual private cloud (VPC) with no need for internet access should be placed in subnets with no route to or from the internet. Traffic should only flow from the adjacent next least sensitive resource. Consider a web application sitting behind a load balancer. Your database should not be accessible directly from the load balancer. Only the business logic or web server should have direct access to your database.",
+                            "checks": [
+                                "aws_ec2_ec2_instance_in_vpc",
+                                "aws_lambda_lambda_function_in_vpc",
+                                "aws_vpc_elb_application_lb_waf_enabled",
+                                "aws_apigateway_waf_acl_attached",
+                                "aws_cloudfront_distribution_waf_enabled",
+                                "aws_eks_cluster_endpoint_restrict_public_access",
+
+
+                                "aws_compliance.control.es_domain_in_vpc",
+                                "aws_compliance.control.opensearch_domain_in_vpc",
+                                "aws_compliance.control.ec2_instance_in_vpc",
+                                "aws_compliance.control.lambda_function_in_vpc",
+                                "aws_compliance.control.redshift_cluster_enhanced_vpc_routing_enabled",
+                                "aws_compliance.control.elb_application_lb_waf_enabled",
+                                "aws_compliance.control.apigateway_stage_use_waf_web_acl",
+                                "aws_compliance.control.cloudfront_distribution_waf_enabled",
+                                "aws_compliance.control.eks_cluster_endpoint_restrict_public_access",
+                                "aws_compliance.control.sagemaker_model_network_isolation_enabled",
+                                "aws_compliance.control.sagemaker_model_in_vpc",
+                                "aws_compliance.control.sagemaker_notebook_instance_in_vpc",
+                                "aws_compliance.control.sagemaker_training_job_network_isolation_enabled",
+                                "aws_compliance.control.sagemaker_training_job_in_vpc"
+                            ]
+                        },
+                        {
+                            "title": "SEC05-BP02 Control traffic at all layers",
+                            "description": "When architecting your network topology, you should examine the connectivity requirements of each component. For example, if a component requires internet accessibility (inbound and outbound), connectivity to VPCs, edge services, and external data centers. A VPC allows you to define your network topology that spans an AWS Region with a private IPv4 address range that you set, or an IPv6 address range AWS selects. You should apply multiple controls with a defense in depth approach for both inbound and outbound traffic, including the use of security groups (stateful inspection firewall), Network ACLs, subnets, and route tables. Within a VPC, you can create subnets in an Availability Zone. Each subnet can have an associated route table that defines routing rules for managing the paths that traffic takes within the subnet. You can define an internet routable subnet by having a route that goes to an internet or NAT gateway attached to the VPC, or through another VPC.",
+                            "checks": [
+                                "aws_ec2_DMS_public_ip_address",
+                                "aws_ec2_ebs_snapshot_not_publicly_restorable",
+                                "aws_ec_ec2_not_publicly_accessible",
+                                "aws_vpc_subnet_auto_assign_public_ip_disabled",
+                                "aws_vpc_default_security_group_restricts_all_traffic",
+                                "aws_apigateway_authorizers_enabled",
+                                "aws_s3_account_level_public_access_blocks",
+                                "aws_s3_bucket_no_mfa_delete",
+
+                                "aws_compliance.control.dms_replication_instance_not_publicly_accessible",
+                                "aws_compliance.control.ebs_snapshot_not_publicly_restorable",
+                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
+                                "aws_compliance.control.sagemaker_notebook_instance_direct_internet_access_disabled",
+                                "aws_compliance.control.vpc_subnet_auto_assign_public_ip_disabled",
+                                "aws_compliance.control.vpc_default_security_group_restricts_all_traffic",
+                                "aws_compliance.control.apigateway_rest_api_authorizers_configured",
+                                "aws_compliance.control.s3_bucket_acls_should_prohibit_user_access",
+                                "aws_compliance.control.cis_v150_2_1_3"
+                            ]
+                        },
+                        {
+                            "title": "SEC05-BP03 Automate network protection",
+                            "description": "Automate protection mechanisms to provide a self-defending network based on threat intelligence and anomaly detection. For example, intrusion detection and prevention tools that can adapt to current threats and reduce their impact. A web application firewall is an example of where you can automate network protection, for example, by using the AWS WAF Security Automations solution to automatically block requests originating from IP addresses associated with known threat actors.",
+                            "checks": [
+                                "aws_ec2_DMS_public_ip_address",
+                                "aws_vpc_security_group_allows_ingress_authorized_ports",
+                                "aws_vpc_subnet_auto_assign_public_ip_disabled",
+                                "aws_vpc_default_security_group_restricts_all_traffic",
+                                "aws_vpc_elb_application_lb_waf_enabled",
+                                "aws_apigateway_waf_acl_attached",
+                                "aws_vpc_default_security_group_restricts_all_traffic",
+
+                                "aws_compliance.control.dms_replication_instance_not_publicly_accessible",
+                                "aws_compliance.control.autoscaling_launch_config_public_ip_disabled",
+                                "aws_compliance.control.vpc_network_acl_remote_administration",
+                                "aws_compliance.control.vpc_security_group_allows_ingress_authorized_ports",
+                                "aws_compliance.control.cis_v150_5_2",
+                                "aws_compliance.control.vpc_security_group_restrict_ingress_tcp_udp_all",
+                                "aws_compliance.control.vpc_security_group_restrict_ingress_common_ports_all",
+                                "aws_compliance.control.vpc_security_group_restrict_ingress_kafka_port",
+                                "aws_compliance.control.vpc_security_group_restricted_common_ports",
+                                "aws_compliance.control.vpc_security_group_restrict_ingress_redis_port",
+                                "aws_compliance.control.waf_web_acl_rule_attached",
+                                "aws_compliance.control.waf_rule_group_rule_attached",
+                                "aws_compliance.control.vpc_network_acl_unused",
+                                "aws_compliance.control.vpc_default_security_group_restricts_all_traffic",
+                                "aws_compliance.control.ec2_instance_no_launch_wizard_security_group",
+                                "aws_compliance.control.route53_domain_privacy_protection_enabled",
+                                "aws_compliance.control.route53_domain_transfer_lock_enabled"
+                            ]
+                        },
+                        {
+                            "title": "SEC05-BP04 Implement inspection and protection",
+                            "description": "Inspect and filter your traffic at each layer. You can inspect your VPC configurations for potential unintended access using VPC Network Access Analyzer. You can specify your network access requirements and identify potential network paths that do not meet them. For components transacting over HTTP-based protocols, a web application firewall can help protect from common attacks. AWS WAF is a web application firewall that lets you monitor and block HTTP(s) requests that match your configurable rules that are forwarded to an Amazon API Gateway API, Amazon CloudFront, or an Application Load Balancer. To get started with AWS WAF, you can use AWS Managed Rules in combination with your own, or use existing partner integrations.",
+                            "checks": [
+                                "aws_iam_guardduty_enabled",
+                                "aws_ec2_vpc_flow_logs_enabled",
+                                "aws_apigateway_authorizers_enabled",
+
+                                "aws_compliance.control.guardduty_enabled",
+                                "aws_compliance.control.vpc_flow_logs_enabled",
+                                "aws_compliance.control.apigateway_rest_api_authorizers_configured"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC06 How do you protect your compute resources?",
+                    "description": "Compute resources in your workload require multiple layers of defense to help protect from external and internal threats. Compute resources include EC2 instances, containers, AWS Lambda functions, database services, IoT devices, and more.",
+                    "children": [
+                        {
+                            "title": "SEC06-BP01 Perform vulnerability management",
+                            "description": "Frequently scan and patch for vulnerabilities in your code, dependencies, and in your infrastructure to help protect against new threats. Create and maintain a vulnerability management program. Regularly scan and patch resources such as Amazon EC2 instances, Amazon Elastic Container Service (Amazon ECS) containers, and Amazon Elastic Kubernetes Service (Amazon EKS) workloads. Configure maintenance windows for AWS managed resources, such as Amazon Relational Database Service (Amazon RDS) databases. Use static code scanning to inspect application source code for common issues. Consider web application penetration testing if your organization has the requisite skills or can hire outside assistance.",
+                            "checks": [
+                                "aws_rds_db_instance_automatic_minor_version_upgrade_enabled",
+                                "aws_cloudtrail_log_file_validation_enabled",
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
+                                "aws_ec2_instance_uses_imdsv2",
+                                "aws_ec2_internet_facing_with_instance_profile",
+                                "aws_ssm_managed_instance_compliance_patch_compliant",
+
+                                "aws_compliance.control.rds_db_instance_automatic_minor_version_upgrade_enabled",
+                                "aws_compliance.control.cloudtrail_trail_validation_enabled",
+                                "aws_compliance.control.cloudtrail_security_trail_enabled",
+                                "aws_compliance.control.ec2_instance_uses_imdsv2",
+                                "aws_compliance.control.ec2_instance_publicly_accessible_iam_profile_attached",
+                                "aws_compliance.control.ssm_managed_instance_compliance_patch_compliant"
+                            ]
+                        },
+                        {
+                            "title": "SEC06-BP02 Reduce attack surface",
+                            "description": "Reduce your exposure to unintended access by hardening operating systems and minimizing the components, libraries, and externally consumable services in use. Start by reducing unused components, whether they are operating system packages or applications, for Amazon Elastic Compute Cloud (Amazon EC2)-based workloads, or external software modules in your code, for all workloads. You can find many hardening and security configuration guides for common operating systems and server software. For example, you can start with the Center for Internet Security and iterate.",
+                            "checks": [
+                                "aws_lambda_lambda_function_in_vpc",
+                                "aws_ecs_ecs_cluster_container_insights_enabled",
+                                "aws_ecs_ecs_service_fargate_using_latest_platform_version",
+
+                                "aws_compliance.control.lambda_function_in_vpc",
+                                "aws_compliance.control.ecs_cluster_container_insights_enabled",
+                                "aws_compliance.control.ecs_service_fargate_using_latest_platform_version"
+                            ]
+                        },
+                        {
+                            "title": "SEC06-BP03 Implement managed services",
+                            "description": "Implement services that manage resources, such as Amazon Relational Database Service (Amazon RDS), AWS Lambda, and Amazon Elastic Container Service (Amazon ECS), to reduce your security maintenance tasks as part of the shared responsibility model. For example, Amazon RDS helps you set up, operate, and scale a relational database, automates administration tasks such as hardware provisioning, database setup, patching, and backups. This means you have more free time to focus on securing your application in other ways described in the AWS Well-Architected Framework. Lambda lets you run code without provisioning or managing servers, so you only need to focus on the connectivity, invocation, and security at the code level–not the infrastructure or operating system.",
+                            "checks": [
+                                "aws_compliance.control.redshift_cluster_maintenance_settings_check",
+                                "aws_compliance.control.ec2_instance_not_use_multiple_enis"
+                            ]
+                        },
+                        {
+                            "title": "SEC06-BP04 Automate compute protection",
+                            "description": "Automate your protective compute mechanisms including vulnerability management, reduction in attack surface, and management of resources. The automation will help you invest time in securing other aspects of your workload, and reduce the risk of human error.",
+                            "checks": [
+                                "aws_ec2_internet_facing_with_instance_profile",
+                                "aws_ssm_ec2_instance_ssm_managed",
+                                "aws_ec2_stopped_instance_30_days",
+
+                                "aws_compliance.control.ec2_instance_iam_profile_attached",
+                                "aws_compliance.control.ec2_instance_ssm_managed",
+                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
+                                "aws_compliance.control.ec2_stopped_instance_30_days"
+                            ]
+                        },
+                        {
+                            "title": "SEC06-BP05 Enable people to perform actions at a distance",
+                            "description": "Removing the ability for interactive access reduces the risk of human error, and the potential for manual configuration or management. For example, use a change management workflow to deploy Amazon Elastic Compute Cloud (Amazon EC2) instances using infrastructure-as-code, then manage Amazon EC2 instances using tools such as AWS Systems Manager instead of allowing direct access or through a bastion host. AWS Systems Manager can automate a variety of maintenance and deployment tasks, using features including automation workflows, documents (playbooks), and the run command. AWS CloudFormation stacks build from pipelines and can automate your infrastructure deployment and management tasks without using the AWS Management Console or APIs directly.",
+                            "checks": [
+                                "aws_ec2_internet_facing_with_instance_profile",
+                                "aws_ssm_ec2_instance_ssm_managed",
+                                "aws_ec2_ec2_stopped_instance_30_days",
+
+                                "aws_compliance.control.ec2_instance_iam_profile_attached",
+                                "aws_compliance.control.ec2_instance_ssm_managed",
+                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
+                                "aws_compliance.control.ec2_stopped_instance_30_days"
+                            ]
+                        },
+                        {
+                            "title": "SEC06-BP06 Validate software integrity",
+                            "description": "Implement mechanisms (for example, code signing) to validate that the software, code and libraries used in the workload are from trusted sources and have not been tampered with. For example, you should verify the code signing certificate of binaries and scripts to confirm the author, and ensure it has not been tampered with since created by the author. AWS Signer can help ensure the trust and integrity of your code by centrally managing the code- signing lifecycle, including signing certification and public and private keys. You can learn how to use advanced patterns and best practices for code signing with AWS Lambda. Additionally, a checksum of software that you download, compared to that of the checksum from the provider, can help ensure it has not been tampered with.",
+                            "checks": [
+                                "aws_ec2_ebs_volume_unused",
+                                "aws_ssm_managed_instance_compliance_patch_compliant",
+                                "aws_ssm_ec2_instance_ssm_managed",
+                                "aws_cloudtrail_log_file_validation_enabled",
+
+                                "aws_compliance.control.ebs_volume_unused",
+                                "aws_compliance.control.ssm_managed_instance_compliance_association_compliant",
+                                "aws_compliance.control.ssm_managed_instance_compliance_patch_compliant",
+                                "aws_compliance.control.cloudtrail_trail_validation_enabled"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC08 How do you protect your data at rest?",
+                    "description": "Protect your data at rest by implementing multiple controls, to reduce the risk of unauthorized access or mishandling.",
+                    "children": [
+                        {
+                            "title": "SEC08-BP01 Implement secure key management",
+                            "description": "By defining an encryption approach that includes the storage, rotation, and access control of keys, you can help provide protection for your content against unauthorized users and against unnecessary exposure to authorized users. AWS Key Management Service (AWS KMS) helps you manage encryption keys and integrates with many AWS services. This service provides durable, secure, and redundant storage for your AWS KMS keys. You can define your key aliases as well as key-level policies. The policies help you define key administrators as well as key users. Additionally, AWS CloudHSM is a cloud-based hardware security module (HSM) that allows you to easily generate and use your own encryption keys in the AWS Cloud. It helps you meet corporate, contractual, and regulatory compliance requirements for data security by using FIPS 140-2 Level 3 validated HSMs.",
+                            "checks": [
+                                "aws_kms_kms_key_not_pending_deletion",
+
+                                "aws_compliance.control.apigateway_stage_cache_encryption_at_rest_enabled",
+                                "aws_compliance.control.backup_recovery_point_encryption_enabled",
+                                "aws_compliance.control.codebuild_project_artifact_encryption_enabled",
+                                "aws_compliance.control.codebuild_project_s3_logs_encryption_enabled",
+                                "aws_compliance.control.kms_key_not_pending_deletion"
+                            ]
+                        },
+                        {
+                            "title": "SEC08-BP02 Enforce encryption at rest",
+                            "description": "You should enforce the use of encryption for data at rest. Encryption maintains the confidentiality of sensitive data in the event of unauthorized access or accidental disclosure. Private data should be encrypted by default when at rest. Encryption helps maintain confidentiality of the data and provides an additional layer of protection against intentional or inadvertent data disclosure or exfiltration. Data that is encrypted cannot be read or accessed without first unencrypting the data. Any data stored unencrypted should be inventoried and controlled.",
+                            "checks": [
+                                "aws_efs_storage_encrypted",
+                                "aws_rds_rds_snapshot_not_public",
+                                "aws_rds_storage_encrypted",
+                                "aws_cloudtrail_uses_encryption_at_rest",
+                                "aws_ec2_volume_not_encrypted",
+
+                                "aws_compliance.control.efs_file_system_encrypt_data_at_rest",
+                                "aws_compliance.control.es_domain_encryption_at_rest_enabled",
+                                "aws_compliance.control.opensearch_domain_encryption_at_rest_enabled",
+                                "aws_compliance.control.rds_db_instance_encryption_at_rest_enabled",
+                                "aws_compliance.control.rds_db_snapshot_encrypted_at_rest",
+                                "aws_compliance.control.cloudtrail_trail_logs_encrypted_with_kms_cmk",
+                                "aws_compliance.control.dynamodb_table_encryption_enabled",
+                                "aws_compliance.control.ec2_ebs_default_encryption_enabled",
+                                "aws_compliance.control.eks_cluster_secrets_encrypted",
+                                "aws_compliance.control.glue_dev_endpoint_cloudwatch_logs_encryption_enabled",
+                                "aws_compliance.control.glue_dev_endpoint_job_bookmarks_encryption_enabled",
+                                "aws_compliance.control.glue_dev_endpoint_s3_encryption_enabled",
+                                "aws_compliance.control.glue_job_s3_encryption_enabled",
+                                "aws_compliance.control.glue_job_bookmarks_encryption_enabled",
+                                "aws_compliance.control.glue_job_cloudwatch_logs_encryption_enabled",
+                                "aws_compliance.control.sagemaker_notebook_instance_encrypted_with_kms_cmk",
+                                "aws_compliance.control.sagemaker_training_job_inter_container_traffic_encryption_enabled",
+                                "aws_compliance.control.sagemaker_training_job_volume_and_data_encryption_enabled"
+                            ]
+                        },
+                        {
+                            "title": "SEC08-BP03 Automate data at rest protection",
+                            "description": "Use automated tools to validate and enforce data at rest controls continuously, for example, verify that there are only encrypted storage resources. You can automate validation that all EBS volumes are encrypted using AWS Config Rules. AWS Security Hub can also verify several different controls through automated checks against security standards. Additionally, your AWS Config Rules can automatically remediate noncompliant resources.",
+                            "checks": [
+                                "aws_s3_bucket_default_encryption",
+
+                                "aws_compliance.control.redshift_cluster_audit_logging_enabled",
+                                "aws_compliance.control.redshift_cluster_kms_enabled",
+                                "aws_compliance.control.s3_bucket_default_encryption_enabled",
+                                "aws_compliance.control.sagemaker_endpoint_configuration_encryption_at_rest_enabled",
+                                "aws_compliance.control.sagemaker_notebook_instance_encryption_at_rest_enabled",
+                                "aws_compliance.control.sagemaker_notebook_instance_encrypted_with_kms_cmk"
+                            ]
+                        },
+                        {
+                            "title": "SEC08-BP04 Enforce access control",
+                            "description": "To help protect your data at rest, enforce access control using mechanisms, such as isolation and versioning, and apply the principle of least privilege. Prevent the granting of public access to your data. Verify that only authorized users can access data on a need-to-know basis. Protect your data with regular backups and versioning to prevent against intentional or inadvertent modification or deletion of data. Isolate critical data from other data to protect its confidentiality and data integrity.",
+                            "checks": [
+                                "aws_s3_bucket_no_mfa_delete",
+                                "aws_iam_account_part_of_organizations",
+
+                                "aws_compliance.control.sns_topic_encrypted_at_rest",
+                                "aws_compliance.control.s3_bucket_versioning_enabled",
+                                "aws_compliance.control.account_part_of_organizations"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC09 How do you protect your data in transit?",
+                    "description": "Protect your data in transit by implementing multiple controls to reduce the risk of unauthorized access or loss.",
+                    "children": [
+                        {
+                            "title": "SEC09-BP01 Implement secure key and certificate management",
+                            "description": "Store encryption keys and certificates securely and rotate them at appropriate time intervals with strict access control. The best way to accomplish this is to use a managed service, such as AWS Certificate Manager (ACM). It lets you easily provision, manage, and deploy public and private Transport Layer Security (TLS) certificates for use with AWS services and your internal connected resources. TLS certificates are used to secure network communications and establish the identity of websites over the internet as well as resources on private networks. ACM integrates with AWS resources, such as Elastic Load Balancers (ELBs), AWS distributions, and APIs on API Gateway, also handling automatic certificate renewals. If you use ACM to deploy a private root CA, both certificates and private keys can be provided by it for use in Amazon Elastic Compute Cloud (Amazon EC2) instances, containers, and so on.",
+                            "checks": [
+                                "aws_vpc_lb_use_ssl_certificate",
+
+                                "aws_compliance.control.acm_certificate_expires_30_days",
+                                "aws_compliance.control.elb_classic_lb_use_ssl_certificate",
+                                "aws_compliance.control.elb_application_network_lb_use_ssl_certificate"
+                            ]
+                        },
+                        {
+                            "title": "SEC09-BP02 Enforce encryption in transit",
+                            "description": "Enforce your defined encryption requirements based on your organization's policies, regulatory obligations and standards to help meet organizational, legal, and compliance requirements. Only use protocols with encryption when transmitting sensitive data outside of your virtual private cloud (VPC). Encryption helps maintain data confidentiality even when the data transits untrusted networks. All data should be encrypted in transit using secure TLS protocols and cipher suites. Network traffic between your resources and the internet must be encrypted to mitigate unauthorized access to the data. Network traffic solely within your internal AWS environment should be encrypted using TLS wherever possible.",
+                            "checks": [
+                                "aws_cloudfront_uses_encryption_at_rest",
+                                "aws_s3_bucket_default_encryption",
+                                "aws_apigateway_client_certificate_enabled",
+                                "aws_rds_storage_encrypted",
+                                "aws_vpc_lb_use_ssl_certificate",
+                                "aws_s3_bucket_secure_transport_policy",
+
+                                "aws_compliance.control.elb_application_lb_drop_http_headers",
+                                "aws_compliance.control.elb_application_lb_redirect_http_request_to_https",
+                                "aws_compliance.control.es_domain_node_to_node_encryption_enabled",
+                                "aws_compliance.control.apigateway_rest_api_stage_use_ssl_certificate",
+                                "aws_compliance.control.opensearch_domain_node_to_node_encryption_enabled",
+                                "aws_compliance.control.opensearch_domain_https_required",
+                                "aws_compliance.control.cloudfront_distribution_custom_origins_encryption_in_transit_enabled",
+                                "aws_compliance.control.cloudfront_distribution_no_deprecated_ssl_protocol",
+                                "aws_compliance.control.elb_listener_use_secure_ssl_cipher",
+                                "aws_compliance.control.s3_bucket_enforces_ssl"
+                            ]
+                        },
+                        {
+                            "title": "SEC09-BP03 Automate detection of unintended data access",
+                            "description": "Use tools such as Amazon GuardDuty to automatically detect suspicious activity or attempts to move data outside of defined boundaries. For example, GuardDuty can detect Amazon Simple Storage Service (Amazon S3) read activity that is unusual with the Exfiltration:S3/AnomalousBehavior finding. In addition to GuardDuty, Amazon VPC Flow Logs, which capture network traffic information, can be used with Amazon EventBridge to detect connections, both successful and denied. Amazon S3 Access Analyzer can help assess what data is accessible to who in your Amazon S3 buckets.",
+                            "checks": [
+                                "aws_iam_guardduty_enabled",
+
+                                "aws_compliance.control.redshift_cluster_encryption_in_transit_enabled"
+                            ]
+                        },
+                        {
+                            "title": "SEC09-BP04 Authenticate network communications",
+                            "description": "Verify the identity of communications by using protocols that support authentication, such as Transport Layer Security (TLS) or IPsec. Using network protocols that support authentication, allows for trust to be established between the parties. This adds to the encryption used in the protocol to reduce the risk of communications being altered or intercepted. Common protocols that implement authentication include Transport Layer Security (TLS), which is used in many AWS services, and IPsec, which is used in AWS Virtual Private Network (AWS VPN).",
+                            "checks": [
+                                "aws_vpc_lb_use_ssl_certificate",
+                                "aws_ec2_vpc_flow_logs_enabled",
+
+                                "aws_compliance.control.elb_classic_lb_use_tls_https_listeners",
+                                "aws_compliance.control.vpc_flow_logs_enabled"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC10 How do you anticipate, respond to, and recover from incidents?",
+                    "description": "Preparation is critical to timely and effective investigation, response to, and recovery from security incidents to help minimize disruption to your organization.",
+                    "children": [
+                        {
+                            "title": "SEC10-BP01 Identify key personnel and external resources",
+                            "description": "Identify internal and external personnel, resources, and legal obligations that would help your organization respond to an incident. When you define your approach to incident response in the cloud, in unison with other teams (such as your legal counsel, leadership, business stakeholders, AWS Support Services, and others), you must identify key personnel, stakeholders, and relevant contacts. To reduce dependency and decrease response time, make sure that your team, specialist security teams, and responders are educated about the services that you use and have opportunities to practice hands-on.",
+                            "checks": [
+                                "aws_iam_support_role_exists",
+
+                                "aws_compliance.control.iam_support_role"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "SEC11 How do you incorporate and validate the security properties of applications throughout the design, development, and deployment lifecycle?",
+                    "description": "Preparation is critical to timely and effective investigation, response to, and recovery from security incidents to help minimize disruption to your organization.",
+                    "children": [
+                        {
+                            "title": "SEC11-BP01 Identify key personnel and external resources",
+                            "description": "Training people, testing using automation, understanding dependencies, and validating the security properties of tools and applications help to reduce the likelihood of security issues in production workloads.",
+                            "checks": [
+                                "aws_ecr_scan_on_push",
+
+                                "aws_compliance.control.ecr_repository_image_scan_on_push_enabled"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
