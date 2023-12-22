@@ -418,6 +418,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "cloudfront": [
+        AwsResotoModel(
+            "get-distribution",
+            "Distribution",
+            "Distribution",
+            prefix="CloudFront",
+            prop_prefix="distribution_",
+        ),
         # AwsResotoModel(
         #     "list-distributions",
         #     "DistributionSummary",
@@ -1009,10 +1016,10 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("opensearch", "list-domain-names"), indent=2))
+    # print(json.dumps(create_test_response("opensearch", "list-domain-names"), indent=2))
 
     """print the class models"""
     # print(default_imports())
     for model in all_models():
-        pass
-        # print(model.to_class())
+        # pass
+        print(model.to_class())

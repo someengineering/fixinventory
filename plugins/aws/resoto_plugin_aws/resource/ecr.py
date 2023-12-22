@@ -1,12 +1,15 @@
+import logging
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
+from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend
 
-service_name = "ecs"
+service_name = "ecr"
+log = logging.getLogger("resoto.plugins.aws")
 
 
 @define(eq=False, slots=False)
@@ -21,6 +24,7 @@ class AwsEcrEncryptionConfiguration:
 class AwsEcrRepository(AwsResource):
     kind: ClassVar[str] = "aws_ecr_repository"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr", "describe-repositories", "repositories")
+    public_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr-public", "describe-repositories", "repositories")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("repositoryName"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -39,6 +43,40 @@ class AwsEcrRepository(AwsResource):
     image_tag_mutability: Optional[str] = field(default=None, metadata={"description": "The tag mutability setting for the repository."})  # fmt: skip
     image_scan_on_push: Optional[bool] = field(default=None, metadata={"description": "The image is scanned on every push."})  # fmt: skip
     encryption_configuration: Optional[AwsEcrEncryptionConfiguration] = field(default=None, metadata={"description": "The encryption configuration for the repository. This determines how the contents of your repository are encrypted at rest."})  # fmt: skip
+    repository_visibility: Optional[str] = field(default=None, metadata={"description": "The repository is either public or private."})  # fmt: skip
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder) -> None:
+        def collect(visibility: str, spec: AwsApiSpec) -> None:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    **kwargs,
+                )
+                for js in items:
+                    if instance := cls.from_api(js, builder):
+                        instance.repository_visibility = visibility
+                        builder.add_node(instance, js)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+
+        # collect private and public repositories
+        collect("private", cls.api_spec)
+        collect("public", cls.public_spec)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, cls.public_spec]
 
 
 # @define(eq=False, slots=False)

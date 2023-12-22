@@ -9,7 +9,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.cognito import AwsCognitoUserPool
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2InstanceType
 from resoto_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, Bend
+from resotolib.json_bender import Bender, S, Bend, ParseJson
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -263,7 +263,7 @@ class AwsOpenSearchDomain(AwsResource):
         "engine_version": S("EngineVersion"),
         "cluster_config": S("ClusterConfig") >> Bend(AwsOpenSearchClusterConfig.mapping),
         "ebs_options": S("EBSOptions") >> Bend(AwsOpenSearchEBSOptions.mapping),
-        "access_policies": S("AccessPolicies"),
+        "access_policies": S("AccessPolicies") >> ParseJson(),
         "ip_address_type": S("IPAddressType"),
         "snapshot_options": S("SnapshotOptions", "AutomatedSnapshotStartHour"),
         "vpc_options": S("VPCOptions") >> Bend(AwsOpenSearchVPCDerivedInfo.mapping),
@@ -291,7 +291,7 @@ class AwsOpenSearchDomain(AwsResource):
     engine_version: Optional[str] = field(default=None, metadata={"description": "Version of OpenSearch or Elasticsearch that the domain is running, in the format Elasticsearch_X.Y or OpenSearch_X.Y."})  # fmt: skip
     cluster_config: Optional[AwsOpenSearchClusterConfig] = field(default=None, metadata={"description": "Container for the cluster configuration of the domain."})  # fmt: skip
     ebs_options: Optional[AwsOpenSearchEBSOptions] = field(default=None, metadata={"description": "Container for EBS-based storage settings for the domain."})  # fmt: skip
-    access_policies: Optional[str] = field(default=None, metadata={"description": "Identity and Access Management (IAM) policy document specifying the access policies for the domain."})  # fmt: skip
+    access_policies: Optional[Json] = field(default=None, metadata={"description": "Identity and Access Management (IAM) policy document specifying the access policies for the domain."})  # fmt: skip
     ip_address_type: Optional[str] = field(default=None, metadata={"description": "The type of IP addresses supported by the endpoint for the domain."})  # fmt: skip
     snapshot_options: Optional[int] = field(default=None, metadata={"description": "DEPRECATED. Container for parameters required to configure automated snapshots of domain indexes."})  # fmt: skip
     vpc_options: Optional[AwsOpenSearchVPCDerivedInfo] = field(default=None, metadata={"description": "The VPC configuration for the domain."})  # fmt: skip

@@ -1215,7 +1215,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_vpc"], "delete": ["aws_ec2_keypair", "aws_vpc"]},
+        "predecessors": {"default": ["aws_vpc", "aws_subnet"], "delete": ["aws_ec2_keypair", "aws_vpc", "aws_subnet"]},
         "successors": {"default": ["aws_ec2_keypair"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1464,6 +1464,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.dependant_node(self, clazz=AwsEc2KeyPair, name=self.instance_key_name)
         if vpc_id := source.get("VpcId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, name=vpc_id)
+        if subnet_id := source.get("SubnetId"):
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, name=subnet_id)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:
