@@ -40,7 +40,7 @@ from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, 
 from resotocore.util import if_set, utc, duration, first
 from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp, l_bracket_dp, l_bracket_p, r_bracket_p
 from resotolib.utils import is_env_var_string
 
 T = TypeVar("T")
@@ -155,7 +155,7 @@ class Property:
 # Split a variable path into its path parts.
 # foo.bla -> [foo, bla]
 # foo.`bla.bar` -> [foo, bla.bar]
-prop_path_parser = (regex("[^`.]+") | variable_dp_backtick).sep_by(dot_dp)
+prop_path_parser = (regex("[^`.]+") | (variable_dp_backtick + (l_bracket_p + r_bracket_p).optional(""))).sep_by(dot_dp)
 array_index_re = re.compile(r"\[(\d+|\*)]")
 
 
@@ -186,7 +186,7 @@ class PropertyPath:
         return PropertyPath(update)
 
     def unescaped_parts(self) -> List[str]:
-        return [p.strip("`") for p in self.path if p is not None]
+        return [p.rstrip("[]").strip("`") for p in self.path if p is not None]
 
     @property
     def last_part(self) -> Optional[str]:
