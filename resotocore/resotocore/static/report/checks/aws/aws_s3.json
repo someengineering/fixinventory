@@ -105,6 +105,42 @@
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
             },
             "internal_notes": ""
+        },
+        {
+            "name": "s3_public_bucket",
+            "title": "Do not use public S3 buckets.",
+            "result_kinds": ["aws_s3_bucket"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Public S3 buckets are unsecure, can be accessed from the internet and can cause a security risk in operations",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) and bucket_public_access_block_configuration.{block_public_acls!=true or ignore_public_acls!=true or block_public_policy!=true or restrict_public_buckets!=true} or bucket_acl.grants[*].{permission in [READ, READ_ACP] and grantee.uri==\"http://acs.amazonaws.com/groups/global/AllUsers\"}"
+            },
+            "remediation": {
+                "text": "Update the S3 configurations for the bucket to ensure public settings are disabled and bucket policies do not have all permissions setup",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+            }
+        },
+        {
+            "name": "bucket_object_logging_enabled",
+            "title": "Ensure s3 bucket object logging in enabled to aid in identifying security breaches with AWS S3",
+            "result_kinds": ["aws_s3_bucket"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Enabling S3 bucket object logging is important for security and compliance, as it provides audit trails for access and modifications to objects, aiding in identifying unauthorized access or data breaches.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_s3_bucket) and bucket_logging==null"
+            },
+            "remediation": {
+                "text": "select 'Edit' choose a target bucket for the logs, set a prefix if desired, and save changes.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html"
+            },
         }
     ]
 }

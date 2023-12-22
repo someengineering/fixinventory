@@ -1,0 +1,44 @@
+{
+    "provider": "aws",
+    "service": "ssm",
+    "checks": [
+      {
+        "name": "managed_instance_compliance_patch_compliant",
+        "title": "Ensure that EC2 instances are covered under SSM patch manager",
+        "result_kinds": ["EC2"],
+        "categories": [
+          "security",
+          "compliance"
+        ],
+        "risk": "AWS regularly releases new patched and updated AMI's, ensuring that EC2 are configured with patch manager enables EC2 instances to regularly get automated security patches",
+        "severity": "medium",
+        "detect": {
+          "manual": "Go to AWS System manager -> Patch manager"
+        },
+        "remediation": {
+          "text": "Ensure that all EC2 instances are covered under a patch policy",
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-create-a-patch-policy.html"
+        },
+          "source": "saad"
+      },
+      {
+        "name": "ec2_instance_ssm_managed",
+        "title": "Ensure that EC2 instances are managed by AWS System Manager",
+        "result_kinds": ["EC2"],
+        "categories": [
+          "security",
+          "compliance"
+        ],
+        "risk": "AWS System manager allows you to manage EC2 instances by automating workloads, ensure they are patched regularly and kept up to date.",
+        "severity": "medium",
+        "detect": {
+          "manual": "Go to AWS System manager -> Managed Instances"
+        },
+        "remediation": {
+          "text": "For EC2 instances not under the managed instances list, install the SSM Agent, associate an IAM role with the necessary permissions, verify SSM Agent status, and check the Systems Manager console for the instance.",
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html"
+        },
+          "source": "saad"
+      }
+    ]
+  }

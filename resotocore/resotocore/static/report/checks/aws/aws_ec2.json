@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "snapshot_encrypted",
-            "title": "Ensure EBS Snapshots are encrypted and not public.",
+            "title": "Ensure EBS Snapshots not publicly restorable by encrypting them and not making them public.",
             "result_kinds": ["aws_ec2_snapshot"],
             "categories": ["security", "compliance"],
             "risk": "When you share a snapshot, you are giving others access to all of the data on the snapshot. Share snapshots only with people with whom you want to share all of your snapshot data.",
@@ -30,6 +30,21 @@
             "remediation": {
                 "text": "Ensure Elastic IPs are not unassigned.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html"
+            }
+        },
+        {
+            "name": "instance_in_vpc",
+            "title": "Ensure that all EC2 instances are running in a VPC rather than EC2-Classic",
+            "result_kinds": ["aws_ec2"],
+            "categories": ["security", "compliance"],
+            "risk": "EC2-Classic has been depreciated and do not receive AWS support which can cause compliance and security risk",
+            "severity": "medium",
+            "detect": {
+                "resoto": "search is(aws_ec2_instance) and instance_subnet_id==null"
+            },
+            "remediation": {
+                "text": "EC2 instances that do not have a subnet ID are deployed in EC2 classic, Please upgrade to a VPC for better security posture.",
+                "url": "https://aws.amazon.com/blogs/aws/ec2-classic-is-retiring-heres-how-to-prepare/"
             }
         },
         {
@@ -88,7 +103,7 @@
             "risk": "Exposing an EC2 directly to internet increases the attack surface and therefore the risk of compromise.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_ec2_instance) and instance_public_ip_address!=null"
+                "resoto": "is(aws_ec2_instance) and instance_status==running and instance_public_ip_address!=null"
             },
             "remediation": {
                 "text": "Use an ALB and apply WAF ACL.",
@@ -579,11 +594,11 @@
             },
             "remediation": {
                 "text": "It is recommended that VPC Flow Logs be enabled for packet Rejects for VPCs.",
-                "url": "http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
+                "url": "https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
             }
         },
         {
-            "name": "instance_imdsv2_enabled",
+            "name": "instance_uses_imdsv2",
             "title": "Ensure that EC2 Metadata Service only allows IMDSv2",
             "result_kinds": ["aws_ec2_instance"],
             "categories": [ "security", "compliance" ],
@@ -595,7 +610,70 @@
             "remediation": {
                 "text": "Login to AWS Management Console and open the Amazon EC2 console using https://console.aws.amazon.com/ec2/ Under the Instances menu, select Instances.  For each Instance, select the instance, then choose Actions > Modify instance metadata options.  If the Instance metadata service is enabled, set IMDSv2 to Required.",
                 "awscli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required",
-                "url": "https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/:https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html"
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html"
+            }
+        },
+        {
+            "name": "instance_stopped_since_30d",
+            "title": "Ensure that stopped EC2 instance are removed in 30 days",
+            "result_kinds": ["aws_ec2"],
+            "categories": [ "security", "compliance" ],
+            "risk": "instances that are stopped have a tendency to be forgotten and can cause a security risk, make sure to terminate instances not in use",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_instance) and instance_status==stopped and mtime>{{stopped_instance_age}}"
+            },
+            "default_values": {
+                "stopped_instance_age": "30d"
+            },
+            "remediation": {
+                "text": "Terminate any instance that is shutdown for more than 30 days, make a backup of the instances that are still required in the future",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html"
+            }
+        },
+        {
+            "name": "ebs_volume_unused",
+            "title": "Ensure there are no unused EBS volumes on the AWS Account",
+            "result_kinds": ["aws_ec2_volume"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Unused EBS volumes still contain data previously stored and cause a security risk/violation and should be disposed off adequately.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_volume) and last_access>7d and volume_attachments==[]"
+            },
+            "remediation": {
+                "text": "Goto the EC2 Dashboard -> volumes -> select unused volumes and from the action tab, click delete volumes",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html"
+            }
+        },
+        {
+            "name": "instance_managed_by_ssm",
+            "title": "Check if EC2 instances are managed by Systems Manager.",
+            "result_kinds": ["aws_ec2_instance"],
+            "categories": [ "security", "compliance" ],
+            "risk": "AWS Config provides AWS Managed Rules, which are predefined, customizable rules that AWS Config uses to evaluate whether your AWS resource configurations comply with common best practices.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_instance) with(empty, <-- is(aws_ssm_instance_information))"
+            },
+            "remediation": {
+                "text": "Verify and apply Systems Manager Prerequisites.",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/managed_instances.html"
+            }
+        },
+        {
+            "name": "no_secrets_in_instance_user_data",
+            "title": "Ensure there are no secrets in EC2 User Data.",
+            "result_kinds": ["aws_ec2_instance"],
+            "categories": [ "security", "compliance" ],
+            "risk": "User data scripts are used by EC2 instances to download requirements, boot up necessary programs or execute program scripts for application usage. However, adding secrets in userdata can compromise security as these scripts can be viewed by anyone. Secrets hardcoded into instance user data can be used by malware and bad actors to gain lateral access to other services.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "search is(aws_ec2_instance) and instance_user_data!=null | detect-secrets --path instance_user_data --with-secrets"
+            },
+            "remediation": {
+                "text": "Always ensure that User data picks up secrets from a managed service like Parameter store or Secrets manager, rather than having it hardcoded in the actual script",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
             }
         }
     ]

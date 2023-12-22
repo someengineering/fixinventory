@@ -1,0 +1,28 @@
+{
+    "provider": "aws",
+    "service": "autoscaling",
+    "checks": [
+        {
+            "name": "launch_config_public_ip_disabled",
+            "title": "Ensure that any autoscaling launch configuration does not have AssociatePublicIpAddress set to true",
+            "result_kinds": [
+                "aws_ecs"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Launch configuration contain the template for new EC2 instances, having public settings enabled will cause a security risk such as publicly accessible EC2 instances",
+            "severity": "medium",
+            "detect": {
+                "manual": "Go to AWS EC2 -> Click Autoscaling and Select launch configuration"
+            },
+            "remediation": {
+                "text": "Update the launch configuration to ensure that the AssociatePublicIpAddress setting is set as disabled",
+                "url": "https://docs.aws.amazon.com/config/latest/developerguide/autoscaling-launch-config-public-ip-disabled.html"
+            },
+            "source": "saad"
+        }
+    ]
+}
+

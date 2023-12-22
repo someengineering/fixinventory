@@ -1,0 +1,39 @@
+{
+    "provider": "aws",
+    "service": "eks",
+    "checks": [
+        {
+            "name": "cluster_endpoint_restrict_public_access",
+            "title": "Ensure that EKS cluster endpoint is not publicly accessible",
+            "result_kinds": [ "aws_eks_cluster" ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "A public EKS cluster is available and reachable by the public internet, which opens up security risks",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_eks_cluster) and cluster_resources_vpc_config.endpoint_public_access==true"
+            },
+            "remediation": {
+                "text": "EKS cluster is remediated by updating security group settings, restricting inbound traffic, and implementing network policies to enforce secure access controls.",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html"
+            }
+        },
+        {
+            "name": "cluster_control_plane_audit_logging_enabled",
+            "title": "Ensure that control planes for EKS clusters have logging enabled to comply with compliance requirements and aid in monitoring, security forensics and auditing",
+            "result_kinds": [ "aws_eks_cluster" ],
+            "categories": [ "security", "compliance" ],
+            "risk": "Cluster control plane audit logging for EKS is crucial for security because it records and retains user and system activities in the cluster, aiding in security monitoring, forensic analysis, and compliance auditing.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_eks_cluster) and cluster_logging.cluster_logging[*].enabled = false"
+            },
+            "remediation": {
+                "text": "In the EKS console, go to the 'Logging' tab for the cluster -> Click 'Edit' and enable or modify the control plane logging settings -> Save the changes.",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html"
+            }
+        }
+    ]
+}

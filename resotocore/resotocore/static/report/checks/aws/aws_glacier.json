@@ -1,0 +1,21 @@
+{
+    "provider": "aws",
+    "service": "glacier",
+    "checks": [
+        {
+            "name": "vaults_policy_public_access",
+            "title": "Check if S3 Glacier vaults have policies which allow access to everyone.",
+            "result_kind": ["aws_elb"],
+            "categories": [ "unused"],
+            "risk": "Vaults accessible to everyone could expose sensitive data to bad actors.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_glacier_vault) and glacier_access_policy.Statement[*].{Effect==Allow and (Principal==\"*\" or Principal.AWS=\"*\" or Principal.CanonicalUser=\"*\")}"
+            },
+            "remediation": {
+                "text": "Ensure vault policy does not have principle as *.",
+                "url": "https://docs.aws.amazon.com/amazonglacier/latest/dev/access-control-overview.html"
+            }
+        }
+    ]
+}

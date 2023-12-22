@@ -1,0 +1,36 @@
+{
+    "provider": "aws",
+    "service": "opensearch",
+    "checks": [
+        {
+            "name": "domain_does_not_use_internal_user_database",
+            "title": "Ensure that Amazon Elasticsearch/Opensearch Service domains do not user the internal user database",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Internal User Database is convenient for demos; for production environment use Federated authentication.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "search is(aws_open_search_domain) and advanced_security_options.internal_user_database_enabled==true"
+            },
+            "remediation": {
+                "text": "Remove users from internal user database and uso Cognito instead.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html"
+            }
+        },
+        {
+            "name": "domains_is_not_publicly_accessible",
+            "title": "Ensure that Amazon Opensearch/Elasticsearch domains are not set as Public or have open policy access",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [  ],
+            "risk": "Publicly accessible services could expose sensitive data to bad actors.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_open_search_domain) and access_policies.Statement[*].{Effect==\"Allow\" and (Principal.AWS=\"*\" or Principal=\"*\") and (Condition==null or Condition.IpAddress.`aws:SourceIp`[] in [\"*\", \"0.0.0.0/0\"])}"
+            },
+            "remediation": {
+                "text": "Use  VPC endpoints for internal services.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html"
+            }
+        }
+    ]
+}

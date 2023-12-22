@@ -16,6 +16,21 @@
                 "text": "It is recommended to enable AWS Config be enabled in all regions.",
                 "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/"
             }
+        },
+        {
+            "name": "remediation_enabled",
+            "title": "Ensure AWS Config remediation is enabled",
+            "result_kinds": ["aws_region"],
+            "categories": ["security", "compliance"],
+            "risk": "AWS Config configurations to be implemented with remediation (Manual or automatic through System Manager",
+            "severity": "medium",
+            "detect": {
+                "manual": "AWS Config allows you to remediate noncompliance resources that are evaluated by AWS Config Rules. AWS Config applies remediation using AWS Systems Manager Automation documents. These documents define the actions to be performed on non-compliant AWS resources evaluated by AWS Config Rules."
+            },
+            "remediation": {
+                "text": "Configuration can be made to remediate manually with user defined reviews or automatically",
+                "url": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html#setup-manualremediation"
+            }
         }
     ]
 }

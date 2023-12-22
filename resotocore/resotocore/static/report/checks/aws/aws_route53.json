@@ -1,0 +1,27 @@
+{
+    "provider": "aws",
+    "service": "route53",
+    "checks": [
+        {
+            "name": "zone_query_logging_enabled",
+            "title": "Ensure that query logging is enabled to get insight into DNS queries recieved",
+            "result_kinds": [
+                "aws_route53"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Enabling Route 53 zone query logging is important for security because it allows tracking of all DNS queries received by the hosted zone, aiding in identifying and responding to malicious traffic, anomalies, and potential security threats.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Navigate to the Route 53 console -> Select the hosted zone -> Check if query logging is configured under the 'Query logging' section."
+            },
+            "remediation": {
+                "text": "If not enabled, choose Configure query logging -> Select a destination to send the logs (e.g., CloudWatch Logs, S3, or Kinesis Data Firehose) -> Save the configuration to enable logging.",
+                "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html"
+            },
+            "source": "saad"
+        }
+    ]
+}

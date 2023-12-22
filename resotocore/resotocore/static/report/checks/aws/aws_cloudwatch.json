@@ -1,0 +1,48 @@
+{
+    "provider": "aws",
+    "service": "cloudwatch",
+    "checks": [
+        {
+            "name": "cross_account_sharing_enabled",
+            "title": "Ensure Cloudwatch logs are set to be shared and access across AWS Accounts in organization",
+            "result_kind": [
+                "aws_account"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Not enabling cross-account sharing for CloudWatch logs hinders unified security monitoring and complicates compliance auditing. It creates data silos and impairs timely and coordinated incident response across AWS environments.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_account) with(empty, -[1:2]-> is(aws_iam_role) and name=\"CloudWatch-CrossAccountSharingRole\")"
+            },
+            "remediation": {
+                "text": "Click on Settings and then in the next window which opens, you need to click on Configure, click share data and provide the account ID of the monitoring account",
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html"
+            }
+        },
+        {
+            "name": "log_group_retention_days_at_least_365",
+            "title": "Check if CloudWatch Log Groups have a retention policy of specific days.",
+            "result_kind": [
+                "aws_cloudwatch_log_group"
+            ],
+            "categories": [
+                "retention"
+            ],
+            "risk": "Failing to retain CloudWatch log groups for at least 365 days can lead to non-compliance with regulatory requirements that mandate long-term log storage. It also limits the ability to perform forensic analysis or detect long-term patterns in security breaches retrospectively.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloudwatch_log_group) and group_retention_in_days<{{log_group_retention_days}}"
+            },
+            "default_values": {
+                "log_group_retention_days": "365d"
+            },
+            "remediation": {
+                "text": "Add Log Retention policy of specific days to log groups. This will persist logs and traces for a long time.",
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html#SettingLogRetention"
+            }
+        }
+    ]
+}

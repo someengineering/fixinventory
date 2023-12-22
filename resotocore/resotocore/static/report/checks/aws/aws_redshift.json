@@ -1,0 +1,27 @@
+{
+    "provider": "aws",
+    "service": "redshift",
+    "checks": [
+        {
+            "name": "cluster_audit_logging_enabled",
+            "title": "Ensure that cluster audit logging is enabled to aide in compliance and incident investigation",
+            "result_kinds": [
+                ""
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Enabling cluster audit logging in Amazon Redshift enhances security by providing detailed records of database activities, aiding in monitoring, incident investigation, and compliance.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Open the Amazon Redshift Console -> Navigate to the 'Clusters' section -> Select the Redshift cluster ->In the 'Cluster details' tab, check the 'Audit logging' section."
+            },
+            "remediation": {
+                "text": "In the 'Cluster details' tab -> click 'Modify' Under 'Audit logging' -> enable or modify the settings -> Save the changes.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html"
+            },
+            "source": "saad"
+        }
+    ]
+}

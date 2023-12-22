@@ -1,0 +1,25 @@
+{
+    "provider": "aws",
+    "service": "logs",
+    "checks": [
+      {
+        "name": "wafv2_web_acl_logging_enabled",
+        "title": "Ensure that every Web ACL has logging enabled to provide insight into environment especially the requests being handled and blocked by the ACL",
+        "result_kinds": ["aws_waf"],
+        "categories": [
+          "security",
+          "compliance"
+        ],
+        "risk": "Having WAFv2 Web ACL logging enabled is crucial for security because it provides detailed information about the traffic that is inspected by your Web ACL, including any requests that are blocked. This data is vital for security analysis, auditing, and identifying potential threats or misconfigurations",
+        "severity": "medium",
+        "detect": {
+          "aws_cli": "aws wafv2 get-logging-configuration --resource-arn YOUR_WEB_ACL_ARN"
+        },
+        "remediation": {
+          "text": "in 'WAF and Shield' service in AWS -> select the relevent ACL -> goto 'Logging' -> click 'edit' and configure logging by selecting an S3 bucket",
+          "url": "https://docs.aws.amazon.com/waf/latest/developerguide/logging.html"
+        },
+          "source": "saad"
+      }
+    ]
+  }

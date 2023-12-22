@@ -3,7 +3,7 @@
     "service": "lambda",
     "checks": [
         {
-            "name": "not_publicly_accessible",
+            "name": "publicly_accessible_permissions",
             "title": "Check if Lambda functions have resource-based policy set as Public.",
             "result_kinds": ["aws_lambda_function"],
             "categories": [
@@ -19,6 +19,21 @@
             "remediation": {
                 "text": "Grant usage permission on a per-resource basis and applying least privilege principle.",
                 "url": "https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html"
+            }
+        },
+        {
+            "name": "function_in_vpc",
+            "title": "Ensure that Lambda functions are deployed within a VPC employ security groups for precise access control and adhere to compliance standards, providing isolated and controlled network access.",
+            "result_kinds": ["aws_lambda_function"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Publicly accessible Lambda functions without precise access controls through security groups pose a risk to security",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_lambda_function) with (empty, <-- is(aws_vpc))"
+            },
+            "remediation": {
+                "text": "Change the lambda function configuration to deploy lambda function in VPC",
+                "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html"
             }
         },
         {
@@ -44,7 +59,7 @@
             }
         },
         {
-            "name": "is_public",
+            "name": "lambda_function_restrict_public_access",
             "title": "Check Public Lambda Function URL.",
             "result_kinds": ["aws_lambda_function"],
             "categories": [
@@ -55,7 +70,7 @@
             "severity": "high",
             "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
             "detect": {
-                "resoto": "is(aws_lambda_function) and function_url_config.auth_type not in [null, AWS_IAM]"
+                "resoto": "is(aws_lambda_function) and function_url_config.auth_type != AWS_IAM"
             },
             "remediation": {
                 "action": {

@@ -16,6 +16,38 @@
                 "text": "For every KMS Customer Master Keys (CMKs), ensure that Rotate this key every year is enabled.",
                 "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html"
             }
+        },
+        {
+            "name": "key_not_pending_deletion",
+            "title": "Ensure that Keys that are in use are not up for deletion/Pending Deletion",
+            "result_kinds": ["aws_kms_key"],
+            "categories": ["security", "compliance"],
+            "risk": "KMS keys that are pending deletion cannot be used in operations, hence any Key that is pending deletion and is being used will result in loss of operational workload",
+            "severity": "medium",
+            "detect": {
+                "manual": "Goto AWS Management Console -> Key Management Service (KMS) -> customer managed keys"
+            },
+            "remediation": {
+                "text": "Ensure no key that is currently in use has the status 'Pending deletion'. In case a 'in use' key is pending deletion, swap the key to a newer updated key               ",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html"
+            },
+            "source": "saad"
+        },
+        {
+            "name": "cmk_policy_prohibit_public_access",
+            "title": "Ensure that Customer Managed Keys that are in used are not Publicly accessible",
+            "result_kinds": ["aws_kms_key"],
+            "categories": ["security", "compliance"],
+            "risk": "Customer managed keys should have a least privileged access policy, only being used by users/roles and not accessible publicly",
+            "severity": "medium",
+            "detect": {
+                "manual": "Goto AWS Management Console -> Key Management Service (KMS) -> customer managed keys"
+            },
+            "remediation": {
+                "text": "Ensure no key that is currently in use has a access policy that allows access to everyone publicly  ",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html"
+            },
+            "source": "saad"
         }
     ]
 }

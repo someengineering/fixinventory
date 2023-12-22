@@ -1,0 +1,36 @@
+{
+    "provider": "aws",
+    "service": "elb",
+    "checks": [
+        {
+            "name": "alb_has_no_listeners",
+            "title": "Check if ELBV2 has listeners underneath.",
+            "result_kind": ["aws_alb"],
+            "categories": [ "unused"],
+            "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "search is(aws_alb) and alb_listener not in [null, []]"
+            },
+            "remediation": {
+                "text": "Add listeners to Elastic Load Balancers V2.",
+                "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
+            }
+        },
+        {
+            "name": "elb_has_no_listeners",
+            "title": "Check if ELB has listeners underneath.",
+            "result_kind": ["aws_elb"],
+            "categories": [ "unused"],
+            "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "search is(aws_elb) and listener not in [null, []]"
+            },
+            "remediation": {
+                "text": "Add listeners to Elastic Load Balancers.",
+                "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
+            }
+        }
+    ]
+}

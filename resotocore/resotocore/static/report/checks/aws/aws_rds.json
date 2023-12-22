@@ -33,6 +33,21 @@
             }
         },
         {
+            "name": "db_instance_cloudwatch_logs_enabled",
+            "title": "Ensure that RDS instances have cloudwatch logs enabled",
+            "result_kinds": ["aws_rds_instance"],
+            "categories": ["security", "compliance"],
+            "risk": "Not having cloudwatch logs enabled can limit visibility into security issues, reduce insight into performance or access metrics.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_rds_instance) and rds_enabled_cloudwatch_logs_exports==[]"
+            },
+            "remediation": {
+                "text": "Click 'Modify' to edit the configuration -> Enable 'Enable CloudWatch Logs exports.' -> Specify the CloudWatch Logs group.",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html"
+            }
+        },
+        {
             "name": "no_public_access",
             "title": "Ensure there are no Public Accessible RDS instances.",
             "result_kinds": ["aws_rds_instance"],
@@ -46,6 +61,37 @@
                 "text": "Do not allow public access.",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html"
             }
+        },
+        {
+            "name": "snapshot_not_public",
+            "title": "Ensure RDS Snapshots are not publicly available.",
+            "result_kinds": ["aws_rds_instance"],
+            "categories": ["security", "compliance"],
+            "risk": "Publicly accessible database snapshots could expose sensitive data to bad actors.",
+            "severity": "critical",
+            "detect": {
+                "manual": "Goto the AWS Console, AWS RDS and Snapshots"
+            },
+            "remediation": {
+                "text": "Ensure that any snapshots that are created for databases are not publicly available",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html"
+            },
+            "source": "saad"
+        },
+        {
+            "name": "db_instance_automatic_minor_version_upgrade_enabled",
+            "title": "Ensure that minor version upgrades are automatically updated",
+            "result_kinds": ["aws_rds_instance"],
+            "categories": ["security", "compliance"],
+            "risk": "Version upgrades come with security and vulnerability patches and it is critical that they be updated on infrastructure as soon as possible",
+            "severity": "critical",
+            "detect": {
+                "resoto": "is(aws_rds_instance) and rds_auto_minor_version_upgrade=false"
+            },
+            "remediation": {
+                "text": "Ensure that the auto minor version upgrade option is enabled for RDS instances",
+                "url": "https://aws.amazon.com/about-aws/whats-new/2018/12/amazon-rds-enhances-auto-minor-version-upgrades/"
+            },
         }
     ]
 }

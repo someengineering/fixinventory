@@ -5,7 +5,7 @@
         {
             "name": "notebook_root_access",
             "title": "Check if Amazon SageMaker Notebook instances have root access disabled",
-            "result_kind": ["aws_sagemaker_notebook"],
+            "result_kinds": ["aws_sagemaker_notebook"],
             "categories": [
                 "security",
                 "compliance"

@@ -1,0 +1,24 @@
+{
+    "provider": "aws",
+    "service": "cloudformation",
+    "checks": [
+        {
+            "name": "no_secrets_in_output",
+            "title": "Ensure there are no secrets in CloudFormation outputs",
+            "result_kind": ["aws_cloudformation_stack"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Secrets hardcoded into CloudFormation outputs can be used by malware and bad actors to gain lateral access to other services.",
+            "severity": "critical",
+            "detect": {
+                "resoto_cmd": "search is(aws_cloudformation_stack) | detect-secrets --path stack_outputs --with-secrets"
+            },
+            "remediation": {
+                "text": "Do not put secrets into cloudformation outputs. Use secrets manager service to store and retrieve passwords and secrets.",
+                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
+            }
+        }
+    ]
+}
