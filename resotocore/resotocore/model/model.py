@@ -40,7 +40,7 @@ from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, 
 from resotocore.util import if_set, utc, duration, first
 from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp, l_bracket_dp, l_bracket_p, r_bracket_p
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp, l_bracket_p, r_bracket_p
 from resotolib.utils import is_env_var_string
 
 T = TypeVar("T")
