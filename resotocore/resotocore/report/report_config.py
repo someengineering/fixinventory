@@ -73,8 +73,11 @@ class ReportCheckCollectionConfig:
         if os.path.exists(static_path):
             for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
                 for service in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                    with open(service, "rt", encoding="utf-8") as f:
-                        result[basename(service).rsplit(".", maxsplit=1)[0]] = json.load(f)
+                    try:
+                        with open(service, "rt", encoding="utf-8") as f:
+                            result[basename(service).rsplit(".", maxsplit=1)[0]] = json.load(f)
+                    except Exception as e:
+                        log.error(f"Failed to load report check collection from {service}: {e}")
         return result
 
     @staticmethod
@@ -142,11 +145,14 @@ class BenchmarkConfig(CheckCollectionConfig):
         if os.path.exists(static_path):
             for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
                 for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                    with open(path, "rt", encoding="utf-8") as f:
-                        bid = basename(path).rsplit(".", maxsplit=1)[0]
-                        benchmark = json.load(f)
-                        benchmark["id"] = bid
-                        result[bid] = benchmark
+                    try:
+                        with open(path, "rt", encoding="utf-8") as f:
+                            bid = basename(path).rsplit(".", maxsplit=1)[0]
+                            benchmark = json.load(f)
+                            benchmark["id"] = bid
+                            result[bid] = benchmark
+                    except Exception as e:
+                        log.error(f"Failed to load benchmark from {path}: {e}")
         return result
 
     @staticmethod
