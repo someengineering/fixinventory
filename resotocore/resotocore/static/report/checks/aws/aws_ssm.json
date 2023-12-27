@@ -39,6 +39,21 @@
           "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html"
         },
           "source": "saad"
-      }
+      },
+        {
+            "name": "no_secrets_in_content",
+            "title": "Ensure that there are no secrets in SSM documents.",
+            "result_kinds": ["EC2"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Secrets hardcoded into SSM Documents by malware and bad actors to gain lateral access to other services.",
+            "severity": "medium",
+            "detect": {
+                "resoto_cmd": "search is(aws_ssm_document) and content!=null | detect-secrets --path content --with-secrets"
+            },
+            "remediation": {
+                "text": "Use Secrets Manager service to store and retrieve passwords and secrets.",
+                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
+            }
+        }
     ]
   }

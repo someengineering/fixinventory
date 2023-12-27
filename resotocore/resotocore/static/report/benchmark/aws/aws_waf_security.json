@@ -1,9 +1,7 @@
 {
-    "title": "AWS Well-Architected Security Pillar",
+    "title": "AWS Well-Architected Framework Security Pillar",
     "framework": "WAF",
-    "clouds": [
-        "aws"
-    ],
+    "clouds": [ "aws" ],
     "version": "1.0",
     "description": "The AWS Well-Architected Framework describes key concepts, design principles, and architectural best practices for designing and running workloads in the cloud. The security pillar focuses on protecting information and systems. Key topics include confidentiality and integrity of data, managing user permissions, and establishing controls to detect security events.",
     "children": [
@@ -92,6 +90,7 @@
                                 "aws_iam_user_has_two_active_access_keys",
                                 "aws_iam_user_mfa_enabled_console_access",
                                 "aws_iam_user_uses_access_keys_console_access",
+                                "aws_opensearch_domain_uses_cognito_authentication",
                                 "aws_sagemaker_notebook_root_access"
                             ]
                         },
@@ -117,7 +116,15 @@
                             "checks": [
                                 "aws_cloudformation_no_secrets_in_output",
                                 "aws_ec2_no_secrets_in_instance_user_data",
-                                "aws_ecs_no_secrets_in_task_definition_env"
+                                "aws_ecs_no_secrets_in_task_definition_env",
+                                "aws_lambda_no_secrets_in_variables",
+                                "aws_ssm_no_secrets_in_content"
+                            ]
+                        },
+                        {
+                            "title": "SEC02-BP04 Rely on a centralized identity provider",
+                            "description": "For workforce identities, rely on an identity provider that enables you to manage identities in a centralized place. This makes it easier to manage access across multiple applications and services, because you are creating, managing, and revoking access from a single location. For example, if someone leaves your organization, you can revoke access for all applications and services (including AWS) from one location. This reduces the need for multiple credentials and provides an opportunity to integrate with existing human resources (HR) processes. For federation with individual AWS accounts, you can use centralized identities for AWS with a SAML 2.0-based provider with AWS Identity and Access Management. You can use any provider— whether hosted by you in AWS, external to AWS, or supplied by the AWS Partner—that is compatible with the SAML 2.0 protocol. You can use federation between your AWS account and your chosen provider to grant a user or application access to call AWS API operations by using a SAML assertion to get temporary security credentials. Web-based single sign-on is also supported, allowing users to sign in to the AWS Management Console from your sign in website. For federation to multiple accounts in your AWS Organizations, you can configure your identity source in AWS IAM Identity Center (successor to AWS Single Sign-On) (IAM Identity Center), and specify where your users and groups are stored. Once configured, your identity provider is your source of truth, and information can be synchronized using the System for Cross-domain Identity Management (SCIM) v2.0 protocol. You can then look up users or groups and grant them IAM Identity Center access to AWS accounts, cloud applications, or both. IAM Identity Center integrates with AWS Organizations, which enables you to configure your identity provider once and then grant access to existing and new accounts managed in your organization. IAM Identity Center provides you with a default store, which you can use to manage your users and groups. If you choose to use the IAM Identity Center store, create your users and groups and assign their level of access to your AWS accounts and applications, keeping in mind the best practice of least privilege. Alternatively, you can choose to Connect to Your External Identity Provider using SAML 2.0, or Connect to Your Microsoft AD Directory using AWS Directory Service. Once configured, you can sign into the AWS Management Console, or the AWS mobile app, by authenticating through your central identity provider. For managing end-users or consumers of your workloads, such as a mobile app, you can use Amazon Cognito. It provides authentication, authorization, and user management for your web and mobile apps. Your users can sign in directly with sign-in credentials, or through a third party, such as Amazon, Apple, Facebook, or Google.",
+                            "checks": [
                             ]
                         },
                         {
@@ -221,7 +228,7 @@
                                 "aws_kms_cmk_policy_prohibit_public_access",
                                 "aws_lambda_function_in_vpc",
                                 "aws_lambda_function_restrict_public_access",
-                                "aws_opensearch_domains_is_not_publicly_accessible",
+                                "aws_opensearch_domain_is_not_publicly_accessible",
                                 "aws_rds_no_public_access",
                                 "aws_rds_snapshot_not_public",
                                 "aws_s3_account_level_public_access_blocks",

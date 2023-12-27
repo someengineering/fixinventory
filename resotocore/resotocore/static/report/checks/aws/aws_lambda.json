@@ -98,6 +98,24 @@
                 "text": "Test new runtimes as they are made available. Implement them in production as soon as possible.",
                 "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             }
+        },
+        {
+            "name": "no_secrets_in_variables",
+            "title": "Ensure that there are no secrets in AWS lambda variables..",
+            "result_kinds": ["aws_lambda_function"],
+            "categories": [
+                "security"
+            ],
+            "risk": "The use of a hard-coded password increases the possibility of password guessing. If hard-coded passwords are used; it is possible that malicious users gain access through the account in question.",
+            "severity": "critical",
+            "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
+            "detect": {
+                "resoto_cmd": "search is(aws_lambda_function) and function_environment.variables not in [null, {}] | detect-secrets --path function_environment.variables --with-secrets"
+            },
+            "remediation": {
+                "text": "Use Secrets Manager to securely provide database credentials to Lambda functions and secure the databases as well as use the credentials to connect and query them without hardcoding the secrets in code or passing them through environmental variables.",
+                "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html"
+            }
         }
     ]
 }

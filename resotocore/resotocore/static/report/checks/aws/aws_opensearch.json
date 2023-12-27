@@ -18,7 +18,7 @@
             }
         },
         {
-            "name": "domains_is_not_publicly_accessible",
+            "name": "domain_is_not_publicly_accessible",
             "title": "Ensure that Amazon Opensearch/Elasticsearch domains are not set as Public or have open policy access",
             "result_kind": ["aws_open_search_domain"],
             "categories": [  ],
@@ -30,6 +30,21 @@
             "remediation": {
                 "text": "Use  VPC endpoints for internal services.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html"
+            }
+        },
+        {
+            "name": "domain_uses_cognito_authentication",
+            "title": "Ensure that Amazon Opensearch Service domains have Amazon Cognito authentication enabled.",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [  ],
+            "risk": "Using Cognito authentication is more secure than using the internal user database.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_open_search_domain) and cognito_options==null"
+            },
+            "remediation": {
+                "text": "If you do not configure Amazon Cognito authentication, you can still protect Kibana using an IP-based access policy and a proxy servers, HTTP basic authentication, or SAML.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-ac.html"
             }
         }
     ]
