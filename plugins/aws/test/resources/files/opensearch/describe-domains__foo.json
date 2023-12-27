@@ -41,7 +41,7 @@
         "Iops": 123,
         "Throughput": 123
       },
-      "AccessPolicies": "foo",
+      "AccessPolicies": "{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Sid\": \"allow-foo\", \"Principal\": { \"AWS\": \"999999999999\" }, \"Effect\": \"Allow\", \"Action\": \"glacier:Delete*\", \"Resource\": [ \"arn:aws:glacier:us-west-2:999999999999:vaults/examplevault\" ], \"Condition\": { \"DateGreaterThan\": { \"aws:CurrentTime\": \"2018-12-31T00:00:00Z\" } } } ] }",
       "IPAddressType": "dualstack",
       "SnapshotOptions": {
         "AutomatedSnapshotStartHour": 123
