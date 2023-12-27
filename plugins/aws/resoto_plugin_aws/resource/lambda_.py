@@ -78,8 +78,8 @@ class AwsLambdaEnvironmentError:
 
 
 @define(eq=False, slots=False)
-class AwsLambdaEnvironmentResponse:
-    kind: ClassVar[str] = "aws_lambda_environment_response"
+class AwsLambdaEnvironment:
+    kind: ClassVar[str] = "aws_lambda_environment"
     kind_display: ClassVar[str] = "AWS Lambda Environment Response"
     kind_description: ClassVar[str] = (
         "The AWS Lambda Environment Response provides information about the environment variables configured"
@@ -264,7 +264,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         "function_code_sha256": S("CodeSha256"),
         "function_version": S("Version"),
         "function_dead_letter_config": S("DeadLetterConfig", "TargetArn"),
-        "function_environment": S("Environment") >> Bend(AwsLambdaEnvironmentResponse.mapping),
+        "function_environment": S("Environment") >> Bend(AwsLambdaEnvironment.mapping),
         "function_kms_key_arn": S("KMSKeyArn"),
         "function_tracing_config": S("TracingConfig", "Mode"),
         "function_master_arn": S("MasterArn"),
@@ -295,7 +295,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_code_sha256: Optional[str] = field(default=None)
     function_version: Optional[str] = field(default=None)
     function_dead_letter_config: Optional[str] = field(default=None)
-    function_environment: Optional[AwsLambdaEnvironmentResponse] = field(default=None)
+    function_environment: Optional[AwsLambdaEnvironment] = field(default=None)
     function_kms_key_arn: Optional[str] = field(default=None)
     function_tracing_config: Optional[str] = field(default=None)
     function_master_arn: Optional[str] = field(default=None)

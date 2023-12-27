@@ -1,0 +1,36 @@
+{
+    "DocumentIdentifiers": [
+        {
+            "Name": "Test123",
+            "CreatedDate": "2018-02-15T02:15:27.509000+01:00",
+            "Owner": "Amazon",
+            "PlatformTypes": [
+                "Windows",
+                "Linux",
+                "MacOS"
+            ],
+            "DocumentVersion": "1",
+            "DocumentType": "Automation",
+            "SchemaVersion": "0.3",
+            "DocumentFormat": "JSON",
+            "TargetType": "/AWS::EC2::Instance",
+            "Tags": []
+        },
+        {
+            "Name": "t123",
+            "CreatedDate": "2018-02-15T02:20:01.405000+01:00",
+            "Owner": "Amazon",
+            "PlatformTypes": [
+                "Windows",
+                "Linux",
+                "MacOS"
+            ],
+            "DocumentVersion": "1",
+            "DocumentType": "Automation",
+            "SchemaVersion": "0.3",
+            "DocumentFormat": "JSON",
+            "TargetType": "/AWS::EC2::Instance",
+            "Tags": []
+        }
+    ]
+}

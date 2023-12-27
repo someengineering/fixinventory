@@ -418,13 +418,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "cloudfront": [
-        AwsResotoModel(
-            "get-distribution",
-            "Distribution",
-            "Distribution",
-            prefix="CloudFront",
-            prop_prefix="distribution_",
-        ),
+        # AwsResotoModel(
+        #     "get-distribution",
+        #     "Distribution",
+        #     "Distribution",
+        #     prefix="CloudFront",
+        #     prop_prefix="distribution_",
+        # ),
         # AwsResotoModel(
         #     "list-distributions",
         #     "DistributionSummary",
@@ -1003,6 +1003,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ssm": [
         # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
+        # AwsResotoModel("list-documents", "DocumentIdentifiers", "DocumentIdentifier", prefix="SSM"),
     ],
     "secretsmanager": [
         # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),

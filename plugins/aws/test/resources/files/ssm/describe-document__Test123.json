@@ -1,0 +1,40 @@
+{
+    "Document": {
+        "Hash": "3f70de0ad8888f25e9de8221d4adec8d48240e3c0abdb629d84272f8ad8bc67a",
+        "HashType": "Sha256",
+        "Name": "arn:aws:ssm:us-east-1:506325616308:document/updatesimulatortest",
+        "Owner": "506325616308",
+        "CreatedDate": "2020-06-09T19:55:58.880000+02:00",
+        "StatusInformation": "Successfully created document",
+        "Author": "Batman",
+        "ApprovedVersion": "2",
+        "PendingReviewVersion": "2",
+        "ReviewStatus": "APPROVED",
+        "Status": "Active",
+        "Sha1": "foo",
+        "DisplayName": "updatesimulatortest",
+        "VersionName": "2",
+        "DocumentVersion": "2",
+        "Description": "updatesimulator",
+        "Parameters": [
+            {
+                "Name": "Message",
+                "Type": "String",
+                "Description": "updatesimulator",
+                "DefaultValue": "updatesimulator"
+            }
+        ],
+        "PlatformTypes": [
+            "Linux"
+        ],
+        "DocumentType": "Command",
+        "SchemaVersion": "2.2",
+        "LatestVersion": "2",
+        "DefaultVersion": "2",
+        "DocumentFormat": "JSON",
+        "TargetType": "/AWS::SSM::ManagedInstance",
+        "Tags": [],
+        "Category": [],
+        "CategoryEnum": []
+    }
+}
