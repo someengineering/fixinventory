@@ -516,119 +516,18 @@
             }
         },
         {
-            "name": "password_policy_lowercase",
-            "title": "Ensure IAM password policy require at least one lowercase letter",
-            "result_kind": [
-                "aws_account"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require at least one lowercase letter.",
-            "severity": "medium",
+            "name": "guardduty_enabled",
+            "title": "Check if AWS GuardDuty is enabled",
+            "result_kind": [],
+            "categories": [ "security" ],
+            "risk": "AWS GuardDuty helps with identifying risks in your AWS account. It is recommended to enable GuardDuty.",
+            "severity": "low",
             "detect": {
-                "resoto": "is(aws_account) and require_lowercase_characters=false"
+                "manual": "Enable GuardDuty in AWS console."
             },
             "remediation": {
-                "text": "Ensure \"Requires at least one lowercase letter\" is checked under \"Password Policy\".",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
-            }
-        },
-        {
-            "name": "password_policy_number",
-            "title": "Ensure IAM password policy require at least one number",
-            "result_kind": [
-                "aws_account"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require at least one number.",
-            "severity": "medium",
-            "detect": {
-                "resoto": "is(aws_account) and require_numbers=false"
-            },
-            "remediation": {
-                "text": "Ensure \"Requires at least one number\" is checked under \"Password Policy\".",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
-            }
-        },
-        {
-            "name": "password_policy_symbol",
-            "title": "Ensure IAM password policy require at least one symbol",
-            "result_kind": [
-                "aws_account"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require at least one non-alphanumeric character.",
-            "severity": "medium",
-            "detect": {
-                "resoto": "is(aws_account) and require_symbols=false"
-            },
-            "remediation": {
-                "text": "Ensure \"Require at least one non-alphanumeric character\" is checked under \"Password Policy\".",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
-            }
-        },
-        {
-            "name": "password_policy_uppercase",
-            "title": "Ensure IAM password policy require at least one uppercase letter",
-            "result_kind": [
-                "aws_account"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Password policies are used to enforce password complexity requirements. IAM password policies can be used to ensure password are comprised of different character sets. It is recommended that the password policy require at least one uppercase letter.",
-            "severity": "medium",
-            "detect": {
-                "resoto": "is(aws_account) and require_uppercase_characters=false"
-            },
-            "remediation": {
-                "text": "Ensure \"Require at least one uppercase character\" is checked under \"Password Policy\".",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
-            }
-        },
-        {
-            "name": "unused_access_keys",
-            "title": "Access keys that have not been used in the last 90 days",
-            "result_kind": [ "aws_iam_access_key" ],
-            "categories": [ "security", "compliance" ],
-            "risk": "Access Keys that are not used for a long time maybe no longer be required. It is recommended to remove unused access keys.",
-            "severity": "medium",
-            "detect": {
-                "resoto": "is(aws_iam_access_key) and age>{{access_key_too_old_age}} and (last_used==null or last_used<{{access_key_too_old_age.from_now}})"
-            },
-            "default_values": {
-                "access_key_too_old_age": "90d"
-            },
-            "remediation": {
-                "text": "Delete unused access keys.",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html"
-            }
-        },
-        {
-            "name": "password_policy_expire_90",
-            "title": "Passwords should expire within 90 days or less",
-            "result_kind": [ "aws_account" ],
-            "categories": [ "security", "compliance" ],
-            "risk": "Allowing passwords to remain unchanged for more than 90 days can significantly increase the risk of unauthorized access and potential security breaches. Older passwords are more likely to be compromised over time, and longer password lifetimes increase the window of opportunity for malicious actors to exploit stolen or weak credentials.",
-            "severity": "high",
-            "detect": {
-                "resoto": "is(aws_account) and (expire_passwords!=true or max_password_age>{{password_age}})"
-            },
-            "default_values": {
-                "password_age": "90d"
-            },
-            "remediation": {
-                "text": "Configure IAM policies to enforce password expiration within 90 days. Ensure the 'expire_passwords' setting is enabled and 'max_password_age' is set to 90 days or less. Regular password rotation helps maintain account security by reducing the risk of compromised credentials being used for extended periods.",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details"
+                "text": "Enable GuardDuty in AWS console.",
+                "url": "https://aws.amazon.com/guardduty/"
             }
         }
     ]

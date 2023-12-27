@@ -107,6 +107,6 @@
                 "text": "Update the task definition for fargate to use the latest platform version",
                 "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html"
             }
-        },
+        }
     ]
   }

@@ -107,7 +107,7 @@
             "internal_notes": ""
         },
         {
-            "name": "s3_public_bucket",
+            "name": "public_bucket",
             "title": "Do not use public S3 buckets.",
             "result_kinds": ["aws_s3_bucket"],
             "categories": [
@@ -140,7 +140,7 @@
             "remediation": {
                 "text": "select 'Edit' choose a target bucket for the logs, set a prefix if desired, and save changes.",
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html"
-            },
+            }
         }
     ]
 }

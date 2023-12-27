@@ -15,7 +15,7 @@
             "remediation": {
                 "text": "Ensure that replication instances are created in private subnets and do not have a public IP",
                 "url": "https://docs.aws.amazon.com/dms/latest/userguide/CHAP_ReplicationInstance.PublicPrivate.html"
-            },
+            }
         }
     ]
 }

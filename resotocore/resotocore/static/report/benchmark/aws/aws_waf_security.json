@@ -103,7 +103,7 @@
                                 "aws_iam_rotate_access_keys_after_90_days",
                                 "aws_iam_unused_access_keys",
                                 "aws_iam_user_has_two_active_access_keys",
-                                "aws_secretmanager_secret_not_used_90d",
+                                "aws_secretsmanager_secret_not_used_90d",
                                 "aws_secretsmanager_secret_not_changed_90d",
                                 "aws_secretsmanager_secret_not_used_90d",
                                 "aws_secretsmanager_secret_rotated_as_scheduled",
@@ -148,7 +148,7 @@
                             "checks": [
                                 "aws_ec2_instance_uses_imdsv2",
                                 "aws_ec2_instance_profile_attached",
-                                "aws_cloudformation_cross_account_sharing_enabled",
+                                "aws_cloudwatch_cross_account_sharing_enabled",
                                 "aws_ecs_host_mode_not_privileged_nor_root"
                             ]
                         },
@@ -211,7 +211,7 @@
                                 "aws_autoscaling_launch_config_public_ip_disabled",
                                 "aws_cloudtrail_logs_s3_bucket_is_not_publicly_accessible",
                                 "aws_dms_public_ip_address",
-                                "aws_ec2_ebs_snapshot_not_publicly_restorable",
+                                "aws_ec2_snapshot_encrypted",
                                 "aws_ec2_instance_in_vpc",
                                 "aws_ec2_public_ip_address",
                                 "aws_ec2_volume_not_encrypted",
@@ -220,7 +220,7 @@
                                 "aws_glacier_vaults_policy_public_access",
                                 "aws_kms_cmk_policy_prohibit_public_access",
                                 "aws_lambda_function_in_vpc",
-                                "aws_lambda_lambda_function_restrict_public_access",
+                                "aws_lambda_function_restrict_public_access",
                                 "aws_opensearch_domains_is_not_publicly_accessible",
                                 "aws_rds_no_public_access",
                                 "aws_rds_snapshot_not_public",
@@ -252,7 +252,7 @@
                                 "aws_apigateway_logging_enabled",
                                 "aws_cloudfront_distribution_logging_enabled",
                                 "aws_cloudtrail_log_file_validation_enabled",
-                                "aws_ec2_acm_certificate_transparency_logging_enabled",
+                                "aws_acm_certificate_transparency_logging_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
                                 "aws_eks_cluster_control_plane_audit_logging_enabled",
                                 "aws_rds_db_instance_cloudwatch_logs_enabled",
@@ -269,7 +269,7 @@
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_rds_db_instance_cloudwatch_logs_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
-                                "aws_logging_wafv2_web_acl_logging_enabled",
+                                "aws_wafv2_web_acl_logging_enabled",
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_redshift_cluster_audit_logging_enabled",
                                 "aws_config_enabled_in_all_regions"
@@ -283,7 +283,7 @@
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_rds_db_instance_cloudwatch_logs_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
-                                "aws_logging_wafv2_web_acl_logging_enabled",
+                                "aws_wafv2_web_acl_logging_enabled",
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_redshift_cluster_audit_logging_enabled"
                             ]
@@ -298,83 +298,39 @@
                             "title": "SEC05-BP01 Create network layers",
                             "description": "Group components that share sensitivity requirements into layers to minimize the potential scope of impact of unauthorized access. For example, a database cluster in a virtual private cloud (VPC) with no need for internet access should be placed in subnets with no route to or from the internet. Traffic should only flow from the adjacent next least sensitive resource. Consider a web application sitting behind a load balancer. Your database should not be accessible directly from the load balancer. Only the business logic or web server should have direct access to your database.",
                             "checks": [
-                                "aws_ec2_ec2_instance_in_vpc",
-                                "aws_lambda_lambda_function_in_vpc",
+                                "aws_ec2_instance_in_vpc",
+                                "aws_lambda_function_in_vpc",
                                 "aws_vpc_elb_application_lb_waf_enabled",
                                 "aws_apigateway_waf_acl_attached",
                                 "aws_cloudfront_distribution_waf_enabled",
-                                "aws_eks_cluster_endpoint_restrict_public_access",
-
-
-                                "aws_compliance.control.es_domain_in_vpc",
-                                "aws_compliance.control.opensearch_domain_in_vpc",
-                                "aws_compliance.control.ec2_instance_in_vpc",
-                                "aws_compliance.control.lambda_function_in_vpc",
-                                "aws_compliance.control.redshift_cluster_enhanced_vpc_routing_enabled",
-                                "aws_compliance.control.elb_application_lb_waf_enabled",
-                                "aws_compliance.control.apigateway_stage_use_waf_web_acl",
-                                "aws_compliance.control.cloudfront_distribution_waf_enabled",
-                                "aws_compliance.control.eks_cluster_endpoint_restrict_public_access",
-                                "aws_compliance.control.sagemaker_model_network_isolation_enabled",
-                                "aws_compliance.control.sagemaker_model_in_vpc",
-                                "aws_compliance.control.sagemaker_notebook_instance_in_vpc",
-                                "aws_compliance.control.sagemaker_training_job_network_isolation_enabled",
-                                "aws_compliance.control.sagemaker_training_job_in_vpc"
+                                "aws_eks_cluster_endpoint_restrict_public_access"
                             ]
                         },
                         {
                             "title": "SEC05-BP02 Control traffic at all layers",
                             "description": "When architecting your network topology, you should examine the connectivity requirements of each component. For example, if a component requires internet accessibility (inbound and outbound), connectivity to VPCs, edge services, and external data centers. A VPC allows you to define your network topology that spans an AWS Region with a private IPv4 address range that you set, or an IPv6 address range AWS selects. You should apply multiple controls with a defense in depth approach for both inbound and outbound traffic, including the use of security groups (stateful inspection firewall), Network ACLs, subnets, and route tables. Within a VPC, you can create subnets in an Availability Zone. Each subnet can have an associated route table that defines routing rules for managing the paths that traffic takes within the subnet. You can define an internet routable subnet by having a route that goes to an internet or NAT gateway attached to the VPC, or through another VPC.",
                             "checks": [
-                                "aws_ec2_DMS_public_ip_address",
-                                "aws_ec2_ebs_snapshot_not_publicly_restorable",
-                                "aws_ec_ec2_not_publicly_accessible",
+                                "aws_dms_public_ip_address",
+                                "aws_ec2_snapshot_encrypted",
+                                "aws_ec2_public_ip_address",
                                 "aws_vpc_subnet_auto_assign_public_ip_disabled",
                                 "aws_vpc_default_security_group_restricts_all_traffic",
                                 "aws_apigateway_authorizers_enabled",
                                 "aws_s3_account_level_public_access_blocks",
-                                "aws_s3_bucket_no_mfa_delete",
-
-                                "aws_compliance.control.dms_replication_instance_not_publicly_accessible",
-                                "aws_compliance.control.ebs_snapshot_not_publicly_restorable",
-                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
-                                "aws_compliance.control.sagemaker_notebook_instance_direct_internet_access_disabled",
-                                "aws_compliance.control.vpc_subnet_auto_assign_public_ip_disabled",
-                                "aws_compliance.control.vpc_default_security_group_restricts_all_traffic",
-                                "aws_compliance.control.apigateway_rest_api_authorizers_configured",
-                                "aws_compliance.control.s3_bucket_acls_should_prohibit_user_access",
-                                "aws_compliance.control.cis_v150_2_1_3"
+                                "aws_s3_bucket_no_mfa_delete"
                             ]
                         },
                         {
                             "title": "SEC05-BP03 Automate network protection",
                             "description": "Automate protection mechanisms to provide a self-defending network based on threat intelligence and anomaly detection. For example, intrusion detection and prevention tools that can adapt to current threats and reduce their impact. A web application firewall is an example of where you can automate network protection, for example, by using the AWS WAF Security Automations solution to automatically block requests originating from IP addresses associated with known threat actors.",
                             "checks": [
-                                "aws_ec2_DMS_public_ip_address",
+                                "aws_dms_public_ip_address",
                                 "aws_vpc_security_group_allows_ingress_authorized_ports",
                                 "aws_vpc_subnet_auto_assign_public_ip_disabled",
                                 "aws_vpc_default_security_group_restricts_all_traffic",
                                 "aws_vpc_elb_application_lb_waf_enabled",
                                 "aws_apigateway_waf_acl_attached",
-                                "aws_vpc_default_security_group_restricts_all_traffic",
-
-                                "aws_compliance.control.dms_replication_instance_not_publicly_accessible",
-                                "aws_compliance.control.autoscaling_launch_config_public_ip_disabled",
-                                "aws_compliance.control.vpc_network_acl_remote_administration",
-                                "aws_compliance.control.vpc_security_group_allows_ingress_authorized_ports",
-                                "aws_compliance.control.cis_v150_5_2",
-                                "aws_compliance.control.vpc_security_group_restrict_ingress_tcp_udp_all",
-                                "aws_compliance.control.vpc_security_group_restrict_ingress_common_ports_all",
-                                "aws_compliance.control.vpc_security_group_restrict_ingress_kafka_port",
-                                "aws_compliance.control.vpc_security_group_restricted_common_ports",
-                                "aws_compliance.control.vpc_security_group_restrict_ingress_redis_port",
-                                "aws_compliance.control.waf_web_acl_rule_attached",
-                                "aws_compliance.control.waf_rule_group_rule_attached",
-                                "aws_compliance.control.vpc_network_acl_unused",
-                                "aws_compliance.control.vpc_default_security_group_restricts_all_traffic",
-                                "aws_compliance.control.ec2_instance_no_launch_wizard_security_group",
-                                "aws_compliance.control.route53_domain_privacy_protection_enabled",
-                                "aws_compliance.control.route53_domain_transfer_lock_enabled"
+                                "aws_vpc_default_security_group_restricts_all_traffic"
                             ]
                         },
                         {
@@ -383,11 +339,7 @@
                             "checks": [
                                 "aws_iam_guardduty_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
-                                "aws_apigateway_authorizers_enabled",
-
-                                "aws_compliance.control.guardduty_enabled",
-                                "aws_compliance.control.vpc_flow_logs_enabled",
-                                "aws_compliance.control.apigateway_rest_api_authorizers_configured"
+                                "aws_apigateway_authorizers_enabled"
                             ]
                         }
                     ]
@@ -405,35 +357,22 @@
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_ec2_instance_uses_imdsv2",
                                 "aws_ec2_internet_facing_with_instance_profile",
-                                "aws_ssm_managed_instance_compliance_patch_compliant",
-
-                                "aws_compliance.control.rds_db_instance_automatic_minor_version_upgrade_enabled",
-                                "aws_compliance.control.cloudtrail_trail_validation_enabled",
-                                "aws_compliance.control.cloudtrail_security_trail_enabled",
-                                "aws_compliance.control.ec2_instance_uses_imdsv2",
-                                "aws_compliance.control.ec2_instance_publicly_accessible_iam_profile_attached",
-                                "aws_compliance.control.ssm_managed_instance_compliance_patch_compliant"
+                                "aws_ssm_managed_instance_compliance_patch_compliant"
                             ]
                         },
                         {
                             "title": "SEC06-BP02 Reduce attack surface",
                             "description": "Reduce your exposure to unintended access by hardening operating systems and minimizing the components, libraries, and externally consumable services in use. Start by reducing unused components, whether they are operating system packages or applications, for Amazon Elastic Compute Cloud (Amazon EC2)-based workloads, or external software modules in your code, for all workloads. You can find many hardening and security configuration guides for common operating systems and server software. For example, you can start with the Center for Internet Security and iterate.",
                             "checks": [
-                                "aws_lambda_lambda_function_in_vpc",
+                                "aws_lambda_function_in_vpc",
                                 "aws_ecs_ecs_cluster_container_insights_enabled",
-                                "aws_ecs_ecs_service_fargate_using_latest_platform_version",
-
-                                "aws_compliance.control.lambda_function_in_vpc",
-                                "aws_compliance.control.ecs_cluster_container_insights_enabled",
-                                "aws_compliance.control.ecs_service_fargate_using_latest_platform_version"
+                                "aws_ecs_ecs_service_fargate_using_latest_platform_version"
                             ]
                         },
                         {
                             "title": "SEC06-BP03 Implement managed services",
                             "description": "Implement services that manage resources, such as Amazon Relational Database Service (Amazon RDS), AWS Lambda, and Amazon Elastic Container Service (Amazon ECS), to reduce your security maintenance tasks as part of the shared responsibility model. For example, Amazon RDS helps you set up, operate, and scale a relational database, automates administration tasks such as hardware provisioning, database setup, patching, and backups. This means you have more free time to focus on securing your application in other ways described in the AWS Well-Architected Framework. Lambda lets you run code without provisioning or managing servers, so you only need to focus on the connectivity, invocation, and security at the code level–not the infrastructure or operating system.",
                             "checks": [
-                                "aws_compliance.control.redshift_cluster_maintenance_settings_check",
-                                "aws_compliance.control.ec2_instance_not_use_multiple_enis"
                             ]
                         },
                         {
@@ -442,12 +381,7 @@
                             "checks": [
                                 "aws_ec2_internet_facing_with_instance_profile",
                                 "aws_ssm_ec2_instance_ssm_managed",
-                                "aws_ec2_stopped_instance_30_days",
-
-                                "aws_compliance.control.ec2_instance_iam_profile_attached",
-                                "aws_compliance.control.ec2_instance_ssm_managed",
-                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
-                                "aws_compliance.control.ec2_stopped_instance_30_days"
+                                "aws_ec2_instance_stopped_since_30d"
                             ]
                         },
                         {
@@ -456,12 +390,7 @@
                             "checks": [
                                 "aws_ec2_internet_facing_with_instance_profile",
                                 "aws_ssm_ec2_instance_ssm_managed",
-                                "aws_ec2_ec2_stopped_instance_30_days",
-
-                                "aws_compliance.control.ec2_instance_iam_profile_attached",
-                                "aws_compliance.control.ec2_instance_ssm_managed",
-                                "aws_compliance.control.ec2_instance_not_use_multiple_enis",
-                                "aws_compliance.control.ec2_stopped_instance_30_days"
+                                "aws_ec2_instance_stopped_since_30d"
                             ]
                         },
                         {
@@ -471,12 +400,7 @@
                                 "aws_ec2_ebs_volume_unused",
                                 "aws_ssm_managed_instance_compliance_patch_compliant",
                                 "aws_ssm_ec2_instance_ssm_managed",
-                                "aws_cloudtrail_log_file_validation_enabled",
-
-                                "aws_compliance.control.ebs_volume_unused",
-                                "aws_compliance.control.ssm_managed_instance_compliance_association_compliant",
-                                "aws_compliance.control.ssm_managed_instance_compliance_patch_compliant",
-                                "aws_compliance.control.cloudtrail_trail_validation_enabled"
+                                "aws_cloudtrail_log_file_validation_enabled"
                             ]
                         }
                     ]
@@ -489,13 +413,7 @@
                             "title": "SEC08-BP01 Implement secure key management",
                             "description": "By defining an encryption approach that includes the storage, rotation, and access control of keys, you can help provide protection for your content against unauthorized users and against unnecessary exposure to authorized users. AWS Key Management Service (AWS KMS) helps you manage encryption keys and integrates with many AWS services. This service provides durable, secure, and redundant storage for your AWS KMS keys. You can define your key aliases as well as key-level policies. The policies help you define key administrators as well as key users. Additionally, AWS CloudHSM is a cloud-based hardware security module (HSM) that allows you to easily generate and use your own encryption keys in the AWS Cloud. It helps you meet corporate, contractual, and regulatory compliance requirements for data security by using FIPS 140-2 Level 3 validated HSMs.",
                             "checks": [
-                                "aws_kms_kms_key_not_pending_deletion",
-
-                                "aws_compliance.control.apigateway_stage_cache_encryption_at_rest_enabled",
-                                "aws_compliance.control.backup_recovery_point_encryption_enabled",
-                                "aws_compliance.control.codebuild_project_artifact_encryption_enabled",
-                                "aws_compliance.control.codebuild_project_s3_logs_encryption_enabled",
-                                "aws_compliance.control.kms_key_not_pending_deletion"
+                                "aws_kms_key_not_pending_deletion"
                             ]
                         },
                         {
@@ -503,43 +421,17 @@
                             "description": "You should enforce the use of encryption for data at rest. Encryption maintains the confidentiality of sensitive data in the event of unauthorized access or accidental disclosure. Private data should be encrypted by default when at rest. Encryption helps maintain confidentiality of the data and provides an additional layer of protection against intentional or inadvertent data disclosure or exfiltration. Data that is encrypted cannot be read or accessed without first unencrypting the data. Any data stored unencrypted should be inventoried and controlled.",
                             "checks": [
                                 "aws_efs_storage_encrypted",
-                                "aws_rds_rds_snapshot_not_public",
+                                "aws_rds_snapshot_not_public",
                                 "aws_rds_storage_encrypted",
                                 "aws_cloudtrail_uses_encryption_at_rest",
-                                "aws_ec2_volume_not_encrypted",
-
-                                "aws_compliance.control.efs_file_system_encrypt_data_at_rest",
-                                "aws_compliance.control.es_domain_encryption_at_rest_enabled",
-                                "aws_compliance.control.opensearch_domain_encryption_at_rest_enabled",
-                                "aws_compliance.control.rds_db_instance_encryption_at_rest_enabled",
-                                "aws_compliance.control.rds_db_snapshot_encrypted_at_rest",
-                                "aws_compliance.control.cloudtrail_trail_logs_encrypted_with_kms_cmk",
-                                "aws_compliance.control.dynamodb_table_encryption_enabled",
-                                "aws_compliance.control.ec2_ebs_default_encryption_enabled",
-                                "aws_compliance.control.eks_cluster_secrets_encrypted",
-                                "aws_compliance.control.glue_dev_endpoint_cloudwatch_logs_encryption_enabled",
-                                "aws_compliance.control.glue_dev_endpoint_job_bookmarks_encryption_enabled",
-                                "aws_compliance.control.glue_dev_endpoint_s3_encryption_enabled",
-                                "aws_compliance.control.glue_job_s3_encryption_enabled",
-                                "aws_compliance.control.glue_job_bookmarks_encryption_enabled",
-                                "aws_compliance.control.glue_job_cloudwatch_logs_encryption_enabled",
-                                "aws_compliance.control.sagemaker_notebook_instance_encrypted_with_kms_cmk",
-                                "aws_compliance.control.sagemaker_training_job_inter_container_traffic_encryption_enabled",
-                                "aws_compliance.control.sagemaker_training_job_volume_and_data_encryption_enabled"
+                                "aws_ec2_volume_not_encrypted"
                             ]
                         },
                         {
                             "title": "SEC08-BP03 Automate data at rest protection",
                             "description": "Use automated tools to validate and enforce data at rest controls continuously, for example, verify that there are only encrypted storage resources. You can automate validation that all EBS volumes are encrypted using AWS Config Rules. AWS Security Hub can also verify several different controls through automated checks against security standards. Additionally, your AWS Config Rules can automatically remediate noncompliant resources.",
                             "checks": [
-                                "aws_s3_bucket_default_encryption",
-
-                                "aws_compliance.control.redshift_cluster_audit_logging_enabled",
-                                "aws_compliance.control.redshift_cluster_kms_enabled",
-                                "aws_compliance.control.s3_bucket_default_encryption_enabled",
-                                "aws_compliance.control.sagemaker_endpoint_configuration_encryption_at_rest_enabled",
-                                "aws_compliance.control.sagemaker_notebook_instance_encryption_at_rest_enabled",
-                                "aws_compliance.control.sagemaker_notebook_instance_encrypted_with_kms_cmk"
+                                "aws_s3_bucket_default_encryption"
                             ]
                         },
                         {
@@ -547,11 +439,7 @@
                             "description": "To help protect your data at rest, enforce access control using mechanisms, such as isolation and versioning, and apply the principle of least privilege. Prevent the granting of public access to your data. Verify that only authorized users can access data on a need-to-know basis. Protect your data with regular backups and versioning to prevent against intentional or inadvertent modification or deletion of data. Isolate critical data from other data to protect its confidentiality and data integrity.",
                             "checks": [
                                 "aws_s3_bucket_no_mfa_delete",
-                                "aws_iam_account_part_of_organizations",
-
-                                "aws_compliance.control.sns_topic_encrypted_at_rest",
-                                "aws_compliance.control.s3_bucket_versioning_enabled",
-                                "aws_compliance.control.account_part_of_organizations"
+                                "aws_organizations_account_part_of_organizations"
                             ]
                         }
                     ]
@@ -564,43 +452,26 @@
                             "title": "SEC09-BP01 Implement secure key and certificate management",
                             "description": "Store encryption keys and certificates securely and rotate them at appropriate time intervals with strict access control. The best way to accomplish this is to use a managed service, such as AWS Certificate Manager (ACM). It lets you easily provision, manage, and deploy public and private Transport Layer Security (TLS) certificates for use with AWS services and your internal connected resources. TLS certificates are used to secure network communications and establish the identity of websites over the internet as well as resources on private networks. ACM integrates with AWS resources, such as Elastic Load Balancers (ELBs), AWS distributions, and APIs on API Gateway, also handling automatic certificate renewals. If you use ACM to deploy a private root CA, both certificates and private keys can be provided by it for use in Amazon Elastic Compute Cloud (Amazon EC2) instances, containers, and so on.",
                             "checks": [
-                                "aws_vpc_lb_use_ssl_certificate",
-
-                                "aws_compliance.control.acm_certificate_expires_30_days",
-                                "aws_compliance.control.elb_classic_lb_use_ssl_certificate",
-                                "aws_compliance.control.elb_application_network_lb_use_ssl_certificate"
+                                "aws_vpc_lb_use_ssl_certificate"
                             ]
                         },
                         {
                             "title": "SEC09-BP02 Enforce encryption in transit",
                             "description": "Enforce your defined encryption requirements based on your organization's policies, regulatory obligations and standards to help meet organizational, legal, and compliance requirements. Only use protocols with encryption when transmitting sensitive data outside of your virtual private cloud (VPC). Encryption helps maintain data confidentiality even when the data transits untrusted networks. All data should be encrypted in transit using secure TLS protocols and cipher suites. Network traffic between your resources and the internet must be encrypted to mitigate unauthorized access to the data. Network traffic solely within your internal AWS environment should be encrypted using TLS wherever possible.",
                             "checks": [
-                                "aws_cloudfront_uses_encryption_at_rest",
+                                "aws_cloudtrail_uses_encryption_at_rest",
                                 "aws_s3_bucket_default_encryption",
                                 "aws_apigateway_client_certificate_enabled",
                                 "aws_rds_storage_encrypted",
                                 "aws_vpc_lb_use_ssl_certificate",
-                                "aws_s3_bucket_secure_transport_policy",
-
-                                "aws_compliance.control.elb_application_lb_drop_http_headers",
-                                "aws_compliance.control.elb_application_lb_redirect_http_request_to_https",
-                                "aws_compliance.control.es_domain_node_to_node_encryption_enabled",
-                                "aws_compliance.control.apigateway_rest_api_stage_use_ssl_certificate",
-                                "aws_compliance.control.opensearch_domain_node_to_node_encryption_enabled",
-                                "aws_compliance.control.opensearch_domain_https_required",
-                                "aws_compliance.control.cloudfront_distribution_custom_origins_encryption_in_transit_enabled",
-                                "aws_compliance.control.cloudfront_distribution_no_deprecated_ssl_protocol",
-                                "aws_compliance.control.elb_listener_use_secure_ssl_cipher",
-                                "aws_compliance.control.s3_bucket_enforces_ssl"
+                                "aws_s3_bucket_secure_transport_policy"
                             ]
                         },
                         {
                             "title": "SEC09-BP03 Automate detection of unintended data access",
                             "description": "Use tools such as Amazon GuardDuty to automatically detect suspicious activity or attempts to move data outside of defined boundaries. For example, GuardDuty can detect Amazon Simple Storage Service (Amazon S3) read activity that is unusual with the Exfiltration:S3/AnomalousBehavior finding. In addition to GuardDuty, Amazon VPC Flow Logs, which capture network traffic information, can be used with Amazon EventBridge to detect connections, both successful and denied. Amazon S3 Access Analyzer can help assess what data is accessible to who in your Amazon S3 buckets.",
                             "checks": [
-                                "aws_iam_guardduty_enabled",
-
-                                "aws_compliance.control.redshift_cluster_encryption_in_transit_enabled"
+                                "aws_iam_guardduty_enabled"
                             ]
                         },
                         {
@@ -608,10 +479,7 @@
                             "description": "Verify the identity of communications by using protocols that support authentication, such as Transport Layer Security (TLS) or IPsec. Using network protocols that support authentication, allows for trust to be established between the parties. This adds to the encryption used in the protocol to reduce the risk of communications being altered or intercepted. Common protocols that implement authentication include Transport Layer Security (TLS), which is used in many AWS services, and IPsec, which is used in AWS Virtual Private Network (AWS VPN).",
                             "checks": [
                                 "aws_vpc_lb_use_ssl_certificate",
-                                "aws_ec2_vpc_flow_logs_enabled",
-
-                                "aws_compliance.control.elb_classic_lb_use_tls_https_listeners",
-                                "aws_compliance.control.vpc_flow_logs_enabled"
+                                "aws_ec2_vpc_flow_logs_enabled"
                             ]
                         }
                     ]
@@ -624,9 +492,7 @@
                             "title": "SEC10-BP01 Identify key personnel and external resources",
                             "description": "Identify internal and external personnel, resources, and legal obligations that would help your organization respond to an incident. When you define your approach to incident response in the cloud, in unison with other teams (such as your legal counsel, leadership, business stakeholders, AWS Support Services, and others), you must identify key personnel, stakeholders, and relevant contacts. To reduce dependency and decrease response time, make sure that your team, specialist security teams, and responders are educated about the services that you use and have opportunities to practice hands-on.",
                             "checks": [
-                                "aws_iam_support_role_exists",
-
-                                "aws_compliance.control.iam_support_role"
+                                "aws_iam_support_role_exists"
                             ]
                         }
                     ]
@@ -639,9 +505,7 @@
                             "title": "SEC11-BP01 Identify key personnel and external resources",
                             "description": "Training people, testing using automation, understanding dependencies, and validating the security properties of tools and applications help to reduce the likelihood of security issues in production workloads.",
                             "checks": [
-                                "aws_ecr_scan_on_push",
-
-                                "aws_compliance.control.ecr_repository_image_scan_on_push_enabled"
+                                "aws_ecr_image_scan_on_push"
                             ]
                         }
                     ]

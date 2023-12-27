@@ -3,7 +3,7 @@
     "service": "acm",
     "checks": [
         {
-            "name": "acm_certificate_transparency_logging_enabled",
+            "name": "certificate_transparency_logging_enabled",
             "title": "Ensure that ACM certificate transparency is enabled to enhance the security of your website by providing visibility into the issuance and lifecycle of SSL/TLS certificates, helping to detect unauthorized certificates.",
             "result_kinds": [ ],
             "categories": [

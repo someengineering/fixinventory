@@ -91,7 +91,7 @@
             "remediation": {
                 "text": "Ensure that the auto minor version upgrade option is enabled for RDS instances",
                 "url": "https://aws.amazon.com/about-aws/whats-new/2018/12/amazon-rds-enhances-auto-minor-version-upgrades/"
-            },
+            }
         }
     ]
 }

@@ -669,7 +669,7 @@
             "risk": "User data scripts are used by EC2 instances to download requirements, boot up necessary programs or execute program scripts for application usage. However, adding secrets in userdata can compromise security as these scripts can be viewed by anyone. Secrets hardcoded into instance user data can be used by malware and bad actors to gain lateral access to other services.",
             "severity": "medium",
             "detect": {
-                "resoto": "search is(aws_ec2_instance) and instance_user_data!=null | detect-secrets --path instance_user_data --with-secrets"
+                "resoto_cmd": "search is(aws_ec2_instance) and instance_user_data!=null | detect-secrets --path instance_user_data --with-secrets"
             },
             "remediation": {
                 "text": "Always ensure that User data picks up secrets from a managed service like Parameter store or Secrets manager, rather than having it hardcoded in the actual script",

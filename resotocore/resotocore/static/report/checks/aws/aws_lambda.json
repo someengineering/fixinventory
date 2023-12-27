@@ -59,7 +59,7 @@
             }
         },
         {
-            "name": "lambda_function_restrict_public_access",
+            "name": "function_restrict_public_access",
             "title": "Check Public Lambda Function URL.",
             "result_kinds": ["aws_lambda_function"],
             "categories": [

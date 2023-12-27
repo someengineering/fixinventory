@@ -10,10 +10,10 @@
             "risk": "Logging needs to be enabled to have visibility into access patterns, detect and investigate potential security threats, and comply with security best practices and regulatory requirements.",
             "severity": "medium",
             "detect": {
-                "aws_cli": "aws cloudfront get-distribution-config --id YOUR_DISTRIBUTION_ID"
+                "manual": "aws cloudfront get-distribution-config --id YOUR_DISTRIBUTION_ID"
             },
             "remediation": {
-                "aws_cli": "aws cloudfront update-distribution --id YOUR_DISTRIBUTION_ID --logging-config '{\"enabled\":true,\"bucket\":\"YOUR_S3_BUCKET\",\"prefix\":\"LOG_PREFIX\"}'"
+                "aws_cli": "aws cloudfront update-distribution --id YOUR_DISTRIBUTION_ID --logging-config '{\"enabled\":true,\"bucket\":\"YOUR_S3_BUCKET\",\"prefix\":\"LOG_PREFIX\"}'",
                 "text": "in addition to the CLI, you can also remediate via the management console",
                 "url": "https://repost.aws/knowledge-center/cloudfront-logging-requests"
             },
@@ -33,7 +33,7 @@
                 "text": "Associate your CloudFront Distributions with a Web ACL.",
                 "url": "https://docs.aws.amazon.com/waf/latest/developerguide/cloudfront-features.html"
             },
-            "internal_notes": "Replace YOUR_WEB_ACL_ID and YOUR_DISTRIBUTION_ID with your actual values. Ensure that the WebACL allows the desired rules and conditions for your security requirements.",
+            "internal_notes": "Replace YOUR_WEB_ACL_ID and YOUR_DISTRIBUTION_ID with your actual values. Ensure that the WebACL allows the desired rules and conditions for your security requirements."
         }
     ]
 }
