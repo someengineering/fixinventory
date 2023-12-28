@@ -1,0 +1,4 @@
+{
+    "FileSystemId": "fs-1",
+    "Policy" : "{\"Version\":\"2012-10-17\",\"Id\":\"epw\",\"Statement\":[{\"Sid\":\"esi\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"\",\"Resource\":\"arn:aws:elasticfilesystem:us-east-1:test:file-system/fs-0d91ea540dcdc083f\",\"Condition\":{\"Bool\":{\"elasticfilesystem:AccessedViaMountTarget\":\"true\"}}},{\"Sid\":\"efs-statement-b4b0917a-5793-4a6c-b9ce-9cad2b94d9df\",\"Effect\":\"Deny\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"*\",\"Resource\":\"arn:aws:elasticfilesystem:us-east-1:test:file-system/fs-2\",\"Condition\":{\"Bool\":{\"aws:SecureTransport\":\"false\"}}}]}"
+}

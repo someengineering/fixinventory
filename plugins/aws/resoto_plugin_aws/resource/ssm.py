@@ -220,12 +220,6 @@ class AwsSSMDocument(AwsResource):
 
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
-        a = builder.client.list(
-            aws_service=service_name,
-            action="list-documents",
-            result_name="DocumentIdentifiers",
-            Filters=[{"Key": "Owner", "Values": ["Self"]}],
-        )
         try:
             for item in builder.client.list(
                 aws_service=service_name,

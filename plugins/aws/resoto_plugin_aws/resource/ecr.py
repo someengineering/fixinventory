@@ -1,4 +1,6 @@
+import json
 import logging
+from contextlib import suppress
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
@@ -7,6 +9,7 @@ from boto3.exceptions import Boto3Error
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
 from resotolib.json_bender import Bender, S, Bend
+from resotolib.types import Json
 
 service_name = "ecr"
 log = logging.getLogger("resoto.plugins.aws")
@@ -44,9 +47,20 @@ class AwsEcrRepository(AwsResource):
     image_scan_on_push: Optional[bool] = field(default=None, metadata={"description": "The image is scanned on every push."})  # fmt: skip
     encryption_configuration: Optional[AwsEcrEncryptionConfiguration] = field(default=None, metadata={"description": "The encryption configuration for the repository. This determines how the contents of your repository are encrypted at rest."})  # fmt: skip
     repository_visibility: Optional[str] = field(default=None, metadata={"description": "The repository is either public or private."})  # fmt: skip
+    lifecycle_policy: Optional[Json] = field(default=None, metadata={"description": "The repository lifecycle policy."})  # fmt: skip
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
+        def fetch_lifecycle_policy(repository: AwsEcrRepository) -> None:
+            with suppress(Exception):
+                if policy := builder.client.get(
+                    service_name,
+                    "get-lifecycle-policy",
+                    repositoryName=repository.name,
+                    expected_errors=["LifecyclePolicyNotFoundException"],
+                ):
+                    repository.lifecycle_policy = json.loads(policy["lifecyclePolicyText"])
+
         def collect(visibility: str, spec: AwsApiSpec) -> None:
             try:
                 kwargs = spec.parameter or {}
@@ -60,6 +74,7 @@ class AwsEcrRepository(AwsResource):
                 for js in items:
                     if instance := cls.from_api(js, builder):
                         instance.repository_visibility = visibility
+                        builder.submit_work(service_name, fetch_lifecycle_policy, instance)
                         builder.add_node(instance, js)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
@@ -76,7 +91,7 @@ class AwsEcrRepository(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, cls.public_spec]
+        return [cls.api_spec, cls.public_spec, AwsApiSpec("ecr", "get-lifecycle-policy", None)]
 
 
 # @define(eq=False, slots=False)

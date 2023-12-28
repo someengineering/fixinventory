@@ -1,0 +1,6 @@
+{
+    "registryId": "test",
+    "repositoryName": "ubuntu",
+    "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"hjh\",\"selection\":{\"tagStatus\":\"tagged\",\"tagPatternList\":[\"prod\"],\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":1},\"action\":{\"type\":\"expire\"}}]}",
+    "lastEvaluatedAt": "1970-01-01T01:00:00+01:00"
+}
