@@ -16,6 +16,22 @@
                 "text": "Ensure that encryption at rest is enabled for EFS file systems. Encryption at rest can only be enabled during the file system creation.",
                 "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html"
             }
+        },
+        {
+            "name": "not_publicly_accessible",
+            "title": "Restrict Public Access in EFS File System Policies",
+            "result_kinds": ["aws_efs_file_system"],
+            "categories": ["security", "compliance"],
+            "risk": "Allowing public access to Elastic File System (EFS) could lead to unauthorized data exposure or data breaches. Publicly accessible EFS file systems are at risk of exposing sensitive information, making them potential targets for malicious actors.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_efs_file_system) and file_system_policy==null"
+            },
+            "remediation": {
+                "text": "Modify the EFS file system's resource policy to restrict public access. Ensure that the policy does not include a principal set to '*', which would grant access to any user. Instead, define specific principals or use AWS IAM to manage access securely. Review the AWS documentation for guidance on creating and managing EFS access policies to safeguard your file systems effectively.",
+                "url": "https://docs.aws.amazon.com/efs/latest/ug/access-control-block-public-access.html"
+            },
+            "internal_note": "Evaluate the statement in the file_system_policy to determine if it is publicly accessible."
         }
     ]
 }

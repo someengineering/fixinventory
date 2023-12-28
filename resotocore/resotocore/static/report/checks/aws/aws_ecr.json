@@ -34,6 +34,21 @@
                 "text": "Delete public repositories and redeploy them as private.",
                 "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html"
             }
+        },
+        {
+            "name": "repository_lifecycle_policy_enabled",
+            "title": "Check if ECR repositories have lifecycle policies enabled.",
+            "result_kinds": [ "aws_ecr_repository" ],
+            "categories": [ "security", "compliance" ],
+            "risk": "Amazon ECR repositories run the risk of retaining huge volumes of images, increasing unnecessary cost.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ecr_repository) and lifecycle_policy!=null"
+            },
+            "remediation": {
+                "text": "Open the Amazon ECR console. Create an ECR lifecycle policy.",
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html"
+            }
         }
     ]
 }

@@ -19,6 +19,21 @@
                 "text": "Set the RootAccess field to Disabled. You can also disable root access for users when you create or update a notebook instance in the Amazon SageMaker console.",
                 "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access.html"
             }
+        },
+        {
+            "name": "notebook_with_direct_internet_access",
+            "title": "Ensure no Amazon SageMaker Notebook instances has direct internet access.",
+            "result_kinds": ["aws_sagemaker_notebook"],
+            "categories": [ "security", "compliance" ],
+            "risk": "This could provide an avenue for unauthorized access to your data.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_notebook) and notebook_direct_internet_access==\"Enabled\""
+            },
+            "remediation": {
+                "text": "Restrict which traffic can access by launching Studio in a Virtual Private Cloud (VPC) of your choosing.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/interface-vpc-endpoint.html"
+            }
         }
     ]
 }

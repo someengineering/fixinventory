@@ -22,6 +22,21 @@
                 "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html"
             },
             "source": "saad"
+        },
+        {
+            "name": "cluster_publicly_accessible",
+            "title": "Ensure that Redshift clusters are not publicly Accessible.",
+            "result_kinds": [ "aws_redshift_cluster" ],
+            "categories": [ "security", "compliance" ],
+            "risk": "Publicly accessible services could expose sensitive data to bad actors.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_redshift_cluster) and redshift_publicly_accessible=true and redshift_endpoint.address!=null"
+            },
+            "remediation": {
+                "text": "List all shared Redshift clusters and make sure there is a business reason for them.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html"
+            }
         }
     ]
 }
