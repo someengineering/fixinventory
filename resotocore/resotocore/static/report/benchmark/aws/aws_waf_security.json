@@ -272,9 +272,14 @@
                                 "aws_apigateway_logging_enabled",
                                 "aws_cloudfront_distribution_logging_enabled",
                                 "aws_cloudtrail_log_file_validation_enabled",
+                                "aws_cloudtrail_no_logging_enabled",
+                                "aws_cloudtrail_lambda_logging_enabled",
+                                "aws_cloudtrail_s3_data_events_read_enabled",
+                                "aws_cloudtrail_s3_data_events_write_enabled",
                                 "aws_acm_certificate_transparency_logging_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
                                 "aws_eks_cluster_control_plane_audit_logging_enabled",
+                                "aws_opensearch_audit_logs_enabled",
                                 "aws_rds_db_instance_cloudwatch_logs_enabled",
                                 "aws_redshift_cluster_audit_logging_enabled",
                                 "aws_route53_zone_query_logging_enabled",
@@ -307,6 +312,11 @@
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_redshift_cluster_audit_logging_enabled"
                             ]
+                        },
+                        {
+                            "title": "SEC04-BP04 Implement actionable security events",
+                            "description": "Create alerts that are sent to and can be actioned by your team. Ensure that alerts include relevant information for the team to take action. For each detective mechanism you have, you should also have a process, in the form of a runbook or playbook, to investigate. For example, when you enable Amazon GuardDuty, it generates different findings. You should have a runbook entry for each finding type, for example, if a trojan is discovered, your runbook has simple instructions that instruct someone to investigate and remediate.",
+                            "checks": []
                         }
                     ]
                 },

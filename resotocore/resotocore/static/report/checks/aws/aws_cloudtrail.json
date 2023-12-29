@@ -6,10 +6,7 @@
             "name": "logging_in_all_regions_enabled",
             "title": "Ensure CloudTrail is enabled and set up for logging in all regions",
             "result_kinds": ["aws_region"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you. The recorded information includes the identity of the API caller; the time of the API call; the source IP address of the API caller; the request parameters; and the response elements returned by the AWS service.",
             "severity": "high",
             "detect": {
@@ -24,10 +21,7 @@
             "name": "log_file_validation_enabled",
             "title": "Ensure CloudTrail log file validation is enabled",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Enabling log file validation will provide additional integrity checking of CloudTrail logs.",
             "severity": "medium",
             "detect": {
@@ -42,10 +36,7 @@
             "name": "logs_s3_bucket_is_not_publicly_accessible",
             "title": "Ensure the S3 bucket CloudTrail logs is not publicly accessible",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Allowing public access to CloudTrail log content may aid an adversary in identifying weaknesses in the affected accounts use or configuration.",
             "severity": "critical",
             "detect": {
@@ -60,10 +51,7 @@
             "name": "no_logging_enabled",
             "title": "Ensure CloudTrail has logging enabled",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
             "severity": "low",
             "detect": {
@@ -78,10 +66,7 @@
             "name": "no_recent_log_event",
             "title": "Ensure CloudTrail has log events in the configured duration",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Sending CloudTrail logs to CloudWatch Logs will facilitate real-time and historic activity logging based on user; API; resource; and IP address; and provides opportunity to establish alarms and notifications for anomalous or sensitivity account activity.",
             "severity": "low",
             "detect": {
@@ -99,10 +84,7 @@
             "name": "s3_bucket_logging_enabled",
             "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Server access logs can assist you in security and access audits; help you learn about your customer base; and understand your Amazon S3 bill.",
             "severity": "medium",
             "detect": {
@@ -117,10 +99,7 @@
             "name": "uses_encryption_at_rest",
             "title": "Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "By default; the log files delivered by CloudTrail to your bucket are encrypted by Amazon server-side encryption with Amazon S3-managed encryption keys (SSE-S3). To provide a security layer that is directly manageable; you can instead use server-side encryption with AWS KMS–managed keys (SSE-KMS) for your CloudTrail log files.",
             "severity": "medium",
             "detect": {
@@ -135,14 +114,11 @@
             "name": "s3_data_events_write_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for write events is enabled in CloudTrail.",
             "result_kinds": ["aws_region"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"false\")"
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and (trail_event_selectors.event_selectors[*].{read_write_type in [All, WriteOnly] and data_resources[*].type=\"AWS::S3::Object\"} or trail_event_selectors.advanced_event_selectors[*].field_selectors[*].{selector_field==\"resources.type\" and equals[*]=\"AWS::S3::Object\"}))"
             },
             "remediation": {
                 "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
@@ -153,14 +129,26 @@
             "name": "s3_data_events_read_enabled",
             "title": "Check all regions and make sure S3 buckets have Object-level logging for read events is enabled in CloudTrail.",
             "result_kinds": ["aws_region"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and trail_event_selectors[*].field_selectors.eventCategory.equals[*]=Data and trail_event_selectors[*].field_selectors.`resources.type`.equals[*]=AWS::S3::Object and trail_event_selectors[*].field_selectors.readOnly.equals[*]!=\"true\")"
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and (trail_event_selectors.event_selectors[*].{read_write_type in [All, ReadOnly] and data_resources[*].type=\"AWS::S3::Object\"} or trail_event_selectors.advanced_event_selectors[*].field_selectors[*].{selector_field==\"resources.type\" and equals[*]=\"AWS::S3::Object\"}))"
+            },
+            "remediation": {
+                "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-cloudtrail-logging-for-s3.html"
+            }
+        },
+        {
+            "name": "lambda_logging_enabled",
+            "title": "Check all regions and make sure Lambda function invocations are logged via CloudTrail.",
+            "result_kinds": ["aws_region"],
+            "categories": ["security", "compliance"],
+            "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_region) with(empty, --> is(aws_cloud_trail) and trail_has_custom_event_selectors=true and (trail_event_selectors.event_selectors[*].{data_resources[*].type=\"AWS::Lambda::Function\"} or trail_event_selectors.advanced_event_selectors[*].field_selectors[*].{selector_field==\"resources.type\" and equals[*]=\"AWS::Lambda::Function\"}))"
             },
             "remediation": {
                 "text": "Enable logs. Create an S3 lifecycle policy. Define use cases, metrics and automated responses where applicable.",
@@ -171,10 +159,7 @@
             "name": "log_metric_filters_unauthorized_api_calls",
             "title": "Ensure a log metric filter and alarm exist for unauthorized API calls.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -189,10 +174,7 @@
             "name": "log_metric_filters_sign_in_without_mfa",
             "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -207,10 +189,7 @@
             "name": "log_metric_filters_console_login_no_mfa",
             "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -225,10 +204,7 @@
             "name": "log_metric_filters_root_account_usage",
             "title": "Ensure a log metric filter and alarm exist for usage of root account.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -243,10 +219,7 @@
             "name": "log_metric_filters_iam_policy_changes",
             "title": "Ensure a log metric filter and alarm exist for IAM policy changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -261,10 +234,7 @@
             "name": "log_metric_filters_cloud_trail_configuration_changes",
             "title": "Ensure a log metric filter and alarm exist for CloudTrail configuration changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -279,10 +249,7 @@
             "name": "log_metric_filters_authentication_failures",
             "title": "Ensure a log metric filter and alarm exist for AWS Management Console authentication failures.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -297,10 +264,7 @@
             "name": "log_metric_filters_kms_key_deletion",
             "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer created KMS CMKs.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -315,10 +279,7 @@
             "name": "log_metric_filters_s3_bucket_policy_changes",
             "title": "Ensure a log metric filter and alarm exist for S3 bucket policy changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -333,10 +294,7 @@
             "name": "log_metric_filters_config_configuration_changes",
             "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -351,10 +309,7 @@
             "name": "log_metric_filters_security_group_changes",
             "title": "Ensure a log metric filter and alarm exist for security group changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -369,10 +324,7 @@
             "name": "log_metric_filters_network_acl_changes",
             "title": "Ensure a log metric filter and alarm exist for changes to Network Access Control Lists (NACL).",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -387,10 +339,7 @@
             "name": "log_metric_filters_network_gateway_changes",
             "title": "Ensure a log metric filter and alarm exist for changes to network gateways.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -405,10 +354,7 @@
             "name": "log_metric_filters_route_table_changes",
             "title": "Ensure a log metric filter and alarm exist for route table changes",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -423,10 +369,7 @@
             "name": "log_metric_filters_vpc_changes",
             "title": "Ensure a log metric filter and alarm exist for VPC changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -441,10 +384,7 @@
             "name": "log_metric_filters_aws_org_changes",
             "title": "Ensure a log metric filter and alarm exist for AWS Organizations changes.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Monitoring unauthorized API calls will help reveal application errors and may reduce time to detect malicious activity.",
             "severity": "medium",
             "detect": {
@@ -459,10 +399,7 @@
             "name": "security_hub_enabled",
             "title": "Check if Security Hub is enabled and its standard subscriptions.",
             "result_kinds": ["aws_cloud_trail"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "AWS Security Hub gives you a comprehensive view of your security alerts and security posture across your AWS accounts.",
             "severity": "medium",
             "detect": {

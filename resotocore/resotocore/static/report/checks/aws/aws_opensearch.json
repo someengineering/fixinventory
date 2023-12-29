@@ -46,6 +46,21 @@
                 "text": "If you do not configure Amazon Cognito authentication, you can still protect Kibana using an IP-based access policy and a proxy servers, HTTP basic authentication, or SAML.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-ac.html"
             }
+        },
+        {
+            "name": "audit_logs_enabled",
+            "title": "Ensure that Amazon Opensearch Service domains have audit logs enabled.",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [  ],
+            "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_open_search_domain) and log_publishing_options.AUDIT_LOGS.enabled in [null, false]"
+            },
+            "remediation": {
+                "text": "Make sure you are logging information about Amazon Elasticsearch Service operations.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html"
+            }
         }
     ]
 }
