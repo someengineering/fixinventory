@@ -4,31 +4,88 @@
     "checks": [
         {
             "name": "notebook_root_access",
-            "title": "Check if Amazon SageMaker Notebook instances have root access disabled",
+            "title": "Verify Root Access is Disabled for SageMaker Notebooks",
             "result_kinds": ["aws_sagemaker_notebook"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Users with root access have administrator privileges. Users can access and edit all files on a notebook instance with root access enabled.",
+            "categories": [ "security", "compliance" ],
+            "risk": "Enabling root access in SageMaker notebooks can lead to security vulnerabilities by granting full control over the notebook environment.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_sagemaker_notebook) and notebook_root_access==Enabled"
             },
             "remediation": {
-                "text": "Set the RootAccess field to Disabled. You can also disable root access for users when you create or update a notebook instance in the Amazon SageMaker console.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access.html"
+                "text": "Disable root access for SageMaker notebooks to enforce security best practices. Configure the RootAccess parameter to 'Disabled' in the SageMaker console or through the API.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access-disable.html"
             }
         },
         {
             "name": "notebook_with_direct_internet_access",
-            "title": "Ensure no Amazon SageMaker Notebook instances has direct internet access.",
+            "title": "Ensure SageMaker Notebooks Do Not Have Direct Internet Access",
             "result_kinds": ["aws_sagemaker_notebook"],
             "categories": [ "security", "compliance" ],
-            "risk": "This could provide an avenue for unauthorized access to your data.",
+            "risk": "Direct internet access from SageMaker notebooks can expose them to security threats and data breaches.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_sagemaker_notebook) and notebook_direct_internet_access==\"Enabled\""
+            },
+            "remediation": {
+                "text": "Configure SageMaker notebooks to use a VPC without direct internet access. This setup enhances network security and reduces the risk of unauthorized external access.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/notebook-interface-vpc-endpoint.html"
+            }
+        },
+        {
+            "name": "model_isolation_enabled",
+            "title": "Ensure Network Isolation is Enabled for SageMaker Models",
+            "result_kinds": ["aws_sagemaker_model"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Models without network isolation may be vulnerable to unauthorized data access or cyber attacks.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_model) and model_enable_network_isolation=false"
+            },
+            "remediation": {
+                "text": "Enable network isolation for SageMaker models to prevent unauthorized data access and ensure data security.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/model-vpc-security.html"
+            }
+        },
+        {
+            "name": "model_vpc_settings_enabled",
+            "title": "Ensure VPC is configured for SageMaker Models",
+            "result_kinds": ["aws_sagemaker_model"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Models without VPC isolation may be vulnerable to unauthorized data access or cyber attacks.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_model) and model_vpc_config.subnets in [null, []]"
+            },
+            "remediation": {
+                "text": "Restrict which traffic can access by launching Studio in a Virtual Private Cloud (VPC) of your choosing.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html"
+            }
+        },
+        {
+            "name": "notebook_vpc_settings_enabled",
+            "title": "Ensure VPC is configured for SageMaker Notebook",
+            "result_kinds": ["aws_sagemaker_model"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Notebook without VPC isolation may be vulnerable to unauthorized data access or cyber attacks.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_notebook) with(empty, <-- is(aws_ec2_subnet))"
+            },
+            "remediation": {
+                "text": "Restrict which traffic can access by launching Studio in a Virtual Private Cloud (VPC) of your choosing.",
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html"
+            }
+        },
+        {
+            "name": "training_job_vpc_settings_enabled",
+            "title": "Ensure VPC is configured for SageMaker Training Jobs",
+            "result_kinds": ["aws_sagemaker_model"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Training Jobs without VPC isolation may be vulnerable to unauthorized data access or cyber attacks.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sagemaker_training_job) and training_job_enable_network_isolation=false"
             },
             "remediation": {
                 "text": "Restrict which traffic can access by launching Studio in a Virtual Private Cloud (VPC) of your choosing.",
