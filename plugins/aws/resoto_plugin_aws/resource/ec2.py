@@ -1215,7 +1215,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_vpc", "aws_subnet"], "delete": ["aws_ec2_keypair", "aws_vpc", "aws_subnet"]},
+        "predecessors": {
+            "default": ["aws_vpc", "aws_subnet", "aws_ec2_image"],
+            "delete": ["aws_ec2_keypair", "aws_vpc", "aws_subnet"],
+        },
         "successors": {"default": ["aws_ec2_keypair"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1466,6 +1469,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, name=vpc_id)
         if subnet_id := source.get("SubnetId"):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, name=subnet_id)
+        if image_id := source.get("ImageId"):
+            builder.add_edge(self, reverse=True, clazz=AwsEc2Image, id=image_id)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:
@@ -3197,6 +3202,118 @@ class AwsEc2FlowLog(EC2Taggable, AwsResource):
         return True
 
 
+@define(eq=False, slots=False)
+class AwsEc2EbsBlockDevice:
+    kind: ClassVar[str] = "aws_ec2_ebs_block_device"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "delete_on_termination": S("DeleteOnTermination"),
+        "iops": S("Iops"),
+        "snapshot_id": S("SnapshotId"),
+        "volume_size": S("VolumeSize"),
+        "volume_type": S("VolumeType"),
+        "kms_key_id": S("KmsKeyId"),
+        "throughput": S("Throughput"),
+        "outpost_arn": S("OutpostArn"),
+        "encrypted": S("Encrypted"),
+    }
+    delete_on_termination: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the EBS volume is deleted on instance termination. For more information, see Preserving Amazon EBS volumes on instance termination in the Amazon EC2 User Guide."})  # fmt: skip
+    iops: Optional[int] = field(default=None, metadata={"description": "The number of I/O operations per second (IOPS). For gp3, io1, and io2 volumes, this represents the number of IOPS that are provisioned for the volume. For gp2 volumes, this represents the baseline performance of the volume and the rate at which the volume accumulates I/O credits for bursting. The following are the supported values for each volume type:    gp3: 3,000 - 16,000 IOPS    io1: 100 - 64,000 IOPS    io2: 100 - 256,000 IOPS   For io2 volumes, you can achieve up to 256,000 IOPS on instances built on the Nitro System. On other instances, you can achieve performance up to 32,000 IOPS. This parameter is required for io1 and io2 volumes. The default for gp3 volumes is 3,000 IOPS."})  # fmt: skip
+    snapshot_id: Optional[str] = field(default=None, metadata={"description": "The ID of the snapshot."})  # fmt: skip
+    volume_size: Optional[int] = field(default=None, metadata={"description": "The size of the volume, in GiBs. You must specify either a snapshot ID or a volume size. If you specify a snapshot, the default is the snapshot size. You can specify a volume size that is equal to or larger than the snapshot size. The following are the supported sizes for each volume type:    gp2 and gp3: 1 - 16,384 GiB    io1: 4 - 16,384 GiB    io2: 4 - 65,536 GiB    st1 and sc1: 125 - 16,384 GiB    standard: 1 - 1024 GiB"})  # fmt: skip
+    volume_type: Optional[str] = field(default=None, metadata={"description": "The volume type. For more information, see Amazon EBS volume types in the Amazon EC2 User Guide."})  # fmt: skip
+    kms_key_id: Optional[str] = field(default=None, metadata={"description": "Identifier (key ID, key alias, ID ARN, or alias ARN) for a customer managed CMK under which the EBS volume is encrypted. This parameter is only supported on BlockDeviceMapping objects called by RunInstances, RequestSpotFleet, and RequestSpotInstances."})  # fmt: skip
+    throughput: Optional[int] = field(default=None, metadata={"description": "The throughput that the volume supports, in MiB/s. This parameter is valid only for gp3 volumes. Valid Range: Minimum value of 125. Maximum value of 1000."})  # fmt: skip
+    outpost_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of the Outpost on which the snapshot is stored. This parameter is not supported when using CreateImage."})  # fmt: skip
+    encrypted: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the encryption state of an EBS volume is changed while being restored from a backing snapshot. The effect of setting the encryption state to true depends on the volume origin (new or from a snapshot), starting encryption state, ownership, and whether encryption by default is enabled. For more information, see Amazon EBS encryption in the Amazon EC2 User Guide. In no case can you remove encryption from an encrypted volume. Encrypted volumes can only be attached to instances that support Amazon EBS encryption. For more information, see Supported instance types. This parameter is not returned by DescribeImageAttribute. For CreateImage and RegisterImage, whether you can include this parameter, and the allowed values differ depending on the type of block device mapping you are creating.   If you are creating a block device mapping for a new (empty) volume, you can include this parameter, and specify either true for an encrypted volume, or false for an unencrypted volume. If you omit this parameter, it defaults to false (unencrypted).   If you are creating a block device mapping from an existing encrypted or unencrypted snapshot, you must omit this parameter. If you include this parameter, the request will fail, regardless of the value that you specify.   If you are creating a block device mapping from an existing unencrypted volume, you can include this parameter, but you must specify false. If you specify true, the request will fail. In this case, we recommend that you omit the parameter.   If you are creating a block device mapping from an existing encrypted volume, you can include this parameter, and specify either true or false. However, if you specify false, the parameter is ignored and the block device mapping is always encrypted. In this case, we recommend that you omit the parameter."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2BlockDeviceMapping:
+    kind: ClassVar[str] = "aws_ec2_block_device_mapping"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "device_name": S("DeviceName"),
+        "virtual_name": S("VirtualName"),
+        "ebs": S("Ebs") >> Bend(AwsEc2EbsBlockDevice.mapping),
+        "no_device": S("NoDevice"),
+    }
+    device_name: Optional[str] = field(default=None, metadata={"description": "The device name (for example, /dev/sdh or xvdh)."})  # fmt: skip
+    virtual_name: Optional[str] = field(default=None, metadata={"description": "The virtual device name (ephemeralN). Instance store volumes are numbered starting from 0. An instance type with 2 available instance store volumes can specify mappings for ephemeral0 and ephemeral1. The number of available instance store volumes depends on the instance type. After you connect to the instance, you must mount the volume. NVMe instance store volumes are automatically enumerated and assigned a device name. Including them in your block device mapping has no effect. Constraints: For M3 instances, you must specify instance store volumes in the block device mapping for the instance. When you launch an M3 instance, we ignore any instance store volumes specified in the block device mapping for the AMI."})  # fmt: skip
+    ebs: Optional[AwsEc2EbsBlockDevice] = field(default=None, metadata={"description": "Parameters used to automatically set up EBS volumes when the instance is launched."})  # fmt: skip
+    no_device: Optional[str] = field(default=None, metadata={"description": "To omit the device from the block device mapping, specify an empty string. When this property is specified, the device is removed from the block device mapping regardless of the assigned value."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2Image(AwsResource):
+    kind: ClassVar[str] = "aws_ec2_image"
+    kind_display: ClassVar[str] = "AWS EC2 Image"
+    kind_description: ClassVar[str] = (
+        "An Amazon Machine Image (AMI) is a supported and maintained image "
+        "provided by AWS that provides the information required to launch an instance. "
+    )
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-images", "Images", {"Owners": "self"})
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ImageId"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("Name"),
+        "ctime": S("CreationDate"),
+        "architecture": S("Architecture"),
+        "image_location": S("ImageLocation"),
+        "image_type": S("ImageType"),
+        "public": S("Public"),
+        "kernel_id": S("KernelId"),
+        "owner_id": S("OwnerId"),
+        "platform": S("Platform"),
+        "platform_details": S("PlatformDetails"),
+        "usage_operation": S("UsageOperation"),
+        "product_codes": S("ProductCodes", default=[]) >> ForallBend(AwsEc2ProductCode.mapping),
+        "ramdisk_id": S("RamdiskId"),
+        "state": S("State"),
+        "block_device_mappings": S("BlockDeviceMappings", default=[]) >> ForallBend(AwsEc2BlockDeviceMapping.mapping),
+        "description": S("Description"),
+        "ena_support": S("EnaSupport"),
+        "hypervisor": S("Hypervisor"),
+        "image_owner_alias": S("ImageOwnerAlias"),
+        "root_device_name": S("RootDeviceName"),
+        "root_device_type": S("RootDeviceType"),
+        "sriov_net_support": S("SriovNetSupport"),
+        "state_reason": S("StateReason") >> Bend(AwsEc2StateReason.mapping),
+        "virtualization_type": S("VirtualizationType"),
+        "boot_mode": S("BootMode"),
+        "tpm_support": S("TpmSupport"),
+        "deprecation_time": S("DeprecationTime"),
+        "imds_support": S("ImdsSupport"),
+        "source_instance_id": S("SourceInstanceId"),
+    }
+    architecture: Optional[str] = field(default=None, metadata={"description": "The architecture of the image."})  # fmt: skip
+    image_location: Optional[str] = field(default=None, metadata={"description": "The location of the AMI."})  # fmt: skip
+    image_type: Optional[str] = field(default=None, metadata={"description": "The type of image."})  # fmt: skip
+    public: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the image has public launch permissions. The value is true if this image has public launch permissions or false if it has only implicit and explicit launch permissions."})  # fmt: skip
+    kernel_id: Optional[str] = field(default=None, metadata={"description": "The kernel associated with the image, if any. Only applicable for machine images."})  # fmt: skip
+    owner_id: Optional[str] = field(default=None, metadata={"description": "The ID of the Amazon Web Services account that owns the image."})  # fmt: skip
+    platform: Optional[str] = field(default=None, metadata={"description": "This value is set to windows for Windows AMIs; otherwise, it is blank."})  # fmt: skip
+    platform_details: Optional[str] = field(default=None, metadata={"description": "The platform details associated with the billing code of the AMI. For more information, see Understand AMI billing information in the Amazon EC2 User Guide."})  # fmt: skip
+    usage_operation: Optional[str] = field(default=None, metadata={"description": "The operation of the Amazon EC2 instance and the billing code that is associated with the AMI. usageOperation corresponds to the lineitem/Operation column on your Amazon Web Services Cost and Usage Report and in the Amazon Web Services Price List API. You can view these fields on the Instances or AMIs pages in the Amazon EC2 console, or in the responses that are returned by the DescribeImages command in the Amazon EC2 API, or the describe-images command in the CLI."})  # fmt: skip
+    product_codes: Optional[List[AwsEc2ProductCode]] = field(factory=list, metadata={"description": "Any product codes associated with the AMI."})  # fmt: skip
+    ramdisk_id: Optional[str] = field(default=None, metadata={"description": "The RAM disk associated with the image, if any. Only applicable for machine images."})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={"description": "The current state of the AMI. If the state is available, the image is successfully registered and can be used to launch an instance."})  # fmt: skip
+    block_device_mappings: Optional[List[AwsEc2BlockDeviceMapping]] = field(factory=list, metadata={"description": "Any block device mapping entries."})  # fmt: skip
+    description: Optional[str] = field(default=None, metadata={"description": "The description of the AMI that was provided during image creation."})  # fmt: skip
+    ena_support: Optional[bool] = field(default=None, metadata={"description": "Specifies whether enhanced networking with ENA is enabled."})  # fmt: skip
+    hypervisor: Optional[str] = field(default=None, metadata={"description": "The hypervisor type of the image. Only xen is supported. ovm is not supported."})  # fmt: skip
+    image_owner_alias: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account alias (for example, amazon, self) or the Amazon Web Services account ID of the AMI owner."})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the AMI that was provided during image creation."})  # fmt: skip
+    root_device_name: Optional[str] = field(default=None, metadata={"description": "The device name of the root device volume (for example, /dev/sda1)."})  # fmt: skip
+    root_device_type: Optional[str] = field(default=None, metadata={"description": "The type of root device used by the AMI. The AMI can use an Amazon EBS volume or an instance store volume."})  # fmt: skip
+    sriov_net_support: Optional[str] = field(default=None, metadata={"description": "Specifies whether enhanced networking with the Intel 82599 Virtual Function interface is enabled."})  # fmt: skip
+    state_reason: Optional[AwsEc2StateReason] = field(default=None, metadata={"description": "The reason for the state change."})  # fmt: skip
+    virtualization_type: Optional[str] = field(default=None, metadata={"description": "The type of virtualization of the AMI."})  # fmt: skip
+    boot_mode: Optional[str] = field(default=None, metadata={"description": "The boot mode of the image. For more information, see Boot modes in the Amazon EC2 User Guide."})  # fmt: skip
+    tpm_support: Optional[str] = field(default=None, metadata={"description": "If the image is configured for NitroTPM support, the value is v2.0. For more information, see NitroTPM in the Amazon EC2 User Guide."})  # fmt: skip
+    deprecation_time: Optional[str] = field(default=None, metadata={"description": "The date and time to deprecate the AMI, in UTC, in the following format: YYYY-MM-DDTHH:MM:SSZ. If you specified a value for seconds, Amazon EC2 rounds the seconds to the nearest minute."})  # fmt: skip
+    imds_support: Optional[str] = field(default=None, metadata={"description": "If v2.0, it indicates that IMDSv2 is specified in the AMI. Instances launched from this AMI will have HttpTokens automatically set to required so that, by default, the instance requires that IMDSv2 is used when requesting instance metadata. In addition, HttpPutResponseHopLimit is set to 2. For more information, see Configure the AMI in the Amazon EC2 User Guide."})  # fmt: skip
+    source_instance_id: Optional[str] = field(default=None, metadata={"description": "The ID of the instance that the AMI was created from if the AMI was created using CreateImage. This field only appears if the AMI was created using CreateImage."})  # fmt: skip
+
+
 # endregion
 
 resources: List[Type[AwsResource]] = [
@@ -3206,6 +3323,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2Host,
     AwsEc2Instance,
     AwsEc2InternetGateway,
+    AwsEc2Image,
     AwsEc2KeyPair,
     AwsEc2NatGateway,
     AwsEc2NetworkAcl,

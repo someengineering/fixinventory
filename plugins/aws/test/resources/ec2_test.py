@@ -21,6 +21,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2RouteTable,
     AwsEc2Host,
     AwsEc2FlowLog,
+    AwsEc2Image,
 )
 from resotolib.graph import Graph
 from test.resources import round_trip_for, build_graph, check_single_node
@@ -43,6 +44,10 @@ def test_reserved_instances() -> None:
 
 def test_volumes() -> None:
     round_trip_for(AwsEc2Volume)
+
+
+def test_images() -> None:
+    round_trip_for(AwsEc2Image)
 
 
 def test_delete_volumes() -> None:

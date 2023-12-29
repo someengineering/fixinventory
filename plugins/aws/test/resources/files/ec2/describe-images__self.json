@@ -1,0 +1,83 @@
+{
+    "Images": [
+        {
+            "Architecture": "x86_64",
+            "CreationDate": "2023-08-31T21:00:27.000Z",
+            "ImageId": "ami-1123",
+            "ImageLocation": "958347557273/pom-tmpst-20230831t204042-3888579",
+            "ImageType": "machine",
+            "Public": true,
+            "OwnerId": "958347557273",
+            "PlatformDetails": "Linux/UNIX",
+            "UsageOperation": "RunInstances",
+            "State": "available",
+            "BlockDeviceMappings": [
+                {
+                    "DeviceName": "/dev/xvda",
+                    "Ebs": {
+                        "DeleteOnTermination": true,
+                        "SnapshotId": "snap-070a3cd53ddfc3a8b",
+                        "VolumeSize": 10,
+                        "VolumeType": "gp2",
+                        "Encrypted": false
+                    }
+                }
+            ],
+            "EnaSupport": true,
+            "Hypervisor": "xen",
+            "Name": "pom-tmpst-20230831t204042-3888579",
+            "RootDeviceName": "/dev/xvda",
+            "RootDeviceType": "ebs",
+            "SriovNetSupport": "simple",
+            "VirtualizationType": "hvm",
+            "DeprecationTime": "2025-08-31T21:00:27.000Z",
+            "SourceInstanceId": "i-041649455685d795f",
+            "KernelId": "aki-919dcaf8",
+            "Platform": "windows",
+            "RamdiskId": "ari-8f9dcae6",
+            "Description": "Windows_Server-2019-English-Full-Base-2021.08.11",
+            "ImageOwnerAlias": "amazon",
+            "StateReason": {
+                "Code": "Client.UserInitiatedShutdown",
+                "Message": "Client.UserInitiatedShutdown: User initiated shutdown"
+            },
+            "BootMode": "legacy-bios",
+            "TpmSupport": true,
+            "ImdsSupport": true
+        },
+        {
+            "Architecture": "x86_64",
+            "CreationDate": "2022-12-23T16:15:33.000Z",
+            "ImageId": "ami-123",
+            "ImageLocation": "amazon/amazon-eks-gpu-node-1.23-v20221222",
+            "ImageType": "machine",
+            "Public": true,
+            "OwnerId": "602401143452",
+            "PlatformDetails": "Linux/UNIX",
+            "UsageOperation": "RunInstances",
+            "State": "available",
+            "BlockDeviceMappings": [
+                {
+                    "DeviceName": "/dev/xvda",
+                    "Ebs": {
+                        "DeleteOnTermination": true,
+                        "SnapshotId": "snap-04685fe771b7f9b84",
+                        "VolumeSize": 20,
+                        "VolumeType": "gp2",
+                        "Encrypted": false
+                    }
+                }
+            ],
+            "Description": "EKS Kubernetes Worker AMI for Machine Learning Accelerated Workloads on AmazonLinux2 image (k8s: 1.23.13, docker: 20.10.17-1.amzn2.0.1, containerd: 1.6.6-1.amzn2.0.2)",
+            "EnaSupport": true,
+            "Hypervisor": "xen",
+            "ImageOwnerAlias": "amazon",
+            "Name": "amazon-eks-gpu-node-1.23-v20221222",
+            "RootDeviceName": "/dev/xvda",
+            "RootDeviceType": "ebs",
+            "SriovNetSupport": "simple",
+            "VirtualizationType": "hvm",
+            "DeprecationTime": "2024-12-23T16:15:33.000Z"
+        }
+    ]
+}

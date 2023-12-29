@@ -611,6 +611,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
         # AwsResotoModel("describe-flow-logs", "FlowLogs", "FlowLog", prefix="Ec2"),
+        # AwsResotoModel("describe-images", "Images", "Image", prefix="Ec2"),
     ],
     "ecs": [
         # AwsResotoModel(
