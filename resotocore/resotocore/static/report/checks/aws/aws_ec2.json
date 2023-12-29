@@ -662,6 +662,21 @@
             }
         },
         {
+            "name": "image_public",
+            "title": "Ensure there are no EC2 AMIs set as Public.",
+            "result_kinds": ["aws_ami_image"],
+            "categories": [ "security", "compliance" ],
+            "risk": "When your AMIs are publicly accessible, they are available in the Community AMIs where everyone with an AWS account can use them to launch EC2 instances. Your AMIs could contain snapshots of your applications (including their data), therefore exposing your snapshots in this manner is not advised.",
+            "severity": "critical",
+            "detect": {
+                "resoto": "search is(aws_ec2_image) and public==true"
+            },
+            "remediation": {
+                "text": "We recommend your EC2 AMIs are not publicly accessible, or generally available in the Community AMIs.",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html"
+            }
+        },
+        {
             "name": "no_secrets_in_instance_user_data",
             "title": "Ensure there are no secrets in EC2 User Data.",
             "result_kinds": ["aws_ec2_instance"],

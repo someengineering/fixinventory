@@ -1005,6 +1005,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     "ssm": [
         # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
         # AwsResotoModel("list-documents", "DocumentIdentifiers", "DocumentIdentifier", prefix="SSM"),
+        # AwsResotoModel("list-documents", "DocumentIdentifiers", "DescribeDocumentPermissionResponse", prefix="SSM"),
     ],
     "secretsmanager": [
         # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),

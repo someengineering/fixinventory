@@ -2,49 +2,43 @@
     "provider": "aws",
     "service": "ssm",
     "checks": [
-      {
-        "name": "managed_instance_compliance_patch_compliant",
-        "title": "Ensure that EC2 instances are covered under SSM patch manager",
-        "result_kinds": ["EC2"],
-        "categories": [
-          "security",
-          "compliance"
-        ],
-        "risk": "AWS regularly releases new patched and updated AMI's, ensuring that EC2 are configured with patch manager enables EC2 instances to regularly get automated security patches",
-        "severity": "medium",
-        "detect": {
-          "manual": "Go to AWS System manager -> Patch manager"
+        {
+            "name": "managed_instance_compliance_patch_compliant",
+            "title": "Ensure that EC2 instances are covered under SSM patch manager",
+            "result_kinds": ["aws_ec2_instance"],
+            "categories": ["security", "compliance"],
+            "risk": "AWS regularly releases new patched and updated AMI's, ensuring that EC2 are configured with patch manager enables EC2 instances to regularly get automated security patches",
+            "severity": "medium",
+            "detect": {
+                "manual": "Go to AWS System manager -> Patch manager"
+            },
+            "remediation": {
+                "text": "Ensure that all EC2 instances are covered under a patch policy",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-create-a-patch-policy.html"
+            },
+            "source": "saad"
         },
-        "remediation": {
-          "text": "Ensure that all EC2 instances are covered under a patch policy",
-          "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-create-a-patch-policy.html"
+        {
+            "name": "ec2_instance_ssm_managed",
+            "title": "Ensure that EC2 instances are managed by AWS System Manager",
+            "result_kinds": ["aws_ec2_instance"],
+            "categories": ["security", "compliance"],
+            "risk": "AWS System manager allows you to manage EC2 instances by automating workloads, ensure they are patched regularly and kept up to date.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Go to AWS System manager -> Managed Instances"
+            },
+            "remediation": {
+                "text": "For EC2 instances not under the managed instances list, install the SSM Agent, associate an IAM role with the necessary permissions, verify SSM Agent status, and check the Systems Manager console for the instance.",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html"
+            },
+            "source": "saad"
         },
-          "source": "saad"
-      },
-      {
-        "name": "ec2_instance_ssm_managed",
-        "title": "Ensure that EC2 instances are managed by AWS System Manager",
-        "result_kinds": ["EC2"],
-        "categories": [
-          "security",
-          "compliance"
-        ],
-        "risk": "AWS System manager allows you to manage EC2 instances by automating workloads, ensure they are patched regularly and kept up to date.",
-        "severity": "medium",
-        "detect": {
-          "manual": "Go to AWS System manager -> Managed Instances"
-        },
-        "remediation": {
-          "text": "For EC2 instances not under the managed instances list, install the SSM Agent, associate an IAM role with the necessary permissions, verify SSM Agent status, and check the Systems Manager console for the instance.",
-          "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html"
-        },
-          "source": "saad"
-      },
         {
             "name": "no_secrets_in_content",
             "title": "Ensure that there are no secrets in SSM documents.",
-            "result_kinds": ["EC2"],
-            "categories": [ "security", "compliance" ],
+            "result_kinds": ["aws_ssm_document"],
+            "categories": ["security", "compliance"],
             "risk": "Secrets hardcoded into SSM Documents by malware and bad actors to gain lateral access to other services.",
             "severity": "medium",
             "detect": {
@@ -54,6 +48,21 @@
                 "text": "Use Secrets Manager service to store and retrieve passwords and secrets.",
                 "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
             }
+        },
+        {
+            "name": "document_is_shared",
+            "title": "Ensure that there are no documents shared with any other account.",
+            "result_kinds": ["aws_ssm_document"],
+            "categories": ["security", "compliance"],
+            "risk": "SSM Documents may contain private information or even secrets and tokens and should not be shared with other accounts.",
+            "severity": "high",
+            "detect": {
+                "resoto": "search is(aws_ssm_document) and document_shared_with_accounts not in [null, []]"
+            },
+            "remediation": {
+                "text": "Carefully review the contents of the document before is shared. Enable SSM Block public sharing for documents.",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-before-you-share.html"
+            }
         }
     ]
-  }
+}

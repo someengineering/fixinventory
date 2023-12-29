@@ -8,7 +8,7 @@ import yaml
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
@@ -133,6 +133,17 @@ class AwsSSMReviewInformation:
 
 
 @define(eq=False, slots=False)
+class AwsSSMAccountSharingInfo:
+    kind: ClassVar[str] = "aws_ssm_account_sharing_info"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "account_id": S("AccountId"),
+        "shared_document_version": S("SharedDocumentVersion"),
+    }
+    account_id: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account ID where the current document is shared."})  # fmt: skip
+    shared_document_version: Optional[str] = field(default=None, metadata={"description": "The version of the current document shared with the account."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsSSMDocument(AwsResource):
     kind: ClassVar[str] = "aws_ssm_document"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -197,6 +208,8 @@ class AwsSSMDocument(AwsResource):
     category: Optional[List[str]] = field(factory=list, metadata={"description": "The classification of a document to help you identify and categorize its use."})  # fmt: skip
     category_enum: Optional[List[str]] = field(factory=list, metadata={"description": "The value that identifies a document's category."})  # fmt: skip
     content: Optional[Json] = field(default=None, metadata={"description": "The content of the document"})  # fmt: skip
+    document_shared_with_accounts: Optional[List[str]] = field(factory=list, metadata={"description": "The account IDs that have permission to use this document. The ID can be either an Amazon Web Services account or All."})  # fmt: skip
+    document_sharing_info: Optional[List[AwsSSMAccountSharingInfo]] = field(factory=list, metadata={"description": "A list of Amazon Web Services accounts where the current document is shared and the version shared with each account."})  # fmt: skip
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
@@ -204,8 +217,12 @@ class AwsSSMDocument(AwsResource):
             with suppress(Exception):
                 js = builder.client.get(service_name, "describe-document", "Document", Name=name)
                 doc = builder.client.get(service_name, "get-document", Name=name)
+                share = builder.client.get(
+                    service_name, "describe-document-permission", Name=name, PermissionType="Share"
+                )
+
                 if (
-                    (js and doc)
+                    (js and doc and share)
                     and (content := doc.get("Content"))
                     and (content_format := doc.get("DocumentFormat"))
                     and (instance := cls.from_api(js, builder))
@@ -216,6 +233,15 @@ class AwsSSMDocument(AwsResource):
                         instance.content = yaml.safe_load(content)
                     else:
                         instance.content = content
+                    instance.document_shared_with_accounts = share.get("AccountIds", [])
+                    instance.document_sharing_info = [
+                        sharing_info
+                        for sharing_info in [
+                            parse_json(jsi, AwsSSMAccountSharingInfo, builder, AwsSSMAccountSharingInfo.mapping)
+                            for jsi in share.get("AccountSharingInfoList", [])
+                        ]
+                        if sharing_info is not None
+                    ]
                     builder.add_node(instance, js)
 
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.

@@ -219,6 +219,7 @@
                                 "aws_autoscaling_launch_config_public_ip_disabled",
                                 "aws_cloudtrail_logs_s3_bucket_is_not_publicly_accessible",
                                 "aws_dms_public_ip_address",
+                                "aws_ec2_image_public",
                                 "aws_ec2_instance_in_vpc",
                                 "aws_ec2_public_ip_address",
                                 "aws_ec2_snapshot_encrypted",
@@ -229,6 +230,7 @@
                                 "aws_eks_cluster_endpoint_restrict_public_access",
                                 "aws_glacier_vaults_policy_public_access",
                                 "aws_kms_cmk_policy_prohibit_public_access",
+                                "aws_lambda_cors_policy",
                                 "aws_lambda_function_in_vpc",
                                 "aws_lambda_function_restrict_public_access",
                                 "aws_opensearch_domain_is_not_publicly_accessible",
@@ -239,7 +241,8 @@
                                 "aws_s3_account_level_public_access_blocks",
                                 "aws_s3_bucket_policy_public_write_access",
                                 "aws_s3_public_bucket",
-                                "aws_secretsmanager_secret_not_used_90d"
+                                "aws_secretsmanager_secret_not_used_90d",
+                                "aws_ssm_document_is_shared"
                             ]
                         },
                         {
