@@ -252,7 +252,11 @@
                                 "aws_dms_public_ip_address",
                                 "aws_ec2_instance_in_vpc",
                                 "aws_lambda_function_in_vpc",
-                                "aws_secretsmanager_secret_not_used_90d"
+                                "aws_lambda_publicly_accessible_permissions",
+                                "aws_opensearch_domain_is_not_publicly_accessible",
+                                "aws_sagemaker_notebook_with_direct_internet_access",
+                                "aws_secretsmanager_secret_not_used_90d",
+                                "aws_ssm_no_secrets_in_content"
                             ]
                         }
                     ]
