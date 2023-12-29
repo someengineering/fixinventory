@@ -61,6 +61,36 @@
                 "text": "Make sure you are logging information about Amazon Elasticsearch Service operations.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html"
             }
+        },
+        {
+            "name": "update_available",
+            "title": "Ensure that Amazon Opensearch Service domains are running the latest version.",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [  ],
+            "risk": "Amazon Opensearch regularly releases system software updates that add features or otherwise improve your domains.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_open_search_domain) and service_software_options.update_available==true"
+            },
+            "remediation": {
+                "text": "The Notifications panel in the console is the easiest way to see if an update is available or check the status of an update. You can also receive these notifications through Amazon EventBridge. If you take no action on required updates; Amazon ES still updates your domain service software automatically after a certain timeframe (typically two weeks). In this situation; Amazon ES sends notifications when it starts the update and when the update is complete.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-service-software.html"
+            }
+        },
+        {
+            "name": "encryption_at_rest_enabled",
+            "title": "Ensure that Amazon Opensearch Service domains have encryption at rest enabled.",
+            "result_kind": ["aws_open_search_domain"],
+            "categories": [  ],
+            "risk": "Not encrypting data at rest could expose sensitive data to bad actors.",
+            "severity": "low",
+            "detect": {
+                "resoto": "is(aws_open_search_domain) and encryption_at_rest_options.enabled=false"
+            },
+            "remediation": {
+                "text": "Enable encryption at rest using AWS KMS to store and manage your encryption keys and the Advanced Encryption Standard algorithm with 256-bit keys (AES-256) to perform the encryption.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html"
+            }
         }
     ]
 }

@@ -1,7 +1,7 @@
 {
     "title": "AWS Well-Architected Framework Security Pillar",
     "framework": "WAF",
-    "clouds": [ "aws" ],
+    "clouds": ["aws"],
     "version": "1.0",
     "description": "The AWS Well-Architected Framework describes key concepts, design principles, and architectural best practices for designing and running workloads in the cloud. The security pillar focuses on protecting information and systems. Key topics include confidentiality and integrity of data, managing user permissions, and establishing controls to detect security events.",
     "children": [
@@ -107,7 +107,6 @@
                                 "aws_secretsmanager_secret_not_used_90d",
                                 "aws_secretsmanager_secret_rotated_as_scheduled",
                                 "aws_secretsmanager_secret_rotation_enabled"
-
                             ]
                         },
                         {
@@ -405,11 +404,13 @@
                             "title": "SEC06-BP01 Perform vulnerability management",
                             "description": "Frequently scan and patch for vulnerabilities in your code, dependencies, and in your infrastructure to help protect against new threats. Create and maintain a vulnerability management program. Regularly scan and patch resources such as Amazon EC2 instances, Amazon Elastic Container Service (Amazon ECS) containers, and Amazon Elastic Kubernetes Service (Amazon EKS) workloads. Configure maintenance windows for AWS managed resources, such as Amazon Relational Database Service (Amazon RDS) databases. Use static code scanning to inspect application source code for common issues. Consider web application penetration testing if your organization has the requisite skills or can hire outside assistance.",
                             "checks": [
-                                "aws_rds_db_instance_automatic_minor_version_upgrade_enabled",
                                 "aws_cloudtrail_log_file_validation_enabled",
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_ec2_instance_uses_imdsv2",
                                 "aws_ec2_internet_facing_with_instance_profile",
+                                "aws_opensearch_update_available",
+                                "aws_rds_db_instance_automatic_minor_version_upgrade_enabled",
+                                "aws_redshift_version_upgrade_enabled",
                                 "aws_ssm_managed_instance_compliance_patch_compliant"
                             ]
                         },
@@ -417,33 +418,36 @@
                             "title": "SEC06-BP02 Reduce attack surface",
                             "description": "Reduce your exposure to unintended access by hardening operating systems and minimizing the components, libraries, and externally consumable services in use. Start by reducing unused components, whether they are operating system packages or applications, for Amazon Elastic Compute Cloud (Amazon EC2)-based workloads, or external software modules in your code, for all workloads. You can find many hardening and security configuration guides for common operating systems and server software. For example, you can start with the Center for Internet Security and iterate.",
                             "checks": [
-                                "aws_lambda_function_in_vpc",
+                                "aws_ecr_image_scan_on_push",
                                 "aws_ecs_ecs_cluster_container_insights_enabled",
-                                "aws_ecs_ecs_service_fargate_using_latest_platform_version"
+                                "aws_ecs_ecs_service_fargate_using_latest_platform_version",
+                                "aws_lambda_function_in_vpc",
+                                "aws_lambda_publicly_accessible_permissions"
                             ]
                         },
                         {
                             "title": "SEC06-BP03 Implement managed services",
                             "description": "Implement services that manage resources, such as Amazon Relational Database Service (Amazon RDS), AWS Lambda, and Amazon Elastic Container Service (Amazon ECS), to reduce your security maintenance tasks as part of the shared responsibility model. For example, Amazon RDS helps you set up, operate, and scale a relational database, automates administration tasks such as hardware provisioning, database setup, patching, and backups. This means you have more free time to focus on securing your application in other ways described in the AWS Well-Architected Framework. Lambda lets you run code without provisioning or managing servers, so you only need to focus on the connectivity, invocation, and security at the code level–not the infrastructure or operating system.",
-                            "checks": [
-                            ]
+                            "checks": []
                         },
                         {
                             "title": "SEC06-BP04 Automate compute protection",
                             "description": "Automate your protective compute mechanisms including vulnerability management, reduction in attack surface, and management of resources. The automation will help you invest time in securing other aspects of your workload, and reduce the risk of human error.",
                             "checks": [
+                                "aws_ec2_instance_profile_attached",
+                                "aws_ec2_instance_stopped_since_30d",
                                 "aws_ec2_internet_facing_with_instance_profile",
-                                "aws_ssm_ec2_instance_ssm_managed",
-                                "aws_ec2_instance_stopped_since_30d"
+                                "aws_ssm_ec2_instance_ssm_managed"
                             ]
                         },
                         {
                             "title": "SEC06-BP05 Enable people to perform actions at a distance",
                             "description": "Removing the ability for interactive access reduces the risk of human error, and the potential for manual configuration or management. For example, use a change management workflow to deploy Amazon Elastic Compute Cloud (Amazon EC2) instances using infrastructure-as-code, then manage Amazon EC2 instances using tools such as AWS Systems Manager instead of allowing direct access or through a bastion host. AWS Systems Manager can automate a variety of maintenance and deployment tasks, using features including automation workflows, documents (playbooks), and the run command. AWS CloudFormation stacks build from pipelines and can automate your infrastructure deployment and management tasks without using the AWS Management Console or APIs directly.",
                             "checks": [
+                                "aws_ec2_instance_profile_attached",
+                                "aws_ec2_instance_stopped_since_30d",
                                 "aws_ec2_internet_facing_with_instance_profile",
-                                "aws_ssm_ec2_instance_ssm_managed",
-                                "aws_ec2_instance_stopped_since_30d"
+                                "aws_ssm_ec2_instance_ssm_managed"
                             ]
                         },
                         {
@@ -473,18 +477,27 @@
                             "title": "SEC08-BP02 Enforce encryption at rest",
                             "description": "You should enforce the use of encryption for data at rest. Encryption maintains the confidentiality of sensitive data in the event of unauthorized access or accidental disclosure. Private data should be encrypted by default when at rest. Encryption helps maintain confidentiality of the data and provides an additional layer of protection against intentional or inadvertent data disclosure or exfiltration. Data that is encrypted cannot be read or accessed without first unencrypting the data. Any data stored unencrypted should be inventoried and controlled.",
                             "checks": [
+                                "aws_cloudtrail_uses_encryption_at_rest",
+                                "aws_cloudwatch_log_group_encryption_at_rest_enabled",
+                                "aws_dynamodb_table_kms_encryption_enabled",
+                                "aws_ec2_volume_not_encrypted",
                                 "aws_efs_storage_encrypted",
+                                "aws_eks_cluster_encryption_enabled",
+                                "aws_opensearch_encryption_at_rest_enabled",
                                 "aws_rds_snapshot_not_public",
                                 "aws_rds_storage_encrypted",
-                                "aws_cloudtrail_uses_encryption_at_rest",
-                                "aws_ec2_volume_not_encrypted"
+                                "aws_sagemaker_notebook_encryption_enabled",
+                                "aws_sagemaker_training_job_encryption_enabled",
+                                "aws_sagemaker_training_job_volume_encryption_enabled",
+                                "aws_sqs_server_side_encryption_enabled"
                             ]
                         },
                         {
                             "title": "SEC08-BP03 Automate data at rest protection",
                             "description": "Use automated tools to validate and enforce data at rest controls continuously, for example, verify that there are only encrypted storage resources. You can automate validation that all EBS volumes are encrypted using AWS Config Rules. AWS Security Hub can also verify several different controls through automated checks against security standards. Additionally, your AWS Config Rules can automatically remediate noncompliant resources.",
                             "checks": [
-                                "aws_s3_bucket_default_encryption"
+                                "aws_s3_bucket_default_encryption",
+                                "aws_sagemaker_notebook_encryption_enabled"
                             ]
                         },
                         {
@@ -492,6 +505,7 @@
                             "description": "To help protect your data at rest, enforce access control using mechanisms, such as isolation and versioning, and apply the principle of least privilege. Prevent the granting of public access to your data. Verify that only authorized users can access data on a need-to-know basis. Protect your data with regular backups and versioning to prevent against intentional or inadvertent modification or deletion of data. Isolate critical data from other data to protect its confidentiality and data integrity.",
                             "checks": [
                                 "aws_s3_bucket_no_mfa_delete",
+                                "aws_sns_encryption_at_rest_enabled",
                                 "aws_organizations_account_part_of_organizations"
                             ]
                         }
@@ -545,8 +559,41 @@
                             "title": "SEC10-BP01 Identify key personnel and external resources",
                             "description": "Identify internal and external personnel, resources, and legal obligations that would help your organization respond to an incident. When you define your approach to incident response in the cloud, in unison with other teams (such as your legal counsel, leadership, business stakeholders, AWS Support Services, and others), you must identify key personnel, stakeholders, and relevant contacts. To reduce dependency and decrease response time, make sure that your team, specialist security teams, and responders are educated about the services that you use and have opportunities to practice hands-on.",
                             "checks": [
+                                "aws_iam_account_maintain_current_contact_details",
+                                "aws_iam_account_security_contact_information_is_registered",
+                                "aws_iam_account_security_questions_are_registered_in_the_aws_account",
                                 "aws_iam_support_role_exists"
                             ]
+                        },
+                        {
+                            "title": "SEC10-BP02 Develop incident management plans",
+                            "description": "Create plans to help you respond to, communicate during, and recover from an incident. For example, you can start an incident response plan with the most likely scenarios for your workload and organization. Include how you would communicate and escalate both internally and externally.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC10-BP03 Prepare forensic capabilities",
+                            "description": "It's important for your incident responders to understand when and how the forensic investigation fits into your response plan. Your organization should define what evidence is collected and what tools are used in the process. Identify and prepare forensic investigation capabilities that are suitable, including external specialists, tools, and automation. A key decision that you should make upfront is if you will collect data from a live system. Some data, such as the contents of volatile memory or active network connections, will be lost if the system is powered off or rebooted.Your response team can combine tools, such as AWS Systems Manager, Amazon EventBridge, and AWS Lambda, to automatically run forensic tools within an operating system and VPC traffic mirroring to obtain a network packet capture, to gather non-persistent evidence. Conduct other activities, such as log analysis or analyzing disk images, in a dedicated security account with customized forensic workstations and tools accessible to your responders.Routinely ship relevant logs to a data store that provides high durability and integrity. Responders should have access to those logs. AWS offers several tools that can make log investigation easier, such as Amazon Athena, Amazon OpenSearch Service (OpenSearch Service), and Amazon CloudWatch Logs Insights. Additionally, preserve evidence securely using Amazon Simple Storage Service (Amazon S3) Object Lock. This service follows the WORM (write-once- read-many) model and prevents objects from being deleted or overwritten for a defined period. As forensic investigation techniques require specialist training, you might need to engage external specialists.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC10-BP04",
+                            "description": "",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC10-BP05 Pre-provision access",
+                            "description": "Verify that incident responders have the correct access pre-provisioned in AWS to reduce the time needed for investigation through to recovery.Common anti-patterns:Using the root account for incident response.Altering existing accounts.Manipulating IAM permissions directly when providing just-in-time privilege elevation.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC10-BP06 Pre-deploy tools",
+                            "description": "Ensure that security personnel have the right tools pre-deployed into AWS to reduce the time for investigation through to recovery.To automate security engineering and operations functions, you can use a comprehensive set of APIs and tools from AWS. You can fully automate identity management, network security, data protection, and monitoring capabilities and deliver them using popular software development methods that you already have in place. When you build security automation, your system can monitor, review, and initiate a response, rather than having people monitor your security position and manually react to events. An effective way to automatically provide searchable and relevant log data across AWS services to your incident responders is to enable Amazon Detective.If your incident response teams continue to respond to alerts in the same way, they risk alert fatigue. Over time, the team can become desensitized to alerts and can either make mistakes handling ordinary situations or miss unusual alerts. Automation helps avoid alert fatigue by using functions that process the repetitive and ordinary alerts, leaving humans to handle the sensitive and unique incidents. Integrating anomaly detection systems, such as Amazon GuardDuty, AWS CloudTrail Insights, and Amazon CloudWatch Anomaly Detection, can reduce the burden of common threshold-based alerts.You can improve manual processes by programmatically automating steps in the process. After you define the remediation pattern to an event, you can decompose that pattern into actionable logic, and write the code to perform that logic. Responders can then execute that code to remediate the issue. Over time, you can automate more and more steps, and ultimately automatically handle whole classes of common incidents.For tools that execute within the operating system of your Amazon Elastic Compute Cloud (Amazon EC2) instance, you should evaluate using the AWS Systems Manager Run Command, which enables you to remotely and securely administrate instances using an agent that you install on your Amazon EC2 instance operating system. It requires the Systems Manager Agent (SSM Agent), which is installed by default on many Amazon Machine Images (AMIs). Be aware, though, that once an instance has been compromised, no responses from tools or agents running on it should be considered trustworthy.",
+                            "checks": []
+                        },
+                        {
+                            "title": "SEC10-BP07 Run game days",
+                            "description": "Game days, also known as simulations or exercises, are internal events that provide a structured opportunity to practice your incident management plans and procedures during a realistic scenario. These events should exercise responders using the same tools and techniques that would be used in a real-world scenario - even mimicking real-world environments. Game days are fundamentally about being prepared and iteratively improving your response capabilities. Some of the reasons you might find value in performing game day activities include:Validating readinessDeveloping confidence – learning from simulations and training staffFollowing compliance or contractual obligationsGenerating artifacts for accreditationBeing agile – incremental improvementBecoming faster and improving toolsRefining communication and escalationDeveloping comfort with the rare and the unexpectedFor these reasons, the value derived from participating in a simulation activity increases an organization's effectiveness during stressful events. Developing a simulation activity that is both realistic and beneficial can be a difficult exercise. Although testing your procedures or automation that handles well-understood events has certain advantages, it is just as valuable to participate in creative Security Incident Response Simulations (SIRS) activities to test yourself against the unexpected and continuously improve.Create custom simulations tailored to your environment, team, and tools. Find an issue and design your simulation around it. This could be something like a leaked credential, a server communicating with unwanted systems, or a misconfiguration that results in unauthorized exposure. Identify engineers who are familiar with your organization to create the scenario and another group to participate. The scenario should be realistic and challenging enough to be valuable. It should include the opportunity to get hands on with logging, notifications, escalations, and executing runbooks or automation. During the simulation, your responders should exercise their technical and organizational skills, and leaders should be involved to build their incident management skills. At the end of the simulation, celebrate the efforts of the team and look for ways to iterate, repeat, and expand into further simulations.AWS has created Incident Response Runbook templates that you can use not only to prepare your response efforts, but also as a basis for a simulation. When planning, a simulation can be broken into five phases.Evidence gathering: In this phase, a team will get alerts through various means, such as an internal ticketing system, alerts from monitoring tooling, anonymous tips, or even public news. Teams then start to review infrastructure and application logs to determine the source of the compromise. This step should also involve internal escalations and incident leadership. Once identified, teams move on to containing the incidentContain the incident: Teams will have determined there has been an incident and established the source of the compromise. Teams now should take action to contain it, for example, by disabling compromised credentials, isolating a compute resource, or revoking a role's permission.Eradicate the incident: Now that they've contained the incident, teams will work towards mitigating any vulnerabilities in applications or infrastructure configurations that were susceptible to the compromise. This could include rotating all credentials used for a workload, modifying Access Control Lists (ACLs) or changing network configurations.",
+                            "checks": []
                         }
                     ]
                 },

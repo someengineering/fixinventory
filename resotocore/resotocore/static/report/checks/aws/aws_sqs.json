@@ -1,0 +1,21 @@
+{
+    "provider": "aws",
+    "service": "sqs",
+    "checks": [
+        {
+            "name": "server_side_encryption_enabled",
+            "title": "Ensure that SQS queues have server-side encryption enabled",
+            "result_kinds": [ "aws_eks_cluster" ],
+            "categories": [ "security", "compliance" ],
+            "risk": "If not enabled sensitive information in transit is not protected.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_sqs_queue) and sqs_kms_master_key_id==null"
+            },
+            "remediation": {
+                "text": "Enable Encryption. Use a CMK where possible. It will provide additional management and privacy benefits",
+                "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-sse-existing-queue.html"
+            }
+        }
+    ]
+}

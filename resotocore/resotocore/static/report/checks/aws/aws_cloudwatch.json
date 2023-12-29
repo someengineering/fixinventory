@@ -23,6 +23,21 @@
             }
         },
         {
+            "name": "log_group_encryption_at_rest_enabled",
+            "title": "Ensure that CloudWatch log groups are protected by AWS KMS.",
+            "result_kind": [ "aws_cloudwatch_log_group" ],
+            "categories": [ "retention" ],
+            "risk": "Using customer managed KMS to encrypt CloudWatch log group provide additional confidentiality and control over the log data.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_cloudwatch_log_group) with(empty, --> is(aws_kms_key))"
+            },
+            "remediation": {
+                "text": "Associate KMS Key with Cloudwatch log group.",
+                "url": "https://docs.aws.amazon.com/cli/latest/reference/logs/associate-kms-key.html"
+            }
+        },
+        {
             "name": "log_group_retention_days_at_least_365",
             "title": "Check if CloudWatch Log Groups have a retention policy of specific days.",
             "result_kind": [

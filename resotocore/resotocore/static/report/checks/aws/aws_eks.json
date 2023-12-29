@@ -34,6 +34,21 @@
                 "text": "In the EKS console, go to the 'Logging' tab for the cluster -> Click 'Edit' and enable or modify the control plane logging settings -> Save the changes.",
                 "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html"
             }
+        },
+        {
+            "name": "cluster_encryption_enabled",
+            "title": "Ensure Kubernetes Secrets are encrypted using Customer Master Keys (CMKs)",
+            "result_kinds": [ "aws_eks_cluster" ],
+            "categories": [ "security", "compliance" ],
+            "risk": "Implementing envelope encryption is considered a security best practice for applications that store sensitive data and is part of a defense in depth security strategy.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_eks_cluster) and cluster_encryption_config in [null, []]"
+            },
+            "remediation": {
+                "text": "Setup your own Customer Master Key (CMK) in KMS and link this key by providing the CMK ARN when you create an EKS cluster.",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html"
+            }
         }
     ]
 }
