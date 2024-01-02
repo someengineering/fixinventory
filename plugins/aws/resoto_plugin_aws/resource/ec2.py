@@ -3250,7 +3250,7 @@ class AwsEc2Image(AwsResource):
         "An Amazon Machine Image (AMI) is a supported and maintained image "
         "provided by AWS that provides the information required to launch an instance. "
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-images", "Images", {"Owners": "self"})
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-images", "Images", {"Owners": ["self"]})
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageId"),
         "tags": S("Tags", default=[]) >> ToDict(),

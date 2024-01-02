@@ -1,0 +1,88 @@
+{
+    "Certificate": {
+        "CertificateArn": "arn:aws:acm:us-east-2:test:certificate/7d16bbb2-99c5-4388-b6f4-d97eee909827",
+        "DomainName": "foo",
+        "SubjectAlternativeNames": [
+            "demo.some.engineering",
+            "*.demo.some.engineering"
+        ],
+        "DomainValidationOptions": [
+            {
+                "DomainName": "demo.some.engineering",
+                "ValidationEmails": [
+                    "admin@some.engineering",
+                    "administrator@some.engineering",
+                    "hostmaster@some.engineering",
+                    "postmaster@some.engineering",
+                    "webmaster@some.engineering"
+                ],
+                "ValidationDomain": "some.engineering",
+                "ValidationStatus": "SUCCESS",
+                "ValidationMethod": "EMAIL"
+            },
+            {
+                "DomainName": "*.demo.some.engineering",
+                "ValidationEmails": [
+                    "admin@some.engineering",
+                    "administrator@some.engineering",
+                    "hostmaster@some.engineering",
+                    "postmaster@some.engineering",
+                    "webmaster@some.engineering"
+                ],
+                "ValidationDomain": "some.engineering",
+                "ValidationStatus": "SUCCESS",
+                "ValidationMethod": "EMAIL"
+            }
+        ],
+        "Serial": "03:ad:40:93:b4:d2:0a:ee:1d:6f:12:23:9b:57:64:42",
+        "Subject": "CN=demo.some.engineering",
+        "Issuer": "Amazon",
+        "CreatedAt": "2021-09-09T12:51:32+02:00",
+        "IssuedAt": "2021-09-09T21:39:50+02:00",
+        "Status": "EXPIRED",
+        "NotBefore": "2021-09-09T02:00:00+02:00",
+        "NotAfter": "2022-10-09T01:59:59+02:00",
+        "KeyAlgorithm": "RSA-2048",
+        "SignatureAlgorithm": "SHA256WITHRSA",
+        "InUseBy": [],
+        "Type": "AMAZON_ISSUED",
+        "KeyUsages": [
+            {
+                "Name": "DIGITAL_SIGNATURE"
+            },
+            {
+                "Name": "KEY_ENCIPHERMENT"
+            }
+        ],
+        "ExtendedKeyUsages": [
+            {
+                "Name": "TLS_WEB_SERVER_AUTHENTICATION",
+                "OID": "1.3.6.1.5.5.7.3.1"
+            },
+            {
+                "Name": "TLS_WEB_CLIENT_AUTHENTICATION",
+                "OID": "1.3.6.1.5.5.7.3.2"
+            }
+        ],
+        "RenewalEligibility": "INELIGIBLE",
+        "Options": {
+            "CertificateTransparencyLoggingPreference": "ENABLED"
+        },
+        "ImportedAt": "2021-09-09T12:51:32+02:00",
+        "RevokedAt": "2021-09-09T12:51:32+02:00",
+        "RevocationReason": "UNSPECIFIED",
+        "FailureReason": "NO_AVAILABLE_CONTACTS",
+        "RenewalSummary": {
+            "RenewalStatus": "PENDING_AUTO_RENEWAL",
+            "DomainValidationOptions": [
+                {
+                    "DomainName": "demo.some.engineering",
+                    "ValidationEmails": [
+                        "test@bla.de"
+                    ]
+                }
+            ]
+        },
+        "CertificateAuthorityArn": "arn:aws:acm-pca:us-east-2:test:certificate-authority/7d16bbb2-99c5-4388-b6f4-d97eee909827"
+    }
+}

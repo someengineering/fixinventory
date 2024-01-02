@@ -1012,7 +1012,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-domains", "DomainStatusList", "DomainStatus", prefix="OpenSearch", name="AwsOpenSearchDomain"),
     ],
     "acm": [
-        # AwsResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="Acm", name="AcmCertificate")
+        # AwsResotoModel("describe-certificate", "Certificate", "CertificateDetail", prefix="Acm", name="AcmCertificate")
     ],
 }
 
