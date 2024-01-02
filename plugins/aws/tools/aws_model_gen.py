@@ -682,13 +682,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "elb": [
-        # AwsResotoModel(
-        #     "describe-load-balancers",
-        #     "LoadBalancerDescriptions",
-        #     "LoadBalancerDescription",
-        #     prefix="Elb",
-        #     prop_prefix="elb_",
-        # ),
+        # AwsResotoModel( "describe-load-balancers", "LoadBalancerDescriptions", "LoadBalancerDescription", prefix="Elb", prop_prefix="elb_", ),
+        # AwsResotoModel( "describe-load-balancer-attributes", "DescribeLoadBalancerAttributesResult", "LoadBalancerAttributes", prefix="Elb" ),
     ],
     "elbv2": [
         # AwsResotoModel(
@@ -1019,7 +1014,7 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("acm", "list-certificates"), indent=2))
+    # print(json.dumps(create_test_response("elb", "describe-load-balancer-attributes"), indent=2))
 
     """print the class models"""
     # print(default_imports())

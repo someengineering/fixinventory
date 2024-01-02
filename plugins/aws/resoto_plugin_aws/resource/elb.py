@@ -2,7 +2,7 @@ from typing import ClassVar, Dict, Optional, Type, List
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
 from resoto_plugin_aws.utils import ToDict, MetricNormalization
@@ -198,6 +198,54 @@ class AwsElbSourceSecurityGroup:
 
 
 @define(eq=False, slots=False)
+class AwsElbAccessLog:
+    kind: ClassVar[str] = "aws_elb_access_log"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("Enabled"),
+        "s3_bucket_name": S("S3BucketName"),
+        "emit_interval": S("EmitInterval"),
+        "s3_bucket_prefix": S("S3BucketPrefix"),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={"description": "Specifies whether access logs are enabled for the load balancer."})  # fmt: skip
+    s3_bucket_name: Optional[str] = field(default=None, metadata={"description": "The name of the Amazon S3 bucket where the access logs are stored."})  # fmt: skip
+    emit_interval: Optional[int] = field(default=None, metadata={"description": "The interval for publishing the access logs. You can specify an interval of either 5 minutes or 60 minutes. Default: 60 minutes"})  # fmt: skip
+    s3_bucket_prefix: Optional[str] = field(default=None, metadata={"description": "The logical hierarchy you created for your Amazon S3 bucket, for example my-bucket-prefix/prod. If the prefix is not provided, the log is placed at the root level of the bucket."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsElbConnectionDraining:
+    kind: ClassVar[str] = "aws_elb_connection_draining"
+    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "timeout": S("Timeout")}
+    enabled: Optional[bool] = field(default=None, metadata={"description": "Specifies whether connection draining is enabled for the load balancer."})  # fmt: skip
+    timeout: Optional[int] = field(default=None, metadata={"description": "The maximum time, in seconds, to keep the existing connections open before deregistering the instances."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsElbAdditionalAttribute:
+    kind: ClassVar[str] = "aws_elb_additional_attribute"
+    mapping: ClassVar[Dict[str, Bender]] = {"key": S("Key"), "value": S("Value")}
+    key: Optional[str] = field(default=None, metadata={"description": "The name of the attribute. The following attribute is supported.    elb.http.desyncmitigationmode - Determines how the load balancer handles requests that might pose a security risk to your application. The possible values are monitor, defensive, and strictest. The default is defensive."})  # fmt: skip
+    value: Optional[str] = field(default=None, metadata={"description": "This value of the attribute."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsElbLoadBalancerAttributes:
+    kind: ClassVar[str] = "aws_elb_load_balancer_attributes"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "cross_zone_load_balancing": S("CrossZoneLoadBalancing", "Enabled"),
+        "access_log": S("AccessLog") >> Bend(AwsElbAccessLog.mapping),
+        "connection_draining": S("ConnectionDraining") >> Bend(AwsElbConnectionDraining.mapping),
+        "connection_settings": S("ConnectionSettings", "IdleTimeout"),
+        "additional_attributes": S("AdditionalAttributes", default=[]) >> ForallBend(AwsElbAdditionalAttribute.mapping),
+    }
+    cross_zone_load_balancing: Optional[bool] = field(default=None, metadata={"description": "If enabled, the load balancer routes the request traffic evenly across all instances regardless of the Availability Zones. For more information, see Configure Cross-Zone Load Balancing in the Classic Load Balancers Guide."})  # fmt: skip
+    access_log: Optional[AwsElbAccessLog] = field(default=None, metadata={"description": "If enabled, the load balancer captures detailed information of all requests and delivers the information to the Amazon S3 bucket that you specify. For more information, see Enable Access Logs in the Classic Load Balancers Guide."})  # fmt: skip
+    connection_draining: Optional[AwsElbConnectionDraining] = field(default=None, metadata={"description": "If enabled, the load balancer allows existing requests to complete before the load balancer shifts traffic away from a deregistered or unhealthy instance. For more information, see Configure Connection Draining in the Classic Load Balancers Guide."})  # fmt: skip
+    connection_settings: Optional[int] = field(default=None, metadata={"description": "If enabled, the load balancer allows the connections to remain idle (no data is sent over the connection) for the specified duration. By default, Elastic Load Balancing maintains a 60-second idle connection timeout for both front-end and back-end connections of your load balancer. For more information, see Configure Idle Connection Timeout in the Classic Load Balancers Guide."})  # fmt: skip
+    additional_attributes: Optional[List[AwsElbAdditionalAttribute]] = field(factory=list, metadata={"description": "Any additional attributes."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     kind_display: ClassVar[str] = "AWS ELB"
@@ -249,6 +297,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     elb_availability_zones: List[str] = field(factory=list)
     elb_health_check: Optional[AwsElbHealthCheck] = field(default=None)
     elb_source_security_group: Optional[AwsElbSourceSecurityGroup] = field(default=None)
+    elb_attributes: Optional[AwsElbLoadBalancerAttributes] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -263,6 +312,18 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def fetch_attributes(elb: AwsElb) -> None:
+            if attributes := builder.client.get(
+                service_name,
+                "describe-load-balancer-attributes",
+                "LoadBalancerAttributes",
+                LoadBalancerName=elb.name,
+                expected_errors=["LoadBalancerNotFound"],
+            ):
+                elb.elb_attributes = parse_json(
+                    attributes, AwsElbLoadBalancerAttributes, builder, AwsElbAdditionalAttribute.mapping
+                )
+
         def add_tags(elb: AwsElb) -> None:
             tags = builder.client.list(
                 service_name,
@@ -278,6 +339,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
+                builder.submit_work(service_name, fetch_attributes, instance)
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
