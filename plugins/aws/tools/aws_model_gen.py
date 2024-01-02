@@ -1010,7 +1010,9 @@ models: Dict[str, List[AwsResotoModel]] = {
     "acm": [
         # AwsResotoModel("describe-certificate", "Certificate", "CertificateDetail", prefix="Acm", name="AcmCertificate")
     ],
-    "wafv2": [AwsResotoModel("get-web-acl", "WebACL", "Statement", prefix="Waf")],
+    "wafv2": [
+        # AwsResotoModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
+    ],
 }
 
 

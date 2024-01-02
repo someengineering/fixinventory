@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.json_bender import Bender, S, Bend, ForallBend, ParseJson, MapDict
@@ -747,6 +748,56 @@ class AwsWafCustomResponseBody:
 
 
 @define(eq=False, slots=False)
+class AwsWafCondition:
+    kind: ClassVar[str] = "aws_waf_condition"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "action_condition": S("ActionCondition", "Action"),
+        "label_name_condition": S("LabelNameCondition", "LabelName"),
+    }
+    action_condition: Optional[str] = field(default=None, metadata={"description": "A single action condition. This is the action setting that a log record must contain in order to meet the condition."})  # fmt: skip
+    label_name_condition: Optional[str] = field(default=None, metadata={"description": "A single label name condition. This is the fully qualified label name that a log record must contain in order to meet the condition. Fully qualified labels have a prefix, optional namespaces, and label name. The prefix identifies the rule group or web ACL context of the rule that added the label."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsWafFilter:
+    kind: ClassVar[str] = "aws_waf_filter"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "behavior": S("Behavior"),
+        "requirement": S("Requirement"),
+        "conditions": S("Conditions", default=[]) >> ForallBend(AwsWafCondition.mapping),
+    }
+    behavior: Optional[str] = field(default=None, metadata={"description": "How to handle logs that satisfy the filter's conditions and requirement."})  # fmt: skip
+    requirement: Optional[str] = field(default=None, metadata={"description": "Logic to apply to the filtering conditions. You can specify that, in order to satisfy the filter, a log must match all conditions or must match at least one condition."})  # fmt: skip
+    conditions: Optional[List[AwsWafCondition]] = field(factory=list, metadata={"description": "Match conditions for the filter."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsWafLoggingFilter:
+    kind: ClassVar[str] = "aws_waf_logging_filter"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "filters": S("Filters", default=[]) >> ForallBend(AwsWafFilter.mapping),
+        "default_behavior": S("DefaultBehavior"),
+    }
+    filters: Optional[List[AwsWafFilter]] = field(factory=list, metadata={"description": "The filters that you want to apply to the logs."})  # fmt: skip
+    default_behavior: Optional[str] = field(default=None, metadata={"description": "Default handling for logs that don't match any of the specified filtering conditions."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsWafLoggingConfiguration:
+    kind: ClassVar[str] = "aws_waf_logging_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "log_destination_configs": S("LogDestinationConfigs", default=[]),
+        "redacted_fields": S("RedactedFields", default=[]) >> ForallBend(AwsWafFieldToMatch.mapping),
+        "managed_by_firewall_manager": S("ManagedByFirewallManager"),
+        "logging_filter": S("LoggingFilter") >> Bend(AwsWafLoggingFilter.mapping),
+    }
+    log_destination_configs: Optional[List[str]] = field(factory=list, metadata={"description": "The logging destination configuration that you want to associate with the web ACL.  You can associate one logging destination to a web ACL."})  # fmt: skip
+    redacted_fields: Optional[List[AwsWafFieldToMatch]] = field(factory=list, metadata={"description": "The parts of the request that you want to keep out of the logs. For example, if you redact the SingleHeader field, the HEADER field in the logs will be REDACTED for all rules that use the SingleHeader FieldToMatch setting.  Redaction applies only to the component that's specified in the rule's FieldToMatch setting, so the SingleHeader redaction doesn't apply to rules that use the Headers FieldToMatch.  You can specify only the following fields for redaction: UriPath, QueryString, SingleHeader, and Method."})  # fmt: skip
+    managed_by_firewall_manager: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the logging configuration was created by Firewall Manager, as part of an WAF policy configuration. If true, only Firewall Manager can modify or delete the configuration."})  # fmt: skip
+    logging_filter: Optional[AwsWafLoggingFilter] = field(default=None, metadata={"description": "Filtering that specifies which web requests are kept in the logs and which are dropped. You can filter on the rule action and on the web request labels that were applied by matching rules during web ACL evaluation."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsWafWebACL(AwsResource):
     kind: ClassVar[str] = "aws_waf_web_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("wafv2", "get-web-acl", "WebACL")
@@ -790,14 +841,28 @@ class AwsWafWebACL(AwsResource):
     challenge_config: Optional[AwsWafChallengeConfig] = field(default=None, metadata={"description": "Specifies how WAF should handle challenge evaluations for rules that don't have their own ChallengeConfig settings."})  # fmt: skip
     token_domains: Optional[List[str]] = field(factory=list, metadata={"description": "Specifies the domains that WAF should accept in a web request token. This enables the use of tokens across multiple protected websites."})  # fmt: skip
     association_inspection_limit: Optional[str] = field(default=None, metadata={"description": "Specifies the maximum size of the web request body component that an associated CloudFront distribution should send to WAF for inspection."})  # fmt: skip
+    logging_configuration: Optional[AwsWafLoggingConfiguration] = None
     _associated_resources: Optional[List[str]] = None
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         def fetch_acl_resources(acl: AwsWafWebACL) -> None:
-            acl._associated_resources = builder.client.list(
-                service_name, "list-resources-for-web-acl", "ResourceArns", WebACLArn=acl.arn
-            )
+            with suppress(Exception):
+                acl._associated_resources = builder.client.list(
+                    service_name, "list-resources-for-web-acl", "ResourceArns", WebACLArn=acl.arn
+                )
+
+        def fetch_logging_configuration(acl: AwsWafWebACL) -> None:
+            with suppress(Exception):
+                if logging_configuration := builder.client.get(
+                    aws_service=service_name,
+                    action="get-logging-configuration",
+                    result_name="LoggingConfiguration",
+                    ResourceArn=acl.arn,
+                ):
+                    acl.logging_configuration = parse_json(
+                        logging_configuration, AwsWafLoggingConfiguration, builder, AwsWafLoggingConfiguration.mapping
+                    )
 
         def fetch_web_acl(entry: Json) -> None:
             if web_acl := builder.client.get(
@@ -809,8 +874,9 @@ class AwsWafWebACL(AwsResource):
                 Name=entry["Name"],
             ):
                 if instance := AwsWafWebACL.from_api(web_acl, builder):
-                    builder.submit_work(service_name, fetch_acl_resources, instance)
                     builder.add_node(instance)
+                    builder.submit_work(service_name, fetch_acl_resources, instance)
+                    builder.submit_work(service_name, fetch_logging_configuration, instance)
 
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
@@ -834,6 +900,9 @@ class AwsWafWebACL(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for arn in self._associated_resources or []:
             builder.add_edge(self, arn=arn)
+        if (lc := self.logging_configuration) and (lcdcs := lc.log_destination_configs):
+            for arn in lcdcs:
+                builder.add_edge(self, arn=arn)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -841,6 +910,7 @@ class AwsWafWebACL(AwsResource):
             AwsApiSpec(service_name, "list-web-acls"),
             AwsApiSpec(service_name, "get-web-acl"),
             AwsApiSpec(service_name, "list-resources-for-web-acl"),
+            AwsApiSpec(service_name, "get-logging-configuration"),
         ]
 
 

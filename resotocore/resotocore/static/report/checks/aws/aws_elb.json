@@ -64,6 +64,24 @@
                 "text": "In the load balancer settings, click 'View/edit rules' for 443 and associate a valid ssl certificate.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html"
             }
+        },
+        {
+            "name": "waf_enabled",
+            "title": "Ensure that Load balancer has WAF enabled to provide protection against many of the common exploits and attacks ",
+            "result_kinds": ["aws_alb"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Enabling WAF (Web Application Firewall) on an Application Load Balancer is important for security as it provides a layer of protection against common web exploits and attacks. WAF can filter, monitor, and block harmful traffic before it reaches your applications, enhancing the overall security posture.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_alb) with (empty, <-- is(aws_waf_web_acl))"
+            },
+            "remediation": {
+                "text": "Open the AWS WAF & Shield console, Go to 'Web ACLs', create or select an existing Web ACL.",
+                "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html"
+            }
         }
     ]
 }

@@ -690,6 +690,21 @@
                 "text": "Always ensure that User data picks up secrets from a managed service like Parameter store or Secrets manager, rather than having it hardcoded in the actual script",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
             }
+        },
+        {
+            "name": "subnet_auto_assign_public_ip_disabled",
+            "title": "Ensure that subnets have public ip disabled by default to prevent accidental public access",
+            "result_kinds": ["aws_ec2_subnet"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Disabling auto-assign public IP in subnets is important for security because it reduces the exposure of instances to the public internet, minimizing the risk of external attacks. This setting is crucial in controlling the network accessibility of EC2 instances and maintaining a secure environment within the VPC.",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_ec2_subnet) and subnet_map_public_ip_on_launch=true"
+            },
+            "remediation": {
+                "text": "select subnet -> click 'Actions' -> 'Modify auto-assign IP settings' -> Uncheck 'Auto-assign IPv4' and save.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-ip-addressing.html"
+            }
         }
     ]
 }

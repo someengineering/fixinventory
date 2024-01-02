@@ -337,7 +337,7 @@
                                 "aws_sagemaker_model_vpc_settings_enabled",
                                 "aws_sagemaker_notebook_vpc_settings_enabled",
                                 "aws_sagemaker_training_job_vpc_settings_enabled",
-                                "aws_vpc_elb_application_lb_waf_enabled"
+                                "aws_elb_waf_enabled"
                             ]
                         },
                         {
@@ -346,13 +346,13 @@
                             "checks": [
                                 "aws_apigateway_authorizers_enabled",
                                 "aws_dms_public_ip_address",
+                                "aws_ec2_default_restrict_traffic",
                                 "aws_ec2_public_ip_address",
                                 "aws_ec2_snapshot_encrypted",
+                                "aws_ec2_subnet_auto_assign_public_ip_disabled",
                                 "aws_s3_account_level_public_access_blocks",
                                 "aws_s3_bucket_no_mfa_delete",
-                                "aws_sagemaker_notebook_with_direct_internet_access",
-                                "aws_vpc_default_security_group_restricts_all_traffic",
-                                "aws_vpc_subnet_auto_assign_public_ip_disabled"
+                                "aws_sagemaker_notebook_with_direct_internet_access"
                             ]
                         },
                         {
@@ -377,12 +377,9 @@
                                 "aws_ec2_allow_ingress_from_internet_to_telnet_ports",
                                 "aws_ec2_default_restrict_traffic",
                                 "aws_dms_public_ip_address",
-                                "aws_vpc_security_group_allows_ingress_authorized_ports",
-                                "aws_vpc_subnet_auto_assign_public_ip_disabled",
-                                "aws_vpc_default_security_group_restricts_all_traffic",
-                                "aws_vpc_elb_application_lb_waf_enabled",
-                                "aws_apigateway_waf_acl_attached",
-                                "aws_vpc_default_security_group_restricts_all_traffic"
+                                "aws_ec2_subnet_auto_assign_public_ip_disabled",
+                                "aws_elb_waf_enabled",
+                                "aws_apigateway_waf_acl_attached"
                             ]
                         },
                         {
