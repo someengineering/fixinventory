@@ -314,9 +314,6 @@ models: Dict[str, List[AwsResotoModel]] = {
     "accessanalyzer": [
         # AwsResotoModel("list-analyzers", "analyzers", "AnalyzerSummary", prefix="AccessAnalyzer"),
     ],
-    "acm": [
-        # AwsResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="ACM"),
-    ],
     "acm-pca": [
         # AwsResotoModel(
         #     "list-certificate-authorities", "CertificateAuthorities", "CertificateAuthority", prefix="ACMPCA"
@@ -1012,14 +1009,17 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-secrets", "SecretList", "SecretVersionStagesType", prefix="SecretsManager"),
     ],
     "opensearch": [
-        # AwsResotoModel( "describe-domains", "DomainStatusList", "DomainStatus", prefix="OpenSearch", name="AwsOpenSearchDomain" ),
+        # AwsResotoModel("describe-domains", "DomainStatusList", "DomainStatus", prefix="OpenSearch", name="AwsOpenSearchDomain"),
+    ],
+    "acm": [
+        # AwsResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="Acm", name="AcmCertificate")
     ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("opensearch", "list-domain-names"), indent=2))
+    # print(json.dumps(create_test_response("acm", "list-certificates"), indent=2))
 
     """print the class models"""
     # print(default_imports())
