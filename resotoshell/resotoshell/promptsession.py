@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import pathlib
 import re
 import shutil
 from abc import ABC
 from re import Pattern
 from shutil import get_terminal_size
-from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable, Any
+from typing import Iterable, Optional, List, Dict, Union, Tuple, Callable, Any, Set
 
 from attr import evolve
 from attrs import define, field
@@ -814,7 +815,7 @@ async def core_metadata(
         log.debug("Fetching core metadata..")
         model = await client.model()
 
-        def path(p: Property) -> List[str]:
+        def path(p: Property, visited: Set[str]) -> List[str]:
             kind = p.kind
             name = p.name
             result = [name]
@@ -822,17 +823,18 @@ async def core_metadata(
                 kind = kind[:-2]
                 name += "[*]"
                 result.append(name)
-
+            key = f"{name}:{kind}"  # prevent circular references
             kd = model.kinds.get(kind)
-            if kd is not None and kd.properties:
-                result.extend(name + "." + pp for prop in kd.properties for pp in path(prop))
+            if key not in visited and kd is not None and kd.properties:
+                visited.add(key)
+                result.extend(name + "." + pp for prop in kd.properties for pp in path(prop, visited))
             return result
 
         aggregate_roots = {k: v for k, v in model.kinds.items() if v.aggregate_root and v.properties is not None}
         # filter out all dynamically created kinds
         visible_kinds = sorted(k for k, v in aggregate_roots.items() if value_in_path(v.metadata, ["dynamic"]) is None)
 
-        known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop)}
+        known_props = {p for v in aggregate_roots.values() for prop in v.properties or [] for p in path(prop, set())}
         info = await client.cli_info()
         cmds = [
             from_json(cmd, CommandInfo)

@@ -118,6 +118,7 @@ simple_type_map = {
     "Timestamp": "datetime",
     "TagsMap": "Dict[str, str]",
     "MillisecondDateTime": "datetime",
+    "SearchString": "str",
 }
 simple_type_map |= {k.lower(): v for k, v in simple_type_map.items()}
 
@@ -1009,6 +1010,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     "acm": [
         # AwsResotoModel("describe-certificate", "Certificate", "CertificateDetail", prefix="Acm", name="AcmCertificate")
     ],
+    "wafv2": [AwsResotoModel("get-web-acl", "WebACL", "Statement", prefix="Waf")],
 }
 
 

@@ -948,11 +948,16 @@ class ComplexKind(Kind):
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
             self.__resolved = True
+            kinds = []
             # resolve properties
             for prop in self.properties:
                 kind = prop.resolve(model)
-                kind.resolve(model)
                 self.__resolved_kinds[prop.name] = (prop, kind)
+                kinds.append(kind)
+
+            # resolve property kinds
+            for kind in kinds:
+                kind.resolve(model)
 
             # make sure all successor kinds can be resolved
             for names in self.successor_kinds.values():

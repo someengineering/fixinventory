@@ -1215,7 +1215,7 @@ class AzureResourceSku(AzureResource):
         "atime": K(None),
         "api_versions": S("apiVersions"),
         "capabilities": S("capabilities") >> ForallBend(AzureResourceSkuCapabilities.mapping),
-        "capacity": S("capacity") >> Bend(AzureResourceSkuCapacity.mapping),
+        "sku_capacity": S("capacity") >> Bend(AzureResourceSkuCapacity.mapping),
         "costs": S("costs") >> ForallBend(AzureResourceSkuCosts.mapping),
         "family": S("family"),
         "sku_kind": S("kind"),
@@ -1228,7 +1228,7 @@ class AzureResourceSku(AzureResource):
     }
     api_versions: Optional[List[str]] = field(default=None, metadata={'description': 'The api versions that support this sku.'})  # fmt: skip
     capabilities: Optional[List[AzureResourceSkuCapabilities]] = field(default=None, metadata={'description': 'A name value pair to describe the capability.'})  # fmt: skip
-    capacity: Optional[AzureResourceSkuCapacity] = field(default=None, metadata={'description': 'Describes scaling information of a sku.'})  # fmt: skip
+    sku_capacity: Optional[AzureResourceSkuCapacity] = field(default=None, metadata={'description': 'Describes scaling information of a sku.'})  # fmt: skip
     costs: Optional[List[AzureResourceSkuCosts]] = field(default=None, metadata={'description': 'Metadata for retrieving price info.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={"description": "The family of this particular sku."})
     sku_kind: Optional[str] = field(default=None, metadata={'description': 'The kind of resources that are supported in this sku.'})  # fmt: skip
