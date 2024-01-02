@@ -99,7 +99,7 @@ class AwsAcmCertificate(AwsResource):
         "extended_key_usages": S("ExtendedKeyUsages", default=[]) >> ForallBend(AwsAcmExtendedKeyUsage.mapping),
         "certificate_authority_arn": S("CertificateAuthorityArn"),
         "renewal_eligibility": S("RenewalEligibility"),
-        "options": S("Options", "CertificateTransparencyLoggingPreference"),
+        "certificate_transparency_logging": S("Options", "CertificateTransparencyLoggingPreference"),
     }
     subject_alternative_names: Optional[List[str]] = field(factory=list, metadata={"description": "One or more domain names (subject alternative names) included in the certificate. This list contains the domain names that are bound to the public key that is contained in the certificate. The subject alternative names include the canonical domain name (CN) of the certificate and additional domain names that can be used to connect to the website."})  # fmt: skip
     domain_validation_options: Optional[List[AwsAcmDomainValidation]] = field(factory=list, metadata={"description": "Contains information about the initial validation of each domain name that occurs as a result of the RequestCertificate request. This field exists only when the certificate type is AMAZON_ISSUED."})  # fmt: skip
@@ -123,7 +123,7 @@ class AwsAcmCertificate(AwsResource):
     extended_key_usages: Optional[List[AwsAcmExtendedKeyUsage]] = field(factory=list, metadata={"description": "Contains a list of Extended Key Usage X.509 v3 extension objects. Each object specifies a purpose for which the certificate public key can be used and consists of a name and an object identifier (OID)."})  # fmt: skip
     certificate_authority_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the private certificate authority (CA) that issued the certificate. This has the following format:   arn:aws:acm-pca:region:account:certificate-authority/12345678-1234-1234-1234-123456789012"})  # fmt: skip
     renewal_eligibility: Optional[str] = field(default=None, metadata={"description": "Specifies whether the certificate is eligible for renewal. At this time, only exported private certificates can be renewed with the RenewCertificate command."})  # fmt: skip
-    options: Optional[str] = field(default=None, metadata={"description": "Value that specifies whether to add the certificate to a transparency log. Certificate transparency makes it possible to detect SSL certificates that have been mistakenly or maliciously issued. A browser might respond to certificate that has not been logged by showing an error message. The logs are cryptographically secure."})  # fmt: skip
+    certificate_transparency_logging: Optional[str] = field(default=None, metadata={"description": "Value that specifies whether to add the certificate to a transparency log. Certificate transparency makes it possible to detect SSL certificates that have been mistakenly or maliciously issued. A browser might respond to certificate that has not been logged by showing an error message. The logs are cryptographically secure."})  # fmt: skip
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:

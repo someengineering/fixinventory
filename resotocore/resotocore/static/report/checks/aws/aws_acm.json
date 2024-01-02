@@ -13,7 +13,7 @@
             "risk": "without ACM certificate transparency enabled, there's an increased risk of not being aware of potentially malicious or unauthorized SSL/TLS certificates, posing a threat to the security of your website or infrastructure",
             "severity": "medium",
             "detect": {
-                "manual": "Go to AWS console -> Navigate to AWS Certificate Manager (ACM)"
+                "resoto": "is(aws_acm_certificate) and type!=IMPORTED and certificate_transparency_logging!=Enabled"
             },
             "remediation": {
                 "text": "Select the certificate you want to check, in certificate details, you can look at Certificate Transparency Logging Attribute which indicates whether it's enabled or disabled.",
