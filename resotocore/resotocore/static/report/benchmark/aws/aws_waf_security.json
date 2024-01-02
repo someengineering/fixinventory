@@ -278,12 +278,12 @@
                                 "aws_acm_certificate_transparency_logging_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
                                 "aws_eks_cluster_control_plane_audit_logging_enabled",
+                                "aws_elb_logging_enabled",
                                 "aws_opensearch_audit_logs_enabled",
                                 "aws_rds_db_instance_cloudwatch_logs_enabled",
                                 "aws_redshift_cluster_audit_logging_enabled",
                                 "aws_route53_zone_query_logging_enabled",
-                                "aws_s3_bucket_object_logging_enabled",
-                                "aws_vpc_elb_application_classic_lb_logging_enabled"
+                                "aws_s3_bucket_object_logging_enabled"
                             ]
                         },
                         {
@@ -303,13 +303,13 @@
                             "title": "SEC04-BP03 Automate response to events",
                             "description": "Using automation to investigate and remediate events reduces human effort and error, and allows you to scale investigation capabilities. Regular reviews will help you tune automation tools, and continuously iterate. In AWS, investigating events of interest and information on potentially unexpected changes into an automated workflow can be achieved using Amazon EventBridge. This service provides a scalable rules engine designed to broker both native AWS event formats (such as AWS CloudTrail events), as well as custom events you can generate from your application. Amazon GuardDuty also allows you to route events to a workflow system for those building incident response systems (AWS Step Functions), or to a central Security Account, or to a bucket for further analysis.",
                             "checks": [
-                                "aws_vpc_elb_application_classic_lb_logging_enabled",
                                 "aws_cloudtrail_logging_in_all_regions_enabled",
-                                "aws_rds_db_instance_cloudwatch_logs_enabled",
+                                "aws_cloudtrail_logging_in_all_regions_enabled",
                                 "aws_ec2_vpc_flow_logs_enabled",
-                                "aws_wafv2_web_acl_logging_enabled",
-                                "aws_cloudtrail_logging_in_all_regions_enabled",
-                                "aws_redshift_cluster_audit_logging_enabled"
+                                "aws_elb_logging_enabled",
+                                "aws_rds_db_instance_cloudwatch_logs_enabled",
+                                "aws_redshift_cluster_audit_logging_enabled",
+                                "aws_wafv2_web_acl_logging_enabled"
                             ]
                         },
                         {
@@ -519,7 +519,7 @@
                             "title": "SEC09-BP01 Implement secure key and certificate management",
                             "description": "Store encryption keys and certificates securely and rotate them at appropriate time intervals with strict access control. The best way to accomplish this is to use a managed service, such as AWS Certificate Manager (ACM). It lets you easily provision, manage, and deploy public and private Transport Layer Security (TLS) certificates for use with AWS services and your internal connected resources. TLS certificates are used to secure network communications and establish the identity of websites over the internet as well as resources on private networks. ACM integrates with AWS resources, such as Elastic Load Balancers (ELBs), AWS distributions, and APIs on API Gateway, also handling automatic certificate renewals. If you use ACM to deploy a private root CA, both certificates and private keys can be provided by it for use in Amazon Elastic Compute Cloud (Amazon EC2) instances, containers, and so on.",
                             "checks": [
-                                "aws_vpc_lb_use_ssl_certificate"
+                                "aws_elb_uses_ssl_certificate"
                             ]
                         },
                         {
@@ -530,7 +530,7 @@
                                 "aws_s3_bucket_default_encryption",
                                 "aws_apigateway_client_certificate_enabled",
                                 "aws_rds_storage_encrypted",
-                                "aws_vpc_lb_use_ssl_certificate",
+                                "aws_elb_uses_ssl_certificate",
                                 "aws_s3_bucket_secure_transport_policy"
                             ]
                         },
@@ -545,7 +545,7 @@
                             "title": "SEC09-BP04 Authenticate network communications",
                             "description": "Verify the identity of communications by using protocols that support authentication, such as Transport Layer Security (TLS) or IPsec. Using network protocols that support authentication, allows for trust to be established between the parties. This adds to the encryption used in the protocol to reduce the risk of communications being altered or intercepted. Common protocols that implement authentication include Transport Layer Security (TLS), which is used in many AWS services, and IPsec, which is used in AWS Virtual Private Network (AWS VPN).",
                             "checks": [
-                                "aws_vpc_lb_use_ssl_certificate",
+                                "aws_elb_uses_ssl_certificate",
                                 "aws_ec2_vpc_flow_logs_enabled"
                             ]
                         }

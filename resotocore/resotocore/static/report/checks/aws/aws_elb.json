@@ -31,6 +31,39 @@
                 "text": "Add listeners to Elastic Load Balancers.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
             }
+        },
+        {
+            "name": "logging_enabled",
+            "title": "Ensure that logging is enabled for Application load balancers associated to infrastructure",
+            "result_kinds": ["aws_elb"],
+            "categories": [ "security", "compliance" ],
+            "risk": "Without adequate logging, you can audit security risks such as limit visibility, reduced threat detection and inability to measure performance metrics",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_elb) and elb_attributes.access_log.enabled==false"
+            },
+            "remediation": {
+                "text": "Go to the Attributes tab -> Find the Access logs section -> Click the Edit button -> Enable access logs and provide the necessary information, such as the S3 bucket and prefix -> Save the changes.",
+                "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html"
+            }
+        },
+        {
+            "name": "uses_ssl_certificate",
+            "title": "Ensure that Load balancer uses SSL certificate for 443 port ",
+            "result_kinds": ["aws_elb"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Having a 443 port open without a Valid SSL certificate can cause security risks such as Exposure for sensitive information, susceptability to mulitple vunerabilities and a lack of trust from customers",
+            "severity": "medium",
+            "detect": {
+                "resoto": "is(aws_elb) and elb_listener_descriptions[*].{listener.protocol in [HTTPS, SSL] and listener.ssl_certificate_id==null}"
+            },
+            "remediation": {
+                "text": "In the load balancer settings, click 'View/edit rules' for 443 and associate a valid ssl certificate.",
+                "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html"
+            }
         }
     ]
 }
