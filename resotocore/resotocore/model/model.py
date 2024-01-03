@@ -1473,7 +1473,13 @@ class Model:
 
         return graph
 
-    def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
+    def update_kinds(self, kinds: List[Kind], check_overlap: bool = True, replace: bool = False) -> Model:
+        """
+        Update the model with the given kinds. The kinds are merged with the existing model.
+        :param kinds: the kinds to update.
+        :param check_overlap: true if paths with different kinds should be avoided, otherwise false.
+        :param replace: if true, the existing model is replaced with the new kinds.
+        """
         # Create a list of kinds that have changed to the existing model
         to_update = []
 
@@ -1510,8 +1516,14 @@ class Model:
                 raise AttributeError(f"Update {from_kind.fqn} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
+        new_kinds = {kind.fqn: kind for kind in kinds}
         updates = {elem.fqn: elem for elem in to_update}
-        updated = {**self.kinds, **updates}
+        filtered_kinds = (
+            {k: v for k, v in self.kinds.items() if k in new_kinds or k in predefined_kinds_by_name}
+            if replace
+            else self.kinds
+        )
+        updated = {**filtered_kinds, **updates}
         for elem in to_update:
             elem.resolve(updated)
 

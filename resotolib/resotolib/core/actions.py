@@ -84,7 +84,7 @@ class CoreFeedback:
         return self.with_context(*(self.context + list(context)))
 
 
-class SuppressWithFeedback(AbstractContextManager):
+class SuppressWithFeedback(AbstractContextManager[None]):
     def __init__(self, message: str, feedback: CoreFeedback, logger: Optional[Logger] = None) -> None:
         self.message = message
         self.feedback = feedback

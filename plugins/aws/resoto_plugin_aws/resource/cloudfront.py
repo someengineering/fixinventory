@@ -724,8 +724,8 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
             if cfg.web_acl_id:
                 builder.add_edge(self, clazz=AwsWafWebACL, arn=cfg.web_acl_id)
 
-            if cfg.viewer_certificate.acm_certificate_arn:
-                builder.add_edge(self, clazz=AwsAcmCertificate, arn=cfg.viewer_certificate.acm_certificate_arn)
+            if (cert := cfg.viewer_certificate) and (arn := cert.acm_certificate_arn):
+                builder.add_edge(self, clazz=AwsAcmCertificate, arn=arn)
 
     def pre_delete_resource(self, client: AwsClient, _: Graph) -> bool:
         dist_config = client.get(service_name, "get-distribution-config", None, None, Id=self.id)
