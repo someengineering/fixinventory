@@ -1,5 +1,4 @@
 import logging
-from contextlib import suppress
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
@@ -128,7 +127,7 @@ class AwsAcmCertificate(AwsResource):
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         def fetch_certificate(arn: str) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.describe-certificate"):
                 if res := builder.client.get(service_name, "describe-certificate", "Certificate", CertificateArn=arn):
                     AwsAcmCertificate.collect([res], builder)
 

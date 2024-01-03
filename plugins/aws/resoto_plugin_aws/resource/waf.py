@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from contextlib import suppress
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
@@ -847,17 +846,18 @@ class AwsWafWebACL(AwsResource):
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         def fetch_acl_resources(acl: AwsWafWebACL) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.list-resources-for-web-acl"):
                 acl._associated_resources = builder.client.list(
                     service_name, "list-resources-for-web-acl", "ResourceArns", WebACLArn=acl.arn
                 )
 
         def fetch_logging_configuration(acl: AwsWafWebACL) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-logging-configuration"):
                 if logging_configuration := builder.client.get(
                     aws_service=service_name,
                     action="get-logging-configuration",
                     result_name="LoggingConfiguration",
+                    expected_errors=["WAFNonexistentItemException"],
                     ResourceArn=acl.arn,
                 ):
                     acl.logging_configuration = parse_json(

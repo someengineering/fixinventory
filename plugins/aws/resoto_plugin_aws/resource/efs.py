@@ -1,5 +1,4 @@
 import json
-from contextlib import suppress
 from typing import Optional, ClassVar, Dict, List, Type
 
 import math
@@ -139,7 +138,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                     builder.add_edge(fs, node=mt)
 
         def fetch_file_system_policy(fs: AwsEfsFileSystem) -> None:
-            with suppress(Exception):
+            with builder.suppress("describe-file-system-policy"):
                 if policy := builder.client.get(
                     service_name,
                     "describe-file-system-policy",

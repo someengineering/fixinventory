@@ -1,6 +1,5 @@
 import json
 import logging
-from contextlib import suppress
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
@@ -214,7 +213,7 @@ class AwsSSMDocument(AwsResource):
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
         def collect_document(name: str) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.describe-document"):
                 js = builder.client.get(service_name, "describe-document", "Document", Name=name)
                 doc = builder.client.get(service_name, "get-document", Name=name)
                 share = builder.client.get(

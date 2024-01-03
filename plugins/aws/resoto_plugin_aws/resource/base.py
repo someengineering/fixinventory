@@ -27,7 +27,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.config import Config, current_config
-from resotolib.core.actions import CoreFeedback
+from resotolib.core.actions import CoreFeedback, SuppressWithFeedback
 from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
 from resotolib.json import from_json, value_in_path
 from resotolib.json_bender import Bender, bend
@@ -410,6 +410,9 @@ class GraphBuilder:
 
         self.metrics_start = start
         self.metrics_delta = delta
+
+    def suppress(self, message: str) -> SuppressWithFeedback:
+        return SuppressWithFeedback(message, self.core_feedback, log)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

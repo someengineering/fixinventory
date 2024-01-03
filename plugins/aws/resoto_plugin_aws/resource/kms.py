@@ -1,4 +1,3 @@
-from contextlib import suppress
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -135,7 +134,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
                         builder.submit_work(service_name, add_rotation_status, instance)
 
         def add_rotation_status(key: AwsKmsKey) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-key-rotation-status"):
                 key.kms_key_rotation_enabled = builder.client.get(  # type: ignore
                     service_name, "get-key-rotation-status", result_name="KeyRotationEnabled", KeyId=key.id
                 )

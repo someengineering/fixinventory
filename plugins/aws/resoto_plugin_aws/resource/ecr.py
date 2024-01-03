@@ -1,6 +1,5 @@
 import json
 import logging
-from contextlib import suppress
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
@@ -52,7 +51,7 @@ class AwsEcrRepository(AwsResource):
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
         def fetch_lifecycle_policy(repository: AwsEcrRepository) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-lifecycle-policy"):
                 if policy := builder.client.get(
                     service_name,
                     "get-lifecycle-policy",
