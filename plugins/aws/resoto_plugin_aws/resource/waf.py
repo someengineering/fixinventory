@@ -864,19 +864,20 @@ class AwsWafWebACL(AwsResource):
                         logging_configuration, AwsWafLoggingConfiguration, builder, AwsWafLoggingConfiguration.mapping
                     )
 
-        def fetch_web_acl(entry: Json) -> None:
+        def fetch_web_acl(entry: Json, scope: str) -> None:
             if web_acl := builder.client.get(
                 aws_service=service_name,
                 action="get-web-acl",
                 result_name="WebACL",
-                Scope="REGIONAL",
+                Scope=scope,
                 Id=entry["Id"],
                 Name=entry["Name"],
             ):
                 if instance := AwsWafWebACL.from_api(web_acl, builder):
                     builder.add_node(instance)
-                    builder.submit_work(service_name, fetch_acl_resources, instance)
                     builder.submit_work(service_name, fetch_logging_configuration, instance)
+                    if scope == "REGIONAL":  # only regional ACLs have associated resources
+                        builder.submit_work(service_name, fetch_acl_resources, instance)
 
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
@@ -887,7 +888,14 @@ class AwsWafWebACL(AwsResource):
                 result_name="WebACLs",
                 Scope="REGIONAL",
             ):
-                builder.submit_work(service_name, fetch_web_acl, entry)
+                builder.submit_work(service_name, fetch_web_acl, entry, "REGIONAL")
+            for entry in builder.client.list(
+                aws_service=service_name,
+                action="list-web-acls",
+                result_name="WebACLs",
+                Scope="CLOUDFRONT",
+            ):
+                builder.submit_work(service_name, fetch_web_acl, entry, "CLOUDFRONT")
         except Boto3Error as e:
             msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
             builder.core_feedback.error(msg, log)

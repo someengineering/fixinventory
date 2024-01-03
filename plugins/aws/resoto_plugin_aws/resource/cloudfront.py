@@ -2,12 +2,15 @@ import logging
 from typing import ClassVar, Dict, List, Optional, Type
 
 from attr import define, field
+from boto3.exceptions import Boto3Error
 
 from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.resource.acm import AwsAcmCertificate
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
+from resoto_plugin_aws.resource.waf import AwsWafWebACL
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
@@ -33,8 +36,8 @@ class CloudFrontResource:
                     builder.submit_work(service_name, add_tags, instance)
 
     @staticmethod
-    def delete_cloudfront_resource(client: AwsClient, resource: str, id: str) -> bool:
-        description = client.get(service_name, f"get-{resource}", None, None, Id=id)
+    def delete_cloudfront_resource(client: AwsClient, resource: str, rid: str) -> bool:
+        description = client.get(service_name, f"get-{resource}", None, None, Id=rid)
         if description:
             etag = description.get("ETag", None)
             if etag:
@@ -42,7 +45,7 @@ class CloudFrontResource:
                     aws_service=service_name,
                     action=f"delete-{resource}",
                     result_name=None,
-                    Id=id,
+                    Id=rid,
                     IfMatch=etag,
                 )
                 return True
@@ -192,7 +195,7 @@ class AwsCloudFrontOriginGroupMembers:
     mapping: ClassVar[Dict[str, Bender]] = {
         "origin_id": S("OriginId"),
     }
-    members: Optional[str] = field(default=None)
+    origin_id: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -303,7 +306,7 @@ class AwsCloudFrontDefaultCacheBehavior:
         "compress": S("Compress"),
         "lambda_function_associations": S("LambdaFunctionAssociations", "Items", default=[])
         >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping),
-        "function_association": S("FunctionAssociations", "Items", default=[])
+        "function_associations": S("FunctionAssociations", "Items", default=[])
         >> ForallBend(AwsCloudFrontFunctionAssociation.mapping),
         "field_level_encryption_id": S("FieldLevelEncryptionId"),
         "realtime_log_config_arn": S("RealtimeLogConfigArn"),
@@ -322,8 +325,8 @@ class AwsCloudFrontDefaultCacheBehavior:
     allowed_methods: List[str] = field(factory=list)
     smooth_streaming: Optional[bool] = field(default=None)
     compress: Optional[bool] = field(default=None)
-    lambda_function_association: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
-    function_association: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
+    lambda_function_associations: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
+    function_associations: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
     field_level_encryption_id: Optional[str] = field(default=None)
     realtime_log_config_arn: Optional[str] = field(default=None)
     cache_policy_id: Optional[str] = field(default=None)
@@ -352,9 +355,9 @@ class AwsCloudFrontCacheBehavior:
         "allowed_methods": S("AllowedMethods", "Items", default=[]),
         "smooth_streaming": S("SmoothStreaming"),
         "compress": S("Compress"),
-        "lambda_function_association": S("LambdaFunctionAssociations", "Items", default=[])
+        "lambda_function_associations": S("LambdaFunctionAssociations", "Items", default=[])
         >> ForallBend(AwsCloudFrontLambdaFunctionAssociation.mapping),
-        "function_association": S("FunctionAssociations", "Items", default=[])
+        "function_associations": S("FunctionAssociations", "Items", default=[])
         >> ForallBend(AwsCloudFrontFunctionAssociation.mapping),
         "field_level_encryption_id": S("FieldLevelEncryptionId"),
         "realtime_log_config_arn": S("RealtimeLogConfigArn"),
@@ -374,8 +377,8 @@ class AwsCloudFrontCacheBehavior:
     allowed_methods: List[str] = field(factory=list)
     smooth_streaming: Optional[bool] = field(default=None)
     compress: Optional[bool] = field(default=None)
-    lambda_function_association: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
-    function_association: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
+    lambda_function_associations: List[AwsCloudFrontLambdaFunctionAssociation] = field(factory=list)
+    function_associations: List[AwsCloudFrontFunctionAssociation] = field(factory=list)
     field_level_encryption_id: Optional[str] = field(default=None)
     realtime_log_config_arn: Optional[str] = field(default=None)
     cache_policy_id: Optional[str] = field(default=None)
@@ -463,75 +466,205 @@ class AwsCloudFrontAliasICPRecordal:
 
 
 @define(eq=False, slots=False)
+class AwsCloudFrontSigner:
+    kind: ClassVar[str] = "aws_cloudfront_signer"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "aws_account_number": S("AwsAccountNumber"),
+        "key_pair_ids": S("KeyPairIds", "Items"),
+    }
+    aws_account_number: Optional[str] = field(default=None, metadata={"description": "An Amazon Web Services account number that contains active CloudFront key pairs that CloudFront can use to verify the signatures of signed URLs and signed cookies. If the Amazon Web Services account that owns the key pairs is the same account that owns the CloudFront distribution, the value of this field is self."})  # fmt: skip
+    key_pair_ids: Optional[List[str]] = field(default=None, metadata={"description": "A list of CloudFront key pair identifiers."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontActiveTrustedSigners:
+    kind: ClassVar[str] = "aws_cloudfront_active_trusted_signers"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("Enabled"),
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontSigner.mapping),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={"description": "This field is true if any of the Amazon Web Services accounts in the list are configured as trusted signers. If not, this field is false."})  # fmt: skip
+    quantity: Optional[int] = field(default=None, metadata={"description": "The number of Amazon Web Services accounts in the list."})  # fmt: skip
+    items: Optional[List[AwsCloudFrontSigner]] = field(factory=list, metadata={"description": "A list of Amazon Web Services accounts and the identifiers of active CloudFront key pairs in each account that CloudFront can use to verify the signatures of signed URLs and signed cookies."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontKGKeyPairIds:
+    kind: ClassVar[str] = "aws_cloudfront_kg_key_pair_ids"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "key_group_id": S("KeyGroupId"),
+        "key_pair_ids": S("KeyPairIds", "Items"),
+    }
+    key_group_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the key group that contains the public keys."})  # fmt: skip
+    key_pair_ids: Optional[List[str]] = field(default=None, metadata={"description": "A list of CloudFront key pair identifiers."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontActiveTrustedKeyGroups:
+    kind: ClassVar[str] = "aws_cloudfront_active_trusted_key_groups"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("Enabled"),
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]) >> ForallBend(AwsCloudFrontKGKeyPairIds.mapping),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={"description": "This field is true if any of the key groups have public keys that CloudFront can use to verify the signatures of signed URLs and signed cookies. If not, this field is false."})  # fmt: skip
+    quantity: Optional[int] = field(default=None, metadata={"description": "The number of key groups in the list."})  # fmt: skip
+    items: Optional[List[AwsCloudFrontKGKeyPairIds]] = field(factory=list, metadata={"description": "A list of key groups, including the identifiers of the public keys in each key group that CloudFront can use to verify the signatures of signed URLs and signed cookies."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontAllowedMethods:
+    kind: ClassVar[str] = "aws_cloudfront_allowed_methods"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "quantity": S("Quantity"),
+        "items": S("Items", default=[]),
+        "cached_methods": S("CachedMethods", "Items"),
+    }
+    quantity: Optional[int] = field(default=None, metadata={"description": "The number of HTTP methods that you want CloudFront to forward to your origin. Valid values are 2 (for GET and HEAD requests), 3 (for GET, HEAD, and OPTIONS requests) and 7 (for GET, HEAD, OPTIONS, PUT, PATCH, POST, and DELETE requests)."})  # fmt: skip
+    items: Optional[List[str]] = field(factory=list, metadata={"description": "A complex type that contains the HTTP methods that you want CloudFront to process and forward to your origin."})  # fmt: skip
+    cached_methods: Optional[List[str]] = field(default=None, metadata={"description": "A complex type that controls whether CloudFront caches the response to requests using the specified HTTP methods. There are two choices:   CloudFront caches responses to GET and HEAD requests.   CloudFront caches responses to GET, HEAD, and OPTIONS requests."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontLoggingConfig:
+    kind: ClassVar[str] = "aws_cloudfront_logging_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("Enabled"),
+        "include_cookies": S("IncludeCookies"),
+        "bucket": S("Bucket"),
+        "prefix": S("Prefix"),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={"description": "Specifies whether you want CloudFront to save access logs to an Amazon S3 bucket. If you don't want to enable logging when you create a distribution or if you want to disable logging for an existing distribution, specify false for Enabled, and specify empty Bucket and Prefix elements."})  # fmt: skip
+    include_cookies: Optional[bool] = field(default=None, metadata={"description": "Specifies whether you want CloudFront to include cookies in access logs, specify true for IncludeCookies. If you choose to include cookies in logs, CloudFront logs all cookies regardless of how you configure the cache behaviors for this distribution."})  # fmt: skip
+    bucket: Optional[str] = field(default=None, metadata={"description": "The Amazon S3 bucket to store the access logs in, for example, myawslogbucket.s3.amazonaws.com."})  # fmt: skip
+    prefix: Optional[str] = field(default=None, metadata={"description": "An optional string that you want CloudFront to prefix to the access log filenames for this distribution, for example, myprefix/. If you want to enable logging, but you don't want to specify a prefix, you still must include an empty Prefix element in the Logging element."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudFrontDistributionConfig:
+    kind: ClassVar[str] = "aws_cloudfront_distribution_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "caller_reference": S("CallerReference"),
+        "aliases": S("Aliases", "Items"),
+        "default_root_object": S("DefaultRootObject"),
+        "origins": S("Origins", "Items", default=[]) >> ForallBend(AwsCloudFrontOrigin.mapping),
+        "origin_groups": S("OriginGroups", "Items", default=[]) >> ForallBend(AwsCloudFrontOriginGroup.mapping),
+        "default_cache_behavior": S("DefaultCacheBehavior") >> Bend(AwsCloudFrontDefaultCacheBehavior.mapping),
+        "cache_behaviors": S("CacheBehaviors", "Items", default=[]) >> ForallBend(AwsCloudFrontCacheBehavior.mapping),
+        "custom_error_responses": S("CustomErrorResponses", "Items", default=[])
+        >> ForallBend(AwsCloudFrontCustomErrorResponse.mapping),
+        "comment": S("Comment"),
+        "logging": S("Logging") >> Bend(AwsCloudFrontLoggingConfig.mapping),
+        "price_class": S("PriceClass"),
+        "enabled": S("Enabled"),
+        "viewer_certificate": S("ViewerCertificate") >> Bend(AwsCloudFrontViewerCertificate.mapping),
+        "restrictions": S("Restrictions") >> Bend(AwsCloudFrontRestrictions.mapping),
+        "web_acl_id": S("WebACLId"),
+        "http_version": S("HttpVersion"),
+        "is_ipv6_enabled": S("IsIPV6Enabled"),
+        "continuous_deployment_policy_id": S("ContinuousDeploymentPolicyId"),
+        "staging": S("Staging"),
+    }
+    caller_reference: Optional[str] = field(default=None, metadata={"description": "A unique value (for example, a date-time stamp) that ensures that the request can't be replayed. If the value of CallerReference is new (regardless of the content of the DistributionConfig object), CloudFront creates a new distribution."})  # fmt: skip
+    aliases: Optional[List[str]] = field(default=None, metadata={"description": "A complex type that contains information about CNAMEs (alternate domain names), if any, for this distribution."})  # fmt: skip
+    default_root_object: Optional[str] = field(default=None, metadata={"description": "The object that you want CloudFront to request from your origin (for example, index.html) when a viewer requests the root URL for your distribution (https://www.example.com) instead of an object in your distribution (https://www.example.com/product-description.html)."})  # fmt: skip
+    origins: Optional[List[AwsCloudFrontOrigin]] = field(default=None, metadata={"description": "A complex type that contains information about origins for this distribution."})  # fmt: skip
+    origin_groups: Optional[List[AwsCloudFrontOriginGroup]] = field(default=None, metadata={"description": "A complex type that contains information about origin groups for this distribution."})  # fmt: skip
+    default_cache_behavior: Optional[AwsCloudFrontDefaultCacheBehavior] = field(default=None, metadata={"description": "A complex type that describes the default cache behavior if you don't specify a CacheBehavior element or if files don't match any of the values of PathPattern in CacheBehavior elements. You must create exactly one default cache behavior."})  # fmt: skip
+    cache_behaviors: Optional[List[AwsCloudFrontCacheBehavior]] = field(default=None, metadata={"description": "Optional: A complex type that contains cache behaviors for this distribution. If Quantity is 0, you can omit Items."})  # fmt: skip
+    custom_error_responses: Optional[List[AwsCloudFrontCustomErrorResponse]] = field(default=None, metadata={"description": "A complex type that contains a CustomErrorResponse element for each HTTP status code for which you want to specify a custom error page and/or a caching duration."})  # fmt: skip
+    comment: Optional[str] = field(default=None, metadata={"description": "A comment to describe the distribution. The comment cannot be longer than 128 characters."})  # fmt: skip
+    logging: Optional[AwsCloudFrontLoggingConfig] = field(default=None, metadata={"description": "A complex type that controls whether access logs are written for the distribution. For more information about logging, see Access Logs in the Amazon CloudFront Developer Guide."})  # fmt: skip
+    price_class: Optional[str] = field(default=None, metadata={"description": "The price class that corresponds with the maximum price that you want to pay for CloudFront service. If you specify PriceClass_All, CloudFront responds to requests for your objects from all CloudFront edge locations."})  # fmt: skip
+    enabled: Optional[bool] = field(default=None, metadata={"description": "From this field, you can enable or disable the selected distribution."})  # fmt: skip
+    viewer_certificate: Optional[AwsCloudFrontViewerCertificate] = field(default=None, metadata={"description": "A complex type that determines the distribution's SSL/TLS configuration for communicating with viewers."})  # fmt: skip
+    restrictions: Optional[AwsCloudFrontRestrictions] = field(default=None, metadata={"description": "A complex type that identifies ways in which you want to restrict distribution of your content."})  # fmt: skip
+    web_acl_id: Optional[str] = field(default=None, metadata={"description": "A unique identifier that specifies the WAF web ACL, if any, to associate with this distribution. To specify a web ACL created using the latest version of WAF, use the ACL ARN, for example arn:aws:wafv2:us-east-1:123456789012:global/webacl/ExampleWebACL/473e64fd-f30b-4765-81a0-62ad96dd167a."})  # fmt: skip
+    http_version: Optional[str] = field(default=None, metadata={"description": "(Optional) Specify the maximum HTTP version(s) that you want viewers to use to communicate with CloudFront. The default value for new web distributions is http2. Viewers that don't support HTTP/2 automatically use an earlier HTTP version."})  # fmt: skip
+    is_ipv6_enabled: Optional[bool] = field(default=None, metadata={"description": "If you want CloudFront to respond to IPv6 DNS requests with an IPv6 address for your distribution, specify true. If you specify false, CloudFront responds to IPv6 DNS requests with the DNS response code NOERROR and with no IP addresses."})  # fmt: skip
+    continuous_deployment_policy_id: Optional[str] = field(default=None, metadata={"description": "The identifier of a continuous deployment policy. For more information, see CreateContinuousDeploymentPolicy."})  # fmt: skip
+    staging: Optional[bool] = field(default=None, metadata={"description": "A Boolean that indicates whether this is a staging distribution. When this value is true, this is a staging distribution. When this value is false, this is not a staging distribution."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "get-distribution", "Distribution")
     kind_display: ClassVar[str] = "AWS CloudFront Distribution"
     kind_description: ClassVar[str] = (
         "CloudFront Distributions are a content delivery network (CDN) offered by"
         " Amazon Web Services, which enables users to deliver their content to end-"
         " users with low latency and high transfer speeds."
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-distributions", "DistributionList.Items")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_lambda_function"]},
         "successors": {
             "default": [
-                "aws_lambda_function",
-                "aws_iam_server_certificate",
-                "aws_cloudfront_function",
-                "aws_cloudfront_realtime_log_config",
-                "aws_cloudfront_field_level_encryption_config",
-                "aws_cloudfront_response_headers_policy",
+                "aws_acm_certificate",
                 "aws_cloudfront_cache_policy",
+                "aws_cloudfront_field_level_encryption_config",
+                "aws_cloudfront_function",
                 "aws_cloudfront_origin_access_control",
+                "aws_cloudfront_realtime_log_config",
+                "aws_cloudfront_response_headers_policy",
+                "aws_iam_server_certificate",
+                "aws_lambda_function",
                 "aws_s3_bucket",
+                "aws_waf_web_acl",
             ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("DomainName"),
         "mtime": S("LastModifiedTime"),
         "arn": S("ARN"),
         "distribution_status": S("Status"),
-        "distribution_domain_name": S("DomainName"),
-        "distribution_aliases": S("Aliases", "Items", default=[]),
-        "distribution_origin": S("Origins", "Items", default=[]) >> ForallBend(AwsCloudFrontOrigin.mapping),
-        "distribution_origin_group": S("OriginGroups", "Items", default=[])
-        >> ForallBend(AwsCloudFrontOriginGroup.mapping),
-        "distribution_default_cache_behavior": S("DefaultCacheBehavior")
-        >> Bend(AwsCloudFrontDefaultCacheBehavior.mapping),
-        "distribution_cache_behavior": S("CacheBehaviors", "Items", default=[])
-        >> ForallBend(AwsCloudFrontCacheBehavior.mapping),
-        "distribution_custom_error_response": S("CustomErrorResponses", "Items", default=[])
-        >> ForallBend(AwsCloudFrontCustomErrorResponse.mapping),
-        "distribution_comment": S("Comment"),
-        "distribution_price_class": S("PriceClass"),
-        "distribution_enabled": S("Enabled"),
-        "distribution_viewer_certificate": S("ViewerCertificate") >> Bend(AwsCloudFrontViewerCertificate.mapping),
-        "distribution_restrictions": S("Restrictions") >> Bend(AwsCloudFrontRestrictions.mapping),
-        "distribution_web_acl_id": S("WebACLId"),
-        "distribution_http_version": S("HttpVersion"),
-        "distribution_is_ipv6_enabled": S("IsIPV6Enabled"),
+        "distribution_in_progress_invalidation_batches": S("InProgressInvalidationBatches"),
+        "distribution_active_trusted_signers": S("ActiveTrustedSigners")
+        >> Bend(AwsCloudFrontActiveTrustedSigners.mapping),
+        "distribution_active_trusted_key_groups": S("ActiveTrustedKeyGroups")
+        >> Bend(AwsCloudFrontActiveTrustedKeyGroups.mapping),
+        "distribution_config": S("DistributionConfig") >> Bend(AwsCloudFrontDistributionConfig.mapping),
         "distribution_alias_icp_recordals": S("AliasICPRecordals", default=[])
         >> ForallBend(AwsCloudFrontAliasICPRecordal.mapping),
     }
-    distribution_status: Optional[str] = field(default=None)
-    distribution_domain_name: Optional[str] = field(default=None)
-    distribution_aliases: List[str] = field(factory=list)
-    distribution_origin: List[AwsCloudFrontOrigin] = field(factory=list)
-    distribution_origin_group: List[AwsCloudFrontOriginGroup] = field(factory=list)
-    distribution_default_cache_behavior: Optional[AwsCloudFrontDefaultCacheBehavior] = field(default=None)
-    distribution_cache_behavior: List[AwsCloudFrontCacheBehavior] = field(factory=list)
-    distribution_custom_error_response: List[AwsCloudFrontCustomErrorResponse] = field(factory=list)
-    distribution_comment: Optional[str] = field(default=None)
-    distribution_price_class: Optional[str] = field(default=None)
-    distribution_enabled: Optional[bool] = field(default=None)
-    distribution_viewer_certificate: Optional[AwsCloudFrontViewerCertificate] = field(default=None)
-    distribution_restrictions: Optional[AwsCloudFrontRestrictions] = field(default=None)
-    distribution_web_acl_id: Optional[str] = field(default=None)
-    distribution_http_version: Optional[str] = field(default=None)
-    distribution_is_ipv6_enabled: Optional[bool] = field(default=None)
-    distribution_alias_icp_recordals: List[AwsCloudFrontAliasICPRecordal] = field(factory=list)
+    distribution_status: Optional[str] = field(default=None, metadata={"description": "The distribution's status. When the status is Deployed, the distribution's information is fully propagated to all CloudFront edge locations."})  # fmt: skip
+    distribution_in_progress_invalidation_batches: Optional[int] = field(default=None, metadata={"description": "The number of invalidation batches currently in progress."})  # fmt: skip
+    distribution_active_trusted_signers: Optional[AwsCloudFrontActiveTrustedSigners] = field(default=None, metadata={"description": "We recommend using TrustedKeyGroups instead of TrustedSigners."})  # fmt: skip
+    distribution_active_trusted_key_groups: Optional[AwsCloudFrontActiveTrustedKeyGroups] = field(default=None, metadata={"description": "This field contains a list of key groups and the public keys in each key group that CloudFront can use to verify the signatures of signed URLs or signed cookies."})  # fmt: skip
+    distribution_config: Optional[AwsCloudFrontDistributionConfig] = field(default=None, metadata={"description": "The distribution's configuration."})  # fmt: skip
+    distribution_alias_icp_recordals: Optional[List[AwsCloudFrontAliasICPRecordal]] = field(factory=list, metadata={"description": "Amazon Web Services services in China customers must file for an Internet Content Provider (ICP) recordal if they want to serve content publicly on an alternate domain name, also known as a CNAME, that they've added to CloudFront."})  # fmt: skip
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        def fetch_distribution(did: str) -> None:
+            with builder.suppress(f"{service_name}.get-distribution"):
+                if js := builder.client.get(service_name, "get-distribution", "Distribution", Id=did):
+                    AwsCloudFrontDistribution.collect([js], builder)
+
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        try:
+            for item in builder.client.list(
+                aws_service=service_name, action="list-distributions", result_name="DistributionList.Items"
+            ):
+                builder.submit_work(service_name, fetch_distribution, item["Id"])
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+        except Boto3Error as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.error(msg, log)
+            raise
+        except Exception as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.info(msg, log)
+            raise
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
@@ -543,53 +676,58 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # edges from default cache behaviour
-        if dcb := self.distribution_default_cache_behavior:
-            for a in dcb.lambda_function_association:
-                builder.dependant_node(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
-            for b in dcb.function_association:
-                builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
-            if dcb.realtime_log_config_arn:
-                builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=dcb.realtime_log_config_arn)
-            if dcb.field_level_encryption_id:
-                builder.add_edge(self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=dcb.field_level_encryption_id)
-            if dcb.response_headers_policy_id:
-                builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=dcb.response_headers_policy_id)
-            if dcb.cache_policy_id:
-                builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=dcb.cache_policy_id)
+        if cfg := self.distribution_config:
+            # edges from default cache behavior
+            if dcb := cfg.default_cache_behavior:
+                for a in dcb.lambda_function_associations:
+                    builder.dependant_node(self, clazz=AwsLambdaFunction, arn=a.lambda_function_arn)
+                for b in dcb.function_associations:
+                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=b.function_arn)
+                if dcb.realtime_log_config_arn:
+                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=dcb.realtime_log_config_arn)
+                if dcb.field_level_encryption_id:
+                    builder.add_edge(
+                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=dcb.field_level_encryption_id
+                    )
+                if dcb.response_headers_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=dcb.response_headers_policy_id)
+                if dcb.cache_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=dcb.cache_policy_id)
 
-        # edges from other cache behaviours
-        for cb_item in self.distribution_cache_behavior:
-            for c in cb_item.lambda_function_association:
-                builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
-            for d in cb_item.function_association:
-                builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
-            if cb_item.field_level_encryption_id:
-                builder.add_edge(
-                    self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
-                )
-            if cb_item.realtime_log_config_arn:
-                builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=cb_item.realtime_log_config_arn)
-            if cb_item.cache_policy_id:
-                builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=cb_item.cache_policy_id)
-            if cb_item.response_headers_policy_id:
-                builder.add_edge(self, clazz=AwsCloudFrontResponseHeadersPolicy, id=cb_item.response_headers_policy_id)
+            # edges from other cache behaviors
+            for cb_item in cfg.cache_behaviors or []:
+                for c in cb_item.lambda_function_associations:
+                    builder.add_edge(self, clazz=AwsLambdaFunction, arn=c.lambda_function_arn)
+                for d in cb_item.function_associations:
+                    builder.add_edge(self, clazz=AwsCloudFrontFunction, arn=d.function_arn)
+                if cb_item.field_level_encryption_id:
+                    builder.add_edge(
+                        self, clazz=AwsCloudFrontFieldLevelEncryptionConfig, id=cb_item.field_level_encryption_id
+                    )
+                if cb_item.realtime_log_config_arn:
+                    builder.add_edge(self, clazz=AwsCloudFrontRealtimeLogConfig, arn=cb_item.realtime_log_config_arn)
+                if cb_item.cache_policy_id:
+                    builder.add_edge(self, clazz=AwsCloudFrontCachePolicy, id=cb_item.cache_policy_id)
+                if cb_item.response_headers_policy_id:
+                    builder.add_edge(
+                        self, clazz=AwsCloudFrontResponseHeadersPolicy, id=cb_item.response_headers_policy_id
+                    )
 
-        # other edges
-        if self.distribution_origin:
-            for entry in self.distribution_origin:
+            # other edges
+            for entry in cfg.origins or []:
                 builder.add_edge(self, clazz=AwsCloudFrontOriginAccessControl, id=entry.origin_access_control_id)
                 builder.add_edge(self, clazz=AwsS3Bucket, name=entry.id)
 
-        if self.distribution_viewer_certificate and self.distribution_viewer_certificate.iam_certificate_id:
-            builder.add_edge(
-                self, clazz=AwsIamServerCertificate, id=self.distribution_viewer_certificate.iam_certificate_id
-            )
+            if cfg.viewer_certificate and (cid := cfg.viewer_certificate.iam_certificate_id):
+                builder.add_edge(self, clazz=AwsIamServerCertificate, id=cid)
 
-        # TODO edge to ACM certificate when applicable (via self.distribution_viewer_certificate.acm_certificate_arn)
-        # TODO edge to Web Acl when applicable (via self.distribution_web_acl_id)
+            if cfg.web_acl_id:
+                builder.add_edge(self, clazz=AwsWafWebACL, arn=cfg.web_acl_id)
 
-    def pre_delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+            if cfg.viewer_certificate.acm_certificate_arn:
+                builder.add_edge(self, clazz=AwsAcmCertificate, arn=cfg.viewer_certificate.acm_certificate_arn)
+
+    def pre_delete_resource(self, client: AwsClient, _: Graph) -> bool:
         dist_config = client.get(service_name, "get-distribution-config", None, None, Id=self.id)
         if dist_config:
             dist_config["DistributionConfig"]["Enabled"] = False
