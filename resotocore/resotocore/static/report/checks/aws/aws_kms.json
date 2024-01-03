@@ -40,13 +40,12 @@
             "risk": "Customer managed keys should have a least privileged access policy, only being used by users/roles and not accessible publicly",
             "severity": "medium",
             "detect": {
-                "manual": "Goto AWS Management Console -> Key Management Service (KMS) -> customer managed keys"
+                "resoto": "is(aws_kms_key) and kms_key_policy.Statement[*].{ Effect==Allow and Principal==\"*\" and Action in [\"*\", \"kms:*\"] and Condition==null}"
             },
             "remediation": {
                 "text": "Ensure no key that is currently in use has a access policy that allows access to everyone publicly  ",
                 "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html"
-            },
-            "source": "saad"
+            }
         }
     ]
 }
