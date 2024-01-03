@@ -33,6 +33,6 @@ class ModelHandlerStatic(ModelHandler):
     ) -> bytes:
         raise NotImplementedError
 
-    async def update_model(self, graph_name: GraphName, kinds: List[Kind]) -> Model:
+    async def update_model(self, graph_name: GraphName, kinds: List[Kind], replace: bool) -> Model:
         self.model = Model.from_kinds(kinds)
         return self.model
