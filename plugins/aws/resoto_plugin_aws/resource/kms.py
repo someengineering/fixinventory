@@ -1,3 +1,4 @@
+import json
 from typing import ClassVar, Dict, List, Optional, Type
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -115,13 +116,20 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_pending_deletion_window_in_days: Optional[int] = field(default=None)
     kms_mac_algorithms: List[str] = field(factory=list)
     kms_key_rotation_enabled: Optional[bool] = field(default=None)
+    kms_key_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec(service_name, "describe-key"), AwsApiSpec(service_name, "list-resource-tags")]
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "describe-key"),
+            AwsApiSpec(service_name, "list-resource-tags"),
+            AwsApiSpec(service_name, "get-key-policy"),
+            AwsApiSpec(service_name, "get-key-rotation-status"),
+        ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> None:
         def add_instance(key: Dict[str, str]) -> None:
             key_metadata = builder.client.get(
                 service_name, "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"]
@@ -130,8 +138,22 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
                 if instance := AwsKmsKey.from_api(key_metadata, builder):
                     builder.add_node(instance)
                     builder.submit_work(service_name, add_tags, instance)
+                    builder.submit_work(service_name, fetch_key_policy, instance)
                     if instance.kms_key_manager == "CUSTOMER" and instance.access_key_status == "Enabled":
                         builder.submit_work(service_name, add_rotation_status, instance)
+
+        def fetch_key_policy(key: AwsKmsKey) -> None:
+            with builder.suppress(f"{service_name}.get-key-policy"):
+                key_policy: Optional[str] = builder.client.get(  # type: ignore
+                    service_name,
+                    "get-key-policy",
+                    result_name="Policy",
+                    KeyId=key.id,
+                    PolicyName="default",
+                    expected_errors=["NotFoundException"],
+                )
+                if key_policy is not None:
+                    key.kms_key_policy = json.loads(key_policy)
 
         def add_rotation_status(key: AwsKmsKey) -> None:
             with builder.suppress(f"{service_name}.get-key-rotation-status"):
@@ -150,8 +172,8 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             if tags:
                 key.tags = bend(ToDict(key="TagKey", value="TagValue"), tags)
 
-        for js in json:
-            add_instance(js)
+        for js in js_list:
+            builder.submit_work(service_name, add_instance, js)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

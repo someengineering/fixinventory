@@ -262,9 +262,9 @@ def all_models() -> List[AwsModel]:
     return result
 
 
-def create_test_response(service: str, function: str) -> JsonElement:
+def create_test_response(service: str, function: str, is_pascal: bool = False) -> JsonElement:
     sm = service_model(service)
-    op = sm.operation_model(pascalcase(function))
+    op = sm.operation_model(function if is_pascal else pascalcase(function))
 
     def sample(shape: Shape) -> JsonElement:
         if isinstance(shape, StringShape) and shape.enum:
@@ -847,6 +847,7 @@ models: Dict[str, List[AwsResotoModel]] = {
     "rds": [
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
         # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
+        # AwsResotoModel("describe-db-snapshots", "DBSnapshots", "DBSnapshot", prefix="Rds", prop_prefix="rds_")
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),

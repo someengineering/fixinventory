@@ -667,6 +667,13 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
             raise
 
     @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [
+            AwsApiSpec(service_name, "get-distribution"),
+            AwsApiSpec(service_name, "list-distributions"),
+        ]
+
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [
             AwsApiSpec(service_name, "get-distribution-config"),
