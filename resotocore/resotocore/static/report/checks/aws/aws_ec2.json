@@ -654,7 +654,7 @@
             "risk": "AWS Config provides AWS Managed Rules, which are predefined, customizable rules that AWS Config uses to evaluate whether your AWS resource configurations comply with common best practices.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_ec2_instance) with(empty, <-- is(aws_ssm_instance_information))"
+                "resoto": "is(aws_ec2_instance) with(empty, <-- is(aws_ssm_instance))"
             },
             "remediation": {
                 "text": "Verify and apply Systems Manager Prerequisites.",

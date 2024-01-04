@@ -19,7 +19,7 @@ service_name = "opensearch"
 
 @define(eq=False, slots=False)
 class AwsOpenSearchClusterConfig:
-    kind: ClassVar[str] = "aws_open_search_cluster_config"
+    kind: ClassVar[str] = "aws_opensearch_cluster_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "instance_type": S("InstanceType"),
         "instance_count": S("InstanceCount"),
@@ -50,7 +50,7 @@ class AwsOpenSearchClusterConfig:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchEBSOptions:
-    kind: ClassVar[str] = "aws_open_search_ebs_options"
+    kind: ClassVar[str] = "aws_opensearch_ebs_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "ebs_enabled": S("EBSEnabled"),
         "volume_type": S("VolumeType"),
@@ -67,7 +67,7 @@ class AwsOpenSearchEBSOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchVPCDerivedInfo:
-    kind: ClassVar[str] = "aws_open_search_vpc_derived_info"
+    kind: ClassVar[str] = "aws_opensearch_vpc_derived_info"
     mapping: ClassVar[Dict[str, Bender]] = {
         "vpc_id": S("VPCId"),
         "subnet_ids": S("SubnetIds", default=[]),
@@ -82,7 +82,7 @@ class AwsOpenSearchVPCDerivedInfo:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchCognitoOptions:
-    kind: ClassVar[str] = "aws_open_search_cognito_options"
+    kind: ClassVar[str] = "aws_opensearch_cognito_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "user_pool_id": S("UserPoolId"),
@@ -97,7 +97,7 @@ class AwsOpenSearchCognitoOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchEncryptionAtRestOptions:
-    kind: ClassVar[str] = "aws_open_search_encryption_at_rest_options"
+    kind: ClassVar[str] = "aws_opensearch_encryption_at_rest_options"
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("Enabled"), "kms_key_id": S("KmsKeyId")}
     enabled: Optional[bool] = field(default=None, metadata={"description": "True to enable encryption at rest."})  # fmt: skip
     kms_key_id: Optional[str] = field(default=None, metadata={"description": "The KMS key ID. Takes the form 1a2a3a4-1a2a-3a4a-5a6a-1a2a3a4a5a6a."})  # fmt: skip
@@ -105,7 +105,7 @@ class AwsOpenSearchEncryptionAtRestOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchLogPublishingOption:
-    kind: ClassVar[str] = "aws_open_search_log_publishing_option"
+    kind: ClassVar[str] = "aws_opensearch_log_publishing_option"
     mapping: ClassVar[Dict[str, Bender]] = {
         "cloud_watch_logs_log_group_arn": S("CloudWatchLogsLogGroupArn"),
         "enabled": S("Enabled"),
@@ -116,7 +116,7 @@ class AwsOpenSearchLogPublishingOption:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchServiceSoftwareOptions:
-    kind: ClassVar[str] = "aws_open_search_service_software_options"
+    kind: ClassVar[str] = "aws_opensearch_service_software_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "current_version": S("CurrentVersion"),
         "new_version": S("NewVersion"),
@@ -139,7 +139,7 @@ class AwsOpenSearchServiceSoftwareOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchDomainEndpointOptions:
-    kind: ClassVar[str] = "aws_open_search_domain_endpoint_options"
+    kind: ClassVar[str] = "aws_opensearch_domain_endpoint_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enforce_https": S("EnforceHTTPS"),
         "tls_security_policy": S("TLSSecurityPolicy"),
@@ -156,7 +156,7 @@ class AwsOpenSearchDomainEndpointOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchSAMLIdp:
-    kind: ClassVar[str] = "aws_open_search_saml_idp"
+    kind: ClassVar[str] = "aws_opensearch_saml_idp"
     mapping: ClassVar[Dict[str, Bender]] = {"metadata_content": S("MetadataContent"), "entity_id": S("EntityId")}
     metadata_content: Optional[str] = field(default=None, metadata={"description": "The metadata of the SAML application, in XML format."})  # fmt: skip
     entity_id: Optional[str] = field(default=None, metadata={"description": "The unique entity ID of the application in the SAML identity provider."})  # fmt: skip
@@ -164,7 +164,7 @@ class AwsOpenSearchSAMLIdp:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchSAMLOptionsOutput:
-    kind: ClassVar[str] = "aws_open_search_saml_options_output"
+    kind: ClassVar[str] = "aws_opensearch_saml_options_output"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "idp": S("Idp") >> Bend(AwsOpenSearchSAMLIdp.mapping),
@@ -181,7 +181,7 @@ class AwsOpenSearchSAMLOptionsOutput:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchAdvancedSecurityOptions:
-    kind: ClassVar[str] = "aws_open_search_advanced_security_options"
+    kind: ClassVar[str] = "aws_opensearch_advanced_security_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "internal_user_database_enabled": S("InternalUserDatabaseEnabled"),
@@ -198,7 +198,7 @@ class AwsOpenSearchAdvancedSecurityOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchAutoTuneOptionsOutput:
-    kind: ClassVar[str] = "aws_open_search_auto_tune_options_output"
+    kind: ClassVar[str] = "aws_opensearch_auto_tune_options_output"
     mapping: ClassVar[Dict[str, Bender]] = {
         "state": S("State"),
         "error_message": S("ErrorMessage"),
@@ -211,7 +211,7 @@ class AwsOpenSearchAutoTuneOptionsOutput:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchChangeProgressDetails:
-    kind: ClassVar[str] = "aws_open_search_change_progress_details"
+    kind: ClassVar[str] = "aws_opensearch_change_progress_details"
     mapping: ClassVar[Dict[str, Bender]] = {"change_id": S("ChangeId"), "message": S("Message")}
     change_id: Optional[str] = field(default=None, metadata={"description": "The ID of the configuration change."})  # fmt: skip
     message: Optional[str] = field(default=None, metadata={"description": "A message corresponding to the status of the configuration change."})  # fmt: skip
@@ -219,7 +219,7 @@ class AwsOpenSearchChangeProgressDetails:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchWindowStartTime:
-    kind: ClassVar[str] = "aws_open_search_window_start_time"
+    kind: ClassVar[str] = "aws_opensearch_window_start_time"
     mapping: ClassVar[Dict[str, Bender]] = {"hours": S("Hours"), "minutes": S("Minutes")}
     hours: Optional[int] = field(default=None, metadata={"description": "The start hour of the window in Coordinated Universal Time (UTC), using 24-hour time. For example, 17 refers to 5:00 P.M. UTC."})  # fmt: skip
     minutes: Optional[int] = field(default=None, metadata={"description": "The start minute of the window, in UTC."})  # fmt: skip
@@ -227,7 +227,7 @@ class AwsOpenSearchWindowStartTime:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchOffPeakWindow:
-    kind: ClassVar[str] = "aws_open_search_off_peak_window"
+    kind: ClassVar[str] = "aws_opensearch_off_peak_window"
     mapping: ClassVar[Dict[str, Bender]] = {
         "window_start_time": S("WindowStartTime") >> Bend(AwsOpenSearchWindowStartTime.mapping)
     }
@@ -236,7 +236,7 @@ class AwsOpenSearchOffPeakWindow:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchOffPeakWindowOptions:
-    kind: ClassVar[str] = "aws_open_search_off_peak_window_options"
+    kind: ClassVar[str] = "aws_opensearch_off_peak_window_options"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("Enabled"),
         "off_peak_window": S("OffPeakWindow") >> Bend(AwsOpenSearchOffPeakWindow.mapping),
@@ -247,7 +247,7 @@ class AwsOpenSearchOffPeakWindowOptions:
 
 @define(eq=False, slots=False)
 class AwsOpenSearchDomain(AwsResource):
-    kind: ClassVar[str] = "aws_open_search_domain"
+    kind: ClassVar[str] = "aws_opensearch_domain"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
         "tags": S("Tags", default=[]) >> ToDict(),

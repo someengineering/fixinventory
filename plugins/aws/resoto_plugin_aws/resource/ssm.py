@@ -8,10 +8,12 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
+from resoto_plugin_aws.resource.dynamodb import AwsDynamoDbTable
 from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
+from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, AsDateString, ForallBend
+from resotolib.json_bender import Bender, S, Bend, AsDateString, ForallBend, K
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -30,8 +32,8 @@ class AwsSSMInstanceAggregatedAssociationOverview:
 
 
 @define(eq=False, slots=False)
-class AwsSSMInstanceInformation(AwsResource):
-    kind: ClassVar[str] = "aws_ssm_instance_information"
+class AwsSSMInstance(AwsResource):
+    kind: ClassVar[str] = "aws_ssm_instance"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ssm", "describe-instance-information", "InstanceInformationList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"]},
@@ -275,4 +277,101 @@ class AwsSSMDocument(AwsResource):
         return service_name
 
 
-resources: List[Type[AwsResource]] = [AwsSSMInstanceInformation, AwsSSMDocument]
+@define(eq=False, slots=False)
+class AwsSSMComplianceExecutionSummary:
+    kind: ClassVar[str] = "aws_ssm_compliance_execution_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "execution_time": S("ExecutionTime"),
+        "execution_id": S("ExecutionId"),
+        "execution_type": S("ExecutionType"),
+    }
+    execution_time: Optional[datetime] = field(default=None, metadata={"description": "The time the execution ran as a datetime object that is saved in the following format: yyyy-MM-dd'T'HH:mm:ss'Z'."})  # fmt: skip
+    execution_id: Optional[str] = field(default=None, metadata={"description": "An ID created by the system when PutComplianceItems was called. For example, CommandID is a valid execution ID. You can use this ID in subsequent calls."})  # fmt: skip
+    execution_type: Optional[str] = field(default=None, metadata={"description": "The type of execution. For example, Command is a valid execution type."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsSSMSeveritySummary:
+    kind: ClassVar[str] = "aws_ssm_severity_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "critical_count": S("CriticalCount"),
+        "high_count": S("HighCount"),
+        "medium_count": S("MediumCount"),
+        "low_count": S("LowCount"),
+        "informational_count": S("InformationalCount"),
+        "unspecified_count": S("UnspecifiedCount"),
+    }
+    critical_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of Critical. Critical severity is determined by the organization that published the compliance items."})  # fmt: skip
+    high_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of high. High severity is determined by the organization that published the compliance items."})  # fmt: skip
+    medium_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of medium. Medium severity is determined by the organization that published the compliance items."})  # fmt: skip
+    low_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of low. Low severity is determined by the organization that published the compliance items."})  # fmt: skip
+    informational_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of informational. Informational severity is determined by the organization that published the compliance items."})  # fmt: skip
+    unspecified_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources or compliance items that have a severity level of unspecified. Unspecified severity is determined by the organization that published the compliance items."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsSSMCompliantSummary:
+    kind: ClassVar[str] = "aws_ssm_compliant_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "compliant_count": S("CompliantCount"),
+        "severity_summary": S("SeveritySummary") >> Bend(AwsSSMSeveritySummary.mapping),
+    }
+    compliant_count: Optional[int] = field(default=None, metadata={"description": "The total number of resources that are compliant."})  # fmt: skip
+    severity_summary: Optional[AwsSSMSeveritySummary] = field(default=None, metadata={"description": "A summary of the compliance severity by compliance type."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsSSMNonCompliantSummary:
+    kind: ClassVar[str] = "aws_ssm_non_compliant_summary"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "non_compliant_count": S("NonCompliantCount"),
+        "severity_summary": S("SeveritySummary") >> Bend(AwsSSMSeveritySummary.mapping),
+    }
+    non_compliant_count: Optional[int] = field(default=None, metadata={"description": "The total number of compliance items that aren't compliant."})  # fmt: skip
+    severity_summary: Optional[AwsSSMSeveritySummary] = field(default=None, metadata={"description": "A summary of the non-compliance severity by compliance type"})  # fmt: skip
+
+
+ResourceTypeLookup = {
+    "ManagedInstance": AwsEc2Instance,
+    "AWS::EC2::Instance": AwsEc2Instance,
+    "AWS::DynamoDB::Table": AwsDynamoDbTable,
+    "Document": AwsSSMDocument,
+    "AWS::S3::Bucket": AwsS3Bucket,
+}
+
+
+@define(eq=False, slots=False)
+class AwsSSMResourceCompliance(AwsResource):
+    kind: ClassVar[str] = "aws_ssm_resource_compliance"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "ssm", "list-resource-compliance-summaries", "ResourceComplianceSummaryItems"
+    )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_ec2_instance", "aws_dynamodb_table", "aws_s3_bucket", "aws_ssm_document"]}
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("ComplianceType") + K("_") + S("ResourceType") + K("_") + S("ResourceId"),
+        "compliance_type": S("ComplianceType"),
+        "resource_type": S("ResourceType"),
+        "resource_id": S("ResourceId"),
+        "status": S("Status"),
+        "overall_severity": S("OverallSeverity"),
+        "execution_summary": S("ExecutionSummary") >> Bend(AwsSSMComplianceExecutionSummary.mapping),
+        "compliant_summary": S("CompliantSummary") >> Bend(AwsSSMCompliantSummary.mapping),
+        "non_compliant_summary": S("NonCompliantSummary") >> Bend(AwsSSMNonCompliantSummary.mapping),
+    }
+    compliance_type: Optional[str] = field(default=None, metadata={"description": "The compliance type."})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The resource type."})  # fmt: skip
+    resource_id: Optional[str] = field(default=None, metadata={"description": "The resource ID."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "The compliance status for the resource."})  # fmt: skip
+    overall_severity: Optional[str] = field(default=None, metadata={"description": "The highest severity item found for the resource. The resource is compliant for this item."})  # fmt: skip
+    execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"description": "Information about the execution."})  # fmt: skip
+    compliant_summary: Optional[AwsSSMCompliantSummary] = field(default=None, metadata={"description": "A list of items that are compliant for the resource."})  # fmt: skip
+    non_compliant_summary: Optional[AwsSSMNonCompliantSummary] = field(default=None, metadata={"description": "A list of items that aren't compliant for the resource."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (rt := self.resource_type) and (rid := self.resource_id) and (clazz := ResourceTypeLookup.get(rt)):
+            builder.add_edge(self, clazz=clazz, id=rid)
+
+
+resources: List[Type[AwsResource]] = [AwsSSMInstance, AwsSSMDocument, AwsSSMResourceCompliance]

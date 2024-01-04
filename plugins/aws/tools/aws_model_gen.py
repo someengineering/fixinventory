@@ -916,6 +916,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
         # AwsResotoModel("list-documents", "DocumentIdentifiers", "DocumentIdentifier", prefix="SSM"),
         # AwsResotoModel("list-documents", "DocumentIdentifiers", "DescribeDocumentPermissionResponse", prefix="SSM"),
+        # AwsResotoModel( "list-resource-compliance-summaries", "ResourceComplianceSummaryItems", "ResourceComplianceSummaryItem", prefix="SSM", ),
     ],
     "secretsmanager": [
         # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),
@@ -935,7 +936,7 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("route53", "list-query-logging-configs"), indent=2))
+    print(json.dumps(create_test_response("ssm", "list-resource-compliance-summaries"), indent=2))
 
     """print the class models"""
     # print(default_imports())

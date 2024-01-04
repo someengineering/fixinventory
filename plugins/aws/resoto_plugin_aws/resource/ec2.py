@@ -1471,6 +1471,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, name=subnet_id)
         if image_id := source.get("ImageId"):
             builder.add_edge(self, reverse=True, clazz=AwsEc2Image, id=image_id)
+        if lt_id := self.tags.get("aws:ec2launchtemplate:id"):
+            builder.add_edge(self, reverse=True, clazz=AwsEc2LaunchTemplate, id=lt_id)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:

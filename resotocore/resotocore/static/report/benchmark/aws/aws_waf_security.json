@@ -409,7 +409,8 @@
                                 "aws_opensearch_update_available",
                                 "aws_rds_db_instance_automatic_minor_version_upgrade_enabled",
                                 "aws_redshift_version_upgrade_enabled",
-                                "aws_ssm_managed_instance_compliance_patch_compliant"
+                                "aws_ssm_managed_instance_compliance_patch_compliant",
+                                "aws_ssm_resource_non_compliant"
                             ]
                         },
                         {
@@ -435,7 +436,7 @@
                                 "aws_ec2_instance_profile_attached",
                                 "aws_ec2_instance_stopped_since_30d",
                                 "aws_ec2_internet_facing_with_instance_profile",
-                                "aws_ssm_ec2_instance_ssm_managed"
+                                "aws_ec2_instance_managed_by_ssm"
                             ]
                         },
                         {
@@ -445,7 +446,7 @@
                                 "aws_ec2_instance_profile_attached",
                                 "aws_ec2_instance_stopped_since_30d",
                                 "aws_ec2_internet_facing_with_instance_profile",
-                                "aws_ssm_ec2_instance_ssm_managed"
+                                "aws_ec2_instance_managed_by_ssm"
                             ]
                         },
                         {
@@ -454,7 +455,7 @@
                             "checks": [
                                 "aws_ec2_ebs_volume_unused",
                                 "aws_ssm_managed_instance_compliance_patch_compliant",
-                                "aws_ssm_ec2_instance_ssm_managed",
+                                "aws_ec2_instance_managed_by_ssm",
                                 "aws_cloudtrail_log_file_validation_enabled"
                             ]
                         }

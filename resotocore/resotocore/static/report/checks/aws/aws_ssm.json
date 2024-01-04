@@ -19,22 +19,6 @@
             "source": "saad"
         },
         {
-            "name": "ec2_instance_ssm_managed",
-            "title": "Ensure that EC2 instances are managed by AWS System Manager",
-            "result_kinds": ["aws_ec2_instance"],
-            "categories": ["security", "compliance"],
-            "risk": "AWS System manager allows you to manage EC2 instances by automating workloads, ensure they are patched regularly and kept up to date.",
-            "severity": "medium",
-            "detect": {
-                "manual": "Go to AWS System manager -> Managed Instances"
-            },
-            "remediation": {
-                "text": "For EC2 instances not under the managed instances list, install the SSM Agent, associate an IAM role with the necessary permissions, verify SSM Agent status, and check the Systems Manager console for the instance.",
-                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html"
-            },
-            "source": "saad"
-        },
-        {
             "name": "no_secrets_in_content",
             "title": "Ensure that there are no secrets in SSM documents.",
             "result_kinds": ["aws_ssm_document"],
@@ -62,6 +46,21 @@
             "remediation": {
                 "text": "Carefully review the contents of the document before is shared. Enable SSM Block public sharing for documents.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-before-you-share.html"
+            }
+        },
+        {
+            "name": "resource_non_compliant",
+            "title": "Ensuring Compliance Across Multiple AWS Resources with AWS Systems Manager",
+            "result_kinds": ["aws_ec2_instance", "aws_dynamodb_table", "aws_ssm_document", "aws_s3_bucket"],
+            "categories": ["security", "compliance"],
+            "risk": "Non-compliance of diverse AWS resources (EC2 instances, DynamoDB tables, SSM documents, S3 buckets) with AWS Systems Manager policies poses serious risks. It can lead to security vulnerabilities, operational inconsistencies, and breaches of regulatory compliance, ultimately jeopardizing system integrity, data security, and reliability.",
+            "severity": "high",
+            "detect": {
+                "resoto": "is(aws_ssm_resource_compliance) -->"
+            },
+            "remediation": {
+                "text": "To address non-compliance, identify the compliance standards set by AWS Systems Manager and pinpoint the specific requirements not met by each resource. For EC2 instances, ensure the SSM Agent is correctly configured and the instance is adhering to the desired state configurations. For DynamoDB, verify table settings against best practices. Ensure S3 buckets have proper access controls and encryption settings. Regularly update and enforce compliance policies and perform systematic compliance audits. Utilize AWS Systems Manager automation to streamline the remediation process for non-compliant resources.",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-compliance.html"
             }
         }
     ]
