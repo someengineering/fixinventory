@@ -304,9 +304,14 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         return [
             cls.api_spec,
             AwsApiSpec(
-                cls.api_spec.service,
+                service_name,
                 "describe-tags",
                 override_iam_permission="elasticloadbalancing:DescribeTags",
+            ),
+            AwsApiSpec(
+                service_name,
+                "describe-load-balancer-attributes",
+                override_iam_permission="elasticloadbalancing:DescribeLoadBalancerAttributes",
             ),
         ]
 
