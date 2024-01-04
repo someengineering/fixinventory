@@ -772,13 +772,8 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
-        # AwsResotoModel(
-        #     "list_resource_record_sets",
-        #     "ResourceRecordSets",
-        #     "ResourceRecordSet",
-        #     prefix="Route53",
-        #     prop_prefix="record_",
-        # ),
+        # AwsResotoModel( "list_resource_record_sets", "ResourceRecordSets", "ResourceRecordSet", prefix="Route53", prop_prefix="record_", ),
+        # AwsResotoModel("list-query-logging-configs", "QueryLoggingConfigs", "QueryLoggingConfig", prefix="Route53"),
     ],
     "s3": [
         # AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"),
@@ -940,7 +935,7 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("ec2", "describe-launch-template-versions"), indent=2))
+    print(json.dumps(create_test_response("route53", "list-query-logging-configs"), indent=2))
 
     """print the class models"""
     # print(default_imports())

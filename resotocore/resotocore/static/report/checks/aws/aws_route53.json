@@ -4,24 +4,18 @@
     "checks": [
         {
             "name": "zone_query_logging_enabled",
-            "title": "Ensure that query logging is enabled to get insight into DNS queries recieved",
-            "result_kinds": [
-                "aws_route53"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Enabling Route 53 zone query logging is important for security because it allows tracking of all DNS queries received by the hosted zone, aiding in identifying and responding to malicious traffic, anomalies, and potential security threats.",
+            "title": "Activation of DNS Query Logging in Route 53 for Enhanced Monitoring and Security",
+            "result_kinds": ["aws_route53_zone"],
+            "categories": ["security", "compliance"],
+            "risk": "Not enabling query logging in Route 53 zones can obscure visibility into DNS query traffic, making it difficult to detect unusual patterns or malicious activities. Such a lack of visibility increases the risk of undetected security threats and hampers incident response efforts, potentially leading to prolonged exposure to cyber attacks or misuse.",
             "severity": "medium",
             "detect": {
-                "manual": "Navigate to the Route 53 console -> Select the hosted zone -> Check if query logging is configured under the 'Query logging' section."
+                "resoto": "is(aws_route53_zone) and zone_logging_config==null"
             },
             "remediation": {
-                "text": "If not enabled, choose Configure query logging -> Select a destination to send the logs (e.g., CloudWatch Logs, S3, or Kinesis Data Firehose) -> Save the configuration to enable logging.",
+                "text": "To enable query logging, navigate to the Route 53 console, select the desired hosted zone, and go to the Query logging tab. Click on 'Configure query logging', then choose a log destination (CloudWatch Logs, S3, or Kinesis Data Firehose) and configure the necessary settings. Ensure that the chosen logging service has the necessary permissions to receive logs. Finally, confirm and save your settings to start logging DNS queries.",
                 "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html"
-            },
-            "source": "saad"
+            }
         }
     ]
 }
