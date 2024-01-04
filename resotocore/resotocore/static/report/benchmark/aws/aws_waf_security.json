@@ -115,6 +115,7 @@
                             "checks": [
                                 "aws_cloudformation_no_secrets_in_output",
                                 "aws_ec2_no_secrets_in_instance_user_data",
+                                "aws_ec2_no_secrets_in_launch_template_user_data",
                                 "aws_ecs_no_secrets_in_task_definition_env",
                                 "aws_lambda_no_secrets_in_variables",
                                 "aws_ssm_no_secrets_in_content"

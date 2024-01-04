@@ -3314,6 +3314,510 @@ class AwsEc2Image(AwsResource):
     source_instance_id: Optional[str] = field(default=None, metadata={"description": "The ID of the instance that the AMI was created from if the AMI was created using CreateImage."})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateIamInstanceProfileSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_iam_instance_profile_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {"arn": S("Arn"), "name": S("Name")}
+    arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the instance profile."})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the instance profile."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateEbsBlockDevice:
+    kind: ClassVar[str] = "aws_ec2_launch_template_ebs_block_device"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "encrypted": S("Encrypted"),
+        "delete_on_termination": S("DeleteOnTermination"),
+        "iops": S("Iops"),
+        "kms_key_id": S("KmsKeyId"),
+        "snapshot_id": S("SnapshotId"),
+        "volume_size": S("VolumeSize"),
+        "volume_type": S("VolumeType"),
+        "throughput": S("Throughput"),
+    }
+    encrypted: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the EBS volume is encrypted."})  # fmt: skip
+    delete_on_termination: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the EBS volume is deleted on instance termination."})  # fmt: skip
+    iops: Optional[int] = field(default=None, metadata={"description": "The number of I/O operations per second (IOPS) that the volume supports."})  # fmt: skip
+    kms_key_id: Optional[str] = field(default=None, metadata={"description": "The ARN of the Key Management Service (KMS) CMK used for encryption."})  # fmt: skip
+    snapshot_id: Optional[str] = field(default=None, metadata={"description": "The ID of the snapshot."})  # fmt: skip
+    volume_size: Optional[int] = field(default=None, metadata={"description": "The size of the volume, in GiB."})  # fmt: skip
+    volume_type: Optional[str] = field(default=None, metadata={"description": "The volume type."})  # fmt: skip
+    throughput: Optional[int] = field(default=None, metadata={"description": "The throughput that the volume supports, in MiB/s."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateBlockDeviceMapping:
+    kind: ClassVar[str] = "aws_ec2_launch_template_block_device_mapping"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "device_name": S("DeviceName"),
+        "virtual_name": S("VirtualName"),
+        "ebs": S("Ebs") >> Bend(AwsEc2LaunchTemplateEbsBlockDevice.mapping),
+        "no_device": S("NoDevice"),
+    }
+    device_name: Optional[str] = field(default=None, metadata={"description": "The device name."})  # fmt: skip
+    virtual_name: Optional[str] = field(default=None, metadata={"description": "The virtual device name (ephemeralN)."})  # fmt: skip
+    ebs: Optional[AwsEc2LaunchTemplateEbsBlockDevice] = field(default=None, metadata={"description": "Information about the block device for an EBS volume."})  # fmt: skip
+    no_device: Optional[str] = field(default=None, metadata={"description": "To omit the device from the block device mapping, specify an empty string."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateInstanceIpv6Address:
+    kind: ClassVar[str] = "aws_ec2_launch_template_instance_ipv6_address"
+    mapping: ClassVar[Dict[str, Bender]] = {"ipv6_address": S("Ipv6Address"), "is_primary_ipv6": S("IsPrimaryIpv6")}
+    ipv6_address: Optional[str] = field(default=None, metadata={"description": "The IPv6 address."})  # fmt: skip
+    is_primary_ipv6: Optional[bool] = field(default=None, metadata={"description": "Determines if an IPv6 address associated with a network interface is the primary IPv6 address. When you enable an IPv6 GUA address to be a primary IPv6, the first IPv6 GUA will be made the primary IPv6 address until the instance is terminated or the network interface is detached. For more information, see RunInstances."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplatePrivateIpAddressSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_private_ip_address_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {"primary": S("Primary"), "private_ip_address": S("PrivateIpAddress")}
+    primary: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the private IPv4 address is the primary private IPv4 address. Only one IPv4 address can be designated as primary."})  # fmt: skip
+    private_ip_address: Optional[str] = field(default=None, metadata={"description": "The private IPv4 address."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateEnaSrdSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_ena_srd_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ena_srd_enabled": S("EnaSrdEnabled"),
+        "ena_srd_udp_specification": S("EnaSrdUdpSpecification", "EnaSrdUdpEnabled"),
+    }
+    ena_srd_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether ENA Express is enabled for the network interface."})  # fmt: skip
+    ena_srd_udp_specification: Optional[bool] = field(default=None, metadata={"description": "Configures ENA Express for UDP network traffic."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateConnectionTrackingSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_connection_tracking_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "tcp_established_timeout": S("TcpEstablishedTimeout"),
+        "udp_timeout": S("UdpTimeout"),
+        "udp_stream_timeout": S("UdpStreamTimeout"),
+    }
+    tcp_established_timeout: Optional[int] = field(default=None, metadata={"description": "Timeout (in seconds) for idle TCP connections in an established state. Min: 60 seconds. Max: 432000 seconds (5 days). Default: 432000 seconds. Recommended: Less than 432000 seconds."})  # fmt: skip
+    udp_timeout: Optional[int] = field(default=None, metadata={"description": "Timeout (in seconds) for idle UDP flows that have seen traffic only in a single direction or a single request-response transaction. Min: 30 seconds. Max: 60 seconds. Default: 30 seconds."})  # fmt: skip
+    udp_stream_timeout: Optional[int] = field(default=None, metadata={"description": "Timeout (in seconds) for idle UDP flows classified as streams which have seen more than one request-response transaction. Min: 60 seconds. Max: 180 seconds (3 minutes). Default: 180 seconds."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateInstanceNetworkInterfaceSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_instance_network_interface_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "associate_carrier_ip_address": S("AssociateCarrierIpAddress"),
+        "associate_public_ip_address": S("AssociatePublicIpAddress"),
+        "delete_on_termination": S("DeleteOnTermination"),
+        "description": S("Description"),
+        "device_index": S("DeviceIndex"),
+        "groups": S("Groups", default=[]),
+        "interface_type": S("InterfaceType"),
+        "ipv6_address_count": S("Ipv6AddressCount"),
+        "ipv6_addresses": S("Ipv6Addresses", default=[]) >> ForallBend(AwsEc2LaunchTemplateInstanceIpv6Address.mapping),
+        "network_interface_id": S("NetworkInterfaceId"),
+        "private_ip_address": S("PrivateIpAddress"),
+        "private_ip_addresses": S("PrivateIpAddresses", default=[])
+        >> ForallBend(AwsEc2LaunchTemplatePrivateIpAddressSpecification.mapping),
+        "secondary_private_ip_address_count": S("SecondaryPrivateIpAddressCount"),
+        "subnet_id": S("SubnetId"),
+        "network_card_index": S("NetworkCardIndex"),
+        "ipv4_prefixes": S("Ipv4Prefixes", default=[]) >> ForallBend(S("Ipv4Prefix")),
+        "ipv4_prefix_count": S("Ipv4PrefixCount"),
+        "ipv6_prefixes": S("Ipv6Prefixes", default=[]) >> ForallBend(S("Ipv6Prefix")),
+        "ipv6_prefix_count": S("Ipv6PrefixCount"),
+        "primary_ipv6": S("PrimaryIpv6"),
+        "ena_srd_specification": S("EnaSrdSpecification") >> Bend(AwsEc2LaunchTemplateEnaSrdSpecification.mapping),
+        "connection_tracking_specification": S("ConnectionTrackingSpecification")
+        >> Bend(AwsEc2LaunchTemplateConnectionTrackingSpecification.mapping),
+    }
+    associate_carrier_ip_address: Optional[bool] = field(default=None, metadata={"description": "Indicates whether to associate a Carrier IP address with eth0 for a new network interface. Use this option when you launch an instance in a Wavelength Zone and want to associate a Carrier IP address with the network interface. For more information about Carrier IP addresses, see Carrier IP addresses in the Wavelength Developer Guide."})  # fmt: skip
+    associate_public_ip_address: Optional[bool] = field(default=None, metadata={"description": "Indicates whether to associate a public IPv4 address with eth0 for a new network interface. Starting on February 1, 2024, Amazon Web Services will charge for all public IPv4 addresses, including public IPv4 addresses associated with running instances and Elastic IP addresses. For more information, see the Public IPv4 Address tab on the Amazon VPC pricing page."})  # fmt: skip
+    delete_on_termination: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the network interface is deleted when the instance is terminated."})  # fmt: skip
+    description: Optional[str] = field(default=None, metadata={"description": "A description for the network interface."})  # fmt: skip
+    device_index: Optional[int] = field(default=None, metadata={"description": "The device index for the network interface attachment."})  # fmt: skip
+    groups: Optional[List[str]] = field(factory=list, metadata={"description": "The IDs of one or more security groups."})  # fmt: skip
+    interface_type: Optional[str] = field(default=None, metadata={"description": "The type of network interface."})  # fmt: skip
+    ipv6_address_count: Optional[int] = field(default=None, metadata={"description": "The number of IPv6 addresses for the network interface."})  # fmt: skip
+    ipv6_addresses: Optional[List[AwsEc2LaunchTemplateInstanceIpv6Address]] = field(factory=list, metadata={"description": "The IPv6 addresses for the network interface."})  # fmt: skip
+    network_interface_id: Optional[str] = field(default=None, metadata={"description": "The ID of the network interface."})  # fmt: skip
+    private_ip_address: Optional[str] = field(default=None, metadata={"description": "The primary private IPv4 address of the network interface."})  # fmt: skip
+    private_ip_addresses: Optional[List[AwsEc2LaunchTemplatePrivateIpAddressSpecification]] = field(factory=list, metadata={"description": "One or more private IPv4 addresses."})  # fmt: skip
+    secondary_private_ip_address_count: Optional[int] = field(default=None, metadata={"description": "The number of secondary private IPv4 addresses for the network interface."})  # fmt: skip
+    subnet_id: Optional[str] = field(default=None, metadata={"description": "The ID of the subnet for the network interface."})  # fmt: skip
+    network_card_index: Optional[int] = field(default=None, metadata={"description": "The index of the network card."})  # fmt: skip
+    ipv4_prefixes: Optional[List[str]] = field(factory=list, metadata={"description": "One or more IPv4 prefixes assigned to the network interface."})  # fmt: skip
+    ipv4_prefix_count: Optional[int] = field(default=None, metadata={"description": "The number of IPv4 prefixes that Amazon Web Services automatically assigned to the network interface."})  # fmt: skip
+    ipv6_prefixes: Optional[List[str]] = field(factory=list, metadata={"description": "One or more IPv6 prefixes assigned to the network interface."})  # fmt: skip
+    ipv6_prefix_count: Optional[int] = field(default=None, metadata={"description": "The number of IPv6 prefixes that Amazon Web Services automatically assigned to the network interface."})  # fmt: skip
+    primary_ipv6: Optional[bool] = field(default=None, metadata={"description": "The primary IPv6 address of the network interface. When you enable an IPv6 GUA address to be a primary IPv6, the first IPv6 GUA will be made the primary IPv6 address until the instance is terminated or the network interface is detached. For more information about primary IPv6 addresses, see RunInstances."})  # fmt: skip
+    ena_srd_specification: Optional[AwsEc2LaunchTemplateEnaSrdSpecification] = field(default=None, metadata={"description": "Contains the ENA Express settings for instances launched from your launch template."})  # fmt: skip
+    connection_tracking_specification: Optional[AwsEc2LaunchTemplateConnectionTrackingSpecification] = field(default=None, metadata={"description": "A security group connection tracking specification that enables you to set the timeout for connection tracking on an Elastic network interface. For more information, see Connection tracking timeouts in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplatePlacement:
+    kind: ClassVar[str] = "aws_ec2_launch_template_placement"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "availability_zone": S("AvailabilityZone"),
+        "affinity": S("Affinity"),
+        "group_name": S("GroupName"),
+        "host_id": S("HostId"),
+        "tenancy": S("Tenancy"),
+        "spread_domain": S("SpreadDomain"),
+        "host_resource_group_arn": S("HostResourceGroupArn"),
+        "partition_number": S("PartitionNumber"),
+        "group_id": S("GroupId"),
+    }
+    availability_zone: Optional[str] = field(default=None, metadata={"description": "The Availability Zone of the instance."})  # fmt: skip
+    affinity: Optional[str] = field(default=None, metadata={"description": "The affinity setting for the instance on the Dedicated Host."})  # fmt: skip
+    group_name: Optional[str] = field(default=None, metadata={"description": "The name of the placement group for the instance."})  # fmt: skip
+    host_id: Optional[str] = field(default=None, metadata={"description": "The ID of the Dedicated Host for the instance."})  # fmt: skip
+    tenancy: Optional[str] = field(default=None, metadata={"description": "The tenancy of the instance. An instance with a tenancy of dedicated runs on single-tenant hardware."})  # fmt: skip
+    spread_domain: Optional[str] = field(default=None, metadata={"description": "Reserved for future use."})  # fmt: skip
+    host_resource_group_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of the host resource group in which to launch the instances."})  # fmt: skip
+    partition_number: Optional[int] = field(default=None, metadata={"description": "The number of the partition the instance should launch in. Valid only if the placement group strategy is set to partition."})  # fmt: skip
+    group_id: Optional[str] = field(default=None, metadata={"description": "The Group ID of the placement group. You must specify the Placement Group Group ID to launch an instance in a shared placement group."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateTagSpecification:
+    kind: ClassVar[str] = "aws_ec2_launch_template_tag_specification"
+    mapping: ClassVar[Dict[str, Bender]] = {"resource_type": S("ResourceType")}
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The type of resource to tag."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateElasticInferenceAcceleratorResponse:
+    kind: ClassVar[str] = "aws_ec2_launch_template_elastic_inference_accelerator_response"
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "count": S("Count")}
+    type: Optional[str] = field(default=None, metadata={"description": "The type of elastic inference accelerator. The possible values are eia1.medium, eia1.large, and eia1.xlarge."})  # fmt: skip
+    count: Optional[int] = field(default=None, metadata={"description": "The number of elastic inference accelerators to attach to the instance.  Default: 1"})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateSpotMarketOptions:
+    kind: ClassVar[str] = "aws_ec2_launch_template_spot_market_options"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "max_price": S("MaxPrice"),
+        "spot_instance_type": S("SpotInstanceType"),
+        "block_duration_minutes": S("BlockDurationMinutes"),
+        "valid_until": S("ValidUntil"),
+        "instance_interruption_behavior": S("InstanceInterruptionBehavior"),
+    }
+    max_price: Optional[str] = field(default=None, metadata={"description": "The maximum hourly price you're willing to pay for the Spot Instances. We do not recommend using this parameter because it can lead to increased interruptions. If you do not specify this parameter, you will pay the current Spot price.  If you specify a maximum price, your Spot Instances will be interrupted more frequently than if you do not specify this parameter."})  # fmt: skip
+    spot_instance_type: Optional[str] = field(default=None, metadata={"description": "The Spot Instance request type."})  # fmt: skip
+    block_duration_minutes: Optional[int] = field(default=None, metadata={"description": "The required duration for the Spot Instances (also known as Spot blocks), in minutes. This value must be a multiple of 60 (60, 120, 180, 240, 300, or 360)."})  # fmt: skip
+    valid_until: Optional[datetime] = field(default=None, metadata={"description": "The end date of the request. For a one-time request, the request remains active until all instances launch, the request is canceled, or this date is reached. If the request is persistent, it remains active until it is canceled or this date and time is reached."})  # fmt: skip
+    instance_interruption_behavior: Optional[str] = field(default=None, metadata={"description": "The behavior when a Spot Instance is interrupted."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateInstanceMarketOptions:
+    kind: ClassVar[str] = "aws_ec2_launch_template_instance_market_options"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "market_type": S("MarketType"),
+        "spot_options": S("SpotOptions") >> Bend(AwsEc2LaunchTemplateSpotMarketOptions.mapping),
+    }
+    market_type: Optional[str] = field(default=None, metadata={"description": "The market type."})  # fmt: skip
+    spot_options: Optional[AwsEc2LaunchTemplateSpotMarketOptions] = field(default=None, metadata={"description": "The options for Spot Instances."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateCpuOptions:
+    kind: ClassVar[str] = "aws_ec2_launch_template_cpu_options"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "core_count": S("CoreCount"),
+        "threads_per_core": S("ThreadsPerCore"),
+        "amd_sev_snp": S("AmdSevSnp"),
+    }
+    core_count: Optional[int] = field(default=None, metadata={"description": "The number of CPU cores for the instance."})  # fmt: skip
+    threads_per_core: Optional[int] = field(default=None, metadata={"description": "The number of threads per CPU core."})  # fmt: skip
+    amd_sev_snp: Optional[str] = field(default=None, metadata={"description": "Indicates whether the instance is enabled for AMD SEV-SNP. For more information, see AMD SEV-SNP."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateCapacityReservationTargetResponse:
+    kind: ClassVar[str] = "aws_ec2_launch_template_capacity_reservation_target_response"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "capacity_reservation_id": S("CapacityReservationId"),
+        "capacity_reservation_resource_group_arn": S("CapacityReservationResourceGroupArn"),
+    }
+    capacity_reservation_id: Optional[str] = field(default=None, metadata={"description": "The ID of the targeted Capacity Reservation."})  # fmt: skip
+    capacity_reservation_resource_group_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of the targeted Capacity Reservation group."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateCapacityReservationSpecificationResponse:
+    kind: ClassVar[str] = "aws_ec2_launch_template_capacity_reservation_specification_response"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "capacity_reservation_preference": S("CapacityReservationPreference"),
+        "capacity_reservation_target": S("CapacityReservationTarget")
+        >> Bend(AwsEc2LaunchTemplateCapacityReservationTargetResponse.mapping),
+    }
+    capacity_reservation_preference: Optional[str] = field(default=None, metadata={"description": "Indicates the instance's Capacity Reservation preferences. Possible preferences include:    open - The instance can run in any open Capacity Reservation that has matching attributes (instance type, platform, Availability Zone).    none - The instance avoids running in a Capacity Reservation even if one is available. The instance runs in On-Demand capacity."})  # fmt: skip
+    capacity_reservation_target: Optional[AwsEc2LaunchTemplateCapacityReservationTargetResponse] = field(default=None, metadata={"description": "Information about the target Capacity Reservation or Capacity Reservation group."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateInstanceMetadataOptions:
+    kind: ClassVar[str] = "aws_ec2_launch_template_instance_metadata_options"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "state": S("State"),
+        "http_tokens": S("HttpTokens"),
+        "http_put_response_hop_limit": S("HttpPutResponseHopLimit"),
+        "http_endpoint": S("HttpEndpoint"),
+        "http_protocol_ipv6": S("HttpProtocolIpv6"),
+        "instance_metadata_tags": S("InstanceMetadataTags"),
+    }
+    state: Optional[str] = field(default=None, metadata={"description": "The state of the metadata option changes.  pending - The metadata options are being updated and the instance is not ready to process metadata traffic with the new selection.  applied - The metadata options have been successfully applied on the instance."})  # fmt: skip
+    http_tokens: Optional[str] = field(default=None, metadata={"description": "Indicates whether IMDSv2 is required.    optional - IMDSv2 is optional. You can choose whether to send a session token in your instance metadata retrieval requests. If you retrieve IAM role credentials without a session token, you receive the IMDSv1 role credentials. If you retrieve IAM role credentials using a valid session token, you receive the IMDSv2 role credentials.    required - IMDSv2 is required. You must send a session token in your instance metadata retrieval requests. With this option, retrieving the IAM role credentials always returns IMDSv2 credentials; IMDSv1 credentials are not available."})  # fmt: skip
+    http_put_response_hop_limit: Optional[int] = field(default=None, metadata={"description": "The desired HTTP PUT response hop limit for instance metadata requests. The larger the number, the further instance metadata requests can travel. Default: 1 Possible values: Integers from 1 to 64"})  # fmt: skip
+    http_endpoint: Optional[str] = field(default=None, metadata={"description": "Enables or disables the HTTP metadata endpoint on your instances. If the parameter is not specified, the default state is enabled.  If you specify a value of disabled, you will not be able to access your instance metadata."})  # fmt: skip
+    http_protocol_ipv6: Optional[str] = field(default=None, metadata={"description": "Enables or disables the IPv6 endpoint for the instance metadata service. Default: disabled"})  # fmt: skip
+    instance_metadata_tags: Optional[str] = field(default=None, metadata={"description": "Set to enabled to allow access to instance tags from the instance metadata. Set to disabled to turn off access to instance tags from the instance metadata. For more information, see Work with instance tags using the instance metadata. Default: disabled"})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateVCpuCountRange:
+    kind: ClassVar[str] = "aws_ec2_launch_template_v_cpu_count_range"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum number of vCPUs. If the value is 0, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum number of vCPUs. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateMemoryMiB:
+    kind: ClassVar[str] = "aws_ec2_launch_template_memory_mi_b"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum amount of memory, in MiB. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum amount of memory, in MiB. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateMemoryGiBPerVCpu:
+    kind: ClassVar[str] = "aws_ec2_launch_template_memory_gi_b_per_v_cpu"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[float] = field(default=None, metadata={"description": "The minimum amount of memory per vCPU, in GiB. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[float] = field(default=None, metadata={"description": "The maximum amount of memory per vCPU, in GiB. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateNetworkInterfaceCount:
+    kind: ClassVar[str] = "aws_ec2_launch_template_network_interface_count"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum number of network interfaces. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum number of network interfaces. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateTotalLocalStorageGB:
+    kind: ClassVar[str] = "aws_ec2_launch_template_total_local_storage_gb"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[float] = field(default=None, metadata={"description": "The minimum amount of total local storage, in GB. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[float] = field(default=None, metadata={"description": "The maximum amount of total local storage, in GB. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateBaselineEbsBandwidthMbps:
+    kind: ClassVar[str] = "aws_ec2_launch_template_baseline_ebs_bandwidth_mbps"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum baseline bandwidth, in Mbps. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum baseline bandwidth, in Mbps. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateAcceleratorCount:
+    kind: ClassVar[str] = "aws_ec2_launch_template_accelerator_count"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum number of accelerators. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum number of accelerators. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateAcceleratorTotalMemoryMiB:
+    kind: ClassVar[str] = "aws_ec2_launch_template_accelerator_total_memory_mi_b"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[int] = field(default=None, metadata={"description": "The minimum amount of accelerator memory, in MiB. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[int] = field(default=None, metadata={"description": "The maximum amount of accelerator memory, in MiB. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateNetworkBandwidthGbps:
+    kind: ClassVar[str] = "aws_ec2_launch_template_network_bandwidth_gbps"
+    mapping: ClassVar[Dict[str, Bender]] = {"min": S("Min"), "max": S("Max")}
+    min: Optional[float] = field(default=None, metadata={"description": "The minimum amount of network bandwidth, in Gbps. If this parameter is not specified, there is no minimum limit."})  # fmt: skip
+    max: Optional[float] = field(default=None, metadata={"description": "The maximum amount of network bandwidth, in Gbps. If this parameter is not specified, there is no maximum limit."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateInstanceRequirements:
+    kind: ClassVar[str] = "aws_ec2_launch_template_instance_requirements"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "v_cpu_count": S("VCpuCount") >> Bend(AwsEc2LaunchTemplateVCpuCountRange.mapping),
+        "memory_mi_b": S("MemoryMiB") >> Bend(AwsEc2LaunchTemplateMemoryMiB.mapping),
+        "cpu_manufacturers": S("CpuManufacturers", default=[]),
+        "memory_gi_b_per_v_cpu": S("MemoryGiBPerVCpu") >> Bend(AwsEc2LaunchTemplateMemoryGiBPerVCpu.mapping),
+        "excluded_instance_types": S("ExcludedInstanceTypes", default=[]),
+        "instance_generations": S("InstanceGenerations", default=[]),
+        "spot_max_price_percentage_over_lowest_price": S("SpotMaxPricePercentageOverLowestPrice"),
+        "on_demand_max_price_percentage_over_lowest_price": S("OnDemandMaxPricePercentageOverLowestPrice"),
+        "bare_metal": S("BareMetal"),
+        "burstable_performance": S("BurstablePerformance"),
+        "require_hibernate_support": S("RequireHibernateSupport"),
+        "network_interface_count": S("NetworkInterfaceCount")
+        >> Bend(AwsEc2LaunchTemplateNetworkInterfaceCount.mapping),
+        "local_storage": S("LocalStorage"),
+        "local_storage_types": S("LocalStorageTypes", default=[]),
+        "total_local_storage_gb": S("TotalLocalStorageGB") >> Bend(AwsEc2LaunchTemplateTotalLocalStorageGB.mapping),
+        "baseline_ebs_bandwidth_mbps": S("BaselineEbsBandwidthMbps")
+        >> Bend(AwsEc2LaunchTemplateBaselineEbsBandwidthMbps.mapping),
+        "accelerator_types": S("AcceleratorTypes", default=[]),
+        "accelerator_count": S("AcceleratorCount") >> Bend(AwsEc2LaunchTemplateAcceleratorCount.mapping),
+        "accelerator_manufacturers": S("AcceleratorManufacturers", default=[]),
+        "accelerator_names": S("AcceleratorNames", default=[]),
+        "accelerator_total_memory_mi_b": S("AcceleratorTotalMemoryMiB")
+        >> Bend(AwsEc2LaunchTemplateAcceleratorTotalMemoryMiB.mapping),
+        "network_bandwidth_gbps": S("NetworkBandwidthGbps") >> Bend(AwsEc2LaunchTemplateNetworkBandwidthGbps.mapping),
+        "allowed_instance_types": S("AllowedInstanceTypes", default=[]),
+    }
+    v_cpu_count: Optional[AwsEc2LaunchTemplateVCpuCountRange] = field(default=None, metadata={"description": "The minimum and maximum number of vCPUs."})  # fmt: skip
+    memory_mi_b: Optional[AwsEc2LaunchTemplateMemoryMiB] = field(default=None, metadata={"description": "The minimum and maximum amount of memory, in MiB."})  # fmt: skip
+    cpu_manufacturers: Optional[List[str]] = field(factory=list, metadata={"description": "The CPU manufacturers to include.   For instance types with Intel CPUs, specify intel.   For instance types with AMD CPUs, specify amd.   For instance types with Amazon Web Services CPUs, specify amazon-web-services.    Don't confuse the CPU manufacturer with the CPU architecture. Instances will be launched with a compatible CPU architecture based on the Amazon Machine Image (AMI) that you specify in your launch template.  Default: Any manufacturer"})  # fmt: skip
+    memory_gi_b_per_v_cpu: Optional[AwsEc2LaunchTemplateMemoryGiBPerVCpu] = field(default=None, metadata={"description": "The minimum and maximum amount of memory per vCPU, in GiB. Default: No minimum or maximum limits"})  # fmt: skip
+    excluded_instance_types: Optional[List[str]] = field(factory=list, metadata={"description": "The instance types to exclude. You can use strings with one or more wild cards, represented by an asterisk (*), to exclude an instance type, size, or generation. The following are examples: m5.8xlarge, c5*.*, m5a.*, r*, *3*. For example, if you specify c5*,Amazon EC2 will exclude the entire C5 instance family, which includes all C5a and C5n instance types. If you specify m5a.*, Amazon EC2 will exclude all the M5a instance types, but not the M5n instance types.  If you specify ExcludedInstanceTypes, you can't specify AllowedInstanceTypes.  Default: No excluded instance types"})  # fmt: skip
+    instance_generations: Optional[List[str]] = field(factory=list, metadata={"description": "Indicates whether current or previous generation instance types are included. The current generation instance types are recommended for use. Current generation instance types are typically the latest two to three generations in each instance family. For more information, see Instance types in the Amazon EC2 User Guide. For current generation instance types, specify current. For previous generation instance types, specify previous. Default: Current and previous generation instance types"})  # fmt: skip
+    spot_max_price_percentage_over_lowest_price: Optional[int] = field(default=None, metadata={"description": "The price protection threshold for Spot Instances. This is the maximum you’ll pay for a Spot Instance, expressed as a percentage above the least expensive current generation M, C, or R instance type with your specified attributes. When Amazon EC2 selects instance types with your attributes, it excludes instance types priced above your threshold. The parameter accepts an integer, which Amazon EC2 interprets as a percentage. To turn off price protection, specify a high value, such as 999999. This parameter is not supported for GetSpotPlacementScores and GetInstanceTypesFromInstanceRequirements.  If you set TargetCapacityUnitType to vcpu or memory-mib, the price protection threshold is applied based on the per-vCPU or per-memory price instead of the per-instance price.  Default: 100"})  # fmt: skip
+    on_demand_max_price_percentage_over_lowest_price: Optional[int] = field(default=None, metadata={"description": "The price protection threshold for On-Demand Instances. This is the maximum you’ll pay for an On-Demand Instance, expressed as a percentage above the least expensive current generation M, C, or R instance type with your specified attributes. When Amazon EC2 selects instance types with your attributes, it excludes instance types priced above your threshold. The parameter accepts an integer, which Amazon EC2 interprets as a percentage. To turn off price protection, specify a high value, such as 999999. This parameter is not supported for GetSpotPlacementScores and GetInstanceTypesFromInstanceRequirements.  If you set TargetCapacityUnitType to vcpu or memory-mib, the price protection threshold is applied based on the per-vCPU or per-memory price instead of the per-instance price.  Default: 20"})  # fmt: skip
+    bare_metal: Optional[str] = field(default=None, metadata={"description": "Indicates whether bare metal instance types must be included, excluded, or required.   To include bare metal instance types, specify included.   To require only bare metal instance types, specify required.   To exclude bare metal instance types, specify excluded.   Default: excluded"})  # fmt: skip
+    burstable_performance: Optional[str] = field(default=None, metadata={"description": "Indicates whether burstable performance T instance types are included, excluded, or required. For more information, see Burstable performance instances.   To include burstable performance instance types, specify included.   To require only burstable performance instance types, specify required.   To exclude burstable performance instance types, specify excluded.   Default: excluded"})  # fmt: skip
+    require_hibernate_support: Optional[bool] = field(default=None, metadata={"description": "Indicates whether instance types must support hibernation for On-Demand Instances. This parameter is not supported for GetSpotPlacementScores. Default: false"})  # fmt: skip
+    network_interface_count: Optional[AwsEc2LaunchTemplateNetworkInterfaceCount] = field(default=None, metadata={"description": "The minimum and maximum number of network interfaces. Default: No minimum or maximum limits"})  # fmt: skip
+    local_storage: Optional[str] = field(default=None, metadata={"description": "Indicates whether instance types with instance store volumes are included, excluded, or required. For more information, Amazon EC2 instance store in the Amazon EC2 User Guide.   To include instance types with instance store volumes, specify included.   To require only instance types with instance store volumes, specify required.   To exclude instance types with instance store volumes, specify excluded.   Default: included"})  # fmt: skip
+    local_storage_types: Optional[List[str]] = field(factory=list, metadata={"description": "The type of local storage that is required.   For instance types with hard disk drive (HDD) storage, specify hdd.   For instance types with solid state drive (SSD) storage, specify ssd.   Default: hdd and ssd"})  # fmt: skip
+    total_local_storage_gb: Optional[AwsEc2LaunchTemplateTotalLocalStorageGB] = field(default=None, metadata={"description": "The minimum and maximum amount of total local storage, in GB. Default: No minimum or maximum limits"})  # fmt: skip
+    baseline_ebs_bandwidth_mbps: Optional[AwsEc2LaunchTemplateBaselineEbsBandwidthMbps] = field(default=None, metadata={"description": "The minimum and maximum baseline bandwidth to Amazon EBS, in Mbps. For more information, see Amazon EBS–optimized instances in the Amazon EC2 User Guide. Default: No minimum or maximum limits"})  # fmt: skip
+    accelerator_types: Optional[List[str]] = field(factory=list, metadata={"description": "The accelerator types that must be on the instance type.   For instance types with GPU accelerators, specify gpu.   For instance types with FPGA accelerators, specify fpga.   For instance types with inference accelerators, specify inference.   Default: Any accelerator type"})  # fmt: skip
+    accelerator_count: Optional[AwsEc2LaunchTemplateAcceleratorCount] = field(default=None, metadata={"description": "The minimum and maximum number of accelerators (GPUs, FPGAs, or Amazon Web Services Inferentia chips) on an instance. To exclude accelerator-enabled instance types, set Max to 0. Default: No minimum or maximum limits"})  # fmt: skip
+    accelerator_manufacturers: Optional[List[str]] = field(factory=list, metadata={"description": "Indicates whether instance types must have accelerators by specific manufacturers.   For instance types with Amazon Web Services devices, specify amazon-web-services.   For instance types with AMD devices, specify amd.   For instance types with Habana devices, specify habana.   For instance types with NVIDIA devices, specify nvidia.   For instance types with Xilinx devices, specify xilinx.   Default: Any manufacturer"})  # fmt: skip
+    accelerator_names: Optional[List[str]] = field(factory=list, metadata={"description": "The accelerators that must be on the instance type.   For instance types with NVIDIA A10G GPUs, specify a10g.   For instance types with NVIDIA A100 GPUs, specify a100.   For instance types with NVIDIA H100 GPUs, specify h100.   For instance types with Amazon Web Services Inferentia chips, specify inferentia.   For instance types with NVIDIA GRID K520 GPUs, specify k520.   For instance types with NVIDIA K80 GPUs, specify k80.   For instance types with NVIDIA M60 GPUs, specify m60.   For instance types with AMD Radeon Pro V520 GPUs, specify radeon-pro-v520.   For instance types with NVIDIA T4 GPUs, specify t4.   For instance types with NVIDIA T4G GPUs, specify t4g.   For instance types with Xilinx VU9P FPGAs, specify vu9p.   For instance types with NVIDIA V100 GPUs, specify v100.   Default: Any accelerator"})  # fmt: skip
+    accelerator_total_memory_mi_b: Optional[AwsEc2LaunchTemplateAcceleratorTotalMemoryMiB] = field(default=None, metadata={"description": "The minimum and maximum amount of total accelerator memory, in MiB. Default: No minimum or maximum limits"})  # fmt: skip
+    network_bandwidth_gbps: Optional[AwsEc2LaunchTemplateNetworkBandwidthGbps] = field(default=None, metadata={"description": "The minimum and maximum amount of network bandwidth, in gigabits per second (Gbps). Default: No minimum or maximum limits"})  # fmt: skip
+    allowed_instance_types: Optional[List[str]] = field(factory=list, metadata={"description": "The instance types to apply your specified attributes against. All other instance types are ignored, even if they match your specified attributes. You can use strings with one or more wild cards, represented by an asterisk (*), to allow an instance type, size, or generation. The following are examples: m5.8xlarge, c5*.*, m5a.*, r*, *3*. For example, if you specify c5*,Amazon EC2 will allow the entire C5 instance family, which includes all C5a and C5n instance types. If you specify m5a.*, Amazon EC2 will allow all the M5a instance types, but not the M5n instance types.  If you specify AllowedInstanceTypes, you can't specify ExcludedInstanceTypes.  Default: All instance types"})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplatePrivateDnsNameOptions:
+    kind: ClassVar[str] = "aws_ec2_launch_template_private_dns_name_options"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "hostname_type": S("HostnameType"),
+        "enable_resource_name_dns_a_record": S("EnableResourceNameDnsARecord"),
+        "enable_resource_name_dns_aaaa_record": S("EnableResourceNameDnsAAAARecord"),
+    }
+    hostname_type: Optional[str] = field(default=None, metadata={"description": "The type of hostname to assign to an instance."})  # fmt: skip
+    enable_resource_name_dns_a_record: Optional[bool] = field(default=None, metadata={"description": "Indicates whether to respond to DNS queries for instance hostnames with DNS A records."})  # fmt: skip
+    enable_resource_name_dns_aaaa_record: Optional[bool] = field(default=None, metadata={"description": "Indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplateData:
+    kind: ClassVar[str] = "aws_ec2_launch_template_data"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "kernel_id": S("KernelId"),
+        "ebs_optimized": S("EbsOptimized"),
+        "iam_instance_profile": S("IamInstanceProfile")
+        >> Bend(AwsEc2LaunchTemplateIamInstanceProfileSpecification.mapping),
+        "block_device_mappings": S("BlockDeviceMappings", default=[])
+        >> ForallBend(AwsEc2LaunchTemplateBlockDeviceMapping.mapping),
+        "network_interfaces": S("NetworkInterfaces", default=[])
+        >> ForallBend(AwsEc2LaunchTemplateInstanceNetworkInterfaceSpecification.mapping),
+        "image_id": S("ImageId"),
+        "instance_type": S("InstanceType"),
+        "key_name": S("KeyName"),
+        "monitoring": S("Monitoring", "Enabled"),
+        "placement": S("Placement") >> Bend(AwsEc2LaunchTemplatePlacement.mapping),
+        "ram_disk_id": S("RamDiskId"),
+        "disable_api_termination": S("DisableApiTermination"),
+        "instance_initiated_shutdown_behavior": S("InstanceInitiatedShutdownBehavior"),
+        "user_data": S("UserData"),
+        "tag_specifications": S("TagSpecifications", default=[])
+        >> ForallBend(AwsEc2LaunchTemplateTagSpecification.mapping),
+        "elastic_gpu_specifications": S("ElasticGpuSpecifications", default=[]) >> ForallBend(S("Type")),
+        "elastic_inference_accelerators": S("ElasticInferenceAccelerators", default=[])
+        >> ForallBend(AwsEc2LaunchTemplateElasticInferenceAcceleratorResponse.mapping),
+        "security_group_ids": S("SecurityGroupIds", default=[]),
+        "security_groups": S("SecurityGroups", default=[]),
+        "instance_market_options": S("InstanceMarketOptions")
+        >> Bend(AwsEc2LaunchTemplateInstanceMarketOptions.mapping),
+        "credit_specification": S("CreditSpecification", "CpuCredits"),
+        "cpu_options": S("CpuOptions") >> Bend(AwsEc2LaunchTemplateCpuOptions.mapping),
+        "capacity_reservation_specification": S("CapacityReservationSpecification")
+        >> Bend(AwsEc2LaunchTemplateCapacityReservationSpecificationResponse.mapping),
+        "license_specifications": S("LicenseSpecifications", default=[]) >> ForallBend(S("LicenseConfigurationArn")),
+        "hibernation_options": S("HibernationOptions", "Configured"),
+        "metadata_options": S("MetadataOptions") >> Bend(AwsEc2LaunchTemplateInstanceMetadataOptions.mapping),
+        "enclave_options": S("EnclaveOptions", "Enabled"),
+        "instance_requirements": S("InstanceRequirements") >> Bend(AwsEc2LaunchTemplateInstanceRequirements.mapping),
+        "private_dns_name_options": S("PrivateDnsNameOptions")
+        >> Bend(AwsEc2LaunchTemplatePrivateDnsNameOptions.mapping),
+        "maintenance_options": S("MaintenanceOptions", "AutoRecovery"),
+        "disable_api_stop": S("DisableApiStop"),
+    }
+    kernel_id: Optional[str] = field(default=None, metadata={"description": "The ID of the kernel, if applicable."})  # fmt: skip
+    ebs_optimized: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the instance is optimized for Amazon EBS I/O."})  # fmt: skip
+    iam_instance_profile: Optional[AwsEc2LaunchTemplateIamInstanceProfileSpecification] = field(default=None, metadata={"description": "The IAM instance profile."})  # fmt: skip
+    block_device_mappings: Optional[List[AwsEc2LaunchTemplateBlockDeviceMapping]] = field(factory=list, metadata={"description": "The block device mappings."})  # fmt: skip
+    network_interfaces: Optional[List[AwsEc2LaunchTemplateInstanceNetworkInterfaceSpecification]] = field(factory=list, metadata={"description": "The network interfaces."})  # fmt: skip
+    image_id: Optional[str] = field(default=None, metadata={"description": "The ID of the AMI or a Systems Manager parameter. The Systems Manager parameter will resolve to the ID of the AMI at instance launch. The value depends on what you specified in the request. The possible values are:   If an AMI ID was specified in the request, then this is the AMI ID.   If a Systems Manager parameter was specified in the request, and ResolveAlias was configured as true, then this is the AMI ID that the parameter is mapped to in the Parameter Store.   If a Systems Manager parameter was specified in the request, and ResolveAlias was configured as false, then this is the parameter value.   For more information, see Use a Systems Manager parameter instead of an AMI ID in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+    instance_type: Optional[str] = field(default=None, metadata={"description": "The instance type."})  # fmt: skip
+    key_name: Optional[str] = field(default=None, metadata={"description": "The name of the key pair."})  # fmt: skip
+    monitoring: Optional[bool] = field(default=None, metadata={"description": "The monitoring for the instance."})  # fmt: skip
+    placement: Optional[AwsEc2LaunchTemplatePlacement] = field(default=None, metadata={"description": "The placement of the instance."})  # fmt: skip
+    ram_disk_id: Optional[str] = field(default=None, metadata={"description": "The ID of the RAM disk, if applicable."})  # fmt: skip
+    disable_api_termination: Optional[bool] = field(default=None, metadata={"description": "If set to true, indicates that the instance cannot be terminated using the Amazon EC2 console, command line tool, or API."})  # fmt: skip
+    instance_initiated_shutdown_behavior: Optional[str] = field(default=None, metadata={"description": "Indicates whether an instance stops or terminates when you initiate shutdown from the instance (using the operating system command for system shutdown)."})  # fmt: skip
+    user_data: Optional[str] = field(default=None, metadata={"description": "The user data for the instance."})  # fmt: skip
+    tag_specifications: Optional[List[AwsEc2LaunchTemplateTagSpecification]] = field(factory=list, metadata={"description": "The tags that are applied to the resources that are created during instance launch."})  # fmt: skip
+    elastic_gpu_specifications: Optional[List[str]] = field(factory=list, metadata={"description": "The elastic GPU specification."})  # fmt: skip
+    elastic_inference_accelerators: Optional[List[AwsEc2LaunchTemplateElasticInferenceAcceleratorResponse]] = field(factory=list, metadata={"description": "An elastic inference accelerator to associate with the instance. Elastic inference accelerators are a resource you can attach to your Amazon EC2 instances to accelerate your Deep Learning (DL) inference workloads. You cannot specify accelerators from different generations in the same request.  Starting April 15, 2023, Amazon Web Services will not onboard new customers to Amazon Elastic Inference (EI), and will help current customers migrate their workloads to options that offer better price and performance. After April 15, 2023, new customers will not be able to launch instances with Amazon EI accelerators in Amazon SageMaker, Amazon ECS, or Amazon EC2. However, customers who have used Amazon EI at least once during the past 30-day period are considered current customers and will be able to continue using the service."})  # fmt: skip
+    security_group_ids: Optional[List[str]] = field(factory=list, metadata={"description": "The security group IDs."})  # fmt: skip
+    security_groups: Optional[List[str]] = field(factory=list, metadata={"description": "The security group names."})  # fmt: skip
+    instance_market_options: Optional[AwsEc2LaunchTemplateInstanceMarketOptions] = field(default=None, metadata={"description": "The market (purchasing) option for the instances."})  # fmt: skip
+    credit_specification: Optional[str] = field(default=None, metadata={"description": "The credit option for CPU usage of the instance."})  # fmt: skip
+    cpu_options: Optional[AwsEc2LaunchTemplateCpuOptions] = field(default=None, metadata={"description": "The CPU options for the instance. For more information, see Optimizing CPU options in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+    capacity_reservation_specification: Optional[AwsEc2LaunchTemplateCapacityReservationSpecificationResponse] = field(default=None, metadata={"description": "Information about the Capacity Reservation targeting option."})  # fmt: skip
+    license_specifications: Optional[List[str]] = field(factory=list, metadata={"description": "The license configurations."})  # fmt: skip
+    hibernation_options: Optional[bool] = field(default=None, metadata={"description": "Indicates whether an instance is configured for hibernation. For more information, see Hibernate your instance in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+    metadata_options: Optional[AwsEc2LaunchTemplateInstanceMetadataOptions] = field(default=None, metadata={"description": "The metadata options for the instance. For more information, see Instance metadata and user data in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+    enclave_options: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the instance is enabled for Amazon Web Services Nitro Enclaves."})  # fmt: skip
+    instance_requirements: Optional[AwsEc2LaunchTemplateInstanceRequirements] = field(default=None, metadata={"description": "The attributes for the instance types. When you specify instance attributes, Amazon EC2 will identify instance types with these attributes. If you specify InstanceRequirements, you can't specify InstanceTypes."})  # fmt: skip
+    private_dns_name_options: Optional[AwsEc2LaunchTemplatePrivateDnsNameOptions] = field(default=None, metadata={"description": "The options for the instance hostname."})  # fmt: skip
+    maintenance_options: Optional[str] = field(default=None, metadata={"description": "The maintenance options for your instance."})  # fmt: skip
+    disable_api_stop: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the instance is enabled for stop protection. For more information, see Stop protection in the Amazon Elastic Compute Cloud User Guide."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
+    kind: ClassVar[str] = "aws_ec2_launch_template"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default", "$Latest"]}
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("LaunchTemplateId"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("LaunchTemplateName"),
+        "ctime": S("CreateTime"),
+        "version_number": S("VersionNumber"),
+        "version_description": S("VersionDescription"),
+        "created_by": S("CreatedBy"),
+        "default_version": S("DefaultVersion"),
+        "launch_template_data": S("LaunchTemplateData") >> Bend(AwsEc2LaunchTemplateData.mapping),
+    }
+    version_number: Optional[int] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
+    version_description: Optional[str] = field(default=None, metadata={"description": "The description for the version."})  # fmt: skip
+    created_by: Optional[str] = field(default=None, metadata={"description": "The principal that created the version."})  # fmt: skip
+    default_version: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the version is the default version."})  # fmt: skip
+    launch_template_data: Optional[AwsEc2LaunchTemplateData] = field(default=None, metadata={"description": "Information about the launch template."})  # fmt: skip
+
+
 # endregion
 
 resources: List[Type[AwsResource]] = [
@@ -3325,6 +3829,7 @@ resources: List[Type[AwsResource]] = [
     AwsEc2InternetGateway,
     AwsEc2Image,
     AwsEc2KeyPair,
+    AwsEc2LaunchTemplate,
     AwsEc2NatGateway,
     AwsEc2NetworkAcl,
     AwsEc2NetworkInterface,

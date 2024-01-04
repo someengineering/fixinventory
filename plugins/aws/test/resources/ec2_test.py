@@ -22,6 +22,7 @@ from resoto_plugin_aws.resource.ec2 import (
     AwsEc2Host,
     AwsEc2FlowLog,
     AwsEc2Image,
+    AwsEc2LaunchTemplate,
 )
 from resotolib.graph import Graph
 from test.resources import round_trip_for, build_graph, check_single_node
@@ -29,6 +30,10 @@ from test.resources import round_trip_for, build_graph, check_single_node
 
 def test_flow_logs() -> None:
     round_trip_for(AwsEc2FlowLog)
+
+
+def test_launch_data() -> None:
+    round_trip_for(AwsEc2LaunchTemplate)
 
 
 def test_instance_types() -> None:

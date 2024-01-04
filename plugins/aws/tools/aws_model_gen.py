@@ -394,13 +394,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogs", "DataCatalog", prefix="Athena"),
     ],
     "autoscaling": [
-        # AwsResotoModel(
-        #     "describe-auto-scaling-groups",
-        #     "AutoScalingGroupName",
-        #     "AutoScalingGroup",
-        #     prefix="AutoScaling",
-        #     prop_prefix="autoscaling_",
-        # ),
+        # AwsResotoModel( "describe-auto-scaling-groups", "AutoScalingGroupName", "AutoScalingGroup", prefix="AutoScaling", prop_prefix="autoscaling_"),
     ],
     "cloudformation": [
         # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="stack_"),
@@ -520,96 +514,27 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         # AwsResotoModel("describe-hosts", "Hosts", "Host", prefix="Ec2", prop_prefix="host_")
-        # AwsResotoModel(
-        #     "describe-route-tables",
-        #     "RouteTables",
-        #     "RouteTable",
-        #     base="BaseRoutingTable",
-        #     prefix="Ec2",
-        #     prop_prefix="route_table_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-vpc-endpoints",
-        #     "VpcEndpoints",
-        #     "VpcEndpoint",
-        #     base="BaseEndpoint",
-        #     prefix="Ec2",
-        #     prop_prefix="endpoint_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-vpc-peering-connections",
-        #     "VpcPeeringConnections",
-        #     "VpcPeeringConnection",
-        #     base="BasePeeringConnection",
-        #     prefix="Ec2",
-        #     prop_prefix="connection_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-internet-gateways",
-        #     "InternetGateways",
-        #     "InternetGateway",
-        #     base="BaseGateway",
-        #     prefix="Ec2",
-        #     prop_prefix="gateway_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-security-groups",
-        #     "SecurityGroups",
-        #     "SecurityGroup",
-        #     base="BaseSecurityGroup",
-        #     prefix="Ec2",
-        #     prop_prefix="group_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-subnets",
-        #     "Subnets",
-        #     "Subnet",
-        #     base="BaseSubnet",
-        #     prefix="Ec2",
-        #     prop_prefix="subnet_",
-        # ),
+        # AwsResotoModel( "describe-route-tables", "RouteTables", "RouteTable", base="BaseRoutingTable", prefix="Ec2", prop_prefix="route_table_", ),
+        # AwsResotoModel( "describe-vpc-endpoints", "VpcEndpoints", "VpcEndpoint", base="BaseEndpoint", prefix="Ec2", prop_prefix="endpoint_", ),
+        # AwsResotoModel( "describe-vpc-peering-connections", "VpcPeeringConnections", "VpcPeeringConnection", base="BasePeeringConnection", prefix="Ec2", prop_prefix="connection_", ),
+        # AwsResotoModel( "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_" ),
+        # AwsResotoModel( "describe-internet-gateways", "InternetGateways", "InternetGateway", base="BaseGateway", prefix="Ec2", prop_prefix="gateway_", ),
+        # AwsResotoModel( "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_" ),
+        # AwsResotoModel( "describe-security-groups", "SecurityGroups", "SecurityGroup", base="BaseSecurityGroup", prefix="Ec2", prop_prefix="group_", ),
+        # AwsResotoModel( "describe-subnets", "Subnets", "Subnet", base="BaseSubnet", prefix="Ec2", prop_prefix="subnet_", ),
         # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
-        # AwsResotoModel(
-        #     "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-network-interfaces",
-        #     "NetworkInterfaces",
-        #     "NetworkInterface",
-        #     base="BaseNetworkInterface",
-        #     prefix="Ec2",
-        #     prop_prefix="nic_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-instances",
-        #     "Reservations",
-        #     "Instance",
-        #     base="BaseInstance",
-        #     prefix="Ec2",
-        #     prop_prefix="instance_",
-        # ),
+        # AwsResotoModel( "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_" ),
+        # AwsResotoModel( "describe-network-interfaces", "NetworkInterfaces", "NetworkInterface", base="BaseNetworkInterface", prefix="Ec2", prop_prefix="nic_", ),
+        # AwsResotoModel( "describe-instances", "Reservations", "Instance", base="BaseInstance", prefix="Ec2", prop_prefix="instance_", ),
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        # AwsResotoModel(
-        #     "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_"
-        # ),
-        # AwsResotoModel(
-        #     "describe_reserved_instances",
-        #     "ReservedInstances",
-        #     "ReservedInstances",
-        #     prefix="Ec2",
-        #     prop_prefix="reservation_",
-        # ),
+        # AwsResotoModel( "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_" ),
+        # AwsResotoModel( "describe_reserved_instances", "ReservedInstances", "ReservedInstances", prefix="Ec2", prop_prefix="reservation_", ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
         # AwsResotoModel("describe-flow-logs", "FlowLogs", "FlowLog", prefix="Ec2"),
         # AwsResotoModel("describe-images", "Images", "Image", prefix="Ec2"),
+        # AwsResotoModel( "describe-launch-template-versions", "LaunchTemplateVersions", "LaunchTemplateVersion", prefix="LaunchTemplate", ),
     ],
     "ecs": [
         # AwsResotoModel(
@@ -1015,7 +940,7 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("rds", "DescribeDBSnapshotAttributes", is_pascal=True), indent=2))
+    print(json.dumps(create_test_response("ec2", "describe-launch-template-versions"), indent=2))
 
     """print the class models"""
     # print(default_imports())
