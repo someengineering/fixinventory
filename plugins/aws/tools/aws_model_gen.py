@@ -848,6 +848,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
         # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
         # AwsResotoModel("describe-db-snapshots", "DBSnapshots", "DBSnapshot", prefix="Rds", prop_prefix="rds_")
+        AwsResotoModel(
+            "describe-db-cluster-snapshots",
+            "DBClusterSnapshots",
+            "DBClusterSnapshot",
+            prefix="Rds",
+            prop_prefix="rds_",
+        )
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
@@ -1019,7 +1026,7 @@ models: Dict[str, List[AwsResotoModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("elb", "describe-load-balancer-attributes"), indent=2))
+    # print(json.dumps(create_test_response("rds", "DescribeDBSnapshotAttributes", is_pascal=True), indent=2))
 
     """print the class models"""
     # print(default_imports())

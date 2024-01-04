@@ -90,9 +90,11 @@ class SuppressWithFeedback(AbstractContextManager[None]):
         self.feedback = feedback
         self.logger = logger
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Optional[bool]:
         if exc_type is not None:
             self.feedback.error(f"{self.message}: {exc_val}", self.logger)
+            return True  # suppress exception
+        return None
 
 
 class CoreActions(threading.Thread):

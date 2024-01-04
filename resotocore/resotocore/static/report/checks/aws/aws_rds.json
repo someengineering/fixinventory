@@ -65,18 +65,17 @@
         {
             "name": "snapshot_not_public",
             "title": "Ensure RDS Snapshots are not publicly available.",
-            "result_kinds": ["aws_rds_instance"],
+            "result_kinds": ["aws_rds_cluster_snapshot", "aws_rds_snapshot"],
             "categories": ["security", "compliance"],
             "risk": "Publicly accessible database snapshots could expose sensitive data to bad actors.",
             "severity": "critical",
             "detect": {
-                "manual": "Goto the AWS Console, AWS RDS and Snapshots"
+                "resoto": "is(aws_rds_cluster_snapshot, aws_rds_snapshot) and rds_attributes.restore[*]==\"all\""
             },
             "remediation": {
                 "text": "Ensure that any snapshots that are created for databases are not publicly available",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html"
-            },
-            "source": "saad"
+            }
         },
         {
             "name": "db_instance_automatic_minor_version_upgrade_enabled",

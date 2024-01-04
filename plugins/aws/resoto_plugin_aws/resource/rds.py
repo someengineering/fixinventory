@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type
+
 from attr import define, field
+
+from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
@@ -12,7 +15,6 @@ from resotolib.graph import Graph
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
 from resotolib.utils import utc
-from resoto_plugin_aws.aws_client import AwsClient
 
 service_name = "rds"
 
@@ -725,7 +727,6 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
         "rds_db_cluster_parameter_group": S("DBClusterParameterGroup"),
         "rds_db_subnet_group_name": S("DBSubnetGroup"),
         "rds_automatic_restart_time": S("AutomaticRestartTime"),
-        "rds_percent_progress": S("PercentProgress"),
         "rds_earliest_restorable_time": S("EarliestRestorableTime"),
         "rds_endpoint": S("Endpoint"),
         "rds_reader_endpoint": S("ReaderEndpoint"),
@@ -799,7 +800,6 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     rds_db_cluster_parameter_group: Optional[str] = field(default=None)
     rds_db_subnet_group_name: Optional[str] = field(default=None)
     rds_automatic_restart_time: Optional[datetime] = field(default=None)
-    rds_percent_progress: Optional[str] = field(default=None)
     rds_earliest_restorable_time: Optional[datetime] = field(default=None)
     rds_endpoint: Optional[str] = field(default=None)
     rds_reader_endpoint: Optional[str] = field(default=None)
@@ -883,8 +883,8 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
 
 
 @define(eq=False, slots=False)
-class AwsRdsDBSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
-    kind: ClassVar[str] = "aws_rds_db_snapshot"
+class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
+    kind: ClassVar[str] = "aws_rds_snapshot"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-snapshots", "DBSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBSnapshotIdentifier"),
@@ -947,7 +947,7 @@ class AwsRdsDBSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     rds_kms_key_id: Optional[str] = field(default=None, metadata={"description": "If Encrypted is true, the Amazon Web Services KMS key identifier for the encrypted DB snapshot. The Amazon Web Services KMS key identifier is the key ARN, key ID, alias ARN, or alias name for the KMS key."})  # fmt: skip
     rds_timezone: Optional[str] = field(default=None, metadata={"description": "The time zone of the DB snapshot. In most cases, the Timezone element is empty. Timezone content appears only for snapshots taken from Microsoft SQL Server DB instances that were created with a time zone specified."})  # fmt: skip
     rds_iam_database_authentication_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether mapping of Amazon Web Services Identity and Access Management (IAM) accounts to database accounts is enabled."})  # fmt: skip
-    rds_processor_features: Optional[Dict[str, str]] = field(factory=list, metadata={"description": "The number of CPU cores and the number of threads per core for the DB instance class of the DB instance when the DB snapshot was created."})  # fmt: skip
+    rds_processor_features: Optional[Dict[str, str]] = field(default=None, metadata={"description": "The number of CPU cores and the number of threads per core for the DB instance class of the DB instance when the DB snapshot was created."})  # fmt: skip
     rds_dbi_resource_id: Optional[str] = field(default=None, metadata={"description": "The identifier for the source DB instance, which can't be changed and which is unique to an Amazon Web Services Region."})  # fmt: skip
     rds_original_snapshot_create_time: Optional[datetime] = field(default=None, metadata={"description": "Specifies the time of the CreateDBSnapshot operation in Coordinated Universal Time (UTC). Doesn't change when the snapshot is copied."})  # fmt: skip
     rds_snapshot_database_time: Optional[datetime] = field(default=None, metadata={"description": "The timestamp of the most recent transaction applied to the database that you're backing up. Thus, if you restore a snapshot, SnapshotDatabaseTime is the most recent transaction in the restored DB instance. In contrast, originalSnapshotCreateTime specifies the system time that the snapshot completed. If you back up a read replica, you can determine the replica lag by comparing SnapshotDatabaseTime with originalSnapshotCreateTime. For example, if originalSnapshotCreateTime is two hours later than SnapshotDatabaseTime, then the replica lag is two hours."})  # fmt: skip
@@ -956,6 +956,20 @@ class AwsRdsDBSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     rds_db_system_id: Optional[str] = field(default=None, metadata={"description": "The Oracle system identifier (SID), which is the name of the Oracle database instance that manages your database files. The Oracle SID is also the name of your CDB."})  # fmt: skip
     rds_dedicated_log_volume: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the DB instance has a dedicated log volume (DLV) enabled."})  # fmt: skip
     rds_multi_tenant: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the snapshot is of a DB instance using the multi-tenant configuration (TRUE) or the single-tenant configuration (FALSE)."})  # fmt: skip
+    rds_attributes: Optional[Dict[str, List[str]]] = None
+
+    def post_process(self, builder: GraphBuilder, source: Json) -> None:
+        def fetch_snapshot_attributes() -> None:
+            with builder.suppress("rds.describe-db-snapshot-attributes"):
+                if attrs := builder.client.get(
+                    "rds",
+                    "describe-db-snapshot-attributes",
+                    "DBSnapshotAttributesResult.DBSnapshotAttributes",
+                    DBSnapshotIdentifier=self.id,
+                ):
+                    self.rds_attributes = bend(ToDict(key="AttributeName", value="AttributeValues"), attrs)
+
+        builder.submit_work(service_name, fetch_snapshot_attributes)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dbi := self.rds_db_instance_identifier:
@@ -964,4 +978,82 @@ class AwsRdsDBSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
             builder.add_edge(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
 
 
-resources: List[Type[AwsResource]] = [AwsRdsCluster, AwsRdsInstance, AwsRdsDBSnapshot]
+@define(eq=False, slots=False)
+class AwsRdsClusterSnapshot(AwsResource):
+    kind: ClassVar[str] = "aws_rds_cluster_snapshot"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-cluster-snapshots", "DBClusterSnapshots")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("DBClusterSnapshotIdentifier"),
+        "tags": S("TagList", default=[]) >> ToDict(),
+        "name": S("TagList", default=[]) >> TagsValue("Name"),
+        "ctime": S("SnapshotCreateTime"),
+        "rds_availability_zones": S("AvailabilityZones", default=[]),
+        "rds_db_cluster_identifier": S("DBClusterIdentifier"),
+        "rds_engine": S("Engine"),
+        "rds_engine_mode": S("EngineMode"),
+        "rds_allocated_storage": S("AllocatedStorage"),
+        "rds_status": S("Status"),
+        "rds_port": S("Port"),
+        "rds_vpc_id": S("VpcId"),
+        "rds_cluster_create_time": S("ClusterCreateTime"),
+        "rds_master_username": S("MasterUsername"),
+        "rds_engine_version": S("EngineVersion"),
+        "rds_license_model": S("LicenseModel"),
+        "rds_snapshot_type": S("SnapshotType"),
+        "rds_percent_progress": S("PercentProgress"),
+        "rds_storage_encrypted": S("StorageEncrypted"),
+        "rds_kms_key_id": S("KmsKeyId"),
+        "rds_db_cluster_snapshot_arn": S("DBClusterSnapshotArn"),
+        "rds_source_db_cluster_snapshot_arn": S("SourceDBClusterSnapshotArn"),
+        "rds_iam_database_authentication_enabled": S("IAMDatabaseAuthenticationEnabled"),
+        "rds_db_system_id": S("DBSystemId"),
+        "rds_storage_type": S("StorageType"),
+        "rds_db_cluster_resource_id": S("DbClusterResourceId"),
+    }
+    rds_availability_zones: Optional[List[str]] = field(factory=list, metadata={"description": "The list of Availability Zones (AZs) where instances in the DB cluster snapshot can be restored."})  # fmt: skip
+    rds_db_cluster_identifier: Optional[str] = field(default=None, metadata={"description": "The DB cluster identifier of the DB cluster that this DB cluster snapshot was created from."})  # fmt: skip
+    rds_engine: Optional[str] = field(default=None, metadata={"description": "The name of the database engine for this DB cluster snapshot."})  # fmt: skip
+    rds_engine_mode: Optional[str] = field(default=None, metadata={"description": "The engine mode of the database engine for this DB cluster snapshot."})  # fmt: skip
+    rds_allocated_storage: Optional[int] = field(default=None, metadata={"description": "The allocated storage size of the DB cluster snapshot in gibibytes (GiB)."})  # fmt: skip
+    rds_status: Optional[str] = field(default=None, metadata={"description": "The status of this DB cluster snapshot. Valid statuses are the following:    available     copying     creating"})  # fmt: skip
+    rds_port: Optional[int] = field(default=None, metadata={"description": "The port that the DB cluster was listening on at the time of the snapshot."})  # fmt: skip
+    rds_vpc_id: Optional[str] = field(default=None, metadata={"description": "The VPC ID associated with the DB cluster snapshot."})  # fmt: skip
+    rds_cluster_create_time: Optional[datetime] = field(default=None, metadata={"description": "The time when the DB cluster was created, in Universal Coordinated Time (UTC)."})  # fmt: skip
+    rds_master_username: Optional[str] = field(default=None, metadata={"description": "The master username for this DB cluster snapshot."})  # fmt: skip
+    rds_engine_version: Optional[str] = field(default=None, metadata={"description": "The version of the database engine for this DB cluster snapshot."})  # fmt: skip
+    rds_license_model: Optional[str] = field(default=None, metadata={"description": "The license model information for this DB cluster snapshot."})  # fmt: skip
+    rds_snapshot_type: Optional[str] = field(default=None, metadata={"description": "The type of the DB cluster snapshot."})  # fmt: skip
+    rds_percent_progress: Optional[int] = field(default=None, metadata={"description": "The percentage of the estimated data that has been transferred."})  # fmt: skip
+    rds_storage_encrypted: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the DB cluster snapshot is encrypted."})  # fmt: skip
+    rds_kms_key_id: Optional[str] = field(default=None, metadata={"description": "If StorageEncrypted is true, the Amazon Web Services KMS key identifier for the encrypted DB cluster snapshot. The Amazon Web Services KMS key identifier is the key ARN, key ID, alias ARN, or alias name for the KMS key."})  # fmt: skip
+    rds_db_cluster_snapshot_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) for the DB cluster snapshot."})  # fmt: skip
+    rds_source_db_cluster_snapshot_arn: Optional[str] = field(default=None, metadata={"description": "If the DB cluster snapshot was copied from a source DB cluster snapshot, the Amazon Resource Name (ARN) for the source DB cluster snapshot, otherwise, a null value."})  # fmt: skip
+    rds_iam_database_authentication_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether mapping of Amazon Web Services Identity and Access Management (IAM) accounts to database accounts is enabled."})  # fmt: skip
+    rds_db_system_id: Optional[str] = field(default=None, metadata={"description": "Reserved for future use."})  # fmt: skip
+    rds_storage_type: Optional[str] = field(default=None, metadata={"description": "The storage type associated with the DB cluster snapshot. This setting is only for Aurora DB clusters."})  # fmt: skip
+    rds_db_cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "The resource ID of the DB cluster that this DB cluster snapshot was created from."})  # fmt: skip
+    rds_attributes: Optional[Dict[str, List[str]]] = None
+
+    def post_process(self, builder: GraphBuilder, source: Json) -> None:
+        def fetch_snapshot_attributes() -> None:
+            with builder.suppress("rds.describe-db-cluster-snapshot-attributes"):
+                if attrs := builder.client.get(
+                    "rds",
+                    "describe-db-cluster-snapshot-attributes",
+                    "DBClusterSnapshotAttributesResult.DBClusterSnapshotAttributes",
+                    DBClusterSnapshotIdentifier=self.id,
+                ):
+                    self.rds_attributes = bend(ToDict(key="AttributeName", value="AttributeValues"), attrs)
+
+        builder.submit_work(service_name, fetch_snapshot_attributes)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if dbi := self.rds_db_cluster_identifier:
+            builder.add_edge(self, reverse=True, clazz=AwsRdsCluster, id=dbi)
+        if vpc_id := self.rds_vpc_id:
+            builder.add_edge(self, reverse=True, clazz=AwsEc2Vpc, id=vpc_id)
+        if key_id := self.rds_kms_key_id:
+            builder.add_edge(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key_id))
+
+
+resources: List[Type[AwsResource]] = [AwsRdsCluster, AwsRdsInstance, AwsRdsSnapshot, AwsRdsClusterSnapshot]
