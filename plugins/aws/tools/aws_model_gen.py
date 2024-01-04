@@ -836,25 +836,14 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
     ],
     "redshift": [
-        #     AwsResotoModel(
-        #         "describe-clusters",
-        #         "Clusters",
-        #         "Cluster",
-        #         prefix="Redshift",
-        #         prop_prefix="redshift_",
-        #     ),
+        # AwsResotoModel( "describe-clusters", "Clusters", "Cluster", prefix="Redshift", prop_prefix="redshift_"),
+        # AwsResotoModel("describe-logging-status", "DescribeLoggingStatusResponse", prefix="Redshift"),
     ],
     "rds": [
-        # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
-        # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
-        # AwsResotoModel("describe-db-snapshots", "DBSnapshots", "DBSnapshot", prefix="Rds", prop_prefix="rds_")
-        AwsResotoModel(
-            "describe-db-cluster-snapshots",
-            "DBClusterSnapshots",
-            "DBClusterSnapshot",
-            prefix="Rds",
-            prop_prefix="rds_",
-        )
+        #     # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
+        #     # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
+        #     # AwsResotoModel("describe-db-snapshots", "DBSnapshots", "DBSnapshot", prefix="Rds", prop_prefix="rds_")
+        #     AwsResotoModel( "describe-db-cluster-snapshots", "DBClusterSnapshots", "DBClusterSnapshot", prefix="Rds", prop_prefix="rds_")
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),

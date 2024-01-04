@@ -1,0 +1,14 @@
+{
+    "LoggingEnabled": true,
+    "BucketName": "foo",
+    "S3KeyPrefix": "foo",
+    "LastSuccessfulDeliveryTime": "2024-01-04T09:19:15Z",
+    "LastFailureTime": "2024-01-04T09:19:15Z",
+    "LastFailureMessage": "foo",
+    "LogDestinationType": "cloudwatch",
+    "LogExports": [
+        "foo",
+        "foo",
+        "foo"
+    ]
+}
