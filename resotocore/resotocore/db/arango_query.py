@@ -303,9 +303,9 @@ def query_string(
         bvn = ctx.next_bind_var_name()
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
-            ctx.bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
+            ctx.bind_vars[bvn] = [prop.kind.coerce(a, array_creation=False) for a in p.value]
         else:
-            ctx.bind_vars[bvn] = prop.kind.coerce(p.value)
+            ctx.bind_vars[bvn] = prop.kind.coerce(p.value, array_creation=False)
         var_name = f"{cursor}.{prop_name}"
         if op == "=~":  # use regex_test to do case-insensitive matching
             p_term = f"REGEX_TEST({var_name}, @{bvn}, true)"

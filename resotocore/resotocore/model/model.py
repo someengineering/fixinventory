@@ -812,16 +812,9 @@ class ArrayKind(Kind):
             self.inner.check_valid(elem, **kwargs)
         return coerced
 
-    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[List[JsonElement]]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[JsonElement]:
         has_coerced = False
-        if value is None:
-            return None
-        elif isinstance(value, dict):
-            return None
-        elif not isinstance(value, list):
-            # in case of simple type, we can make it an array
-            value = [value]
-            has_coerced = True
+        mapped: Optional[JsonElement] = None  # noqa
 
         def check(item: Any) -> ValidationResult:
             nonlocal has_coerced
@@ -832,7 +825,19 @@ class ArrayKind(Kind):
                 has_coerced = True
                 return res
 
-        mapped = [check(elem) for elem in value]
+        if value is None:
+            return None
+        elif isinstance(value, dict):
+            return None
+        elif not isinstance(value, list):
+            value = check(value)
+            if kwargs.get("array_creation", True):
+                mapped = [value]
+                has_coerced = True
+            else:  # in case only the inner kind should be coerced (see arango_query)
+                mapped = value
+        else:
+            mapped = [check(elem) for elem in value]
         return mapped if has_coerced else None
 
     @staticmethod
