@@ -3808,13 +3808,13 @@ class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
         "version_number": S("VersionNumber"),
         "version_description": S("VersionDescription"),
         "created_by": S("CreatedBy"),
-        "default_version": S("DefaultVersion"),
+        "is_default_version": S("DefaultVersion"),
         "launch_template_data": S("LaunchTemplateData") >> Bend(AwsEc2LaunchTemplateData.mapping),
     }
     version_number: Optional[int] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
     version_description: Optional[str] = field(default=None, metadata={"description": "The description for the version."})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={"description": "The principal that created the version."})  # fmt: skip
-    default_version: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the version is the default version."})  # fmt: skip
+    is_default_version: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the version is the default version."})  # fmt: skip
     launch_template_data: Optional[AwsEc2LaunchTemplateData] = field(default=None, metadata={"description": "Information about the launch template."})  # fmt: skip
 
 

@@ -3,25 +3,19 @@
     "service": "autoscaling",
     "checks": [
         {
-            "name": "launch_config_public_ip_disabled",
-            "title": "Ensure that any autoscaling launch configuration does not have AssociatePublicIpAddress set to true",
-            "result_kinds": [
-                "aws_ecs"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Launch configuration contain the template for new EC2 instances, having public settings enabled will cause a security risk such as publicly accessible EC2 instances",
+            "name": "launch_template_public_ip_disabled",
+            "title": "Verify Auto Scaling Launch Templates Do Not Auto-Assign Public IP Addresses",
+            "result_kinds": ["aws_autoscaling_group"],
+            "categories": ["security", "compliance"],
+            "risk": "Auto-assigning public IP addresses in Auto Scaling launch templates can lead to unintended public exposure of EC2 instances. This exposure increases the risk of malicious activities such as brute force attacks, data breaches, or unauthorized access, potentially compromising instance security and data integrity.",
             "severity": "medium",
             "detect": {
-                "manual": "Go to AWS EC2 -> Click Autoscaling and Select launch configuration"
+                "resoto": "is(aws_autoscaling_group) with (any, --> is(aws_ec2_launch_template) and launch_template_data.network_interfaces[*].associate_public_ip_address==true)"
             },
             "remediation": {
-                "text": "Update the launch configuration to ensure that the AssociatePublicIpAddress setting is set as disabled",
-                "url": "https://docs.aws.amazon.com/config/latest/developerguide/autoscaling-launch-config-public-ip-disabled.html"
-            },
-            "source": "saad"
+                "text": "Modify the Auto Scaling launch template to disable automatic public IP association. Set 'AssociatePublicIpAddress' to false for all network interfaces in the launch template. Ensure instances are launched in private subnets if public access is not required.",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html#launch-template-network"
+            }
         }
     ]
 }

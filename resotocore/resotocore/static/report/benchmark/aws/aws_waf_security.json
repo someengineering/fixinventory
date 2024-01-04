@@ -216,7 +216,7 @@
                             "title": "SEC03-BP07 Analyze public and cross-account access",
                             "description": "Continually monitor findings that highlight public and cross-account access. Reduce public access and cross-account access to only the specific resources that require this access. Know which of your AWS resources are shared and with whom. Continually monitor and audit your shared resources to verify they are shared with only authorized principals.",
                             "checks": [
-                                "aws_autoscaling_launch_config_public_ip_disabled",
+                                "aws_autoscaling_launch_template_public_ip_disabled",
                                 "aws_cloudtrail_logs_s3_bucket_is_not_publicly_accessible",
                                 "aws_dms_public_ip_address",
                                 "aws_ec2_image_public",
