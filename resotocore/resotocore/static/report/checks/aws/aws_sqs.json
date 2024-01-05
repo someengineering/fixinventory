@@ -5,7 +5,7 @@
         {
             "name": "server_side_encryption_enabled",
             "title": "Ensure that SQS queues have server-side encryption enabled",
-            "result_kinds": [ "aws_eks_cluster" ],
+            "result_kinds": [ "aws_sqs_queue" ],
             "categories": [ "security", "compliance" ],
             "risk": "If not enabled sensitive information in transit is not protected.",
             "severity": "medium",

@@ -5,13 +5,8 @@
         {
             "name": "cross_account_sharing_enabled",
             "title": "Ensure Cloudwatch logs are set to be shared and access across AWS Accounts in organization",
-            "result_kind": [
-                "aws_account"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "result_kinds": ["aws_account"],
+            "categories": ["security", "compliance"],
             "risk": "Not enabling cross-account sharing for CloudWatch logs hinders unified security monitoring and complicates compliance auditing. It creates data silos and impairs timely and coordinated incident response across AWS environments.",
             "severity": "medium",
             "detect": {
@@ -25,8 +20,8 @@
         {
             "name": "log_group_encryption_at_rest_enabled",
             "title": "Ensure that CloudWatch log groups are protected by AWS KMS.",
-            "result_kind": [ "aws_cloudwatch_log_group" ],
-            "categories": [ "retention" ],
+            "result_kinds": ["aws_cloudwatch_log_group"],
+            "categories": ["retention"],
             "risk": "Using customer managed KMS to encrypt CloudWatch log group provide additional confidentiality and control over the log data.",
             "severity": "medium",
             "detect": {
@@ -40,12 +35,8 @@
         {
             "name": "log_group_retention_days_at_least_365",
             "title": "Check if CloudWatch Log Groups have a retention policy of specific days.",
-            "result_kind": [
-                "aws_cloudwatch_log_group"
-            ],
-            "categories": [
-                "retention"
-            ],
+            "result_kinds": ["aws_cloudwatch_log_group"],
+            "categories": ["retention"],
             "risk": "Failing to retain CloudWatch log groups for at least 365 days can lead to non-compliance with regulatory requirements that mandate long-term log storage. It also limits the ability to perform forensic analysis or detect long-term patterns in security breaches retrospectively.",
             "severity": "medium",
             "detect": {

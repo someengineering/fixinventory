@@ -6,10 +6,7 @@
             "name": "publicly_accessible_permissions",
             "title": "Check if Lambda functions have resource-based policy set as Public.",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Publicly accessible services could expose sensitive data to bad actors.",
             "severity": "low",
             "url": "https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html",
@@ -25,7 +22,7 @@
             "name": "function_in_vpc",
             "title": "Ensure that Lambda functions are deployed within a VPC employ security groups for precise access control and adhere to compliance standards, providing isolated and controlled network access.",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [ "security", "compliance" ],
+            "categories": ["security", "compliance"],
             "risk": "Publicly accessible Lambda functions without precise access controls through security groups pose a risk to security",
             "severity": "medium",
             "detect": {
@@ -40,10 +37,7 @@
             "name": "cors_policy",
             "title": "Check Lambda Function URL CORS configuration.",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Publicly accessible services could expose sensitive data to bad actors.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
@@ -52,7 +46,7 @@
             },
             "remediation": {
                 "action": {
-                    "awscli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM --cors 'AllowOrigins=https://www.example.com,AllowMethods=*,ExposeHeaders=keep-alive,MaxAge=3600,AllowCredentials=false'"
+                    "aws_cli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM --cors 'AllowOrigins=https://www.example.com,AllowMethods=*,ExposeHeaders=keep-alive,MaxAge=3600,AllowCredentials=false'"
                 },
                 "text": "Grant usage permission on a per-resource basis and applying least privilege principle.",
                 "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html"
@@ -62,10 +56,7 @@
             "name": "function_restrict_public_access",
             "title": "Check Public Lambda Function URL.",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Publicly accessible services could expose sensitive data to bad actors.",
             "severity": "high",
             "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
@@ -74,7 +65,7 @@
             },
             "remediation": {
                 "action": {
-                    "awscli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM"
+                    "aws_cli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM"
                 },
                 "text": "Grant usage permission on a per-resource basis and applying least privilege principle.",
                 "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html"
@@ -84,10 +75,7 @@
             "name": "supported_runtime",
             "title": "Check that Lambda does not use an obsolete runtime.",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "If you have functions running on a runtime that will be deprecated in the next 60 days; Lambda notifies you by email that you should prepare by migrating your function to a supported runtime. In some cases; such as security issues that require a backwards-incompatible update; or software that does not support a long-term support (LTS) schedule; advance notice might not be possible. After a runtime is deprecated; Lambda might retire it completely at any time by disabling invocation. Deprecated runtimes are not eligible for security updates or technical support.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
@@ -103,9 +91,7 @@
             "name": "no_secrets_in_variables",
             "title": "Ensure that there are no secrets in AWS lambda variables..",
             "result_kinds": ["aws_lambda_function"],
-            "categories": [
-                "security"
-            ],
+            "categories": ["security"],
             "risk": "The use of a hard-coded password increases the possibility of password guessing. If hard-coded passwords are used; it is possible that malicious users gain access through the account in question.",
             "severity": "critical",
             "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",

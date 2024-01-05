@@ -5,8 +5,8 @@
         {
             "name": "vaults_policy_public_access",
             "title": "Check if S3 Glacier vaults have policies which allow access to everyone.",
-            "result_kind": ["aws_elb"],
-            "categories": [ "security" ],
+            "result_kinds": ["aws_glacier_vault"],
+            "categories": ["security"],
             "risk": "Vaults accessible to everyone could expose sensitive data to bad actors.",
             "severity": "critical",
             "detect": {

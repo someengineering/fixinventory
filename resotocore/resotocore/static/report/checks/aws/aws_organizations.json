@@ -5,11 +5,8 @@
         {
             "name": "account_part_of_organizations",
             "title": "Check if account is part of an AWS Organization",
-            "result_kind": ["aws_account"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "result_kinds": ["aws_account"],
+            "categories": [ "security", "compliance" ],
             "risk": "Not being part of an AWS Organizations is the lack of centralized management and control over the AWS accounts in an organization. This can make it difficult to enforce security policies consistently across all accounts, and can also result in increased costs due to inefficiencies in resource usage. Additionally, not being part of an AWS Organizations can make it harder to track and manage account usage and access.",
             "severity": "high",
             "detect": {

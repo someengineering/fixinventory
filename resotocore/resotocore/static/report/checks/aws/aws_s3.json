@@ -6,10 +6,7 @@
             "name": "bucket_default_encryption",
             "title": "Check if S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Amazon S3 default encryption provides a way to set the default encryption behavior for an S3 bucket. This will ensure data-at-rest is encrypted.",
             "severity": "medium",
             "detect": {
@@ -28,10 +25,7 @@
             "name": "bucket_no_mfa_delete",
             "title": "Check if S3 bucket MFA Delete is not enabled.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Your security credentials are compromised or unauthorized access is granted.",
             "severity": "medium",
             "detect": {
@@ -50,10 +44,7 @@
             "name": "bucket_secure_transport_policy",
             "title": "Check if S3 buckets have secure transport policy.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "If HTTPS is not enforced on the bucket policy, communication between clients and S3 buckets can use unencrypted HTTP. As a result, sensitive information could be transmitted in clear text over the network or internet.",
             "severity": "medium",
             "detect": {
@@ -69,10 +60,7 @@
             "name": "macie_is_enabled",
             "title": "Check if Amazon Macie is enabled.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Amazon Macie is a fully managed data security and data privacy service that uses machine learning and pattern matching to help you discover, monitor and protect your sensitive data in AWS.",
             "severity": "medium",
             "detect": {
@@ -88,7 +76,7 @@
             "name": "bucket_policy_public_write_access",
             "title": "Check if S3 buckets have policies which allow write access.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [ "security", "compliance" ],
+            "categories": ["security", "compliance"],
             "risk": "Non intended users can put objects in a given bucket.",
             "severity": "critical",
             "detect": {
@@ -103,21 +91,18 @@
             "name": "account_level_public_access_blocks",
             "title": "Check S3 Account Level Public Access Block.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Public access policies may be applied to sensitive data buckets.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_s3_bucket) {account_setting: <-[0:]- is(aws_account) --> is(aws_s3_account_settings)} (bucket_public_access_block_configuration.block_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.block_public_acls==false) or (bucket_public_access_block_configuration.ignore_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.ignore_public_acls==false) or (bucket_public_access_block_configuration.block_public_policy==false and account_setting.reported.bucket_public_access_block_configuration.block_public_policy==false) or (bucket_public_access_block_configuration.restrict_public_buckets==false and account_setting.reported.bucket_public_access_block_configuration.restrict_public_buckets==false)"
             },
             "remediation": {
+                "text": "You can enable Public Access Block at the account level to prevent the exposure of your data stored in S3.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
                 "action": {
                     "aws_cli": "aws s3control put-public-access-block --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true --account-id {{account_id}}"
-                },
-                "text": "You can enable Public Access Block at the account level to prevent the exposure of your data stored in S3.",
-                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+                }
             },
             "internal_notes": ""
         },
@@ -125,10 +110,7 @@
             "name": "public_bucket",
             "title": "Do not use public S3 buckets.",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Public S3 buckets are unsecure, can be accessed from the internet and can cause a security risk in operations",
             "severity": "high",
             "detect": {
@@ -143,10 +125,7 @@
             "name": "bucket_object_logging_enabled",
             "title": "Ensure s3 bucket object logging in enabled to aid in identifying security breaches with AWS S3",
             "result_kinds": ["aws_s3_bucket"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Enabling S3 bucket object logging is important for security and compliance, as it provides audit trails for access and modifications to objects, aiding in identifying unauthorized access or data breaches.",
             "severity": "high",
             "detect": {

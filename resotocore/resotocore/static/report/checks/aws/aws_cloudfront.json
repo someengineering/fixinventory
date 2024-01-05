@@ -13,9 +13,11 @@
                 "resoto": "is(aws_cloudfront_distribution) and distribution_config.logging==null"
             },
             "remediation": {
-                "aws_cli": "aws cloudfront update-distribution --id YOUR_DISTRIBUTION_ID --logging-config '{\"enabled\":true,\"bucket\":\"YOUR_S3_BUCKET\",\"prefix\":\"LOG_PREFIX\"}'",
                 "text": "in addition to the CLI, you can also remediate via the management console",
-                "url": "https://repost.aws/knowledge-center/cloudfront-logging-requests"
+                "url": "https://repost.aws/knowledge-center/cloudfront-logging-requests",
+                "action": {
+                    "aws_cli": "aws cloudfront update-distribution --id YOUR_DISTRIBUTION_ID --logging-config '{\"enabled\":true,\"bucket\":\"YOUR_S3_BUCKET\",\"prefix\":\"LOG_PREFIX\"}'"
+                }
             }
         },
         {

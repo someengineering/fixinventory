@@ -5,8 +5,8 @@
         {
             "name": "alb_has_no_listeners",
             "title": "Check if ELBV2 has listeners underneath.",
-            "result_kind": ["aws_alb"],
-            "categories": [ "unused"],
+            "result_kinds": ["aws_alb"],
+            "categories": ["unused"],
             "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
             "severity": "medium",
             "detect": {
@@ -20,8 +20,8 @@
         {
             "name": "elb_has_no_listeners",
             "title": "Check if ELB has listeners underneath.",
-            "result_kind": ["aws_elb"],
-            "categories": [ "unused"],
+            "result_kinds": ["aws_elb"],
+            "categories": ["unused"],
             "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
             "severity": "medium",
             "detect": {
@@ -36,7 +36,7 @@
             "name": "logging_enabled",
             "title": "Ensure that logging is enabled for Application load balancers associated to infrastructure",
             "result_kinds": ["aws_elb"],
-            "categories": [ "security", "compliance" ],
+            "categories": ["security", "compliance"],
             "risk": "Without adequate logging, you can audit security risks such as limit visibility, reduced threat detection and inability to measure performance metrics",
             "severity": "medium",
             "detect": {
@@ -51,10 +51,7 @@
             "name": "uses_ssl_certificate",
             "title": "Ensure that Load balancer uses SSL certificate for 443 port ",
             "result_kinds": ["aws_elb"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Having a 443 port open without a Valid SSL certificate can cause security risks such as Exposure for sensitive information, susceptability to mulitple vunerabilities and a lack of trust from customers",
             "severity": "medium",
             "detect": {
@@ -69,10 +66,7 @@
             "name": "waf_enabled",
             "title": "Ensure that Load balancer has WAF enabled to provide protection against many of the common exploits and attacks ",
             "result_kinds": ["aws_alb"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": ["security", "compliance"],
             "risk": "Enabling WAF (Web Application Firewall) on an Application Load Balancer is important for security as it provides a layer of protection against common web exploits and attacks. WAF can filter, monitor, and block harmful traffic before it reaches your applications, enhancing the overall security posture.",
             "severity": "medium",
             "detect": {

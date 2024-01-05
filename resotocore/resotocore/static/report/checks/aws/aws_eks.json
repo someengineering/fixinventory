@@ -6,10 +6,7 @@
             "name": "cluster_endpoint_restrict_public_access",
             "title": "Ensure that EKS cluster endpoint is not publicly accessible",
             "result_kinds": [ "aws_eks_cluster" ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "categories": [ "security", "compliance" ],
             "risk": "A public EKS cluster is available and reachable by the public internet, which opens up security risks",
             "severity": "medium",
             "detect": {

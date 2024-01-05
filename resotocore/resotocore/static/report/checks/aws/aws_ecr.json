@@ -5,8 +5,8 @@
         {
             "name": "image_scan_on_push",
             "title": "Check if ECR image scan on push is enabled.",
-            "result_kinds": "aws_ecr_repository",
-            "categories": [],
+            "result_kinds": ["aws_ecr_repository"],
+            "categories": ["security", "compliance"],
             "risk": "Amazon ECR image scanning helps in identifying software vulnerabilities in your container images. Amazon ECR uses the Common Vulnerabilities and Exposures (CVEs) database from the open-source Clair project and provides a list of scan findings. ",
             "severity": "medium",
             "detect": {
@@ -20,11 +20,8 @@
         {
             "name": "repository_prohibit_public_access",
             "title": "Ensure that ECR repositories are not publicly accessible to mitigate security risks, prevent unauthorized access, and maintain control over container image distribution.",
-            "result_kinds": [ "aws_ecr_repository" ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "result_kinds": ["aws_ecr_repository"],
+            "categories": ["security", "compliance"],
             "risk": "ECR repositories contain code bases and application artifacts, thus its imperative that they be secure and not publicly accessible",
             "severity": "medium",
             "detect": {
@@ -38,8 +35,8 @@
         {
             "name": "repository_lifecycle_policy_enabled",
             "title": "Check if ECR repositories have lifecycle policies enabled.",
-            "result_kinds": [ "aws_ecr_repository" ],
-            "categories": [ "security", "compliance" ],
+            "result_kinds": ["aws_ecr_repository"],
+            "categories": ["security", "compliance"],
             "risk": "Amazon ECR repositories run the risk of retaining huge volumes of images, increasing unnecessary cost.",
             "severity": "medium",
             "detect": {

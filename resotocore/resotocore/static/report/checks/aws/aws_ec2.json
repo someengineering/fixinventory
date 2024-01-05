@@ -35,7 +35,7 @@
         {
             "name": "instance_in_vpc",
             "title": "Ensure that all EC2 instances are running in a VPC rather than EC2-Classic",
-            "result_kinds": ["aws_ec2"],
+            "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
             "risk": "EC2-Classic has been depreciated and do not receive AWS support which can cause compliance and security risk",
             "severity": "medium",
@@ -609,8 +609,10 @@
             },
             "remediation": {
                 "text": "Login to AWS Management Console and open the Amazon EC2 console using https://console.aws.amazon.com/ec2/ Under the Instances menu, select Instances.  For each Instance, select the instance, then choose Actions > Modify instance metadata options.  If the Instance metadata service is enabled, set IMDSv2 to Required.",
-                "awscli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required",
-                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html"
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html",
+                "action": {
+                    "aws_cli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required"
+                }
             }
         },
         {

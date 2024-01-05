@@ -9,7 +9,7 @@
         "cost"
     ],
     "risk": "",
-    "severity": "high|medium|low",
+    "severity": "critical|high|medium|low|info",
     "url": "",
     "detect": {
         "resoto": "is(resource)",
@@ -18,10 +18,10 @@
     },
     "remediation": {
         "action": {
-        "awscli": null,
-        "resoto": null,
-        "xxx": null
-    },
+            "aws_cli": null,
+            "resoto": null,
+            "xxx": null
+        },
         "text": "",
         "url": ""
     },

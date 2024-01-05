@@ -5,11 +5,8 @@
         {
             "name": "no_secrets_in_output",
             "title": "Ensure there are no secrets in CloudFormation outputs",
-            "result_kind": ["aws_cloudformation_stack"],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "result_kinds": ["aws_cloudformation_stack"],
+            "categories": ["security", "compliance"],
             "risk": "Secrets hardcoded into CloudFormation outputs can be used by malware and bad actors to gain lateral access to other services.",
             "severity": "critical",
             "detect": {

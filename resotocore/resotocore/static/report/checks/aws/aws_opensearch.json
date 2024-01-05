@@ -5,8 +5,8 @@
         {
             "name": "domain_does_not_use_internal_user_database",
             "title": "Ensure that Amazon Elasticsearch/Opensearch Service domains do not user the internal user database",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [ "security", "compliance" ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": ["security", "compliance"],
             "risk": "Internal User Database is convenient for demos; for production environment use Federated authentication.",
             "severity": "medium",
             "detect": {
@@ -20,8 +20,8 @@
         {
             "name": "domain_is_not_publicly_accessible",
             "title": "Ensure that Amazon Opensearch/Elasticsearch domains are not set as Public or have open policy access",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [  ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": ["security", "compliance"],
             "risk": "Publicly accessible services could expose sensitive data to bad actors.",
             "severity": "medium",
             "detect": {
@@ -35,8 +35,8 @@
         {
             "name": "domain_uses_cognito_authentication",
             "title": "Ensure that Amazon Opensearch Service domains have Amazon Cognito authentication enabled.",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [  ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": ["security", "compliance"],
             "risk": "Using Cognito authentication is more secure than using the internal user database.",
             "severity": "medium",
             "detect": {
@@ -50,8 +50,8 @@
         {
             "name": "audit_logs_enabled",
             "title": "Ensure that Amazon Opensearch Service domains have audit logs enabled.",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [  ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": ["security", "compliance"],
             "risk": "If logs are not enabled, monitoring of service use and threat analysis is not possible.",
             "severity": "low",
             "detect": {
@@ -65,8 +65,8 @@
         {
             "name": "update_available",
             "title": "Ensure that Amazon Opensearch Service domains are running the latest version.",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [  ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": [],
             "risk": "Amazon Opensearch regularly releases system software updates that add features or otherwise improve your domains.",
             "severity": "low",
             "detect": {
@@ -80,8 +80,8 @@
         {
             "name": "encryption_at_rest_enabled",
             "title": "Ensure that Amazon Opensearch Service domains have encryption at rest enabled.",
-            "result_kind": ["aws_opensearch_domain"],
-            "categories": [  ],
+            "result_kinds": ["aws_opensearch_domain"],
+            "categories": [],
             "risk": "Not encrypting data at rest could expose sensitive data to bad actors.",
             "severity": "low",
             "detect": {
