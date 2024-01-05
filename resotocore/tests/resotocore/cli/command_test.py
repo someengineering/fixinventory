@@ -274,8 +274,8 @@ async def test_list_sink(cli: CLI, dependencies: TenantDependencies) -> None:
 @pytest.mark.asyncio
 async def test_flat_sink(cli: CLI) -> None:
     parsed = await cli.evaluate_cli_command("json [1,2,3] | dump; json [4,5,6] | dump; json [7,8,9] | dump")
-    result = await stream.list(stream.iterate((await p.execute())[1] for p in parsed) | pipe.concat())
-    assert result == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    expected = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert await stream.list(stream.iterate((await p.execute())[1] for p in parsed) | pipe.concat()) == expected
 
 
 @pytest.mark.asyncio

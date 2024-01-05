@@ -407,7 +407,7 @@ def export_model(graph: Optional[Graph] = None, **kwargs: Any) -> List[Json]:
 
 @lru_cache(maxsize=4096)  # Only resolve types once per type
 def resolve_type(clazz: Type[Any]) -> None:
-    resolve_types(clazz)  # type: ignore
+    resolve_types(clazz)
 
 
 def validate_dataclass(node: BaseResource) -> bool:
