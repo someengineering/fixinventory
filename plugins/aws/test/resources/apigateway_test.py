@@ -15,10 +15,10 @@ def test_rest_apis() -> None:
     type_count: Dict[str, int] = defaultdict(int)
     for node in builder.graph.nodes:
         type_count[node.kind] += 1
-    assert type_count["aws_api_gateway_deployment"] == 2
-    assert type_count["aws_api_gateway_stage"] == 1
-    assert type_count["aws_api_gateway_authorizer"] == 1
-    assert type_count["aws_api_gateway_resource"] == 1
+    assert type_count["aws_apigateway_deployment"] == 2
+    assert type_count["aws_apigateway_stage"] == 1
+    assert type_count["aws_apigateway_authorizer"] == 1
+    assert type_count["aws_apigateway_resource"] == 1
 
 
 def test_api_tagging() -> None:

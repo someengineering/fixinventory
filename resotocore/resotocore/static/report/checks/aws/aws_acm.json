@@ -5,11 +5,8 @@
         {
             "name": "certificate_transparency_logging_enabled",
             "title": "Ensure that ACM certificate transparency is enabled to enhance the security of your website by providing visibility into the issuance and lifecycle of SSL/TLS certificates, helping to detect unauthorized certificates.",
-            "result_kinds": [ ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
+            "result_kinds": [ "aws_acm_certificate" ],
+            "categories": [ "security", "compliance"],
             "risk": "without ACM certificate transparency enabled, there's an increased risk of not being aware of potentially malicious or unauthorized SSL/TLS certificates, posing a threat to the security of your website or infrastructure",
             "severity": "medium",
             "detect": {

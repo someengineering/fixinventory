@@ -242,12 +242,12 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 "aws_vpc",
                 "aws_ec2_subnet",
                 "aws_ec2_security_group",
-                "aws_api_gateway_rest_api",
-                "aws_api_gateway_resource",
+                "aws_apigateway_rest_api",
+                "aws_apigateway_resource",
             ],
             "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group", "aws_kms_key"],
         },
-        "successors": {"default": ["aws_kms_key"], "delete": ["aws_api_gateway_rest_api", "aws_api_gateway_resource"]},
+        "successors": {"default": ["aws_kms_key"], "delete": ["aws_apigateway_rest_api", "aws_apigateway_resource"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FunctionName"),

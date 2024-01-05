@@ -62,7 +62,7 @@ class ApiGatewayTaggable:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayMethodResponse:
-    kind: ClassVar[str] = "aws_api_gateway_method_response"
+    kind: ClassVar[str] = "aws_apigateway_method_response"
     kind_display: ClassVar[str] = "AWS API Gateway Method Response"
     kind_description: ClassVar[str] = (
         "API Gateway Method Response allows users to define the response parameters"
@@ -81,7 +81,7 @@ class AwsApiGatewayMethodResponse:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayIntegrationResponse:
-    kind: ClassVar[str] = "aws_api_gateway_integration_response"
+    kind: ClassVar[str] = "aws_apigateway_integration_response"
     kind_display: ClassVar[str] = "AWS API Gateway Integration Response"
     kind_description: ClassVar[str] = (
         "API Gateway Integration Response is used to define the response structure"
@@ -103,7 +103,7 @@ class AwsApiGatewayIntegrationResponse:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayIntegration:
-    kind: ClassVar[str] = "aws_api_gateway_integration"
+    kind: ClassVar[str] = "aws_apigateway_integration"
     kind_display: ClassVar[str] = "AWS API Gateway Integration"
     kind_description: ClassVar[str] = (
         "API Gateway Integration is a feature provided by AWS API Gateway that allows"
@@ -146,7 +146,7 @@ class AwsApiGatewayIntegration:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayMethod:
-    kind: ClassVar[str] = "aws_api_gateway_method"
+    kind: ClassVar[str] = "aws_apigateway_method"
     kind_display: ClassVar[str] = "AWS API Gateway Method"
     kind_description: ClassVar[str] = (
         "AWS API Gateway Method allows users to define the individual methods that"
@@ -182,13 +182,13 @@ class AwsApiGatewayMethod:
 @define(eq=False, slots=False)
 class AwsApiGatewayResource(AwsResource):
     # collection of resource resources happens in AwsApiGatewayRestApi.collect()
-    kind: ClassVar[str] = "aws_api_gateway_resource"
+    kind: ClassVar[str] = "aws_apigateway_resource"
     kind_display: ClassVar[str] = "AWS API Gateway Resource"
     kind_description: ClassVar[str] = (
         "API Gateway Resource is a logical unit used in API Gateway to represent a"
         " part of an API's resource hierarchy."
     )
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_authorizer"]}}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_apigateway_authorizer"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "resource_parent_id": S("parentId"),
@@ -234,7 +234,7 @@ class AwsApiGatewayResource(AwsResource):
 @define(eq=False, slots=False)
 class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
-    kind: ClassVar[str] = "aws_api_gateway_authorizer"
+    kind: ClassVar[str] = "aws_apigateway_authorizer"
     kind_display: ClassVar[str] = "AWS API Gateway Authorizer"
     kind_description: ClassVar[str] = (
         "API Gateway Authorizers are mechanisms that help control access to APIs"
@@ -303,7 +303,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
 
 @define(eq=False, slots=False)
 class AwsApiGatewayCanarySetting:
-    kind: ClassVar[str] = "aws_api_gateway_canary_setting"
+    kind: ClassVar[str] = "aws_apigateway_canary_setting"
     kind_display: ClassVar[str] = "AWS API Gateway Canary Setting"
     kind_description: ClassVar[str] = (
         "API Gateway Canary Setting is a feature in AWS API Gateway that allows you"
@@ -325,7 +325,7 @@ class AwsApiGatewayCanarySetting:
 @define(eq=False, slots=False)
 class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     # collection of stage resources happens in AwsApiGatewayRestApi.collect()
-    kind: ClassVar[str] = "aws_api_gateway_stage"
+    kind: ClassVar[str] = "aws_apigateway_stage"
     kind_display: ClassVar[str] = "AWS API Gateway Stage"
     kind_description: ClassVar[str] = (
         "API Gateway Stages are environment configurations for deploying and managing"
@@ -386,14 +386,14 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsApiGatewayDeployment(AwsResource):
     # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
-    kind: ClassVar[str] = "aws_api_gateway_deployment"
+    kind: ClassVar[str] = "aws_apigateway_deployment"
     kind_display: ClassVar[str] = "AWS API Gateway Deployment"
     kind_description: ClassVar[str] = (
         "API Gateway Deployments represents a deployment of an API to an API Gateway stage."
         " This allows the API to be invocable by end-users."
     )
-    # edge to aws_api_gateway_stage is established in AwsApiGatewayRestApi.collect()
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_api_gateway_stage"]}}
+    # edge to aws_apigateway_stage is established in AwsApiGatewayRestApi.collect()
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_apigateway_stage"]}}
 
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -428,7 +428,7 @@ class AwsApiGatewayDeployment(AwsResource):
 
 @define(eq=False, slots=False)
 class AwsApiGatewayEndpointConfiguration:
-    kind: ClassVar[str] = "aws_api_gateway_endpoint_configuration"
+    kind: ClassVar[str] = "aws_apigateway_endpoint_configuration"
     kind_display: ClassVar[str] = "AWS API Gateway Endpoint Configuration"
     kind_description: ClassVar[str] = (
         "API Gateway Endpoint Configuration is a configuration that defines the"
@@ -445,7 +445,7 @@ class AwsApiGatewayEndpointConfiguration:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_api_gateway_rest_api"
+    kind: ClassVar[str] = "aws_apigateway_rest_api"
     kind_display: ClassVar[str] = "AWS API Gateway REST API"
     kind_description: ClassVar[str] = (
         "API Gateway is a fully managed service that makes it easy for developers to"
@@ -458,9 +458,9 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         "successors": {
             "default": [
                 "aws_vpc_endpoint",
-                "aws_api_gateway_deployment",
-                "aws_api_gateway_authorizer",
-                "aws_api_gateway_resource",
+                "aws_apigateway_deployment",
+                "aws_apigateway_authorizer",
+                "aws_apigateway_resource",
             ],
             "delete": ["aws_vpc_endpoint"],
         }
@@ -581,7 +581,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
 
 @define(eq=False, slots=False)
 class AwsApiGatewayMutualTlsAuthentication:
-    kind: ClassVar[str] = "aws_api_gateway_mutual_tls_authentication"
+    kind: ClassVar[str] = "aws_apigateway_mutual_tls_authentication"
     kind_display: ClassVar[str] = "AWS API Gateway Mutual TLS Authentication"
     kind_description: ClassVar[str] = (
         "API Gateway Mutual TLS Authentication enables mutual TLS authentication for"
@@ -600,7 +600,7 @@ class AwsApiGatewayMutualTlsAuthentication:
 
 @define(eq=False, slots=False)
 class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_api_gateway_domain_name"
+    kind: ClassVar[str] = "aws_apigateway_domain_name"
     kind_display: ClassVar[str] = "AWS API Gateway Domain Name"
     kind_description: ClassVar[str] = (
         "API Gateway Domain Name is a custom domain name that you can associate with"

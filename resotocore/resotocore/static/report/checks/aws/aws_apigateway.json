@@ -5,13 +5,13 @@
         {
             "name": "authorizers_enabled",
             "title": "Check if API Gateway has configured authorizers.",
-            "result_kinds": ["aws_api_gateway_rest_api"],
+            "result_kinds": ["aws_apigateway_rest_api"],
             "categories": ["security", "compliance"],
             "risk": "If no authorizer is defined, anyone can use the service.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html",
             "detect": {
-                "resoto": "is(aws_api_gateway_rest_api) with(empty, --> is(aws_api_gateway_authorizer))"
+                "resoto": "is(aws_apigateway_rest_api) with(empty, --> is(aws_apigateway_authorizer))"
             },
             "remediation": {
                 "text": "Add a Cognito pool or attach a Lambda function to control access to your API.",
@@ -23,13 +23,13 @@
         {
             "name": "client_certificate_enabled",
             "title": "Check if API Gateway has client certificate enabled to access your backend endpoint.",
-            "result_kinds": ["aws_api_gateway_stage"],
+            "result_kinds": ["aws_apigateway_stage"],
             "categories": ["security", "compliance"],
             "risk": "Man in the middle attacks are possible and other similar risks.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-mutual-tls.html",
             "detect": {
-                "resoto": "is(aws_api_gateway_stage) and stage_client_certificate_id==null <-[2]- is(aws_api_gateway_rest_api)"
+                "resoto": "is(aws_apigateway_stage) and stage_client_certificate_id==null <-[2]- is(aws_apigateway_rest_api)"
             },
             "remediation": {
                 "text": "Enable client certificate. Mutual TLS is recommended and commonly used for business-to-business (B2B) applications. It iss used in standards such as Open Banking. API Gateway now provides integrated mutual TLS authentication at no additional cost.",
@@ -39,12 +39,12 @@
         {
             "name": "logging_enabled",
             "title": "Check if API Gateway has logging enabled.",
-            "result_kinds": ["aws_api_gateway_stage"],
+            "result_kinds": ["aws_apigateway_stage"],
             "categories": ["compliance"],
             "risk": "If not enabled, monitoring of service use is not possible. Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs and establishing corresponding metric filters and alarms.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_api_gateway_stage) and stage_method_settings!={}"
+                "resoto": "is(aws_apigateway_stage) and stage_method_settings!={}"
             },
             "remediation": {
                 "text": "Monitoring is an important part of maintaining the reliability, availability and performance of API Gateway and your AWS solutions. You should collect monitoring data from all of the parts of your AWS solution. CloudTrail provides a record of actions taken by a user, role, or an AWS service in API Gateway. Using the information collected by CloudTrail, you can determine the request that was made to API Gateway, the IP address from which the request was made, who made the request, etc.",
@@ -54,12 +54,12 @@
         {
             "name": "waf_acl_attached",
             "title": "Check if API Gateway has a WAF ACL attached.",
-            "result_kinds": ["aws_api_gateway_stage"],
+            "result_kinds": ["aws_apigateway_stage"],
             "categories": ["security"],
             "risk": "Potential attacks and / or abuse of service for internet reachable services.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_api_gateway_stage) and stage_web_acl_arn==null"
+                "resoto": "is(aws_apigateway_stage) and stage_web_acl_arn==null"
             },
             "remediation": {
                 "text": "Use AWS WAF to protect your API Gateway API from common web exploits, such as SQL injection and cross-site scripting (XSS) attacks. These could affect API availability and performance, compromise security or consume excessive resources.",

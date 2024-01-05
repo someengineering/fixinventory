@@ -801,7 +801,7 @@ class AwsWafWebACL(AwsResource):
     kind: ClassVar[str] = "aws_waf_web_acl"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("wafv2", "get-web-acl", "WebACL")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_alb", "aws_api_gateway_rest_api", "aws_cognito_user_pool"]}
+        "successors": {"default": ["aws_alb", "aws_apigateway_rest_api", "aws_cognito_user_pool"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
