@@ -412,10 +412,12 @@ class InspectorService(Inspector, Service):
                 try:
                     env = check.default_values or {}
                     detect = ""
-                    if detect := check.detect.get("resoto"):
-                        await self.template_expander.parse_query(detect, on_section="reported", env=env)
-                    elif detect := check.detect.get("resoto_cmd"):
-                        await self.cli.evaluate_cli_command(detect, CLIContext(env=env))
+                    if search := check.detect.get("resoto"):
+                        detect = search
+                        await self.template_expander.parse_query(search, on_section="reported", env=env)
+                    elif cmd := check.detect.get("resoto_cmd"):
+                        detect = cmd
+                        await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
                     elif check.detect.get("manual"):
                         continue
                     else:
