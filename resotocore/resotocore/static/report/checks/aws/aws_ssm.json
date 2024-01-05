@@ -56,7 +56,7 @@
             "risk": "Non-compliance of diverse AWS resources (EC2 instances, DynamoDB tables, SSM documents, S3 buckets) with AWS Systems Manager policies poses serious risks. It can lead to security vulnerabilities, operational inconsistencies, and breaches of regulatory compliance, ultimately jeopardizing system integrity, data security, and reliability.",
             "severity": "high",
             "detect": {
-                "resoto": "is(aws_ssm_resource_compliance) -->"
+                "resoto": "is(aws_ssm_resource_compliance) --> is(aws_ec2_instance, aws_dynamodb_table, aws_ssm_document, aws_s3_bucket)"
             },
             "remediation": {
                 "text": "To address non-compliance, identify the compliance standards set by AWS Systems Manager and pinpoint the specific requirements not met by each resource. For EC2 instances, ensure the SSM Agent is correctly configured and the instance is adhering to the desired state configurations. For DynamoDB, verify table settings against best practices. Ensure S3 buckets have proper access controls and encryption settings. Regularly update and enforce compliance policies and perform systematic compliance audits. Utilize AWS Systems Manager automation to streamline the remediation process for non-compliant resources.",

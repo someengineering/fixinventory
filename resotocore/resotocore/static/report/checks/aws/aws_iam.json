@@ -95,7 +95,7 @@
         {
             "name": "user_hardware_mfa_enabled",
             "title": "Ensure hardware MFA is enabled for all IAM users.",
-            "result_kinds": ["aws_root_user"],
+            "result_kinds": ["aws_iam_user"],
             "categories": ["security", "compliance"],
             "risk": "Hardware MFA is preferred over virtual MFA.",
             "severity": "low",
@@ -239,7 +239,7 @@
         {
             "name": "policy_attached_only_to_group_or_roles",
             "title": "Ensure IAM policies are attached only to groups or roles",
-            "result_kinds": ["aws_iam_access_key"],
+            "result_kinds": ["aws_iam_user"],
             "categories": ["security", "compliance"],
             "risk": "By default IAM users; groups; and roles have no access to AWS resources. IAM policies are the means by which privileges are granted to users; groups; or roles. It is recommended that IAM policies be applied directly to groups and roles but not users. Assigning privileges at the group or role level reduces the complexity of access management as the number of users grow. Reducing access management complexity may in-turn reduce opportunity for a principal to inadvertently receive or retain excessive privileges.",
             "severity": "low",

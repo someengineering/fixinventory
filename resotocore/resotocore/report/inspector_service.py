@@ -411,14 +411,27 @@ class InspectorService(Inspector, Service):
             for check in ReportCheckCollectionConfig.from_config(ConfigEntity(ResotoReportCheck, json)):
                 try:
                     env = check.default_values or {}
-                    if search := check.detect.get("resoto"):
-                        await self.template_expander.parse_query(search, on_section="reported", env=env)
-                    elif cmd := check.detect.get("resoto_cmd"):
-                        await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
+                    detect = ""
+                    if detect := check.detect.get("resoto"):
+                        await self.template_expander.parse_query(detect, on_section="reported", env=env)
+                    elif detect := check.detect.get("resoto_cmd"):
+                        await self.cli.evaluate_cli_command(detect, CLIContext(env=env))
                     elif check.detect.get("manual"):
-                        pass
+                        continue
                     else:
                         errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
+                    if not check.result_kinds:
+                        errors.append(f"Check {check.id} does not define any result kind")
+                    for rk in check.result_kinds:
+                        if rk not in detect:
+                            errors.append(f"Check {check.id} does not detect result kind {rk}")
+                    if not check.remediation.text:
+                        errors.append(f"Check {check.id} does not define any remediation text")
+                    if not check.remediation.url:
+                        errors.append(f"Check {check.id} does not define any remediation url")
+                    for prop in ["id", "title", "risk", "severity"]:
+                        if not getattr(check, prop, None):
+                            errors.append(f"Check {check.id} does not define prop {prop}")
                 except Exception as e:
                     errors.append(f"Check {check.id} is invalid: {e}")
             if errors:

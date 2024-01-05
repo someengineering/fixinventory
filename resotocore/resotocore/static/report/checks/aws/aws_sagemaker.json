@@ -65,7 +65,7 @@
         {
             "name": "notebook_vpc_settings_enabled",
             "title": "Ensure VPC is configured for SageMaker Notebook",
-            "result_kinds": ["aws_sagemaker_model"],
+            "result_kinds": ["aws_sagemaker_notebook"],
             "categories": ["security", "compliance"],
             "risk": "Notebook without VPC isolation may be vulnerable to unauthorized data access or cyber attacks.",
             "severity": "medium",
@@ -80,7 +80,7 @@
         {
             "name": "training_job_vpc_settings_enabled",
             "title": "Ensure VPC is configured for SageMaker Training Jobs",
-            "result_kinds": ["aws_sagemaker_model"],
+            "result_kinds": ["aws_sagemaker_training_job"],
             "categories": ["security", "compliance"],
             "risk": "Training Jobs without VPC isolation may be vulnerable to unauthorized data access or cyber attacks.",
             "severity": "medium",
@@ -125,7 +125,7 @@
         {
             "name": "training_job_volume_encryption_enabled",
             "title": "Ensure encryption is enabled for SageMaker Training Jobs volumes",
-            "result_kinds": ["aws_sagemaker_model"],
+            "result_kinds": ["aws_sagemaker_training_job"],
             "categories": ["security", "compliance"],
             "risk": "Unencrypted Data pose a risk of unauthorized data access and potential data breaches. Utilizing KMS keys adds a critical layer of security through encryption.",
             "severity": "medium",
