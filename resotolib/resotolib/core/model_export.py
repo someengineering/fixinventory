@@ -77,7 +77,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
         elif is_collection(clazz):
             check(type_arg(to_check))
         elif attrs.has(clazz):
-            resolve_types(clazz)  # type: ignore
+            resolve_types(clazz)
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
                 check(mro_clazz)
@@ -212,7 +212,7 @@ def dataclasses_to_resotocore_model(
 
     for cls in classes:
         if attrs.has(cls):
-            resolve_types(cls)  # type: ignore # make sure all string based types are resolved correctly
+            resolve_types(cls)
     model: List[Json] = []
     all_classes = transitive_classes(classes, walk_subclasses)
 
@@ -277,7 +277,7 @@ def dataclasses_to_resotocore_model(
 
     for cls in all_classes:
         if attrs.has(cls):
-            resolve_types(cls)  # type: ignore # make sure all string based types are resolved correctly
+            resolve_types(cls)
             export_data_class(cls)
         elif is_enum(cls):
             export_enum(cls)
@@ -354,7 +354,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
 def locate_python_type(python_type: str) -> Any:
     cls: Type[Any] = locate(python_type)  # type: ignore
     if attrs.has(cls):
-        attrs.resolve_types(cls)  # type: ignore
+        attrs.resolve_types(cls)
     return cls
 
 

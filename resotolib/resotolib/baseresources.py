@@ -1307,4 +1307,4 @@ class UnknownLocation(BaseResource):
         return False
 
 
-resolve_types(BaseResource)  # type: ignore
+resolve_types(BaseResource)  # noqa
