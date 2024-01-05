@@ -618,7 +618,7 @@
         {
             "name": "instance_stopped_since_30d",
             "title": "Ensure that stopped EC2 instance are removed in 30 days",
-            "result_kinds": ["aws_ec2"],
+            "result_kinds": ["aws_ec2_instance"],
             "categories": [ "security", "compliance" ],
             "risk": "instances that are stopped have a tendency to be forgotten and can cause a security risk, make sure to terminate instances not in use",
             "severity": "medium",
@@ -666,7 +666,7 @@
         {
             "name": "image_public",
             "title": "Ensure there are no EC2 AMIs set as Public.",
-            "result_kinds": ["aws_ami_image"],
+            "result_kinds": [],
             "categories": [ "security", "compliance" ],
             "risk": "When your AMIs are publicly accessible, they are available in the Community AMIs where everyone with an AWS account can use them to launch EC2 instances. Your AMIs could contain snapshots of your applications (including their data), therefore exposing your snapshots in this manner is not advised.",
             "severity": "critical",
