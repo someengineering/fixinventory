@@ -273,7 +273,13 @@ class Api(Service):
                 web.get(prefix + "/subscriber/{subscriber_id}/handle", require(self.handle_subscribed, a)),
                 # report checks
                 web.get(prefix + "/report/checks", require(self.inspection_checks, r)),
+                web.get(prefix + "/report/check/{check_id}", require(self.get_check, r)),
+                web.put(prefix + "/report/check/{check_id}", require(self.update_check, r)),
+                web.delete(prefix + "/report/check/{check_id}", require(self.delete_check, r)),
                 web.get(prefix + "/report/benchmarks", require(self.benchmarks, r)),
+                web.get(prefix + "/report/benchmark/{benchmark}", require(self.get_benchmark, r)),
+                web.put(prefix + "/report/benchmark/{benchmark}", require(self.update_benchmark, r)),
+                web.delete(prefix + "/report/benchmark/{benchmark}", require(self.delete_benchmark, r)),
                 web.get(prefix + "/report/checks/graph/{graph_id}", require(self.perform_benchmark_on_checks, r)),
                 web.get(prefix + "/report/check/{check_id}/graph/{graph_id}", require(self.inspection_results, r)),
                 web.get(prefix + "/report/benchmark/{benchmark}/graph/{graph_id}", require(self.perform_benchmark, r)),
@@ -670,21 +676,47 @@ class Api(Service):
         category = request.query.get("category")
         kind = request.query.get("kind")
         check_ids = request.query["id"].split(",") if "id" in request.query else None
-        inspections = await deps.inspector.list_checks(
+        ids_only = request.query.get("ids_only", "false").lower() == "true"
+        checks = await deps.inspector.list_checks(
             provider=provider, service=service, category=category, kind=kind, check_ids=check_ids
         )
-        return await single_result(request, to_js(inspections))
+
+        def to_js_check(rc: ReportCheck) -> JsonElement:
+            if ids_only:
+                return rc.id
+            return to_js(rc, strip_nulls=True)
+
+        return await single_result(request, [to_js_check(i) for i in checks])
+
+    async def get_check(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        if result := await deps.inspector.list_checks(check_ids=[request.match_info["check_id"]]):
+            return await single_result(request, to_js(result[0]))
+        else:
+            return HTTPNotFound(text="No check with this id")
+
+    async def update_check(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        body = await request.json()
+        body["id"] = request.match_info["check_id"]
+        result = await deps.inspector.update_check(from_js(body, ReportCheck))
+        return await single_result(request, to_js(result))
+
+    async def delete_check(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        await deps.inspector.delete_check(request.match_info["check_id"])
+        return HTTPNoContent()
 
     async def benchmarks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         benchmark_filter = [b.strip() for b in request.query.get("benchmarks", "").split(",") if b.strip()]
         short = request.query.get("short", "false").lower() == "true"
+        ids_only = request.query.get("ids_only", "false").lower() == "true"
         with_checks = request.query.get("with_checks", "false").lower() == "true"
         lookup = {c.id: c for c in await deps.inspector.list_checks()} if with_checks else {}
 
         def to_js_check(c: ReportCheck) -> JsonElement:
             return dict(id=c.id, severity=c.severity.value) if short else to_js(c, strip_nulls=True)
 
-        def to_js_benchmark(b: Benchmark) -> Json:
+        def to_js_benchmark(b: Benchmark) -> JsonElement:
+            if ids_only:
+                return b.id
             bj: Json = to_js(b, strip_nulls=True)
             if short:
                 bj.pop("checks", None)
@@ -699,6 +731,22 @@ class Api(Service):
             if (b.id in benchmark_filter or not benchmark_filter)
         ]
         return await single_result(request, benchmarks)
+
+    async def get_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        if result := await deps.inspector.benchmark(request.match_info["benchmark"]):
+            return await single_result(request, to_js(result))
+        else:
+            return HTTPNotFound(text="No benchmark with this id")
+
+    async def update_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        body = await request.json()
+        body["id"] = request.match_info["benchmark"]
+        result = await deps.inspector.update_benchmark(from_js(body, Benchmark))
+        return await single_result(request, to_js(result))
+
+    async def delete_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        await deps.inspector.delete_benchmark(request.match_info["benchmark"])
+        return HTTPNoContent()
 
     async def inspection_results(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph = GraphName(request.match_info["graph_id"])

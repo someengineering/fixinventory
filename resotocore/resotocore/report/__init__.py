@@ -435,3 +435,19 @@ class Inspector(ABC):
     @abstractmethod
     async def validate_check_collection_config(self, json: Json) -> Optional[Json]:
         pass
+
+    @abstractmethod
+    async def delete_benchmark(self, bid: str) -> None:
+        pass
+
+    @abstractmethod
+    async def update_benchmark(self, benchmark: Benchmark) -> Benchmark:
+        pass
+
+    @abstractmethod
+    async def delete_check(self, check_id: str) -> None:
+        pass
+
+    @abstractmethod
+    async def update_check(self, check: ReportCheck) -> ReportCheck:
+        pass

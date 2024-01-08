@@ -109,9 +109,13 @@ class InspectorService(Inspector, Service):
             return None
 
     async def delete_benchmark(self, bid: str) -> None:
+        if bid in benchmarks_from_file():
+            raise RuntimeError(f"Deleting a predefined benchmark is not allowed: {bid}")
         await self.benchmark_db.delete(bid)
 
     async def update_benchmark(self, benchmark: Benchmark) -> Benchmark:
+        if benchmark.id in benchmarks_from_file():
+            raise RuntimeError(f"Changing a predefined benchmark is not allowed: {benchmark.id}")
         return await self.benchmark_db.update(benchmark)
 
     async def delete_check(self, check_id: str) -> None:
