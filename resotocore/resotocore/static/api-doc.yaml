@@ -2685,13 +2685,18 @@ paths:
           schema:
             type: string
           example: "aws_ec2_instance"
+        - name: ids_only
+          in: query
+          description: "Filter by check ids."
+          schema:
+            type: boolean
         - name: id
           in: query
           description: "Filter by check ids."
           schema:
             type: string
           explode: false
-          example: "aws_ec2_snapshot_encrypted,aws_ec2_unused_elastic_ip"
+          example: "aws_ec2_public_ip_address,aws_ec2_old_instances"
       responses:
         "200":
           description: "List of checks."
@@ -2701,6 +2706,69 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InspectCheck"
+  /report/check/{check_id}:
+    get:
+      summary: "Get a check by its id."
+      description: "Get a check by its id."
+      tags:
+        - report
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to perform."
+          schema:
+            type: string
+          example: "aws_ec2_snapshot_encrypted"
+          required: true
+      responses:
+        "200":
+          description: "The checks result."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectCheck"
+    put:
+      summary: "Create or replace a check by its id."
+      description: "Create or replace a check by its id."
+      tags:
+        - report
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to perform."
+          schema:
+            type: string
+          example: "aws_ec2_snapshot_encrypted"
+          required: true
+      requestBody:
+        description: "The check to replace."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectCheck"
+      responses:
+        "200":
+          description: "The checks result."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectCheck"
+    delete:
+      summary: "Delete a check by its id."
+      description: "Delete a check by its id."
+      tags:
+        - report
+      parameters:
+        - name: check_id
+          in: path
+          description: "The ID of the check to perform."
+          schema:
+            type: string
+          example: "aws_ec2_snapshot_encrypted"
+          required: true
+      responses:
+        "204":
+          description: "Empty."
 
   /report/benchmarks:
     get:
@@ -2728,6 +2796,12 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: ids_only
+          in: query
+          description: "Return only the ids of the benchmarks."
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: "List of benchmarks."
@@ -2737,6 +2811,71 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Benchmark"
+
+  /report/benchmark/{benchmark}:
+    get:
+      summary: "Get a benchmark by its id."
+      description: "Get a benchmark by its id."
+      tags:
+        - report
+      parameters:
+        - name: benchmark
+          in: path
+          description: "The ID of the benchmark."
+          schema:
+            type: string
+          example: "aws_cis_1_5"
+          required: true
+      responses:
+        "200":
+          description: "The benchmark definition."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Benchmark"
+    put:
+      summary: "Create or replace a benchmark by its id."
+      description: "Create or replace a benchmark by its id."
+      tags:
+        - report
+      parameters:
+        - name: benchmark
+          in: path
+          description: "The ID of the benchmark."
+          schema:
+            type: string
+          example: "aws_cis_1_5"
+          required: true
+      requestBody:
+        description: "The benchmark to replace."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Benchmark"
+      responses:
+        "200":
+          description: "The benchmark."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Benchmark"
+    delete:
+      summary: "Delete a benchmark by its id."
+      description: "Delete a benchmark by its id."
+      tags:
+        - report
+      parameters:
+        - name: benchmark
+          in: path
+          description: "The ID of the benchmark."
+          schema:
+            type: string
+          example: "aws_cis_1_5"
+          required: true
+      responses:
+        "204":
+          description: "Empty."
+
   /report/benchmark/{benchmark}/graph/{graph_id}:
     get:
       summary: "Perform a benchmark on a graph."
@@ -3129,12 +3268,12 @@ paths:
                 group:
                   type: array
                   items:
-                      type: string
+                    type: string
                   description: Reduce the available groups to the set of defined ones.
                 filter:
                   type: array
                   items:
-                      type: string
+                    type: string
                   description: |
                     Filter available group members by predicate.
                     Only time series values with matching group criteria will be selected.
@@ -3982,6 +4121,14 @@ components:
           items:
             type: string
           description: "The related checks of this check"
+        result_kinds:
+          type: array
+          items:
+            type: string
+          description: "The kinds that are returned by this check."
+        risk:
+          type: string
+          description: "The risk we are taking if we ignore this check"
 
     CheckCollection:
       type: object
@@ -4025,12 +4172,3 @@ components:
           items:
             type: string
           description: "The clouds relevant for this benchmark"
-        report_checks:
-          type: array
-          items:
-            oneOf:
-              - type: string
-              - $ref: '#/components/schemas/InspectCheck'
-          description: "Related checks of this benchmarks"
-
-

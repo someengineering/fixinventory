@@ -110,18 +110,22 @@ class InspectorService(Inspector, Service):
 
     async def delete_benchmark(self, bid: str) -> None:
         if bid in benchmarks_from_file():
-            raise RuntimeError(f"Deleting a predefined benchmark is not allowed: {bid}")
+            raise ValueError(f"Deleting a predefined benchmark is not allowed: {bid}")
         await self.benchmark_db.delete(bid)
 
     async def update_benchmark(self, benchmark: Benchmark) -> Benchmark:
         if benchmark.id in benchmarks_from_file():
-            raise RuntimeError(f"Changing a predefined benchmark is not allowed: {benchmark.id}")
+            raise ValueError(f"Changing a predefined benchmark is not allowed: {benchmark.id}")
+        if invalid := await self.__validate_benchmark(benchmark):
+            raise ValueError(f"Benchmark {benchmark.id} is invalid: {', '.join(invalid)}")
         return await self.benchmark_db.update(benchmark)
 
     async def delete_check(self, check_id: str) -> None:
         await self.report_check_db.delete(check_id)
 
     async def update_check(self, check: ReportCheck) -> ReportCheck:
+        if invalid := await self.__validate_check(check):
+            raise ValueError(f"Check {check.id} is invalid: {', '.join(invalid)}")
         return await self.report_check_db.update(check)
 
     async def __benchmarks(self, names: List[str]) -> Dict[str, Benchmark]:
@@ -303,9 +307,12 @@ class InspectorService(Inspector, Service):
             # filter only relevant accounts if provided
             if context.accounts:
                 query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
-            async with await self.db_access.get_graph_db(graph).search_list(QueryModel(query, model)) as ctx:
-                async for result in ctx:
-                    yield result
+            try:
+                async with await self.db_access.get_graph_db(graph).search_list(QueryModel(query, model)) as ctx:
+                    async for result in ctx:
+                        yield result
+            except Exception as e:
+                log.warning(f"Error while executing query {query}: {e}. Assume empty result.")
 
         async def perform_cmd(cmd: str) -> AsyncIterator[Json]:
             # filter only relevant accounts if provided
@@ -313,8 +320,11 @@ class InspectorService(Inspector, Service):
                 account_list = ",".join(f'"{a}"' for a in context.accounts)
                 cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
             cli_result = await self.cli.execute_cli_command(cmd, list_sink, CLIContext(env=env))
-            for result in cli_result[0]:
-                yield result
+            try:
+                for result in cli_result[0]:
+                    yield result
+            except Exception as e:
+                log.warning(f"Error while executing command {cmd}: {e}. Assume empty result.")
 
         async def empty() -> AsyncIterator[Json]:
             if False:  # pylint: disable=using-constant-test
@@ -399,46 +409,49 @@ class InspectorService(Inspector, Service):
             return [aid for aid in ids if aid is not None]
 
     async def validate_benchmark_config(self, cfg_id: ConfigId, json: Json) -> Optional[Json]:
+        errors = []
         try:
             benchmark = BenchmarkConfig.from_config(ConfigEntity(ResotoReportBenchmark, json))
             bid = cfg_id.rsplit(".", 1)[-1]
             if benchmark.id != bid:
-                return {"error": f"Benchmark id should be {bid} (same as the config name). Got {benchmark.id}"}
-            all_checks = {c.id for c in await self.filter_checks()}
-            missing = []
-            for check in benchmark.nested_checks():
-                if check not in all_checks:
-                    missing.append(check)
-            if missing:
-                return {"error": f"Following checks are defined in the benchmark but do not exist: {missing}"}
-            else:
-                return None
+                errors.append(f"Benchmark id should be {bid} (same as the config name). Got {benchmark.id}")
+            errors.extend(await self.__validate_benchmark(benchmark))
         except Exception as e:
-            return {"error": f"Can not digest benchmark: {e}"}
+            errors.append(f"Can not digest benchmark: {e}")
+        return {"errors": errors} if errors else None
 
     async def validate_check_collection_config(self, json: Json) -> Optional[Json]:
+        errors = []
         try:
-            errors = []
             for check in ReportCheckCollectionConfig.from_config(ConfigEntity(ResotoReportCheck, json)):
-                try:
-                    env = check.default_values or {}
-                    if search := check.detect.get("resoto"):
-                        await self.template_expander.parse_query(search, on_section="reported", env=env)
-                    elif cmd := check.detect.get("resoto_cmd"):
-                        await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
-                    elif check.detect.get("manual"):
-                        pass
-                    else:
-                        errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
-                except Exception as e:
-                    errors.append(f"Check {check.id} is invalid: {e}")
-            if errors:
-                return {"error": f"Can not validate check collection: {errors}"}
-            else:
-                return None
-
+                errors.extend(await self.__validate_check(check))
         except Exception as e:
-            return {"error": f"Can not digest check collection: {e}"}
+            errors.append(f"Can not digest check collection: {e}")
+        return {"errors": errors} if errors else None
+
+    async def __validate_benchmark(self, benchmark: Benchmark) -> List[str]:
+        all_checks = {c.id for c in await self.filter_checks()}
+        errors = []
+        for check in benchmark.nested_checks():
+            if check not in all_checks:
+                errors.append(f"Check {check} is defined in the benchmark but does not exist.")
+        return errors
+
+    async def __validate_check(self, check: ReportCheck) -> List[str]:
+        errors = []
+        try:
+            env = check.default_values or {}
+            if search := check.detect.get("resoto"):
+                await self.template_expander.parse_query(search, on_section="reported", env=env)
+            elif cmd := check.detect.get("resoto_cmd"):
+                await self.cli.evaluate_cli_command(cmd, CLIContext(env=env))
+            elif check.detect.get("manual"):
+                pass
+            else:
+                errors.append(f"Check {check.id} neither has a resoto, resoto_cmd or manual defined")
+        except Exception as e:
+            errors.append(f"Check {check.id} is invalid: {e}")
+        return errors
 
     def __benchmarks_to_security_iterator(
         self, results: Dict[str, BenchmarkResult]
