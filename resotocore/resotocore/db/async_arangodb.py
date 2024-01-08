@@ -36,8 +36,16 @@ log = logging.getLogger(__name__)
 
 class AsyncCursor(AsyncIterator[Any]):
     def __init__(
-        self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]], flatten_nodes_and_edges: bool = False
+        self,
+        cursor: Cursor,
+        *,
+        query: str,
+        bind_vars: Optional[Json] = None,
+        trafo: Optional[Callable[[Json], Optional[Any]]] = None,
+        flatten_nodes_and_edges: bool = False,
     ):
+        self.query = query
+        self.bind_vars = bind_vars
         self.cursor = cursor
         self.visited_node: Set[str] = set()
         self.visited_edge: Set[str] = set()
@@ -72,6 +80,8 @@ class AsyncCursor(AsyncIterator[Any]):
                 return await self.next_deferred_edge()
 
     def close(self) -> None:
+        if stats := self.cursor.statistics():
+            log.debug(f"Query {self.query} with bind_vars {self.bind_vars} took {stats}")
         self.cursor.close(ignore_missing=True)
 
     def count(self) -> Optional[int]:
@@ -136,6 +146,7 @@ class AsyncCursor(AsyncIterator[Any]):
             res: Json = self.cursor.pop()
             return res
         except CursorNextError as ex:
+            log.error(f"Cursor does not exist any longer. Query: {self.query} with bind_vars: {self.bind_vars}")
             raise QueryTookToLongError("Cursor does not exist any longer, since the query ran for too long.") from ex
 
     async def next_deferred_edge(self) -> Json:
@@ -149,8 +160,8 @@ class AsyncCursor(AsyncIterator[Any]):
 
 
 class AsyncCursorContext(AsyncContextManager[AsyncCursor]):
-    def __init__(self, cursor: Cursor, trafo: Optional[Callable[[Json], Optional[Any]]], flatten_nodes_and_edges: bool):
-        self.cursor = AsyncCursor(cursor, trafo, flatten_nodes_and_edges)
+    def __init__(self, cursor: AsyncCursor):
+        self.cursor = cursor
 
     async def __aenter__(self) -> AsyncCursor:
         return self.cursor
@@ -211,7 +222,15 @@ class AsyncArangoDBBase:
             skip_inaccessible_cols,
             max_runtime,
         )
-        return AsyncCursorContext(cursor, trafo, flatten_nodes_and_edges or False)
+        return AsyncCursorContext(
+            AsyncCursor(
+                cursor,
+                trafo=trafo,
+                flatten_nodes_and_edges=flatten_nodes_and_edges or False,
+                query=query,
+                bind_vars=bind_vars,
+            )
+        )
 
     async def aql(
         self,
