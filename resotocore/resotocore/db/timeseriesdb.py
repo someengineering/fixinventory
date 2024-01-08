@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from datetime import timedelta, datetime, timezone
 from functools import partial
+from numbers import Number
 from typing import Optional, List, Set, Union, cast, Callable, Dict
 
 from attr import evolve, define
@@ -107,6 +108,8 @@ class TimeSeriesDB:
         filter_by: Optional[List[Predicate]] = None,
         granularity: Optional[Union[timedelta, int]] = None,
         trafo: Optional[Callable[[Json], Json]] = None,
+        batch_size: Optional[int] = None,
+        timeout: Optional[timedelta] = None,
     ) -> AsyncCursor:
         """
         Load time series data.
@@ -119,6 +122,8 @@ class TimeSeriesDB:
                The minimum granularity is one hour.
                In case this number is an integer, it is interpreted as the number of steps between start and end.
         :param trafo: Optional transformation function to apply to each result.
+        :param batch_size: Optional batch size for the query.
+        :param timeout: Timeout for the query to run.
         :return: A cursor to iterate over the time series data.
         """
         assert start < end, "start must be before end"
@@ -141,7 +146,10 @@ class TimeSeriesDB:
             js["at"] = utc_str(datetime.fromtimestamp(js["at"], timezone.utc))
             return js
 
-        async with await self.db.aql_cursor(qs, bind_vars=bv, trafo=trafo or result_trafo) as crsr:
+        ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
+        async with await self.db.aql_cursor(
+            query=qs, bind_vars=bv, batch_size=batch_size or 10_000, ttl=ttl, trafo=trafo or result_trafo
+        ) as crsr:
             return crsr
 
     async def downsample(self, now: Optional[datetime] = None) -> Union[str, Json]:
@@ -184,6 +192,8 @@ class TimeSeriesDB:
                             c_end,
                             granularity=bucket.resolution,
                             trafo=partial(ts_format, ts.name),
+                            batch_size=100_000,  # The values are tiny. Use a large batch size.
+                            timeout=timedelta(seconds=60),
                         )
                     ]:
                         log.info(f"Compact {ts.name} bucket {bucket} to {len(ts_data)} entries (last={ts_bucket_last})")
