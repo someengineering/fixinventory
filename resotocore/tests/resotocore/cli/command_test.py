@@ -15,7 +15,6 @@ from aiohttp.web import Request
 from aiostream import stream, pipe
 from attrs import evolve
 from pytest import fixture
-
 from resotocore import version
 from resotocore.cli import is_node, JsStream, list_sink
 from resotocore.cli.cli import CLIService
@@ -32,10 +31,9 @@ from resotocore.ids import InfraAppName, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.model.model import Model
-from resotocore.model.typed_model import to_js, to_js_str
+from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.report import Inspector
-from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json

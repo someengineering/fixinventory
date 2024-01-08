@@ -1,7 +1,6 @@
 from typing import Dict, List
 
 from pytest import fixture
-
 from resotocore.cli.cli import CLIService
 from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
@@ -13,18 +12,13 @@ from resotocore.report import (
     BenchmarkResult,
     Benchmark,
     ReportCheck,
-    ReportSeverity,
-    Remediation,
-    CheckCollection,
 )
 from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import (
     config_model,
     ReportCheckCollectionConfig,
     BenchmarkConfig,
-    CheckCollectionConfig,
 )
-from resotocore.types import Json
 from resotocore.util import partition_by
 
 

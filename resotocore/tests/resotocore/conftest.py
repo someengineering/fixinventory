@@ -56,7 +56,7 @@ from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.timeseriesdb import TimeSeriesDB
 from resotocore.dependencies import DirectTenantDependencyProvider, TenantDependencies
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
+from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.message_bus import (

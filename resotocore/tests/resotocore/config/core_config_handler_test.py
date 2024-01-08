@@ -3,7 +3,6 @@ from typing import List
 
 from jsons import DeserializationError
 from pytest import mark, raises
-
 from resotocore.analytics import AnalyticsEvent, CoreEvent
 from resotocore.config import ConfigHandler, ConfigEntity
 from resotocore.config.core_config_handler import CoreConfigHandler
@@ -14,13 +13,11 @@ from resotocore.core_config import (
     CustomCommandsConfig,
     ResotoCoreSnapshotsRoot,
 )
+from resotocore.ids import ConfigId
+from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.typed_model import to_js
 from resotocore.report import BenchmarkConfigRoot, Benchmark
-from resotocore.report.inspector_service import benchmarks_from_file
-from resotocore.report.report_config import BenchmarkConfig
 from resotocore.system_start import empty_config
-from resotocore.message_bus import MessageBus, CoreMessage
-from resotocore.ids import ConfigId
 
 
 @mark.asyncio
