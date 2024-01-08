@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 from pytest import fixture
 
@@ -7,18 +7,22 @@ from resotocore.config import ConfigEntity
 from resotocore.db.model import QueryModel
 from resotocore.ids import ConfigId, GraphName
 from resotocore.query.model import P, Query
-from resotocore.report import BenchmarkConfigRoot, CheckConfigRoot, BenchmarkResult
-from resotocore.report.inspector_service import (
-    InspectorService,
-    check_id,
-    benchmark_id,
-    InspectorConfigService,
-    InspectorFileService,
+from resotocore.report import (
+    BenchmarkConfigRoot,
+    CheckConfigRoot,
+    BenchmarkResult,
+    Benchmark,
+    ReportCheck,
+    ReportSeverity,
+    Remediation,
+    CheckCollection,
 )
+from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import (
     config_model,
     ReportCheckCollectionConfig,
     BenchmarkConfig,
+    CheckCollectionConfig,
 )
 from resotocore.types import Json
 from resotocore.util import partition_by
@@ -26,66 +30,13 @@ from resotocore.util import partition_by
 
 @fixture
 async def inspector_service_with_test_benchmark(
-    cli: CLIService, inspection_check_collection: Json, benchmark: Json
+    cli: CLIService, inspection_checks: List[ReportCheck], benchmark: Benchmark
 ) -> InspectorService:
-    service = InspectorConfigService(cli)
-    await service.config_handler.put_config(ConfigEntity(check_id("test"), inspection_check_collection))
-    await service.config_handler.put_config(ConfigEntity(benchmark_id("test"), benchmark))
+    service = InspectorService(cli)
+    for check in inspection_checks:
+        await service.update_check(check)
+    await service.update_benchmark(benchmark)
     return service
-
-
-@fixture
-async def inspector_file_service(cli: CLIService) -> InspectorService:
-    return InspectorFileService(cli)
-
-
-@fixture
-def inspection_check_collection() -> Json:
-    return dict(
-        report_check=dict(
-            provider="test",
-            service="test",
-            checks=[
-                dict(
-                    title="search",
-                    name="search",
-                    result_kind="foo",
-                    categories=["test"],
-                    severity="critical",
-                    risk="",
-                    # we use a query with a template here
-                    detect={"resoto": "is({{foo_kind}})"},
-                    default_values={"foo_kind": "foo"},
-                    remediation=dict(text="", url="", action={}),
-                ),
-                dict(
-                    title="cmd",
-                    name="cmd",
-                    result_kind="foo",
-                    categories=["test"],
-                    severity="critical",
-                    detect={"resoto_cmd": "search is(foo) | jq --no-rewrite ."},
-                    risk="",
-                    remediation=dict(text="", url="", action={}),
-                ),
-            ],
-        )
-    )
-
-
-@fixture
-def benchmark() -> Json:
-    return dict(
-        report_benchmark=dict(
-            title="test_benchmark",
-            description="test_benchmark",
-            id="test",
-            framework="test",
-            version="1.0",
-            checks=["test_test_search", "test_test_cmd"],
-            clouds=["test"],
-        )
-    )
 
 
 async def test_config_model() -> None:
@@ -116,16 +67,16 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
     assert last_len < len(all_checks)
 
 
-async def test_perform_benchmark(inspector_service_with_test_benchmark: InspectorService) -> None:
+async def test_perform_benchmark(inspector_service: InspectorService) -> None:
     def assert_result(results: Dict[str, BenchmarkResult]) -> None:
         result = results["test"]
-        assert result.checks[0].number_of_resources_failing == 10
-        assert result.checks[1].number_of_resources_failing == 10
+        assert result.children[0].checks[0].number_of_resources_failing == 10
+        assert result.children[1].checks[0].number_of_resources_failing == 10
         filtered = result.filter_result(filter_failed=True)
-        assert filtered.checks[0].number_of_resources_failing == 10
-        assert len(filtered.checks[0].resources_failing_by_account["sub_root"]) == 10
-        assert filtered.checks[1].number_of_resources_failing == 10
-        assert len(filtered.checks[1].resources_failing_by_account["sub_root"]) == 10
+        assert filtered.children[0].checks[0].number_of_resources_failing == 10
+        assert len(filtered.children[0].checks[0].resources_failing_by_account["sub_root"]) == 10
+        assert filtered.children[1].checks[0].number_of_resources_failing == 10
+        assert len(filtered.children[1].checks[0].resources_failing_by_account["sub_root"]) == 10
         passing, failing = result.passing_failing_checks_for_account("sub_root")
         assert len(passing) == 0
         assert len(failing) == 2
@@ -133,15 +84,14 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
         assert len(passing) == 2
         assert len(failing) == 0
 
-    inspector = inspector_service_with_test_benchmark
-    graph_name = GraphName(inspector.cli.env["graph"])
-    performed = await inspector.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    graph_name = GraphName(inspector_service.cli.env["graph"])
+    performed = await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
     assert_result(performed)
 
     # make sure the result is persisted as part of the node
     async def count_vulnerable() -> int:
-        db = inspector.db_access.get_graph_db(graph_name)
-        model = await inspector.model_handler.load_model(graph_name)
+        db = inspector_service.db_access.get_graph_db(graph_name)
+        model = await inspector_service.model_handler.load_model(graph_name)
         all_vunerable = Query.by(P("security.has_issues") == True)  # noqa
         async with await db.search_list(QueryModel(all_vunerable, model), with_count=True) as cursor:
             return cursor.count()  # type: ignore
@@ -149,21 +99,18 @@ async def test_perform_benchmark(inspector_service_with_test_benchmark: Inspecto
     assert await count_vulnerable() == 10
 
     # loading the result from the db should give the same information
-    loaded = await inspector.load_benchmarks(graph_name, ["test"])
+    loaded = await inspector_service.load_benchmarks(graph_name, ["test"])
     assert_result(loaded)
 
 
-async def test_benchmark_node_result(inspector_service_with_test_benchmark: InspectorService) -> None:
-    inspector = inspector_service_with_test_benchmark
-    results = await inspector.perform_benchmarks(inspector.cli.env["graph"], ["test"])
+async def test_benchmark_node_result(inspector_service: InspectorService) -> None:
+    results = await inspector_service.perform_benchmarks(inspector_service.cli.env["graph"], ["test"])
     result = results["test"]
     node_edge_list = result.to_graph()
     nodes, edges = partition_by(lambda x: x["type"] == "node", node_edge_list)
-    assert len(node_edge_list) == 5  # 3 nodes + 2 edges
-    assert len(nodes) == 3
-    assert len(edges) == 2
-    for edge in edges:
-        assert edge["from"] == result.node_id
+    assert len(node_edge_list) == 9  # 1 benchmark, 2 collections, 2 checks, 4 edges
+    assert len(nodes) == 5
+    assert len(edges) == 4
 
 
 async def test_predefined_checks(inspector_service: InspectorService) -> None:
@@ -184,21 +131,22 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
         assert benchmark.clouds == ["aws"]
 
 
-async def test_list_failing(inspector_service_with_test_benchmark: InspectorService) -> None:
-    inspector = inspector_service_with_test_benchmark
-    graph = inspector.cli.env["graph"]
-    search_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_search")]
+async def test_list_failing(inspector_service: InspectorService) -> None:
+    graph = inspector_service.cli.env["graph"]
+    search_res = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_search")]
     assert len(search_res) == 10
-    cmd_res = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd")]
+    cmd_res = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_cmd")]
     assert len(cmd_res) == 10
-    search_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_search", ["n/a"])]
+    search_res_account = [
+        r async for r in await inspector_service.list_failing_resources(graph, "test_test_search", ["n/a"])
+    ]
     assert len(search_res_account) == 0
-    cmd_res_account = [r async for r in await inspector.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
+    cmd_res_account = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
     assert len(cmd_res_account) == 0
 
 
-async def test_file_inspector(inspector_file_service: InspectorService) -> None:
-    assert len(await inspector_file_service.list_benchmarks()) >= 1
-    assert len(await inspector_file_service.filter_checks()) >= 100
-    aws_cis = await inspector_file_service.benchmark("aws_cis_1_5")
+async def test_file_inspector(inspector_service: InspectorService) -> None:
+    assert len(await inspector_service.list_benchmarks()) >= 1
+    assert len(await inspector_service.filter_checks()) >= 100
+    aws_cis = await inspector_service.benchmark("aws_cis_1_5")
     assert aws_cis is not None

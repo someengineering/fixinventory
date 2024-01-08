@@ -21,9 +21,7 @@ ResotoReportBenchmark = ConfigId("resoto.report.benchmark")
 ResotoReportCheck = ConfigId("resoto.report.check")
 
 # config keys and prefixes
-CheckConfigPrefix = "resoto.report.check."
 CheckConfigRoot = "report_check"
-BenchmarkConfigPrefix = "resoto.report.benchmark."
 BenchmarkConfigRoot = "report_benchmark"
 
 
@@ -333,7 +331,7 @@ class Inspector(ABC):
         pass
 
     @abstractmethod
-    async def benchmark(self, name: str) -> Optional[Benchmark]:
+    async def benchmark(self, bid: str) -> Optional[Benchmark]:
         pass
 
     @abstractmethod

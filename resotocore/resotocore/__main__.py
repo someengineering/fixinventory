@@ -55,7 +55,7 @@ from resotocore.model.db_updater import GraphMerger
 from resotocore.model.model_handler import ModelHandlerDB, ModelHandlerFromCodeAndDB
 from resotocore.model.typed_model import to_json, class_fqn
 from resotocore.query.template_expander_service import TemplateExpanderService
-from resotocore.report.inspector_service import InspectorConfigService, InspectorFileService
+from resotocore.report.inspector_service import InspectorService
 from resotocore.system_start import db_access, setup_process, parse_args, system_info, reconfigure_logging
 from resotocore.task.scheduler import APScheduler, NoScheduler
 from resotocore.task.subscribers import SubscriptionHandlerService
@@ -198,7 +198,7 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     default_env = {"graph": config.cli.default_graph, "section": config.cli.default_section}
     cli = deps.add(ServiceNames.cli, CLIService(deps, all_commands(deps), default_env, alias_names()))
     deps.add(ServiceNames.template_expander, TemplateExpanderService(db.template_entity_db, cli))
-    inspector = deps.add(ServiceNames.inspector, InspectorConfigService(cli))
+    inspector = deps.add(ServiceNames.inspector, InspectorService(cli))
     subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandlerService(message_bus))
     core_config_handler = deps.add(
         ServiceNames.core_config_handler,
@@ -250,7 +250,7 @@ async def direct_tenant(deps: TenantDependencies) -> None:
 async def multi_tenancy(deps: Dependencies) -> None:
     deps.add(ServiceNames.message_bus, MessageBus())
     deps.add(ServiceNames.forked_tasks, Queue())
-    InspectorFileService.on_startup()
+    InspectorService.on_startup()
     ModelHandlerFromCodeAndDB.on_startup()
 
 

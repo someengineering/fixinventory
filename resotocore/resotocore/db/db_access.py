@@ -23,6 +23,7 @@ from resotocore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from resotocore.db.jobdb import job_db
 from resotocore.db.modeldb import ModelDb, model_db
 from resotocore.db.packagedb import app_package_entity_db
+from resotocore.db.reportdb import report_check_db, benchmark_db
 from resotocore.db.runningtaskdb import running_task_db
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.templatedb import template_entity_db
@@ -55,6 +56,8 @@ class DbAccess(Service):
         template_entity: str = "templates",
         infra_app_packages: str = "infra_app_packages",
         time_series: str = "ts",
+        report_checks: str = "report_checks",
+        benchmarks: str = "report_benchmarks",
     ):
         super().__init__()
         self.event_sender = event_sender
@@ -71,6 +74,8 @@ class DbAccess(Service):
         self.configs_model_db = model_db(self.db, configs_model)
         self.template_entity_db = template_entity_db(self.db, template_entity)
         self.package_entity_db = app_package_entity_db(self.db, infra_app_packages)
+        self.report_check_db = report_check_db(self.db, report_checks)
+        self.benchmark_db = benchmark_db(self.db, benchmarks)
         self.time_series_db = TimeSeriesDB(self.db, time_series, config)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
@@ -87,6 +92,8 @@ class DbAccess(Service):
             await self.deferred_outer_edge_db.create_update_schema()
             await self.package_entity_db.create_update_schema()
             await self.time_series_db.create_update_schema()
+            await self.report_check_db.create_update_schema()
+            await self.benchmark_db.create_update_schema()
             for graph in cast(List[Json], self.database.graphs()):
                 graph_name = GraphName(graph["name"])
 

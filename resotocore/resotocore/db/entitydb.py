@@ -49,6 +49,10 @@ class EntityDb(ABC, Generic[K, T]):
         pass
 
     @abstractmethod
+    async def delete_many(self, keys: List[K]) -> None:
+        pass
+
+    @abstractmethod
     async def create_update_schema(self) -> None:
         pass
 
@@ -109,6 +113,9 @@ class ArangoEntityDb(EntityDb[K, T], ABC):
         key = self.key_of(value)
         await self.db.delete(self.collection_name, key, ignore_missing=True)
 
+    async def delete_many(self, keys: List[K]) -> None:
+        await self.db.delete_many(self.collection_name, [{"_key": k} for k in keys])
+
     async def create_update_schema(self) -> None:
         name = self.collection_name
         db = self.db
@@ -155,6 +162,10 @@ class EventEntityDb(EntityDb[K, T]):
 
     async def delete_value(self, value: T) -> None:
         await self.db.delete_value(value)
+        await self.event_sender.core_event(f"{self.entity_name}-deleted")
+
+    async def delete_many(self, keys: List[K]) -> None:
+        await self.db.delete_many(keys)
         await self.event_sender.core_event(f"{self.entity_name}-deleted")
 
     async def create_update_schema(self) -> None:
