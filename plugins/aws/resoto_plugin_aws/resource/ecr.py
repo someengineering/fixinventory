@@ -85,8 +85,10 @@ class AwsEcrRepository(AwsResource):
                 raise
 
         # collect private and public repositories
-        collect("private", cls.api_spec)
-        collect("public", cls.public_spec)
+        if builder.region.name == "global":
+            collect("public", cls.public_spec)
+        else:
+            collect("private", cls.api_spec)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -123,3 +125,4 @@ class AwsEcrRepository(AwsResource):
 
 
 resources: List[Type[AwsResource]] = [AwsEcrRepository]
+global_resources: List[Type[AwsResource]] = [AwsEcrRepository]

@@ -62,6 +62,7 @@ log = logging.getLogger("resoto.plugins.aws")
 global_resources: List[Type[AwsResource]] = (
     cloudfront.resources
     + dynamodb.global_resources
+    + ecr.global_resources
     + iam.resources
     + route53.resources
     + s3.resources
