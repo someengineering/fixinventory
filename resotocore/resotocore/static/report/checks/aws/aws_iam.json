@@ -16,7 +16,14 @@
                 "text": "To maintain current contact details, access the Billing and Cost Management console and complete the necessary information.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
             },
-            "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Kontaktinformationen für AWS-Konten aktuell sind und mehreren Personen in Ihrer Organisation zugeordnet sind",
+                    "risk": "Das Versäumnis, aktuelle Kontakt-E-Mail- und Telefoninformationen für AWS-Konten aufrechtzuerhalten, kann zu Sicherheitsverletzungen führen. Wenn AWS unzulässiges oder verdächtiges Verhalten von einem Konto feststellt und keinen Kontakt zum Kontoinhaber herstellen kann, kann es proaktive Maßnahmen ergreifen, wie beispielsweise die Drosselung des Datenverkehrs, was zu einer beeinträchtigten Servicequalität für das Konto führt.",
+                    "remediation": "Um die aktuellen Kontaktinformationen aufrechtzuerhalten, greifen Sie auf die Billing and Cost Management Console zu und vervollständigen Sie die erforderlichen Informationen."
+                }
+            }
         },
         {
             "name": "account_security_contact_information_is_registered",
@@ -32,7 +39,14 @@
                 "text": "To fix this issue, go to the My Account section in the AWS Console, and complete the alternate contacts, specifically the Security Section.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
             },
-            "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html"
+            "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Sicherheitskontaktinformationen registriert sind",
+                    "risk": "Das Nichtbereitstellen von Sicherheitskontaktinformationen in den AWS-Kontoeinstellungen kann zu versäumten Sicherheitswarnungen führen. Durch die Registrierung von sicherheitsspezifischen Kontaktinformationen wird sichergestellt, dass Sicherheitswarnungen von AWS das entsprechende Team in Ihrer Organisation erreichen und somit Ihre Fähigkeit zur effektiven Reaktion verbessern.",
+                    "remediation": "Um dieses Problem zu beheben, gehen Sie zur Sektion 'Mein Konto' in der AWS-Konsole und füllen Sie die alternativen Kontakte aus, insbesondere den Sicherheitsabschnitt."
+                }
+            }
         },
         {
             "name": "account_security_questions_are_registered_in_the_aws_account",
@@ -47,6 +61,13 @@
             "remediation": {
                 "text": "To fix this issue, login as the root account and configure Security Questions in My Account.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-security-challenge.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass Sicherheitsfragen im AWS-Konto registriert sind",
+                    "risk": "Das Versäumnis, Sicherheitsfragen im AWS-Support-Portal festzulegen, kann zu eingeschränkter Kontrolle und Zugänglichkeitsproblemen mit dem Root-Konto führen. Im Falle eines verlorenen Root-Passworts oder MFA-Tokens kann der Kontoinhaber Schwierigkeiten bei der Wiederherstellung und Verifizierung des Kontos haben.",
+                    "remediation": "Um dieses Problem zu beheben, melden Sie sich als Root-Konto an und konfigurieren Sie Sicherheitsfragen in Mein Konto."
+                }
             }
         },
         {
@@ -63,7 +84,14 @@
                 "text": "Ensure the access_key_1_active and access_key_2_active fields in the credential report are set to FALSE. If the access keys are still active, delete them using the IAM console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass kein Zugangsschlüssel für das Root-Konto vorhanden ist",
+                    "risk": "Das Root-Konto ist der privilegierteste Benutzer in einem AWS-Konto. AWS-Zugangsschlüssel ermöglichen programmgesteuerten Zugriff auf ein bestimmtes AWS-Konto. Es wird empfohlen, alle Zugangsschlüssel, die mit dem Root-Konto verbunden sind, zu entfernen. Das Entfernen der Zugangsschlüssel, die mit dem Root-Konto verbunden sind, begrenzt die Angriffsvektoren, über die das Konto kompromittiert werden kann. Durch das Entfernen der Root-Zugangsschlüssel wird die Erstellung und Verwendung rollenbasierter Konten gefördert, die minimalste Berechtigungen haben.",
+                    "remediation": "Stellen Sie sicher, dass die Felder access_key_1_active und access_key_2_active im Credential-Bericht auf FALSE gesetzt sind. Wenn die Zugangsschlüssel immer noch aktiv sind, löschen Sie sie über die IAM-Konsole."
+                }
+            }
         },
         {
             "name": "root_mfa_enabled",
@@ -79,7 +107,14 @@
                 "text": "To fix this issue, navigate to the AWS Identity and Access Management (IAM) console, access the Dashboard, and activate MFA on the root account.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_considerations"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_considerations",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass MFA für das Root-Konto aktiviert ist",
+                    "risk": "Das Root-Konto ist der privilegierteste Benutzer in einem AWS-Konto. Ohne MFA ist das Root-Konto anfällig für unbefugten Zugriff, was das Risiko von Sicherheitsverstößen erhöht. Die Aktivierung von MFA bietet eine zusätzliche Schutzschicht und stellt sicher, dass nur autorisierte Personen auf das Konto zugreifen können.",
+                    "remediation": "Um dieses Problem zu beheben, navigieren Sie zur AWS Identity and Access Management (IAM) Konsole, greifen Sie auf das Dashboard zu und aktivieren Sie MFA für das Root-Konto."
+                }
+            }
         },
         {
             "name": "root_hardware_mfa_enabled",
@@ -95,7 +130,14 @@
                 "text": "To enable hardware MFA for the root account, navigate to the IAM console Dashboard and activate MFA.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Hardware-MFA für das Root-Konto aktiviert ist",
+                    "risk": "Das Root-Konto ist der privilegierteste Benutzer in einem AWS-Konto. Durch die Aktivierung der MFA wird eine zusätzliche Sicherheitsebene geschaffen, die neben Benutzername und Passwort auch einen Authentifizierungscode von einem Hardware-MFA-Gerät erfordert. Dies reduziert das Risiko eines unbefugten Zugriffs auf das Root-Konto erheblich. Es ist wichtig, dass das Root-Konto auf Sicherheitsstufe 2 mit einem Hardware-MFA-Gerät geschützt ist.",
+                    "remediation": "Um die Hardware-MFA für das Root-Konto zu aktivieren, navigieren Sie zur IAM-Konsolen-Dashboard und aktivieren Sie MFA."
+                }
+            }
         },
         {
             "name": "user_hardware_mfa_enabled",
@@ -111,7 +153,14 @@
                 "text": "To fix this issue, enable a hardware MFA device for each IAM user from the AWS Management Console, command line, or IAM API.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_physical.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_physical.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_physical.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Hardware-MFA für alle IAM-Benutzer aktiviert ist",
+                    "risk": "Das Fehlen von aktivierter Hardware-MFA für IAM-Benutzer erhöht das Risiko eines unbefugten Zugriffs auf das AWS-Konto.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie ein Hardware-MFA-Gerät für jeden IAM-Benutzer über die AWS Management Console, die Befehlszeile oder die IAM API."
+                }
+            }
         },
         {
             "name": "avoid_root_usage",
@@ -130,7 +179,14 @@
                 "text": "To fix the issue, follow the remediation instructions provided in the 'Ensure IAM policies are attached only to groups or roles' recommendation.",
                 "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Verwendung des Root-Kontos vermieden wird",
+                    "risk": "Wenn das Problem nicht gelöst wird, behält das Root-Konto uneingeschränkten Zugriff auf alle Ressourcen im AWS-Konto. Es wird dringend empfohlen, die Verwendung dieses Kontos aufgrund der damit verbundenen Risiken zu vermeiden.",
+                    "remediation": "Um das Problem zu beheben, befolgen Sie die Anweisungen zur Fehlerbehebung in der Empfehlung 'Stellen Sie sicher, dass IAM-Richtlinien nur Gruppen oder Rollen zugewiesen sind'."
+                }
+            }
         },
         {
             "name": "password_policy_minimum_length_14",
@@ -146,7 +202,14 @@
                 "text": "To fix this issue, ensure that the \"Minimum password length\" option is checked under \"Password Policy\" in the AWS Identity and Access Management (IAM) console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Passwortrichtlinie eine Mindestlänge von 14 oder mehr erfordert",
+                    "risk": "Die Nichtdurchsetzung einer starken Passwortrichtlinie erhöht das Risiko eines unbefugten Zugriffs auf AWS-Ressourcen. Ohne eine Mindestlängenanforderung von 14 oder mehr wird es einfacher für Angreifer, Passwörter zu knacken und unbefugten Zugriff zu erlangen.",
+                    "remediation": "Um dieses Problem zu beheben, stellen Sie sicher, dass die Option \"Mindest-Passwortlänge\" unter \"Passwortrichtlinie\" in der AWS Identity and Access Management (IAM) Konsole aktiviert ist."
+                }
+            }
         },
         {
             "name": "password_policy_reuse_24",
@@ -162,7 +225,14 @@
                 "text": "To fix this issue, ensure that the \"Number of passwords to remember\" in the account password policy is set to 24 or greater.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Passwortrichtlinie die Wiederverwendung von Passwörtern verhindert: 24 oder höher",
+                    "risk": "Die Nichtumsetzung einer starken Passwortrichtlinie erhöht das Risiko eines unbefugten Zugriffs auf das AWS-Konto. Ohne die Verhinderung der Wiederverwendung von Passwörtern mit einer Anzahl von 24 oder höher können schwache Passwörter wiederholt verwendet werden, was es Angreifern erleichtert, Zugriff zu erlangen.",
+                    "remediation": "Um dieses Problem zu beheben, stellen Sie sicher, dass die \"Anzahl der zu merkenden Passwörter\" in der Konten-Passwortrichtlinie auf 24 oder höher festgelegt ist."
+                }
+            }
         },
         {
             "name": "user_mfa_enabled_console_access",
@@ -178,7 +248,14 @@
                 "text": "To fix this issue, enable MFA for the user's account. MFA adds an extra layer of protection beyond just a username and password. It is recommended to use hardware keys instead of virtual MFA for enhanced security.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Mehr-Faktor-Authentifizierung (MFA) für alle IAM-Benutzer mit Konsolenpasswörtern aktiviert ist.",
+                    "risk": "Wenn die MFA für IAM-Benutzer mit Konsolenpasswörtern nicht aktiviert ist, erhöht sich das Risiko eines unbefugten Zugriffs auf AWS-Ressourcen. Die Anforderungen an die Passwortkomplexität und die Durchsetzung von Passwortrichtlinien sind möglicherweise nicht ausreichend, um sich gegen die Wiederverwendung von Passwörtern zu schützen. Es wird empfohlen, die Wiederverwendung von 24 oder mehr Passwörtern zu verhindern, um die Sicherheit zu erhöhen.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie MFA für das Benutzerkonto. MFA bietet einen zusätzlichen Schutz über Benutzernamen und Passwort hinaus. Es wird empfohlen, anstelle von virtuellem MFA Hardware-Schlüssel für eine verbesserte Sicherheit zu verwenden."
+                }
+            }
         },
         {
             "name": "user_uses_access_keys_console_access",
@@ -194,7 +271,14 @@
                 "text": "From the IAM console, generate a credential report and disable any access keys that are not required.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass bei der initialen Benutzereinrichtung für IAM-Benutzer mit einem Konsolenpasswort keine Zugriffsschlüssel erstellt werden",
+                    "risk": "Wenn bei der initialen Benutzereinrichtung unnötigerweise Zugriffsschlüssel generiert werden, entstehen unnötige Anmeldeinformationen und Verwaltungsarbeit, um diese Schlüssel zu überprüfen und zu rotieren. Das Erfordernis weiterer Schritte nach Erstellung des Benutzerprofils deutet auf Absicht hin und stellt sicher, dass Zugriffsschlüssel nur dann erstellt werden, wenn sie wirklich erforderlich sind.",
+                    "remediation": "Generieren Sie über die IAM-Konsole einen Berechtigungsbericht und deaktivieren Sie alle nicht erforderlichen Zugriffsschlüssel."
+                }
+            }
         },
         {
             "name": "disable_old_credentials",
@@ -212,6 +296,13 @@
             "remediation": {
                 "text": "To fix the issue, generate a credential report from the IAM console and disable unnecessary keys.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass nicht genutzte Anmeldeinformationen nach 45 Tagen deaktiviert werden",
+                    "risk": "Das Versäumnis, nicht genutzte IAM-Benutzeranmeldeinformationen (Passwörter und Zugriffsschlüssel) zu deaktivieren, stellt ein Sicherheitsrisiko für Ihr AWS-Konto dar. Dies betrifft die Anmeldeinformationen von Benutzern, die die Organisation verlassen haben oder keinen AWS-Zugriff mehr benötigen.",
+                    "remediation": "Um das Problem zu beheben, generieren Sie einen Bericht über Anmeldeinformationen in der IAM-Konsole und deaktivieren Sie unnötige Schlüssel."
+                }
             }
         },
         {
@@ -228,7 +319,14 @@
                 "text": "To fix the issue, avoid using long-lived access keys and rotate them regularly to minimize the risk of compromise.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM-Benutzer über zwei aktive Zugriffsschlüssel verfügen",
+                    "risk": "Wenn IAM-Benutzer nicht über zwei aktive Zugriffsschlüssel verfügen, können Zugriffsschlüssel verloren oder gestohlen werden, was ein kritisches Sicherheitsrisiko darstellt.",
+                    "remediation": "Um das Problem zu beheben, sollten Sie vermeiden, langlebige Zugriffsschlüssel zu verwenden und diese regelmäßig zu rotieren, um das Risiko einer Kompromittierung zu minimieren."
+                }
+            }
         },
         {
             "name": "rotate_access_keys_after_90_days",
@@ -247,7 +345,14 @@
                 "text": "To fix the issue, check the credential report and ensure that the access_key_X_last_rotated value is less than 90 days ago.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Zugriffsschlüssel alle 90 Tage oder weniger rotiert werden",
+                    "risk": "Zugriffsschlüssel bestehen aus einer Zugriffsschlüssel-ID und geheimem Zugriffsschlüssel, die verwendet werden, um programmierte Anfragen zu signieren, die Sie an AWS stellen. Wenn Zugriffsschlüssel nicht regelmäßig rotiert werden, erhöht sich das Risiko eines unbefugten Zugriffs auf AWS-Ressourcen. Durch regelmäßiges Rotieren der Zugriffsschlüssel wird das Risiko von kompromittierten Schlüsseln verringert.",
+                    "remediation": "Um das Problem zu beheben, überprüfen Sie den Berechtigungsbericht und stellen Sie sicher, dass der Wert access_key_X_last_rotated weniger als 90 Tage zurück liegt."
+                }
+            }
         },
         {
             "name": "policy_attached_only_to_group_or_roles",
@@ -263,7 +368,14 @@
                 "text": "To fix the issue, remove any directly attached policy from the user and use groups or roles instead.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM-Richtlinien nur Gruppen oder Rollen zugeordnet sind",
+                    "risk": "Standardmäßig haben IAM-Benutzer, Gruppen und Rollen keinen Zugriff auf AWS-Ressourcen. IAM-Richtlinien werden verwendet, um Benutzern, Gruppen oder Rollen Privilegien zuzuweisen. Es wird empfohlen, IAM-Richtlinien direkt Gruppen und Rollen zuzuordnen, anstatt Benutzern. Die Zuweisung von Berechtigungen auf Gruppen- oder Rollenebene reduziert die Komplexität des Zugriffsmanagements und minimiert das Risiko übermäßiger Berechtigungen.",
+                    "remediation": "Um das Problem zu beheben, entfernen Sie alle direkt zugeordneten Richtlinien von Benutzern und verwenden Sie stattdessen Gruppen oder Rollen."
+                }
+            }
         },
         {
             "name": "policy_with_administrative_privileges_not_in_use",
@@ -279,7 +391,14 @@
                 "text": "To mitigate the risk, start with a minimum set of permissions and grant additional permissions as necessary. Regularly review policies to ensure permissions are the minimum required for business activities.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM-Richtlinien keine volle administrative Berechtigung gewähren",
+                    "risk": "Indem volle administrative Berechtigungen über IAM-Richtlinien gewährt werden, werden Ressourcen potenziell unerwünschten Aktionen ausgesetzt. Es wird empfohlen, die Minimalberechtigung zu gewähren, indem nur die für Benutzer, Gruppen oder Rollen erforderlichen Berechtigungen erteilt werden.",
+                    "remediation": "Um das Risiko zu mindern, beginnen Sie mit einem minimalen Satz von Berechtigungen und gewähren Sie zusätzliche Berechtigungen, wenn erforderlich. Überprüfen Sie regelmäßig die Richtlinien, um sicherzustellen, dass die Berechtigungen für die Geschäftsaktivitäten minimal erforderlich sind."
+                }
+            }
         },
         {
             "name": "user_inline_policy_no_star_star",
@@ -295,7 +414,14 @@
                 "text": "Follow the principle of least privilege by starting with minimal permissions and gradually granting additional permissions as needed. Review and analyze existing policies to ensure they only provide the minimum necessary permissions for business activities.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM-Benutzer keine inline-Richtlinien haben, die volle Administrationsberechtigungen \"*:*\" gewähren.",
+                    "risk": "Indem IAM-Benutzern volle Administrationsberechtigungen gewährt werden, erhöht sich das Risiko unbefugter Aktionen und potenzieller Sicherheitsverletzungen. Es ist bewährte Praxis, möglichst geringe Privilegien zu gewähren und den Benutzern nur die für ihre Aufgaben erforderlichen Berechtigungen zur Verfügung zu stellen.",
+                    "remediation": "Befolgen Sie das Prinzip des geringsten Privilegs, indem Sie mit minimalen Berechtigungen beginnen und schrittweise zusätzliche Berechtigungen gewähren, wenn sie benötigt werden. Überprüfen und analysieren Sie vorhandene Richtlinien, um sicherzustellen, dass sie nur die für geschäftliche Aktivitäten erforderlichen minimalen Berechtigungen bieten."
+                }
+            }
         },
         {
             "name": "group_inline_policy_no_star_star",
@@ -311,7 +437,14 @@
                 "text": "To fix this issue, it is more secure to start with a minimum set of permissions and grant additional permissions as necessary. Analyze the existing policies and ensure that the permissions granted are the least required for business activities.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass inline-Richtlinien für IAM-Gruppen, die volle administrative Berechtigungen gewähren, nicht verwendet werden",
+                    "risk": "Die Gewährung vollständiger \"*:*\" administrativer Berechtigungen an IAM-Gruppen macht Ressourcen potenziell unerwünschten Aktionen ausgesetzt. Es wird empfohlen, dem Prinzip des geringsten Privilegs zu folgen und nur die erforderlichen Berechtigungen für bestimmte Aufgaben zu gewähren.",
+                    "remediation": "Um dieses Problem zu beheben, ist es sicherer, mit einem Mindestmaß an Berechtigungen zu beginnen und bei Bedarf zusätzliche Berechtigungen zu gewähren. Analysieren Sie die vorhandenen Richtlinien und stellen Sie sicher, dass die gewährten Berechtigungen für Geschäftstätigkeiten minimal erforderlich sind."
+                }
+            }
         },
         {
             "name": "role_inline_policy_no_star_star",
@@ -327,7 +460,14 @@
                 "text": "To improve security, start with a minimum set of permissions and gradually grant additional permissions as needed. Review the policies and ensure permissions are restricted to the essential tasks required for business activities.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM-Rollen keine inline-Richtlinien mit vollen administrativen Rechten verwenden.",
+                    "risk": "Die Gewährung voller administrativer Rechte über IAM-Rollen erhöht das Risiko unbefugten Zugriffs auf Ressourcen. Das Befolgen des Prinzips des geringsten Privilegs ist entscheidend, um potenziell unerwünschte Aktionen zu begrenzen und Ressourcen zu schützen.",
+                    "remediation": "Um die Sicherheit zu verbessern, beginnen Sie mit einem minimalen Satz von Berechtigungen und gewähren Sie nach Bedarf schrittweise zusätzliche Berechtigungen. Überprüfen Sie die Richtlinien und stellen Sie sicher, dass die Berechtigungen auf die für die Geschäftstätigkeit erforderlichen Aufgaben beschränkt sind."
+                }
+            }
         },
         {
             "name": "support_role_exists",
@@ -343,7 +483,14 @@
                 "text": "To fix this issue, create an IAM role specifically for managing incidents with AWS Support.",
                 "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html"
             },
-            "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html"
+            "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass eine Support-Rolle erstellt wurde, um Vorfälle mit AWS Support zu verwalten",
+                    "risk": "Ohne eine Support-Rolle können die Benachrichtigung und Reaktion auf Vorfälle sowie technischer Support und Kundenservice beeinträchtigt werden. Um dieses Risiko zu mindern, ist es wichtig, eine IAM-Rolle zu erstellen, die autorisierten Benutzern das Verwalten von Vorfällen mit AWS Support ermöglicht.",
+                    "remediation": "Um dieses Problem zu beheben, erstellen Sie eine IAM-Rolle, die speziell für das Verwalten von Vorfällen mit AWS Support geeignet ist."
+                }
+            }
         },
         {
             "name": "expired_server_certificates",
@@ -366,7 +513,14 @@
                 "text": "To fix this issue, delete the expired SSL/TLS certificate from AWS IAM. However, keep in mind that deleting the certificate could have implications for your application if you are using it with services like Elastic Load Balancing or CloudFront. Make the necessary configurations in these services to ensure no interruption in application functionality.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass alle abgelaufenen SSL/TLS-Zertifikate aus AWS IAM entfernt werden.",
+                    "risk": "Wenn abgelaufene SSL/TLS-Zertifikate nicht entfernt werden, besteht die Gefahr, versehentlich ein ungültiges Zertifikat auf eine Ressource wie den AWS Elastic Load Balancer (ELB) zu deployen, was die Glaubwürdigkeit der Anwendung/Website beeinträchtigen kann.",
+                    "remediation": "Um dieses Problem zu beheben, löschen Sie das abgelaufene SSL/TLS-Zertifikat aus AWS IAM. Beachten Sie jedoch, dass das Löschen des Zertifikats Auswirkungen auf Ihre Anwendung haben kann, wenn Sie es mit Diensten wie Elastic Load Balancing oder CloudFront verwenden. Nehmen Sie die erforderlichen Konfigurationen in diesen Diensten vor, um sicherzustellen, dass es zu keiner Unterbrechung der Anwendungsfunktionalität kommt."
+                }
+            }
         },
         {
             "name": "access_analyzer_enabled",
@@ -381,6 +535,13 @@
             "remediation": {
                 "text": "To mitigate the risk, enable IAM Access Analyzer for all accounts and create an analyzer. Take appropriate action based on the analyzer's recommendations. Enabling IAM Access Analyzer is free of charge and highly beneficial for security purposes.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass IAM Access Analyzer aktiviert ist",
+                    "risk": "Ohne aktivierten IAM Access Analyzer wird es schwierig, Ressourcen in Ihrer Organisation und in den Konten zu identifizieren, die mit externen Einheiten geteilt werden. Dadurch besteht ein erhöhtes Risiko für unbeabsichtigten Zugriff auf Ihre Ressourcen und Daten, was eine Sicherheitsbedrohung darstellt. Durch die Verwendung von IAM Access Analyzer können Sie Ressourcenrichtlinien effizient analysieren und potenzielle Sicherheitsrisiken erkennen und beheben.",
+                    "remediation": "Um das Risiko zu minimieren, aktivieren Sie IAM Access Analyzer für alle Konten und erstellen Sie einen Analyzer. Ergreifen Sie entsprechende Maßnahmen basierend auf den Empfehlungen des Analyzers. Die Aktivierung von IAM Access Analyzer ist kostenlos und für Sicherheitszwecke äußerst vorteilhaft."
+                }
             }
         },
         {
@@ -396,13 +557,22 @@
             "remediation": {
                 "text": "To mitigate this issue, enable a SAML provider and use temporary security credentials. Temporary credentials provide the same permissions as long-term credentials but have a limited duration. This helps prevent the unauthorized use of long-lived credentials.",
                 "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass SAML-Provider für STS verwendet werden, um die Verwendung von langfristigen Anmeldeinformationen zu vermeiden",
+                    "risk": "Ohne SAML-Provider können Benutzer mit AWS CLI- oder AWS API-Zugriff IAM-Statikanmeldeinformationen verwenden. Dadurch steigt das Risiko unbefugten Zugriffs und potenziellen Missbrauchs von Berechtigungen.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie einen SAML-Provider und verwenden Sie temporäre Sicherheitsanmeldeinformationen. Temporäre Anmeldeinformationen bieten die gleichen Berechtigungen wie langfristige Anmeldeinformationen, haben jedoch eine begrenzte Gültigkeitsdauer. Dies hilft, die unbefugte Verwendung von langfristigen Anmeldeinformationen zu verhindern."
+                }
             }
         },
         {
             "name": "check_cloudshell_access_restricted",
             "title": "Ensure access to AWSCloudShellFullAccess is restricted",
             "result_kinds": ["aws_iam_role", "aws_iam_user"],
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security", "compliance"
+            ],
             "risk": "Unrestricted access to the AWSCloudShellFullAccess policy poses a risk of data exfiltration by malicious cloud admins with full permissions to the service. To mitigate this risk, it is recommended to create a more restrictive IAM policy that denies file transfer permissions.",
             "severity": "medium",
             "detect": {
@@ -411,6 +581,13 @@
             "remediation": {
                 "text": "To restrict access to the AWSCloudShellFullAccess policy, open the IAM console at https://console.aws.amazon.com/iam/, select Policies in the left pane, search for and select AWSCloudShellFullAccess. On the Entities attached tab, select and detach each item.",
                 "url": "https://docs.aws.amazon.com/cloudshell/latest/userguide/sec-auth-with-identities.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass der Zugriff auf AWSCloudShellFullAccess eingeschränkt ist",
+                    "risk": "Unbeschränkter Zugriff auf die AWSCloudShellFullAccess-Richtlinie birgt ein Risiko der Datenexfiltration durch bösartige Cloud-Administratoren mit vollen Berechtigungen für den Dienst. Zur Minderung dieses Risikos wird empfohlen, eine restriktivere IAM-Richtlinie zu erstellen, die Dateiübertragungsberechtigungen verweigert.",
+                    "remediation": "Um den Zugriff auf die AWSCloudShellFullAccess-Richtlinie einzuschränken, öffnen Sie die IAM-Konsole unter https://console.aws.amazon.com/iam/, wählen Sie in der linken Leiste 'Richtlinien' aus, suchen Sie nach und wählen Sie AWSCloudShellFullAccess aus. Wählen Sie auf der Registerkarte 'Angefügte Entitäten' jedes Element aus und heben Sie die Zuordnung auf."
+                }
             }
         },
         {
@@ -426,6 +603,13 @@
             "remediation": {
                 "text": "To fix the issue, ensure that the \"Requires at least one lowercase letter\" option is checked under \"Password Policy\" in the AWS IAM console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Passwortrichtlinie mindestens einen Kleinbuchstaben erfordert",
+                    "risk": "Ohne die Anforderung mindestens eines Kleinbuchstabens in der Passwortrichtlinie können IAM-Benutzer Passwörter verwenden, die an Komplexität fehlen und leichter zu knacken sind. Dadurch erhöht sich das Risiko eines unbefugten Zugriffs und potenzieller Datenverstöße.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass die Option \"Erfordert mindestens einen Kleinbuchstaben\" unter \"Passwortrichtlinie\" in der AWS IAM-Konsole aktiviert ist."
+                }
             }
         },
         {
@@ -441,6 +625,13 @@
             "remediation": {
                 "text": "To fix the issue, ensure that the \"Requires at least one number\" option is checked under \"Password Policy\".",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Passwortrichtlinie mindestens eine Nummer erfordert",
+                    "risk": "Wenn das Problem nicht behoben wird, können die Anforderungen an die Passwortkomplexität nicht durchgesetzt werden, was das Verwenden von schwachen Passwörtern ermöglicht. Es wird empfohlen, mindestens eine Nummer in die Passwortrichtlinie aufzunehmen, um die Sicherheit zu verbessern.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass die Option \"Erfordert mindestens eine Nummer\" unter \"Passwortrichtlinie\" aktiviert ist."
+                }
             }
         },
         {
@@ -456,6 +647,13 @@
             "remediation": {
                 "text": "To fix the issue, navigate to the \"Password Policy\" section and ensure that the option \"Require at least one non-alphanumeric character\" is checked.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Kennwortrichtlinie mindestens ein Symbol erfordert",
+                    "risk": "Die Nichtdurchsetzung von Anforderungen an die Kennwortkomplexität in IAM kann zu schwachen Kennwörtern führen. Es ist wichtig, mindestens ein nicht alphanumerisches Zeichen zu verlangen, um eine stärkere Kennwortsicherheit zu gewährleisten.",
+                    "remediation": "Um das Problem zu beheben, navigieren Sie zum Abschnitt \"Kennwortrichtlinie\" und stellen Sie sicher, dass die Option \"Mindestens ein nicht alphanumerisches Zeichen erforderlich\" aktiviert ist."
+                }
             }
         },
         {
@@ -472,7 +670,14 @@
                 "text": "To fix this issue, go to the AWS Identity and Access Management (IAM) console, navigate to the \"Password Policy\" section, and ensure that \"Require at least one uppercase character\" is checked.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die IAM-Passwortrichtlinie mindestens einen Großbuchstaben erfordert",
+                    "risk": "Eine starke Passwortrichtlinie ist wichtig, um die Komplexität von Passwörtern sicherzustellen. Ohne die Anforderung mindestens eines Großbuchstabens besteht das Risiko, dass schwache Passwörter verwendet werden, was zu möglichen Sicherheitsverletzungen führen kann.",
+                    "remediation": "Um dieses Problem zu beheben, gehen Sie zur AWS Identity and Access Management (IAM) Konsole, navigieren Sie zum Abschnitt \"Passwortrichtlinie\" und stellen Sie sicher, dass \"Mindestens ein Großbuchstabe erforderlich\" ausgewählt ist."
+                }
+            }
         },
         {
             "name": "unused_access_keys",
@@ -491,7 +696,14 @@
                 "text": "To fix this issue, delete any unused access keys from the IAM user.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass unbenutzte Zugriffsschlüssel entfernt werden",
+                    "risk": "Unbenutzte Zugriffsschlüssel stellen ein Sicherheitsrisiko dar und sollten entfernt werden, um unbefugten Zugriff zu verhindern.",
+                    "remediation": "Um dieses Problem zu beheben, entfernen Sie alle unbenutzten Zugriffsschlüssel vom IAM-Benutzer."
+                }
+            }
         },
         {
             "name": "password_policy_expire_90",
@@ -510,7 +722,14 @@
                 "text": "To fix this issue, configure IAM policies to enforce password expiration within 90 days. Ensure the 'expire_passwords' setting is enabled and set 'max_password_age' to 90 days or less. Regularly rotating passwords helps maintain account security by reducing the risk of compromised credentials being used for extended periods.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details"
             },
-            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details"
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Passwörter innerhalb von 90 Tagen oder weniger ablaufen",
+                    "risk": "Durch das Zulassen von Passwörtern, die länger als 90 Tage unverändert bleiben, kann das Risiko unbefugten Zugriffs und von Sicherheitsverletzungen erheblich steigen. Ältere Passwörter werden im Laufe der Zeit wahrscheinlicher kompromittiert, und eine längere Lebensdauer von Passwörtern gibt bösartigen Akteuren ein größeres Zeitfenster, um gestohlene oder schwache Anmeldedaten auszunutzen.",
+                    "remediation": "Um dieses Problem zu beheben, konfigurieren Sie IAM-Richtlinien, um eine Passwortablaufzeit von 90 Tagen festzulegen. Stellen Sie sicher, dass die Einstellung 'expire_passwords' aktiviert ist und 'max_password_age' auf 90 Tage oder weniger gesetzt ist. Durch regelmäßige Änderung von Passwörtern wird die Sicherheit des Kontos gewährleistet, indem das Risiko von kompromittierten Anmeldedaten, die für längere Zeiträume verwendet werden, verringert wird."
+                }
+            }
         },
         {
             "name": "guardduty_enabled",
@@ -526,7 +745,14 @@
                 "text": "Enable GuardDuty in the AWS console to benefit from its intelligent threat detection capabilities.",
                 "url": "https://aws.amazon.com/guardduty/"
             },
-            "url": "https://aws.amazon.com/guardduty/"
+            "url": "https://aws.amazon.com/guardduty/",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS GuardDuty aktiviert ist",
+                    "risk": "Die Nichtaktivierung von AWS GuardDuty birgt potenzielle Risiken für Ihr AWS-Konto. Es wird empfohlen, GuardDuty zu aktivieren, um diese Risiken effektiv zu erkennen und zu mindern.",
+                    "remediation": "Aktivieren Sie GuardDuty in der AWS-Konsole, um von seinen intelligenten Bedrohungserkennungsfunktionen zu profitieren."
+                }
+            }
         }
     ]
 }

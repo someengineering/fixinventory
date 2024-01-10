@@ -15,6 +15,13 @@
             "remediation": {
                 "text": "To fix the issue, modify the Auto Scaling launch template. Set 'AssociatePublicIpAddress' to false for all network interfaces in the launch template. Additionally, ensure instances are launched in private subnets where public access is not required.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html#launch-template-network"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Auto Scaling Launch-Vorlagen keine öffentlichen IP-Adressen automatisch zuweisen",
+                    "risk": "Die automatische Zuweisung öffentlicher IP-Adressen in Auto Scaling Launch-Vorlagen kann zu unbeabsichtigter öffentlicher Zugänglichkeit von EC2-Instanzen führen. Dadurch steigt das Risiko von bösartigen Aktivitäten wie Brute-Force-Angriffen, Datenschutzverletzungen oder unberechtigtem Zugriff, was die Sicherheit und Datenintegrität der Instanz gefährdet.",
+                    "remediation": "Um das Problem zu beheben, ändern Sie die Auto Scaling Launch-Vorlage. Setzen Sie 'AssociatePublicIpAddress' für alle Netzwerkschnittstellen in der Launch-Vorlage auf false. Stellen Sie außerdem sicher, dass Instanzen in privaten Subnetzen gestartet werden, wo kein öffentlicher Zugriff erforderlich ist."
+                }
             }
         }
     ]

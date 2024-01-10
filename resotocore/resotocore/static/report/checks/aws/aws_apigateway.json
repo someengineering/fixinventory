@@ -16,6 +16,13 @@
             "remediation": {
                 "text": "Implement an authorizer by adding an Amazon Cognito user pool or attaching an AWS Lambda function. This will provide controlled access for users interacting with your API.",
                 "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass das API Gateway mit Authorizern konfiguriert ist",
+                    "risk": "Ohne definierten Authorizer könnte Ihr Service unautorisierten Zugriffen ausgesetzt sein. Diese mangelnde Kontrolle stellt ein Sicherheitsrisiko dar und kann zu unbefugtem Zugriff und Missbrauch führen.",
+                    "remediation": "Implementieren Sie einen Authorizer, indem Sie einen Amazon Cognito Benutzerpool hinzufügen oder eine AWS Lambda Funktion anhängen. Dadurch wird kontrollierter Zugriff für Benutzer ermöglicht, die mit Ihrer API interagieren."
+                }
             }
         },
         {
@@ -32,6 +39,13 @@
             "remediation": {
                 "text": "Enable the client certificate and implement mutual TLS for secure data transit. Mutual TLS is highly recommended for B2B applications, adhering to norms such as Open Banking. Amazon API Gateway provides integral mutual TLS authentication at no additional cost.",
                 "url": "https://aws.amazon.com/blogs/compute/introducing-mutual-tls-authentication-for-amazon-api-gateway/"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass das Clientzertifikat für Backend-Endpunktzugriff in der API Gateway aktiviert ist",
+                    "risk": "Ohne Durchsetzung des Clientzertifikats können potenzielle 'Man-in-the-Middle'-Angriffe auftreten, bei denen die Integrität und Vertraulichkeit von Daten gefährdet werden. Nicht gesicherte API-Aufrufe können ebenfalls abgefangen werden, was zu unbefugtem Datenzugriff führt.",
+                    "remediation": "Aktivieren Sie das Clientzertifikat und implementieren Sie Mutual TLS für sicheren Datentransit. Mutual TLS wird für B2B-Anwendungen dringend empfohlen und entspricht Normen wie Open Banking. Amazon API Gateway bietet eine integrierte Mutual TLS-Authentifizierung ohne zusätzliche Kosten."
+                }
             }
         },
         {
@@ -48,7 +62,14 @@
                 "text": "To remediate, ensure you enable monitoring in all parts of your AWS solution. Particularly, ensure CloudTrail is active for logging API Gateway actions, which can offer insights like the nature of requests, originating IP address, the executor of the request, and more.",
                 "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/security-monitoring.html"
             },
-            "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/logging-and-monitoring.html"
+            "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/logging-and-monitoring.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass API Gateway-Stufen das Logging aktiviert haben",
+                    "risk": "Wenn das Logging nicht aktiviert ist, beeinträchtigen Sie die Sichtbarkeit und Nachverfolgbarkeit der Nutzung Ihres Dienstes. Dadurch können wesentliche betriebliche Erkenntnisse, Sicherheitsschwachstellen und Debugging-Informationen übersehen werden.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass Sie die Überwachung in allen Teilen Ihrer AWS-Lösung aktivieren. Stellen Sie insbesondere sicher, dass CloudTrail für das Protokollieren von API Gateway-Aktionen aktiviert ist. Dadurch erhalten Sie Einblicke wie die Art der Anfragen, die IP-Adresse des Ursprungs, den Ausführer der Anfrage und mehr."
+                }
+            }
         },
         {
             "name": "waf_acl_attached",
@@ -64,7 +85,14 @@
                 "text": "Mitigate this risk by using AWS WAF to protect your API Gateway from threats. AWS WAF can block these common web attacks, safeguarding both service performance and security.",
                 "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html"
             },
-            "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html"
+            "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass API Gateway einen WAF ACL angehängt hat.",
+                    "risk": "Ohne einen WAF ACL kann API Gateway gängigen Web-Bedrohungen wie SQL-Injektionen und XSS-Angriffen ausgesetzt sein. Diese könnten die Sicherheit beeinträchtigen, die Verfügbarkeit und Leistung beeinträchtigen und übermäßige Ressourcen verbrauchen.",
+                    "remediation": "Verringern Sie dieses Risiko, indem Sie AWS WAF verwenden, um Ihr API Gateway vor Bedrohungen zu schützen. AWS WAF kann diese gängigen Web-Angriffe blockieren und sowohl die Leistung als auch die Sicherheit des Dienstes schützen."
+                }
+            }
         }
     ]
 }

@@ -15,6 +15,13 @@
             "remediation": {
                 "text": "To fix the issue, ensure that replication instances are created in private subnets and do not have a public IP.",
                 "url": "https://docs.aws.amazon.com/dms/latest/userguide/CHAP_ReplicationInstance.PublicPrivate.html"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass EC2-Instanzen für den Database Migration Service (DMS) nicht über eine öffentliche IP-Adresse erreichbar sind",
+                    "risk": "Das direkte Bereitstellen einer EC2-Instanz im Internet erhöht die Angriffsfläche und birgt ein hohes Risiko für Kompromittierung. Im Zusammenhang mit DMS-Replikationsinstanzen kann dies erhebliche Auswirkungen auf die Compliance und Sicherheit haben.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass Replication Instances in privaten Subnetzen erstellt werden und keine öffentliche IP-Adresse haben."
+                }
             }
         }
     ]

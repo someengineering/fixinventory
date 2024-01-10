@@ -16,7 +16,14 @@
                 "text": "To fix this issue, create a new table specifying a KMS CMK encryption key, or, for an existing table, update the configuration to include a KMS CMK encryption key using the AWS Management Console.",
                 "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/encryption.tutorial.html"
             },
-            "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html"
+            "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die DynamoDB-Tabelle mit der KMS CMK-Verschlüsselung konfiguriert ist",
+                    "risk": "Ohne die Verschlüsselung von Daten mit KMS CMK sind Ihre sensiblen Benutzerdaten, die in DynamoDB gespeichert sind, gefährdet. Diese mangelnde Schutzkomplexität und Betriebslast kann zu Sicherheitsverletzungen oder Verlust vertraulicher Daten führen.",
+                    "remediation": "Um dieses Problem zu beheben, erstellen Sie eine neue Tabelle und geben Sie einen KMS CMK-Verschlüsselungsschlüssel an. Für eine bestehende Tabelle aktualisieren Sie die Konfiguration, um einen KMS CMK-Verschlüsselungsschlüssel mit der AWS Management Console einzuschließen."
+                }
+            }
         }
     ]
 }

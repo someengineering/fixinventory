@@ -16,7 +16,14 @@
                 "text": "To mitigate this risk, ensure server-side encryption is turned on for all Amazon SQS queues. If possible, leverage a Customer Master Key (CMK) for enhanced management and privacy benefits.",
                 "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html"
             },
-            "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-sse-existing-queue.html"
+            "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-sse-existing-queue.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die serverseitige Verschlüsselung für SQS-Warteschlangen aktiviert ist",
+                    "risk": "Wenn die serverseitige Verschlüsselung für SQS-Warteschlangen nicht aktiviert ist, kann vertrauliche Information während der Übertragung kompromittiert werden. Dadurch besteht das Risiko von Datenlecks, Verstößen gegen Compliance-Vorschriften und potenziellem Schaden für den Ruf der Organisation.",
+                    "remediation": "Um dieses Risiko zu minimieren, stellen Sie sicher, dass die serverseitige Verschlüsselung für alle Amazon SQS-Warteschlangen aktiviert ist. Nutzen Sie falls möglich einen Kundenschlüssel (CMK) für verbessertes Management und mehr Privatsphäre."
+                }
+            }
         }
     ]
 }

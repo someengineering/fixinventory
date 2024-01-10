@@ -16,7 +16,14 @@
                 "text": "Create or Join an AWS Organization",
                 "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html"
             },
-            "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html"
+            "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass das AWS-Konto Teil einer AWS-Organisation ist",
+                    "risk": "Die Nichtzugehörigkeit zu einer AWS-Organisation schränkt die zentralisierte Verwaltung und Kontrolle über AWS-Konten ein, was es schwierig macht, Sicherheitsrichtlinien konsistent durchzusetzen. Dies kann auch zu erhöhten Kosten aufgrund ineffizienter Ressourcennutzung führen und die Kontoverwendung und -zugriffsverfolgung beeinträchtigen.",
+                    "remediation": "Erstellen oder Beitritt zu einer AWS-Organisation"
+                }
+            }
         }
     ]
 }

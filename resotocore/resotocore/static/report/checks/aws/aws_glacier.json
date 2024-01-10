@@ -16,7 +16,14 @@
                 "text": "To rectify the problem, ensure that the vault policy does not grant access to unauthorized users. Follow the guidelines provided in the AWS documentation to set up proper access controls for S3 Glacier vaults.",
                 "url": "https://docs.aws.amazon.com/amazonglacier/latest/dev/access-control-overview.html"
             },
-            "url": "https://docs.aws.amazon.com/AmazonS3/latest/dev/amazon-s3-glacier.html"
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/dev/amazon-s3-glacier.html",
+            "localizations": {
+                "de": {
+                    "title": "Sorgen Sie dafür, dass S3 Glacier-Tresore Richtlinien haben, die den Zugriff auf autorisierte Benutzer beschränken.",
+                    "risk": "Wenn das Problem nicht behoben wird, können S3 Glacier-Tresore, die für jeden zugänglich sind, zu unbefugtem Zugriff und Offenlegung sensibler Daten für potenziell bösartige Angreifer führen.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass die Tresor-Richtlinie keinen Zugriff für nicht autorisierte Benutzer gewährt. Befolgen Sie die Richtlinien in der AWS-Dokumentation, um angemessene Zugriffskontrollen für S3 Glacier-Tresore einzurichten."
+                }
+            }
         }
     ]
 }

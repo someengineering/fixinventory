@@ -16,7 +16,14 @@
                 "text": "To fix this issue, select the certificate you want to check in ACM. In the certificate details, look for the 'Certificate Transparency Logging' attribute and ensure it is enabled.",
                 "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency"
             },
-            "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency"
+            "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die ACM-Zertifikatstransparenz aktiviert ist, um die Sicherheit der Website zu verbessern und nicht autorisierte SSL/TLS-Zertifikate zu erkennen.",
+                    "risk": "Ohne die ACM-Zertifikatstransparenz besteht ein erhöhtes Risiko, dass nicht autorisierte SSL/TLS-Zertifikate unbemerkt bleiben und eine Bedrohung für die Sicherheit der Website und der Infrastruktur darstellen.",
+                    "remediation": "Um dieses Problem zu beheben, wählen Sie das Zertifikat aus, das Sie überprüfen möchten, in ACM aus. In den Zertifikatdetails suchen Sie nach dem Attribut 'Zertifikatstransparenzprotokollierung' und stellen Sie sicher, dass es aktiviert ist."
+                }
+            }
         }
     ]
 }

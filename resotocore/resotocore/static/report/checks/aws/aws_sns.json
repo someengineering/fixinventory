@@ -16,7 +16,14 @@
                 "text": "Activate Encryption at Rest using KMS CMKs for Amazon SNS topics. Opt for CMKs for superior management and privacy controls. This will protect messages stored at rest in SNS topics with keys managed in AWS Key Management Service.",
                 "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html"
             },
-            "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html"
+            "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon SNS-Themen mit KMS-CMKs verschlüsselt sind",
+                    "risk": "Wenn die Verschlüsselung ruhender Daten nicht aktiviert ist, können sensible Informationen einem unbefugten Zugriff ausgesetzt sein. Ein Versäumnis beim Schutz dieser Daten kann zu potenziellen Sicherheitsverletzungen und Datenschutzverstößen führen.",
+                    "remediation": "Aktivieren Sie die Verschlüsselung ruhender Daten mit KMS-CMKs für Amazon SNS-Themen. Entscheiden Sie sich für CMKs, um eine überlegene Verwaltung und Datenschutzkontrollen zu gewährleisten. Dadurch werden Nachrichten, die in SNS-Themen gespeichert sind, mit in AWS Key Management Service verwalteten Schlüsseln geschützt."
+                }
+            }
         }
     ]
 }
