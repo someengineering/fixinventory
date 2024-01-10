@@ -105,7 +105,7 @@
             "risk": "Not having hardware MFA enabled for IAM users increases the risk of unauthorized access to the AWS account.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_iam_user) and user_virtual_mfa_devices in [null, []])"
+                "resoto": "is(aws_iam_user) and user_virtual_mfa_devices in [null, []]"
             },
             "remediation": {
                 "text": "To fix this issue, enable a hardware MFA device for each IAM user from the AWS Management Console, command line, or IAM API.",
