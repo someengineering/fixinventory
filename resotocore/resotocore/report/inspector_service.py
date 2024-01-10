@@ -16,6 +16,7 @@ from resotocore.error import NotFoundError
 from resotocore.ids import ConfigId, GraphName, NodeId
 from resotocore.model.model import Model
 from resotocore.model.resolve_in_graph import NodePath
+from resotocore.model.typed_model import from_js
 from resotocore.query.model import Query, P, Term
 from resotocore.report import (
     Inspector,
@@ -26,14 +27,15 @@ from resotocore.report import (
     CheckCollectionResult,
     CheckResult,
     CheckConfigRoot,
-    ResotoReportValues,
+    ResotoReportConfig,
     BenchmarkConfigRoot,
     ResotoReportBenchmark,
     ResotoReportCheck,
     ReportSeverity,
     ReportSeverityPriority,
+    ReportConfigRoot,
 )
-from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig
+from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig, ReportConfig
 from resotocore.service import Service
 from resotocore.types import Json
 from resotocore.util import value_in_path, uuid_str, value_in_path_get
@@ -90,9 +92,15 @@ class InspectorService(Inspector, Service):
         self.benchmark_db: BenchmarkDb = cli.dependencies.db_access.benchmark_db
         self.config_handler: ConfigHandler = cli.dependencies.config_handler
 
-    async def _report_values(self) -> Json:
-        cfg_entity = await self.config_handler.get_config(ResotoReportValues)
-        return cfg_entity.config if cfg_entity else {}
+    async def report_config(self) -> ReportConfig:
+        try:
+            if (c := await self.config_handler.get_config(ResotoReportConfig)) and (
+                v := c.config.get(ReportConfigRoot)
+            ):
+                return from_js(v, ReportConfig)
+        except Exception as e:
+            log.warning(f"Can not load report config: {e}")
+        return ReportConfig()  # safe default
 
     async def list_benchmarks(self) -> List[Benchmark]:
         result = {b.id: b for b in benchmarks_from_file().values()}
@@ -144,6 +152,7 @@ class InspectorService(Inspector, Service):
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
         context: Optional[CheckContext] = None,
+        ignore_checks: Optional[List[str]] = None,
     ) -> List[ReportCheck]:
         def inspection_matches(inspection: ReportCheck) -> bool:
             return (
@@ -153,6 +162,7 @@ class InspectorService(Inspector, Service):
                 and (kind is None or kind in inspection.result_kinds)
                 and (check_ids is None or inspection.id in check_ids)
                 and (context is None or context.includes_severity(inspection.severity))
+                and (ignore_checks is None or inspection.id not in ignore_checks)
             )
 
         return await self.filter_checks(inspection_matches)
@@ -167,6 +177,7 @@ class InspectorService(Inspector, Service):
         only_failing: bool = False,
     ) -> Dict[str, BenchmarkResult]:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
+        config = await self.report_config()
         # create query
         term: Term = P("benchmark").is_in(benchmark_names)
         if severity:
@@ -179,7 +190,7 @@ class InspectorService(Inspector, Service):
 
         # collect all checks
         benchmarks = await self.__benchmarks(benchmark_names)
-        check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
+        check_ids = {check for b in benchmarks.values() for check in b.nested_checks() if config.check_allowed(check)}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
         check_lookup = {check.id: check for check in checks}
 
@@ -209,13 +220,14 @@ class InspectorService(Inspector, Service):
         report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
+        config = await self.report_config()
         benchmarks = await self.__benchmarks(benchmark_names)
         # collect all checks
-        check_ids = {check for b in benchmarks.values() for check in b.nested_checks()}
+        check_ids = {check for b in benchmarks.values() for check in b.nested_checks() if config.check_allowed(check)}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
         check_lookup = {check.id: check for check in checks}
         # create benchmark results
-        results = await self.__perform_checks(graph, checks, context)
+        results = await self.__perform_checks(graph, checks, context, config)
         result = {
             name: self.__to_result(benchmark, check_lookup, results, context) for name, benchmark in benchmarks.items()
         }
@@ -242,8 +254,15 @@ class InspectorService(Inspector, Service):
         only_failing: bool = False,
     ) -> BenchmarkResult:
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
+        config = await self.report_config()
         checks = await self.list_checks(
-            provider=provider, service=service, category=category, kind=kind, check_ids=check_ids, context=context
+            provider=provider,
+            service=service,
+            category=category,
+            kind=kind,
+            check_ids=check_ids,
+            context=context,
+            ignore_checks=config.ignore_checks,
         )
         provider_name = f"{provider}_" if provider else ""
         service_name = f"{service}_" if service else ""
@@ -267,7 +286,7 @@ class InspectorService(Inspector, Service):
 
         checks_to_perform = await self.list_checks(check_ids=benchmark.nested_checks(), context=context)
         check_by_id = {c.id: c for c in checks_to_perform}
-        results = await self.__perform_checks(graph, checks_to_perform, context)
+        results = await self.__perform_checks(graph, checks_to_perform, context, config)
         await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
         return self.__to_result(benchmark, check_by_id, results, context)
 
@@ -291,14 +310,14 @@ class InspectorService(Inspector, Service):
         model = await self.model_handler.load_model(graph)
         inspection = checks[0]
         # load configuration
-        cfg = await self._report_values()
+        cfg = await self.report_config()
         return await self.__list_failing_resources(graph, model, inspection, cfg, context)
 
     async def __list_failing_resources(
-        self, graph: GraphName, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
+        self, graph: GraphName, model: Model, inspection: ReportCheck, config: ReportConfig, context: CheckContext
     ) -> AsyncIterator[Json]:
         # final environment: defaults are coming from the check and are eventually overriden in the config
-        env = inspection.environment(config)
+        env = inspection.environment(config.override_values)
         account_id_prop = "ancestors.account.reported.id"
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
@@ -372,15 +391,13 @@ class InspectorService(Inspector, Service):
         )
 
     async def __perform_checks(  # type: ignore
-        self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
+        self, graph: GraphName, checks: List[ReportCheck], context: CheckContext, config: ReportConfig
     ) -> Dict[str, SingleCheckResult]:
         # load model
         model = await self.model_handler.load_model(graph)
-        # load configuration
-        cfg = await self._report_values()
 
         async def perform_single(check: ReportCheck) -> Tuple[str, SingleCheckResult]:
-            return check.id, await self.__perform_check(graph, model, check, cfg, context)
+            return check.id, await self.__perform_check(graph, model, check, config, context)
 
         check_results: Stream[Tuple[str, SingleCheckResult]] = stream.iterate(checks) | pipe.map(
             perform_single, ordered=False, task_limit=context.parallel_checks  # type: ignore
@@ -389,7 +406,7 @@ class InspectorService(Inspector, Service):
             return {key: value async for key, value in streamer}
 
     async def __perform_check(
-        self, graph: GraphName, model: Model, inspection: ReportCheck, config: Json, context: CheckContext
+        self, graph: GraphName, model: Model, inspection: ReportCheck, config: ReportConfig, context: CheckContext
     ) -> SingleCheckResult:
         resources_by_account = defaultdict(list)
         async for resource in await self.__list_failing_resources(graph, model, inspection, config, context):

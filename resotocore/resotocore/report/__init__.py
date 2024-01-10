@@ -7,7 +7,6 @@ from functools import reduce
 from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Union
 
 from attr import define, field, evolve
-
 from resotocore.ids import ConfigId, GraphName
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
@@ -16,13 +15,14 @@ from resotocore.util import uuid_str, if_set, partition_by
 log = logging.getLogger(__name__)
 
 # config ids
-ResotoReportValues = ConfigId("resoto.report.values")
+ResotoReportConfig = ConfigId("resoto.report.config")
 ResotoReportBenchmark = ConfigId("resoto.report.benchmark")
 ResotoReportCheck = ConfigId("resoto.report.check")
 
 # config keys and prefixes
 CheckConfigRoot = "report_check"
 BenchmarkConfigRoot = "report_benchmark"
+ReportConfigRoot = "report_config"
 
 
 class ReportSeverity(Enum):
@@ -73,8 +73,8 @@ class ReportCheck:
     url: Optional[str] = None
     related: Optional[List[str]] = None
 
-    def environment(self, values: Json) -> Json:
-        return {**self.default_values, **values} if self.default_values else values
+    def environment(self, override_values: Optional[Json] = None) -> Json:
+        return {**(self.default_values or {}), **(override_values or {})}
 
     def to_node(self) -> Json:
         reported = to_js(self)
@@ -343,6 +343,7 @@ class Inspector(ABC):
         category: Optional[str] = None,
         kind: Optional[str] = None,
         check_ids: Optional[List[str]] = None,
+        ignore_checks: Optional[List[str]] = None,
     ) -> List[ReportCheck]:
         """
         List all inspection checks matching the given criteria.
@@ -353,6 +354,7 @@ class Inspector(ABC):
         :param category: the category of the check (e.g. security, compliance, cost ...)
         :param kind: the resulting kind of the check (e.g. aws_ec2_instance, kubernetes_pod, ...)
         :param check_ids: the list of check ids to return
+        :param ignore_checks: ignore checks listed here
         :return: the list of matching checks
         """
 

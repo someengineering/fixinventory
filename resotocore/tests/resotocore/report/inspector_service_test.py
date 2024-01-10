@@ -35,7 +35,7 @@ async def inspector_service_with_test_benchmark(
 
 async def test_config_model() -> None:
     models = config_model()
-    assert len(models) == 6
+    assert len(models) == 7
 
 
 async def test_list_inspect_checks(inspector_service: InspectorService) -> None:

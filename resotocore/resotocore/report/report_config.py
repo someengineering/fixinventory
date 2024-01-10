@@ -17,6 +17,7 @@ from resotocore.report import (
     Benchmark,
     Remediation,
     BenchmarkConfigRoot,
+    ReportConfigRoot,
 )
 from resotocore.types import Json
 from resotolib.core.model_export import dataclasses_to_resotocore_model
@@ -156,6 +157,20 @@ class BenchmarkConfig(CheckCollectionConfig):
         return from_js(cfg.config[BenchmarkConfigRoot], Benchmark)
 
 
+@define
+class ReportConfig:
+    kind: ClassVar[str] = ReportConfigRoot
+
+    ignore_checks: Optional[List[str]] = field(default=None, metadata={"description": "List of checks to ignore."})
+    override_values: Optional[Json] = field(
+        default=None,
+        metadata={"description": "Default values for the report. Will be merged with the values from the config."},
+    )
+
+    def check_allowed(self, check_id: str) -> bool:
+        return not self.ignore_checks or check_id not in self.ignore_checks
+
+
 def config_model() -> List[Json]:
-    config_classes = {ReportCheckCollectionConfig, BenchmarkConfig}
+    config_classes = {ReportCheckCollectionConfig, BenchmarkConfig, ReportConfig}
     return dataclasses_to_resotocore_model(config_classes, use_optional_as_required=True)
