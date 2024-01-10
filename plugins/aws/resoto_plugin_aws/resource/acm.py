@@ -68,6 +68,8 @@ class AwsAcmExtendedKeyUsage:
 @define(eq=False, slots=False)
 class AwsAcmCertificate(AwsResource):
     kind: ClassVar[str] = "aws_acm_certificate"
+    kind_display: ClassVar[str] = "AWS ACM Certificate"
+    kind_description: ClassVar[str] = "An AWS ACM Certificate is used to provision, manage, and deploy Secure Sockets Layer/Transport Layer Security (SSL/TLS) certificates for secure web traffic on AWS services."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("acm", "describe-certificate", "Certificate")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainName"),

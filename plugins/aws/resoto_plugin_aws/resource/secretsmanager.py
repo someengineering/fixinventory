@@ -29,6 +29,8 @@ class AwsSecretsManagerRotationRulesType:
 class AwsSecretsManagerSecret(AwsResource):
     kind: ClassVar[str] = "aws_secretsmanager_secret"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
+    kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
+    kind_description: ClassVar[str] = "An AWS Secrets Manager Secret is used for securely storing and managing sensitive information, such as passwords, API keys, and database credentials, in AWS environments."  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),

@@ -25,6 +25,8 @@ class AwsEcrEncryptionConfiguration:
 @define(eq=False, slots=False)
 class AwsEcrRepository(AwsResource):
     kind: ClassVar[str] = "aws_ecr_repository"
+    kind_display: ClassVar[str] = "AWS ECR Repository"
+    kind_description: ClassVar[str] = "An AWS Elastic Container Registry (ECR) Repository is used for storing, managing, and deploying Docker container images in a secure, scalable, and private environment on AWS."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr", "describe-repositories", "repositories")
     public_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr-public", "describe-repositories", "repositories")
     mapping: ClassVar[Dict[str, Bender]] = {

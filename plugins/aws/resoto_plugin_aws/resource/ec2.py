@@ -3799,6 +3799,8 @@ class AwsEc2LaunchTemplateData:
 @define(eq=False, slots=False)
 class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_launch_template"
+    kind_display: ClassVar[str] = "AWS EC2 Launch Template"
+    kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default", "$Latest"]}
     )

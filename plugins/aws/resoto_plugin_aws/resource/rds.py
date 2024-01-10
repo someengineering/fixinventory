@@ -885,6 +885,8 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
 @define(eq=False, slots=False)
 class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_rds_snapshot"
+    kind_display: ClassVar[str] = "AWS RDS Snapshot"
+    kind_description: ClassVar[str] = "An AWS RDS Snapshot is a backup tool used for creating a point-in-time copy of an RDS database instance, facilitating data recovery and replication."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-snapshots", "DBSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBSnapshotIdentifier"),
@@ -981,6 +983,8 @@ class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AwsRdsClusterSnapshot(AwsResource):
     kind: ClassVar[str] = "aws_rds_cluster_snapshot"
+    kind_display: ClassVar[str] = "AWS RDS Cluster Snapshot"
+    kind_description: ClassVar[str] = "An AWS RDS Cluster Snapshot is a point-in-time backup of an Amazon RDS cluster that provides data persistence and recovery for disaster management."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-cluster-snapshots", "DBClusterSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterSnapshotIdentifier"),
