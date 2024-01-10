@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Type, Optional, Any, Set
 from attrs import define
 
 from resotolib.baseresources import BaseResource
+from resotolib.core.model_export import transitive_classes
 from resotolib.graph import resource_classes_to_resotocore_model
 from resotolib.json import from_json
 from resotolib.types import Json
@@ -96,6 +97,14 @@ def check_overlap_for(models: List[Json]) -> None:
                         raise AttributeError(f"Successor kind {kind} does not exist")
 
 
+def check_model_class(clazz: Type[BaseResource]) -> None:
+    if clazz.__name__.startswith("Aws"):  # Currently only AWS resources provide this information
+        if "kind_display" not in vars(clazz):
+            raise AttributeError(f"Class {clazz.__name__} does not have a kind_display attribute")
+        if "kind_description" not in vars(clazz):
+            raise AttributeError(f"Class {clazz.__name__} does not have a kind_description attribute")
+
+
 def load_plugin_classes(*base: Type[BaseResource]) -> Set[Type[BaseResource]]:
     def dynamic_import(name: str) -> List[Type[Any]]:
         components = name.split(".")
@@ -141,4 +150,9 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     """
 
     model_classes = load_plugin_classes(*base)
+    for model in transitive_classes(model_classes):
+        if issubclass(model, BaseResource) and not getattr(model, "__abstractmethods__"):
+            # check that the model class is not abstract and has no abstract methods
+            check_model_class(model)
+
     check_overlap_for(resource_classes_to_resotocore_model(model_classes, aggregate_root=BaseResource))
