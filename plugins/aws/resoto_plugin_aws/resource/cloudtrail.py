@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, Type, List
 
-from attr import define, field as attrs_field
+from attr import define, field as attrs_field, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource, parse_json
@@ -11,57 +11,79 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.s3 import AwsS3Bucket
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resoto_plugin_aws.utils import ToDict
-from resotolib.graph import Graph
-from resotolib.types import Json
 from resotolib.baseresources import ModelReference, EdgeType
-from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone, F
+from resotolib.graph import Graph
+from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone
+from resotolib.types import Json
 
 service_name = "cloudtrail"
 
 
 @define(eq=False, slots=False)
-class AwsCloudTrailAdvancedFieldSelector:
-    kind: ClassVar[str] = "aws_cloud_trail_advanced_field_selector"
-    kind_display: ClassVar[str] = "AWS CloudTrail Advanced Field Selector"
-    kind_description: ClassVar[str] = (
-        "AWS CloudTrail Advanced Field Selector provides fine-grained control over"
-        " the fields returned in CloudTrail log events, allowing users to filter and"
-        " retrieve specific data of interest."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "field": S("Field"),
-        "equals": S("Equals"),
-        "starts_with": S("StartsWith"),
-        "ends_with": S("EndsWith"),
-        "not_equals": S("NotEquals"),
-        "not_starts_with": S("NotStartsWith"),
-        "not_ends_with": S("NotEndsWith"),
-    }
-    equals: Optional[List[str]] = attrs_field(default=None)
-    starts_with: Optional[List[str]] = attrs_field(default=None)
-    ends_with: Optional[List[str]] = attrs_field(default=None)
-    not_equals: Optional[List[str]] = attrs_field(default=None)
-    not_starts_with: Optional[List[str]] = attrs_field(default=None)
-    not_ends_with: Optional[List[str]] = attrs_field(default=None)
+class AwsCloudTrailDataResource:
+    kind: ClassVar[str] = "aws_cloud_trail_data_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "values": S("Values", default=[])}
+    type: Optional[str] = field(default=None, metadata={"description": "The resource type in which you want to log data events."})  # fmt: skip
+    values: Optional[List[str]] = field(factory=list, metadata={"description": "An array of Amazon Resource Name (ARN) strings or partial ARN strings for the specified objects."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AwsCloudTrailEventSelector:
     kind: ClassVar[str] = "aws_cloud_trail_event_selector"
-    kind_display: ClassVar[str] = "AWS CloudTrail Event Selector"
-    kind_description: ClassVar[str] = (
-        "CloudTrail Event Selector is a feature in AWS CloudTrail that allows you to"
-        " choose which events to record and store in your Amazon S3 bucket for"
-        " auditing and compliance purposes."
-    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "read_write_type": S("ReadWriteType"),
+        "include_management_events": S("IncludeManagementEvents"),
+        "data_resources": S("DataResources", default=[]) >> ForallBend(AwsCloudTrailDataResource.mapping),
+        "exclude_management_event_sources": S("ExcludeManagementEventSources", default=[]),
+    }
+    read_write_type: Optional[str] = field(default=None, metadata={"description": "Specify if you want your trail to log read-only events, write-only events, or all."})  # fmt: skip
+    include_management_events: Optional[bool] = field(default=None, metadata={"description": "Specify if you want your event selector to include management events for your trail."})  # fmt: skip
+    data_resources: Optional[List[AwsCloudTrailDataResource]] = field(factory=list, metadata={"description": "CloudTrail supports data event logging for Amazon S3 objects, Lambda functions, and Amazon DynamoDB tables with basic event selectors."})  # fmt: skip
+    exclude_management_event_sources: Optional[List[str]] = field(factory=list, metadata={"description": "An optional list of service event sources from which you do not want management events to be logged on your trail."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudTrailAdvancedFieldSelector:
+    kind: ClassVar[str] = "aws_cloud_trail_advanced_field_selector"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "selector_field": S("Field"),
+        "equals": S("Equals", default=[]),
+        "starts_with": S("StartsWith", default=[]),
+        "ends_with": S("EndsWith", default=[]),
+        "not_equals": S("NotEquals", default=[]),
+        "not_starts_with": S("NotStartsWith", default=[]),
+        "not_ends_with": S("NotEndsWith", default=[]),
+    }
+    selector_field: Optional[str] = field(default=None, metadata={"description": "A field in a CloudTrail event record on which to filter events to be logged."})  # fmt: skip
+    equals: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that includes events that match the exact value of the event record field specified as the value of Field. This is the only valid operator that you can use with the readOnly, eventCategory, and resources.type fields."})  # fmt: skip
+    starts_with: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that includes events that match the first few characters of the event record field specified as the value of Field."})  # fmt: skip
+    ends_with: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that includes events that match the last few characters of the event record field specified as the value of Field."})  # fmt: skip
+    not_equals: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that excludes events that match the exact value of the event record field specified as the value of Field."})  # fmt: skip
+    not_starts_with: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that excludes events that match the first few characters of the event record field specified as the value of Field."})  # fmt: skip
+    not_ends_with: Optional[List[str]] = field(factory=list, metadata={"description": "An operator that excludes events that match the last few characters of the event record field specified as the value of Field."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudTrailAdvancedEventSelector:
+    kind: ClassVar[str] = "aws_cloud_trail_advanced_event_selector"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
-        "field_selectors": S("FieldSelectors", default=[])
-        >> ForallBend(AwsCloudTrailAdvancedFieldSelector.mapping)
-        >> F(lambda x: {a["field"]: a for a in x}),
+        "field_selectors": S("FieldSelectors", default=[]) >> ForallBend(AwsCloudTrailAdvancedFieldSelector.mapping),
     }
-    name: Optional[str] = attrs_field(default=None)
-    field_selectors: Optional[Dict[str, AwsCloudTrailAdvancedFieldSelector]] = attrs_field(default=None)
+    name: Optional[str] = field(default=None, metadata={"description": "An optional, descriptive name for an advanced event selector, such as Log data events for only two S3 buckets."})  # fmt: skip
+    field_selectors: Optional[List[AwsCloudTrailAdvancedFieldSelector]] = field(factory=list, metadata={"description": "Contains all selector statements in an advanced event selector."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsCloudTrailEventSelectors:
+    kind: ClassVar[str] = "aws_cloud_trail_event_selectors"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "event_selectors": S("EventSelectors", default=[]) >> ForallBend(AwsCloudTrailEventSelector.mapping),
+        "advanced_event_selectors": S("AdvancedEventSelectors", default=[])
+        >> ForallBend(AwsCloudTrailAdvancedEventSelector.mapping),
+    }
+    event_selectors: Optional[List[AwsCloudTrailEventSelector]] = field(factory=list, metadata={"description": "The event selectors that are configured for the trail."})  # fmt: skip
+    advanced_event_selectors: Optional[List[AwsCloudTrailAdvancedEventSelector]] = field(factory=list, metadata={"description": "The advanced event selectors that are configured for the trail."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -157,7 +179,7 @@ class AwsCloudTrail(AwsResource):
     trail_has_insight_selectors: Optional[bool] = attrs_field(default=None)
     trail_is_organization_trail: Optional[bool] = attrs_field(default=None)
     trail_status: Optional[AwsCloudTrailStatus] = attrs_field(default=None)
-    trail_event_selectors: Optional[List[AwsCloudTrailEventSelector]] = attrs_field(default=None)
+    trail_event_selectors: Optional[AwsCloudTrailEventSelectors] = attrs_field(default=None)
     trail_insight_selectors: Optional[List[str]] = attrs_field(default=None)
 
     @classmethod
@@ -185,13 +207,9 @@ class AwsCloudTrail(AwsResource):
                         collect_insight_selectors(instance)
 
         def collect_event_selectors(trail: AwsCloudTrail) -> None:
-            trail.trail_event_selectors = []
-            for item in builder.client.list(
-                service_name, "get-event-selectors", "AdvancedEventSelectors", TrailName=trail.arn
-            ):
-                mapped = bend(AwsCloudTrailEventSelector.mapping, item)
-                if es := parse_json(mapped, AwsCloudTrailEventSelector, builder):
-                    trail.trail_event_selectors.append(es)
+            if esj := builder.client.get(service_name, "get-event-selectors", TrailName=trail.arn):
+                if es := parse_json(esj, AwsCloudTrailEventSelectors, builder, AwsCloudTrailEventSelectors.mapping):
+                    trail.trail_event_selectors = es
 
         def collect_insight_selectors(trail: AwsCloudTrail) -> None:
             trail.trail_insight_selectors = []

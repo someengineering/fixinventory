@@ -27,7 +27,7 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.config import Config, current_config
-from resotolib.core.actions import CoreFeedback
+from resotolib.core.actions import CoreFeedback, SuppressWithFeedback
 from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
 from resotolib.json import from_json, value_in_path
 from resotolib.json_bender import Bender, bend
@@ -49,17 +49,21 @@ def get_client(config: Config, resource: BaseResource) -> AwsClient:
 T = TypeVar("T")
 
 
-def parse_json(json: Json, clazz: Type[T], builder: GraphBuilder) -> Optional[T]:
+def parse_json(
+    json: Json, clazz: Type[T], builder: GraphBuilder, mapping: Optional[Dict[str, Bender]] = None
+) -> Optional[T]:
     """
     Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
     Based on configuration, either the exception is raised or None is returned.
     :param json: the json to parse.
     :param clazz: the class to parse into.
-    :param builder:  the graph builder.
+    :param builder: the graph builder.
+    :param mapping: the optional mapping to apply before parsing.
     :return: The parsed object or None.
     """
     try:
-        return from_json(json, clazz)
+        mapped = bend(mapping, json) if mapping is not None else json
+        return from_json(mapped, clazz)
     except Exception as e:
         # report and log the error
         builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
@@ -173,8 +177,7 @@ class AwsResource(BaseResource, ABC):
 
     @classmethod
     def from_api(cls: Type[AwsResourceType], json: Json, builder: GraphBuilder) -> Optional[AwsResourceType]:
-        mapped = bend(cls.mapping, json)
-        return parse_json(mapped, cls, builder)
+        return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
@@ -407,6 +410,9 @@ class GraphBuilder:
 
         self.metrics_start = start
         self.metrics_delta = delta
+
+    def suppress(self, message: str) -> SuppressWithFeedback:
+        return SuppressWithFeedback(message, self.core_feedback, log)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

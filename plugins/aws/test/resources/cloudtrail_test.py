@@ -15,6 +15,7 @@ def test_trails() -> None:
         AwsS3Bucket.collect_resources(builder)
         AwsKmsKey.collect_resources(builder)
         AwsSnsTopic.collect_resources(builder)
+        builder.executor.wait_for_submitted_work()
         data = builder.graph.nodes(data=True)[first]
         first.connect_in_graph(builder, data["source"])
         assert len(builder.edges_of(AwsCloudTrail, AwsS3Bucket)) == 1

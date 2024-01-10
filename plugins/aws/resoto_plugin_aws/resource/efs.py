@@ -1,3 +1,4 @@
+import json
 from typing import Optional, ClassVar, Dict, List, Type
 
 import math
@@ -110,6 +111,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     throughput_mode: Optional[str] = field(default=None)
     provisioned_throughput_in_mibps: Optional[float] = field(default=None)
     availability_zone_name: Optional[str] = field(default=None)
+    file_system_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -118,10 +120,15 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
             AwsApiSpec(
                 service_name, "describe-mount-targets", override_iam_permission="elasticfilesystem:DescribeMountTargets"
             ),
+            AwsApiSpec(
+                service_name,
+                "describe-file-system-policy",
+                override_iam_permission="elasticfilesystem:DescribeFileSystemPolicy",
+            ),
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> None:
         def collect_mount_points(fs: AwsEfsFileSystem) -> None:
             for mt_raw in builder.client.list(
                 service_name, "describe-mount-targets", "MountTargets", FileSystemId=fs.id
@@ -130,10 +137,21 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                     builder.add_node(mt, mt_raw)
                     builder.add_edge(fs, node=mt)
 
-        for js in json:
+        def fetch_file_system_policy(fs: AwsEfsFileSystem) -> None:
+            with builder.suppress("describe-file-system-policy"):
+                if policy := builder.client.get(
+                    service_name,
+                    "describe-file-system-policy",
+                    FileSystemId=fs.id,
+                    expected_errors=["PolicyNotFound"],
+                ):
+                    fs.file_system_policy = json.loads(policy["Policy"])
+
+        for js in js_list:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, collect_mount_points, instance)
+                builder.submit_work(service_name, fetch_file_system_policy, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):

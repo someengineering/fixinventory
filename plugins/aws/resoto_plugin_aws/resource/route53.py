@@ -3,7 +3,7 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attrs import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import (
     BaseDNSZone,
@@ -47,6 +47,17 @@ class AwsRoute53LinkedService:
 
 
 @define(eq=False, slots=False)
+class AwsRoute53LoggingConfig:
+    kind: ClassVar[str] = "aws_route53_logging_config"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("Id"),
+        "cloud_watch_logs_log_group_arn": S("CloudWatchLogsLogGroupArn"),
+    }
+    id: Optional[str] = field(default=None, metadata={"description": "The ID for a configuration for DNS query logging."})  # fmt: skip
+    cloud_watch_logs_log_group_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the CloudWatch Logs log group that Amazon Route 53 is publishing logs to."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     kind_display: ClassVar[str] = "AWS Route 53 Zone"
@@ -73,6 +84,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     zone_config: Optional[AwsRoute53ZoneConfig] = field(default=None)
     zone_resource_record_set_count: Optional[int] = field(default=None)
     zone_linked_service: Optional[AwsRoute53LinkedService] = field(default=None)
+    zone_logging_config: Optional[AwsRoute53LoggingConfig] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -95,10 +107,20 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
             if tags:
                 zone.tags = bend(S("Tags", default=[]) >> ToDict(), tags)
 
+        def fetch_logging_configuration(zone: AwsRoute53Zone) -> None:
+            with builder.suppress("route53.list-query-logging-configs"):
+                if res := builder.client.list(
+                    service_name, "list-query-logging-configs", "QueryLoggingConfigs", HostedZoneId=zone.id
+                ):
+                    zone.zone_logging_config = parse_json(
+                        res[0], AwsRoute53LoggingConfig, builder, AwsRoute53LoggingConfig.mapping
+                    )
+
         for js in json:
             if zone := AwsRoute53Zone.from_api(js, builder):
                 builder.add_node(zone, js)
                 builder.submit_work(service_name, add_tags, zone)
+                builder.submit_work(service_name, fetch_logging_configuration, zone)
                 for rs_js in builder.client.list(
                     service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
                 ):

@@ -346,7 +346,9 @@ class ArangoGraphDB(GraphDB):
 
         # call adjuster on resulting node
         ctime = value_in_path_get(node, NodePath.reported_ctime, utc_str())
-        adjusted = self.adjust_node(model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime)
+        adjusted = self.adjust_node(
+            model, GraphAccess.dump_direct(node_id, updated, kind, recompute=True), ctime, utc_str()
+        )
         update = {"_key": node["_key"], "hash": adjusted["hash"], "kinds": adjusted["kinds"], "flat": adjusted["flat"]}
         # copy relevant sections into update node
         for sec in [section] if section else Section.content_ordered:
@@ -876,13 +878,20 @@ class ArangoGraphDB(GraphDB):
         doc = {"_key": str(uuid.uuid5(uuid.NAMESPACE_DNS, change_id))}
         await db.delete(self.in_progress, doc, ignore_missing=True)
 
-    def adjust_node(self, model: Model, json: Json, created_at: Any) -> Json:
+    def adjust_node(
+        self, model: Model, json: Json, created_at: str, updated_at: str, *, mtime_from_ctime: bool = False
+    ) -> Json:
         reported = json[Section.reported]
         # preserve ctime in reported: if it is not set, use the creation time of the object
         if not reported.get("ctime", None):
             kind = model[reported]
             if isinstance(kind, ComplexKind) and "ctime" in kind:
                 reported["ctime"] = created_at
+        # if no mtime is reported, we set updated_at as modification time
+        if not reported.get("mtime", None):
+            kind = model[reported]
+            if isinstance(kind, ComplexKind) and "mtime" in kind:
+                reported["mtime"] = reported.get("ctime", updated_at) if mtime_from_ctime else updated_at
 
         # adjuster has the option to manipulate the resulting json
         return self.node_adjuster.adjust(json)
@@ -899,7 +908,7 @@ class ArangoGraphDB(GraphDB):
         optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash"]
 
         def insert_node(node: Json) -> None:
-            elem = self.adjust_node(model, node, access.at_json)
+            elem = self.adjust_node(model, node, access.at_json, access.at_json, mtime_from_ctime=True)
             js_doc: Json = {"_key": elem["id"], "created": access.at_json, "updated": access.at_json}
             for prop in optional_properties:
                 value = node.get(prop, None)
@@ -918,7 +927,7 @@ class ArangoGraphDB(GraphDB):
                 info.nodes_deleted += 1
             elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
-                adjusted: Json = self.adjust_node(model, elem, node["created"])
+                adjusted: Json = self.adjust_node(model, elem, node["created"], access.at_json)
                 js = {"_key": key, "created": node["created"], "updated": access.at_json}
                 for prop in optional_properties:
                     value = adjusted.get(prop, None)

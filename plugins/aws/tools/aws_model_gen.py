@@ -31,7 +31,7 @@ class AwsProperty:
 
     def type_string(self) -> str:
         if self.is_array:
-            return f"List[{self.type}]"
+            return f"Optional[List[{self.type}]]"
         else:
             return f"Optional[{self.type}]"
 
@@ -118,6 +118,7 @@ simple_type_map = {
     "Timestamp": "datetime",
     "TagsMap": "Dict[str, str]",
     "MillisecondDateTime": "datetime",
+    "SearchString": "str",
 }
 simple_type_map |= {k.lower(): v for k, v in simple_type_map.items()}
 
@@ -261,9 +262,9 @@ def all_models() -> List[AwsModel]:
     return result
 
 
-def create_test_response(service: str, function: str) -> JsonElement:
+def create_test_response(service: str, function: str, is_pascal: bool = False) -> JsonElement:
     sm = service_model(service)
-    op = sm.operation_model(pascalcase(function))
+    op = sm.operation_model(function if is_pascal else pascalcase(function))
 
     def sample(shape: Shape) -> JsonElement:
         if isinstance(shape, StringShape) and shape.enum:
@@ -313,9 +314,6 @@ def default_imports() -> str:
 models: Dict[str, List[AwsResotoModel]] = {
     "accessanalyzer": [
         # AwsResotoModel("list-analyzers", "analyzers", "AnalyzerSummary", prefix="AccessAnalyzer"),
-    ],
-    "acm": [
-        # AwsResotoModel("list-certificates", "CertificateSummaryList", "CertificateSummary", prefix="ACM"),
     ],
     "acm-pca": [
         # AwsResotoModel(
@@ -396,13 +394,7 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("list-data-catalogs", "DataCatalogs", "DataCatalog", prefix="Athena"),
     ],
     "autoscaling": [
-        # AwsResotoModel(
-        #     "describe-auto-scaling-groups",
-        #     "AutoScalingGroupName",
-        #     "AutoScalingGroup",
-        #     prefix="AutoScaling",
-        #     prop_prefix="autoscaling_",
-        # ),
+        # AwsResotoModel( "describe-auto-scaling-groups", "AutoScalingGroupName", "AutoScalingGroup", prefix="AutoScaling", prop_prefix="autoscaling_"),
     ],
     "cloudformation": [
         # AwsResotoModel("describe-stacks", "Stacks", "Stack", prefix="CloudFormation", prop_prefix="stack_"),
@@ -418,6 +410,13 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "cloudfront": [
+        # AwsResotoModel(
+        #     "get-distribution",
+        #     "Distribution",
+        #     "Distribution",
+        #     prefix="CloudFront",
+        #     prop_prefix="distribution_",
+        # ),
         # AwsResotoModel(
         #     "list-distributions",
         #     "DistributionSummary",
@@ -515,95 +514,27 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ec2": [
         # AwsResotoModel("describe-hosts", "Hosts", "Host", prefix="Ec2", prop_prefix="host_")
-        # AwsResotoModel(
-        #     "describe-route-tables",
-        #     "RouteTables",
-        #     "RouteTable",
-        #     base="BaseRoutingTable",
-        #     prefix="Ec2",
-        #     prop_prefix="route_table_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-vpc-endpoints",
-        #     "VpcEndpoints",
-        #     "VpcEndpoint",
-        #     base="BaseEndpoint",
-        #     prefix="Ec2",
-        #     prop_prefix="endpoint_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-vpc-peering-connections",
-        #     "VpcPeeringConnections",
-        #     "VpcPeeringConnection",
-        #     base="BasePeeringConnection",
-        #     prefix="Ec2",
-        #     prop_prefix="connection_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-internet-gateways",
-        #     "InternetGateways",
-        #     "InternetGateway",
-        #     base="BaseGateway",
-        #     prefix="Ec2",
-        #     prop_prefix="gateway_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-security-groups",
-        #     "SecurityGroups",
-        #     "SecurityGroup",
-        #     base="BaseSecurityGroup",
-        #     prefix="Ec2",
-        #     prop_prefix="group_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-subnets",
-        #     "Subnets",
-        #     "Subnet",
-        #     base="BaseSubnet",
-        #     prefix="Ec2",
-        #     prop_prefix="subnet_",
-        # ),
+        # AwsResotoModel( "describe-route-tables", "RouteTables", "RouteTable", base="BaseRoutingTable", prefix="Ec2", prop_prefix="route_table_", ),
+        # AwsResotoModel( "describe-vpc-endpoints", "VpcEndpoints", "VpcEndpoint", base="BaseEndpoint", prefix="Ec2", prop_prefix="endpoint_", ),
+        # AwsResotoModel( "describe-vpc-peering-connections", "VpcPeeringConnections", "VpcPeeringConnection", base="BasePeeringConnection", prefix="Ec2", prop_prefix="connection_", ),
+        # AwsResotoModel( "describe-snapshots", "Snapshots", "Snapshot", base="BaseSnapshot", prefix="Ec2", prop_prefix="snapshot_" ),
+        # AwsResotoModel( "describe-internet-gateways", "InternetGateways", "InternetGateway", base="BaseGateway", prefix="Ec2", prop_prefix="gateway_", ),
+        # AwsResotoModel( "describe-nat-gateways", "NatGateways", "NatGateway", base="BaseGateway", prefix="Ec2", prop_prefix="nat_" ),
+        # AwsResotoModel( "describe-security-groups", "SecurityGroups", "SecurityGroup", base="BaseSecurityGroup", prefix="Ec2", prop_prefix="group_", ),
+        # AwsResotoModel( "describe-subnets", "Subnets", "Subnet", base="BaseSubnet", prefix="Ec2", prop_prefix="subnet_", ),
         # AwsResotoModel("describe-vpcs", "Vpcs", "Vpc", base="BaseNetwork", prefix="Ec2", prop_prefix="vpc_"),
-        # AwsResotoModel(
-        #     "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_"
-        # ),
-        # AwsResotoModel(
-        #     "describe-network-interfaces",
-        #     "NetworkInterfaces",
-        #     "NetworkInterface",
-        #     base="BaseNetworkInterface",
-        #     prefix="Ec2",
-        #     prop_prefix="nic_",
-        # ),
-        # AwsResotoModel(
-        #     "describe-instances",
-        #     "Reservations",
-        #     "Instance",
-        #     base="BaseInstance",
-        #     prefix="Ec2",
-        #     prop_prefix="instance_",
-        # ),
+        # AwsResotoModel( "describe-addresses", "Addresses", "Address", base="BaseIPAddress", prefix="Ec2", prop_prefix="ip_" ),
+        # AwsResotoModel( "describe-network-interfaces", "NetworkInterfaces", "NetworkInterface", base="BaseNetworkInterface", prefix="Ec2", prop_prefix="nic_", ),
+        # AwsResotoModel( "describe-instances", "Reservations", "Instance", base="BaseInstance", prefix="Ec2", prop_prefix="instance_", ),
         # AwsResotoModel("describe-key-pairs", "KeyPairs", "KeyPairInfo", prefix="Ec2"),
         # AwsResotoModel("describe-volumes", "Volumes", "Volume", base="BaseVolume", prefix="Ec2"),
         # AwsResotoModel("describe_addresses", "Addresses", "Address", prefix="Ec2"),
-        # AwsResotoModel(
-        #     "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_"
-        # ),
-        # AwsResotoModel(
-        #     "describe_reserved_instances",
-        #     "ReservedInstances",
-        #     "ReservedInstances",
-        #     prefix="Ec2",
-        #     prop_prefix="reservation_",
-        # ),
+        # AwsResotoModel( "describe-instance-types", "InstanceTypes", "InstanceTypeInfo", prefix="Ec2", prop_prefix="reservation_" ),
+        # AwsResotoModel( "describe_reserved_instances", "ReservedInstances", "ReservedInstances", prefix="Ec2", prop_prefix="reservation_", ),
         # AwsResotoModel("describe-network-acls", "NetworkAcls", "NetworkAcl", prefix="Ec2"),
         # AwsResotoModel("describe-flow-logs", "FlowLogs", "FlowLog", prefix="Ec2"),
+        # AwsResotoModel("describe-images", "Images", "Image", prefix="Ec2"),
+        # AwsResotoModel( "describe-launch-template-versions", "LaunchTemplateVersions", "LaunchTemplateVersion", prefix="LaunchTemplate", ),
     ],
     "ecs": [
         # AwsResotoModel(
@@ -677,13 +608,8 @@ models: Dict[str, List[AwsResotoModel]] = {
         # ),
     ],
     "elb": [
-        # AwsResotoModel(
-        #     "describe-load-balancers",
-        #     "LoadBalancerDescriptions",
-        #     "LoadBalancerDescription",
-        #     prefix="Elb",
-        #     prop_prefix="elb_",
-        # ),
+        # AwsResotoModel( "describe-load-balancers", "LoadBalancerDescriptions", "LoadBalancerDescription", prefix="Elb", prop_prefix="elb_", ),
+        # AwsResotoModel( "describe-load-balancer-attributes", "DescribeLoadBalancerAttributesResult", "LoadBalancerAttributes", prefix="Elb" ),
     ],
     "elbv2": [
         # AwsResotoModel(
@@ -835,27 +761,19 @@ models: Dict[str, List[AwsResotoModel]] = {
         # AwsResotoModel("get-products", "PriceList", "PriceListItemJSON", prefix="Price", prop_prefix="price_")
     ],
     "redshift": [
-        #     AwsResotoModel(
-        #         "describe-clusters",
-        #         "Clusters",
-        #         "Cluster",
-        #         prefix="Redshift",
-        #         prop_prefix="redshift_",
-        #     ),
+        # AwsResotoModel( "describe-clusters", "Clusters", "Cluster", prefix="Redshift", prop_prefix="redshift_"),
+        # AwsResotoModel("describe-logging-status", "DescribeLoggingStatusResponse", prefix="Redshift"),
     ],
     "rds": [
-        # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
-        # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
+        #     # AwsResotoModel("describe-db-instances", "Instances", "DBInstance", prefix="Rds", prop_prefix="rds_")
+        #     # AwsResotoModel("describe-db-clusters", "Clusters", "DBCluster", prefix="Rds", prop_prefix="rds_")
+        #     # AwsResotoModel("describe-db-snapshots", "DBSnapshots", "DBSnapshot", prefix="Rds", prop_prefix="rds_")
+        #     AwsResotoModel( "describe-db-cluster-snapshots", "DBClusterSnapshots", "DBClusterSnapshot", prefix="Rds", prop_prefix="rds_")
     ],
     "route53": [
         # AwsResotoModel("list_hosted_zones", "HostedZones", "HostedZone", prefix="Route53", prop_prefix="zone_"),
-        # AwsResotoModel(
-        #     "list_resource_record_sets",
-        #     "ResourceRecordSets",
-        #     "ResourceRecordSet",
-        #     prefix="Route53",
-        #     prop_prefix="record_",
-        # ),
+        # AwsResotoModel( "list_resource_record_sets", "ResourceRecordSets", "ResourceRecordSet", prefix="Route53", prop_prefix="record_", ),
+        # AwsResotoModel("list-query-logging-configs", "QueryLoggingConfigs", "QueryLoggingConfig", prefix="Route53"),
     ],
     "s3": [
         # AwsResotoModel("list-buckets", "Buckets", "Bucket", prefix="S3", prop_prefix="s3_"),
@@ -996,20 +914,32 @@ models: Dict[str, List[AwsResotoModel]] = {
     ],
     "ssm": [
         # AwsResotoModel("describe-instance-information", "InstanceInformationList", "InstanceInformation", prefix="SSM"),
+        # AwsResotoModel("list-documents", "DocumentIdentifiers", "DocumentIdentifier", prefix="SSM"),
+        # AwsResotoModel("list-documents", "DocumentIdentifiers", "DescribeDocumentPermissionResponse", prefix="SSM"),
+        # AwsResotoModel( "list-resource-compliance-summaries", "ResourceComplianceSummaryItems", "ResourceComplianceSummaryItem", prefix="SSM", ),
     ],
     "secretsmanager": [
         # AwsResotoModel( "list-secrets", "SecretList", "SecretListEntry", prefix="SecretsManager", name="AwsSecretsManagerSecret" ),
         # AwsResotoModel("list-secrets", "SecretList", "SecretVersionStagesType", prefix="SecretsManager"),
+    ],
+    "opensearch": [
+        # AwsResotoModel("describe-domains", "DomainStatusList", "DomainStatus", prefix="OpenSearch", name="AwsOpenSearchDomain"),
+    ],
+    "acm": [
+        # AwsResotoModel("describe-certificate", "Certificate", "CertificateDetail", prefix="Acm", name="AcmCertificate")
+    ],
+    "wafv2": [
+        # AwsResotoModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
     ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("secretsmanager", "list-secrets"), indent=2))
+    print(json.dumps(create_test_response("ssm", "list-resource-compliance-summaries"), indent=2))
 
     """print the class models"""
     # print(default_imports())
     for model in all_models():
-        pass
-        # print(model.to_class())
+        # pass
+        print(model.to_class())

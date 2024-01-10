@@ -1,0 +1,154 @@
+{
+  "DomainStatusList": [
+    {
+      "DomainId": "foo",
+      "DomainName": "foo",
+      "ARN": "foo",
+      "Created": true,
+      "Deleted": true,
+      "Endpoint": "foo",
+      "EndpointV2": "foo",
+      "Endpoints": {
+        "0": "foo",
+        "1": "foo",
+        "2": "foo"
+      },
+      "Processing": true,
+      "UpgradeProcessing": true,
+      "EngineVersion": "foo",
+      "ClusterConfig": {
+        "InstanceType": "m3.large.search",
+        "InstanceCount": 123,
+        "DedicatedMasterEnabled": true,
+        "ZoneAwarenessEnabled": true,
+        "ZoneAwarenessConfig": {
+          "AvailabilityZoneCount": 123
+        },
+        "DedicatedMasterType": "m3.large.search",
+        "DedicatedMasterCount": 123,
+        "WarmEnabled": true,
+        "WarmType": "ultrawarm1.large.search",
+        "WarmCount": 123,
+        "ColdStorageOptions": {
+          "Enabled": true
+        },
+        "MultiAZWithStandbyEnabled": true
+      },
+      "EBSOptions": {
+        "EBSEnabled": true,
+        "VolumeType": "gp2",
+        "VolumeSize": 123,
+        "Iops": 123,
+        "Throughput": 123
+      },
+      "AccessPolicies": "{ \"Version\": \"2012-10-17\", \"Statement\": [ { \"Sid\": \"allow-foo\", \"Principal\": { \"AWS\": \"999999999999\" }, \"Effect\": \"Allow\", \"Action\": \"glacier:Delete*\", \"Resource\": [ \"arn:aws:glacier:us-west-2:999999999999:vaults/examplevault\" ], \"Condition\": { \"DateGreaterThan\": { \"aws:CurrentTime\": \"2018-12-31T00:00:00Z\" } } } ] }",
+      "IPAddressType": "dualstack",
+      "SnapshotOptions": {
+        "AutomatedSnapshotStartHour": 123
+      },
+      "VPCOptions": {
+        "VPCId": "vpc-123",
+        "SubnetIds": [
+          "subnet-123",
+          "foo"
+        ],
+        "AvailabilityZones": [
+          "az-123",
+          "foo",
+          "foo"
+        ],
+        "SecurityGroupIds": [
+          "sg-123",
+          "foo",
+          "foo"
+        ]
+      },
+      "CognitoOptions": {
+        "Enabled": true,
+        "UserPoolId": "123",
+        "IdentityPoolId": "foo",
+        "RoleArn": "foo"
+      },
+      "EncryptionAtRestOptions": {
+        "Enabled": true,
+        "KmsKeyId": "foo"
+      },
+      "NodeToNodeEncryptionOptions": {
+        "Enabled": true
+      },
+      "AdvancedOptions": {
+        "0": "foo",
+        "1": "foo",
+        "2": "foo"
+      },
+      "LogPublishingOptions": {
+        "0": {
+          "CloudWatchLogsLogGroupArn": "foo",
+          "Enabled": true
+        },
+        "1": {
+          "CloudWatchLogsLogGroupArn": "foo",
+          "Enabled": true
+        },
+        "2": {
+          "CloudWatchLogsLogGroupArn": "foo",
+          "Enabled": true
+        }
+      },
+      "ServiceSoftwareOptions": {
+        "CurrentVersion": "foo",
+        "NewVersion": "foo",
+        "UpdateAvailable": true,
+        "Cancellable": true,
+        "UpdateStatus": "IN_PROGRESS",
+        "Description": "foo",
+        "AutomatedUpdateDate": "2023-12-21T11:30:19Z",
+        "OptionalDeployment": true
+      },
+      "DomainEndpointOptions": {
+        "EnforceHTTPS": true,
+        "TLSSecurityPolicy": "Policy-Min-TLS-1-2-2019-07",
+        "CustomEndpointEnabled": true,
+        "CustomEndpoint": "https://example.com",
+        "CustomEndpointCertificateArn": "foo"
+      },
+      "AdvancedSecurityOptions": {
+        "Enabled": true,
+        "InternalUserDatabaseEnabled": true,
+        "SAMLOptions": {
+          "Enabled": true,
+          "Idp": {
+            "MetadataContent": "foo",
+            "EntityId": "foo"
+          },
+          "SubjectKey": "foo",
+          "RolesKey": "foo",
+          "SessionTimeoutMinutes": 123
+        },
+        "AnonymousAuthDisableDate": "2023-12-21T11:30:19Z",
+        "AnonymousAuthEnabled": true
+      },
+      "AutoTuneOptions": {
+        "State": "DISABLED",
+        "ErrorMessage": "foo",
+        "UseOffPeakWindow": true
+      },
+      "ChangeProgressDetails": {
+        "ChangeId": "foo",
+        "Message": "foo"
+      },
+      "OffPeakWindowOptions": {
+        "Enabled": true,
+        "OffPeakWindow": {
+          "WindowStartTime": {
+            "Hours": 123,
+            "Minutes": 123
+          }
+        }
+      },
+      "SoftwareUpdateOptions": {
+        "AutoSoftwareUpdateEnabled": true
+      }
+    }
+  ]
+}

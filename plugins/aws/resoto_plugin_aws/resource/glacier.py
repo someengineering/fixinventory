@@ -1,3 +1,4 @@
+import json
 from typing import ClassVar, Dict, List, Optional, Type
 
 from attrs import define, field
@@ -229,6 +230,7 @@ class AwsGlacierVault(AwsResource):
     glacier_last_inventory_date: Optional[str] = field(default=None)
     glacier_number_of_archives: Optional[int] = field(default=None)
     glacier_size_in_bytes: Optional[int] = field(default=None)
+    glacier_access_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -239,16 +241,28 @@ class AwsGlacierVault(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], source: List[Json], builder: GraphBuilder) -> None:
         def add_tags(vault: AwsGlacierVault) -> None:
             tags = builder.client.get(service_name, "list-tags-for-vault", "Tags", vaultName=vault.name)
             if tags:
                 vault.tags = tags
 
-        for vault in json:
+        def access_policy(vault: AwsGlacierVault) -> None:
+            response = builder.client.get(
+                service_name,
+                "get-vault-access-policy",
+                "policy",
+                vaultName=vault.name,
+                expected_errors=["ResourceNotFoundException"],
+            )
+            if response and (policy_string := response.get("Policy")):
+                vault.glacier_access_policy = json.loads(policy_string)
+
+        for vault in source:
             if vault_instance := cls.from_api(vault, builder):
                 builder.add_node(vault_instance, vault)
                 builder.submit_work(service_name, add_tags, vault_instance)
+                builder.submit_work(service_name, access_policy, vault_instance)
                 for job in builder.client.list(service_name, "list-jobs", "JobList", vaultName=vault_instance.name):
                     if job_instance := AwsGlacierJob.from_api(job, builder):
                         builder.add_node(job_instance, job)

@@ -47,6 +47,10 @@ class InMemoryDb(EntityDb[K, T]):
         key = self.key_fn(value)
         self.items.pop(key, None)
 
+    async def delete_many(self, keys: List[K]) -> None:
+        for key in keys:
+            self.items.pop(key, None)
+
     async def create_update_schema(self) -> None:
         pass
 

@@ -303,9 +303,9 @@ def query_string(
         bvn = ctx.next_bind_var_name()
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
-            ctx.bind_vars[bvn] = [prop.kind.coerce(a) for a in p.value]
+            ctx.bind_vars[bvn] = [prop.kind.coerce(a, array_creation=False) for a in p.value]
         else:
-            ctx.bind_vars[bvn] = prop.kind.coerce(p.value)
+            ctx.bind_vars[bvn] = prop.kind.coerce(p.value, array_creation=False)
         var_name = f"{cursor}.{prop_name}"
         if op == "=~":  # use regex_test to do case-insensitive matching
             p_term = f"REGEX_TEST({var_name}, @{bvn}, true)"
@@ -319,6 +319,7 @@ def query_string(
     def context_term(cursor: str, aep: ContextTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
         predicate_statement = ""
         filter_statement = ""
+        ars_stmts = []
         path_cursor = cursor
         context_path = f"{context_path}.{aep.name}" if context_path else aep.name
         # unfold only, if random access is required
@@ -329,7 +330,9 @@ def query_string(
                 spath = spath[:-1]
             for ar in [a.lstrip(".") for a in spath]:
                 nxt_crs = ctx.next_crs("pre")
-                predicate_statement += f" FOR {nxt_crs} IN TO_ARRAY({path_cursor}.{ar})"
+                # see predicate for explanation
+                ars_stmts.append(f"{nxt_crs}._internal!=true")
+                predicate_statement += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({path_cursor}.{ar}), {{_internal: true}})"
                 path_cursor = nxt_crs
             ps, fs = term(path_cursor, aep.term, context_path)
         else:
@@ -341,6 +344,8 @@ def query_string(
             predicate_statement += ps
         if fs:
             filter_statement += fs
+        if ars_stmts:
+            filter_statement = f"({filter_statement} AND {' AND '.join(ars_stmts)})"
         return predicate_statement, filter_statement
 
     def with_id(cursor: str, t: IdTerm) -> str:

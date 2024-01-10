@@ -1,9 +1,10 @@
-from resotolib.graph import Graph
-from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
+
 from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.rds import AwsRdsInstance, AwsRdsCluster
+from resoto_plugin_aws.resource.rds import AwsRdsInstance, AwsRdsCluster, AwsRdsSnapshot, AwsRdsClusterSnapshot
+from resotolib.graph import Graph
+from test.resources import round_trip_for
 
 
 def test_rds_instances() -> None:
@@ -14,6 +15,16 @@ def test_rds_instances() -> None:
 
 def test_rds_cluster() -> None:
     round_trip_for(AwsRdsCluster)
+
+
+def test_rds_snapshots() -> None:
+    first, _ = round_trip_for(AwsRdsSnapshot, "description", "volume_id", "owner_id", "owner_alias")
+    first.rds_attributes = {"foo": ["foo", "foo", "foo"]}
+
+
+def test_rds_cluster_snapshots() -> None:
+    first, _ = round_trip_for(AwsRdsClusterSnapshot, "description", "volume_id", "owner_id", "owner_alias")
+    first.rds_attributes = {"foo": ["foo", "foo", "foo"]}
 
 
 def test_tagging() -> None:

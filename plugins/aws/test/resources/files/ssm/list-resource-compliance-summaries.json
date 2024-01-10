@@ -1,0 +1,107 @@
+{
+    "ResourceComplianceSummaryItems": [
+        {
+            "ComplianceType": "foo",
+            "ResourceType": "foo",
+            "ResourceId": "foo",
+            "Status": "NON_COMPLIANT",
+            "OverallSeverity": "HIGH",
+            "ExecutionSummary": {
+                "ExecutionTime": "2024-01-04T14:41:17Z",
+                "ExecutionId": "foo",
+                "ExecutionType": "foo"
+            },
+            "CompliantSummary": {
+                "CompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            },
+            "NonCompliantSummary": {
+                "NonCompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            }
+        },
+        {
+            "ComplianceType": "foo",
+            "ResourceType": "foo",
+            "ResourceId": "foo",
+            "Status": "NON_COMPLIANT",
+            "OverallSeverity": "HIGH",
+            "ExecutionSummary": {
+                "ExecutionTime": "2024-01-04T14:41:17Z",
+                "ExecutionId": "foo",
+                "ExecutionType": "foo"
+            },
+            "CompliantSummary": {
+                "CompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            },
+            "NonCompliantSummary": {
+                "NonCompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            }
+        },
+        {
+            "ComplianceType": "foo",
+            "ResourceType": "foo",
+            "ResourceId": "foo",
+            "Status": "NON_COMPLIANT",
+            "OverallSeverity": "HIGH",
+            "ExecutionSummary": {
+                "ExecutionTime": "2024-01-04T14:41:17Z",
+                "ExecutionId": "foo",
+                "ExecutionType": "foo"
+            },
+            "CompliantSummary": {
+                "CompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            },
+            "NonCompliantSummary": {
+                "NonCompliantCount": 123,
+                "SeveritySummary": {
+                    "CriticalCount": 123,
+                    "HighCount": 123,
+                    "MediumCount": 123,
+                    "LowCount": 123,
+                    "InformationalCount": 123,
+                    "UnspecifiedCount": 123
+                }
+            }
+        }
+    ],
+    "NextToken": "foo"
+}

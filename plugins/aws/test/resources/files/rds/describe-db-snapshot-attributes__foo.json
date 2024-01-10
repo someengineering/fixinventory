@@ -1,0 +1,15 @@
+{
+    "DBSnapshotAttributesResult": {
+        "DBSnapshotIdentifier": "foo",
+        "DBSnapshotAttributes": [
+            {
+                "AttributeName": "foo",
+                "AttributeValues": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            }
+        ]
+    }
+}

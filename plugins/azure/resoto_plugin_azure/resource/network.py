@@ -4734,20 +4734,17 @@ class AzureRouteFilter(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "ipv6_peerings": S("properties", "ipv6Peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
         "filter_peerings": S("properties", "peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "rules": S("properties", "rules") >> ForallBend(AzureRouteFilterRule.mapping),
+        "filter_rules": S("properties", "rules") >> ForallBend(AzureRouteFilterRule.mapping),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ipv6_peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'A collection of references to express route circuit ipv6 peerings.'})  # fmt: skip
     filter_peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'A collection of references to express route circuit peerings.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    rules: Optional[List[AzureRouteFilterRule]] = field(default=None, metadata={'description': 'Collection of RouteFilterRules contained within a route filter.'})  # fmt: skip
+    filter_rules: Optional[List[AzureRouteFilterRule]] = field(default=None, metadata={'description': 'Collection of RouteFilterRules contained within a route filter.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

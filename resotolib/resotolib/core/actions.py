@@ -1,6 +1,6 @@
 import threading
 import time
-from contextlib import suppress
+from contextlib import suppress, AbstractContextManager
 from logging import Logger
 from queue import Queue
 
@@ -56,7 +56,7 @@ class CoreFeedback:
 
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
-            logger.error(self.context_str + message)
+            logger.error(self.context_str + message, exc_info=True)
         self._info_message("error", message)
 
     @property
@@ -82,6 +82,19 @@ class CoreFeedback:
 
     def child_context(self, *context: str) -> "CoreFeedback":
         return self.with_context(*(self.context + list(context)))
+
+
+class SuppressWithFeedback(AbstractContextManager[None]):
+    def __init__(self, message: str, feedback: CoreFeedback, logger: Optional[Logger] = None) -> None:
+        self.message = message
+        self.feedback = feedback
+        self.logger = logger
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Optional[bool]:
+        if exc_type is not None:
+            self.feedback.error(f"{self.message}: {exc_val}", self.logger)
+            return True  # suppress exception
+        return None
 
 
 class CoreActions(threading.Thread):

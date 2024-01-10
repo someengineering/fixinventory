@@ -1,0 +1,17 @@
+{
+    "AccountIds": [ "a", "b", "c" ],
+    "AccountSharingInfoList": [
+        {
+            "AccountId": "a",
+            "SharedDocumentVersion": "v1"
+        },
+        {
+            "AccountId": "b",
+            "SharedDocumentVersion": "v1"
+        },
+        {
+            "AccountId": "c",
+            "SharedDocumentVersion": "v2"
+        }
+    ]
+}

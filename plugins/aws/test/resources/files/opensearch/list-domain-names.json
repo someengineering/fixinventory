@@ -1,0 +1,9 @@
+{
+  "DomainNames": [
+    {
+      "DomainName": "foo",
+      "EngineType": "Elasticsearch"
+    }
+  ]
+}
+

@@ -512,7 +512,7 @@
                     "title": "5.6 Ensure that EC2 Metadata Service only allows IMDSv2",
                     "description": "When enabling the Metadata Service on AWS EC2 instances, users have the option of using either Instance Metadata Service Version 1 (IMDSv1; a request/response method) or Instance Metadata Service Version 2 (IMDSv2; a session-oriented method).",
                     "checks": [
-                        "aws_ec2_instance_imdsv2_enabled"
+                        "aws_ec2_instance_uses_imdsv2"
                     ]
                 }
             ]

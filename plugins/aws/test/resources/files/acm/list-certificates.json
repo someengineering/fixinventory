@@ -1,0 +1,37 @@
+{
+    "NextToken": "foo",
+    "CertificateSummaryList": [
+        {
+            "CertificateArn": "foo",
+            "DomainName": "foo",
+            "SubjectAlternativeNameSummaries": [
+                "foo",
+                "foo",
+                "foo"
+            ],
+            "HasAdditionalSubjectAlternativeNames": true,
+            "Status": "ISSUED",
+            "Type": "AMAZON_ISSUED",
+            "KeyAlgorithm": "RSA_2048",
+            "KeyUsages": [
+                "NON_REPUDIATION",
+                "NON_REPUDIATION",
+                "NON_REPUDIATION"
+            ],
+            "ExtendedKeyUsages": [
+                "TLS_WEB_CLIENT_AUTHENTICATION",
+                "TLS_WEB_CLIENT_AUTHENTICATION",
+                "TLS_WEB_CLIENT_AUTHENTICATION"
+            ],
+            "InUse": true,
+            "Exported": true,
+            "RenewalEligibility": "INELIGIBLE",
+            "NotBefore": "2024-01-02T08:55:12Z",
+            "NotAfter": "2024-01-02T08:55:12Z",
+            "CreatedAt": "2024-01-02T08:55:12Z",
+            "IssuedAt": "2024-01-02T08:55:12Z",
+            "ImportedAt": "2024-01-02T08:55:12Z",
+            "RevokedAt": "2024-01-02T08:55:12Z"
+        }
+    ]
+}
