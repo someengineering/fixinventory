@@ -4,64 +4,68 @@
     "checks": [
         {
             "name": "managed_instance_compliance_patch_compliant",
-            "title": "Ensure that EC2 instances are covered under SSM patch manager",
+            "title": "Ensure Managed EC2 Instances Adhere to SSM Patch Manager Policies",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "AWS regularly releases new patched and updated AMI's, ensuring that EC2 are configured with patch manager enables EC2 instances to regularly get automated security patches",
+            "risk": "If EC2 instances are not configured with SSM Patch Manager, they might miss crucial security patches and updates. This lack of patching can lead to potential security vulnerabilities and non-compliance with security standards.",
             "severity": "medium",
             "detect": {
-                "manual": "Go to AWS System manager -> Patch manager"
+                "manual": "Navigate to AWS System Manager -> Patch Manager to verify the configuration."
             },
             "remediation": {
-                "text": "Ensure that all EC2 instances are covered under a patch policy",
+                "text": "To address this issue, ensure that all EC2 instances are under the SSM Patch Manager policy. Set up patching operations using the AWS Systems Manager's Quick Setup feature. This configuration provides centralized control over patching operations and enables automatic patch application.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-create-a-patch-policy.html"
             },
-            "source": "saad"
+            "source": "saad",
+            "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-patch-configure.html"
         },
         {
             "name": "no_secrets_in_content",
-            "title": "Ensure that there are no secrets in SSM documents.",
+            "title": "Ensure SSM Documents Do Not Contain Secrets.",
             "result_kinds": ["aws_ssm_document"],
             "categories": ["security", "compliance"],
-            "risk": "Secrets hardcoded into SSM Documents by malware and bad actors to gain lateral access to other services.",
+            "risk": "If secrets get hard-coded into SSM documents, bad actors or malware could exploit these to gain lateral access to other services, thereby compromising the security of the entire AWS ecosystem.",
             "severity": "medium",
             "detect": {
                 "resoto_cmd": "search is(aws_ssm_document) and content!=null | detect-secrets --path content --with-secrets"
             },
             "remediation": {
-                "text": "Use Secrets Manager service to store and retrieve passwords and secrets.",
-                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
-            }
+                "text": "Utilize AWS Secrets Manager service to safely store and retrieve passwords and sensitive information. Avoid hard-coding secrets in SSM Documents.",
+                "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html"
+            },
+            "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
         },
         {
             "name": "document_is_shared",
-            "title": "Ensure that there are no documents shared with any other account.",
+            "title": "Ensure that AWS Systems Manager (SSM) documents are not inappropriately or inadvertently shared.",
             "result_kinds": ["aws_ssm_document"],
             "categories": ["security", "compliance"],
-            "risk": "SSM Documents may contain private information or even secrets and tokens and should not be shared with other accounts.",
+            "risk": "Accidental sharing of SSM Documents poses a security risk. They might contain sensitive data, tokens, or secrets that if fallen into wrong hands could lead to unauthorized access or data breaches. It’s crucial to manage this properly.",
             "severity": "high",
             "detect": {
-                "resoto": "search is(aws_ssm_document) and document_shared_with_accounts not in [null, []]"
+                "resoto": "is(aws_ssm_document) and document_shared_with_accounts not in [null, []]"
             },
             "remediation": {
-                "text": "Carefully review the contents of the document before is shared. Enable SSM Block public sharing for documents.",
-                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-before-you-share.html"
-            }
+                "text": "To mitigate this risk, review the document’s contents before sharing. Enable the 'Block public sharing' feature for SSM Documents, and conform sharing only to trusted accounts via preferred AWS Region.",
+                "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-managing-shared.html"
+            },
+            "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-doc-sharing.html"
         },
         {
             "name": "resource_non_compliant",
-            "title": "Ensuring Compliance Across Multiple AWS Resources with AWS Systems Manager",
+            "title": "Ensure AWS Systems Manager Compliance across Multiple Resources",
             "result_kinds": ["aws_ec2_instance", "aws_dynamodb_table", "aws_ssm_document", "aws_s3_bucket"],
             "categories": ["security", "compliance"],
-            "risk": "Non-compliance of diverse AWS resources (EC2 instances, DynamoDB tables, SSM documents, S3 buckets) with AWS Systems Manager policies poses serious risks. It can lead to security vulnerabilities, operational inconsistencies, and breaches of regulatory compliance, ultimately jeopardizing system integrity, data security, and reliability.",
+            "risk": "Non-compliance of AWS resources (EC2, DynamoDB, SSM, S3) with AWS Systems Manager policies could expose security vulnerabilities, and incite operational inconsistencies. This could infringe regulatory compliance laws risking system integrity, data safety, and reliability.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ssm_resource_compliance) --> is(aws_ec2_instance, aws_dynamodb_table, aws_ssm_document, aws_s3_bucket)"
             },
             "remediation": {
-                "text": "To address non-compliance, identify the compliance standards set by AWS Systems Manager and pinpoint the specific requirements not met by each resource. For EC2 instances, ensure the SSM Agent is correctly configured and the instance is adhering to the desired state configurations. For DynamoDB, verify table settings against best practices. Ensure S3 buckets have proper access controls and encryption settings. Regularly update and enforce compliance policies and perform systematic compliance audits. Utilize AWS Systems Manager automation to streamline the remediation process for non-compliant resources.",
+                "text": "To rectify non-compliance, identify the unmet AWS Systems Manager standards for each resource. Ensure proper setup of SSM Agent for EC2 instances, verify table settings for DynamoDB against best practices, fix S3 bucket's access controls and encryption settings. Enforce compliance policies, perform consistent audits, and leverage AWS Systems Manager automation to mend non-compliant resources.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-compliance.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/%system-name%.html"
         }
     ]
 }

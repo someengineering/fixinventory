@@ -4,18 +4,19 @@
     "checks": [
         {
             "name": "table_kms_encryption_enabled",
-            "title": "Ensure DynamoDB table has encryption at rest enabled using CMK KMS.",
+            "title": "Ensure DynamoDB Table is Configured with KMS CMK Encryption",
             "result_kinds": ["aws_dynamodb_table"],
             "categories": ["security", "compliance"],
-            "risk": "All user data stored in Amazon DynamoDB is fully encrypted at rest. This functionality helps reduce the operational burden and complexity involved in protecting sensitive data.",
+            "risk": "Without encryption at rest using KMS CMK, your sensitive user data stored in DynamoDB is at risk. This failure to protect data complexity and operational burden can result in breaches or loss of confidential data.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_dynamodb_table) and dynamodb_sse_description.sse_type!=KMS"
             },
             "remediation": {
-                "text": "Specify an encryption key when you create a new table or switch the encryption keys on an existing table by using the AWS Management Console.",
-                "url": "https://docs.aws.amazon.com/amazondynamodbdb/latest/developerguide/EncryptionAtRest.html"
-            }
+                "text": "To fix this issue, create a new table specifying a KMS CMK encryption key, or, for an existing table, update the configuration to include a KMS CMK encryption key using the AWS Management Console.",
+                "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/encryption.tutorial.html"
+            },
+            "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html"
         }
     ]
 }

@@ -4,76 +4,78 @@
     "checks": [
         {
             "name": "alb_has_no_listeners",
-            "title": "Check if ELBV2 has listeners underneath.",
+            "title": "Ensure that Elastic Load Balancers V2 have listeners configured.",
             "result_kinds": ["aws_alb"],
             "categories": ["unused"],
-            "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
+            "risk": "If no listeners are configured for an Application Load Balancer, it will not be able to receive traffic from clients and route requests to registered targets.",
             "severity": "medium",
             "detect": {
-                "resoto": "search is(aws_alb) and alb_listener not in [null, []]"
+                "resoto": "is(aws_alb) and alb_listener not in [null, []]"
             },
             "remediation": {
-                "text": "Add listeners to Elastic Load Balancers V2.",
+                "text": "To fix this issue, add listeners to the Elastic Load Balancers V2.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
         },
         {
             "name": "elb_has_no_listeners",
-            "title": "Check if ELB has listeners underneath.",
+            "title": "Ensure Elastic Load Balancers have listeners.",
             "result_kinds": ["aws_elb"],
             "categories": ["unused"],
-            "risk": "The rules that are defined for a listener determine how the load balancer routes requests to its registered targets.",
+            "risk": "Without listeners, Elastic Load Balancers cannot receive traffic from clients and cannot route requests to registered targets.",
             "severity": "medium",
             "detect": {
                 "resoto": "search is(aws_elb) and listener not in [null, []]"
             },
             "remediation": {
-                "text": "Add listeners to Elastic Load Balancers.",
+                "text": "Add listeners to Elastic Load Balancers to allow them to receive and route traffic.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
             }
         },
         {
             "name": "logging_enabled",
-            "title": "Ensure that logging is enabled for Application load balancers associated to infrastructure",
+            "title": "Ensure that logging is enabled for Application load balancers",
             "result_kinds": ["aws_elb"],
             "categories": ["security", "compliance"],
-            "risk": "Without adequate logging, you can audit security risks such as limit visibility, reduced threat detection and inability to measure performance metrics",
+            "risk": "Without enabling logging for Application load balancers, there is a risk of limited visibility into security risks, reduced threat detection, and inability to measure performance metrics.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_elb) and elb_attributes.access_log.enabled==false"
             },
             "remediation": {
-                "text": "Go to the Attributes tab -> Find the Access logs section -> Click the Edit button -> Enable access logs and provide the necessary information, such as the S3 bucket and prefix -> Save the changes.",
+                "text": "To enable logging for Application load balancers, go to the Attributes tab, find the Access logs section, click the Edit button, enable access logs, provide the necessary information such as the S3 bucket and prefix, and save the changes.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html"
             }
         },
         {
             "name": "uses_ssl_certificate",
-            "title": "Ensure that Load balancer uses SSL certificate for 443 port ",
+            "title": "Ensure Load balancer uses SSL certificate for port 443",
             "result_kinds": ["aws_elb"],
             "categories": ["security", "compliance"],
-            "risk": "Having a 443 port open without a Valid SSL certificate can cause security risks such as Exposure for sensitive information, susceptability to mulitple vunerabilities and a lack of trust from customers",
+            "risk": "Not having a valid SSL certificate for an open port 443 can result in security risks such as exposure of sensitive information, vulnerability to multiple attacks, and loss of customer trust.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_elb) and elb_listener_descriptions[*].{listener.protocol in [HTTPS, SSL] and listener.ssl_certificate_id==null}"
             },
             "remediation": {
-                "text": "In the load balancer settings, click 'View/edit rules' for 443 and associate a valid ssl certificate.",
+                "text": "To fix the issue, go to the load balancer settings, click on 'View/edit rules' for port 443, and associate a valid SSL certificate.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html"
         },
         {
             "name": "waf_enabled",
-            "title": "Ensure that Load balancer has WAF enabled to provide protection against many of the common exploits and attacks ",
+            "title": "Ensure that Application Load Balancer has Web Application Firewall (WAF) enabled for enhanced security",
             "result_kinds": ["aws_alb"],
             "categories": ["security", "compliance"],
-            "risk": "Enabling WAF (Web Application Firewall) on an Application Load Balancer is important for security as it provides a layer of protection against common web exploits and attacks. WAF can filter, monitor, and block harmful traffic before it reaches your applications, enhancing the overall security posture.",
+            "risk": "Enabling WAF on an Application Load Balancer provides a layer of protection against common web exploits and attacks. It filters, monitors, and blocks harmful traffic before reaching applications, enhancing overall security.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_alb) with (empty, <-- is(aws_waf_web_acl))"
             },
             "remediation": {
-                "text": "Open the AWS WAF & Shield console, Go to 'Web ACLs', create or select an existing Web ACL.",
+                "text": "Open the AWS WAF & Shield console, and go to 'Web ACLs'. Create or select an existing Web ACL for the Load Balancer.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html"
             }
         }

@@ -4,18 +4,19 @@
     "checks": [
         {
             "name": "certificate_transparency_logging_enabled",
-            "title": "Ensure that ACM certificate transparency is enabled to enhance the security of your website by providing visibility into the issuance and lifecycle of SSL/TLS certificates, helping to detect unauthorized certificates.",
-            "result_kinds": [ "aws_acm_certificate" ],
-            "categories": [ "security", "compliance"],
-            "risk": "without ACM certificate transparency enabled, there's an increased risk of not being aware of potentially malicious or unauthorized SSL/TLS certificates, posing a threat to the security of your website or infrastructure",
+            "title": "Ensure ACM certificate transparency is enabled to enhance website security and detect unauthorized SSL/TLS certificates.",
+            "result_kinds": ["aws_acm_certificate"],
+            "categories": ["security", "compliance"],
+            "risk": "Without ACM certificate transparency, the risk of unauthorized SSL/TLS certificates going undetected increases, posing a threat to website and infrastructure security.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_acm_certificate) and type!=IMPORTED and certificate_transparency_logging!=Enabled"
             },
             "remediation": {
-                "text": "Select the certificate you want to check, in certificate details, you can look at Certificate Transparency Logging Attribute which indicates whether it's enabled or disabled.",
+                "text": "To fix this issue, select the certificate you want to check in ACM. In the certificate details, look for the 'Certificate Transparency Logging' attribute and ensure it is enabled.",
                 "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency"
         }
     ]
 }

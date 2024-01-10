@@ -4,18 +4,19 @@
     "checks": [
         {
             "name": "vaults_policy_public_access",
-            "title": "Check if S3 Glacier vaults have policies which allow access to everyone.",
+            "title": "Ensure S3 Glacier vaults have policies that restrict access to authorized users.",
             "result_kinds": ["aws_glacier_vault"],
             "categories": ["security"],
-            "risk": "Vaults accessible to everyone could expose sensitive data to bad actors.",
+            "risk": "If the issue is not resolved, S3 Glacier vaults accessible to everyone could lead to unauthorized access and exposure of sensitive data to potential malicious attackers.",
             "severity": "critical",
             "detect": {
                 "resoto": "is(aws_glacier_vault) and glacier_access_policy.Statement[*].{Effect==Allow and (Principal==\"*\" or Principal.AWS=\"*\" or Principal.CanonicalUser=\"*\")}"
             },
             "remediation": {
-                "text": "Ensure vault policy does not have principle as *.",
+                "text": "To rectify the problem, ensure that the vault policy does not grant access to unauthorized users. Follow the guidelines provided in the AWS documentation to set up proper access controls for S3 Glacier vaults.",
                 "url": "https://docs.aws.amazon.com/amazonglacier/latest/dev/access-control-overview.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/dev/amazon-s3-glacier.html"
         }
     ]
 }

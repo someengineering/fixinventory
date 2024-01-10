@@ -4,70 +4,74 @@
     "checks": [
         {
             "name": "snapshot_encrypted",
-            "title": "Ensure EBS Snapshots not publicly restorable by encrypting them and not making them public.",
+            "title": "Ensure that EBS Snapshots are both encrypted and not publicly accessible",
             "result_kinds": ["aws_ec2_snapshot"],
             "categories": ["security", "compliance"],
-            "risk": "When you share a snapshot, you are giving others access to all of the data on the snapshot. Share snapshots only with people with whom you want to share all of your snapshot data.",
+            "risk": "Sharing snapshots publicly can expose all the data they contain. Worst, if these snapshots are not encrypted, unauthorized access and potential data breaches could occur. To maintain data privacy and comply with security standards, limit snippet access and use encryption.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_snapshot) and encrypted=false"
             },
             "remediation": {
-                "text": "Ensure the snapshot are encrypted.",
+                "text": "You can enforce snapshot encryption by using AWS Key Management Service (AWS KMS) keys. Modify the permissions of each snapshot to restrict public access, making them exclusively accessible to specific AWS accounts.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-snapshot.html"
         },
         {
             "name": "unused_elastic_ip",
-            "title": "Check if there is any unassigned Elastic IP.",
+            "title": "Ensure There are no Unassigned Elastic IPs in Your AWS Environment",
             "result_kinds": ["aws_ec2_elastic_ip"],
             "categories": ["cost"],
-            "risk": "Unassigned Elastic IPs may result in extra cost.",
+            "risk": "Unused Elastic IPs can lead to unnecessary expenses. Non-utilized resources can artificially inflate costs and contribute to inefficient resource management.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_elastic_ip) with(empty, <-- is(aws_ec2_instance, aws_ec2_network_interface))"
             },
             "remediation": {
-                "text": "Ensure Elastic IPs are not unassigned.",
+                "text": "Review all Elastic IPs within your AWS environment. Confirm they are appropriately associated with running AWS instances or network interfaces. Release any unused Elastic IPs.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html"
         },
         {
             "name": "instance_in_vpc",
-            "title": "Ensure that all EC2 instances are running in a VPC rather than EC2-Classic",
+            "title": "Ensure All EC2 Instances Operate Within a VPC Instead of EC2-Classic",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "EC2-Classic has been depreciated and do not receive AWS support which can cause compliance and security risk",
+            "risk": "Using deprecated EC2-Classic could impose significant security and compliance risks as it no longer receives updates or support from AWS. Operational stability could also be compromised.",
             "severity": "medium",
             "detect": {
-                "resoto": "search is(aws_ec2_instance) and instance_subnet_id==null"
+                "resoto": "is(aws_ec2_instance) and instance_subnet_id==null"
             },
             "remediation": {
-                "text": "EC2 instances that do not have a subnet ID are deployed in EC2 classic, Please upgrade to a VPC for better security posture.",
+                "text": "To mitigate the risk, replace EC2 instances deployed in EC2-Classic with ones operating within a VPC. This shift will enhance your security posture and align you with AWS's current practices.",
                 "url": "https://aws.amazon.com/blogs/aws/ec2-classic-is-retiring-heres-how-to-prepare/"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Introduction.html"
         },
         {
             "name": "internet_facing_with_instance_profile",
-            "title": "Check for internet facing EC2 instances with Instance Profiles attached.",
+            "title": "Ensure No Internet Facing EC2 Instances with Instance Profiles Attached Exist",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "Exposing an EC2 directly to internet increases the attack surface and therefore the risk of compromise.",
+            "risk": "Having a public EC2 instance increases the attack surface and exposes the server to potential threats. If an Instance Profile is attached to these instances, it could potentially provide access keys to unauthorized users.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and instance_public_ip_address!=null and instance_iam_instance_profile!=null"
             },
             "remediation": {
-                "text": "Ensure Elastic IPs are not unassigned.",
-                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html"
-            }
+                "text": "Ensure Elastic IPs are not unassigned and that EC2 instances are not unnecessarily exposed to the Internet. Compartmentalize AWS services to limit exposure and mitigate risk.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html"
+            },
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/associate-elastic-ip-ec2/"
         },
         {
             "name": "old_instances",
-            "title": "Check EC2 Instances older than specific days.",
+            "title": "Ensure EC2 Instances Are Not Older Than Specific Days.",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "Having old instances within your AWS account could increase the risk of having vulnerable software.",
+            "risk": "Retaining old instances within your AWS account may heighten the risk of unsecured, outdated software. This could subsequently cause vulnerabilities, leading to potential data breaches or attacks.",
             "severity": "low",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and instance_status=running and age>{{old_instance_age}}"
@@ -76,551 +80,585 @@
                 "old_instance_age": "180d"
             },
             "remediation": {
-                "text": "Check if software running in the instance is up to date and patched accordingly.",
+                "text": "Ensure all software running on the instance is up-to-date and patched. Evaluate the necessity of each instance and decommission those that are obsolete or unused.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/viewing-patch-compliance-results.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html"
         },
         {
             "name": "instance_profile_attached",
-            "title": "Ensure IAM instance roles are used for AWS resource access from instances",
+            "title": "Ensure AWS resource access from instances is carried out using IAM instance roles",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "AWS access from within AWS instances can be done by either encoding AWS keys into AWS API calls or by assigning the instance to a role which has an appropriate permissions policy for the required access. AWS IAM roles reduce the risks associated with sharing and rotating credentials that can be used outside of AWS itself. If credentials are compromised, they can be used from outside of the AWS account.",
+            "risk": "Utilising hard-coded AWS keys for resource access exposes your infrastructure to potential security risks. If these cloud-embedded credentials are compromised, unauthorized access could be gained from outside the AWS environment resulting in data breaches or infrastructure tampering.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and instance_iam_instance_profile=null"
             },
             "remediation": {
-                "text": "Create an IAM instance role if necessary and attach it to the corresponding EC2 instance..",
+                "text": "Ensure your AWS instances access resources using IAM roles. Create and attach these roles as necessary to each corresponding EC2 instance, thereby displacing any hard-coded credentials.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html"
         },
         {
             "name": "public_ip_address",
-            "title": "Check for EC2 Instances with Public IP.",
+            "title": "Ensure EC2 Instances are not Exposed to Public IPs",
             "result_kinds": ["aws_ec2_instance"],
             "categories": ["security", "compliance"],
-            "risk": "Exposing an EC2 directly to internet increases the attack surface and therefore the risk of compromise.",
+            "risk": "Having EC2 instances openly exposed to the internet significantly increases the risk of cyber attacks and potential security breaches, thereby compromising data integrity.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and instance_status==running and instance_public_ip_address!=null"
             },
             "remediation": {
-                "text": "Use an ALB and apply WAF ACL.",
+                "text": "To mitigate this issue, employ an Application Load Balancer (ALB) as an intermediary and apply a Web Application Firewall (WAF) Access Control List (ACL) to effectively filter access.",
                 "url": "https://aws.amazon.com/blogs/aws/aws-web-application-firewall-waf-for-application-load-balancers/"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-instance-addressing.html"
         },
         {
             "name": "allow_ingress_any_port_ipv4",
-            "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to any port.",
+            "title": "Ensure No Network ACLs Allow Ingress from 0.0.0.0/0 to Any Port.",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Our Network ACLs currently allow unsolicited traffic from any IP (0.0.0.0/0) to any port. This presents a security risk including network vulnerability to exploits and unauthorized access to sensitive data.",
             "severity": "high",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and cidr_block=\"0.0.0.0/0\" and rule_action=allow and protocol=-1) } | jq --no-rewrite  'if (( [.reported.acl_entries[]? | contains({egress:false, cidr_block:\"0.0.0.0/0\", protocol:\"-1\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | select(.protocol==\"-1\") |select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | select(.protocol==\"-1\") | select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"deny\") | .rule_number ))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Implement a strict security policy. Scan and revise overly permissive network ACLs regularly. Make sure to limit ingress ports by narrowing their definitions to only the minimum required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert",
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_ACLs.html"
         },
         {
             "name": "allow_ingress_any_port_ipv6",
-            "title": "Ensure no Network ACLs allow ingress from ::/0 to any port.",
+            "title": "Ensure that Network ACLs do not permit ingress from ::/0 to any port.",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Leaving network ACLs open can expose sensitive ports to vulnerabilities, as any user or malware can scan for these ports, bypass the perimeter firewall, and access your VPC. This poses an imminent threat to security and data confidentiality.",
             "severity": "high",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and protocol=-1) } | jq --no-rewrite  'if (( [.reported.acl_entries[]? | contains({egress:false, ipv6_cidr_block:\"::/0\", protocol:\"-1\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | select(.protocol==\"-1\") |select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | select(.protocol==\"-1\") | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number ))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "To resolve this issue, apply the Zero Trust approach. Continuously scan and modify network ACLs that are unrestricted or overly permissive. Ensure that you limit the definition to the minimum ports required, and regularly update your protocols as part of best practices.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "The acl entries must be interpreted in sequence. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert",
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html#nacl"
         },
         {
             "name": "allow_ingress_ssh_port_22_ipv4",
-            "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to SSH port 22",
+            "title": "Ensure Network ACLs Do Not Allow Ingress from 0.0.0.0/0 to SSH Port 22",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Leaving Network ACLs open can expose sensitive ports to external threats. Anyone with VPC access, including potential cyber-attackers and malware, can exploit this to gain unauthorized access to instances, risking data breach and system compromise.",
             "severity": "high",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and cidr_block=\"0.0.0.0/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<22 and port_range.to_range>22)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<22) | select(.port_range.to_range>=22)) end  | contains({egress:false, cidr_block:\"0.0.0.0/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt a Zero Trust approach. Regularly scan your Network ACLs for unrestricted or overly permissive access and remediate immediately. Be sure to limit your ACLs to only the minimum necessary ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "The ACL entries need to be processed in order. An alert should be triggered if there's no deny entry or if the deny entry number is greater than the allow entry number.",
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/vpc-restrict-ingress-traffic/"
         },
         {
             "name": "allow_ingress_ssh_port_22_ipv6",
-            "title": "Ensure no Network ACLs allow ingress from ::/0 to SSH port 22",
+            "title": "Ensure No Network ACLs Allow Ingress from ::/0 to SSH Port 22",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Leaving network ACLs open can inadvertently give any user or malware with VPC access the ability to scan sensitive ports and access instances, making your infrastructure more susceptible to malicious activities.",
             "severity": "high",
             "detect": {
-                "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<22 and port_range.to_range>22)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<22) | select(.port_range.to_range>=22)) end  | contains({egress:false, ipv6_cidr_block:\"::/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
+                "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<22 and port_range.to_range>22)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<22) | select(.port_range.to_range>=22)) end  | contains({egress:false, ipv6_cidr_block:\"::/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_RANGE<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Consider implementing the Zero Trust approach. Consistently scan and remediate unrestricted or overly permissive network ACLs. As a best practice, limit traffic to minimum necessary ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "Pay attention to ACL entries interpretation sequence: if there's no deny entry or if the deny_entry_number is greater than the allow_entry_number, an alert should be issued.",
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_ACLs.html"
         },
         {
             "name": "allow_ingress_rdp_port_3389_ipv4",
-            "title": "Ensure no Network ACLs allow ingress from 0.0.0.0/0 to Microsoft RDP port 3389",
+            "title": "Ensure that Network ACLs do not allow ingress from 0.0.0.0/0 to Microsoft RDP port 3389",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Allowing network ACLs to remain open exposes your system to threats such as external attack probes scanning for vulnerable, well-known ports. This could lead to unauthorized access to instances within your VPC, even with a perimeter firewall in place.",
             "severity": "high",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and cidr_block=\"0.0.0.0/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<3389 and port_range.to_range>3389)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<3389) | select(.port_range.to_range>=3389)) end  | contains({egress:false, cidr_block:\"0.0.0.0/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=3389) | select(.port_range.to_range>=3389) ) end | select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=3389) | select(.port_range.to_range>=3389) ) end | select(.cidr_block==\"0.0.0.0/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt a Zero Trust security model. Regularly scan and update ACLs to curtail unrestricted or overly permissive entries. Aim to narrow down ports to the bare minimum required for your operations.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert",
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/controlling-access.html"
         },
         {
             "name": "allow_ingress_rdp_port_3389_ipv6",
-            "title": "Ensure no Network ACLs allow ingress from ::/0 to Microsoft RDP port 3389",
+            "title": "Ensure that Network ACLs do not permit inbound traffic from ::/0 to Microsoft RDP port 3389",
             "result_kinds": ["aws_ec2_network_acl"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having network acls open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Leaving network ACLs open can expose well-known and sensitive ports to unauthorized users or malicious software. This can lead to potential intrusions, even if a perimeter firewall already exists.",
             "severity": "high",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<3389 and port_range.to_range>3389)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<3389) | select(.port_range.to_range>=3389)) end  | contains({egress:false, ipv6_cidr_block:\"::/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=3389) | select(.port_range.to_range>=3389) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=3389) | select(.port_range.to_range>=3389) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt the Zero Trust security model. Regularly scan for and amend overly permissive or unrestricted network ACLs. Limit access to the minimum ports needed to perform necessary functions.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             },
-            "internal_notes": "The acl entries have to be interpreted in order. idea: if (no_deny_entry or (deny_entry_number > allow_entry_number)) then alert"
+            "internal_notes": "ACL entries must be interpreted in sequential order. The alert triggers if there is no deny entry or if the deny entry number is greater than the allow entry number.",
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/network-acl-nacl-ec2/"
         },
         {
             "name": "allow_ingress_from_internet_to_any_port",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to any port.",
+            "title": "Ensure that no security groups permit ingress from 0.0.0.0/0 or ::/0 to any port.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Inadequate configuration of Security Groups can significantly expand the attack surface, leaving vital resources vulnerable to unauthorized access and potential network intrusion.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Embrace the Zero Trust model. Consistently audit and rectify unrestricted or too lenient network Access Control Lists (ACLs). Ensure to define the minimum required ports with access to minimize potential breaches.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv4",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to any port.",
+            "title": "Ensure No Security Groups Allow Ingress from 0.0.0.0/0 to Any Port.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "An improperly configured security group can lead to exposure of all ports to the internet, vastly expanding the attack surface. Such positions can result in significant system vulnerability and potential breaches.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{ip_protocol=\"-1\" and ip_ranges[*].cidr_ip=\"0.0.0.0/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
-                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+                "text": "Adopt a Zero Trust network model. Implement regular scans and remediations for unrestricted or overly permissive network ACLs, and restrict ingress to minimum necessary ports. For outbound traffic, use whitelist approach to limit the exposed interfaces.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security.html"
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
-            "title": "Ensure no security groups allow ingress from ::/0 to any port.",
+            "title": "Ensure that no security groups are allowing ingress from ::/0 to any port in your VPC.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "A misconfigured security group, specifically allowing traffic from all IPv6 addresses (::/0) to any port, significantly widens your attack surface. This can lead to increased vulnerabilities, unwarranted access or potential data breaches.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{ip_protocol=\"-1\" and ipv6_ranges[*].cidr_ipv6=\"::/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adapt a Zero Trust approach. Start by regularly auditing your security groups for overly permissive rules. Limit the traffic to the minimum required ports and restrict ingress from specific IP addresses or ranges.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_port_mongodb_27017_27018",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to MongoDB ports 27017 and 27018.",
+            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to MongoDB ports 27017 and 27018.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Improper configuration of Security groups can significantly increase the attack surface, potentially leading to unauthorized data access or system breaches.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=27017 and to_port<=27017 and ip_protocol=tcp) or (from_port>=27018 and to_port<=27018 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt a Zero Trust model. Regularly scan and rectify unrestricted or overly broad network acls. Best practice recommends defining the minimal necessary ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html"
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SSH port 22.",
+            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to SSH port 22.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Failure to properly configure Security groups expands the attack surface, exposing the infrastructure to higher risk of intrusion and cyber attacks.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=22 and to_port<=22 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
-                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+                "text": "Adhere to Zero Trust principles. Establish routine scanning and remediation of unrestricted or excessively permissive network acls. Ensure only the necessary minimum ports are open to fulfill operational requirements.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security.html"
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Appendix_NACLs.html"
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv4",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to SSH port 22.",
+            "title": "Ensure that no security groups permit unrestricted ingress from 0.0.0.0/0 to SSH port 22.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "The risk of system breaches is heightened if security groups are not correctly configured. Failures in these configurations inevitably expand the attack surface, increasing vulnerability to cyber threats.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=22 and to_port<=22 and ip_protocol=tcp)) and ip_ranges[*].cidr_ip=\"0.0.0.0/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adoption of the Zero Trust strategy is imperative. Initiate a systematic scan to detect and remediate unrestricted or excessively permissive network acls. As a best practice, limit the definition to the minimum ports required to significantly boost security.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security.html"
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv6",
-            "title": "Ensure no security groups allow ingress from ::/0 to SSH port 22.",
+            "title": "Ensure No Security Groups Allow Ingress From ::/0 to SSH Port 22 via IPV6.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Insecure configuration can potentially expose the system to unauthorized access and attacks from any location, risking infrastructure security and data compromise.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=22 and to_port<=22 and ip_protocol=tcp)) and ipv6_ranges[*].cidr_ipv6=\"::/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
-                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+                "text": "Adhere to the principles of 'Zero Trust'. Limit allowed ingress by specifying trusted CIDRs, and revoking unnecessary privileges. Refine security groups to minimize exposure by only allowing required ports.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_ftp_port_20_21",
             "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to FTP ports 20 or 21.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Non-restrictive security group configurations can cause an increase in the attack surface for cyberthreats. This can potentially lead to unauthorized access, data breaches, and other security incidents.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=20 and to_port<=20 and ip_protocol=tcp) or (from_port>=21 and to_port<=21 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt a Zero Trust security strategy. Conduct regular audits to identify and restrict any overly permissive network access control lists (ACLs). Strive to minimize the number of necessary ports and impose strict access rules for each.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#AddRemoveRule"
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to port 3389.",
+            "title": "Ensure that security groups don't permit ingress from 0.0.0.0/0 or ::/0 to port 3389.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Improper configuration of security groups leading to permitting ingress from 0.0.0.0/0 and ::/0 to port 3389 can significantly increase the attack surface by potentially exposing resources to irrelevant or malicious traffic.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3389 and to_port<=3389 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt a Zero Trust Approach and ensure that security groups are properly configured to restrict unnecessary ingress. Implement processes to frequently scan and remediate any unrestricted or overly permissive network ACLs. Best practice is to restrict ingress to the least number of ports necessary.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/security-group-rules-conflict/"
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv4",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389.",
+            "title": "Ensure Security Groups do not Allow Ingress from 0.0.0.0/0 to TCP Port 3389.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "An improperly configured Security Group, allowing open ingress to port 3389, increases the attack surface making your cloud infrastructure more vulnerable to potential security threats or breaches.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3389 and to_port<=3389 and ip_protocol=tcp)) and ip_ranges[*].cidr_ip=\"0.0.0.0/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adopt the Zero Trust model. Regularly scan and make necessary amendments to eliminate unrestricted or overly permissive network ACLs. Minimise the attack surface by defining the exact ports required, rather than leaving ports unnecessarily open.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv6",
-            "title": "Ensure no security groups allow ingress from ::/0 to port 3389.",
+            "title": "Ensure that no security groups permit ingress from ::/0 to port 3389.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Unsecured security group configurations could potentially enlarge the attack surface, making your cloud infrastructure more vulnerable to malicious attacks and unauthorised access attempts.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3389 and to_port<=3389 and ip_protocol=tcp)) and ipv6_ranges[*].cidr_ipv6=\"::/0\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Adhere to the principles of Zero Trust approach. Conduct regular scans and fix any unrestricted or overly permissive network ACLs. Narrow down the rules to include only the necessary ports, thereby minimising potential risks.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "allow_ingress_from_internet_to_cassandra_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Cassandra ports 7199 or 9160 or 8888.",
+            "title": "Ensure Ingress to Cassandra Ports 7199, 9160 and 8888 is Not Allowed From 0.0.0.0/0 or ::/0",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Inappropriate configuration of security groups can significantly increase the attack surface. Publicly exposed Cassandra ports can open a vector for potential cyber-attacks that may compromise data integrity.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9160 and to_port<=9160 and ip_protocol=tcp) or (from_port>=8888 and to_port<=8888 and ip_protocol=tcp) or (from_port>=7199 and to_port<=7199 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Implement Zero Trust networking model. Regularly scan and remediate unrestricted or overly permissive network access control lists (ACLs). It's a best practice to minimize the attack surface by restricting ports to the bare minimum required for functioning.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_kibana_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Elasticsearch/Kibana ports.",
+            "title": "Ensure Security Groups Disallow Ingress from 0.0.0.0/0 or ::/0 to Elasticsearch/Kibana Ports",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Unregulated ingress into Elasticsearch/Kibana ports increases attack surface, leading to potential unauthorized access and data breaches, which directly undermines system security and compliance.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9200 and to_port<=9200 and ip_protocol=tcp) or (from_port>=9300 and to_port<=9300 and ip_protocol=tcp) or (from_port>=5601 and to_port<=5601 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Implement the Zero Trust model. Ensure frequent scanning and remediation of insecure or overly permissive network ACLs. It is recommended to limit the scope to the minimum necessary ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_kafka_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Kafka ports.",
+            "title": "Ensure that security groups restrict ingress from 0.0.0.0/0 or ::/0 to Kafka ports.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "A lack of properly configured security groups broadens your attack surface. This increases the risk of unauthorized access to your AWS infrastructure and data breaches.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=9092 and to_port<=9092 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Leverage the Zero Trust approach. Initiate a process to regularly scan and patch unrestricted or overly permissive network access control lists (ACLs). Best practice dictates narrowing the definition to the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html"
         },
         {
             "name": "allow_ingress_from_internet_to_memcached_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Memcached ports.",
+            "title": "Ensure security groups do not permit ingress from 0.0.0.0/0 or ::/0 to Memcached ports 11211.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Allowing unrestricted access to Memcached ports increases the risk of unauthorized data access and potential DDoS attacks. Ensuring proper configurations is fundamental for defending the AWS infrastructure.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=11211 and to_port<=11211 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Security groups should be refined to disregard traffic from 0.0.0.0/0 or ::/0 to Memcached ports. Embrace a Zero Trust approach and impose stricter network ACLs that only allow minimum required port access as part of a routine scanning and remediation process.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#VPCSecurityGroups"
         },
         {
             "name": "allow_ingress_from_internet_to_mysql_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to MySQL ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to MySQL ports",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "If security groups are not properly configured, the attack surface is increased. This allows unauthorized access to MySQL ports, potentially compromising sensitive data and affecting the availability of the service.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=3306 and to_port<=3306 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
-                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+                "text": "To fix this issue, implement a Zero Trust approach by applying the principle of least privilege. Create explicit security group rules that only allow necessary inbound traffic to MySQL ports. Regularly scan and remediate any unrestricted or overly permissive network ACLs. Refer to the AWS documentation for recommended best practices.",
+                "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html#nacls-recommendations"
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "allow_ingress_from_internet_to_oracledb",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to OracleDB ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to OracleDB ports",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Improperly configured security groups increase the attack surface, making the infrastructure vulnerable.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1521 and to_port<=1521 and ip_protocol=tcp) or (from_port>=2483 and to_port<=2483 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "To fix this issue, it is recommended to apply a Zero Trust approach, implement a process for scanning and remediating unrestricted or overly permissive network ACLs. It is also advised to narrow the definition for the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
             }
         },
         {
             "name": "allow_ingress_from_internet_to_postgresql_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to PostgresQL ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to PostgreSQL ports.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Allowing ingress from 0.0.0.0/0 or ::/0 to PostgreSQL ports increases the attack surface and can expose sensitive data.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=5432 and to_port<=5432 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Implement a Zero Trust approach by scanning and remediating unrestricted or overly permissive network ACLs. Apply recommended best practices by narrowing the definition for the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "allow_ingress_from_internet_to_redis_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Redis ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Redis ports",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "If security groups are not properly configured, the attack surface is increased. Unauthorized access from the internet can lead to data breaches and security incidents.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=6379 and to_port<=6379 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Apply a Zero Trust approach to security. Implement a process to scan and remediate unrestricted or overly permissive network ACLs. It is recommended to define specific rules and narrow down the allowed ingress IP ranges to minimize the attack surface.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "allow_ingress_from_internet_to_sql_server_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SQLServer ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SQL Server ports.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "If security groups are not properly configured, the attack surface is significantly increased.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=1433 and to_port<=1433 and ip_protocol=tcp) or (from_port>=1434 and to_port<=1434 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "Implement a Zero Trust approach. Scan and remediate unrestricted or overly permissive network ACLs. It is recommended to narrow the definition for the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "allow_ingress_from_internet_to_telnet_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Telnet ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to Telnet ports",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Failing to properly configure security groups increases the attack surface.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].{(ip_protocol=-1 or (from_port>=23 and to_port<=23 and ip_protocol=tcp)) and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "To fix this issue, apply a Zero Trust approach by implementing a process to scan and remediate unrestricted or overly permissive network ACLs. It is recommended to narrow the definition for the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "wide_open_ipv4_security_group",
-            "title": "Security group is configured wide open.",
+            "title": "Ensure security group is properly configured to reduce attack surface.",
             "result_kinds": ["aws_ec2_security_group"],
-            "categories": [ "security", "compliance" ],
-            "risk": "If Security groups are not properly configured the attack surface is increased.",
+            "categories": ["security", "compliance"],
+            "risk": "Improperly configured security groups increase the attack surface, making the AWS cloud infrastructure vulnerable.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^192\" and cidr_ip!~\"^10\" and cidr_ip~\"\\/(([1-9])|(1[0-9])|(2[0-3]))$\"}"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "To fix the issue, implement a Zero Trust approach and establish a process to regularly scan and remediate unrestricted or overly permissive network access control lists. It is recommended to narrow the definition of the minimum required ports.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
         },
         {
             "name": "default_restrict_traffic",
-            "title": "Ensure the default security group of every VPC restricts all traffic.",
+            "title": "Ensure that the default security group of every VPC restricts all traffic",
             "result_kinds": ["aws_vpc"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Even having a perimeter firewall, having security groups open allows any user or malware with vpc access to scan for well known and sensitive ports and gain access to instance.",
+            "categories": ["security", "compliance"],
+            "risk": "Leaving security groups open allows any user or malware with VPC access to scan for well-known and sensitive ports, potentially gaining unrestricted access to instances.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_ec2_security_group) and name=\"default\" and group_ip_permissions[*].{ip_protocol=\"-1\" and (ip_ranges[*].cidr_ip=\"0.0.0.0/0\" or ipv6_ranges[*].cidr_ipv6=\"::/0\")} <-- is(aws_vpc)"
             },
             "remediation": {
-                "text": "Apply Zero Trust approach. Implement a process to scan and remediate unrestricted or overly permissive network acls. Recommended best practices is to narrow the definition for the minimum ports required.",
+                "text": "To address this issue, apply a Zero Trust approach and implement a process to regularly scan and remediate any unrestricted or overly permissive network ACLs. It is recommended to narrow the definition for the minimum ports required.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html"
         },
         {
             "name": "routing_tables_with_least_privilege",
-            "title": "Ensure routing tables for VPC peering are least access.",
+            "title": "Ensure VPC peering routing tables have least access.",
             "result_kinds": ["aws_vpc"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Being highly selective in peering routing tables is a very effective way of minimizing the impact of breach as resources outside of these routes are inaccessible to the peered VPC.",
+            "categories": ["security", "compliance"],
+            "risk": "By being highly selective in peering routing tables, the impact of a breach can be minimized as resources outside of these routes will be inaccessible to the peered VPC.",
             "severity": "medium",
             "detect": {
                 "resoto_cmd": "search is(aws_vpc_peering_connection) {/vpc: <-- is(aws_vpc), /route_tables[]: <-- is(aws_vpc) --> is(aws_ec2_route_table)} | jq --no-rewrite 'if [.route_tables[]?.reported.route_table_routes[]? | select(.origin!=\"CreateRouteTable\") | (.destination_cidr_block==\"0.0.0.0/0\") or (.destination_cidr_block==.reported.connection_accepter_vpc_info.cidr_block) or (.destination_cidr_block==.reported.connection_requester_vpc_info.cidr_block)] | any then [.vpc] else [] end' | flatten"
             },
             "remediation": {
-                "text": "Review routing tables of peered VPCs for whether they route all subnets of each VPC and whether that is necessary to accomplish the intended purposes for peering the VPCs.",
+                "text": "To fix this issue, review the routing tables of the peered VPCs and determine whether they route all subnets of each VPC and whether such routing is necessary for the intended purposes of peering the VPCs.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-partial-access.html"
             },
-            "internal_notes": "Load peering connections and merge vpc and route tables. Then check if any route table cidr is 0.0.0.0/0 or the same as requester cidr or accepter cidr."
+            "internal_notes": "Load peering connections and merge VPC and route tables. Then check if any route table CIDR is set to 0.0.0.0/0 or the same as the requester or accepter CIDR."
         },
         {
             "name": "volume_not_encrypted",
-            "title": "Ensure there are no EBS Volumes unencrypted.",
+            "title": "Ensure all EBS Volumes are encrypted.",
             "result_kinds": ["aws_ec2_volume"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Data encryption at rest prevents data visibility in the event of its unauthorized access or theft.",
+            "categories": ["security", "compliance"],
+            "risk": "Failure to encrypt EBS volumes may lead to unauthorized access or theft of data.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_volume) and volume_encrypted=false"
             },
             "remediation": {
-                "text": "Encrypt all EBS volumes and Enable Encryption by default You can configure your AWS account to enforce the encryption of the new EBS volumes and snapshot copies that you create. For example; Amazon EBS encrypts the EBS volumes created when you launch an instance and the snapshots that you copy from an unencrypted snapshot.",
+                "text": "To fix the issue, encrypt all EBS volumes and enable encryption by default. You can enforce encryption of new EBS volumes and snapshot copies in your AWS account. Amazon EBS automatically encrypts volumes created when launching an instance and copying from an unencrypted snapshot.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
         },
         {
             "name": "vpc_flow_logs_enabled",
-            "title": "Ensure VPC Flow Logging is Enabled in all VPCs.",
+            "title": "Ensure VPC Flow Logging is Enabled in all VPCs",
             "result_kinds": ["aws_vpc"],
-            "categories": [ "security", "compliance" ],
-            "risk": "VPC Flow Logs provide visibility into network traffic that traverses the VPC and can be used to detect anomalous traffic or insight during security workflows.",
+            "categories": ["security", "compliance"],
+            "risk": "Failure to enable VPC Flow Logs may result in a lack of visibility into network traffic, making it difficult to detect and respond to anomalous activity, compromising security measures.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_vpc) with(empty, --> is(aws_ec2_flow_log))"
             },
             "remediation": {
-                "text": "It is recommended that VPC Flow Logs be enabled for packet Rejects for VPCs.",
+                "text": "To fix this issue, it is recommended to enable VPC Flow Logs for packet rejects in all VPCs.",
                 "url": "https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html"
         },
         {
             "name": "instance_uses_imdsv2",
-            "title": "Ensure that EC2 Metadata Service only allows IMDSv2",
+            "title": "Ensure EC2 Metadata Service is configured to only allow IMDSv2",
             "result_kinds": ["aws_ec2_instance"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Allowing Version 1 of the service may open EC2 instances to Server-Side Request Forgery (SSRF) attacks, so Amazon recommends utilizing Version 2 for better instance security.",
+            "categories": ["security", "compliance"],
+            "risk": "Allowing Version 1 of the service may open EC2 instances to Server-Side Request Forgery (SSRF) attacks, putting the instances at risk. It is recommended to utilize Version 2 for better instance security.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and not instance_metadata_options.{(http_endpoint=enabled and http_tokens=required) or http_endpoint=disabled}"
             },
             "remediation": {
-                "text": "Login to AWS Management Console and open the Amazon EC2 console using https://console.aws.amazon.com/ec2/ Under the Instances menu, select Instances.  For each Instance, select the instance, then choose Actions > Modify instance metadata options.  If the Instance metadata service is enabled, set IMDSv2 to Required.",
+                "text": "To fix the issue, login to the AWS Management Console and open the Amazon EC2 console using the link: https://console.aws.amazon.com/ec2/. Then, navigate to the Instances menu and select Instances. For each instance, choose Actions > Modify instance metadata options. If the Instance metadata service is enabled, set IMDSv2 to Required.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html",
                 "action": {
                     "aws_cli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required"
                 }
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html"
         },
         {
             "name": "instance_stopped_since_30d",
-            "title": "Ensure that stopped EC2 instance are removed in 30 days",
+            "title": "Ensure that stopped EC2 instances are terminated within 30 days",
             "result_kinds": ["aws_ec2_instance"],
-            "categories": [ "security", "compliance" ],
-            "risk": "instances that are stopped have a tendency to be forgotten and can cause a security risk, make sure to terminate instances not in use",
+            "categories": ["security", "compliance"],
+            "risk": "Instances that are stopped have a tendency to be forgotten and can pose a security risk. It is important to terminate instances that are not in use to mitigate this risk.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) and instance_status==stopped and mtime>{{stopped_instance_age}}"
@@ -629,97 +667,102 @@
                 "stopped_instance_age": "30d"
             },
             "remediation": {
-                "text": "Terminate any instance that is shutdown for more than 30 days, make a backup of the instances that are still required in the future",
+                "text": "To fix this issue, terminate any EC2 instance that has been shutdown for more than 30 days. Make sure to create backups of the instances that are still required for future use.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html"
         },
         {
             "name": "ebs_volume_unused",
             "title": "Ensure there are no unused EBS volumes on the AWS Account",
             "result_kinds": ["aws_ec2_volume"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Unused EBS volumes still contain data previously stored and cause a security risk/violation and should be disposed off adequately.",
+            "categories": ["security", "compliance"],
+            "risk": "If not solved, unused EBS volumes pose a security risk by containing previously stored data, violating compliance requirements. It is essential to dispose of them properly.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_volume) and last_access>7d and volume_attachments==[]"
             },
             "remediation": {
-                "text": "Goto the EC2 Dashboard -> volumes -> select unused volumes and from the action tab, click delete volumes",
+                "text": "To fix the issue, navigate to the EC2 Dashboard, select the unused volumes, go to the action tab, and click on \"delete volumes\".",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html"
             }
         },
         {
             "name": "instance_managed_by_ssm",
-            "title": "Check if EC2 instances are managed by Systems Manager.",
+            "title": "Ensure EC2 instances are managed by AWS Systems Manager",
             "result_kinds": ["aws_ec2_instance"],
-            "categories": [ "security", "compliance" ],
-            "risk": "AWS Config provides AWS Managed Rules, which are predefined, customizable rules that AWS Config uses to evaluate whether your AWS resource configurations comply with common best practices.",
+            "categories": ["security", "compliance"],
+            "risk": "If EC2 instances are not managed by AWS Systems Manager, there is a risk of misconfigured or non-compliant instances, leading to potential security vulnerabilities.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_instance) with(empty, <-- is(aws_ssm_instance))"
             },
             "remediation": {
-                "text": "Verify and apply Systems Manager Prerequisites.",
+                "text": "To fix this issue, verify if the EC2 instances are managed by AWS Systems Manager and apply Systems Manager Prerequisites.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/managed_instances.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/managed_instances.html"
         },
         {
             "name": "image_public",
-            "title": "Ensure there are no EC2 AMIs set as Public.",
+            "title": "Ensure EC2 AMIs are not publicly accessible.",
             "result_kinds": ["aws_ec2_image"],
-            "categories": [ "security", "compliance" ],
-            "risk": "When your AMIs are publicly accessible, they are available in the Community AMIs where everyone with an AWS account can use them to launch EC2 instances. Your AMIs could contain snapshots of your applications (including their data), therefore exposing your snapshots in this manner is not advised.",
+            "categories": ["security", "compliance"],
+            "risk": "Publicly accessible AMIs can be used by anyone with an AWS account to launch EC2 instances, potentially exposing sensitive data contained in the AMIs.",
             "severity": "critical",
             "detect": {
                 "resoto": "search is(aws_ec2_image) and public==true"
             },
             "remediation": {
-                "text": "We recommend your EC2 AMIs are not publicly accessible, or generally available in the Community AMIs.",
+                "text": "To prevent unauthorized access, ensure that your EC2 AMIs are not set as public or available in the Community AMIs.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html"
         },
         {
             "name": "no_secrets_in_instance_user_data",
             "title": "Ensure there are no secrets in EC2 User Data.",
             "result_kinds": ["aws_ec2_instance"],
-            "categories": [ "security", "compliance" ],
-            "risk": "User data scripts are used by EC2 instances to download requirements, boot up necessary programs or execute program scripts for application usage. However, adding secrets in userdata can compromise security as these scripts can be viewed by anyone. Secrets hardcoded into instance user data can be used by malware and bad actors to gain lateral access to other services.",
+            "categories": ["security", "compliance"],
+            "risk": "Adding secrets in userdata can compromise security as these scripts can be viewed by anyone. Secrets hardcoded into instance user data can be used by malware and bad actors to gain lateral access to other services.",
             "severity": "medium",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_instance) and instance_user_data!=null | detect-secrets --path instance_user_data --with-secrets"
             },
             "remediation": {
-                "text": "Always ensure that User data picks up secrets from a managed service like Parameter store or Secrets manager, rather than having it hardcoded in the actual script",
+                "text": "Always ensure that User data picks up secrets from a managed service like Parameter Store or Secrets Manager, rather than having it hardcoded in the actual script.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
         },
         {
             "name": "no_secrets_in_launch_template_user_data",
-            "title": "Ensure there are no secrets in EC2 Launch Template User Data.",
+            "title": "Ensure there are no secrets in EC2 Launch Template User Data",
             "result_kinds": ["aws_ec2_launch_template"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Adding secrets in userdata can compromise security as these scripts can be viewed by anyone. Secrets hardcoded into instance user data can be used by malware and bad actors to gain lateral access to other services.",
+            "categories": ["security", "compliance"],
+            "risk": "If secrets are added to the EC2 Launch Template User Data, it can compromise security as these scripts can be viewed by anyone. Hackers and malware can exploit these secrets to gain unauthorized access to other services.",
             "severity": "medium",
             "detect": {
                 "resoto_cmd": "search is(aws_ec2_launch_template) and launch_template_data.user_data!=null | detect-secrets --path launch_template_data.user_data --with-secrets"
             },
             "remediation": {
-                "text": "Always ensure that User data picks up secrets from a managed service like Parameter store or Secrets manager, rather than having it hardcoded in the actual script",
-                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
-            }
+                "text": "To fix this issue, always ensure that User Data retrieves secrets from a managed service like AWS Systems Manager Parameter Store or AWS Secrets Manager, instead of hardcoding them in the user data script.",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-best-practices"
+            },
+            "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html"
         },
         {
             "name": "subnet_auto_assign_public_ip_disabled",
-            "title": "Ensure that subnets have public ip disabled by default to prevent accidental public access",
+            "title": "Ensure subnets have auto-assign public IP disabled to prevent accidental public access",
             "result_kinds": ["aws_ec2_subnet"],
-            "categories": [ "security", "compliance" ],
-            "risk": "Disabling auto-assign public IP in subnets is important for security because it reduces the exposure of instances to the public internet, minimizing the risk of external attacks. This setting is crucial in controlling the network accessibility of EC2 instances and maintaining a secure environment within the VPC.",
+            "categories": ["security", "compliance"],
+            "risk": "Disabling auto-assign public IP in subnets is crucial for security as it reduces the exposure of instances to the public internet, minimizing the risk of external attacks. This setting helps control the network accessibility of EC2 instances and maintain a secure environment within the VPC.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_subnet) and subnet_map_public_ip_on_launch=true"
             },
             "remediation": {
-                "text": "select subnet -> click 'Actions' -> 'Modify auto-assign IP settings' -> Uncheck 'Auto-assign IPv4' and save.",
+                "text": "To fix this issue, select the subnet, click 'Actions', then 'Modify auto-assign IP settings', uncheck 'Auto-assign IPv4', and save.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-ip-addressing.html"
             }
         }

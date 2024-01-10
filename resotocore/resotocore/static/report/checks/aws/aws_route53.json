@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "zone_query_logging_enabled",
-            "title": "Activation of DNS Query Logging in Route 53 for Enhanced Monitoring and Security",
+            "title": "Ensure Activation of DNS Query Logging in Route 53 for Enhanced Monitoring and Security",
             "result_kinds": ["aws_route53_zone"],
             "categories": ["security", "compliance"],
             "risk": "Not enabling query logging in Route 53 zones can obscure visibility into DNS query traffic, making it difficult to detect unusual patterns or malicious activities. Such a lack of visibility increases the risk of undetected security threats and hampers incident response efforts, potentially leading to prolonged exposure to cyber attacks or misuse.",
@@ -15,7 +15,8 @@
             "remediation": {
                 "text": "To enable query logging, navigate to the Route 53 console, select the desired hosted zone, and go to the Query logging tab. Click on 'Configure query logging', then choose a log destination (CloudWatch Logs, S3, or Kinesis Data Firehose) and configure the necessary settings. Ensure that the chosen logging service has the necessary permissions to receive logs. Finally, confirm and save your settings to start logging DNS queries.",
                 "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html"
         }
     ]
 }

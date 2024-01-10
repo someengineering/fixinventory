@@ -4,49 +4,51 @@
     "checks": [
         {
             "name": "cluster_audit_logging_enabled",
-            "title": "Ensure that cluster audit logging is enabled to aide in compliance and incident investigation",
-            "result_kinds": [ "aws_redshift_cluster" ],
-            "categories": [ "security", "compliance" ],
-            "risk": "Enabling cluster audit logging in Amazon Redshift enhances security by providing detailed records of database activities, aiding in monitoring, incident investigation, and compliance.",
+            "title": "Ensure Cluster Audit Logging is Enabled for Optimal Compliance and Incident Investigation",
+            "result_kinds": ["aws_redshift_cluster"],
+            "categories": ["security", "compliance"],
+            "risk": "Failure to enable cluster audit logging in Amazon Redshift could compromise security by not providing a detailed record of database activities. This could affect effective monitoring, incident investigation, and compliance.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_redshift_cluster) and redshift_logging_status.logging_enabled=false"
             },
             "remediation": {
-                "text": "In the 'Cluster details' tab -> click 'Modify' Under 'Audit logging' -> enable or modify the settings -> Save the changes.",
+                "text": "To enable audit logging, go to 'Cluster details' tab -> click 'Modify'. Next, under 'Audit logging', enable or adjust the settings as needed, then save the changes.",
                 "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html"
-            }
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html"
         },
         {
             "name": "cluster_publicly_accessible",
-            "title": "Ensure that Redshift clusters are not publicly Accessible.",
-            "result_kinds": [ "aws_redshift_cluster" ],
-            "categories": [ "security", "compliance" ],
-            "risk": "Publicly accessible services could expose sensitive data to bad actors.",
+            "title": "Ensure Redshift Clusters are Not Publicly Accessible",
+            "result_kinds": ["aws_redshift_cluster"],
+            "categories": ["security", "compliance"],
+            "risk": "Having Redshift clusters publicly accessible can lead to unauthorized access and potential data breaches. This exposes sensitive data and risks noncompliance with industry regulations.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_redshift_cluster) and redshift_publicly_accessible=true and redshift_endpoint.address!=null"
             },
             "remediation": {
-                "text": "List all shared Redshift clusters and make sure there is a business reason for them.",
-                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html"
-            }
+                "text": "Identify all publicly accessible Redshift clusters. For each cluster, review the necessity of public accessibility. If unjustified, revise the settings by disallowing public access to enhance security.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html#modify-cluster-access"
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html"
         },
         {
             "name": "version_upgrade_enabled",
-            "title": "Ensure that Redshift clusters are upgraded automatically.",
-            "result_kinds": [ "aws_redshift_cluster" ],
-            "categories": [ "security", "compliance" ],
-            "risk": "When automatic upgrades are disabled, Redshift clusters may not be patched for security vulnerabilities.",
+            "title": "Ensure Automatic Upgrades are Enabled for Redshift Clusters",
+            "result_kinds": ["aws_redshift_cluster"],
+            "categories": ["security", "compliance"],
+            "risk": "Disabling automatic upgrades for Redshift clusters exposes them to security vulnerabilities due to outdated versions, potentially leading to data breaches and non-compliance with regulations.",
             "severity": "high",
             "detect": {
                 "resoto": "is(aws_redshift_cluster) and redshift_allow_version_upgrade=false"
             },
             "remediation": {
-                "text": "Enable automatic upgrades for all Redshift clusters.",
-                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html"
-            }
+                "text": "To mitigate this risk, enable automatic upgrades in the AWS Management Console under the 'Maintenance' tab for each Redshift cluster. This ensures that your Redshift clusters are always operating on the latest, security patch included, version.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-settings"
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html"
         }
-
     ]
 }
