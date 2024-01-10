@@ -1,0 +1,12 @@
+{
+    "NextMarker": "deleteme",
+    "WebACLs": [
+        {
+            "Name": "deleteme",
+            "Id": "acl1",
+            "Description": "",
+            "LockToken": "04e465af-501f-45b8-9d8a-39668cfc6674",
+            "ARN": "arn:aws:wafv2:us-east-1:test:regional/deleteme"
+        }
+    ]
+}

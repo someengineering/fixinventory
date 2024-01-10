@@ -40,6 +40,9 @@ from resoto_plugin_aws.resource import (
     ssm,
     ecr,
     secretsmanager,
+    opensearch,
+    acm,
+    waf,
 )
 from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
@@ -63,9 +66,11 @@ global_resources: List[Type[AwsResource]] = (
     + route53.resources
     + s3.resources
     + service_quotas.resources
+    + waf.resources
 )
 regional_resources: List[Type[AwsResource]] = (
     sagemaker.resources  # start with sagemaker, because it is very slow
+    + acm.resources
     + apigateway.resources
     + autoscaling.resources
     + athena.resources
@@ -88,6 +93,7 @@ regional_resources: List[Type[AwsResource]] = (
     + kinesis.resources
     + kms.resources
     + lambda_.resources
+    + opensearch.resources
     + rds.resources
     + secretsmanager.resources
     + service_quotas.resources

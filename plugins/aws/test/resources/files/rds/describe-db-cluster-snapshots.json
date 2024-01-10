@@ -1,0 +1,63 @@
+{
+    "DBClusterSnapshots": [
+        {
+            "AvailabilityZones": [
+                "us-east-1a",
+                "us-east-1c",
+                "us-east-1d"
+            ],
+            "DBClusterSnapshotIdentifier": "deleteme",
+            "DBClusterIdentifier": "database-1",
+            "SnapshotCreateTime": "2024-01-03T14:26:54.023000+00:00",
+            "Engine": "aurora-postgresql",
+            "EngineMode": "provisioned",
+            "AllocatedStorage": 0,
+            "Status": "available",
+            "Port": 0,
+            "VpcId": "vpc-09981817e8ae09ee3",
+            "ClusterCreateTime": "2024-01-03T14:02:35.703000+00:00",
+            "MasterUsername": "postgres",
+            "EngineVersion": "15.3",
+            "LicenseModel": "postgresql-license",
+            "SnapshotType": "manual",
+            "PercentProgress": 100,
+            "StorageEncrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-east-1:test:key/68958049-2091-4482-b0a1-9ce9c2b3a940",
+            "DBClusterSnapshotArn": "arn:aws:rds:us-east-1:test:cluster-snapshot:deleteme",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "TagList": [],
+            "DbClusterResourceId": "cluster-54M44OD3CYK3R6SSWMGW22BIS4",
+            "SourceDBClusterSnapshotArn": "arn:aws:rds:us-east-1:test:cluster-snapshot:take2",
+            "DBSystemId": "rds:cluster-54M44OD3CYK3R6SSWMGW22BIS4",
+            "StorageType": "aurora"
+        },
+        {
+            "AvailabilityZones": [
+                "us-east-1a",
+                "us-east-1c",
+                "us-east-1d"
+            ],
+            "DBClusterSnapshotIdentifier": "take2",
+            "DBClusterIdentifier": "database-1",
+            "SnapshotCreateTime": "2024-01-03T14:34:15.234000+00:00",
+            "Engine": "aurora-postgresql",
+            "EngineMode": "provisioned",
+            "AllocatedStorage": 1,
+            "Status": "creating",
+            "Port": 0,
+            "VpcId": "vpc-09981817e8ae09ee3",
+            "ClusterCreateTime": "2024-01-03T14:02:35.703000+00:00",
+            "MasterUsername": "postgres",
+            "EngineVersion": "15.3",
+            "LicenseModel": "postgresql-license",
+            "SnapshotType": "manual",
+            "PercentProgress": 0,
+            "StorageEncrypted": true,
+            "KmsKeyId": "arn:aws:kms:us-east-1:test:key/68958049-2091-4482-b0a1-9ce9c2b3a940",
+            "DBClusterSnapshotArn": "arn:aws:rds:us-east-1:test:cluster-snapshot:take2",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "TagList": [],
+            "DbClusterResourceId": "cluster-54M44OD3CYK3R6SSWMGW22BIS4"
+        }
+    ]
+}

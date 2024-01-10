@@ -47,7 +47,7 @@ class DynamoDbTaggable:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbAttributeDefinition:
-    kind: ClassVar[str] = "aws_dynamo_db_attribute_definition"
+    kind: ClassVar[str] = "aws_dynamodb_attribute_definition"
     kind_display: ClassVar[str] = "AWS DynamoDB Attribute Definition"
     kind_description: ClassVar[
         str
@@ -59,7 +59,7 @@ class AwsDynamoDbAttributeDefinition:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbKeySchemaElement:
-    kind: ClassVar[str] = "aws_dynamo_db_key_schema_element"
+    kind: ClassVar[str] = "aws_dynamodb_key_schema_element"
     kind_display: ClassVar[str] = "AWS DynamoDB Key Schema Element"
     kind_description: ClassVar[str] = (
         "DynamoDB Key Schema Element represents the key attributes used to uniquely"
@@ -72,7 +72,7 @@ class AwsDynamoDbKeySchemaElement:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbProvisionedThroughputDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_provisioned_throughput_description"
+    kind: ClassVar[str] = "aws_dynamodb_provisioned_throughput_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Provisioned Throughput Description"
     kind_description: ClassVar[str] = (
         "DynamoDB Provisioned Throughput is the measurement of the capacity"
@@ -95,7 +95,7 @@ class AwsDynamoDbProvisionedThroughputDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbBillingModeSummary:
-    kind: ClassVar[str] = "aws_dynamo_db_billing_mode_summary"
+    kind: ClassVar[str] = "aws_dynamodb_billing_mode_summary"
     kind_display: ClassVar[str] = "AWS DynamoDB Billing Mode Summary"
     kind_description: ClassVar[str] = (
         "DynamoDB Billing Mode Summary provides information about the billing mode"
@@ -112,7 +112,7 @@ class AwsDynamoDbBillingModeSummary:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbProjection:
-    kind: ClassVar[str] = "aws_dynamo_db_projection"
+    kind: ClassVar[str] = "aws_dynamodb_projection"
     kind_display: ClassVar[str] = "AWS DynamoDB Projection"
     kind_description: ClassVar[str] = (
         "AWS DynamoDB Projection specifies the set of attributes that are projected into a DynamoDB secondary"
@@ -128,7 +128,7 @@ class AwsDynamoDbProjection:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbLocalSecondaryIndexDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_local_secondary_index_description"
+    kind: ClassVar[str] = "aws_dynamodb_local_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Local Secondary Index Description"
     kind_description: ClassVar[str] = (
         "The AWS DynamoDB Local Secondary Index Description provides details about a Local Secondary Index (LSI)"
@@ -153,7 +153,7 @@ class AwsDynamoDbLocalSecondaryIndexDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalSecondaryIndexDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_global_secondary_index_description"
+    kind: ClassVar[str] = "aws_dynamodb_global_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Global Secondary Index Description"
     kind_description: ClassVar[str] = (
         "A Global Secondary Index (GSI) in DynamoDB is an additional index that you"
@@ -184,7 +184,7 @@ class AwsDynamoDbGlobalSecondaryIndexDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbStreamSpecification:
-    kind: ClassVar[str] = "aws_dynamo_db_stream_specification"
+    kind: ClassVar[str] = "aws_dynamodb_stream_specification"
     kind_display: ClassVar[str] = "AWS DynamoDB Stream Specification"
     kind_description: ClassVar[str] = (
         "AWS DynamoDB Stream Specification defines whether a stream is enabled on a DynamoDB table and the"
@@ -201,7 +201,7 @@ class AwsDynamoDbStreamSpecification:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_replica_global_secondary_index_description"
+    kind: ClassVar[str] = "aws_dynamodb_replica_global_secondary_index_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Replica Global Secondary Index Description"
     kind_description: ClassVar[str] = (
         "The AWS DynamoDB Replica Global Secondary Index Description details the properties of a"
@@ -221,7 +221,7 @@ class AwsDynamoDbReplicaGlobalSecondaryIndexDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbTableClassSummary:
-    kind: ClassVar[str] = "aws_dynamo_db_table_class_summary"
+    kind: ClassVar[str] = "aws_dynamodb_table_class_summary"
     kind_display: ClassVar[str] = "AWS DynamoDB Table Class Summary"
     kind_description: ClassVar[str] = (
         "The AWS DynamoDB Table Class Summary provides an overview of the table class for"
@@ -237,7 +237,7 @@ class AwsDynamoDbTableClassSummary:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbReplicaDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_replica_description"
+    kind: ClassVar[str] = "aws_dynamodb_replica_description"
     kind_display: ClassVar[str] = "AWS DynamoDB Replica Description"
     kind_description: ClassVar[str] = (
         "DynamoDB Replica Description provides detailed information about the replica"
@@ -268,7 +268,7 @@ class AwsDynamoDbReplicaDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbRestoreSummary:
-    kind: ClassVar[str] = "aws_dynamo_db_restore_summary"
+    kind: ClassVar[str] = "aws_dynamodb_restore_summary"
     kind_display: ClassVar[str] = "AWS DynamoDB Restore Summary"
     kind_description: ClassVar[str] = (
         "DynamoDB Restore Summary provides an overview of the restore process for"
@@ -289,7 +289,7 @@ class AwsDynamoDbRestoreSummary:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbSSEDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_sse_description"
+    kind: ClassVar[str] = "aws_dynamodb_sse_description"
     kind_display: ClassVar[str] = "AWS DynamoDB SSE Description"
     kind_description: ClassVar[str] = (
         "DynamoDB SSE (Server-Side Encryption) provides automatic encryption at rest"
@@ -310,7 +310,7 @@ class AwsDynamoDbSSEDescription:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbArchivalSummary:
-    kind: ClassVar[str] = "aws_dynamo_db_archival_summary"
+    kind: ClassVar[str] = "aws_dynamodb_archival_summary"
     kind_display: ClassVar[str] = "AWS DynamoDB Archival Summary"
     kind_description: ClassVar[str] = (
         "DynamoDB Archival Summary provides information about the archival status and"
@@ -330,7 +330,7 @@ class AwsDynamoDbArchivalSummary:
 
 @define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_dynamo_db_table"
+    kind: ClassVar[str] = "aws_dynamodb_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Table"
     kind_description: ClassVar[str] = (
         "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
@@ -448,7 +448,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_dynamo_db_global_table"
+    kind: ClassVar[str] = "aws_dynamodb_global_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
     kind_description: ClassVar[str] = (
         "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally"

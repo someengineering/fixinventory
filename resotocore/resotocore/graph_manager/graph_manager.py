@@ -227,22 +227,22 @@ class GraphManager(Service):
             yield to_js_str(metadata)
 
             # 2. model collection
-            cursor = AsyncCursor(await tx.all(model_collection), None)
+            cursor = AsyncCursor(await tx.all(model_collection), query=model_collection)
             async for doc in cursor:
                 yield dumps(doc)
 
             # 3. vertex collection
-            cursor = AsyncCursor(await tx.all(vertex_collection), None)
+            cursor = AsyncCursor(await tx.all(vertex_collection), query=vertex_collection)
             async for doc in cursor:
                 yield dumps(doc)
 
             # 4. default edge collection
-            cursor = AsyncCursor(await tx.all(default_edge_collection), None)
+            cursor = AsyncCursor(await tx.all(default_edge_collection), query=default_edge_collection)
             async for doc in cursor:
                 yield dumps(doc)
 
             # 5. delete edge collection
-            cursor = AsyncCursor(await tx.all(delete_edge_collection), None)
+            cursor = AsyncCursor(await tx.all(delete_edge_collection), query=delete_edge_collection)
             async for doc in cursor:
                 yield dumps(doc)
 

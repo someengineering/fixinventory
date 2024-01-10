@@ -1,0 +1,69 @@
+{
+    "Marker": "foo",
+    "DBSnapshots": [
+        {
+            "DBSnapshotIdentifier": "foo",
+            "DBInstanceIdentifier": "foo",
+            "SnapshotCreateTime": "2024-01-03T13:45:34Z",
+            "Engine": "foo",
+            "AllocatedStorage": 123,
+            "Status": "foo",
+            "Port": 123,
+            "AvailabilityZone": "foo",
+            "VpcId": "foo",
+            "InstanceCreateTime": "2024-01-03T13:45:34Z",
+            "MasterUsername": "foo",
+            "EngineVersion": "foo",
+            "LicenseModel": "foo",
+            "SnapshotType": "foo",
+            "Iops": 123,
+            "OptionGroupName": "foo",
+            "PercentProgress": 123,
+            "SourceRegion": "foo",
+            "SourceDBSnapshotIdentifier": "foo",
+            "StorageType": "foo",
+            "TdeCredentialArn": "foo",
+            "Encrypted": true,
+            "KmsKeyId": "foo",
+            "DBSnapshotArn": "foo",
+            "Timezone": "foo",
+            "IAMDatabaseAuthenticationEnabled": true,
+            "ProcessorFeatures": [
+                {
+                    "Name": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Name": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Name": "foo",
+                    "Value": "foo"
+                }
+            ],
+            "DbiResourceId": "foo",
+            "TagList": [
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                },
+                {
+                    "Key": "foo",
+                    "Value": "foo"
+                }
+            ],
+            "OriginalSnapshotCreateTime": "2024-01-03T13:45:34Z",
+            "SnapshotDatabaseTime": "2024-01-03T13:45:34Z",
+            "SnapshotTarget": "foo",
+            "StorageThroughput": 123,
+            "DBSystemId": "foo",
+            "DedicatedLogVolume": true,
+            "MultiTenant": true
+        }
+    ]
+}

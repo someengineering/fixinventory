@@ -14,7 +14,7 @@ service_name = "secretsmanager"
 
 @define(eq=False, slots=False)
 class AwsSecretsManagerRotationRulesType:
-    kind: ClassVar[str] = "aws_secrets_manager_rotation_rules_type"
+    kind: ClassVar[str] = "aws_secretsmanager_rotation_rules_type"
     mapping: ClassVar[Dict[str, Bender]] = {
         "automatically_after_days": S("AutomaticallyAfterDays"),
         "duration": S("Duration"),
@@ -27,7 +27,7 @@ class AwsSecretsManagerRotationRulesType:
 
 @define(eq=False, slots=False)
 class AwsSecretsManagerSecret(AwsResource):
-    kind: ClassVar[str] = "aws_secrets_manager_secret"
+    kind: ClassVar[str] = "aws_secretsmanager_secret"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

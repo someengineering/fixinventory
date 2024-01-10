@@ -7,7 +7,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, bend
+from resotolib.json_bender import F, Bender, S, bend, ParseJson
 from resotolib.types import Json
 
 service_name = "sns"
@@ -37,7 +37,7 @@ class AwsSnsTopic(AwsResource):
         "topic_subscriptions_confirmed": S("SubscriptionsConfirmed") >> F(lambda x: int(x)),
         "topic_subscriptions_deleted": S("SubscriptionsDeleted") >> F(lambda x: int(x)),
         "topic_subscriptions_pending": S("SubscriptionsPending") >> F(lambda x: int(x)),
-        "topic_policy": S("Policy"),
+        "topic_policy": S("Policy") >> ParseJson(),
         "topic_delivery_policy": S("DeliveryPolicy"),
         "topic_effective_delivery_policy": S("EffectiveDeliveryPolicy"),
         "topic_owner": S("Owner"),
@@ -48,7 +48,7 @@ class AwsSnsTopic(AwsResource):
     topic_subscriptions_confirmed: Optional[int] = field(default=None)
     topic_subscriptions_deleted: Optional[int] = field(default=None)
     topic_subscriptions_pending: Optional[int] = field(default=None)
-    topic_policy: Optional[str] = field(default=None)
+    topic_policy: Optional[Json] = field(default=None)
     topic_delivery_policy: Optional[str] = field(default=None)
     topic_effective_delivery_policy: Optional[str] = field(default=None)
     topic_owner: Optional[str] = field(default=None)

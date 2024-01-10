@@ -56,7 +56,7 @@ class AwsSqsQueue(AwsResource):
         "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages") >> AsInt(),
         "sqs_approximate_number_of_messages_not_visible": S("ApproximateNumberOfMessagesNotVisible") >> AsInt(),
         "sqs_approximate_number_of_messages_delayed": S("ApproximateNumberOfMessagesDelayed") >> AsInt(),
-        "sqs_policy": S("Policy") >> ParseJson(keys_to_snake=True),
+        "sqs_policy": S("Policy") >> ParseJson(),
         "sqs_redrive_policy": S("RedrivePolicy") >> ParseJson() >> Bend(AwsSqsRedrivePolicy.mapping),
         "sqs_fifo_queue": S("FifoQueue") >> AsBool(),
         "sqs_content_based_deduplication": S("ContentBasedDeduplication") >> AsBool(),

@@ -28,7 +28,7 @@ class Resotocore:
         resotocore_graph = self._config.resotoworker.graph
         dump_json = self._config.resotoworker.debug_dump_json
         self.create_graph(base_uri, resotocore_graph)
-        self.update_model(base_uri, dump_json=dump_json, tempdir=tempdir)
+        self.update_model(base_uri, resotocore_graph, dump_json=dump_json, tempdir=tempdir)
 
     def send_to_resotocore(self, graph: Graph, task_id: str, tempdir: str) -> None:
         if not ArgumentParser.args.resotocore_uri:
@@ -76,10 +76,11 @@ class Resotocore:
     def update_model(
         self,
         resotocore_base_uri: str,
+        resotocore_graph: str,
         dump_json: bool = False,
         tempdir: Optional[str] = None,
     ) -> None:
-        model_uri = f"{resotocore_base_uri}/model"
+        model_uri = f"{resotocore_base_uri}/graph/{resotocore_graph}/model"
 
         log.debug(f"Updating model via {model_uri}")
 
@@ -102,7 +103,7 @@ class Resotocore:
 
         for attempt in Retrying(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10)):
             with attempt:
-                request = requests.Request(method="PATCH", url=model_uri, data=model_json, headers=headers)
+                request = requests.Request(method="PUT", url=model_uri, data=model_json, headers=headers)
                 r = self._send_request(request)
                 if r.status_code != 200:
                     log.error(r.content)

@@ -111,7 +111,8 @@ async def test_predefined_checks(inspector_service: InspectorService) -> None:
     checks = ReportCheckCollectionConfig.from_files()
     assert len(checks) > 0
     for name, check in checks.items():
-        assert (await inspector_service.validate_check_collection_config({CheckConfigRoot: check})) is None
+        validation = await inspector_service.validate_check_collection_config({CheckConfigRoot: check})
+        assert validation is None, str(validation)
 
 
 async def test_predefined_benchmarks(inspector_service: InspectorService) -> None:
@@ -120,7 +121,8 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
     for name, check in benchmarks.items():
         config = {BenchmarkConfigRoot: check}
         cfg_id = ConfigId(name)
-        assert (await inspector_service.validate_benchmark_config(cfg_id, config)) is None
+        validation = await inspector_service.validate_benchmark_config(cfg_id, config)
+        assert validation is None, f"Benchmark: {name}" + str(validation)
         benchmark = BenchmarkConfig.from_config(ConfigEntity(cfg_id, config))
         assert benchmark.clouds == ["aws"]
 

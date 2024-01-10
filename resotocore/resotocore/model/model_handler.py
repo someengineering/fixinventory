@@ -67,7 +67,7 @@ class ModelHandler(ABC):
         """
 
     @abstractmethod
-    async def update_model(self, graph_name: GraphName, kinds: List[Kind]) -> Model:
+    async def update_model(self, graph_name: GraphName, kinds: List[Kind], replace: bool) -> Model:
         pass
 
 
@@ -229,14 +229,17 @@ class ModelHandlerDB(ModelHandler, Service):
             plant_uml = PlantUML(f"{self.plantuml_server}/{output}/")
             return await run_async(plant_uml.processes, puml)
 
-    async def update_model(self, graph_name: GraphName, kinds: List[Kind]) -> Model:
+    async def update_model(self, graph_name: GraphName, kinds: List[Kind], replace: bool) -> Model:
         # load existing model
         model = await self.load_model(graph_name)
         # make sure the update is valid
-        updated = model.update_kinds(kinds)
+        updated = model.update_kinds(kinds, replace=replace)
         # store all updated kinds
         db = await self.db_access.get_graph_model_db(graph_name)
         await db.update_many(kinds)
+        if deleted := set(model.kinds) - set(updated.kinds):
+            log.info(f"Deleted kinds: {deleted}")
+            await db.delete_many(list(deleted))
         # unset loaded model
         self.__loaded_model[graph_name] = updated
         return updated

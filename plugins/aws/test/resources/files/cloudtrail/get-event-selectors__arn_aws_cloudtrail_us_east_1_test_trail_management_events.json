@@ -12,5 +12,20 @@
                 }
             ]
         }
+    ],
+    "EventSelectors": [
+        {
+            "ReadWriteType": "All",
+            "IncludeManagementEvents": false,
+            "DataResources": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Values": [
+                        "arn:aws:lambda"
+                    ]
+                }
+            ],
+            "ExcludeManagementEventSources": []
+        }
     ]
 }

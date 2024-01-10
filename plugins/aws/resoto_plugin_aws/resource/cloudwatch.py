@@ -17,6 +17,26 @@ from resotolib.utils import chunks
 
 service_name = "cloudwatch"
 
+# Cloudwatch Alarm: Namespace -> Dimension Name -> (Kind, Property)
+CloudwatchAlarmReferences: Dict[str, Dict[str, Tuple[str, str]]] = {
+    "AWS/EC2": {
+        "InstanceId": ("aws_ec2_instance", "id"),
+        "AutoScalingGroupName": ("aws_autoscaling_group", "name"),
+    },
+    "AWS/S3": {"BucketName": ("aws_s3_bucket", "name")},
+    "AWS/DynamoDB": {"TableName": ("aws_dynamodb_table", "name")},
+    "AWS/EBS": {"VolumeId": ("aws_ebs_volume", "id")},
+    "AWS/ECS": {"ClusterName": ("aws_ecs_cluster", "name")},
+    "AWS/EFS": {"FileSystemId": ("aws_efs_file_system", "id")},
+    "AWS/ELB": {"LoadBalancerName": ("aws_elb_load_balancer", "name")},
+    "AWS/ALB": {"LoadBalancer": ("aws_alb_load_balancer", "name")},
+    "AWS/SQS": {"QueueName": ("aws_sqs_queue", "name")},
+    "AWS/SNS": {"TopicName": ("aws_sns_topic", "name")},
+    "AWS/Redshift": {"ClusterIdentifier": ("aws_redshift_cluster", "id")},
+    "AWS/Autoscaling": {"AutoScalingGroupName": ("aws_autoscaling_group", "name")},
+    "AWS/Kinesis": {"StreamName": ("aws_kinesis_stream", "name")},
+}
+
 
 # noinspection PyUnresolvedReferences
 class CloudwatchTaggable:
@@ -244,10 +264,13 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        for dimension in self.cloudwatch_dimensions:
-            builder.dependant_node(
-                self, reverse=True, delete_same_as_default=True, kind="aws_ec2_instance", id=dimension.value
-            )
+        if self.cloudwatch_namespace and (refs := CloudwatchAlarmReferences.get(self.cloudwatch_namespace)):
+            for dimension in self.cloudwatch_dimensions:
+                if dimension.name and (connect_def := refs.get(dimension.name)):
+                    kind, prop = connect_def
+                    builder.dependant_node(
+                        self, reverse=True, delete_same_as_default=True, kind=kind, **{prop: dimension.value}
+                    )
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-alarms", result_name=None, AlarmNames=[self.name])

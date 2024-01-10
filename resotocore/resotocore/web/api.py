@@ -228,6 +228,7 @@ class Api(Service):
                 # Graph based model operations
                 web.get(prefix + "/graph/{graph_id}/model", require(self.get_model, r)),
                 web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
+                web.put(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
                 web.get(prefix + "/graph/{graph_id}/model/uml", require(self.model_uml, r)),
                 # CRUD Graph operations
                 web.get(prefix + "/graph", require(self.list_graphs, r)),
@@ -976,8 +977,9 @@ class Api(Service):
     async def update_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "resoto"))
         js = await self.json_from_request(request)
+        replace = request.method == "PUT"
         kinds: List[Kind] = from_js(js, List[Kind])
-        model = await deps.model_handler.update_model(graph_id, kinds)
+        model = await deps.model_handler.update_model(graph_id, kinds, replace)
         return await single_result(request, to_js(model, strip_nulls=True))
 
     async def get_node(self, request: Request, deps: TenantDependencies) -> StreamResponse:

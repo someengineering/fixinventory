@@ -1,0 +1,9 @@
+{
+    "Name": "arn:aws:ssm:us-east-1:506325616308:document/updatesimulatortest",
+    "CreatedDate": "2020-06-09T19:55:58.880000+02:00",
+    "DocumentVersion": "2",
+    "Status": "Active",
+    "Content": "{\"test\": \"replaced\"}",
+    "DocumentType": "Command",
+    "DocumentFormat": "JSON"
+}

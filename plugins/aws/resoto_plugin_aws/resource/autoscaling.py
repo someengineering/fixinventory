@@ -3,7 +3,7 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attrs import define, field
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
+from resoto_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2LaunchTemplate
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import BaseAutoScalingGroup, ModelReference
 from resotolib.graph import Graph
@@ -284,7 +284,7 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-auto-scaling-groups", "AutoScalingGroups")
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_ec2_instance"]},
+        "successors": {"default": ["aws_ec2_instance", "aws_ec2_launch_template"]},
         "predecessors": {"delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -357,6 +357,8 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for instance in self.autoscaling_instances:
             builder.dependant_node(self, clazz=AwsEc2Instance, id=instance.instance_id)
+        if (tpl := self.autoscaling_launch_template) and (tid := tpl.launch_template_id):
+            builder.add_edge(self, clazz=AwsEc2LaunchTemplate, id=tid)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

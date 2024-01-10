@@ -1,0 +1,572 @@
+{
+    "LaunchTemplateVersions": [
+        {
+            "LaunchTemplateId": "foo",
+            "LaunchTemplateName": "foo",
+            "VersionNumber": 123,
+            "VersionDescription": "foo",
+            "CreateTime": "2024-01-04T10:02:16Z",
+            "CreatedBy": "foo",
+            "DefaultVersion": true,
+            "LaunchTemplateData": {
+                "KernelId": "foo",
+                "EbsOptimized": true,
+                "IamInstanceProfile": {
+                    "Arn": "foo",
+                    "Name": "foo"
+                },
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "foo",
+                        "VirtualName": "foo",
+                        "Ebs": {
+                            "Encrypted": true,
+                            "DeleteOnTermination": true,
+                            "Iops": 123,
+                            "KmsKeyId": "foo",
+                            "SnapshotId": "foo",
+                            "VolumeSize": 123,
+                            "VolumeType": "io1",
+                            "Throughput": 123
+                        },
+                        "NoDevice": "foo"
+                    },
+                    {
+                        "DeviceName": "foo",
+                        "VirtualName": "foo",
+                        "Ebs": {
+                            "Encrypted": true,
+                            "DeleteOnTermination": true,
+                            "Iops": 123,
+                            "KmsKeyId": "foo",
+                            "SnapshotId": "foo",
+                            "VolumeSize": 123,
+                            "VolumeType": "io1",
+                            "Throughput": 123
+                        },
+                        "NoDevice": "foo"
+                    },
+                    {
+                        "DeviceName": "foo",
+                        "VirtualName": "foo",
+                        "Ebs": {
+                            "Encrypted": true,
+                            "DeleteOnTermination": true,
+                            "Iops": 123,
+                            "KmsKeyId": "foo",
+                            "SnapshotId": "foo",
+                            "VolumeSize": 123,
+                            "VolumeType": "io1",
+                            "Throughput": 123
+                        },
+                        "NoDevice": "foo"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "AssociateCarrierIpAddress": true,
+                        "AssociatePublicIpAddress": true,
+                        "DeleteOnTermination": true,
+                        "Description": "foo",
+                        "DeviceIndex": 123,
+                        "Groups": [
+                            "foo",
+                            "foo",
+                            "foo"
+                        ],
+                        "InterfaceType": "foo",
+                        "Ipv6AddressCount": 123,
+                        "Ipv6Addresses": [
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            }
+                        ],
+                        "NetworkInterfaceId": "foo",
+                        "PrivateIpAddress": "foo",
+                        "PrivateIpAddresses": [
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            }
+                        ],
+                        "SecondaryPrivateIpAddressCount": 123,
+                        "SubnetId": "foo",
+                        "NetworkCardIndex": 123,
+                        "Ipv4Prefixes": [
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            }
+                        ],
+                        "Ipv4PrefixCount": 123,
+                        "Ipv6Prefixes": [
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            }
+                        ],
+                        "Ipv6PrefixCount": 123,
+                        "PrimaryIpv6": true,
+                        "EnaSrdSpecification": {
+                            "EnaSrdEnabled": true,
+                            "EnaSrdUdpSpecification": {
+                                "EnaSrdUdpEnabled": true
+                            }
+                        },
+                        "ConnectionTrackingSpecification": {
+                            "TcpEstablishedTimeout": 123,
+                            "UdpTimeout": 123,
+                            "UdpStreamTimeout": 123
+                        }
+                    },
+                    {
+                        "AssociateCarrierIpAddress": true,
+                        "AssociatePublicIpAddress": true,
+                        "DeleteOnTermination": true,
+                        "Description": "foo",
+                        "DeviceIndex": 123,
+                        "Groups": [
+                            "foo",
+                            "foo",
+                            "foo"
+                        ],
+                        "InterfaceType": "foo",
+                        "Ipv6AddressCount": 123,
+                        "Ipv6Addresses": [
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            }
+                        ],
+                        "NetworkInterfaceId": "foo",
+                        "PrivateIpAddress": "foo",
+                        "PrivateIpAddresses": [
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            }
+                        ],
+                        "SecondaryPrivateIpAddressCount": 123,
+                        "SubnetId": "foo",
+                        "NetworkCardIndex": 123,
+                        "Ipv4Prefixes": [
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            }
+                        ],
+                        "Ipv4PrefixCount": 123,
+                        "Ipv6Prefixes": [
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            }
+                        ],
+                        "Ipv6PrefixCount": 123,
+                        "PrimaryIpv6": true,
+                        "EnaSrdSpecification": {
+                            "EnaSrdEnabled": true,
+                            "EnaSrdUdpSpecification": {
+                                "EnaSrdUdpEnabled": true
+                            }
+                        },
+                        "ConnectionTrackingSpecification": {
+                            "TcpEstablishedTimeout": 123,
+                            "UdpTimeout": 123,
+                            "UdpStreamTimeout": 123
+                        }
+                    },
+                    {
+                        "AssociateCarrierIpAddress": true,
+                        "AssociatePublicIpAddress": true,
+                        "DeleteOnTermination": true,
+                        "Description": "foo",
+                        "DeviceIndex": 123,
+                        "Groups": [
+                            "foo",
+                            "foo",
+                            "foo"
+                        ],
+                        "InterfaceType": "foo",
+                        "Ipv6AddressCount": 123,
+                        "Ipv6Addresses": [
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            },
+                            {
+                                "Ipv6Address": "foo",
+                                "IsPrimaryIpv6": true
+                            }
+                        ],
+                        "NetworkInterfaceId": "foo",
+                        "PrivateIpAddress": "foo",
+                        "PrivateIpAddresses": [
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            },
+                            {
+                                "Primary": true,
+                                "PrivateIpAddress": "foo"
+                            }
+                        ],
+                        "SecondaryPrivateIpAddressCount": 123,
+                        "SubnetId": "foo",
+                        "NetworkCardIndex": 123,
+                        "Ipv4Prefixes": [
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            },
+                            {
+                                "Ipv4Prefix": "foo"
+                            }
+                        ],
+                        "Ipv4PrefixCount": 123,
+                        "Ipv6Prefixes": [
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            },
+                            {
+                                "Ipv6Prefix": "foo"
+                            }
+                        ],
+                        "Ipv6PrefixCount": 123,
+                        "PrimaryIpv6": true,
+                        "EnaSrdSpecification": {
+                            "EnaSrdEnabled": true,
+                            "EnaSrdUdpSpecification": {
+                                "EnaSrdUdpEnabled": true
+                            }
+                        },
+                        "ConnectionTrackingSpecification": {
+                            "TcpEstablishedTimeout": 123,
+                            "UdpTimeout": 123,
+                            "UdpStreamTimeout": 123
+                        }
+                    }
+                ],
+                "ImageId": "foo",
+                "InstanceType": "a1.large",
+                "KeyName": "foo",
+                "Monitoring": {
+                    "Enabled": true
+                },
+                "Placement": {
+                    "AvailabilityZone": "foo",
+                    "Affinity": "foo",
+                    "GroupName": "foo",
+                    "HostId": "foo",
+                    "Tenancy": "dedicated",
+                    "SpreadDomain": "foo",
+                    "HostResourceGroupArn": "foo",
+                    "PartitionNumber": 123,
+                    "GroupId": "foo"
+                },
+                "RamDiskId": "foo",
+                "DisableApiTermination": true,
+                "InstanceInitiatedShutdownBehavior": "terminate",
+                "UserData": "foo",
+                "TagSpecifications": [
+                    {
+                        "ResourceType": "client-vpn-endpoint",
+                        "Tags": [
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            }
+                        ]
+                    },
+                    {
+                        "ResourceType": "client-vpn-endpoint",
+                        "Tags": [
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            }
+                        ]
+                    },
+                    {
+                        "ResourceType": "client-vpn-endpoint",
+                        "Tags": [
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            },
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            }
+                        ]
+                    }
+                ],
+                "ElasticGpuSpecifications": [
+                    {
+                        "Type": "foo"
+                    },
+                    {
+                        "Type": "foo"
+                    },
+                    {
+                        "Type": "foo"
+                    }
+                ],
+                "ElasticInferenceAccelerators": [
+                    {
+                        "Type": "foo",
+                        "Count": 123
+                    },
+                    {
+                        "Type": "foo",
+                        "Count": 123
+                    },
+                    {
+                        "Type": "foo",
+                        "Count": 123
+                    }
+                ],
+                "SecurityGroupIds": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "SecurityGroups": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "InstanceMarketOptions": {
+                    "MarketType": "capacity-block",
+                    "SpotOptions": {
+                        "MaxPrice": "foo",
+                        "SpotInstanceType": "persistent",
+                        "BlockDurationMinutes": 123,
+                        "ValidUntil": "2024-01-04T10:02:16Z",
+                        "InstanceInterruptionBehavior": "stop"
+                    }
+                },
+                "CreditSpecification": {
+                    "CpuCredits": "foo"
+                },
+                "CpuOptions": {
+                    "CoreCount": 123,
+                    "ThreadsPerCore": 123,
+                    "AmdSevSnp": "disabled"
+                },
+                "CapacityReservationSpecification": {
+                    "CapacityReservationPreference": "none",
+                    "CapacityReservationTarget": {
+                        "CapacityReservationId": "foo",
+                        "CapacityReservationResourceGroupArn": "foo"
+                    }
+                },
+                "LicenseSpecifications": [
+                    {
+                        "LicenseConfigurationArn": "foo"
+                    },
+                    {
+                        "LicenseConfigurationArn": "foo"
+                    },
+                    {
+                        "LicenseConfigurationArn": "foo"
+                    }
+                ],
+                "HibernationOptions": {
+                    "Configured": true
+                },
+                "MetadataOptions": {
+                    "State": "applied",
+                    "HttpTokens": "required",
+                    "HttpPutResponseHopLimit": 123,
+                    "HttpEndpoint": "enabled",
+                    "HttpProtocolIpv6": "enabled",
+                    "InstanceMetadataTags": "enabled"
+                },
+                "EnclaveOptions": {
+                    "Enabled": true
+                },
+                "InstanceRequirements": {
+                    "VCpuCount": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "MemoryMiB": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "CpuManufacturers": [
+                        "amd",
+                        "amd",
+                        "amd"
+                    ],
+                    "MemoryGiBPerVCpu": {
+                        "Min": 1.234,
+                        "Max": 1.234
+                    },
+                    "ExcludedInstanceTypes": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ],
+                    "InstanceGenerations": [
+                        "previous",
+                        "previous",
+                        "previous"
+                    ],
+                    "SpotMaxPricePercentageOverLowestPrice": 123,
+                    "OnDemandMaxPricePercentageOverLowestPrice": 123,
+                    "BareMetal": "required",
+                    "BurstablePerformance": "required",
+                    "RequireHibernateSupport": true,
+                    "NetworkInterfaceCount": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "LocalStorage": "required",
+                    "LocalStorageTypes": [
+                        "ssd",
+                        "ssd",
+                        "ssd"
+                    ],
+                    "TotalLocalStorageGB": {
+                        "Min": 1.234,
+                        "Max": 1.234
+                    },
+                    "BaselineEbsBandwidthMbps": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "AcceleratorTypes": [
+                        "fpga",
+                        "fpga",
+                        "fpga"
+                    ],
+                    "AcceleratorCount": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "AcceleratorManufacturers": [
+                        "amd",
+                        "amd",
+                        "amd"
+                    ],
+                    "AcceleratorNames": [
+                        "inferentia",
+                        "inferentia",
+                        "inferentia"
+                    ],
+                    "AcceleratorTotalMemoryMiB": {
+                        "Min": 123,
+                        "Max": 123
+                    },
+                    "NetworkBandwidthGbps": {
+                        "Min": 1.234,
+                        "Max": 1.234
+                    },
+                    "AllowedInstanceTypes": [
+                        "foo",
+                        "foo",
+                        "foo"
+                    ]
+                },
+                "PrivateDnsNameOptions": {
+                    "HostnameType": "resource-name",
+                    "EnableResourceNameDnsARecord": true,
+                    "EnableResourceNameDnsAAAARecord": true
+                },
+                "MaintenanceOptions": {
+                    "AutoRecovery": "disabled"
+                },
+                "DisableApiStop": true
+            }
+        }
+    ],
+    "NextToken": "foo"
+}

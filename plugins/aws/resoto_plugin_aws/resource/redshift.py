@@ -2,7 +2,7 @@ from typing import ClassVar, Dict, Optional, List
 
 from attrs import define, field
 
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
@@ -390,6 +390,29 @@ class AwsRedshiftReservedNodeExchangeStatus:
 
 
 @define(eq=False, slots=False)
+class AwsRedshiftLoggingStatus:
+    kind: ClassVar[str] = "aws_redshift_logging_status"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "logging_enabled": S("LoggingEnabled"),
+        "bucket_name": S("BucketName"),
+        "s3_key_prefix": S("S3KeyPrefix"),
+        "last_successful_delivery_time": S("LastSuccessfulDeliveryTime"),
+        "last_failure_time": S("LastFailureTime"),
+        "last_failure_message": S("LastFailureMessage"),
+        "log_destination_type": S("LogDestinationType"),
+        "log_exports": S("LogExports", default=[]),
+    }
+    logging_enabled: Optional[bool] = field(default=None, metadata={"description": "true if logging is on, false if logging is off."})  # fmt: skip
+    bucket_name: Optional[str] = field(default=None, metadata={"description": "The name of the S3 bucket where the log files are stored."})  # fmt: skip
+    s3_key_prefix: Optional[str] = field(default=None, metadata={"description": "The prefix applied to the log file names."})  # fmt: skip
+    last_successful_delivery_time: Optional[datetime] = field(default=None, metadata={"description": "The last time that logs were delivered."})  # fmt: skip
+    last_failure_time: Optional[datetime] = field(default=None, metadata={"description": "The last time when logs failed to be delivered."})  # fmt: skip
+    last_failure_message: Optional[str] = field(default=None, metadata={"description": "The message indicating that logs failed to be delivered."})  # fmt: skip
+    log_destination_type: Optional[str] = field(default=None, metadata={"description": "The log destination type. An enum with possible values of s3 and cloudwatch."})  # fmt: skip
+    log_exports: Optional[List[str]] = field(factory=list, metadata={"description": "The collection of exported log types. Possible values are connectionlog, useractivitylog, and userlog."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     kind_display: ClassVar[str] = "AWS Redshift Cluster"
@@ -519,13 +542,30 @@ class AwsRedshiftCluster(AwsResource):
     redshift_aqua_configuration: Optional[AwsRedshiftAquaConfiguration] = field(default=None)
     redshift_default_iam_role_arn: Optional[str] = field(default=None)
     redshift_reserved_node_exchange_status: Optional[AwsRedshiftReservedNodeExchangeStatus] = field(default=None)
+    redshift_logging_status: Optional[AwsRedshiftLoggingStatus] = field(default=None)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec(service_name, "describe-logging-status")]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def fetch_logging_status(rc: AwsRedshiftCluster) -> None:
+            with builder.suppress("redshift.describe-logging-status"):
+                if raw := builder.client.get(
+                    aws_service=service_name,
+                    action="describe-logging-status",
+                    ClusterIdentifier=rc.id,
+                ):
+                    rc.redshift_logging_status = parse_json(
+                        raw, AwsRedshiftLoggingStatus, builder, AwsRedshiftLoggingStatus.mapping
+                    )
+
         for js in json:
             if cluster := cls.from_api(js, builder):
                 cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
                 builder.add_node(cluster, js)
+                builder.submit_work(service_name, fetch_logging_status, cluster)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:

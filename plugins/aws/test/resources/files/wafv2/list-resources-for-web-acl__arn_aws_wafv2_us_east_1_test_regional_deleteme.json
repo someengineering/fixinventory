@@ -1,0 +1,6 @@
+{
+    "ResourceArns": [
+        "lb1",
+        "arn:aws:elasticloadbalancing:us-west-2:test:loadbalancer/net/t2/l2"
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "LoggingConfiguration": {
+        "ResourceArn": "arn:aws:wafv2:us-east-1:test:regional/deleteme",
+        "LogDestinationConfigs": [
+            "arn:aws:logs:us-east-1:625596817853:log-group:aws-waf-logs-deleteme"
+        ],
+        "ManagedByFirewallManager": false
+    }
+}

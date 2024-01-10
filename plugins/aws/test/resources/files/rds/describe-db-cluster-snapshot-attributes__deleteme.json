@@ -1,0 +1,15 @@
+{
+    "DBClusterSnapshotAttributesResult": {
+        "DBClusterSnapshotIdentifier": "deleteme",
+        "DBClusterSnapshotAttributes": [
+            {
+                "AttributeName": "restore",
+                "AttributeValues": []
+            },
+            {
+                "AttributeName": "foo",
+                "AttributeValues": ["foo","foo","foo"]
+            }
+        ]
+    }
+}

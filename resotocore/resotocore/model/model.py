@@ -40,7 +40,7 @@ from resotocore.types import Json, JsonElement, ValidationResult, ValidationFn, 
 from resotocore.util import if_set, utc, duration, first
 from resotolib.core.model_check import check_overlap_for
 from resotolib.durations import duration_parser, DurationRe
-from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp
+from resotolib.parse_util import make_parser, variable_dp_backtick, dot_dp, l_bracket_p, r_bracket_p
 from resotolib.utils import is_env_var_string
 
 T = TypeVar("T")
@@ -155,7 +155,7 @@ class Property:
 # Split a variable path into its path parts.
 # foo.bla -> [foo, bla]
 # foo.`bla.bar` -> [foo, bla.bar]
-prop_path_parser = (regex("[^`.]+") | variable_dp_backtick).sep_by(dot_dp)
+prop_path_parser = (regex("[^`.]+") | (variable_dp_backtick + (l_bracket_p + r_bracket_p).optional(""))).sep_by(dot_dp)
 array_index_re = re.compile(r"\[(\d+|\*)]")
 
 
@@ -186,7 +186,7 @@ class PropertyPath:
         return PropertyPath(update)
 
     def unescaped_parts(self) -> List[str]:
-        return [p.strip("`") for p in self.path if p is not None]
+        return [p.rstrip("[]").strip("`") for p in self.path if p is not None]
 
     @property
     def last_part(self) -> Optional[str]:
@@ -812,16 +812,9 @@ class ArrayKind(Kind):
             self.inner.check_valid(elem, **kwargs)
         return coerced
 
-    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[List[JsonElement]]:
+    def coerce_if_required(self, value: JsonElement, **kwargs: bool) -> Optional[JsonElement]:
         has_coerced = False
-        if value is None:
-            return None
-        elif isinstance(value, dict):
-            return None
-        elif not isinstance(value, list):
-            # in case of simple type, we can make it an array
-            value = [value]
-            has_coerced = True
+        mapped: Optional[JsonElement] = None  # noqa
 
         def check(item: Any) -> ValidationResult:
             nonlocal has_coerced
@@ -832,7 +825,19 @@ class ArrayKind(Kind):
                 has_coerced = True
                 return res
 
-        mapped = [check(elem) for elem in value]
+        if value is None:
+            return None
+        elif isinstance(value, dict):
+            return None
+        elif not isinstance(value, list):
+            value = check(value)
+            if kwargs.get("array_creation", True):
+                mapped = [value]
+                has_coerced = True
+            else:  # in case only the inner kind should be coerced (see arango_query)
+                mapped = value
+        else:
+            mapped = [check(elem) for elem in value]
         return mapped if has_coerced else None
 
     @staticmethod
@@ -948,11 +953,16 @@ class ComplexKind(Kind):
     def resolve(self, model: Dict[str, Kind]) -> None:
         if not self.__resolved:
             self.__resolved = True
+            kinds = []
             # resolve properties
             for prop in self.properties:
                 kind = prop.resolve(model)
-                kind.resolve(model)
                 self.__resolved_kinds[prop.name] = (prop, kind)
+                kinds.append(kind)
+
+            # resolve property kinds
+            for kind in kinds:
+                kind.resolve(model)
 
             # make sure all successor kinds can be resolved
             for names in self.successor_kinds.values():
@@ -1468,7 +1478,13 @@ class Model:
 
         return graph
 
-    def update_kinds(self, kinds: List[Kind], check_overlap: bool = True) -> Model:
+    def update_kinds(self, kinds: List[Kind], check_overlap: bool = True, replace: bool = False) -> Model:
+        """
+        Update the model with the given kinds. The kinds are merged with the existing model.
+        :param kinds: the kinds to update.
+        :param check_overlap: true if paths with different kinds should be avoided, otherwise false.
+        :param replace: if true, the existing model is replaced with the new kinds.
+        """
         # Create a list of kinds that have changed to the existing model
         to_update = []
 
@@ -1505,8 +1521,14 @@ class Model:
                 raise AttributeError(f"Update {from_kind.fqn} changes an existing property type {from_kind.fqn}")
 
         # resolve and build dict
+        new_kinds = {kind.fqn: kind for kind in kinds}
         updates = {elem.fqn: elem for elem in to_update}
-        updated = {**self.kinds, **updates}
+        filtered_kinds = (
+            {k: v for k, v in self.kinds.items() if k in new_kinds or k in predefined_kinds_by_name}
+            if replace
+            else self.kinds
+        )
+        updated = {**filtered_kinds, **updates}
         for elem in to_update:
             elem.resolve(updated)
 

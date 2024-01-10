@@ -1,4 +1,4 @@
-from contextlib import suppress
+import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
@@ -15,6 +15,7 @@ from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
 service_name = "s3"
+log = logging.getLogger("resoto.plugins.aws")
 
 
 @define(eq=False, slots=False)
@@ -201,7 +202,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 bucket.tags = cast(Dict[str, Optional[str]], tags)
 
         def add_bucket_encryption(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-bucket-encryption"):
                 bck.bucket_encryption_rules = []
                 for raw in builder.client.list(
                     service_name,
@@ -215,7 +216,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         bck.bucket_encryption_rules.append(rule)
 
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-bucket-policy"):
                 if raw_policy := builder.client.get(
                     service_name,
                     "get-bucket-policy",
@@ -226,7 +227,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-bucket-versioning"):
                 if raw_versioning := builder.client.get(
                     service_name, "get-bucket-versioning", None, Bucket=bck.name, expected_errors=["NoSuchBucket"]
                 ):
@@ -237,7 +238,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     bck.bucket_mfa_delete = False
 
         def add_public_access(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-public-access-block"):
                 if raw_access := builder.client.get(
                     service_name,
                     "get-public-access-block",
@@ -251,7 +252,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     )
 
         def add_acls(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-bucket-acl"):
                 if raw := builder.client.get(
                     service_name, "get-bucket-acl", Bucket=bck.name, expected_errors=["NoSuchBucket"]
                 ):
@@ -259,7 +260,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     bck.bucket_acl = parse_json(mapped, AwsS3BucketAcl, builder)
 
         def add_bucket_logging(bck: AwsS3Bucket) -> None:
-            with suppress(Exception):
+            with builder.suppress(f"{service_name}.get-bucket-logging"):
                 if raw := builder.client.get(
                     service_name,
                     "get-bucket-logging",
