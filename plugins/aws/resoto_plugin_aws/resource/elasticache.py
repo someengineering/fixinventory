@@ -249,7 +249,7 @@ class AwsElastiCacheLogDeliveryConfiguration:
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
     kind_display: ClassVar[str] = "AWS ElastiCache Cache Cluster"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/elasticache/home?region={region}#cache-cluster-details:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#cache-cluster-details:id={id}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache is a web service that makes it easy to set up, manage, and scale"
         " a distributed in-memory cache environment in the cloud. A cache cluster is a"
@@ -501,7 +501,7 @@ class AwsElastiCacheNodeGroup:
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     kind_display: ClassVar[str] = "AWS ElastiCache Replication Group"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/elasticache/home?region={region}#cache-replication-groups:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#cache-replication-groups:id={id}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:replication-group/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache Replication Groups in AWS are used to store and retrieve data in"
         " memory to improve the performance of web applications and reduce the load on"

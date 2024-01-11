@@ -89,7 +89,7 @@ class AwsKinesisEnhancedMetrics:
 class AwsKinesisStream(AwsResource):
     kind: ClassVar[str] = "aws_kinesis_stream"
     kind_display: ClassVar[str] = "AWS Kinesis Stream"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/kinesis/home?region={region}#/streams/details?streamName={name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kinesis/home?region={region}#/streams/details?streamName={name}", "arn_tpl": "arn:{partition}:kinesis:{region}:{account}:stream/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Kinesis Streams are scalable and durable real-time data streaming services"
         " in Amazon's cloud, enabling users to capture, process, and analyze data in"

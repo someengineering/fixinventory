@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
@@ -801,7 +801,7 @@ class AwsWafWebACL(AwsResource):
     kind: ClassVar[str] = "aws_waf_web_acl"
     kind_display: ClassVar[str] = "AWS WAF Web ACL"
     kind_description: ClassVar[str] = "An AWS WAF Web ACL (Web Access Control List) is used for monitoring HTTP and HTTPS requests directed to AWS resources, allowing you to control access by permitting or blocking specific requests based on defined criteria."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/wafv2/home?region={region}#/webacl/{id}/overview"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/wafv2/homev2/web-acl/{name}/{id}/overview?region={region}", "arn_tpl": "arn:{partition}:wafv2:{region}:{account}:webacl/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("wafv2", "get-web-acl", "WebACL")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_alb", "aws_apigateway_rest_api", "aws_cognito_user_pool"]}

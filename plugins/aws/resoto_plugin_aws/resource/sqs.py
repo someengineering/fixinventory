@@ -36,7 +36,7 @@ class AwsSqsRedrivePolicy:
 class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
     kind_display: ClassVar[str] = "AWS SQS Queue"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/sqs/home?region={region}#/queues/{arn}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/home?region={region}#/queues/{arn}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SQS (Simple Queue Service) is a fully managed message queuing service"
         " provided by Amazon Web Services. It enables you to decouple and scale"

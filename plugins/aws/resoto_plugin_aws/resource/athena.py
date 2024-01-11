@@ -91,7 +91,7 @@ class AwsAthenaWorkGroupConfiguration:
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     kind_display: ClassVar[str] = "AWS Athena Work Group"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/athena/workgroups/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/workgroups/{id}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Amazon Athena Work Groups are a resource type for isolating query execution and history among different"
         " users, teams, or applications within the same AWS account, with features for access control, cost"
@@ -213,7 +213,7 @@ class AwsAthenaWorkGroup(AwsResource):
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
     kind_display: ClassVar[str] = "AWS Athena Data Catalog"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/athena/home?region={region}#datacatalog/domain:domainName={name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/domain:domainName={name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Athena Data Catalog is a managed metadata repository in AWS that allows you"
         " to store and organize metadata about your data sources, such as databases,"

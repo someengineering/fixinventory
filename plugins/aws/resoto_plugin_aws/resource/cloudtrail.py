@@ -136,7 +136,7 @@ class AwsCloudTrailStatus:
 class AwsCloudTrail(AwsResource):
     kind: ClassVar[str] = "aws_cloud_trail"
     kind_display: ClassVar[str] = "AWS CloudTrail"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudtrail/home?region={region}#TrailDetails:name={name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudtrail/home?region={region}#TrailDetails:name={name}", "arn_tpl": "arn:{partition}:cloudtrail:{region}:{account}:trail/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudTrail is a service that enables governance, compliance, operational"
         " auditing, and risk auditing of your AWS account."

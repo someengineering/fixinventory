@@ -36,7 +36,7 @@ class AwsSSMInstance(AwsResource):
     kind: ClassVar[str] = "aws_ssm_instance"
     kind_display: ClassVar[str] = "AWS SSM Instance"
     kind_description: ClassVar[str] = "An AWS SSM Instance refers to an EC2 instance or a managed node that has been configured for management by AWS Systems Manager, enabling centralized and automated management of configuration, security, and software updates."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/systems-manager/managed-instances/{id}?region={region}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/managed-instances/{id}?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:instance/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ssm", "describe-instance-information", "InstanceInformationList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"]},
@@ -152,7 +152,7 @@ class AwsSSMDocument(AwsResource):
     kind: ClassVar[str] = "aws_ssm_document"
     kind_display: ClassVar[str] = "AWS SSM Document"
     kind_description: ClassVar[str] = "An AWS Systems Manager (SSM) Document defines the actions that Systems Manager performs on your managed instances and other AWS resources."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/systems-manager/documents/details/{name}/{version}/details?region={region}&accountId={account}&documentType={documentType}&versionName={versionName}&ARN={arn}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/documents/{name}/description?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:document/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -351,7 +351,7 @@ class AwsSSMResourceCompliance(AwsResource):
     kind: ClassVar[str] = "aws_ssm_resource_compliance"
     kind_display: ClassVar[str] = "AWS SSM Resource Compliance"
     kind_description: ClassVar[str] = "AWS SSM Resource Compliance is used to track the compliance status of your resources in relation to your AWS Systems Manager (SSM) configurations and policies."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/systems-manager/compliance/details/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/compliance/details/{id}/?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:resource-compliance/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "ssm", "list-resource-compliance-summaries", "ResourceComplianceSummaryItems"
     )

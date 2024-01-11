@@ -249,7 +249,7 @@ class AwsElbLoadBalancerAttributes:
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     kind_display: ClassVar[str] = "AWS ELB"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancers:loadBalancerName={name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancers:loadBalancerName={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ELB stands for Elastic Load Balancer. It is a service provided by Amazon Web"
         " Services that automatically distributes incoming application traffic across"

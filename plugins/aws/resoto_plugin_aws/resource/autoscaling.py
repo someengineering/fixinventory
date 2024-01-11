@@ -277,7 +277,7 @@ class AwsAutoScalingWarmPoolConfiguration:
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     kind_display: ClassVar[str] = "AWS Autoscaling Group"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/autoscaling/home?region={region}#AutoScalingGroups:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/autoscaling/home?region={region}#AutoScalingGroups:groupId={id}", "arn_tpl": "arn:{partition}:autoscaling:{region}:{account}:autoscalinggroup/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Autoscaling Group is a collection of Amazon EC2 instances that are"
         " treated as a logical grouping for the purpose of automatic scaling and"

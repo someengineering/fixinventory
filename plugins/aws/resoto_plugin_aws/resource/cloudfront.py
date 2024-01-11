@@ -31,9 +31,9 @@ class CloudFrontResource:
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
                 if instance.arn:
                     builder.submit_work(service_name, add_tags, instance)
+                builder.add_node(instance, js)
 
     @staticmethod
     def delete_cloudfront_resource(client: AwsClient, resource: str, rid: str) -> bool:
@@ -591,7 +591,7 @@ class AwsCloudFrontDistributionConfig:
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "get-distribution", "Distribution")
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#distribution-settings:{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/home?region={region}#distribution-settings:{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:distribution/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS CloudFront Distribution"
     kind_description: ClassVar[str] = (
         "CloudFront Distributions are a content delivery network (CDN) offered by"
@@ -777,7 +777,7 @@ class AwsCloudFrontFunctionConfig:
 class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     kind_display: ClassVar[str] = "AWS CloudFront Function"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/v3/functions/{id}?region={region}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/functions/{id}?region={region}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:function/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFront Functions are serverless functions that allow developers to"
         " customize and extend the functionality of CloudFront content delivery"
@@ -827,7 +827,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     kind_display: ClassVar[str] = "AWS CloudFront Public Key"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#public-keys:pkId={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#public-keys:pkId={id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:public-key/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS CloudFront Public Key is a public key used in conjunction with a private key for managing the"
         " identity of the content distributors and validating access to content served by AWS CloudFront."
@@ -888,7 +888,7 @@ class AwsCloudFrontEndPoint:
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
     kind_display: ClassVar[str] = "AWS CloudFront Real-time Log Configuration"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/v3/home?{property}={value}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#/logs/realtime-log-configs/details/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:real-time-log-config/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFront Real-time Log Configuration allows you to configure real-time"
         " logging for your CloudFront distribution, enabling you to receive real-time"
@@ -1123,7 +1123,8 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
     kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/v3/response-headers-policies/{id}?region={region}&account={account}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/policies/responseHeaders/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:response-headers-policy/{id}"}  # fmt: skip
+
     kind_description: ClassVar[str] = (
         "The AWS CloudFront Response Headers Policy is a configuration that allows"
         " you to manage and control the response headers that are included in the HTTP"
@@ -1176,7 +1177,7 @@ class AwsCloudFrontS3Origin:
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
     kind_display: ClassVar[str] = "AWS CloudFront Streaming Distribution"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#streaming-distribution-details:{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/home?region={region}#streaming-distribution-details:{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:streaming-distribution/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFront Streaming Distribution is a content delivery network (CDN)"
         " service provided by AWS that allows for fast and secure streaming of audio"
@@ -1213,7 +1214,7 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
 class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#oac:Id={id};OACId={arn}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/home?region={region}#oac:Id={id};OACId={arn}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:origin-access-identity/cloudfront/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS CloudFront Origin Access Control is a security feature that allows you to control access"
         " to your S3 bucket or custom origin, ensuring that your content can only be accessed via"
@@ -1352,7 +1353,7 @@ class AwsCloudFrontCachePolicyConfig:
 class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
     kind_display: ClassVar[str] = "AWS CloudFront Cache Policy"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#cache-policy-detail:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/policies/cache/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:cache-policy/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFront Cache Policies in AWS specify the caching behavior for CloudFront"
         " distributions, allowing users to control how content is cached and delivered"
@@ -1454,7 +1455,7 @@ class AwsCloudFrontContentTypeProfileConfig:
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#FieldLevelEncryptionConfigurations:configId={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/home?region={region}#FieldLevelEncryptionConfigurations:configId={id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-config/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS CloudFront Field-Level Encryption Configuration is a feature that helps you to protect sensitive data"
         " by encrypting specific HTTP fields at CloudFront edge locations. It allows you to encrypt data within"
@@ -1529,7 +1530,7 @@ class AwsCloudFrontEncryptionEntity:
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
     kind_display: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudfront/home?region={region}#flencryption:{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/home?region={region}#flencryption:{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-profile/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Field Level Encryption Profiles in AWS CloudFront allow users to encrypt"
         " specific fields in a web form, providing an extra layer of security to"

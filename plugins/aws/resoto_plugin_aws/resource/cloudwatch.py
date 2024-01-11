@@ -187,7 +187,7 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#alarm:alarmArn={arn}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarm:alarmArn={arn}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
     kind_description: ClassVar[
         str
     ] = "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
@@ -286,7 +286,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
     kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:log-group/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudWatch Log Groups are containers for log streams in Amazon's CloudWatch"
         " service, enabling centralized storage and analysis of log data from various"
@@ -355,7 +355,7 @@ class AwsCloudwatchMetricTransformation:
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
     kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:logFilter={id};search=!{name};pattern=*;startTime=PT1H"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:logFilter={id};search=!{name};pattern=*;startTime=PT1H", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudWatch Metric Filter is a feature in Amazon CloudWatch that allows you"
         " to define a pattern to extract information from your log events and use it"

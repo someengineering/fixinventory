@@ -104,17 +104,16 @@ class AwsResource(BaseResource, ABC):
     # The name of the kind of all resources. Needs to be globally unique.
     kind: ClassVar[str] = "aws_resource"
     kind_display: ClassVar[str] = "AWS Resource"
-    kind_description: ClassVar[str] = (
-        "AWS Resource is a generic term used to refer to any type of resource"
-        " available in Amazon Web Services cloud."
-    )
+    kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."  # fmt: skip
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AwsApiSpec]] = None
 
-    # The AWS specific identifier of the resource. Not available for all resources.
+    # The AWS specific identifier of the resource. If not set, it is created from template in GraphBuilder.
     arn: Optional[str] = None
+    # deep link to this resource in the AWS console. If not set, it is created from template in GraphBuilder.
+    provider_link: Optional[str] = None
 
     def _keys(self) -> Tuple[Any, ...]:
         if self.arn is not None:
@@ -259,7 +258,6 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     kind_display: ClassVar[str] = "AWS Account"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/{service}/home?{service}Id={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Account is a container for AWS resources, such as EC2 instances, S3"
         " buckets, and RDS databases. It allows users to access and manage their"
@@ -305,7 +303,6 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     kind_display: ClassVar[str] = "AWS Region"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/{service}/home?region={region}#{type}:{property1}={value1}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Region is a physical location where AWS has multiple data centers,"
         " allowing users to choose the geographic area in which their resources are"
@@ -358,7 +355,7 @@ class AwsRegion(BaseRegion, AwsResource):
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     kind_display: ClassVar[str] = "AWS EC2 Volume Type"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Volume Types are different storage options for Amazon Elastic Block"
         " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
@@ -465,6 +462,36 @@ class GraphBuilder:
         node._cloud = self.cloud
         node._account = self.account
         node._region = region or self.region
+
+        metadata = getattr(type(node), "metadata", None)
+        # if there is no arn: try to create one from template
+        if node.arn is None and (m := metadata) and (arn_tpl := m.get("arn_tpl")):
+            try:
+                node.arn = arn_tpl.format(
+                    partition=self.account.partition,
+                    id=node.id,
+                    name=node.name,
+                    account=self.account.id,
+                    region=self.region.name,
+                )
+            except Exception as e:
+                log.warning(f"Can not compute ARN for {node} with template: {arn_tpl}: {e}")
+
+        # if there is no provider_link: try to create one from template
+        # the template can use the complete src json plus some base attributes
+        if node.provider_link is None and (m := metadata) and (link_tpl := m.get("provider_link_tpl")):
+            try:
+                src = source.copy() if source else {}
+                src["id"] = node.id
+                src["name"] = node.name
+                src["arn"] = node.arn
+                src["account"] = self.account.id
+                src["region_id"] = self.region.id
+                src["region"] = self.region.name
+                node.provider_link = link_tpl.format(**src)
+            except Exception as e:
+                log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
+
         with self.graph_nodes_access.write_access:
             self.graph.add_node(node, source=source or {})
         return node

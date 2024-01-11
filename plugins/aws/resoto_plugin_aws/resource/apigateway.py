@@ -183,7 +183,7 @@ class AwsApiGatewayMethod:
 class AwsApiGatewayResource(AwsResource):
     # collection of resource resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_resource"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#/resources/{id}|{name}|{arn}|{account}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#/apis/{id}/resources/{id}/stages/{name}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS API Gateway Resource"
     kind_description: ClassVar[str] = (
         "API Gateway Resource is a logical unit used in API Gateway to represent a"
@@ -236,7 +236,7 @@ class AwsApiGatewayResource(AwsResource):
 class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_authorizer"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#/authorizers/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#/authorizers/{id}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:authorizer/{name}/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS API Gateway Authorizer"
     kind_description: ClassVar[str] = (
         "API Gateway Authorizers are mechanisms that help control access to APIs"
@@ -328,7 +328,7 @@ class AwsApiGatewayCanarySetting:
 class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     # collection of stage resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_stage"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#/apis/{id}/stages/{name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#/apis/{id}/stages/{name}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/stages/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS API Gateway Stage"
     kind_description: ClassVar[str] = (
         "API Gateway Stages are environment configurations for deploying and managing"
@@ -390,7 +390,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
 class AwsApiGatewayDeployment(AwsResource):
     # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_deployment"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#deployments/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#deployments/{id}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/deployments/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS API Gateway Deployment"
     kind_description: ClassVar[str] = (
         "API Gateway Deployments represents a deployment of an API to an API Gateway stage."
@@ -451,7 +451,7 @@ class AwsApiGatewayEndpointConfiguration:
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_apigateway_rest_api"
     kind_display: ClassVar[str] = "AWS API Gateway REST API"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#/apis/{id}/resources"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#/apis/{id}/resources", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:restapi/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "API Gateway is a fully managed service that makes it easy for developers to"
         " create, publish, and manage APIs at any scale."
@@ -607,7 +607,7 @@ class AwsApiGatewayMutualTlsAuthentication:
 class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_apigateway_domain_name"
     kind_display: ClassVar[str] = "AWS API Gateway Domain Name"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/apigateway/home?region={region}#/custom-domain-names/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/home?region={region}#/custom-domain-names/{id}", "arn_tpl": "arn:aws:apigateway:{region}:{account}:domainname/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "API Gateway Domain Name is a custom domain name that you can associate with"
         " your API in Amazon API Gateway, allowing you to have a more branded and"

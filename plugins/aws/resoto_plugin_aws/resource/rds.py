@@ -322,7 +322,7 @@ class AwsRdsDBRole:
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     kind_display: ClassVar[str] = "AWS RDS Instance"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/rds/home?region={region}#database:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={name}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:db:{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "RDS instances are managed relational databases in Amazon's cloud, providing"
         " scalable and fast performance for applications."
@@ -702,7 +702,7 @@ class AwsRdsMasterUserSecret:
 class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_cluster"
     kind_display: ClassVar[str] = "AWS RDS Cluster"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/rds/home?region={region}#cluster-details:clusterIdentifier={name}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={name}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "RDS Clusters are managed relational database services in Amazon's cloud,"
         " providing scalable and highly available databases for applications running"
@@ -889,7 +889,7 @@ class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_rds_snapshot"
     kind_display: ClassVar[str] = "AWS RDS Snapshot"
     kind_description: ClassVar[str] = "An AWS RDS Snapshot is a backup tool used for creating a point-in-time copy of an RDS database instance, facilitating data recovery and replication."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/rds/home?region={region}#snapshot:id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#snapshot:dbSnapshotIdentifier={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot:{id}/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-snapshots", "DBSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBSnapshotIdentifier"),
@@ -988,7 +988,7 @@ class AwsRdsClusterSnapshot(AwsResource):
     kind: ClassVar[str] = "aws_rds_cluster_snapshot"
     kind_display: ClassVar[str] = "AWS RDS Cluster Snapshot"
     kind_description: ClassVar[str] = "An AWS RDS Cluster Snapshot is a point-in-time backup of an Amazon RDS cluster that provides data persistence and recovery for disaster management."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/rds/home?region={region}#cluster-snapshots:cluster-snapshot-id={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#cluster-snapshots:cluster-snapshot-id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-cluster-snapshots", "DBClusterSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterSnapshotIdentifier"),

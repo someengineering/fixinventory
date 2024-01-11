@@ -66,7 +66,7 @@ class AwsQuotaErrorReason:
 class AwsServiceQuota(AwsResource, BaseQuota):
     kind: ClassVar[str] = "aws_service_quota"
     kind_display: ClassVar[str] = "AWS Service Quota"
-    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/servicequotas/home?region={region}#/quotas/{id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/servicequotas/home/services/{source[ServiceCode]}/quotas/{id}", "arn_tpl": "arn:{partition}:service-quotas:{region}:{account}:quotas/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Service Quota is a feature that enables you to view and manage your"
         " quotas (also referred to as limits) for AWS services."
