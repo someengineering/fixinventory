@@ -1,5 +1,5 @@
 import json
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
@@ -63,6 +63,7 @@ class AwsKmsMultiRegionConfig:
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
     kind_display: ClassVar[str] = "AWS KMS Key"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/kms/home?region={region}#/kms/keys/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS KMS (Key Management Service) Key is a managed service that allows you to"
         " create and control the encryption keys used to encrypt your data stored on"

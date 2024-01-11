@@ -1,5 +1,5 @@
 import json
-from typing import Optional, ClassVar, Dict, List, Type
+from typing import Optional, ClassVar, Dict, List, Type, Any
 
 import math
 from attr import field, define
@@ -49,6 +49,7 @@ class EfsTaggable:
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
     kind_display: ClassVar[str] = "AWS EFS Mount Target"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/efs/home?region={region}#file-systems:id={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow"
         " EC2 instances to mount the file system and access the shared data."
@@ -75,6 +76,7 @@ class AwsEfsMountTarget(AwsResource):
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     kind_display: ClassVar[str] = "AWS EFS File System"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/efs/home?region={region}#filesystems:id={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS (Elastic File System) provides a scalable and fully managed file storage"
         " service for Amazon EC2 instances."
@@ -224,6 +226,7 @@ class AwsEfsRootDirectory:
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
     kind_display: ClassVar[str] = "AWS EFS Access Point"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/efs/home?region={region}#/access-points/arn:{arn}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS EFS Access Point is a way to securely access files in Amazon EFS"
         " (Elastic File System) using a unique hostname and optional path, providing"

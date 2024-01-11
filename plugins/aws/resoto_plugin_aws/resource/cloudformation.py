@@ -90,6 +90,7 @@ class AwsCloudFormationStackDriftInformation:
 class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudformation/home?region={region}#/stacks/stackinfo?stackId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFormation Stacks are a collection of AWS resources that are created,"
         " updated, or deleted together as a single unit."
@@ -251,6 +252,7 @@ class AwsCloudFormationAutoDeployment:
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Set"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudformation/home?region={region}#/stacksets/member/{id}|{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFormation Stack Set is a feature in AWS CloudFormation that enables you"
         " to create, update, or delete stacks across multiple accounts and regions"
@@ -368,6 +370,7 @@ def _stack_instance_id(stack: Json) -> str:
 class AwsCloudFormationStackInstanceSummary(AwsResource):
     # note: resource is collected via AwsCloudFormationStackSet
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/cloudformation/home?#/stacks/stackinfo/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
     kind_description: ClassVar[str] = (
         "CloudFormation Stack Instance Summary provides a summary of the overall stacks in a CloudFormation"

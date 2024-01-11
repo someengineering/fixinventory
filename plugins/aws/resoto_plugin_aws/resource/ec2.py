@@ -374,6 +374,7 @@ class AwsEc2InferenceAcceleratorInfo:
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     kind_display: ClassVar[str] = "AWS EC2 Instance Type"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#LaunchInstanceDetails:instanceId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS EC2 Instance Type refers to the classification of an EC2 instance based on the resources and"
         " capabilities it offers, such as CPU, memory, storage, and networking capacity, tailored for different"
@@ -499,6 +500,7 @@ VolumeStatusMapping = {
 class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     kind_display: ClassVar[str] = "AWS EC2 Volume"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#{logic required here}:{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Volumes are block-level storage devices that can be attached to EC2"
         " instances in Amazon's cloud, providing additional storage for applications"
@@ -703,6 +705,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     kind_display: ClassVar[str] = "AWS EC2 Snapshot"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#Snapshots:search={id};sort=snapshotId"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Snapshots are backups of Amazon Elastic Block Store (EBS)"
         " volumes, allowing users to capture and store point-in-time copies of their"
@@ -772,6 +775,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 class AwsEc2KeyPair(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_keypair"
     kind_display: ClassVar[str] = "AWS EC2 Keypair"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#KeyPairs:display=keypairs;keypairId={id}"}  # fmt: skip
     kind_description: ClassVar[
         str
     ] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."
@@ -1209,6 +1213,7 @@ InstanceStatusMapping = {
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     kind_display: ClassVar[str] = "AWS EC2 Instance"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#LaunchInstances:instanceId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Instances are virtual servers in Amazon's cloud, allowing users to run"
         " applications on the Amazon Web Services infrastructure."
@@ -1517,6 +1522,7 @@ class AwsEc2RecurringCharge:
 class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     kind_display: ClassVar[str] = "AWS EC2 Reserved Instances"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#ReservedInstances:view-details;reservedInstancesId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Reserved Instances are a purchasing option to save money on EC2 instance"
         " usage. Users can reserve instances for a one- or three-year term, allowing"
@@ -1652,6 +1658,7 @@ class AwsEc2NetworkAclEntry:
 class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     kind_display: ClassVar[str] = "AWS EC2 Network ACL"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#NetworkAcl:networkAclId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Network ACLs are virtual stateless firewalls that control inbound and"
         " outbound traffic for EC2 instances in Amazon's cloud."
@@ -1702,6 +1709,7 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
 class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     kind_display: ClassVar[str] = "AWS EC2 Elastic IP"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#ElasticIpDetails:allocationId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Elastic IP addresses are static, IPv4 addresses designed for dynamic cloud"
         " computing. They allow you to mask the failure or replacement of an instance"
@@ -1872,6 +1880,7 @@ class AwsEc2Tag:
 class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     kind_display: ClassVar[str] = "AWS EC2 Network Interface"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#NICDetails:nicId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An EC2 Network Interface is a virtual network interface that can be attached"
         " to EC2 instances in the AWS cloud, allowing for communication between"
@@ -2042,6 +2051,7 @@ class AwsEc2VpcCidrBlockAssociation:
 class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     kind_display: ClassVar[str] = "AWS VPC"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#Vpcs:vpcId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS VPC stands for Amazon Virtual Private Cloud. It is a virtual network"
         " dedicated to your AWS account, allowing you to launch AWS resources in a"
@@ -2152,6 +2162,7 @@ class AwsEc2VpcPeeringConnectionStateReason:
 class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     kind_display: ClassVar[str] = "AWS VPC Peering Connection"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#PeeringConnections:search={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "VPC Peering Connection is a networking connection between two Amazon Virtual"
         " Private Clouds (VPCs) that enables you to route traffic between them using"
@@ -2236,6 +2247,7 @@ class AwsEc2LastError:
 class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     kind_display: ClassVar[str] = "AWS VPC Endpoint"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#EndpointsVpcEndpointDetails:resourceId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "VPC Endpoints enable secure and private communication between your VPC and"
         " supported AWS services without using public IPs or requiring traffic to"
@@ -2377,6 +2389,7 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     kind_display: ClassVar[str] = "AWS EC2 Subnet"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/vpc/home?region={region}#SubnetId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS EC2 Subnet is a logical subdivision of a VPC (Virtual Private Cloud)"
         " in Amazon's cloud, allowing users to group resources and control network"
@@ -2548,6 +2561,7 @@ class AwsEc2IpPermission:
 class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     kind_display: ClassVar[str] = "AWS EC2 Security Group"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#SecurityGroups:groupId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An EC2 Security Group acts as a virtual firewall that controls inbound and"
         " outbound traffic for EC2 instances within a VPC."
@@ -2688,6 +2702,7 @@ class AwsEc2ProvisionedBandwidth:
 class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     kind_display: ClassVar[str] = "AWS EC2 NAT Gateway"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#NatGateways:filter=resource-id;values={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "A NAT Gateway is a fully managed network address translation (NAT) service"
         " provided by Amazon Web Services (AWS) that allows instances within a private"
@@ -2763,6 +2778,7 @@ class AwsEc2InternetGatewayAttachment:
 class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     kind_display: ClassVar[str] = "AWS EC2 Internet Gateway"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#InternetGateway:internetGatewayId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An Internet Gateway is a horizontally scalable, redundant, and highly"
         " available VPC component that allows communication between instances in your"
@@ -2910,6 +2926,7 @@ class AwsEc2Route:
 class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     kind_display: ClassVar[str] = "AWS EC2 Route Table"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#RouteTables:routeTableId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Route Tables are used to determine where network traffic is directed"
         " within a Virtual Private Cloud (VPC) in Amazon's cloud infrastructure."
@@ -3053,6 +3070,7 @@ class AwsEc2HostInstance:
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
     kind_display: ClassVar[str] = "AWS EC2 Host"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/v2/home?region={region}#HostDetails:resourceId={id}"}  # fmt: skip
     kind_description: ClassVar[
         str
     ] = "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2 instances."
@@ -3148,6 +3166,7 @@ class AwsEc2DestinationOption:
 class AwsEc2FlowLog(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_flow_log"
     kind_display: ClassVar[str] = "AWS EC2 Flow Log"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#FlowLogs:flowLogsId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Flow Logs capture information about the IP traffic going to and from"
         " network interfaces in an Amazon EC2 instance, helping to troubleshoot"
@@ -3248,6 +3267,7 @@ class AwsEc2BlockDeviceMapping:
 class AwsEc2Image(AwsResource):
     kind: ClassVar[str] = "aws_ec2_image"
     kind_display: ClassVar[str] = "AWS EC2 Image"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#Images:visibility=owned-by-me;imageId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An Amazon Machine Image (AMI) is a supported and maintained image "
         "provided by AWS that provides the information required to launch an instance. "
@@ -3801,6 +3821,7 @@ class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_launch_template"
     kind_display: ClassVar[str] = "AWS EC2 Launch Template"
     kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#LaunchTemplateDetails:launchTemplateId={id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default", "$Latest"]}
     )

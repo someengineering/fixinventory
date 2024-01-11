@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
@@ -69,6 +69,7 @@ class AwsAcmExtendedKeyUsage:
 class AwsAcmCertificate(AwsResource):
     kind: ClassVar[str] = "aws_acm_certificate"
     kind_display: ClassVar[str] = "AWS ACM Certificate"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/acm/home?region={region}#certificate:certArn={arn}"}  # fmt: skip
     kind_description: ClassVar[str] = "An AWS ACM Certificate is used to provision, manage, and deploy Secure Sockets Layer/Transport Layer Security (SSL/TLS) certificates for secure web traffic on AWS services."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("acm", "describe-certificate", "Certificate")
     mapping: ClassVar[Dict[str, Bender]] = {

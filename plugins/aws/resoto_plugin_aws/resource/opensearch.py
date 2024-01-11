@@ -250,6 +250,7 @@ class AwsOpenSearchDomain(AwsResource):
     kind: ClassVar[str] = "aws_opensearch_domain"
     kind_display: ClassVar[str] = "AWS OpenSearch Domain"
     kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/opensearch/home?region={region}#domain-detail/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
         "tags": S("Tags", default=[]) >> ToDict(),

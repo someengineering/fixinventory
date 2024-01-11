@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
@@ -92,6 +92,7 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Elastic Beanstalk is a fully managed service that makes it easy to deploy"
         " and run applications in multiple languages."
@@ -286,6 +287,7 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/view?applicationName=&environmentId={id}&platform=Git"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Elastic Beanstalk environment is a collection of AWS resources running an application version."
         " It includes an application server, server instances, load balancers, and optionally, a database."

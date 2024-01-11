@@ -163,6 +163,7 @@ class AwsS3Logging:
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     kind_display: ClassVar[str] = "AWS S3 Bucket"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/s3/buckets/{name}?region={region}&tab=overview&prefix=&showversions=false"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "S3 buckets are simple storage containers in Amazon's cloud, offering a"
         " scalable storage solution for various types of data."
@@ -358,6 +359,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
     """
     This resource is fetched once for every account.
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/s3/settings?accountId={account}"}  # fmt: skip
     """
 
     kind: ClassVar[str] = "aws_s3_account_settings"

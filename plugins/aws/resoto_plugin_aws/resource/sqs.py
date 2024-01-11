@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attrs import define, field
 
@@ -36,6 +36,7 @@ class AwsSqsRedrivePolicy:
 class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
     kind_display: ClassVar[str] = "AWS SQS Queue"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/sqs/home?region={region}#/queues/{arn}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SQS (Simple Queue Service) is a fully managed message queuing service"
         " provided by Amazon Web Services. It enables you to decouple and scale"

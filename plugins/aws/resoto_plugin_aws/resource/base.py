@@ -259,6 +259,7 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 class AwsAccount(BaseAccount, AwsResource):
     kind: ClassVar[str] = "aws_account"
     kind_display: ClassVar[str] = "AWS Account"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/{service}/home?{service}Id={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Account is a container for AWS resources, such as EC2 instances, S3"
         " buckets, and RDS databases. It allows users to access and manage their"
@@ -304,6 +305,7 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     kind_display: ClassVar[str] = "AWS Region"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/{service}/home?region={region}#{type}:{property1}={value1}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Region is a physical location where AWS has multiple data centers,"
         " allowing users to choose the geographic area in which their resources are"
@@ -356,6 +358,7 @@ class AwsRegion(BaseRegion, AwsResource):
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     kind_display: ClassVar[str] = "AWS EC2 Volume Type"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Volume Types are different storage options for Amazon Elastic Block"
         " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."

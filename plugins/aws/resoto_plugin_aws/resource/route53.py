@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 
@@ -61,6 +61,7 @@ class AwsRoute53LoggingConfig:
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     kind_display: ClassVar[str] = "AWS Route 53 Zone"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/route53/v2/hostedzones/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
         " internet traffic for their domains through various DNS records."
@@ -232,6 +233,7 @@ class AwsRoute53CidrRoutingConfig:
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
     kind_display: ClassVar[str] = "AWS Route 53 Resource Record"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/route53/home#resource-record-sets:RRType=A,TTL=300,Region={region},AccountId={account},name={name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Route 53 Resource Records are domain name system (DNS) records used by AWS"
         " Route 53 to route traffic to AWS resources or to external resources."
@@ -252,6 +254,7 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
     kind_display: ClassVar[str] = "AWS Route 53 Resource Record Set"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/route53/v3/resource-record-sets/{id}?region={region}#recordsets:accountId={account}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Route 53 Resource Record Sets are DNS records that map domain names to IP"
         " addresses or other DNS resources, allowing users to manage domain name"

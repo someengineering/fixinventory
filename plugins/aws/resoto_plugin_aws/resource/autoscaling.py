@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 
@@ -277,6 +277,7 @@ class AwsAutoScalingWarmPoolConfiguration:
 class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     kind_display: ClassVar[str] = "AWS Autoscaling Group"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/ec2/autoscaling/home?region={region}#AutoScalingGroups:id={id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Autoscaling Group is a collection of Amazon EC2 instances that are"
         " treated as a logical grouping for the purpose of automatic scaling and"

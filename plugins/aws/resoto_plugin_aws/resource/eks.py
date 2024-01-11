@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type, cast, Any
 
 from attrs import define, field
 
@@ -188,6 +188,7 @@ class AwsEksLaunchTemplateSpecification:
 class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/eks/home?region={region}#/nodegroups/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS EKS Nodegroup"
     kind_description: ClassVar[str] = (
         "An EKS Nodegroup is a set of EC2 instances that host containerized"
@@ -401,6 +402,7 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     kind_display: ClassVar[str] = "AWS EKS Cluster"
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes"
         " service provided by AWS for running containerized applications using"

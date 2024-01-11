@@ -801,6 +801,7 @@ class AwsWafWebACL(AwsResource):
     kind: ClassVar[str] = "aws_waf_web_acl"
     kind_display: ClassVar[str] = "AWS WAF Web ACL"
     kind_description: ClassVar[str] = "An AWS WAF Web ACL (Web Access Control List) is used for monitoring HTTP and HTTPS requests directed to AWS resources, allowing you to control access by permitting or blocking specific requests based on defined criteria."  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {'deeplink': "https://{region}.console.aws.amazon.com/wafv2/home?region={region}#/webacl/{id}/overview"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("wafv2", "get-web-acl", "WebACL")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_alb", "aws_apigateway_rest_api", "aws_cognito_user_pool"]}
