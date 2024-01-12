@@ -17,7 +17,7 @@ service_name = "cognito-idp"
 class AwsCognitoGroup(AwsResource):
     # collection of group resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_group"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/users/groups/details?region={region}&groupId={id}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{UserPoolId}/groups/details/{name}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS Cognito Group"
     kind_description: ClassVar[str] = (
         "Cognito Groups are a way to manage and organize users in AWS Cognito, a"
@@ -94,7 +94,8 @@ class AwsCognitoMFAOptionType:
 class AwsCognitoUser(AwsResource, BaseUser):
     # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/users?region={region}#userDetails/{name}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:user/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{_pool_id}/users/details/{id}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:user/{id}"}  # fmt: skip
+
     kind_display: ClassVar[str] = "AWS Cognito User"
     kind_description: ClassVar[str] = (
         "AWS Cognito User represents a user account in the AWS Cognito service, which"
@@ -116,6 +117,7 @@ class AwsCognitoUser(AwsResource, BaseUser):
     user_status: Optional[str] = field(default=None)
     mfa_options: List[AwsCognitoMFAOptionType] = field(factory=list)
     pool_name: Optional[str] = None
+    _pool_id: Optional[str] = None
 
     def _keys(self) -> Tuple[Any, ...]:
         # in case different user pools include the same user: we add the pool name to the keys
@@ -199,7 +201,7 @@ class AwsCognitoLambdaConfigType:
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
     kind_display: ClassVar[str] = "AWS Cognito User Pool"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/home?region={region}#user-pools:v1:userpool/{id}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{id}/users?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Cognito User Pool is a managed user directory that enables user"
         " registration, authentication, and access control for your web and mobile"
@@ -254,6 +256,7 @@ class AwsCognitoUserPool(AwsResource):
                 for user in builder.client.list(service_name, "list-users", "Users", UserPoolId=pool_instance.id):
                     if user_instance := AwsCognitoUser.from_api(user, builder):
                         user_instance.pool_name = pool_instance.name
+                        user_instance._pool_id = pool_instance.id
                         builder.add_node(user_instance, user)
                         builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
                 for group in builder.client.list(service_name, "list-groups", "Groups", UserPoolId=pool_instance.id):

@@ -61,7 +61,7 @@ class AwsRoute53LoggingConfig:
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     kind_display: ClassVar[str] = "AWS Route 53 Zone"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
         " internet traffic for their domains through various DNS records."
@@ -233,7 +233,7 @@ class AwsRoute53CidrRoutingConfig:
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
     kind_display: ClassVar[str] = "AWS Route 53 Resource Record"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/home#resource-record-sets:RRType=A,TTL=300,Region={region},AccountId={account},name={name}", "arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Route 53 Resource Records are domain name system (DNS) records used by AWS"
         " Route 53 to route traffic to AWS resources or to external resources."
@@ -254,7 +254,7 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
     kind_display: ClassVar[str] = "AWS Route 53 Resource Record Set"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v3/home?region={region}#resource-record-sets/{id}", "arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Route 53 Resource Record Sets are DNS records that map domain names to IP"
         " addresses or other DNS resources, allowing users to manage domain name"

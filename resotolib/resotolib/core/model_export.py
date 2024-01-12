@@ -329,6 +329,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
                     "cleaned": node.cleaned,
                     "phantom": node.phantom,
                     "protected": node.protected,
+                    **node._metadata,
                 },
                 "usage": node._resource_usage,
             }

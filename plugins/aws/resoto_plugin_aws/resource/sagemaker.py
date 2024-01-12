@@ -71,7 +71,7 @@ class SagemakerTaggable:
 class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_notebook"
     kind_display: ClassVar[str] = "AWS SageMaker Notebook"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/notebook-instances/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:notebook/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:notebook/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Notebooks are a fully managed service by AWS that provides a"
         " Jupyter notebook environment for data scientists and developers to build,"
@@ -751,7 +751,7 @@ class AwsSagemakerAlgorithmStatusDetails:
 class AwsSagemakerAlgorithm(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_algorithm"
     kind_display: ClassVar[str] = "AWS SageMaker Algorithm"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/algorithms/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:algorithm/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:algorithm/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Algorithms are pre-built machine learning algorithms provided by"
         " Amazon SageMaker, which can be used to train and deploy predictive models."
@@ -885,7 +885,7 @@ class AwsSagemakerVpcConfig:
 class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_model"
     kind_display: ClassVar[str] = "AWS SageMaker Model"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/models/{id}/details", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:model/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:model/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Models are machine learning models built and trained using Amazon"
         " SageMaker, a fully-managed machine learning service by Amazon Web Services."
@@ -980,7 +980,7 @@ class AwsSagemakerResourceSpec:
 class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
     kind_display: ClassVar[str] = "AWS SageMaker App"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#apps/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:app/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:app/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "The AWS SageMaker App facilitates the creation and management of machine learning applications, enabling"
         " users to engage in interactive model building and analysis. It provides a user-centric, customizable"
@@ -1344,7 +1344,7 @@ class AwsSagemakerDefaultSpaceSettings:
 class AwsSagemakerDomain(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_domain"
     kind_display: ClassVar[str] = "AWS SageMaker Domain"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/domains/{id}/overview", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/studio/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "A SageMaker Domain in AWS is a dedicated, managed environment within Amazon SageMaker that provides"
         " data scientists and developers with the necessary tools and permissions to build, train, and deploy"
@@ -1545,7 +1545,7 @@ class AwsSagemakerExperimentSource:
 class AwsSagemakerExperiment(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_experiment"
     kind_display: ClassVar[str] = "AWS SageMaker Experiment"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/experiments/{arn}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:experiment/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:experiment/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Experiment is a service in AWS that enables users to organize,"
         " track and compare machine learning experiments and their associated"
@@ -1626,7 +1626,7 @@ class AwsSagemakerMetadataProperties:
 class AwsSagemakerTrial(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_trial"
     kind_display: ClassVar[str] = "AWS SageMaker Trial"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#trial/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:trial/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:trial/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS SageMaker Trial represents a series of steps, known as trial components, which lead to the creation of"
         " a machine learning model. It is nested within a single SageMaker experiment for organizational"
@@ -1712,7 +1712,7 @@ class AwsSagemakerTrial(AwsResource):
 class AwsSagemakerProject(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_project"
     kind_display: ClassVar[str] = "AWS SageMaker Project"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/projects/{id}?region={region}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:project/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:project/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Projects in AWS provide a collaborative environment for machine"
         " learning teams to manage and track their ML workflows, datasets, models, and"
@@ -1761,7 +1761,7 @@ class AwsSagemakerGitConfig:
 class AwsSagemakerCodeRepository(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_code_repository"
     kind_display: ClassVar[str] = "AWS SageMaker Code Repository"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/codeRepos/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:code-repository/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:code-repository/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "The AWS SageMaker Code Repository is a managed Git-based code repository for storing and versioning"
         " your machine learning code, making it easy to maintain and share code within your SageMaker projects."
@@ -2225,7 +2225,7 @@ class AwsSagemakerExplainerConfig:
 class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_endpoint"
     kind_display: ClassVar[str] = "AWS SageMaker Endpoint"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/endpoints/{name}/overview", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:endpoint/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:endpoint/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Endpoints are the locations where deployed machine learning models"
         " are hosted and can be accessed for making predictions or inferences."
@@ -2318,7 +2318,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 class AwsSagemakerImage(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_image"
     kind_display: ClassVar[str] = "AWS SageMaker Image"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#sageMakerImage/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:image/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:image/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS SageMaker Images are pre-built machine learning environments that"
         " include all necessary frameworks and packages to train and deploy models"
@@ -2406,7 +2406,7 @@ class AwsSagemakerArtifactSource:
 class AwsSagemakerArtifact(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_artifact"
     kind_display: ClassVar[str] = "AWS SageMaker Artifact"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/artifacts/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:artifact/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:artifact/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An Amazon SageMaker artifact is used for tracking the origin and usage of data"
         " or models within ML workflows, providing a clear history for auditing and reproducibility."
@@ -2486,7 +2486,7 @@ class AwsSagemakerArtifact(AwsResource):
 class AwsSagemakerUserProfile(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_user_profile"
     kind_display: ClassVar[str] = "AWS SageMaker User Profile"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/userProfiles/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:user-profile/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:user-profile/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker User Profiles are user-specific configurations in Amazon SageMaker"
         " that define settings and permissions for users accessing the SageMaker"
@@ -2531,7 +2531,7 @@ class AwsSagemakerUserProfile(AwsResource):
 class AwsSagemakerPipeline(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_pipeline"
     kind_display: ClassVar[str] = "AWS SageMaker Pipeline"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/pipelines/def/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:pipeline/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:pipeline/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Pipelines is a fully managed, easy-to-use CI/CD service for"
         " building, automating, and managing end-to-end machine learning workflows on"
@@ -2660,7 +2660,7 @@ class AwsSagemakerMemberDefinition:
 class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_workteam"
     kind_display: ClassVar[str] = "AWS SageMaker Workteam"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/workteams/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:workteam/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:workteam/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Workteam is a service in Amazon's cloud that allows organizations"
         " to create and manage teams of workers to label data for machine learning"
@@ -2732,7 +2732,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 class AwsSagemakerJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_job"
     kind_display: ClassVar[str] = "AWS SageMaker Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:job/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:job/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Jobs in AWS are used to train and deploy machine learning models"
         " at scale, with built-in algorithms and frameworks provided by Amazon"
@@ -3059,7 +3059,7 @@ class AwsSagemakerModelDeployConfig:
 class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
     kind_display: ClassVar[str] = "AWS SageMaker AutoML Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/automl-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:automl-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:automl-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker AutoML Jobs in AWS provide automated machine learning"
         " capabilities, allowing users to automatically discover and build optimal"
@@ -3263,7 +3263,7 @@ class AwsSagemakerNeoVpcConfig:
 class AwsSagemakerCompilationJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_compilation_job"
     kind_display: ClassVar[str] = "AWS SageMaker Compilation Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/compilation-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:compilation-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:compilation-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Compilation Job is a resource in Amazon SageMaker that allows"
         " users to compile machine learning models for deployment on edge devices or"
@@ -3399,7 +3399,7 @@ class AwsSagemakerEdgePresetDeploymentOutput:
 class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_edge_packaging_job"
     kind_display: ClassVar[str] = "AWS SageMaker Edge Packaging Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/edge-packaging-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:edge-packaging-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:edge-packaging-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Edge Packaging Jobs allow users to package machine learning models"
         " and dependencies for deployment on edge devices using AWS SageMaker Edge"
@@ -3863,7 +3863,7 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
     kind_display: ClassVar[str] = "AWS SageMaker Hyperparameter Tuning Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/hyper-tuning-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:hyperparameter-tuning-job/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:hyperparameter-tuning-job/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Hyperparameter Tuning Job is an automated process in Amazon"
         " SageMaker that helps optimize the hyperparameters of a machine learning"
@@ -4323,7 +4323,7 @@ class AwsSagemakerEndpointPerformance:
 class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
     kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendations Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/inference-recommendations-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS SageMaker Inference Recommendations Job evaluates different configurations for deploying machine"
         " learning models, providing suggestions to optimize performance and efficiency, along with monitoring"
@@ -4669,7 +4669,7 @@ class AwsSagemakerLabelingJobOutput:
 class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
     kind_display: ClassVar[str] = "AWS SageMaker Labeling Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/labeling-jobs/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:labeling-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:labeling-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Labeling Jobs are used to annotate and label data for training"
         " machine learning models in Amazon SageMaker."
@@ -5064,7 +5064,7 @@ class AwsSagemakerNetworkConfig:
 class AwsSagemakerProcessingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
     kind_display: ClassVar[str] = "AWS SageMaker Processing Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#processingJobs:processingJobName={name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:processing-job/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:processing-job/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Processing Jobs provide a managed infrastructure for executing"
         " data processing tasks in Amazon SageMaker, enabling users to preprocess and"
@@ -5467,7 +5467,7 @@ class AwsSagemakerWarmPoolStatus:
 class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
     kind_display: ClassVar[str] = "AWS SageMaker Training Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#jobs/{name}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:sagemaker-training-job/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:sagemaker-training-job/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Training Job is a service provided by AWS that allows users to"
         " train machine learning models and build high-quality custom models."
@@ -5710,7 +5710,7 @@ class AwsSagemakerDataProcessing:
 class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
     kind_display: ClassVar[str] = "AWS SageMaker Transform Job"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/jobs/{id}/details", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SageMaker Transform Jobs are used in Amazon SageMaker to transform input"
         " data using a trained model, generating output results for further analysis"

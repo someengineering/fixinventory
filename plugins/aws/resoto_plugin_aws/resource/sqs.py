@@ -36,7 +36,7 @@ class AwsSqsRedrivePolicy:
 class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
     kind_display: ClassVar[str] = "AWS SQS Queue"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/home?region={region}#/queues/{arn}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/v3/home?region={region}#/queues/{QueueUrl}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SQS (Simple Queue Service) is a fully managed message queuing service"
         " provided by Amazon Web Services. It enables you to decouple and scale"
@@ -111,7 +111,7 @@ class AwsSqsQueue(AwsResource):
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
                 if instance := cls.from_api(queue_attributes, builder):
-                    builder.add_node(instance)
+                    builder.add_node(instance, queue_attributes)
                     builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:

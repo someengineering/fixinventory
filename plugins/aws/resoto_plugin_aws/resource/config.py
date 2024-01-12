@@ -64,7 +64,7 @@ class AwsConfigRecordingGroup:
 class AwsConfigRecorder(AwsResource):
     kind: ClassVar[str] = "aws_config_recorder"
     kind_display: ClassVar[str] = "AWS Config Recorder"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/config/home?region={region}#recorders:resourceId={id}", "arn_tpl": "arn:{partition}:config:{region}:{account}:config-recorder/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:config:{region}:{account}:config-recorder/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Config Recorder is a service provided by Amazon Web Services that"
         " continuously records the configuration changes made to resources in an AWS"

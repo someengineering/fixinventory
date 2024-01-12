@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import re
+from urllib.parse import quote_plus as urlquote
 from abc import ABC
 from concurrent.futures import Future
 from datetime import datetime, timezone, timedelta
 from functools import lru_cache
 from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar, Tuple
+
 from math import ceil
 
 from attr import evolve
@@ -47,6 +50,15 @@ def get_client(config: Config, resource: BaseResource) -> AwsClient:
 
 
 T = TypeVar("T")
+TemplateRE = re.compile("[{]([^}]+)[}]")
+TemplateFn: Dict[str, Callable[[AwsResource], Optional[str]]] = {
+    "id": lambda n: n.id,
+    "name": lambda n: n.safe_name,
+    "arn": lambda n: n.arn,
+    "account": lambda n: n.account().id,
+    "region": lambda n: n.region().safe_name,
+    "region_id": lambda n: n.region().id,
+}
 
 
 def parse_json(
@@ -112,8 +124,6 @@ class AwsResource(BaseResource, ABC):
 
     # The AWS specific identifier of the resource. If not set, it is created from template in GraphBuilder.
     arn: Optional[str] = None
-    # deep link to this resource in the AWS console. If not set, it is created from template in GraphBuilder.
-    provider_link: Optional[str] = None
 
     def _keys(self) -> Tuple[Any, ...]:
         if self.arn is not None:
@@ -263,6 +273,7 @@ class AwsAccount(BaseAccount, AwsResource):
         " buckets, and RDS databases. It allows users to access and manage their"
         " resources on the Amazon Web Services platform."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
@@ -355,7 +366,7 @@ class AwsRegion(BaseRegion, AwsResource):
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     kind_display: ClassVar[str] = "AWS EC2 Volume Type"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Volume Types are different storage options for Amazon Elastic Block"
         " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
@@ -463,9 +474,9 @@ class GraphBuilder:
         node._account = self.account
         node._region = region or self.region
 
-        metadata = getattr(type(node), "metadata", None)
+        meta = getattr(type(node), "aws_metadata", None) or {}
         # if there is no arn: try to create one from template
-        if node.arn is None and (m := metadata) and (arn_tpl := m.get("arn_tpl")):
+        if node.arn is None and (arn_tpl := meta.get("arn_tpl")):
             try:
                 node.arn = arn_tpl.format(
                     partition=self.account.partition,
@@ -477,18 +488,25 @@ class GraphBuilder:
             except Exception as e:
                 log.warning(f"Can not compute ARN for {node} with template: {arn_tpl}: {e}")
 
-        # if there is no provider_link: try to create one from template
-        # the template can use the complete src json plus some base attributes
-        if node.provider_link is None and (m := metadata) and (link_tpl := m.get("provider_link_tpl")):
+        # If there is no provider_link: try to create one from template.
+        # The template can use the complete src json, plus some base attributes.
+        if node._metadata.get("provider_link") is None and (link_tpl := meta.get("provider_link_tpl")):
             try:
-                src = source.copy() if source else {}
-                src["id"] = node.id
-                src["name"] = node.name
-                src["arn"] = node.arn
-                src["account"] = self.account.id
-                src["region_id"] = self.region.id
-                src["region"] = self.region.name
-                node.provider_link = link_tpl.format(**src)
+                all_params = True
+                link = link_tpl
+                for placeholder in TemplateRE.findall(link_tpl):
+                    value = (
+                        fn(node)
+                        if (fn := TemplateFn.get(placeholder))
+                        else (value_in_path(source, placeholder) or getattr(node, placeholder, None))
+                    )
+                    if value is None:
+                        all_params = False
+                        break
+                    else:
+                        link = link.replace("{" + placeholder + "}", urlquote(str(value)))
+                if all_params:
+                    node._metadata["provider_link"] = link
             except Exception as e:
                 log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
 

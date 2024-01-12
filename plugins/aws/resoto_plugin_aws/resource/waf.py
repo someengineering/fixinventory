@@ -801,7 +801,7 @@ class AwsWafWebACL(AwsResource):
     kind: ClassVar[str] = "aws_waf_web_acl"
     kind_display: ClassVar[str] = "AWS WAF Web ACL"
     kind_description: ClassVar[str] = "An AWS WAF Web ACL (Web Access Control List) is used for monitoring HTTP and HTTPS requests directed to AWS resources, allowing you to control access by permitting or blocking specific requests based on defined criteria."  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/wafv2/homev2/web-acl/{name}/{id}/overview?region={region}", "arn_tpl": "arn:{partition}:wafv2:{region}:{account}:webacl/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/wafv2/homev2/web-acl/{name}/{id}/overview?region={region}", "arn_tpl": "arn:{partition}:wafv2:{region}:{account}:webacl/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("wafv2", "get-web-acl", "WebACL")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_alb", "aws_apigateway_rest_api", "aws_cognito_user_pool"]}
@@ -877,7 +877,7 @@ class AwsWafWebACL(AwsResource):
                 Name=entry["Name"],
             ):
                 if instance := AwsWafWebACL.from_api(web_acl, builder):
-                    builder.add_node(instance)
+                    builder.add_node(instance, web_acl)
                     builder.submit_work(service_name, fetch_logging_configuration, instance)
                     if scope == "REGIONAL":  # only regional ACLs have associated resources
                         builder.submit_work(service_name, fetch_acl_resources, instance)

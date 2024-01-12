@@ -585,7 +585,7 @@ def test_filter_model(person_model: Model) -> None:
 
 def test_complete_path(person_model: Model) -> None:
     count, all_props = person_model.complete_path("", "", fuzzy=False, skip=0, limit=4)
-    assert count == 21  # total
+    assert count == 22  # total
     assert all_props == {"address": "Address", "addresses[*]": "Address", "age": "duration", "any": "any"}
     # filter by prefix
     count, all_props = person_model.complete_path("", "ad", fuzzy=False, skip=0, limit=4)

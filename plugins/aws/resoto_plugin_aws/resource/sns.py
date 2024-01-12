@@ -17,7 +17,7 @@ service_name = "sns"
 class AwsSnsTopic(AwsResource):
     kind: ClassVar[str] = "aws_sns_topic"
     kind_display: ClassVar[str] = "AWS SNS Topic"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topics/{id}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS SNS (Simple Notification Service) Topic is a publish-subscribe messaging"
         " service provided by Amazon Web Services. It allows applications, services,"
@@ -124,7 +124,7 @@ class AwsSnsTopic(AwsResource):
 class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
     kind_display: ClassVar[str] = "AWS SNS Subscription"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/subscriptions/{id}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "SNS Subscriptions in AWS allow applications to receive messages from topics"
         " of interest using different protocols such as HTTP, email, SMS, or Lambda"
@@ -207,7 +207,7 @@ class AwsSnsSubscription(AwsResource):
 class AwsSnsEndpoint(AwsResource):
     # collection of endpoint resources happens in AwsSnsPlatformApplication.collect()
     kind: ClassVar[str] = "aws_sns_endpoint"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#endpoints/{id}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:endpoint/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:endpoint/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS SNS Endpoint"
     kind_description: ClassVar[str] = (
         "An endpoint in the AWS Simple Notification Service (SNS), which is used to"
@@ -240,7 +240,7 @@ class AwsSnsEndpoint(AwsResource):
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
     kind_display: ClassVar[str] = "AWS SNS Platform Application"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/home?region={region}#/application/{id}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:platform-application/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:platform-application/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS SNS Platform Application is a service that allows you to create a"
         " platform application and register it with Amazon SNS so that your"

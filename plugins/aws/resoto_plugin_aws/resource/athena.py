@@ -91,7 +91,8 @@ class AwsAthenaWorkGroupConfiguration:
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     kind_display: ClassVar[str] = "AWS Athena Work Group"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/workgroups/{id}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#/workgroups/details/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
+
     kind_description: ClassVar[str] = (
         "Amazon Athena Work Groups are a resource type for isolating query execution and history among different"
         " users, teams, or applications within the same AWS account, with features for access control, cost"
@@ -145,6 +146,8 @@ class AwsAthenaWorkGroup(AwsResource):
                     builder=builder,
                     resource=f"workgroup/{workgroup.name}",
                 )
+                builder.add_node(workgroup, result)
+                builder.submit_work(service_name, add_tags, workgroup)
                 return workgroup
             else:
                 return None
@@ -161,10 +164,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
         for js in json:
             if (name := js.get("Name")) is not None and isinstance(name, str):
-                wg = fetch_workgroup(name)
-                if wg is not None:
-                    builder.add_node(wg)
-                    builder.submit_work(service_name, add_tags, wg)
+                fetch_workgroup(name)
 
     # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -213,7 +213,7 @@ class AwsAthenaWorkGroup(AwsResource):
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
     kind_display: ClassVar[str] = "AWS Athena Data Catalog"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/domain:domainName={name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/detail/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Athena Data Catalog is a managed metadata repository in AWS that allows you"
         " to store and organize metadata about your data sources, such as databases,"
@@ -260,6 +260,8 @@ class AwsAthenaDataCatalog(AwsResource):
                 return None
             if catalog := AwsAthenaDataCatalog.from_api(result, builder):
                 catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
+                builder.add_node(catalog, result)
+                builder.submit_work(service_name, add_tags, catalog)
                 return catalog
             return None
 
@@ -276,10 +278,7 @@ class AwsAthenaDataCatalog(AwsResource):
         for js in json:
             # we filter out the default data catalog as it is not possible to do much with it
             if (name := js.get("CatalogName")) is not None and isinstance(name, str) and name != "AwsDataCatalog":
-                catalog = fetch_data_catalog(name)
-                if catalog is not None:
-                    builder.add_node(catalog)
-                    builder.submit_work(service_name, add_tags, catalog)
+                fetch_data_catalog(name)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

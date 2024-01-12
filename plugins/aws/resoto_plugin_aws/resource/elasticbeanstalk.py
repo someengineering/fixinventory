@@ -92,7 +92,7 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Elastic Beanstalk is a fully managed service that makes it easy to deploy"
         " and run applications in multiple languages."
@@ -287,7 +287,7 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/view?applicationName=&environmentId={id}&platform=Git", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/dashboard?environmentId={id}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Elastic Beanstalk environment is a collection of AWS resources running an application version."
         " It includes an application server, server instances, load balancers, and optionally, a database."

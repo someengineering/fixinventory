@@ -49,7 +49,7 @@ class EfsTaggable:
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
     kind_display: ClassVar[str] = "AWS EFS Mount Target"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#file-systems:id={id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow"
         " EC2 instances to mount the file system and access the shared data."
@@ -76,7 +76,7 @@ class AwsEfsMountTarget(AwsResource):
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     kind_display: ClassVar[str] = "AWS EFS File System"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/v2/home?region={region}#file-systems/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS (Elastic File System) provides a scalable and fully managed file storage"
         " service for Amazon EC2 instances."
@@ -226,7 +226,7 @@ class AwsEfsRootDirectory:
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
     kind_display: ClassVar[str] = "AWS EFS Access Point"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/arn:{arn}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS EFS Access Point is a way to securely access files in Amazon EFS"
         " (Elastic File System) using a unique hostname and optional path, providing"

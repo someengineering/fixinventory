@@ -188,7 +188,7 @@ class AwsEksLaunchTemplateSpecification:
 class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/nodegroups/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS EKS Nodegroup"
     kind_description: ClassVar[str] = (
         "An EKS Nodegroup is a set of EC2 instances that host containerized"
@@ -402,7 +402,7 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(EKSTaggable, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     kind_display: ClassVar[str] = "AWS EKS Cluster"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes"
         " service provided by AWS for running containerized applications using"

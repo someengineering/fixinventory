@@ -163,7 +163,7 @@ class AwsS3Logging:
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     kind_display: ClassVar[str] = "AWS S3 Bucket"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/s3/buckets/{name}?region={region}&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "S3 buckets are simple storage containers in Amazon's cloud, offering a"
         " scalable storage solution for various types of data."
@@ -361,7 +361,7 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
 
     kind: ClassVar[str] = "aws_s3_account_settings"
     kind_display: ClassVar[str] = "AWS S3 Account Settings"
-    metadata: ClassVar[Dict[str, Any]] = {'provider_link_tpl': "https://{region_id}.console.aws.amazon.com/s3/settings?accountId={account}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/settings?region={region_id}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
 
     kind_description: ClassVar[str] = (
         "AWS S3 Account Settings refer to the configuration options and preferences"

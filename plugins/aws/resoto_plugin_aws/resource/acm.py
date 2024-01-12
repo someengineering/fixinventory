@@ -7,7 +7,7 @@ from boto3.exceptions import Boto3Error
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, ForallBend, Bend
+from resotolib.json_bender import Bender, S, ForallBend, Bend, F
 
 log = logging.getLogger("resoto.plugins.aws")
 service_name = "acm"
@@ -69,11 +69,11 @@ class AwsAcmExtendedKeyUsage:
 class AwsAcmCertificate(AwsResource):
     kind: ClassVar[str] = "aws_acm_certificate"
     kind_display: ClassVar[str] = "AWS ACM Certificate"
-    metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#certificate:certArn={arn}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#/certificates/{id}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = "An AWS ACM Certificate is used to provision, manage, and deploy Secure Sockets Layer/Transport Layer Security (SSL/TLS) certificates for secure web traffic on AWS services."  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("acm", "describe-certificate", "Certificate")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("DomainName"),
+        "id": S("CertificateArn") >> F(AwsResource.id_from_arn),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("DomainName"),
         "ctime": S("CreatedAt"),
