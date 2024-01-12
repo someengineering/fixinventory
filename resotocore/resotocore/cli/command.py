@@ -57,14 +57,6 @@ from detect_secrets.core.potential_secret import PotentialSecret
 from detect_secrets.settings import configure_settings_from_baseline, default_settings
 from parsy import Parser, string, ParseError
 from resotoclient.models import Model as RCModel, Kind as RCKind
-from resotodatalink import EngineConfig
-from resotodatalink.batch_stream import BatchStream
-from resotodatalink.collect_plugins import update_sql
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-
 from resotocore import version
 from resotocore.async_extensions import run_async
 from resotocore.cli import (
@@ -103,14 +95,12 @@ from resotocore.cli.model import (
     FilePath,
     CLISourceContext,
 )
-from resotocore.user.model import Permission, AllowedRoleNames
 from resotocore.cli.tip_of_the_day import SuggestionPolicy, SuggestionStrategy, get_suggestion_strategy
 from resotocore.config import ConfigEntity
 from resotocore.db.async_arangodb import AsyncCursor
 from resotocore.db.graphdb import HistoryChange, GraphDB
 from resotocore.db.model import QueryModel
 from resotocore.db.runningtaskdb import RunningTaskData
-from resotocore.system_start import system_info
 from resotocore.error import CLIParseError, ClientError, CLIExecutionError, NotEnoughPermissions
 from resotocore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
 from resotocore.infra_apps.manifest import AppManifest
@@ -148,11 +138,14 @@ from resotocore.query.model import (
 )
 from resotocore.query.query_parser import parse_query, aggregate_parameter_parser, predicate_term
 from resotocore.query.template_expander import tpl_props_p
-from resotocore.report import BenchmarkConfigPrefix, ReportSeverity
+from resotocore.report import ReportSeverity
 from resotocore.report.benchmark_renderer import respond_benchmark_result
+from resotocore.report.report_config import BenchmarkConfig
+from resotocore.system_start import system_info
 from resotocore.task.task_description import Job, TimeTrigger, EventTrigger, ExecuteCommand, Workflow, RunningTask
 from resotocore.types import Json, JsonElement, EdgeType
 from resotocore.user import ResotoUser
+from resotocore.user.model import Permission, AllowedRoleNames
 from resotocore.util import (
     uuid_str,
     utc,
@@ -175,6 +168,9 @@ from resotocore.web.content_renderer import (
     respond_cytoscape,
 )
 from resotocore.worker_task_queue import WorkerTask, WorkerTaskName
+from resotodatalink import EngineConfig
+from resotodatalink.batch_stream import BatchStream
+from resotodatalink.collect_plugins import update_sql
 from resotolib.core import CLIEnvelope
 from resotolib.durations import parse_duration
 from resotolib.parse_util import (
@@ -190,6 +186,10 @@ from resotolib.parse_util import (
 )
 from resotolib.utils import safe_members_in_tarfile, get_local_tzinfo
 from resotolib.x509 import write_cert_to_file, write_key_to_file
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 if TYPE_CHECKING:
     from resotocore.dependencies import TenantDependencies
@@ -5026,8 +5026,12 @@ class ReportCommand(CLICommand, EntityProvider):
             for benchmark in await self.dependencies.inspector.list_benchmarks():
                 yield benchmark.id
 
-        async def show_benchmark(bid: str) -> AsyncIterator[Optional[str]]:
-            yield await self.dependencies.config_handler.config_yaml(ConfigId(BenchmarkConfigPrefix + bid))
+        async def show_benchmark(bid: str) -> AsyncIterator[str]:
+            if benchmark := await self.dependencies.inspector.benchmark(bid):
+                model = await self.dependencies.config_handler.get_configs_model()
+                kind = model.get(BenchmarkConfig.kind)
+                js = to_json(benchmark)
+                yield kind.create_yaml(js) if isinstance(kind, ComplexKind) else yaml.safe_dump(js)
 
         async def show_check(cid: str) -> AsyncIterator[str]:
             model = await self.dependencies.config_handler.get_configs_model()

@@ -15,7 +15,6 @@ from aiohttp.web import Request
 from aiostream import stream, pipe
 from attrs import evolve
 from pytest import fixture
-
 from resotocore import version
 from resotocore.cli import is_node, JsStream, list_sink
 from resotocore.cli.cli import CLIService
@@ -35,7 +34,6 @@ from resotocore.model.model import Model
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.report import Inspector
-from resotocore.report.report_config import BenchmarkConfig
 from resotocore.task.task_description import TimeTrigger, Workflow, EventTrigger
 from resotocore.task.task_handler import TaskHandlerService
 from resotocore.types import JsonElement, Json
@@ -1067,7 +1065,7 @@ async def test_aggregate(dependencies: TenantDependencies) -> None:
 
 
 @pytest.mark.asyncio
-async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: BenchmarkConfig) -> None:
+async def test_report(cli: CLI, inspector_service: Inspector) -> None:
     T = TypeVar("T")
 
     async def execute(cmd: str, _: Type[T]) -> List[T]:
@@ -1078,18 +1076,18 @@ async def test_report(cli: CLI, inspector_service: Inspector, test_benchmark: Be
     assert "test" in await execute("report benchmark list", str)
     assert "test" in await execute("report benchmarks list", str)
     # all checks are listed
-    assert "test_test_some_check" in await execute("report check list", str)
-    assert "test_test_some_check" in await execute("report checks list", str)
+    assert "test_test_search" in await execute("report check list", str)
+    assert "test_test_cmd" in await execute("report checks list", str)
     # the whole benchmark is printed to the user
-    assert "Test section" in (await execute("report benchmark show test", Json))[0]
+    assert "Section 1" in (await execute("report benchmark show test", str))[0]
     # a single check is executed and produces a benchmark result: benchmark_node, check_node, edge == 3
-    assert len((await execute("report check run test_test_some_check | dump", Json))) == 3
+    assert len(await execute("report check run test_test_search | dump", Json)) == 3
     # without output transformer, a markdown report is generated
-    assert len((await execute("report check run test_test_some_check", str))) == 1
+    assert len((await execute("report check run test_test_search", str))) == 1
     # execute the test benchmark
     assert len((await execute("report benchmark run test --sync-security-section | dump", Json))) == 9
     assert len((await execute("report benchmark run test --only-failing | dump", Json))) == 9
-    assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 0
+    assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 5
     # load the benchmark from the last sync
     assert len((await execute("report benchmark load test | dump", Json))) == 9
 

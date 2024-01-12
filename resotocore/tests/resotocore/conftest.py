@@ -43,19 +43,20 @@ from resotocore.core_config import (
     SnapshotsScheduleConfig,
     RunConfig,
 )
-from resotocore.db import runningtaskdb, SystemData, deferredouteredgedb
+from resotocore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb
 from resotocore.db.async_arangodb import AsyncArangoDB
 from resotocore.db.db_access import DbAccess
 from resotocore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
+from resotocore.db.reportdb import ReportCheckDb, BenchmarkDb
 from resotocore.db.runningtaskdb import RunningTaskDb
 from resotocore.db.system_data_db import SystemDataDb
 from resotocore.db.timeseriesdb import TimeSeriesDB
 from resotocore.dependencies import DirectTenantDependencyProvider, TenantDependencies
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, ConfigId, GraphName
+from resotocore.ids import SubscriberId, WorkerId, TaskDescriptorId, GraphName
 from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.message_bus import (
@@ -73,9 +74,14 @@ from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_js
 from resotocore.query.template_expander import TemplateExpander
-from resotocore.report import BenchmarkConfigPrefix, CheckConfigPrefix, Benchmark
-from resotocore.report.inspector_service import InspectorService, InspectorConfigService
-from resotocore.report.report_config import BenchmarkConfig
+from resotocore.report import (
+    Benchmark,
+    ReportCheck,
+    ReportSeverity,
+    Remediation,
+    CheckCollection,
+)
+from resotocore.report.inspector_service import InspectorService
 from resotocore.system_start import empty_config, parse_args
 from resotocore.task.model import Subscriber, Subscription
 from resotocore.task.scheduler import APScheduler
@@ -202,6 +208,22 @@ async def running_task_db(async_db: AsyncArangoDB) -> RunningTaskDb:
     await task_db.create_update_schema()
     await task_db.wipe()
     return task_db
+
+
+@fixture
+async def report_check_db(async_db: AsyncArangoDB) -> ReportCheckDb:
+    check_db = reportdb.report_check_db(async_db, "report_checks")
+    await check_db.create_update_schema()
+    await check_db.wipe()
+    return check_db
+
+
+@fixture
+async def benchmark_db(async_db: AsyncArangoDB) -> BenchmarkDb:
+    benchmark = reportdb.benchmark_db(async_db, "report_benchmarks")
+    await benchmark.create_update_schema()
+    await benchmark.wipe()
+    return benchmark
 
 
 @fixture
@@ -562,8 +584,75 @@ def cli(dependencies: TenantDependencies) -> CLIService:
 
 
 @fixture
-async def inspector_service(cli: CLIService) -> InspectorService:
-    async with InspectorConfigService(cli) as service:
+def benchmark() -> Benchmark:
+    return Benchmark(
+        id="test",
+        framework="test",
+        documentation="test",
+        version="1.5",
+        clouds=["test"],
+        title="test_benchmark",
+        description="test_benchmark",
+        checks=[],
+        children=[
+            CheckCollection(
+                title="Section 1",
+                description="Some description",
+                checks=["test_test_search"],
+                documentation="test",
+                children=[],
+            ),
+            CheckCollection(
+                title="Section 2",
+                description="Some description",
+                documentation="Some other documentation",
+                checks=["test_test_cmd"],
+                children=[],
+            ),
+        ],
+    )
+
+
+@fixture
+def inspection_checks() -> List[ReportCheck]:
+    return [
+        ReportCheck(
+            id="test_test_search",
+            provider="test",
+            service="test",
+            title="search",
+            result_kinds=["foo"],
+            categories=["test"],
+            severity=ReportSeverity.medium,
+            risk="Some serious risk",
+            # we use a query with a template here
+            detect={"resoto": "is({{foo_kind}})"},
+            default_values={"foo_kind": "foo"},
+            remediation=Remediation(text="Fix it now", url="https://example.test", action={}),
+        ),
+        ReportCheck(
+            id="test_test_cmd",
+            provider="test",
+            service="test",
+            title="cmd",
+            result_kinds=["foo"],
+            categories=["test"],
+            severity=ReportSeverity.critical,
+            detect={"resoto_cmd": "search is(foo) | jq --no-rewrite ."},
+            risk="Some other risk.",
+            remediation=Remediation(text="Fix it", url="https://example.link", action={}),
+        ),
+    ]
+
+
+@fixture
+async def inspector_service(
+    cli: CLIService, benchmark: Benchmark, inspection_checks: List[ReportCheck]
+) -> InspectorService:
+    async with InspectorService(cli) as service:
+        for check in inspection_checks:
+            await service.update_check(check)
+        await service.update_benchmark(benchmark)
         cli.dependencies.lookup["inspector"] = service
         return service
 
@@ -595,61 +684,6 @@ async def infra_apps_runtime(cli: CLIService) -> LocalResotocoreAppRuntime:
     runtime = LocalResotocoreAppRuntime(cli)
     cli.dependencies.lookup["infra_apps_runtime"] = runtime
     return runtime
-
-
-@fixture
-async def test_benchmark(config_handler: ConfigHandler) -> Benchmark:
-    test_check = ConfigEntity(
-        ConfigId(CheckConfigPrefix + "test"),
-        {
-            "report_check": {
-                "provider": "test",
-                "service": "test",
-                "checks": [
-                    {
-                        "id": "test_test_some_check",
-                        "name": "some_check",
-                        "title": "Test",
-                        "result_kinds": ["foo"],
-                        "categories": [],
-                        "risk": "Some risk",
-                        "severity": "medium",
-                        "detect": {"resoto": "is(foo)"},
-                        "remediation": {"text": "Some remediation text", "url": "https://example.com"},
-                    }
-                ],
-            }
-        },
-    )
-    test_benchmark = ConfigEntity(
-        ConfigId(BenchmarkConfigPrefix + "test"),
-        {
-            "report_benchmark": {
-                "id": "test",
-                "title": "test",
-                "framework": "test",
-                "clouds": ["test"],
-                "version": "1.5",
-                "description": "test",
-                "children": [
-                    {
-                        "title": "Section 1",
-                        "description": "Test section.",
-                        "checks": ["test_test_some_check"],
-                    },
-                    {
-                        "title": "Section 2",
-                        "description": "Test section.",
-                        "checks": ["test_test_some_check"],
-                    },
-                ],
-                "checks": [],
-            }
-        },
-    )
-    await config_handler.put_config(test_check)
-    await config_handler.put_config(test_benchmark)
-    return BenchmarkConfig.from_config(test_benchmark)
 
 
 @fixture

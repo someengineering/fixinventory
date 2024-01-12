@@ -15,6 +15,7 @@ from resotoclient import models as rc
 from resotoclient.async_client import ResotoClient
 from resotoclient.json_utils import json_loadb
 from resotoclient.models import JsObject
+from resotocore.report import ReportCheck, Benchmark
 
 from resotolib.utils import get_free_port
 from tests.resotocore import create_graph
@@ -473,22 +474,26 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
 
 
 @pytest.mark.asyncio
-async def test_report(core_client: ResotoClient, client_session: ClientSession) -> None:
+async def test_report(
+    core_client: ResotoClient, client_session: ClientSession, inspection_checks: List[ReportCheck], benchmark: Benchmark
+) -> None:
     url = core_client.resotocore_url
+    # get all benchmarks (predefined)
     response = await client_session.get(
         f"{url}/report/benchmarks", params={"with_checks": "true", "short": "true", "benchmarks": "aws_cis_1_5"}
     )
     benchmarks = await response.json()
     assert len(benchmarks) == 1
-    benchmark = benchmarks[0]
-    assert benchmark["id"] == "aws_cis_1_5"
-    assert len(benchmark["report_checks"]) > 50
-    assert benchmark["report_checks"][0] == {
+    bench = benchmarks[0]
+    assert bench["id"] == "aws_cis_1_5"
+    assert len(bench["report_checks"]) > 50
+    assert bench["report_checks"][0] == {
         "id": "aws_iam_account_maintain_current_contact_details",
         "severity": "medium",
     }
-    assert benchmark.get("checks") is None
-    assert benchmark.get("children") is None
+    assert bench.get("checks") is None
+    assert bench.get("children") is None
+    # get all checks (predefined)
     response = await client_session.get(
         f"{url}/report/checks",
         params=dict(
@@ -502,6 +507,26 @@ async def test_report(core_client: ResotoClient, client_session: ClientSession) 
     checks = await response.json()
     assert len(checks) == 2
     assert {a["id"] for a in checks} == {"aws_ec2_internet_facing_with_instance_profile", "aws_ec2_old_instances"}
+    # create custom checks
+    for check in inspection_checks:
+        response = await client_session.put(f"{url}/report/check/{check.id}", json=to_js(check))
+        assert response.status == 200
+        # get custom check
+        response = await client_session.get(f"{url}/report/check/{check.id}")
+        assert response.status == 200
+    # create custom benchmark
+    response = await client_session.put(f"{url}/report/benchmark/{benchmark.id}", json=to_js(benchmark))
+    assert response.status == 200
+    # get custom benchmark
+    response = await client_session.get(f"{url}/report/benchmark/{benchmark.id}")
+    assert response.status == 200
+    # delete custom benchmark
+    response = await client_session.delete(f"{url}/report/benchmark/{benchmark.id}")
+    assert response.status == 204
+    # delete custom benchmarks
+    for check in inspection_checks:
+        response = await client_session.delete(f"{url}/report/check/{check.id}")
+        assert response.status == 204
 
 
 @pytest.mark.asyncio
