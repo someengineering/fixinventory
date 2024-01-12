@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
@@ -102,6 +102,7 @@ class AwsEcsAutoScalingGroupProvider:
 class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     # collection of capacity provider resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_capacity_provider"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:capacity-provider/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS ECS Capacity Provider"
     kind_description: ClassVar[str] = (
         "ECS Capacity Providers are used in Amazon's Elastic Container Service to"
@@ -420,6 +421,8 @@ class AwsEcsTaskOverride:
 class AwsEcsTask(EcsTaggable, AwsResource):
     # collection of task resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_task"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/tasks/{id}/configuration?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
+
     kind_display: ClassVar[str] = "AWS ECS Task"
     kind_description: ClassVar[str] = (
         "ECS Tasks are containers managed by Amazon Elastic Container Service, which"
@@ -1066,6 +1069,7 @@ class AwsEcsProxyConfiguration:
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     kind_display: ClassVar[str] = "AWS ECS Task Definition"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/task-definitions/{name}?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An ECS Task Definition is a blueprint for running tasks in AWS Elastic"
         " Container Service (ECS), providing information such as the Docker image,"
@@ -1473,6 +1477,7 @@ class AwsEcsPlacementStrategy:
 class AwsEcsService(EcsTaggable, AwsResource):
     # collection of service resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_service"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/services/{name}/health?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS ECS Service"
     kind_description: ClassVar[str] = (
         "ECS (Elastic Container Service) is a scalable container orchestration"
@@ -1761,6 +1766,7 @@ class AwsEcsContainerInstanceHealthStatus:
 class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:container-instance/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS ECS Container Instance"
     kind_description: ClassVar[str] = (
         "ECS Container Instances are virtual servers in Amazon's Elastic Container"
@@ -1906,6 +1912,7 @@ class AwsEcsClusterSetting:
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
     kind_display: ClassVar[str] = "AWS ECS Cluster"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{name}/services?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ECS (Elastic Container Service) Cluster is a managed cluster of Amazon EC2"
         " instances used to deploy and manage Docker containers."

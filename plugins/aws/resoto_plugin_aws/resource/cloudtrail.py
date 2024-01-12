@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, Type, List
+from typing import ClassVar, Dict, Optional, Type, List, Any
 
 from attr import define, field as attrs_field, field
 
@@ -136,6 +136,7 @@ class AwsCloudTrailStatus:
 class AwsCloudTrail(AwsResource):
     kind: ClassVar[str] = "aws_cloud_trail"
     kind_display: ClassVar[str] = "AWS CloudTrail"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudtrail/home?region={region}#/trails/{arn}:trail/{name}", "arn_tpl": "arn:{partition}:cloudtrail:{region}:{account}:trail/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudTrail is a service that enables governance, compliance, operational"
         " auditing, and risk auditing of your AWS account."

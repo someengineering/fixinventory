@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -64,6 +64,7 @@ class AwsConfigRecordingGroup:
 class AwsConfigRecorder(AwsResource):
     kind: ClassVar[str] = "aws_config_recorder"
     kind_display: ClassVar[str] = "AWS Config Recorder"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:config:{region}:{account}:config-recorder/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Config Recorder is a service provided by Amazon Web Services that"
         " continuously records the configuration changes made to resources in an AWS"

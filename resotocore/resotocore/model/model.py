@@ -1326,6 +1326,7 @@ predefined_kinds = [
             # Account defines the time when the data was collected in the metadata section
             Property("exported_at", "datetime", False, None, "datetime when the account was exported."),
             Property("exported_age", "trafo.duration_to_datetime", False, SyntheticProperty(["exported_at"])),
+            Property("provider_link", "string", False, None, "Link to the provider of this resource."),
         ],
         metadata={"dynamic": True},
     ),

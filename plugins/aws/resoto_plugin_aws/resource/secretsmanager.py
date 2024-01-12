@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
 
@@ -31,6 +31,7 @@ class AwsSecretsManagerSecret(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
     kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
     kind_description: ClassVar[str] = "An AWS Secrets Manager Secret is used for securely storing and managing sensitive information, such as passwords, API keys, and database credentials, in AWS environments."  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/secretsmanager/home?region={region}#/secret?name={name}", "arn_tpl": "arn:{partition}:secretsmanager:{region}:{account}:secret/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),

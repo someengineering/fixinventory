@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Any
 
 from attrs import define, field
 
@@ -249,6 +249,7 @@ class AwsElastiCacheLogDeliveryConfiguration:
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
     kind_display: ClassVar[str] = "AWS ElastiCache Cache Cluster"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#/{Engine}/{name}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache is a web service that makes it easy to set up, manage, and scale"
         " a distributed in-memory cache environment in the cloud. A cache cluster is a"
@@ -269,8 +270,6 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         "name": S("CacheClusterId"),
         "arn": S("ARN"),
         "ctime": S("CacheClusterCreateTime"),
-        "mtime": K(None),
-        "atime": K(None),
         "cluster_configuration_endpoint": S("ConfigurationEndpoint") >> Bend(AwsElastiCacheEndpoint.mapping),
         "cluster_client_download_landing_page": S("ClientDownloadLandingPage"),
         "cluster_cache_node_type": S("CacheNodeType"),
@@ -500,6 +499,7 @@ class AwsElastiCacheNodeGroup:
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     kind_display: ClassVar[str] = "AWS ElastiCache Replication Group"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticache:{region}:{account}:replication-group/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache Replication Groups in AWS are used to store and retrieve data in"
         " memory to improve the performance of web applications and reduce the load on"

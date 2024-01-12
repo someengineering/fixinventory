@@ -104,6 +104,7 @@ class AwsIamRoleLastUsed:
 class AwsIamRole(AwsResource):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Role"
     kind_description: ClassVar[str] = (
         "IAM Roles are a way to delegate permissions to entities that you trust. IAM"
@@ -218,6 +219,7 @@ class AwsIamRole(AwsResource):
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     kind_display: ClassVar[str] = "AWS IAM Server Certificate"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:server-certificate/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS IAM Server Certificate is a digital certificate that AWS Identity and"
         " Access Management (IAM) uses to verify the identity of a resource like an"
@@ -309,6 +311,7 @@ def default_policy_document(policy: Json) -> Optional[AwsIamPolicyVersion]:
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iamv2/home?region={region}#/policies/details/{arn}?section=permissions", "arn_tpl": "arn:{partition}:iam::{account}:policy/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Policy"
     kind_description: ClassVar[str] = (
         "IAM Policies in AWS are used to define permissions and access controls for"
@@ -382,6 +385,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/groups/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:group/{name}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Group"
     kind_description: ClassVar[str] = (
         "IAM Groups are collections of IAM users. They allow you to manage"
@@ -482,6 +486,7 @@ class AwsIamAccessKeyLastUsed:
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_access_key"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Access Key"
     kind_description: ClassVar[
         str
@@ -614,6 +619,7 @@ class AwsIamVirtualMfaDevice:
 class AwsRootUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_root_user"
     kind_display: ClassVar[str] = "AWS Root User"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:None:{region}:{account}:resource/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "The AWS Root User is the initial user created when setting up an AWS account"
         " and has unrestricted access to all resources in the account."
@@ -633,6 +639,7 @@ class AwsRootUser(AwsResource, BaseUser):
 class AwsIamUser(AwsResource, BaseUser):
     kind: ClassVar[str] = "aws_iam_user"
     kind_display: ClassVar[str] = "AWS IAM User"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "IAM Users are identities created within AWS Identity and Access Management"
         " (IAM) that can be assigned permissions to access and manage AWS resources."
@@ -795,6 +802,7 @@ class AwsIamUser(AwsResource, BaseUser):
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     kind_display: ClassVar[str] = "AWS IAM Instance Profile"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:instance-profile/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "IAM Instance Profiles are used to associate IAM roles with EC2 instances,"
         " allowing the instances to securely access AWS services and resources."

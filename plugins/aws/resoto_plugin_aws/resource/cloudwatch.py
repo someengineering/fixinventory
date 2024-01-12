@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar
+from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
 
 from attr import define, field
 
@@ -187,6 +187,7 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
     kind_description: ClassVar[
         str
     ] = "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
@@ -285,6 +286,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
     kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:log-group/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudWatch Log Groups are containers for log streams in Amazon's CloudWatch"
         " service, enabling centralized storage and analysis of log data from various"
@@ -353,6 +355,7 @@ class AwsCloudwatchMetricTransformation:
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
     kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{arn}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudWatch Metric Filter is a feature in Amazon CloudWatch that allows you"
         " to define a pattern to extract information from your log events and use it"

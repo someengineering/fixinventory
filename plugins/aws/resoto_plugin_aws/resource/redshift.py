@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Any
 
 from attrs import define, field
 
@@ -416,6 +416,7 @@ class AwsRedshiftLoggingStatus:
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     kind_display: ClassVar[str] = "AWS Redshift Cluster"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[
         str
     ] = "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."

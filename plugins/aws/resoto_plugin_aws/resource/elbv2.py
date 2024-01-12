@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, Type, List
+from typing import ClassVar, Dict, Optional, Type, List, Any
 
 from attrs import define, field
 
@@ -343,6 +343,7 @@ class AwsAlbListener:
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     kind_display: ClassVar[str] = "AWS ALB"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/app/{name}/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS ALB is an Application Load Balancer that distributes incoming"
         " application traffic across multiple targets, such as EC2 instances, in"
@@ -593,6 +594,7 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     kind_display: ClassVar[str] = "AWS ALB Target Group"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#TargetGroup:targetGroupArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:targetgroup/{name}/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An ALB Target Group is a group of instances or IP addresses registered with"
         " an Application Load Balancer that receives traffic and distributes it to the"

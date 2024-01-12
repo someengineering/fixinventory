@@ -1,5 +1,5 @@
 import json
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
@@ -63,6 +63,7 @@ class AwsKmsMultiRegionConfig:
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
     kind_display: ClassVar[str] = "AWS KMS Key"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kms/home?region={region}#/kms/keys/{id}", "arn_tpl": "arn:{partition}:kms:{region}:{account}:key/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS KMS (Key Management Service) Key is a managed service that allows you to"
         " create and control the encryption keys used to encrypt your data stored on"
@@ -136,7 +137,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             )
             if key_metadata is not None:
                 if instance := AwsKmsKey.from_api(key_metadata, builder):
-                    builder.add_node(instance)
+                    builder.add_node(instance, key_metadata)
                     builder.submit_work(service_name, add_tags, instance)
                     builder.submit_work(service_name, fetch_key_policy, instance)
                     if instance.kms_key_manager == "CUSTOMER" and instance.access_key_status == "Enabled":

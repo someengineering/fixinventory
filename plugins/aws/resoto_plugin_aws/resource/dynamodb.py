@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -332,6 +332,7 @@ class AwsDynamoDbArchivalSummary:
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Table"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
         " a fully managed NoSQL database service that provides fast and predictable performance with seamless"
@@ -450,6 +451,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_global_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally"
         " distributed replicas of DynamoDB tables, enabling low-latency and high-"
