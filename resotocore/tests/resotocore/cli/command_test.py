@@ -1090,6 +1090,8 @@ async def test_report(cli: CLI, inspector_service: Inspector) -> None:
     assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 5
     # load the benchmark from the last sync
     assert len((await execute("report benchmark load test | dump", Json))) == 9
+    # list failing resources for a specific check
+    assert len((await execute("report check failing-resources test_test_search", Json))) == 10
 
 
 @pytest.mark.asyncio

@@ -4894,6 +4894,7 @@ class ReportCommand(CLICommand, EntityProvider):
                       [--severity <level>]
                       [--only-failing]
                       [--only-check-results]
+    report checks failing-resources <check-id>
     ```
 
     List and run benchmarks as well as specific benchmark checks.
@@ -4991,6 +4992,10 @@ class ReportCommand(CLICommand, EntityProvider):
                 "list": [],
                 "run": [ArgInfo(None, help_text="<check-id>"), *run_args],
                 "show": [ArgInfo(None, help_text="<check-id>")],
+                "failing-resources": [
+                    ArgInfo(None, help_text="<check-id>"),
+                    ArgInfo("--accounts", True, help_text="Space delimited list of accounts"),
+                ],
             },
         }
 
@@ -5018,6 +5023,8 @@ class ReportCommand(CLICommand, EntityProvider):
             return "check_show"
         elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "run":
             return "check_run"
+        elif len(args) >= 3 and args[0] in ("check", "checks") and args[1] == "failing-resources":
+            return "check_failing_resources"
         else:
             return None
 
@@ -5114,6 +5121,20 @@ class ReportCommand(CLICommand, EntityProvider):
         elif action == "check_run":
             parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
             return CLISource.no_count(partial(run_check, parsed), required_permissions={Permission.read})
+        elif action == "check_failing_resources":
+            run_parser = NoExitArgumentParser()
+            run_parser.add_argument("identifier")
+            run_parser.add_argument("--accounts", nargs="+")
+            parsed = run_parser.parse_args(args[2].split() if len(args) > 2 else [])
+            return CLISource.no_count(
+                partial(
+                    self.dependencies.inspector.list_failing_resources,
+                    ctx.graph_name,
+                    parsed.identifier,
+                    parsed.accounts,
+                ),
+                required_permissions={Permission.read},
+            )
         else:
             return CLISource.single(show_help, required_permissions={Permission.read})
 
