@@ -218,11 +218,11 @@ class ConfigHandlerService(ConfigHandler, Service):
             overrides_json = overrides if isinstance(overrides, dict) else {}
 
             for num, (key, value) in enumerate(config.config.items()):
+                if num > 0:
+                    yaml_str += "\n"
                 maybe_kind = model.get(key)
                 if isinstance(maybe_kind, ComplexKind):
                     part = maybe_kind.create_yaml(value, initial_level=1, overrides=overrides_json.get(key) or {})
-                    if num > 0:
-                        yaml_str += "\n"
                     yaml_str += key + ":" + part
                 else:
                     yaml_str += yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
