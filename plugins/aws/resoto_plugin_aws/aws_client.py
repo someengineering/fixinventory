@@ -37,6 +37,8 @@ RetryableErrors = ThrottlingErrors | {
     "RequestTimeoutException",
     "TooManyRequestsException",
 }
+AuthErrors = {"AuthorizationError", "AuthFailure", "AuthFailureException"}
+SessionErrors = {"UnrecognizedClientException", "InvalidClientTokenId"}
 T = TypeVar("T")
 
 
@@ -329,18 +331,25 @@ class AwsClient:
         code = e.response["Error"]["Code"] or "Unknown Code"
         if code in expected_errors:
             log.debug(f"Expected error: {code}")
-        elif code.lower().startswith("accessdenied"):
-            log.warning(
+        elif code in AuthErrors or code.lower().startswith("accessdenied"):
+            # if disabled explicitly: log as info, otherwise as warnings
+            log_line = log.info if "explicit deny in a service control policy" in str(e) else log.warning
+            log_line(
                 f"Access denied to call service {aws_service} with action {action} code {code} "
                 f"in account {self.account_id} region {self.region}: {e}"
             )
             accumulate("AccessDenied", "Access denied to call service.", as_info=True)
         elif code == "UnauthorizedOperation":
-            log.error(
+            log.warning(
                 f"Call to {aws_service} action {action} in account {self.account_id} region {self.region}"
                 f" is not authorized! Giving up: {e}"
             )
             accumulate("UnauthorizedOperation", "Call to AWS API is not authorized!")
+        elif code in SessionErrors and "security token included in the request is invalid" in str(e):
+            # The session is valid for 1h and we refresh it every 10 minutes.
+            # There is nothing we can do here - log as warning and give up.
+            log.warning(f"Call to {aws_service} action {action} failed: {e}.")
+            accumulate(code, f"{aws_service} action {action}: {e}")
         elif code in RetryableErrors and not self.retry_for(aws_service, code):
             log.info(
                 f"Call to {aws_service} action {action} failed and is interpreted as unavailable "
@@ -353,7 +362,7 @@ class AwsClient:
             if self.config.discard_account_on_resource_error:
                 raise e  # already have been retried, give up here
         else:
-            log.error(
+            log.warning(
                 f"An AWS API error {code} occurred during resource collection of {aws_service} action {action} in "  # noqa: E501
                 f"account {self.account_id} region {self.region} - skipping single resource: {e}"
             )
