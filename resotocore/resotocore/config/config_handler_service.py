@@ -225,7 +225,8 @@ class ConfigHandlerService(ConfigHandler, Service):
                     part = maybe_kind.create_yaml(value, initial_level=1, overrides=overrides_json.get(key) or {})
                     yaml_str += key + ":" + part
                 else:
-                    yaml_str += yaml.dump({key: value}, sort_keys=False, allow_unicode=True)
+                    yaml_str += yaml.dump({key: value}, sort_keys=False, allow_unicode=True).removesuffix("\n")
+            yaml_str += "\n"
 
             # mix the revision into the yaml document
             if revision and config.revision:
