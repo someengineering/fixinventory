@@ -66,7 +66,12 @@ class AwsSessionHolder:
                 region_name=global_region,
             )
         sts = session.client("sts")
-        token = sts.assume_role(RoleArn=role_arn, RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}")
+        log.info(f"Create AWS session by assuming role: {role_arn}.")
+        token = sts.assume_role(
+            RoleArn=role_arn,
+            RoleSessionName=f"{aws_account}-{str(uuid.uuid4())}",
+            DurationSeconds=3600,  # 1 hour
+        )
         credentials = token["Credentials"]
         return self.session_class_factory(
             aws_access_key_id=credentials["AccessKeyId"],
