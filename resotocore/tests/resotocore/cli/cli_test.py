@@ -1,7 +1,6 @@
 from typing import List
 
 import pytest
-from aiostream import stream
 
 from resotocore.cli import strip_quotes, js_value_at, args_parts_parser, args_parts_unquoted_parser, list_sink
 from resotocore.cli.cli import multi_command_parser, CLIService
@@ -250,6 +249,8 @@ def test_js_value_at() -> None:
     assert js_value_at(js, "b[*].b[*]") == [[1, 2, 3], [1, 2, 3]]
     assert js_value_at(js, "b[*].b[2]") == [3, 3]
     assert js_value_at(js, "b[1].b[2]") == 3
+    js = {"checks": [{"id": "1", "name": "foo"}, {"id": "2", "name": "bar"}]}
+    assert js_value_at(js, "checks.id") == ["1", "2"]
 
 
 def test_escape_character_parsing() -> None:
