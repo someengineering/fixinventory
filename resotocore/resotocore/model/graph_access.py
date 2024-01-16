@@ -9,7 +9,7 @@ from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
 
 from attrs import define
-from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
+from networkx import DiGraph, MultiDiGraph, is_directed_acyclic_graph
 
 from resotocore.ids import NodeId
 from resotocore.model.model import (
@@ -554,7 +554,12 @@ class GraphAccess:
         """
 
         # run DFS from the source and collect all nodes until a replace node is found.
-        def dfs_to_replace(graph: MultiDiGraph, source: NodeId) -> Tuple[Dict[NodeId, Json], set[NodeId]]:
+        def dfs_to_replace(
+            graph: MultiDiGraph, source: NodeId, seen: Set[NodeId]
+        ) -> Tuple[Dict[NodeId, Json], set[NodeId]]:
+            if source in seen:
+                return {}, set()
+            seen.add(source)
             # if we hit a replace node, stop here
             data = graph.nodes[source]
             if data.get("replace", False) is True:
@@ -564,7 +569,7 @@ class GraphAccess:
             replace_nodes_predecessors: Set[NodeId] = set([source])
 
             for child in graph.successors(source):
-                rn, pred = dfs_to_replace(graph, child)
+                rn, pred = dfs_to_replace(graph, child, seen)
                 replace_nodes.update(rn)
                 replace_nodes_predecessors.update(pred)
 
@@ -574,8 +579,8 @@ class GraphAccess:
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
         def replace_roots() -> Dict[NodeId, Set[NodeId]]:
             graph_root = GraphAccess.root_id(graph)
-            replace_nodes, preds = dfs_to_replace(graph, graph_root)
-            result: Dict[NodeId, Set[NodeId]] = { node: preds for node in replace_nodes}
+            replace_nodes, preds = dfs_to_replace(graph, graph_root, set())
+            result: Dict[NodeId, Set[NodeId]] = {node: preds for node in replace_nodes}
             assert (
                 len(replace_nodes) > 0
             ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"

@@ -811,7 +811,7 @@ class ArangoGraphDB(GraphDB):
         ]
         edge_deletes = [
             f'for e in {temp_name} filter e.action=="edge_delete" and e.edge_type=="{a}" '
-            f"remove e.data in {self.edge_collection(a)}"
+            f"remove e.data in {self.edge_collection(a)} OPTIONS {{ ignoreErrors: true }}"
             for a in EdgeTypes.all
         ]
         history_updates = [
@@ -831,7 +831,7 @@ class ArangoGraphDB(GraphDB):
                     ' OPTIONS{overwriteMode: "replace"}',
                     f'for e in {temp_name} filter e.action=="node_updated" update e.data in {self.vertex_name}'
                     " OPTIONS {mergeObjects: false}",
-                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name}',
+                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
                 ]
                 + edge_inserts
                 + edge_deletes
@@ -839,8 +839,9 @@ class ArangoGraphDB(GraphDB):
                 + [f'remove {{_key: "{change_key}"}} in {self.in_progress}'],
             )
         )
+        cmd = f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}'
         await self.db.execute_transaction(
-            f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
+            command=cmd,
             read=[temp_name, self.usage_db.collection_name],
             write=[self.edge_collection(a) for a in EdgeTypes.all]
             + [self.vertex_name, self.in_progress, self.node_history],
@@ -1037,14 +1038,14 @@ class ArangoGraphDB(GraphDB):
         log.debug("Mark all parent nodes for this update to avoid conflicting changes")
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
         try:
-            cloud_ids = [node[1].get('id') for node in parent.nodes(data=True) if 'cloud' in node[1].get('kinds', [])]
+            cloud_ids = [node[1].get("id") for node in parent.nodes(data=True) if "cloud" in node[1].get("kinds", [])]
             cloud_ids = [cid for cid in cloud_ids if cid]
             cloud_id = cloud_ids[0] if cloud_ids else None
 
             def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
                 edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
                 return self.edges_by_ids_and_until_account(edge_type), {"ids": edge_ids, "cloud_id": cloud_id}
-    
+
             parents_nodes = self.nodes_by_ids_and_until_account(), {"ids": list(parent.g.nodes), "cloud_id": cloud_id}
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
@@ -1505,32 +1506,35 @@ class ArangoGraphDB(GraphDB):
         )
 
     def nodes_until_account(self) -> str:
-
-        filter_section = ""
+        filters = []
         for kind in GraphResolver.resolved_ancestors:
-            filter_section += f"FILTER '{kind}' not in node.kinds\n"
+            filters.append(f"FILTER '{kind}' not in node.kinds\n")
+
+        filter_section = "".join(filters)
 
         return f"""
         FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(EdgeTypes.default)}`
-            PRUNE "account" in node.kinds
+            PRUNE node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: node._key, hash: node.hash, created: node.created}}
-        """
+        """  # noqa: E501
 
     def edges_until_account(self, edge_type: EdgeType) -> str:
-        filter_section = ""
+        filters = []
         for kind in GraphResolver.resolved_ancestors:
-            filter_section += f"FILTER '{kind}' not in node.kinds\n"
+            filters.append(f"FILTER '{kind}' not in node.kinds\n")
+
+        filter_section = "".join(filters)
 
         return f"""
         FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(edge_type)}`
-            PRUNE "account" in node.kinds
+            PRUNE node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: edge._key, _from: edge._from, _to: edge._to}}
         """
-    
+
     def nodes_by_ids_and_until_account(self) -> str:
         return f"""
         LET nodes_by_ids = ({self.query_update_nodes_by_ids()})
@@ -1538,7 +1542,7 @@ class ArangoGraphDB(GraphDB):
         LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_account)
         FOR n IN all_of_them RETURN n
         """
-    
+
     def edges_by_ids_and_until_account(self, edge_type: EdgeType) -> str:
         return f"""
         LET edges_by_ids = ({self.query_update_edges_by_ids(edge_type)})

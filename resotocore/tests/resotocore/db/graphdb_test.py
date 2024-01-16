@@ -95,7 +95,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             kinds=[kind],
             reported=reported,
             desired={"node_id": uid},
-            metadata={"node_id": uid},
+            metadata={"node_id": uid, "replace": replace},
             replace=replace,
         )
 
@@ -145,7 +145,7 @@ def create_graph_org_root_like(bla_text: str, width: int = 10, org_root_id: str 
 
     add_edge("root", "aws")
     add_edge("aws", "aws_account")
-    
+
     add_node(org_root_id, "foo")
     add_edge("aws", org_root_id)
 
@@ -175,7 +175,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
             id=node_id,
             reported=reported,
             desired={},
-            metadata={},
+            metadata={"replace": replace},
             hash="123",
             replace=replace,
             kind=kind,
@@ -314,7 +314,10 @@ async def test_delete_old_nodes_when_merging_graph(graph_db: ArangoGraphDB, foo_
     # exactly the same graph is updated: no changes
     assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
     # root_branch_id is changed: old node should be deleted and new one inserted
-    assert await graph_db.merge_graph(create("yes or no", org_root_id="new_org_root"), foo_model) == (p, GraphUpdate(1, 0, 1, 1, 0, 1))
+    assert await graph_db.merge_graph(create("yes or no", org_root_id="new_org_root"), foo_model) == (
+        p,
+        GraphUpdate(1, 0, 1, 1, 0, 1),
+    )
 
 
 @mark.asyncio
