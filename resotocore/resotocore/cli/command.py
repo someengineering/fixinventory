@@ -2732,7 +2732,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 if isinstance(elem, dict):
                     return ", ".join(f"{k}={render_prop(v)}" for k, v in sorted(elem.items()))
                 elif isinstance(elem, list):
-                    return ", ".join(render_prop(e) for e in elem)
+                    return ", ".join(str(render_prop(e)) for e in elem)
                 else:
                     return elem
 
