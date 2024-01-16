@@ -171,17 +171,21 @@ def test_replace_nodes(person_model: Model) -> None:
     meta = {"metadata": {"replace": True}}
     builder.add_from_json({"id": "root", "reported": {"kind": "graph_root"}})
     builder.add_from_json({"id": "cloud", "reported": {"id": "cloud", "kind": "cloud"}, **meta})
+    # add a node above the replace node -> shoud be added to the graph
+    builder.add_from_json({"id": "any_foo", "reported": {"id": "any_foo", "kind": "any_foo"}})
+    builder.add_from_json({"from": "root", "to": "any_foo"})
     # also mark account and region as replace node -> the flags should be ignored!
     builder.add_from_json({"id": "account", "reported": {"id": "account", "kind": "account"}, **meta})
     builder.add_from_json({"id": "region", "reported": {"id": "region", "kind": "region"}, **meta})
     builder.add_from_json({"from": "root", "to": "cloud"})
     builder.add_from_json({"from": "cloud", "to": "account"})
     builder.add_from_json({"from": "account", "to": "region"})
-    roots, _, gen = GraphAccess.merge_graphs(builder.graph)
+    roots, parent, gen = GraphAccess.merge_graphs(builder.graph)
     assert roots == ["cloud"]
     cloud, access = list(gen)[0]
     assert cloud == "cloud"
     assert set(access.nodes) == {"cloud", "account", "region"}
+    assert set(parent.nodes) == {"cloud", "root", "any_foo"}
 
 
 def multi_cloud_graph(replace_on: str) -> MultiDiGraph:

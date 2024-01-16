@@ -336,7 +336,7 @@ class AwsAccountCollector:
                 accounts = self.client.list("organizations", "list_accounts_for_parent", "Accounts", ParentId=parent.id)
                 for account in accounts:
                     from_node = ByNodeId(value=parent.chksum)
-                    to_node = BySearchCriteria(query=f"is(aws_account) and id = {account['Id']}")
+                    to_node = BySearchCriteria(query=f"is(aws_account) and reported.id = {account['Id']}")
                     self.graph.add_deferred_edge(from_node, to_node)
 
             log.debug(f"Creating organization graph for {self.account.rtdname}")

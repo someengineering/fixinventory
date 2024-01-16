@@ -118,6 +118,49 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
     return graph
 
 
+# something similar to the AWS organizational root scheme
+def create_graph_org_root_like(bla_text: str, width: int = 10, org_root_id: str = "org_root") -> MultiDiGraph:
+    graph = MultiDiGraph()
+
+    def add_edge(from_node: str, to_node: str, edge_type: EdgeType = EdgeTypes.default) -> None:
+        key = GraphAccess.edge_key(from_node, to_node, edge_type)
+        graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+
+    def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
+        reported = {**(node if node else to_json(Foo(uid))), "kind": kind}
+        graph.add_node(
+            uid,
+            id=uid,
+            kinds=[kind],
+            reported=reported,
+            desired={"node_id": uid},
+            metadata={"node_id": uid, "replace": replace},
+            replace=replace,
+        )
+
+    # root -> collector -> sub_root -> **rest
+    add_node("root", "graph_root")
+    add_node("aws", "cloud")
+    add_node("aws_account", "account", replace=True)
+
+    add_edge("root", "aws")
+    add_edge("aws", "aws_account")
+    
+    add_node(org_root_id, "foo")
+    add_edge("aws", org_root_id)
+
+    for o in range(0, width):
+        oid = str(o)
+        add_node(oid, "foo")
+        add_edge("aws_account", oid)
+        for i in range(0, width):
+            iid = f"{o}_{i}"
+            add_node(iid, "bla", node=to_json(Bla(iid, name=bla_text)))
+            add_edge(oid, iid)
+            add_edge(iid, oid, EdgeTypes.delete)
+    return graph
+
+
 def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
     graph = MultiDiGraph()
 
@@ -252,6 +295,26 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(80, 0, 0, 155, 0, 0))
     # updating with the same data again, does not perform any changes
     assert await graph_db.merge_graph(create("maybe"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
+
+
+@mark.asyncio
+async def test_delete_old_nodes_when_merging_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    await graph_db.wipe()
+
+    def create(txt: str, width: int = 10, org_root_id: str = "org_root") -> MultiDiGraph:
+        return create_graph_org_root_like(txt, width=width, org_root_id=org_root_id)
+
+    p = ["aws_account"]
+    # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, maybe_change_id="foo") == (
+        p,
+        GraphUpdate(113, 1, 0, 213, 0, 0),
+    )
+
+    # exactly the same graph is updated: no changes
+    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
+    # root_branch_id is changed: old node should be deleted and new one inserted
+    assert await graph_db.merge_graph(create("yes or no", org_root_id="new_org_root"), foo_model) == (p, GraphUpdate(1, 0, 1, 1, 0, 1))
 
 
 @mark.asyncio
