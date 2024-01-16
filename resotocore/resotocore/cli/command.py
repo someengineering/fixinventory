@@ -116,8 +116,8 @@ from resotocore.model.model import (
     ArrayKind,
     PropertyPath,
     TransformKind,
-    AnyKind,
     EmptyPath,
+    any_kind,
 )
 from resotocore.model.resolve_in_graph import NodePath
 from resotocore.model.typed_model import to_json, to_js, from_js
@@ -2716,23 +2716,32 @@ class ListCommand(CLICommand, OutputTransformer):
                         yield to_csv_string(result)
 
         async def json_table_stream(in_stream: JsStream, model: Model) -> JsGen:
-            def kind_of(path: List[str]) -> str:
+            def kind_of(path: List[str]) -> Kind:
                 if path[0] in Section.lookup_sections:
                     return kind_of(path[2:])
                 if path[0] in Section.content:
                     path = path[1:]
                 kind = model.kind_by_path(path)
                 if isinstance(kind, TransformKind):
-                    return kind.source_kind.fqn if kind.source_kind else AnyKind().fqn
+                    return kind.source_kind if kind.source_kind else any_kind
                 else:
-                    return kind.fqn
+                    return kind
+
+            def render_prop(elem: JsonElement) -> JsonElement:
+                # For table output, we want to show a single element: create a string from complex or list element.
+                if isinstance(elem, dict):
+                    return ", ".join(f"{k}={render_prop(v)}" for k, v in sorted(elem.items()))
+                elif isinstance(elem, list):
+                    return ", ".join(render_prop(e) for e in elem)
+                else:
+                    return elem
 
             # header columns
             yield {
                 "columns": [
                     {
                         "name": name,
-                        "kind": kind_of(path),
+                        "kind": kind_of(path).fqn,
                         "display": " ".join(word.capitalize() for word in name.split("_")),
                     }
                     for path, name in props_to_show
@@ -2744,7 +2753,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     if node := get_node(elem):
                         yield {
                             "id": node["id"],
-                            "row": {name: js_value_at(node, prop_path) for prop_path, name in props_to_show},
+                            "row": {name: render_prop(js_value_at(node, path)) for path, name in props_to_show},
                         }
 
         def markdown_stream(in_stream: JsStream) -> JsGen:

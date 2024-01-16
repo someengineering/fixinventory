@@ -190,9 +190,7 @@ def js_value_at(element: JsonElement, path_or_name: Union[List[str], str]) -> Op
         else:
             child = current[prop]
             if isinstance(child, list):
-                if index is None:
-                    return child
-                elif index is True:
+                if index is None or index is True:
                     return [at_idx(e, idx + 1) for e in child]
                 elif index < len(child):
                     return at_idx(child[index], idx + 1)
