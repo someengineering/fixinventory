@@ -562,7 +562,8 @@ class GraphAccess:
             seen.add(source)
             # if we hit a replace node, stop here
             data = graph.nodes[source]
-            if data.get("replace", False) is True:
+            replace = data.get("replace", False) or (data.get("metadata", {}) or {}).get("replace", False)
+            if replace:
                 return {source: data}, set([source])
 
             replace_nodes: Dict[NodeId, Json] = {}

@@ -1514,7 +1514,7 @@ class ArangoGraphDB(GraphDB):
 
         return f"""
         FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(EdgeTypes.default)}`
-            PRUNE node.metadata["replace"] == true
+            PRUNE node.`replace` == true or node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: node._key, hash: node.hash, created: node.created}}
@@ -1529,7 +1529,7 @@ class ArangoGraphDB(GraphDB):
 
         return f"""
         FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(edge_type)}`
-            PRUNE node.metadata["replace"] == true
+            PRUNE node.`replace` == true or node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: edge._key, _from: edge._from, _to: edge._to}}
