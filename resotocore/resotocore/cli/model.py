@@ -420,6 +420,10 @@ class CLICommand(ABC):
     def get_previous_command(kwargs: Dict[str, Any]) -> Optional[ExecutableCommand]:
         return CLICommand.get_from("previous_command", ExecutableCommand, kwargs)
 
+    def additional_properties_to_show(self) -> List[Tuple[List[str], str]]:
+        # Override this method to add additional properties to output commands (e.g., list)
+        return []
+
 
 @define(order=True, hash=True, frozen=True)
 class AliasTemplateParameter:

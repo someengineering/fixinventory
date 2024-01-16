@@ -2526,7 +2526,6 @@ class ListCommand(CLICommand, OutputTransformer):
 
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
-        (["info"], "info"),
         (["reported", "kind"], "kind"),
         (["reported", "id"], "id"),
         (["reported", "name"], "name"),
@@ -2595,6 +2594,13 @@ class ListCommand(CLICommand, OutputTransformer):
                 result.append((["id"], "node_id"))
             if ctx.query_options.get("history") is True:
                 result.extend(self.default_history_properties_to_show)
+            # add additional props from commands
+            for exec in ctx.commands:
+                for path, name in exec.command.additional_properties_to_show():
+                    prop = ".".join(path)
+                    if name not in self.all_default_props and prop not in local_paths:
+                        local_paths.add(prop)
+                        result.append((path, name))
             # add all default props
             result.extend(self.default_properties_to_show)
             # add all predicates the user has queried
@@ -6248,6 +6254,9 @@ class DetectSecretsCommand(CLICommand):
 
     def info(self) -> str:
         return "Detect secrets in resources or strings"
+
+    def additional_properties_to_show(self) -> List[Tuple[List[str], str]]:
+        return [(["info"], "info")]
 
     @lru_cache(maxsize=1)  # cache is only used to not configure multiple times
     def configure_detect(self) -> None:
