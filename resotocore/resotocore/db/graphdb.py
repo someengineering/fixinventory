@@ -1428,21 +1428,6 @@ class ArangoGraphDB(GraphDB):
         RETURN {{_key: a._key, _from: a._from, _to: a._to}}
         """
 
-    def query_update_nodes_by_ids(self) -> str:
-        return f"""
-        FOR a IN `{self.vertex_name}`
-        FILTER a._key IN @ids
-        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
-        """
-
-    def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
-        collection = self.edge_collection(edge_type)
-        return f"""
-        FOR a IN `{collection}`
-        FILTER a._key in @ids
-        RETURN {{_key: a._key, _from: a._from, _to: a._to}}
-        """
-
     def query_update_parent_linked(self) -> str:
         return f"""
         FOR a IN `{self.edge_collection(EdgeTypes.default)}`
@@ -1508,48 +1493,45 @@ class ArangoGraphDB(GraphDB):
             """
         )
 
-    def nodes_until_replace_node(self) -> str:
-        filters = []
-        for kind in GraphResolver.resolved_ancestors:
-            filters.append(f"FILTER '{kind}' not in node.kinds\n")
-
-        filter_section = "".join(filters)
-
-        return f"""
+    def nodes_by_ids_and_until_replace_node(self) -> str:
+        query_update_nodes_by_ids = (
+            f"FOR a IN `{self.vertex_name}` "
+            "FILTER a._key IN @ids RETURN {_key: a._key, hash:a.hash, created:a.created}"
+        )
+        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+        nodes_until_replace_node = f"""
         FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(EdgeTypes.default)}`
-            PRUNE node.metadata["replace"] == true
-            OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
-            {filter_section}
-            RETURN DISTINCT {{_key: node._key, hash: node.hash, created: node.created}}
-        """  # noqa: E501
-
-    def edges_until_replace_node(self, edge_type: EdgeType) -> str:
-        filters = []
-        for kind in GraphResolver.resolved_ancestors:
-            filters.append(f"FILTER '{kind}' not in node.kinds\n")
-
-        filter_section = "".join(filters)
-
-        return f"""
-        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(edge_type)}`
-            PRUNE node.metadata["replace"] == true
-            OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
-            {filter_section}
-            RETURN DISTINCT {{_key: edge._key, _from: edge._from, _to: edge._to}}
+        PRUNE node.metadata["replace"] == true
+        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+        FILTER {filter_section}
+        RETURN {{_key: node._key, hash: node.hash, created: node.created}}
         """
 
-    def nodes_by_ids_and_until_replace_node(self) -> str:
         return f"""
-        LET nodes_by_ids = ({self.query_update_nodes_by_ids()})
-        LET nodes_until_replace = ({self.nodes_until_replace_node()})
+        LET nodes_by_ids = ({query_update_nodes_by_ids})
+        LET nodes_until_replace = ({nodes_until_replace_node})
         LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_replace)
         FOR n IN all_of_them RETURN n
         """
 
     def edges_by_ids_and_until_replace_node(self, edge_type: EdgeType) -> str:
+        collection = self.edge_collection(edge_type)
+        query_update_edges_by_ids = (
+            f"FOR a IN `{collection}` FILTER a._key in @ids RETURN {{_key: a._key, _from: a._from, _to: a._to}}"
+        )
+
+        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+        edges_until_replace_node = f"""
+        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(edge_type)}`
+        PRUNE node.metadata["replace"] == true
+        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+        FILTER {filter_section}
+        RETURN {{_key: edge._key, _from: edge._from, _to: edge._to}}
+        """
+
         return f"""
-        LET edges_by_ids = ({self.query_update_edges_by_ids(edge_type)})
-        LET edges_until_replace = ({self.edges_until_replace_node(edge_type)})
+        LET edges_by_ids = ({query_update_edges_by_ids})
+        LET edges_until_replace = ({edges_until_replace_node})
         LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_replace)
         FOR e IN all_of_them RETURN e
         """
