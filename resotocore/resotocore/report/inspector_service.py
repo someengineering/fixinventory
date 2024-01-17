@@ -32,8 +32,8 @@ from resotocore.report import (
     ResotoReportBenchmark,
     ResotoReportCheck,
     ReportSeverity,
-    ReportSeverityPriority,
     ReportConfigRoot,
+    SecurityIssue,
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig, ReportConfig
 from resotocore.service import Service
@@ -60,7 +60,7 @@ class CheckContext:
         if self.severity is None:
             return True
         else:
-            return ReportSeverityPriority[self.severity] <= ReportSeverityPriority[severity]
+            return self.severity.prio() <= severity.prio()
 
 
 # This defines the subset of the data provided for every resource
@@ -179,7 +179,9 @@ class InspectorService(Inspector, Service):
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         config = await self.report_config()
         # create query
-        term: Term = P("benchmark").is_in(benchmark_names)
+        term: Term = P("benchmarks[]").is_in(benchmark_names)
+        # TODO: 17.01.2024: remove the next line after deployed on prd
+        term = term.or_term(P("benchmark").is_in(benchmark_names))
         if severity:
             term = term & P("severity").is_in([s.value for s in context.severities_including(severity)])
         term = P.context("security.issues[]", term)
@@ -487,7 +489,7 @@ class InspectorService(Inspector, Service):
 
     def __benchmarks_to_security_iterator(
         self, results: Dict[str, BenchmarkResult]
-    ) -> AsyncIterator[Tuple[NodeId, Json]]:
+    ) -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
         # Create a mapping from node_id to all check results that contain this node
         node_result: Dict[str, List[Tuple[BenchmarkResult, CheckResult]]] = defaultdict(list)
 
@@ -502,13 +504,13 @@ class InspectorService(Inspector, Service):
         for result in results.values():
             walk_collection(result, result)
 
-        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, Json]]:
+        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
             for node_id, contexts in node_result.items():
                 issues = [
-                    dict(benchmark=bench.id, check=check.check.id, severity=check.check.severity.name)
+                    SecurityIssue(check=check.check.id, severity=check.check.severity, benchmarks={bench.id})
                     for bench, check in contexts
                 ]
-                yield NodeId(node_id), dict(issues=issues)
+                yield NodeId(node_id), issues
 
         return iterate_nodes()
 

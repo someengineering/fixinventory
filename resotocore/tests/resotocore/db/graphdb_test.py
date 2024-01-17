@@ -22,6 +22,7 @@ from resotocore.model.model import Model, UsageDatapoint
 from resotocore.model.typed_model import from_js, to_js
 from resotocore.query.model import Query, P, Navigation, Predicate
 from resotocore.query.query_parser import parse_query, predicate_term
+from resotocore.report import SecurityIssue, ReportSeverity
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import AccessJson, utc, value_in_path, AccessNone
 from tests.resotocore.utils import eventually
@@ -809,12 +810,14 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
         ) as cursor:
             return [entry async for entry in cursor]
 
-    async def security_issues(num: int) -> AsyncIterator[Tuple[NodeId, Json]]:
-        checks = [dict(benchmark="test", check=f"check{n}", severity="medium") for n in range(num)]
+    async def security_issues(num: int) -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
+        checks = [
+            SecurityIssue(benchmark="test", check=f"check{n}", severity=ReportSeverity.medium) for n in range(num)
+        ]
         for n in range(10):
-            yield NodeId(f"0_{n}"), dict(issues=checks)
+            yield NodeId(f"0_{n}"), checks
 
-    async def no_issues() -> AsyncIterator[Tuple[NodeId, Json]]:
+    async def no_issues() -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
         if False:
             yield  # noqa
 

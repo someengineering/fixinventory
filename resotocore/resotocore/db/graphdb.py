@@ -54,9 +54,9 @@ from resotocore.model.model import (
     synthetic_metadata_kinds,
 )
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver, ResolveProp
-from resotocore.model.typed_model import to_js
+from resotocore.model.typed_model import to_js, from_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
-from resotocore.report import ReportSeverity
+from resotocore.report import ReportSeverity, SecurityIssue
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 
@@ -117,7 +117,7 @@ class GraphDB(ABC):
     async def update_security_section(
         self,
         report_run_id: str,
-        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        iterator: AsyncIterator[Tuple[NodeId, List[SecurityIssue]]],
         model: Model,
         accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:
@@ -492,7 +492,7 @@ class ArangoGraphDB(GraphDB):
     async def update_security_section(
         self,
         report_run_id: str,
-        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        iterator: AsyncIterator[Tuple[NodeId, List[SecurityIssue]]],
         model: Model,
         accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:  # inserted, updated
@@ -503,27 +503,45 @@ class ArangoGraphDB(GraphDB):
         nodes_vulnerable_new = 0
         nodes_vulnerable_updated = 0
 
-        def issue_info(issues: List[Json]) -> Dict[str, Json]:
-            return {f'{i["benchmark"]}::{i["check"]}': i for i in issues}
+        def read_checks(issues: List[Json]) -> Dict[str, SecurityIssue]:
+            result: Dict[str, SecurityIssue] = {}
+            for check in issues:
+                issue = from_js(check, SecurityIssue)
+                if issue.check in result:
+                    result[issue.check].benchmarks.update(issue.benchmarks)
+                else:
+                    result[issue.check] = issue
+            return result
 
         def update_security_section(
-            existing_issues: List[Json], actual_issues: List[Json]
+            existing_issues: List[Json], actual_issues: List[SecurityIssue]
         ) -> Tuple[List[Json], ReportSeverity, bool]:
-            existing = issue_info(existing_issues)
-            updated = issue_info(actual_issues)
-            update = False
-            max_severity = ReportSeverity.info  # lowest severity
-            for key, value in updated.items():
-                max_severity = ReportSeverity.higher(max_severity, value.get("severity", max_severity))
-                if existing_entry := existing.get(key):
-                    updated[key] = existing_entry
-                elif updated_entry := updated.get(key):
-                    updated_entry["opened_at"] = now
-                    updated_entry["run_id"] = report_run_id
+            existing = read_checks(existing_issues)
+            # TODO: 17.01.2024: default to false after deployed to prd: update the security section in old format
+            update = any(issue.benchmark is not None for issue in existing.values())
+            updated: Dict[str, SecurityIssue] = {}
+            # use this loop to merge actual issues with the same check
+            for issue in actual_issues:
+                if same_check := updated.get(issue.check):
+                    same_check.benchmarks |= issue.benchmarks
+                else:
+                    updated[issue.check] = issue
+            # now compare the updated with the existing issues
+            for key, issue in updated.items():
+                if same_check := existing.get(key):
+                    if same_check.benchmarks != issue.benchmarks:
+                        same_check.benchmarks = issue.benchmarks
+                        update = True
+                    updated[key] = same_check
+                else:
+                    issue.opened_at = now
+                    issue.run_id = report_run_id
                     update = True
-            return list(updated.values()), max_severity, update
+            # the node severity is the highest severity of all issues
+            severity = max((a.severity for a in updated.values()), key=lambda s: s.prio(), default=ReportSeverity.info)
+            return [a.to_json() for a in updated.values()], severity, update
 
-        async def update_chunk(chunk: Dict[NodeId, Json]) -> None:
+        async def update_chunk(chunk: Dict[NodeId, List[SecurityIssue]]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
             async with await self.search_list(
                 QueryModel(Query.by(P.with_id(list(chunk.keys()))), model), no_trafo=True
@@ -533,20 +551,21 @@ class ArangoGraphDB(GraphDB):
                     node_id = NodeId(node.pop("_key", ""))
                     node["id"] = node_id  # store the id in the id column (not _key)
                     existing: List[Json] = value_in_path_get(node, NodePath.security_issues, [])
-                    security_section = chunk[node_id]
-                    updated, severity, is_update = update_security_section(existing, security_section.get("issues", []))
-                    security_section["issues"] = updated
-                    security_section["opened_at"] = value_in_path_get(node, NodePath.security_opened_at, now)
-                    security_section["reopen_counter"] = value_in_path_get(node, NodePath.security_reopen_counter, -1)
-                    security_section["run_id"] = report_run_id
-                    security_section["has_issues"] = True
-                    security_section["severity"] = severity.value
+                    updated, severity, is_update = update_security_section(existing, chunk.get(node_id, []))
+                    security_section = dict(
+                        issues=updated,
+                        opened_at=value_in_path_get(node, NodePath.security_opened_at, now),
+                        reopen_counter=value_in_path_get(node, NodePath.security_reopen_counter, -1),
+                        run_id=report_run_id,
+                        has_issues=True,
+                        severity=severity.value,
+                    )
                     node["security"] = security_section
                     node["changed_at"] = now
                     if not existing:  # no issues before, but now
                         nodes_vulnerable_new += 1
                         security_section["opened_at"] = now
-                        security_section["reopen_counter"] = security_section["reopen_counter"] + 1
+                        security_section["reopen_counter"] = security_section["reopen_counter"] + 1  # type: ignore
                         node["change"] = "node_vulnerable"
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
                     elif is_update:  # the content has changed
@@ -556,7 +575,7 @@ class ArangoGraphDB(GraphDB):
                         node["change"] = "node_vulnerable"
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
-                    # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
+                # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
                 await run_async(temp_collection.insert_many, nodes_to_insert, silent=True)
 
         async def move_security_temp_to_proper() -> None:
@@ -1612,7 +1631,7 @@ class EventGraphDB(GraphDB):
     async def update_security_section(
         self,
         report_run_id: str,
-        iterator: AsyncIterator[Tuple[NodeId, Json]],
+        iterator: AsyncIterator[Tuple[NodeId, List[SecurityIssue]]],
         model: Model,
         accounts: Optional[List[str]] = None,
     ) -> Tuple[int, int]:
