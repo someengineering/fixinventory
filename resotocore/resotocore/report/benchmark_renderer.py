@@ -5,7 +5,7 @@ from networkx import DiGraph
 from rich._emoji_codes import EMOJI
 
 from resotocore.model.resolve_in_graph import NodePath
-from resotocore.report import BenchmarkResult, CheckCollectionResult, CheckResult, ReportSeverityPriority
+from resotocore.report import BenchmarkResult, CheckCollectionResult, CheckResult
 from resotocore.types import JsonElement
 from resotocore.util import value_in_path
 
@@ -47,7 +47,7 @@ def render_benchmark_summary(benchmark: CheckCollectionResult, account: str) -> 
     def render_result_list(name: str, icon: str, checks: List[CheckResult]) -> str:
         if checks:
             lr = f"## {name} \n\n"
-            for check in sorted(checks, key=lambda x: -ReportSeverityPriority[x.check.severity]):
+            for check in sorted(checks, key=lambda x: -x.check.severity.prio()):
                 lr += f"- {icon} {check.check.severity.name}: {check.check.title}\n"
             return lr
         else:

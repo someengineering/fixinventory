@@ -56,7 +56,7 @@ from resotocore.model.model import (
 from resotocore.model.resolve_in_graph import NodePath, GraphResolver, ResolveProp
 from resotocore.model.typed_model import to_js, from_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
-from resotocore.report import ReportSeverity, SecurityIssue, ReportSeverityPriority
+from resotocore.report import ReportSeverity, SecurityIssue
 from resotocore.types import JsonElement, EdgeType
 from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
 
@@ -517,24 +517,29 @@ class ArangoGraphDB(GraphDB):
             existing_issues: List[Json], actual_issues: List[SecurityIssue]
         ) -> Tuple[List[Json], ReportSeverity, bool]:
             existing = read_checks(existing_issues)
-            update = False
-            updated: Dict[str, SecurityIssue] = {a.check: a for a in actual_issues}
+            # TODO: 17.01.2024: default to false after deployed to prd: update the security section in old format
+            update = any(issue.benchmark is not None for issue in existing.values())
+            updated: Dict[str, SecurityIssue] = {}
+            # use this loop to merge actual issues with the same check
             for issue in actual_issues:
-                if existing_entry := existing.get(issue.check):
-                    if existing_entry.benchmarks != issue.benchmarks:
-                        existing_entry.benchmarks = issue.benchmarks
+                if same_check := updated.get(issue.check):
+                    same_check.benchmarks |= issue.benchmarks
+                else:
+                    updated[issue.check] = issue
+            # now compare the updated with the existing issues
+            for key, issue in updated.items():
+                if same_check := existing.get(key):
+                    if same_check.benchmarks != issue.benchmarks:
+                        same_check.benchmarks = issue.benchmarks
                         update = True
-                    updated[issue.check] = existing_entry
+                    updated[key] = same_check
                 else:
                     issue.opened_at = now
                     issue.run_id = report_run_id
                     update = True
-            max_severity = max(
-                (a.severity for a in updated.values()),
-                key=lambda i: ReportSeverityPriority[i],
-                default=ReportSeverity.info,
-            )
-            return [a.to_json() for a in updated.values()], max_severity, update
+            # the node severity is the highest severity of all issues
+            severity = max((a.severity for a in updated.values()), key=lambda s: s.prio(), default=ReportSeverity.info)
+            return [a.to_json() for a in updated.values()], severity, update
 
         async def update_chunk(chunk: Dict[NodeId, List[SecurityIssue]]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
@@ -570,7 +575,7 @@ class ArangoGraphDB(GraphDB):
                         node["change"] = "node_vulnerable"
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
-                    # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
+                # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
                 await run_async(temp_collection.insert_many, nodes_to_insert, silent=True)
 
         async def move_security_temp_to_proper() -> None:

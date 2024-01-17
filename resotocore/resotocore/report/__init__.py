@@ -4,9 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Union
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple
 
 from attr import define, field, evolve
+
 from resotocore.ids import ConfigId, GraphName
 from resotocore.model.typed_model import to_js
 from resotocore.types import Json
@@ -25,6 +26,9 @@ BenchmarkConfigRoot = "report_benchmark"
 ReportConfigRoot = "report_config"
 
 
+_ReportSeverityPriority: Dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+
+
 class ReportSeverity(Enum):
     kind: ClassVar[str] = "resoto_core_report_check_severity"
     info = "info"
@@ -33,14 +37,8 @@ class ReportSeverity(Enum):
     high = "high"
     critical = "critical"
 
-    @staticmethod
-    def higher(a: Union[str, ReportSeverity], b: Union[str, ReportSeverity]) -> ReportSeverity:
-        ra = a if isinstance(a, ReportSeverity) else ReportSeverity[a]
-        rb = b if isinstance(b, ReportSeverity) else ReportSeverity[b]
-        return ra if ReportSeverityPriority[ra] > ReportSeverityPriority[rb] else rb
-
-
-ReportSeverityPriority: Dict[ReportSeverity, int] = {severity: num for num, severity in enumerate(ReportSeverity)}
+    def prio(self) -> int:
+        return _ReportSeverityPriority[self.value]
 
 
 @define

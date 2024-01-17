@@ -32,7 +32,6 @@ from resotocore.report import (
     ResotoReportBenchmark,
     ResotoReportCheck,
     ReportSeverity,
-    ReportSeverityPriority,
     ReportConfigRoot,
     SecurityIssue,
 )
@@ -61,7 +60,7 @@ class CheckContext:
         if self.severity is None:
             return True
         else:
-            return ReportSeverityPriority[self.severity] <= ReportSeverityPriority[severity]
+            return self.severity.prio() <= severity.prio()
 
 
 # This defines the subset of the data provided for every resource
@@ -180,7 +179,9 @@ class InspectorService(Inspector, Service):
         context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         config = await self.report_config()
         # create query
-        term: Term = P("benchmark").is_in(benchmark_names)
+        term: Term = P("benchmarks[]").is_in(benchmark_names)
+        # TODO: 17.01.2024: remove the next line after deployed on prd
+        term = term.or_term(P("benchmark").is_in(benchmark_names))
         if severity:
             term = term & P("severity").is_in([s.value for s in context.severities_including(severity)])
         term = P.context("security.issues[]", term)
