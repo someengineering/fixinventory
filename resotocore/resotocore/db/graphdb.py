@@ -813,7 +813,7 @@ class ArangoGraphDB(GraphDB):
         ]
         edge_deletes = [
             f'for e in {temp_name} filter e.action=="edge_delete" and e.edge_type=="{a}" '
-            f"remove e.data in {self.edge_collection(a)}"
+            f"remove e.data in {self.edge_collection(a)} OPTIONS {{ ignoreErrors: true }}"
             for a in EdgeTypes.all
         ]
         history_updates = [
@@ -833,7 +833,7 @@ class ArangoGraphDB(GraphDB):
                     ' OPTIONS{overwriteMode: "replace"}',
                     f'for e in {temp_name} filter e.action=="node_updated" update e.data in {self.vertex_name}'
                     " OPTIONS {mergeObjects: false}",
-                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name}',
+                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
                 ]
                 + edge_inserts
                 + edge_deletes
@@ -841,8 +841,9 @@ class ArangoGraphDB(GraphDB):
                 + [f'remove {{_key: "{change_key}"}} in {self.in_progress}'],
             )
         )
+        cmd = f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}'
         await self.db.execute_transaction(
-            f'function () {{\nvar db=require("@arangodb").db;\n{updates}\n}}',
+            command=cmd,
             read=[temp_name, self.usage_db.collection_name],
             write=[self.edge_collection(a) for a in EdgeTypes.all]
             + [self.vertex_name, self.in_progress, self.node_history],
@@ -1029,10 +1030,6 @@ class ArangoGraphDB(GraphDB):
         roots, parent, graphs = GraphAccess.merge_graphs(graph_to_merge)
         log.info(f"merge_graph {len(roots)} merge nodes found. change_id={change_id}, is_batch={is_batch}.")
 
-        def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
-            edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
-            return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
-
         def merge_edges(merge_node: str, merge_node_kind: str, edge_type: EdgeType) -> Tuple[str, Json]:
             return self.query_update_edges(edge_type, merge_node_kind), {"update_id": merge_node}
 
@@ -1050,7 +1047,18 @@ class ArangoGraphDB(GraphDB):
         log.debug("Mark all parent nodes for this update to avoid conflicting changes")
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
         try:
-            parents_nodes = self.query_update_nodes_by_ids(), {"ids": list(parent.g.nodes)}
+            cloud_ids = [node[1].get("id") for node in parent.nodes(data=True) if "cloud" in node[1].get("kinds", [])]
+            cloud_ids = [cid for cid in cloud_ids if cid]
+            cloud_id = cloud_ids[0] if cloud_ids else None
+
+            def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
+                edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
+                return self.edges_by_ids_and_until_replace_node(edge_type), {"ids": edge_ids, "node_id": cloud_id}
+
+            parents_nodes = self.nodes_by_ids_and_until_replace_node(), {
+                "ids": list(parent.g.nodes),
+                "node_id": cloud_id,
+            }
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
@@ -1429,21 +1437,6 @@ class ArangoGraphDB(GraphDB):
         RETURN {{_key: a._key, _from: a._from, _to: a._to}}
         """
 
-    def query_update_nodes_by_ids(self) -> str:
-        return f"""
-        FOR a IN `{self.vertex_name}`
-        FILTER a._key IN @ids
-        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
-        """
-
-    def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
-        collection = self.edge_collection(edge_type)
-        return f"""
-        FOR a IN `{collection}`
-        FILTER a._key in @ids
-        RETURN {{_key: a._key, _from: a._from, _to: a._to}}
-        """
-
     def query_update_parent_linked(self) -> str:
         return f"""
         FOR a IN `{self.edge_collection(EdgeTypes.default)}`
@@ -1508,6 +1501,49 @@ class ArangoGraphDB(GraphDB):
             RETURN count
             """
         )
+
+    def nodes_by_ids_and_until_replace_node(self) -> str:
+        query_update_nodes_by_ids = (
+            f"FOR a IN `{self.vertex_name}` "
+            "FILTER a._key IN @ids RETURN {_key: a._key, hash:a.hash, created:a.created}"
+        )
+        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+        nodes_until_replace_node = f"""
+        FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(EdgeTypes.default)}`
+        PRUNE node.metadata["replace"] == true
+        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+        FILTER {filter_section}
+        RETURN {{_key: node._key, hash: node.hash, created: node.created}}
+        """
+
+        return f"""
+        LET nodes_by_ids = ({query_update_nodes_by_ids})
+        LET nodes_until_replace = ({nodes_until_replace_node})
+        LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_replace)
+        FOR n IN all_of_them RETURN n
+        """
+
+    def edges_by_ids_and_until_replace_node(self, edge_type: EdgeType) -> str:
+        collection = self.edge_collection(edge_type)
+        query_update_edges_by_ids = (
+            f"FOR a IN `{collection}` FILTER a._key in @ids RETURN {{_key: a._key, _from: a._from, _to: a._to}}"
+        )
+
+        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+        edges_until_replace_node = f"""
+        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(edge_type)}`
+        PRUNE node.metadata["replace"] == true
+        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+        FILTER {filter_section}
+        RETURN {{_key: edge._key, _from: edge._from, _to: edge._to}}
+        """
+
+        return f"""
+        LET edges_by_ids = ({query_update_edges_by_ids})
+        LET edges_until_replace = ({edges_until_replace_node})
+        LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_replace)
+        FOR e IN all_of_them RETURN e
+        """
 
 
 class EventGraphDB(GraphDB):

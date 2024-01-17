@@ -9,7 +9,7 @@ from functools import reduce
 from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
 
 from attrs import define
-from networkx import DiGraph, MultiDiGraph, all_shortest_paths, is_directed_acyclic_graph
+from networkx import DiGraph, MultiDiGraph, is_directed_acyclic_graph
 
 from resotocore.ids import NodeId
 from resotocore.model.model import (
@@ -261,7 +261,6 @@ class GraphBuilder:
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
-            replace=metadata.get("replace", False) is True if metadata else False,
         )
         # update property sizes
         self.__update_property_size(kind, reported)
@@ -553,34 +552,43 @@ class GraphAccess:
         :return: the list of all merge roots, the expected parent graph and all merge root graphs.
         """
 
+        # run DFS from the source and collect all nodes until a replace node is found.
+        def collect_until_replace_node(
+            graph: MultiDiGraph, source: NodeId, seen: Set[NodeId]
+        ) -> Tuple[Dict[NodeId, Json], set[NodeId]]:
+            if source in seen:
+                return {}, set()
+            seen.add(source)
+            # if we hit a replace node, stop here
+            data = graph.nodes[source]
+            replace = (data.get("metadata", {}) or {}).get("replace", False)
+            if replace:
+                return {source: data}, set([source])
+
+            replace_nodes: Dict[NodeId, Json] = {}
+            replace_nodes_predecessors: Set[NodeId] = set([source])
+
+            for child in graph.successors(source):
+                rn, pred = collect_until_replace_node(graph, child, seen)
+                replace_nodes.update(rn)
+                replace_nodes_predecessors.update(pred)
+
+            return replace_nodes, replace_nodes_predecessors
+
         # Find replace nodes: all nodes that are marked as replace node.
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
         def replace_roots() -> Dict[NodeId, Set[NodeId]]:
             graph_root = GraphAccess.root_id(graph)
-            replace_nodes: Dict[NodeId, Json] = {
-                node_id: data for node_id, data in graph.nodes(data=True) if data.get("replace", False)
-            }
+            replace_nodes, preds = collect_until_replace_node(graph, graph_root, set())
+            result: Dict[NodeId, Set[NodeId]] = {node: preds for node in replace_nodes}
             assert (
                 len(replace_nodes) > 0
             ), "No replace nodes provided in the graph. Mark at least one node with replace=true!"
-            result: Dict[NodeId, Set[NodeId]] = {}
             for node, data in replace_nodes.items():
                 kind = GraphResolver.resolved_kind(data)
                 assert (
                     kind is not None
                 ), f"Node {node} is marked as replace node, but the kind is not resolved during import!"
-                # compute the shortest path from root to here
-                pres: Set[NodeId] = reduce(
-                    lambda res, p: {*res, *p}, all_shortest_paths(graph, graph_root, node), set[NodeId]()
-                )
-                result[node] = pres
-            # make sure there is no replace node beyond another replace node
-            rs = result.copy()
-            for node in rs:
-                for nid, parent_nodes in rs.items():
-                    if nid != node and node in parent_nodes:
-                        log.info(f"Node {nid} marked as replace, but is child of another replace node {node}. Ignore.")
-                        result.pop(nid, None)
             return result
 
         # Walk the graph from given starting node and return all successors.
@@ -599,7 +607,7 @@ class GraphAccess:
 
         # Create a generator for all given merge roots by:
         #   - creating the set of all successors
-        #   - creating a subgraph which contains all predecessors and all succors
+        #   - creating a subgraph which contains all predecessors and all successors
         #   - all predecessors are marked as visited
         #   - all predecessors edges are marked as visited
         # This way it is possible to have nodes in the graph that will not be touched by the update
