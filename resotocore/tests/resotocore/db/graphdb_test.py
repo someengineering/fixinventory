@@ -96,7 +96,6 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
             reported=reported,
             desired={"node_id": uid},
             metadata={"node_id": uid, "replace": replace},
-            replace=replace,
         )
 
     # root -> collector -> sub_root -> **rest
@@ -135,7 +134,6 @@ def create_graph_org_root_like(bla_text: str, width: int = 10, org_root_id: str 
             reported=reported,
             desired={"node_id": uid},
             metadata={"node_id": uid, "replace": replace},
-            replace=replace,
         )
 
     # root -> collector -> sub_root -> **rest
@@ -177,7 +175,6 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
             desired={},
             metadata={"replace": replace},
             hash="123",
-            replace=replace,
             kind=kind,
             kinds=[kind],
             kinds_set={kind},
@@ -538,13 +535,17 @@ async def test_no_null_if_undefined(graph_db: ArangoGraphDB, foo_model: Model) -
     graph = create_graph("test", 0)
     for _, node in graph.nodes(True):
         del node["desired"]
-        del node["metadata"]
+        # keep the replace flag
+        if (node.get("metadata", {}) or {}).get("replace", False):
+            node["metadata"] = {"replace": True}
+        else:
+            del node["metadata"]
     await graph_db.merge_graph(graph, foo_model)
     async with await graph_db.search_list(QueryModel(parse_query("all"), foo_model)) as cursor:
         async for elem in cursor:
             assert "reported" in elem
             assert "desired" not in elem
-            assert "metadata" not in elem
+            assert "metadata" not in elem or ("replace" in elem["metadata"] and len(elem["metadata"]) == 1)
 
 
 @mark.asyncio

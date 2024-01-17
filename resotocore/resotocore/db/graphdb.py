@@ -1044,9 +1044,12 @@ class ArangoGraphDB(GraphDB):
 
             def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
                 edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
-                return self.edges_by_ids_and_until_account(edge_type), {"ids": edge_ids, "cloud_id": cloud_id}
+                return self.edges_by_ids_and_until_replace_node(edge_type), {"ids": edge_ids, "node_id": cloud_id}
 
-            parents_nodes = self.nodes_by_ids_and_until_account(), {"ids": list(parent.g.nodes), "cloud_id": cloud_id}
+            parents_nodes = self.nodes_by_ids_and_until_replace_node(), {
+                "ids": list(parent.g.nodes),
+                "node_id": cloud_id,
+            }
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
@@ -1505,7 +1508,7 @@ class ArangoGraphDB(GraphDB):
             """
         )
 
-    def nodes_until_account(self) -> str:
+    def nodes_until_replace_node(self) -> str:
         filters = []
         for kind in GraphResolver.resolved_ancestors:
             filters.append(f"FILTER '{kind}' not in node.kinds\n")
@@ -1513,14 +1516,14 @@ class ArangoGraphDB(GraphDB):
         filter_section = "".join(filters)
 
         return f"""
-        FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(EdgeTypes.default)}`
-            PRUNE node.`replace` == true or node.metadata["replace"] == true
+        FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(EdgeTypes.default)}`
+            PRUNE node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: node._key, hash: node.hash, created: node.created}}
         """  # noqa: E501
 
-    def edges_until_account(self, edge_type: EdgeType) -> str:
+    def edges_until_replace_node(self, edge_type: EdgeType) -> str:
         filters = []
         for kind in GraphResolver.resolved_ancestors:
             filters.append(f"FILTER '{kind}' not in node.kinds\n")
@@ -1528,26 +1531,26 @@ class ArangoGraphDB(GraphDB):
         filter_section = "".join(filters)
 
         return f"""
-        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @cloud_id) `{self.edge_collection(edge_type)}`
-            PRUNE node.`replace` == true or node.metadata["replace"] == true
+        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(edge_type)}`
+            PRUNE node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             {filter_section}
             RETURN DISTINCT {{_key: edge._key, _from: edge._from, _to: edge._to}}
         """
 
-    def nodes_by_ids_and_until_account(self) -> str:
+    def nodes_by_ids_and_until_replace_node(self) -> str:
         return f"""
         LET nodes_by_ids = ({self.query_update_nodes_by_ids()})
-        LET nodes_until_account = ({self.nodes_until_account()})
-        LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_account)
+        LET nodes_until_replace = ({self.nodes_until_replace_node()})
+        LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_replace)
         FOR n IN all_of_them RETURN n
         """
 
-    def edges_by_ids_and_until_account(self, edge_type: EdgeType) -> str:
+    def edges_by_ids_and_until_replace_node(self, edge_type: EdgeType) -> str:
         return f"""
         LET edges_by_ids = ({self.query_update_edges_by_ids(edge_type)})
-        LET edges_until_account = ({self.edges_until_account(edge_type)})
-        LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_account)
+        LET edges_until_replace = ({self.edges_until_replace_node(edge_type)})
+        LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_replace)
         FOR e IN all_of_them RETURN e
         """
 

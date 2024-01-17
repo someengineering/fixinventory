@@ -261,7 +261,6 @@ class GraphBuilder:
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
-            replace=metadata.get("replace", False) is True if metadata else False,
         )
         # update property sizes
         self.__update_property_size(kind, reported)
@@ -554,7 +553,7 @@ class GraphAccess:
         """
 
         # run DFS from the source and collect all nodes until a replace node is found.
-        def dfs_to_replace(
+        def collect_until_replace_node(
             graph: MultiDiGraph, source: NodeId, seen: Set[NodeId]
         ) -> Tuple[Dict[NodeId, Json], set[NodeId]]:
             if source in seen:
@@ -562,7 +561,7 @@ class GraphAccess:
             seen.add(source)
             # if we hit a replace node, stop here
             data = graph.nodes[source]
-            replace = data.get("replace", False) or (data.get("metadata", {}) or {}).get("replace", False)
+            replace = (data.get("metadata", {}) or {}).get("replace", False)
             if replace:
                 return {source: data}, set([source])
 
@@ -570,7 +569,7 @@ class GraphAccess:
             replace_nodes_predecessors: Set[NodeId] = set([source])
 
             for child in graph.successors(source):
-                rn, pred = dfs_to_replace(graph, child, seen)
+                rn, pred = collect_until_replace_node(graph, child, seen)
                 replace_nodes.update(rn)
                 replace_nodes_predecessors.update(pred)
 
@@ -580,7 +579,7 @@ class GraphAccess:
         # This method returns all replace roots as key, with the respective predecessors nodes as value.
         def replace_roots() -> Dict[NodeId, Set[NodeId]]:
             graph_root = GraphAccess.root_id(graph)
-            replace_nodes, preds = dfs_to_replace(graph, graph_root, set())
+            replace_nodes, preds = collect_until_replace_node(graph, graph_root, set())
             result: Dict[NodeId, Set[NodeId]] = {node: preds for node in replace_nodes}
             assert (
                 len(replace_nodes) > 0
