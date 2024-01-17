@@ -34,6 +34,7 @@ from resotocore.report import (
     ReportSeverity,
     ReportSeverityPriority,
     ReportConfigRoot,
+    SecurityIssue,
 )
 from resotocore.report.report_config import ReportCheckCollectionConfig, BenchmarkConfig, ReportConfig
 from resotocore.service import Service
@@ -487,7 +488,7 @@ class InspectorService(Inspector, Service):
 
     def __benchmarks_to_security_iterator(
         self, results: Dict[str, BenchmarkResult]
-    ) -> AsyncIterator[Tuple[NodeId, Json]]:
+    ) -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
         # Create a mapping from node_id to all check results that contain this node
         node_result: Dict[str, List[Tuple[BenchmarkResult, CheckResult]]] = defaultdict(list)
 
@@ -502,13 +503,13 @@ class InspectorService(Inspector, Service):
         for result in results.values():
             walk_collection(result, result)
 
-        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, Json]]:
+        async def iterate_nodes() -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
             for node_id, contexts in node_result.items():
                 issues = [
-                    dict(benchmark=bench.id, check=check.check.id, severity=check.check.severity.name)
+                    SecurityIssue(check=check.check.id, severity=check.check.severity, benchmarks={bench.id})
                     for bench, check in contexts
                 ]
-                yield NodeId(node_id), dict(issues=issues)
+                yield NodeId(node_id), issues
 
         return iterate_nodes()
 

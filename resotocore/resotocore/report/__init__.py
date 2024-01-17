@@ -44,6 +44,29 @@ ReportSeverityPriority: Dict[ReportSeverity, int] = {severity: num for num, seve
 
 
 @define
+class SecurityIssue:
+    check: str
+    severity: ReportSeverity
+    opened_at: Optional[str] = None
+    run_id: Optional[str] = None
+    benchmark: Optional[str] = None
+    benchmarks: Set[str] = field(factory=set)
+
+    def __attrs_post_init__(self) -> None:
+        if self.benchmark:
+            self.benchmarks.add(self.benchmark)
+
+    def to_json(self) -> Json:
+        return {
+            "check": self.check,
+            "severity": self.severity.value,
+            "opened_at": self.opened_at,
+            "run_id": self.run_id,
+            "benchmarks": list(self.benchmarks),
+        }
+
+
+@define
 class Remediation:
     kind: ClassVar[str] = "resoto_core_report_check_remediation"
     text: str = field(metadata={"description": "Textual description of the remediation."})
