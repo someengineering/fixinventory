@@ -97,6 +97,7 @@ class Dependencies(Service):
     def __init__(self, **deps: Any) -> None:
         super().__init__()
         self.lookup: Dict[str, Any] = deps
+        self.on_stop_callbacks: List[Callable[[], None]] = []
 
     def add(self, name: str, service: T) -> "T":
         self.lookup[name] = service
@@ -111,6 +112,9 @@ class Dependencies(Service):
 
     def all(self) -> Dict[str, Any]:
         return self.lookup
+
+    def register_on_stop_callback(self, callback: Callable[[], None]) -> None:
+        self.on_stop_callbacks.append(callback)
 
     @property
     def services(self) -> List[Service]:
@@ -190,6 +194,8 @@ class Dependencies(Service):
             await session.close()
         for service in reversed(self.services):
             await service.stop()
+        for callback in self.on_stop_callbacks:
+            callback()
 
 
 class TenantDependencies(Dependencies):
@@ -311,17 +317,14 @@ class TenantDependencyCache(Service):
 
     async def _expire(self) -> None:
         now = self._time()
-        to_delete = []
         for key, (timestamp, value) in list(self._cache.items()):
-            lock = await self._lock_for(key)
-            async with lock:
-                if now - timestamp > self._ttl:
-                    to_delete.append((key, value))
+            if now - timestamp > self._ttl:
+                lock = await self._lock_for(key)
+                async with lock:
+                    log.info(f"Stop tenant dependencies for {key}")
                     self._cache.pop(key, None)
-                    # content lock is not removed on purpose.
-        for key, value in to_delete:
-            log.info(f"Stop tenant dependencies for {key}")
-            await value.stop()
+                    await value.stop()
+                    log.info(f"Tenant dependencies for {key} stopped.")
 
     async def get(self, key: str, if_empty: Callable[[], Awaitable[TenantDependencies]]) -> TenantDependencies:
         now = self._time()
@@ -333,6 +336,7 @@ class TenantDependencyCache(Service):
                 log.info(f"Create and start new tenant dependencies for {key}")
                 value = await if_empty()
                 await value.start()
+                log.info(f"Tenant dependencies for {key} created.")
             self._cache[key] = (now, value)
             return value
 
@@ -386,13 +390,14 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         args = dp.config.args
         message_bus = dp.message_bus
         event_sender = dp.event_sender
+        deps = self._dependencies.tenant_dependencies(tenant_hash=tenant_hash, access=access)
 
         def standard_database() -> StandardDatabase:
             http_client = ArangoHTTPClient(args.graphdb_request_timeout, verify=dp.config.run.verify)
             client = ArangoClient(hosts=access.server, http_client=http_client)
+            deps.register_on_stop_callback(client.close)
             return client.db(name=access.database, username=access.username, password=access.password)
 
-        deps = self._dependencies.tenant_dependencies(tenant_hash=tenant_hash, access=access)
         # direct db access
         sdb = deps.add(ServiceNames.system_database, await run_async(standard_database))
         db = deps.add(ServiceNames.db_access, DbAccess(sdb, dp.event_sender, NoAdjust(), config))
