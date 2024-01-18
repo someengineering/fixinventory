@@ -393,7 +393,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         args = dp.config.args
         message_bus = dp.message_bus
         event_sender = dp.event_sender
-        deps = self._dependencies.tenant_dependencies(tenant_hash=tenant_hash, access=access)
+        deps = dp.tenant_dependencies(tenant_hash=tenant_hash, access=access)
 
         def standard_database() -> StandardDatabase:
             http_client = ArangoHTTPClient(args.graphdb_request_timeout, verify=dp.config.run.verify)

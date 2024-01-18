@@ -5,9 +5,16 @@ from datetime import timedelta
 from typing import Tuple, List, Any
 
 import pytest
+from aiohttp.test_utils import make_mocked_request
 
 from resotocore.async_extensions import run_async
-from resotocore.dependencies import Dependencies, TenantDependencyCache, TenantDependencies
+from resotocore.dependencies import (
+    Dependencies,
+    TenantDependencyCache,
+    TenantDependencies,
+    FromRequestTenantDependencyProvider,
+    ServiceNames,
+)
 from resotocore.service import Service
 from resotocore.system_start import parse_args
 from resotocore.types import JsonElement
@@ -38,8 +45,15 @@ class ExampleService(Service):
 
 @pytest.mark.asyncio
 async def test_nested_dependencies() -> None:
+    stopped = False
+
+    def on_stop_callback() -> None:
+        nonlocal stopped
+        stopped = True
+
     deps = Dependencies(a=ExampleService("a"), b=ExampleService("b"))
     async with deps.tenant_dependencies(a=ExampleService("na"), c=ExampleService("c")) as td:
+        td.register_on_stop_callback(on_stop_callback)
         assert len(deps.services) == 2  # manages a and b
         assert len(td.services) == 2  # manages a and c
         # Deps has a and b, but not c
@@ -63,6 +77,7 @@ async def test_nested_dependencies() -> None:
         assert a.started is True
         assert b.started is False
         assert c.started is True
+    assert stopped is True
 
 
 @pytest.mark.asyncio
@@ -96,12 +111,18 @@ async def test_dependency_cache_access_safety() -> None:
 async def test_dependency_cache() -> None:
     time = 1
     created = 0
+    failing = 0
     deps = Dependencies(a=ExampleService("a"))
 
     async def tenant_deps() -> TenantDependencies:
         nonlocal created
         created += 1
         return deps.tenant_dependencies(b=ExampleService("b"))
+
+    async def failing_tenant_deps() -> Any:
+        nonlocal failing
+        failing += 1
+        raise Exception("failing_tenant_deps")
 
     async with TenantDependencyCache(timedelta(seconds=1), timedelta(days=1), lambda: time) as cache:
         # getting the value from the cache will create a new value
@@ -126,5 +147,28 @@ async def test_dependency_cache() -> None:
         # all services from td_1 are stopped, all services from td_3 are started
         assert td_1.service("b", ExampleService).started is False
         assert td_3.service("b", ExampleService).started is True
+        # a dependency which failed to create is not cached
+        for _ in range(10):
+            with pytest.raises(Exception):
+                await cache.get("never", failing_tenant_deps)
+        assert failing == 10
     # when the cache is stopped, all started services are stopped
     assert td_3.service("b", ExampleService).started is False
+
+
+@pytest.mark.asyncio
+async def test_tenant_dependency_test_creation(dependencies: Dependencies) -> None:
+    async with FromRequestTenantDependencyProvider(dependencies) as provider:
+        deps = await provider.dependencies(
+            make_mocked_request(
+                "GET",
+                "test",
+                headers=dict(
+                    FixGraphDbServer="http://localhost:8529",
+                    FixGraphDbDatabase="test",
+                    FixGraphDbUsername="test",
+                    FixGraphDbPassword="test",
+                ),
+            )
+        )
+        assert deps.get(ServiceNames.cli) is not None
