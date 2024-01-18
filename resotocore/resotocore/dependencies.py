@@ -31,7 +31,6 @@ from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.db_access import DbAccess
 from resotocore.db.system_data_db import JwtSigningKeyHolder
 from resotocore.graph_manager.graph_manager import GraphManager
-from resotocore.infra_apps.local_runtime import LocalResotocoreAppRuntime
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
 from resotocore.message_bus import MessageBus
@@ -434,13 +433,9 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
             ServiceNames.core_config_handler,
             CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
         )
-        deps.add(ServiceNames.infra_apps_runtime, LocalResotocoreAppRuntime(cli))
-        deps.add(
-            ServiceNames.infra_apps_package_manager,
-            PackageManager(
-                db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias
-            ),
-        )
+        # Enable package manager and runtime for infra apps when required
+        # deps.add(ServiceNames.infra_apps_runtime, LocalResotocoreAppRuntime(cli))
+        # deps.add(ServiceNames.infra_apps_package_manager, PackageManager(db.package_entity_db, config_handler, cli.register_infra_app_alias, cli.unregister_infra_app_alias)) # noqa
         graph_merger = deps.add(ServiceNames.graph_merger, GraphMerger(model, event_sender, config, message_bus))
         task_handler = deps.add(
             ServiceNames.task_handler,
