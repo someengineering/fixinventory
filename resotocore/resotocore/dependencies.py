@@ -329,16 +329,20 @@ class TenantDependencyCache(Service):
     async def get(self, key: str, if_empty: Callable[[], Awaitable[TenantDependencies]]) -> TenantDependencies:
         now = self._time()
         lck = await self._lock_for(key)
-        async with lck:
-            if result := self._cache.get(key):
-                _, value = result
-            else:
-                log.info(f"Create and start new tenant dependencies for {key}")
-                value = await if_empty()
-                await value.start()
-                log.info(f"Tenant dependencies for {key} created.")
-            self._cache[key] = (now, value)
-            return value
+        try:
+            async with lck:
+                if result := self._cache.get(key):
+                    _, value = result
+                else:
+                    log.info(f"Create and start new tenant dependencies for {key}")
+                    value = await if_empty()
+                    await value.start()
+                    log.info(f"Tenant dependencies for {key} created.")
+                self._cache[key] = (now, value)
+                return value
+        except Exception as e:
+            log.exception(f"Failed to create tenant dependencies for {key}: {e}", exc_info=True)
+            raise
 
 
 @define
