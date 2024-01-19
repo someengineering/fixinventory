@@ -2,7 +2,7 @@ from aiohttp.web_log import AccessLogger
 from aiohttp.web_request import BaseRequest
 from aiohttp.web_response import StreamResponse
 
-RoutesToIgnore = {"/system/ready", "/system/ping"}
+RoutesToIgnore = {"/system/ready", "/system/ping", "/metrics"}
 
 
 class ResotoAccessLogger(AccessLogger):
