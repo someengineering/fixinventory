@@ -36,7 +36,6 @@ from resotocore.core_config import (
     ResotoCoreConfigId,
     parse_config,
     CoreConfig,
-    current_git_hash,
 )
 from resotocore.db import SystemData
 from resotocore.db.db_access import DbAccess
@@ -128,7 +127,7 @@ def run_process(args: Namespace) -> None:
             cert_handler_no_ca = deps.add(ServiceNames.cert_handler, CertificateHandlerNoCA.lookup(config, temp))
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler_no_ca.ca_bundle)
             deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
-            deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), 1, current_git_hash()))
+            deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), 1))
             deps.add(
                 ServiceNames.event_sender,
                 PostHogEventSender(deps.system_data) if config.runtime.usage_metrics else NoEventSender(),

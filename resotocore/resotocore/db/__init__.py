@@ -12,7 +12,7 @@ class SystemData:
     system_id: str
     created_at: datetime
     db_version: int
-    version: Optional[str]
+    version: Optional[str] = None
 
 
 class EstimatedQueryCostRating(Enum):

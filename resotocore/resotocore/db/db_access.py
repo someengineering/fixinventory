@@ -89,7 +89,14 @@ class DbAccess(Service):
         await self.cleaner.stop()
 
     async def __migrate(self) -> None:
-        system_data = await self.system_data_db.system_data()
+        try:
+            system_data = await self.system_data_db.system_data()
+        except Exception:
+            system_data = None
+            if not await self.db.has_collection("system_data"):  # make sure the system data collection exists
+                await self.db.create_collection("system_data")
+        if system_data is None:  # in case no version is available, create a genesis version
+            system_data = SystemData(uuid_str(), utc(), 1)
         git_hash = current_git_hash()
         if system_data.version is None or git_hash is None or git_hash != system_data.version:
             log.info(f"Version change detected. Running migrations. {system_data.version} -> {git_hash}")
@@ -119,7 +126,8 @@ class DbAccess(Service):
                 await em.create_update_schema()
             if git_hash is not None:
                 # update the system data version to not migrate the next time
-                await self.system_data_db.update_system_version(git_hash)
+                system_data.version = git_hash
+                await self.system_data_db.update_system_data(system_data)
             else:
                 log.warning("No git_hash found - will always update the database schema on startup.")
 
@@ -130,8 +138,12 @@ class DbAccess(Service):
         if validate_name:
             check_graph_name(name)
 
+        # create the graph in the database
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
+        # also create the related model database
+        model = await self.get_graph_model_db(name)
+        await model.create_update_schema()
         return db
 
     async def delete_graph(self, name: GraphName) -> None:
@@ -246,7 +258,7 @@ class DbAccess(Service):
 
         def system_data() -> Tuple[bool, SystemData]:
             def insert_system_data() -> SystemData:
-                system = SystemData(uuid_str(), utc(), 1, current_git_hash())
+                system = SystemData(uuid_str(), utc(), 1)
                 log.info(f"Create new system data entry: {system}")
                 db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=True)
                 return system

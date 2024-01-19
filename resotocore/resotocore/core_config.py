@@ -65,7 +65,7 @@ def inside_docker() -> bool:
         os.environ.get("INSIDE_DOCKER", "false").lower() in ("true", "yes", "1")
         or os.environ.get("INSIDE_KUBERNETES", "false").lower() in ("true", "yes", "1")
         # this file is available in the created docker container
-        or current_git_hash() is not None
+        or Path(GitHashFile).exists()
     )
 
 

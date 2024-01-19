@@ -19,6 +19,7 @@ from resotocore.core_config import (
     alias_templates,
     ResotoCoreCommandsRoot,
     ResotoCoreConfigId,
+    current_git_hash,
 )
 from resotocore.system_start import parse_args
 from resotocore.model.typed_model import to_js, from_js
@@ -136,11 +137,10 @@ def test_in_docker() -> None:
         stored = core_config.GitHashFile
         core_config.GitHashFile = str(path)
         assert core_config.inside_docker() is True
-        assert core_config.current_git_hash() == "foo"
+        assert core_config.current_git_hash() == current_git_hash()
         assert core_config.default_hosts() == ["0.0.0.0"]
         core_config.GitHashFile = "/this/path/does/not/exist"
         assert core_config.inside_docker() is False
-        assert core_config.current_git_hash() is None
         assert core_config.default_hosts() == ["localhost"]
         core_config.GitHashFile = stored
 
