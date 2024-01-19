@@ -12,7 +12,7 @@ from requests.exceptions import RequestException
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.async_extensions import run_async
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, current_git_hash
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
@@ -82,7 +82,17 @@ class DbAccess(Service):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        if not self.config.multi_tenant_setup:
+        await self.__migrate()
+        await self.cleaner.start()
+
+    async def stop(self) -> None:
+        await self.cleaner.stop()
+
+    async def __migrate(self) -> None:
+        system_data = await self.system_data_db.system_data()
+        git_hash = current_git_hash()
+        if system_data.version is None or git_hash is None or git_hash != system_data.version:
+            log.info(f"Version change detected. Running migrations. {system_data.version} -> {git_hash}")
             await self.running_task_db.create_update_schema()
             await self.job_db.create_update_schema()
             await self.config_entity_db.create_update_schema()
@@ -105,11 +115,13 @@ class DbAccess(Service):
                 log.info(f"Found graph: {graph_name}")
                 db = self.get_graph_db(graph_name)
                 await db.create_update_schema()
-                await self.get_graph_model_db(graph_name)
-        await self.cleaner.start()
-
-    async def stop(self) -> None:
-        await self.cleaner.stop()
+                em = await self.get_graph_model_db(graph_name)
+                await em.create_update_schema()
+            if git_hash is not None:
+                # update the system data version to not migrate the next time
+                await self.system_data_db.update_system_version(git_hash)
+            else:
+                log.warning("No git_hash found - will always update the database schema on startup.")
 
     def graph_model_name(self, graph_name: GraphName) -> str:
         return f"{graph_name}_model"
@@ -168,7 +180,6 @@ class DbAccess(Service):
         else:
             model_name = self.graph_model_name(graph_name)
             db = EventEntityDb(model_db(self.db, model_name), self.event_sender, model_name)
-            await db.create_update_schema()
             self.graph_model_dbs[graph_name] = db
             return db
 
@@ -235,7 +246,7 @@ class DbAccess(Service):
 
         def system_data() -> Tuple[bool, SystemData]:
             def insert_system_data() -> SystemData:
-                system = SystemData(uuid_str(), utc(), 1)
+                system = SystemData(uuid_str(), utc(), 1, current_git_hash())
                 log.info(f"Create new system data entry: {system}")
                 db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=True)
                 return system

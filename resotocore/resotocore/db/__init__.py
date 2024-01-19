@@ -1,3 +1,5 @@
+from typing import Optional
+
 from attrs import define
 from datetime import datetime
 from enum import Enum
@@ -10,6 +12,7 @@ class SystemData:
     system_id: str
     created_at: datetime
     db_version: int
+    version: Optional[str]
 
 
 class EstimatedQueryCostRating(Enum):

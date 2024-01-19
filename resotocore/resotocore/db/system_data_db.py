@@ -64,3 +64,9 @@ class SystemDataDb(JwtSigningKeyHolder):
             self.collection_name, kwargs, return_new=True, overwrite=True, overwrite_mode="update", merge=True
         )
         return drop_arango_props(doc["new"])  # type: ignore
+
+    async def update_system_version(self, version: str) -> SystemData:
+        doc = await self.db.update(
+            self.collection_name, dict(_key="system", version=version), return_new=True, merge=True
+        )
+        return from_js(doc["new"], SystemData)  # type: ignore

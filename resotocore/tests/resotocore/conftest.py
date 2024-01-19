@@ -866,7 +866,7 @@ async def user_management(
 @fixture
 async def system_data_db(test_db: StandardDatabase) -> AsyncIterator[SystemDataDb]:
     with suppress(Exception):
-        system = SystemData(uuid_str(), utc(), 1)
+        system = SystemData(uuid_str(), utc(), 1, "test_version")
         test_db.insert_document("system_data", {"_key": "system", **to_js(system)}, overwrite=False)
     with suppress(Exception):
         test_db.insert_document(

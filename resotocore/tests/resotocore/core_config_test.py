@@ -136,11 +136,11 @@ def test_in_docker() -> None:
         stored = core_config.GitHashFile
         core_config.GitHashFile = str(path)
         assert core_config.inside_docker() is True
-        assert core_config.git_hash_from_file() == "foo"
+        assert core_config.current_git_hash() == "foo"
         assert core_config.default_hosts() == ["0.0.0.0"]
         core_config.GitHashFile = "/this/path/does/not/exist"
         assert core_config.inside_docker() is False
-        assert core_config.git_hash_from_file() is None
+        assert core_config.current_git_hash() is None
         assert core_config.default_hosts() == ["localhost"]
         core_config.GitHashFile = stored
 

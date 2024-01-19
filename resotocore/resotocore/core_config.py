@@ -1,10 +1,12 @@
 import logging
 import os
 import re
+import subprocess
 from argparse import Namespace
 from contextlib import suppress
 from copy import deepcopy
 from datetime import timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional, List, ClassVar, Dict, Union, cast, Callable
 
@@ -39,15 +41,18 @@ ResotoCoreRootRE = re.compile(r"^resotocore[.]")
 GitHashFile = "/usr/local/etc/git-commit.HEAD"
 
 
-def git_hash_from_file() -> Optional[str]:
+@lru_cache(maxsize=1)
+def current_git_hash() -> Optional[str]:
     """
-    Returns the git hash from the file created by the docker build.
-    In case we do not run inside a docker container, this method returns None.
+    Returns the git hash either from the file created by the docker build,
+    or it tries to get it from git directly.
+    If both fails, it returns None.
     """
     with suppress(Exception):
         path = Path(GitHashFile)
         if path.exists():
             return path.read_text("utf-8").strip()
+        return subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
     return None
 
 
@@ -60,7 +65,7 @@ def inside_docker() -> bool:
         os.environ.get("INSIDE_DOCKER", "false").lower() in ("true", "yes", "1")
         or os.environ.get("INSIDE_KUBERNETES", "false").lower() in ("true", "yes", "1")
         # this file is available in the created docker container
-        or git_hash_from_file() is not None
+        or current_git_hash() is not None
     )
 
 
