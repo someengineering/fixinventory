@@ -49,6 +49,7 @@ from resotocore.db.db_access import DbAccess
 from resotocore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from resotocore.db.graphdb import ArangoGraphDB, EventGraphDB
 from resotocore.db.jobdb import JobDb
+from resotocore.db.modeldb import model_db
 from resotocore.db.packagedb import PackageEntityDb, app_package_entity_db
 from resotocore.db.reportdb import ReportCheckDb, BenchmarkDb
 from resotocore.db.runningtaskdb import RunningTaskDb
@@ -198,6 +199,7 @@ def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> Standard
 async def graph_db(async_db: AsyncArangoDB) -> ArangoGraphDB:
     graph_db = ArangoGraphDB(async_db, GraphName("ns"), NoAdjust(), GraphUpdateConfig())
     await graph_db.create_update_schema()
+    await model_db(async_db, "ns_model").create_update_schema()
     await async_db.truncate(graph_db.in_progress)
     return graph_db
 
