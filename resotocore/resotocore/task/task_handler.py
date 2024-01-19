@@ -253,8 +253,9 @@ class TaskHandlerService(TaskHandler, Service):
         log.debug("TaskHandlerService is starting up!")
 
         # load job descriptions from database
-        db_jobs = [job async for job in self.job_db.all()]
-        self.task_descriptions = [*self.task_descriptions, *db_jobs]
+        if not self.config.multi_tenant_setup:
+            db_jobs = [job async for job in self.job_db.all()]
+            self.task_descriptions = [*self.task_descriptions, *db_jobs]
 
         # load and restore all tasks
         if not self.config.args.ignore_interrupted_tasks and not self.config.multi_tenant_setup:
