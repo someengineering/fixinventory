@@ -19,7 +19,7 @@ from logging import (
     Logger,
 )
 
-
+from prometheus_client import Counter
 from resotolib.args import ArgumentParser
 from resotolib.types import Json
 
@@ -28,6 +28,8 @@ DEBUG3 = DEBUG - 2
 DEBUG4 = DEBUG - 3
 DEBUG5 = DEBUG - 4
 TRACE = DEBUG - 5
+
+LogRecordCounter = Counter("log_record_counter", "Number of logs by severity", ["component", "level"])
 
 getLogger().setLevel(ERROR)
 getLogger("resoto").setLevel(INFO)
@@ -115,6 +117,16 @@ class JsonFormatter(Formatter):
         return json.dumps(message_dict, default=str)
 
 
+class PrometheusLoggingCounter(StreamHandler):  # type: ignore
+    def __init__(self, component: str) -> None:
+        super().__init__()
+        self.component = component
+
+    def emit(self, record: LogRecord) -> None:
+        LogRecordCounter.labels(component=self.component, level=record.levelname).inc()
+        super().emit(record)
+
+
 def setup_logger(
     proc: str,
     *,
@@ -123,11 +135,12 @@ def setup_logger(
     quiet: bool = False,
     level: Optional[str] = None,
     json_format: bool = True,
+    count_logs: bool = True,
 ) -> None:
+    handler = PrometheusLoggingCounter(proc) if count_logs else StreamHandler()
     # override log output via env var
     plain_text = os.environ.get("RESOTO_LOG_TEXT", "false").lower() == "true"
     if json_format and not plain_text:
-        handler = StreamHandler()
         formatter = JsonFormatter(
             {
                 "timestamp": "asctime",
@@ -144,7 +157,7 @@ def setup_logger(
         log_format = f"%(asctime)s|{proc}|%(levelname)5s|%(process)d|%(threadName)10s  %(message)s"
         # allow to define the log format via env var
         log_format = os.environ.get("RESOTO_LOG_FORMAT", log_format)
-        basicConfig(format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
+        basicConfig(handlers=[handler], format=log_format, datefmt="%y-%m-%d %H:%M:%S", force=force)
     argv = sys.argv[1:]
     if level:
         getLogger("resoto").setLevel(level)
