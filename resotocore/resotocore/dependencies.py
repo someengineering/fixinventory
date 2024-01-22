@@ -13,6 +13,7 @@ from typing import Callable, Awaitable
 
 from aiohttp import ClientSession, TCPConnector
 from aiohttp.web import Request
+from arango import ArangoServerError
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
 from attr import define
@@ -350,6 +351,7 @@ class GraphDbAccess:
     database: str
     username: str
     password: str
+    create_database: bool = False
 
     def is_valid(self) -> bool:
         return bool(self.server and self.database and self.username)
@@ -381,6 +383,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
             request.headers.get("FixGraphDbDatabase", ""),
             request.headers.get("FixGraphDbUsername", ""),
             request.headers.get("FixGraphDbPassword", ""),
+            request.headers.get("FixGraphDbCreateDatabase", "false").lower() == "true",
         )
         if not db_access.is_valid():
             raise ValueError("Invalid graph db access data provided for multi tenant requests!")
@@ -399,7 +402,25 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
             http_client = ArangoHTTPClient(args.graphdb_request_timeout, verify=dp.config.run.verify)
             client = ArangoClient(hosts=access.server, http_client=http_client)
             deps.register_on_stop_callback(client.close)
-            return client.db(name=access.database, username=access.username, password=access.password)
+            tdb = client.db(name=access.database, username=access.username, password=access.password)
+            # create database if requested
+            if access.create_database:
+                try:
+                    tdb.echo()
+                except ArangoServerError as ex:
+                    if ex.error_code in (11, 1228, 1703):
+                        DbAccess.create_database(
+                            server=access.server,
+                            database=access.database,
+                            username=access.username,
+                            password=access.password,
+                            root_password=args.graphdb_root_password,
+                            request_timeout=args.graphdb_request_timeout,
+                            secure_root=False,
+                        )
+                    else:
+                        raise
+            return tdb
 
         # direct db access
         sdb = deps.add(ServiceNames.system_database, await run_async(standard_database))

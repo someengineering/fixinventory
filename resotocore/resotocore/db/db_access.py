@@ -205,6 +205,54 @@ class DbAccess(Service):
                     log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
                     await db.abort_update(batch_id)
 
+    @classmethod
+    def create_database(
+        cls,
+        *,
+        server: str,
+        username: str,
+        password: str,
+        database: str,
+        root_password: str,
+        request_timeout: int,
+        secure_root: bool,
+    ) -> None:
+        try:
+            # try to access the system database with given credentials.
+            http_client = ArangoHTTPClient(request_timeout, False)
+            root_db = ArangoClient(hosts=server, http_client=http_client).db(password=root_password)
+            root_db.echo()  # this call will fail if we are not allowed to access the system db
+            user = username
+            change = False
+            if not root_db.has_user(user):
+                log.info("Configured graph db user does not exist. Create it.")
+                root_db.create_user(user, password, active=True)
+                change = True
+            if not root_db.has_database(database):
+                log.info("Configured graph db database does not exist. Create it.")
+                root_db.create_database(
+                    database,
+                    [{"username": user, "password": password, "active": True, "extra": {"generated": "resoto"}}],
+                )
+                change = True
+            if change and secure_root and root_password == "" and password != "" and password not in {"test"}:
+                root_db.replace_user("root", password, True)
+                log.info(
+                    "Database is using an empty password. "
+                    "Secure the root account with the provided user password. "
+                    "Login to the Resoto database via provided username and password. "
+                    "Login to the System database via `root` and provided password!"
+                )
+            if not change:
+                log.info("Not allowed to access database, while user and database exist. Wrong password?")
+        except Exception as ex:
+            log.error(
+                "Database or user does not exist or does not have enough permissions. "
+                f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
+                "You can provide the password of the root user via --graphdb-root-password to setup "
+                "a Resoto user and database automatically."
+            )
+
     # Only used during startup.
     # Note: this call uses sleep and will block the current executing thread!
     @classmethod
@@ -213,48 +261,6 @@ class DbAccess(Service):
     ) -> Tuple[bool, SystemData, StandardDatabase]:
         deadline = utc() + timeout
         db = cls.client(args, verify)
-
-        def create_database() -> None:
-            try:
-                # try to access the system database with default credentials.
-                # this only works if arango has been started with default settings.
-                http_client = ArangoHTTPClient(args.graphdb_request_timeout, False)
-                root_pw = args.graphdb_root_password
-                secure_root = not args.graphdb_bootstrap_do_not_secure
-                root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db(password=root_pw)
-                root_db.echo()  # this call will fail, if we are not allowed to access the system db
-                user = args.graphdb_username
-                passwd = args.graphdb_password
-                database = args.graphdb_database
-                change = False
-                if not root_db.has_user(user):
-                    log.info("Configured graph db user does not exist. Create it.")
-                    root_db.create_user(user, passwd, active=True)
-                    change = True
-                if not root_db.has_database(database):
-                    log.info("Configured graph db database does not exist. Create it.")
-                    root_db.create_database(
-                        database,
-                        [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],
-                    )
-                    change = True
-                if change and secure_root and root_pw == "" and passwd != "" and passwd not in {"test"}:
-                    root_db.replace_user("root", passwd, True)
-                    log.info(
-                        "Database is using an empty password. "
-                        "Secure the root account with the provided user password. "
-                        "Login to the Resoto database via provided username and password. "
-                        "Login to the System database via `root` and provided password!"
-                    )
-                if not change:
-                    log.info("Not allowed to access database, while user and database exist. Wrong password?")
-            except Exception as ex:
-                log.error(
-                    "Database or user does not exist or does not have enough permissions. "
-                    f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
-                    "You can provide the password of the root user via --graphdb-root-password to setup "
-                    "a Resoto user and database automatically."
-                )
 
         def system_data() -> Tuple[bool, SystemData]:
             def insert_system_data() -> SystemData:
@@ -291,7 +297,15 @@ class DbAccess(Service):
                     # This means we can reach the database, but are either not allowed to access it
                     # or the related user and or database could not be found.
                     # We assume the database does not exist and try to create it.
-                    create_database()
+                    cls.create_database(
+                        server=args.graphdb_server,
+                        username=args.graphdb_username,
+                        password=args.graphdb_password,
+                        database=args.graphdb_database,
+                        root_password=args.graphdb_root_password,
+                        request_timeout=args.graphdb_request_timeout,
+                        secure_root=not args.graphdb_bootstrap_do_not_secure,
+                    )
                 else:
                     log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 # Retry directly after the first attempt
