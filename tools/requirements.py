@@ -60,26 +60,20 @@ def filter_dependencies(deps: List[str]) -> List[str]:
     return [dep for dep in deps if not any(name in dep for name in filter_out)]
 
 
-def compile_dependencies(name: Optional[str], deps: List[str], all_dependencies: List[str]) -> List[str]:
-    # If a dependency is defined in all, use that version
-    def dependency_line(dep: str) -> str:
-        d_name, d_version = dep.split("==", maxsplit=1)
-        if defined_in_all := [a for a in all_dependencies if a.startswith(d_name + "==")]:
-            assert len(defined_in_all) == 1, f"More than one dependency with this name: {d_name}"
-            return defined_in_all[0]
-        else:
-            return dep
-
+def compile_dependencies(name: Optional[str], deps: List[str], use_version: Optional[List[str]] = None) -> List[str]:
     print(f"Compile dependencies for {name or 'prod'}")
     delim = "-" + name if name else ""
+    if use_version:
+        lookup = dict(((dep.split("==", maxsplit=1)[0], dep) for dep in use_version))
+        deps = [lookup.get(dep.split("==", maxsplit=1)[0], dep) for dep in deps]
     with open(f"requirements{delim}-in.txt", "w") as f:
         f.write("\n".join(deps))
-    args = "-q --no-annotate --resolver=backtracking --upgrade --allow-unsafe --no-header  --unsafe-package n/a"
+    args = "-q --no-annotate --resolver=backtracking --upgrade --allow-unsafe --no-header  --unsafe-package n/a --no-strip-extras"
     os.system(f"pip-compile {args} --output-file requirements{delim}.txt requirements{delim}-in.txt")
     os.remove(f"requirements{delim}-in.txt")
     # make sure, none of the filtered dependencies was selected as transitive dependency
     with open(f"requirements{delim}.txt", "r+") as f:
-        lines = [dependency_line(line) for line in f.readlines() if not any(name in line for name in filter_out)]
+        lines = [line for line in f.readlines() if not any(name in line for name in filter_out)]
         f.seek(0)
         f.writelines(lines)
         f.truncate()
@@ -92,17 +86,20 @@ def combine_dependencies() -> None:
     for project in all_project_definitions():
         prod_dependencies.extend(filter_dependencies(project.dependencies))
         for name, deps in project.optional_dependencies.items():
+            assert name in ("test", "extra"), f"How to handle: {name}? dev (all) or prod dependency?"
             optional_dependencies[name].extend(filter_dependencies(deps))
 
-    # gather all dependencies
-    all_dependencies = prod_dependencies.copy()
+    # gather dependencies
+    extra_dependencies = prod_dependencies.copy()
     for name, deps in optional_dependencies.items():
-        all_dependencies.extend(deps)
-    all_compiled = compile_dependencies("all", all_dependencies, [])
-
-    compile_dependencies(None, prod_dependencies, all_compiled)
-    for name, deps in optional_dependencies.items():
-        compile_dependencies(name, deps + prod_dependencies, all_compiled)
+        if name != "test":
+            extra_dependencies.extend(deps)
+    # compile all prod + extra dependencies
+    extra_compiled = compile_dependencies("extra", extra_dependencies)
+    # compile prod, by using the extra-compiled versions
+    compile_dependencies(None, prod_dependencies, extra_compiled)
+    # compile all dependencies by adding test to the extra-compiled dependencies
+    compile_dependencies("all", extra_compiled + optional_dependencies.get("test", []))
 
 
 if __name__ == "__main__":
