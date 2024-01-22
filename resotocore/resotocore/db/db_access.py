@@ -12,7 +12,7 @@ from requests.exceptions import RequestException
 
 from resotocore.analytics import AnalyticsEventSender
 from resotocore.async_extensions import run_async
-from resotocore.core_config import CoreConfig
+from resotocore.core_config import CoreConfig, current_git_hash
 from resotocore.db import SystemData
 from resotocore.db.arangodb_extensions import ArangoHTTPClient
 from resotocore.db.async_arangodb import AsyncArangoDB
@@ -82,7 +82,24 @@ class DbAccess(Service):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        if not self.config.multi_tenant_setup:
+        await self.__migrate()
+        await self.cleaner.start()
+
+    async def stop(self) -> None:
+        await self.cleaner.stop()
+
+    async def __migrate(self) -> None:
+        try:
+            system_data = await self.system_data_db.system_data()
+        except Exception:
+            system_data = None
+            if not await self.db.has_collection("system_data"):  # make sure the system data collection exists
+                await self.db.create_collection("system_data")
+        if system_data is None:  # in case no version is available, create a genesis version
+            system_data = SystemData(uuid_str(), utc(), 1)
+        git_hash = current_git_hash()
+        if system_data.version is None or git_hash is None or git_hash != system_data.version:
+            log.info(f"Version change detected. Running migrations. {system_data.version} -> {git_hash}")
             await self.running_task_db.create_update_schema()
             await self.job_db.create_update_schema()
             await self.config_entity_db.create_update_schema()
@@ -105,11 +122,14 @@ class DbAccess(Service):
                 log.info(f"Found graph: {graph_name}")
                 db = self.get_graph_db(graph_name)
                 await db.create_update_schema()
-                await self.get_graph_model_db(graph_name)
-        await self.cleaner.start()
-
-    async def stop(self) -> None:
-        await self.cleaner.stop()
+                em = await self.get_graph_model_db(graph_name)
+                await em.create_update_schema()
+            if git_hash is not None:
+                # update the system data version to not migrate the next time
+                system_data.version = git_hash
+                await self.system_data_db.update_system_data(system_data)
+            else:
+                log.warning("No git_hash found - will always update the database schema on startup.")
 
     def graph_model_name(self, graph_name: GraphName) -> str:
         return f"{graph_name}_model"
@@ -118,8 +138,12 @@ class DbAccess(Service):
         if validate_name:
             check_graph_name(name)
 
+        # create the graph in the database
         db = self.get_graph_db(name, no_check=True)
         await db.create_update_schema()
+        # also create the related model database
+        model = await self.get_graph_model_db(name)
+        await model.create_update_schema()
         return db
 
     async def delete_graph(self, name: GraphName) -> None:
@@ -168,7 +192,6 @@ class DbAccess(Service):
         else:
             model_name = self.graph_model_name(graph_name)
             db = EventEntityDb(model_db(self.db, model_name), self.event_sender, model_name)
-            await db.create_update_schema()
             self.graph_model_dbs[graph_name] = db
             return db
 
@@ -182,6 +205,55 @@ class DbAccess(Service):
                     log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
                     await db.abort_update(batch_id)
 
+    @classmethod
+    def create_database(
+        cls,
+        *,
+        server: str,
+        username: str,
+        password: str,
+        database: str,
+        root_password: str,
+        request_timeout: int,
+        secure_root: bool,
+    ) -> None:
+        log.info(f"Create new database {database} for user {username} on server {server}.")
+        try:
+            # try to access the system database with given credentials.
+            http_client = ArangoHTTPClient(request_timeout, False)
+            root_db = ArangoClient(hosts=server, http_client=http_client).db(password=root_password)
+            root_db.echo()  # this call will fail if we are not allowed to access the system db
+            user = username
+            change = False
+            if not root_db.has_user(user):
+                log.info("Configured graph db user does not exist. Create it.")
+                root_db.create_user(user, password, active=True)
+                change = True
+            if not root_db.has_database(database):
+                log.info("Configured graph db database does not exist. Create it.")
+                root_db.create_database(
+                    database,
+                    [{"username": user, "password": password, "active": True, "extra": {"generated": "resoto"}}],
+                )
+                change = True
+            if change and secure_root and root_password == "" and password != "" and password not in {"test"}:
+                root_db.replace_user("root", password, True)
+                log.info(
+                    "Database is using an empty password. "
+                    "Secure the root account with the provided user password. "
+                    "Login to the Resoto database via provided username and password. "
+                    "Login to the System database via `root` and provided password!"
+                )
+            if not change:
+                log.info("Not allowed to access database, while user and database exist. Wrong password?")
+        except Exception as ex:
+            log.error(
+                "Database or user does not exist or does not have enough permissions. "
+                f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
+                "You can provide the password of the root user via --graphdb-root-password to setup "
+                "a Resoto user and database automatically."
+            )
+
     # Only used during startup.
     # Note: this call uses sleep and will block the current executing thread!
     @classmethod
@@ -190,48 +262,6 @@ class DbAccess(Service):
     ) -> Tuple[bool, SystemData, StandardDatabase]:
         deadline = utc() + timeout
         db = cls.client(args, verify)
-
-        def create_database() -> None:
-            try:
-                # try to access the system database with default credentials.
-                # this only works if arango has been started with default settings.
-                http_client = ArangoHTTPClient(args.graphdb_request_timeout, False)
-                root_pw = args.graphdb_root_password
-                secure_root = not args.graphdb_bootstrap_do_not_secure
-                root_db = ArangoClient(hosts=args.graphdb_server, http_client=http_client).db(password=root_pw)
-                root_db.echo()  # this call will fail, if we are not allowed to access the system db
-                user = args.graphdb_username
-                passwd = args.graphdb_password
-                database = args.graphdb_database
-                change = False
-                if not root_db.has_user(user):
-                    log.info("Configured graph db user does not exist. Create it.")
-                    root_db.create_user(user, passwd, active=True)
-                    change = True
-                if not root_db.has_database(database):
-                    log.info("Configured graph db database does not exist. Create it.")
-                    root_db.create_database(
-                        database,
-                        [{"username": user, "password": passwd, "active": True, "extra": {"generated": "resoto"}}],
-                    )
-                    change = True
-                if change and secure_root and root_pw == "" and passwd != "" and passwd not in {"test"}:
-                    root_db.replace_user("root", passwd, True)
-                    log.info(
-                        "Database is using an empty password. "
-                        "Secure the root account with the provided user password. "
-                        "Login to the Resoto database via provided username and password. "
-                        "Login to the System database via `root` and provided password!"
-                    )
-                if not change:
-                    log.info("Not allowed to access database, while user and database exist. Wrong password?")
-            except Exception as ex:
-                log.error(
-                    "Database or user does not exist or does not have enough permissions. "
-                    f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
-                    "You can provide the password of the root user via --graphdb-root-password to setup "
-                    "a Resoto user and database automatically."
-                )
 
         def system_data() -> Tuple[bool, SystemData]:
             def insert_system_data() -> SystemData:
@@ -268,7 +298,15 @@ class DbAccess(Service):
                     # This means we can reach the database, but are either not allowed to access it
                     # or the related user and or database could not be found.
                     # We assume the database does not exist and try to create it.
-                    create_database()
+                    cls.create_database(
+                        server=args.graphdb_server,
+                        username=args.graphdb_username,
+                        password=args.graphdb_password,
+                        database=args.graphdb_database,
+                        root_password=args.graphdb_root_password,
+                        request_timeout=args.graphdb_request_timeout,
+                        secure_root=not args.graphdb_bootstrap_do_not_secure,
+                    )
                 else:
                     log.warning(f"Problem accessing the graph database: {ex}. Trying again in 5 seconds.")
                 # Retry directly after the first attempt

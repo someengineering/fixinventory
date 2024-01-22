@@ -3,7 +3,7 @@ from typing import Tuple, Dict, Optional
 
 from resotocore.db import SystemData, drop_arango_props
 from resotocore.db.async_arangodb import AsyncArangoDB
-from resotocore.model.typed_model import from_js
+from resotocore.model.typed_model import from_js, to_js
 from resotocore.util import if_set
 from resotolib.x509 import bootstrap_ca, key_to_bytes, cert_to_bytes
 
@@ -64,3 +64,13 @@ class SystemDataDb(JwtSigningKeyHolder):
             self.collection_name, kwargs, return_new=True, overwrite=True, overwrite_mode="update", merge=True
         )
         return drop_arango_props(doc["new"])  # type: ignore
+
+    async def update_system_data(self, data: SystemData) -> SystemData:
+        doc = await self.db.insert(
+            self.collection_name,
+            dict(_key="system", **to_js(data)),
+            return_new=True,
+            overwrite=True,
+            overwrite_mode="replace",
+        )
+        return from_js(doc["new"], SystemData)  # type: ignore

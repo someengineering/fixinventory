@@ -7,7 +7,7 @@ import warnings
 from argparse import Namespace
 from asyncio import Queue
 from contextlib import suppress
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -127,7 +127,7 @@ def run_process(args: Namespace) -> None:
             cert_handler_no_ca = deps.add(ServiceNames.cert_handler, CertificateHandlerNoCA.lookup(config, temp))
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler_no_ca.ca_bundle)
             deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
-            deps.add(ServiceNames.system_data, SystemData("multi-tenant", datetime(2023, 9, 1, tzinfo=timezone.utc), 1))
+            deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), 1))
             deps.add(
                 ServiceNames.event_sender,
                 PostHogEventSender(deps.system_data) if config.runtime.usage_metrics else NoEventSender(),

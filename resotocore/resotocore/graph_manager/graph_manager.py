@@ -174,6 +174,7 @@ class GraphManager(Service):
 
         source_model_db = await self.db_access.get_graph_model_db(source)
         destination_model_db = await self.db_access.get_graph_model_db(destination)
+        await destination_model_db.create_update_schema()
 
         model_kinds = [kind async for kind in source_model_db.all()]
         await destination_model_db.update_many(model_kinds)
@@ -288,6 +289,7 @@ class GraphManager(Service):
                     position += 1
 
                 graph_model_db = await self.db_access.get_graph_model_db(graph_name)
+                await graph_model_db.create_update_schema()
                 await graph_model_db.update_many(from_js(kinds, List[Kind]))
 
             # import the data into the temp graph

@@ -14,7 +14,7 @@ from parsy import Parser
 
 from resotocore import async_extensions, version
 from resotocore.analytics import AnalyticsEventSender
-from resotocore.core_config import CoreConfig, parse_config, git_hash_from_file, inside_docker
+from resotocore.core_config import CoreConfig, parse_config, current_git_hash, inside_docker
 from resotocore.db.db_access import DbAccess
 from resotocore.model.adjust_node import DirectAdjuster
 from resotocore.types import JsonElement
@@ -46,7 +46,7 @@ def system_info() -> SystemInfo:
     mem = psutil.virtual_memory()
     return SystemInfo(
         version=version(),
-        git_hash=git_hash_from_file() or "n/a",
+        git_hash=current_git_hash() or None,
         cpus=mp.cpu_count(),
         mem_available=iec_size_format(mem.available),
         mem_total=iec_size_format(mem.total),
