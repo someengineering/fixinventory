@@ -407,6 +407,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
             if access.create_database:
                 try:
                     tdb.echo()
+                    log.warning(f"Tenant: {tenant_hash}: Create database requested but it already exists!")
                 except ArangoServerError as ex:
                     if ex.error_code in (11, 1228, 1703):
                         DbAccess.create_database(

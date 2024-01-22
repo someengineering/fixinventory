@@ -217,6 +217,7 @@ class DbAccess(Service):
         request_timeout: int,
         secure_root: bool,
     ) -> None:
+        log.info(f"Create new database {database} for user {username} on server {server}.")
         try:
             # try to access the system database with given credentials.
             http_client = ArangoHTTPClient(request_timeout, False)
