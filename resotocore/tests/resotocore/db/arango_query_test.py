@@ -168,7 +168,7 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
     assert (
         "for agg0 in filter0 FOR pre0 IN APPEND(TO_ARRAY(agg0.a), {_internal: true}) "
         "FOR pre1 IN APPEND(TO_ARRAY(pre0.b), {_internal: true}) "
-        "FILTER pre0._internal!=true OR pre1._internal!=true  "
+        "FILTER pre0._internal!=true AND pre1._internal!=true  "
         "collect var_0=agg0.name, var_1=pre1.c "
         "aggregate fn_0=max(agg0.num) "
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0}' in q
@@ -201,6 +201,19 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0, '
         '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
+    q, _ = to_query(
+        graph_db,
+        QueryModel(parse_query("aggregate(name, a[*].b[*]: max(num)): is(foo)"), foo_model),
+    )
+    assert (
+        "for agg0 in filter0 "
+        "FOR pre0 IN APPEND(TO_ARRAY(agg0.a), {_internal: true}) "
+        "FOR pre1 IN APPEND(TO_ARRAY(pre0.b), {_internal: true}) "
+        "FILTER pre0._internal!=true AND pre1._internal!=true  "
+        "collect var_0=agg0.name, var_1=pre1 "
+        'aggregate fn_0=max(agg0.num) RETURN {"group":{"name": var_0, "b[*]": var_1}, "max_of_num": fn_0}) '
+        'FOR result in aggregated RETURN UNSET(result, ["flat"])'
+    ) in q
 
 
 def test_possible_values(foo_model: Model, graph_db: GraphDB) -> None:
