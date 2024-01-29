@@ -79,8 +79,8 @@ ancestor_merges = {
     f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
 }
 
-array_marker = re.compile(r"\[]|\[[*]]")
-array_marker_in_path_regexp = re.compile(r"\[]|\[[*]](?=[.])")
+array_marker = re.compile(r"\[]|\[\*]")
+array_marker_in_path_regexp = re.compile(r"(?:\[]|\[\*])(?=[.])")
 
 
 class ArangoQueryContext:
@@ -168,7 +168,7 @@ def query_string(
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
         cursor_lookup: Dict[Tuple[str, ...], str] = {}
         nested_function_lookup: Dict[AggregateFunction, str] = {}
-        nested = {name for agg in a.group_by for name in agg.all_names() if array_marker_in_path_regexp.search(name)}
+        nested = {name for agg in a.group_by for name in agg.all_names() if array_marker.search(name)}
         # If we have a nested array, we need to unfold the array and create a new for loop for each array access.
         if nested:
             cursor = ctx.next_crs("agg")
@@ -176,29 +176,33 @@ def query_string(
             internals = []
             for ag in nested:
                 inner_crsr = cursor
-                ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(ag)]
+                ars = [a.lstrip(".") for a in array_marker.split(ag)]
                 ar_parts = []
                 for ar in ars[0:-1]:
                     ar_parts.append(ar)
-                    if tuple(ar_parts) in cursor_lookup:
+                    if existing_nested := cursor_lookup.get(tuple(ar_parts)):
+                        inner_crsr = existing_nested
                         continue
                     nxt_crs = ctx.next_crs("pre")
                     cursor_lookup[tuple(ar_parts)] = nxt_crs
                     for_loop += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({inner_crsr}.{ar}), {{_internal: true}})"
                     internals.append(f"{nxt_crs}._internal!=true")
                     inner_crsr = nxt_crs
-            for_loop += f" FILTER {' OR '.join(internals)}"
+            for_loop += f" FILTER {' AND '.join(internals)}"
         else:
             cursor = ctx.next_crs("agg")
             for_loop = f"for {cursor} in {in_cursor}"
 
         # the property needs to be accessed from the correct cursor
         def prop_for(name: str) -> str:
-            ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(name)]
+            ars = [a.lstrip(".") for a in array_marker.split(name)]
             if len(ars) == 1:  # no array access
                 return f"{cursor}.{name}"
             else:  # array access
-                return f"{cursor_lookup[tuple(ars[0:-1])]}.{ars[-1]}"
+                if ars[-1] == "":  # last part is array
+                    return cursor_lookup[tuple(ars[0:-1])]
+                else:
+                    return f"{cursor_lookup[tuple(ars[0:-1])]}.{ars[-1]}"
 
         # the function needs to be accessed from the correct cursor or from a let expression
         def function_value_for(fn: AggregateFunction, name: str) -> str:
