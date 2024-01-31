@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, Future
 from typing import Any, Optional, Type, Set, List
+from datetime import datetime, timezone
 
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
 from resoto_plugin_azure.azure_client import AzureClient
@@ -19,7 +20,9 @@ from resoto_plugin_azure.resource.network import resources as network_resources
 from resotolib.baseresources import Cloud, GraphRoot
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph
+from resotolib.json import value_in_path
 from resotolib.threading import ExecutorQueue, GatherFutures
+from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugin.azure")
 
@@ -44,6 +47,7 @@ class AzureSubscriptionCollector:
         subscription: AzureSubscription,
         credentials: AzureCredentials,
         core_feedback: CoreFeedback,
+        task_data: Optional[Json] = None,
     ):
         self.config = config
         self.cloud = cloud
@@ -51,6 +55,7 @@ class AzureSubscriptionCollector:
         self.credentials = credentials
         self.core_feedback = core_feedback
         self.graph = Graph(root=subscription)
+        self.task_data = task_data
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -59,8 +64,29 @@ class AzureSubscriptionCollector:
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
-            client = AzureClient.create(self.credentials, self.subscription.subscription_id)
-            builder = GraphBuilder(self.graph, self.cloud, self.subscription, client, queue, self.core_feedback)
+            client = AzureClient.create(self.credentials, self.subscription.subscription_id, config=self.config)
+
+            def get_last_run() -> Optional[datetime]:
+                td = self.task_data
+                if not td:
+                    return None
+                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
+
+                if timestamp is None:
+                    return None
+
+                return datetime.fromtimestamp(timestamp, timezone.utc)
+
+            last_run = get_last_run()
+            builder = GraphBuilder(
+                self.graph,
+                self.cloud,
+                self.subscription,
+                client,
+                queue,
+                self.core_feedback,
+                last_run_started_at=last_run,
+            )
             # collect all locations
             locations = builder.fetch_locations()
             # collect all global resources

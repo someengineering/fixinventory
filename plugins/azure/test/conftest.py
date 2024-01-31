@@ -27,7 +27,13 @@ class StaticFileAzureClient(AzureClient):
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:
             js = json.load(f)
-            return js[spec.access_path] if spec.access_path else js  # type: ignore
+
+            if spec.expect_array:
+                js = js[spec.access_path]
+            if spec.expect_array and isinstance(js, list):
+                return js
+            else:
+                return [js]
 
     @staticmethod
     def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
@@ -44,6 +50,10 @@ class StaticFileAzureClient(AzureClient):
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
+
+    @property
+    def config(self) -> AzureConfig:
+        return AzureConfig()
 
 
 @fixture

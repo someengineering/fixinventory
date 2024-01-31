@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import Future
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Lock
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
@@ -12,6 +12,7 @@ from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
+from resotolib.utils import utc
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -135,6 +136,13 @@ class AzureResource(BaseResource):
         pass
 
     @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        # Default behavior: do nothing
+        pass
+
+    @classmethod
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
@@ -143,7 +151,13 @@ class AzureResource(BaseResource):
         if spec := cls.api_spec:
             # TODO: add error handling
             items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder)
+            collected = cls.collect(items, builder)
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+            return collected
         return []
 
     @classmethod
@@ -453,6 +467,7 @@ class GraphBuilder:
         location: Optional[AzureLocation] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
+        last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -465,6 +480,21 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
         self.name = f"Azure:{subscription.name}"
+        self.last_run_started_at = last_run_started_at
+        self.created_at = utc()
+
+        if last_run_started_at:
+            now = utc()
+            start = last_run_started_at
+            delta = now - start
+
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
+
+        self.metrics_start = start.replace(tzinfo=None)
+        self.metrics_delta = delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -608,6 +638,10 @@ class GraphBuilder:
                 for (from_node, to_node, key) in self.graph.edges
                 if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
             ]
+
+    @property
+    def config(self) -> AzureConfig:
+        return self.client.config
 
     def fetch_locations(self) -> List[AzureLocation]:
         locations = AzureLocation.collect_resources(self)

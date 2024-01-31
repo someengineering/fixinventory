@@ -60,3 +60,8 @@ class AzureConfig:
         factory=lambda: {"default": AzureAccountConfig()},
         metadata={"description": "Configure accounts to collect subscriptions. You can define multiple accounts here."},
     )
+
+    collect_usage_metrics: Optional[bool] = field(
+        default=True,
+        metadata={"description": "Collect resource usage metrics via CloudWatch, enabled by default"},
+    )

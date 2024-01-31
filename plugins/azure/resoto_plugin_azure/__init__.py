@@ -16,11 +16,12 @@ from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressTree, ProgressDone
 from resotolib.graph import Graph
 from resotolib.proc import collector_initializer
+from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugin.azure")
 
 AzureSubscriptionArg = namedtuple(
-    "AzureSubscriptionArg", ["config", "cloud", "subscription", "account_config", "core_feedback"]
+    "AzureSubscriptionArg", ["config", "cloud", "subscription", "account_config", "core_feedback", "task_data"]
 )
 
 
@@ -56,6 +57,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
                 evolve(subscription, account_name=name),
                 ac,
                 self.core_feedback.with_context(cloud.id, subscription.safe_name),
+                self.task_data,
             )
             for name, ac in account_configs.items()
             for subscription in AzureSubscription.list_subscriptions(ac.credentials())
@@ -71,7 +73,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 
         # Collect all subscriptions
         with ThreadPoolExecutor(max_workers=config.subscription_pool_size) as executor:
-            wait_for = [executor.submit(collect_in_process, sub) for sub in args]
+            wait_for = [executor.submit(collect_in_process, sub, self.task_data) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()
                 progress.add_progress(ProgressDone(subscription.subscription_id, 1, 1, path=[cloud.id]))
@@ -84,15 +86,17 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 
 def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:  # type: ignore
     collector_initializer()
-    config, cloud, subscription, account_config, core_feedback = subscription_collector_arg
+    config, cloud, subscription, account_config, core_feedback, task_data = subscription_collector_arg
     subscription_collector = AzureSubscriptionCollector(
-        config, cloud, subscription, account_config.credentials(), core_feedback
+        config, cloud, subscription, account_config.credentials(), core_feedback, task_data
     )
     subscription_collector.collect()
     queue.put((subscription_collector_arg.subscription, subscription_collector.graph))
 
 
-def collect_in_process(subscription_collector_arg: AzureSubscriptionArg) -> Tuple[AzureSubscription, Graph]:
+def collect_in_process(
+    subscription_collector_arg: AzureSubscriptionArg, task_data: Optional[Json]
+) -> Tuple[AzureSubscription, Graph]:
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
     process = ctx.Process(
