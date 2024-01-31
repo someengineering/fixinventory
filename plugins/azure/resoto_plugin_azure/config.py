@@ -63,5 +63,5 @@ class AzureConfig:
 
     collect_usage_metrics: Optional[bool] = field(
         default=True,
-        metadata={"description": "Collect resource usage metrics via CloudWatch, enabled by default"},
+        metadata={"description": "Collect resource usage metrics via Azure Metric, enabled by default"},
     )

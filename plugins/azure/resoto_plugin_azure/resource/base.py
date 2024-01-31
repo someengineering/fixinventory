@@ -493,7 +493,7 @@ class GraphBuilder:
             delta = timedelta(hours=1)
             start = now - delta
 
-        self.metrics_start = start.replace(tzinfo=None)
+        self.metrics_start = start
         self.metrics_delta = delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Tuple, Union
-from urllib.parse import urlparse
+from typing import List, Optional, Any, Union
 
 from attr import define
 from azure.core.exceptions import (

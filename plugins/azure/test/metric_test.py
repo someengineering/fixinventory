@@ -9,7 +9,11 @@ def test_metric(azure_client: AzureClient) -> None:
     earlier = now - timedelta(days=60)
     resource_id = "/subscriptions/rwqrr2-31f1-rwqrrw-5325-wrq2r/resourceGroups/FOO/providers/Microsoft.Compute/virtualMachines/test1"
     write = AzureMetricQuery.create(
-        "Disk Write Operations/Sec", "Microsoft.Compute/virtualMachines", resource_id, resource_id, unit="CountPerSecond"
+        "Disk Write Operations/Sec",
+        "Microsoft.Compute/virtualMachines",
+        resource_id,
+        resource_id,
+        unit="CountPerSecond",
     )
     result = AzureMetricData.query_for(azure_client, [write], earlier, now)
     assert result[write].first_non_zero() == (datetime(2020, 1, 18, 16, 40, tzinfo=timezone.utc), 4836225.51)
