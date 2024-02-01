@@ -603,9 +603,14 @@ async def test_list_command(cli: CLI) -> None:
     assert result[0] == [
         {
             "columns": [
-                {"display": "Name", "kind": "string", "name": "name"},
-                {"display": "Some Int", "kind": "int32", "name": "some_int"},
-                {"display": "Foo․bla․bar.test.rest.best.", "kind": "string", "name": "foo․bla․bar.test.rest.best."},
+                {"display": "Name", "kind": "string", "name": "name", "path": "/name"},
+                {"display": "Some Int", "kind": "int32", "name": "some_int", "path": "/some_int"},
+                {
+                    "display": "Foo․bla․bar.test.rest.best.",
+                    "kind": "string",
+                    "name": "foo․bla․bar.test.rest.best.",
+                    "path": "/tags.`foo․bla․bar.test.rest.best.`",
+                },
             ],
         },
         {"id": "foo", "row": {"foo․bla․bar.test.rest.best.": "yup", "name": "a", "some_int": 1}},
