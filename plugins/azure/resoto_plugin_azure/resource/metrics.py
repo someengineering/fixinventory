@@ -4,11 +4,10 @@ from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from resoto_plugin_azure.resource.base import AzurePrivateLinkServiceConnectionState, AzureResource
 from resoto_plugin_azure.utils import MetricNormalization
 from resotolib.baseresources import BaseResource
 from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, K, ForallBend, Bend, bend
+from resotolib.json_bender import Bender, S, ForallBend, Bend, bend
 from resotolib.utils import utc_str
 
 
@@ -203,152 +202,6 @@ class AzureMetricData:
                     result[lookup[metric_id]] = metric
 
         return result
-
-
-@define(eq=False, slots=False)
-class AzureSystemData:
-    kind: ClassVar[str] = "azure_system_data"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "created_at": S("createdAt"),
-        "created_by": S("createdBy"),
-        "created_by_type": S("createdByType"),
-        "last_modified_at": S("lastModifiedAt"),
-        "last_modified_by": S("lastModifiedBy"),
-        "last_modified_by_type": S("lastModifiedByType"),
-    }
-    created_at: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp of resource creation (UTC).'})  # fmt: skip
-    created_by: Optional[str] = field(default=None, metadata={'description': 'The identity that created the resource.'})  # fmt: skip
-    created_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that created the resource.'})  # fmt: skip
-    last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp of resource last modification (UTC)'})  # fmt: skip
-    last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
-    last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_ids": S("properties", "groupIds"),
-        "id": S("id"),
-        "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The group ids for the private endpoint resource.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. E.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName} '})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureTrackedResource:
-    kind: ClassVar[str] = "azure_tracked_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "location": S("location"),
-        "name": S("name"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "tags": S("tags"),
-        "type": S("type"),
-    }
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'})  # fmt: skip
-    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMetrics:
-    kind: ClassVar[str] = "azure_metrics"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "internal_id": S("internalId"),
-        "prometheus_query_endpoint": S("prometheusQueryEndpoint"),
-    }
-    internal_id: Optional[str] = field(default=None, metadata={'description': 'An internal identifier for the metrics container. Only to be used by the system'})  # fmt: skip
-    prometheus_query_endpoint: Optional[str] = field(default=None, metadata={'description': 'The Prometheus query endpoint for the Azure Monitor Workspace'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureIngestionSettings:
-    kind: ClassVar[str] = "azure_ingestion_settings"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "data_collection_endpoint_resource_id": S("dataCollectionEndpointResourceId"),
-        "data_collection_rule_resource_id": S("dataCollectionRuleResourceId"),
-    }
-    data_collection_endpoint_resource_id: Optional[str] = field(default=None, metadata={'description': 'The Azure resource Id of the default data collection endpoint for this Azure Monitor Workspace.'})  # fmt: skip
-    data_collection_rule_resource_id: Optional[str] = field(default=None, metadata={'description': 'The Azure resource Id of the default data collection rule for this Azure Monitor Workspace.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureAzureMonitorWorkspace:
-    kind: ClassVar[str] = "azure_azure_monitor_workspace"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "account_id": S("accountId"),
-        "default_ingestion_settings": S("defaultIngestionSettings") >> Bend(AzureIngestionSettings.mapping),
-        "metrics": S("metrics") >> Bend(AzureMetrics.mapping),
-        "private_endpoint_connections": S("privateEndpointConnections")
-        >> ForallBend(AzurePrivateEndpointConnection.mapping),
-        "provisioning_state": S("provisioningState"),
-        "public_network_access": S("publicNetworkAccess"),
-    }
-    account_id: Optional[str] = field(default=None, metadata={'description': 'The immutable Id of the Azure Monitor Workspace. This property is read-only.'})  # fmt: skip
-    default_ingestion_settings: Optional[AzureIngestionSettings] = field(default=None, metadata={'description': 'The Data Collection Rule and Endpoint used for ingestion by default.'})  # fmt: skip
-    metrics: Optional[AzureMetrics] = field(default=None, metadata={'description': 'Properties related to the metrics container in the Azure Monitor Workspace'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the Azure Monitor Workspace. Set to Succeeded if everything is healthy.'})  # fmt: skip
-    public_network_access: Optional[str] = field(default=None, metadata={'description': 'Gets or sets allow or disallow public network access to Azure Monitor Workspace'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureProviderResourceOperationDescription:
-    kind: ClassVar[str] = "azure_provider_resource_operation_description"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={'description': 'The short, localized friendly description of the operation; suitable for tool tips and detailed views.'})  # fmt: skip
-    operation: Optional[str] = field(default=None, metadata={'description': 'The concise, localized friendly name for the operation; suitable for dropdowns. E.g. Create or Update Virtual Machine , Restart Virtual Machine .'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={'description': 'The localized friendly form of the resource provider name, e.g. Microsoft Monitoring Insights or Microsoft Compute .'})  # fmt: skip
-    resource: Optional[str] = field(default=None, metadata={'description': 'The localized friendly name of the resource type related to this operation. E.g. Virtual Machines or Job Schedule Collections .'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureOperation(AzureResource):
-    kind: ClassVar[str] = "azure_operation"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="monitor",
-        version="2023-04-03",
-        path="/providers/Microsoft.Monitor/operations",
-        path_parameters=[],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "action_type": S("actionType"),
-        "operation_display": S("display") >> Bend(AzureProviderResourceOperationDescription.mapping),
-        "is_data_action": S("isDataAction"),
-        "origin": S("origin"),
-    }
-    action_type: Optional[str] = field(default=None, metadata={'description': 'Enum. Indicates the action type. Internal refers to actions that are for internal only APIs.'})  # fmt: skip
-    operation_display: Optional[AzureProviderResourceOperationDescription] = field(default=None, metadata={'description': 'Localized display information for this particular operation.'})  # fmt: skip
-    is_data_action: Optional[bool] = field(default=None, metadata={'description': 'Whether the operation applies to data-plane. This is true for data-plane operations and false for ARM/control-plane operations.'})  # fmt: skip
-    origin: Optional[str] = field(default=None, metadata={'description': 'The intended executor of the operation; as in Resource Based Access Control (RBAC) and audit logs UX. Default value is user,system '})  # fmt: skip
 
 
 V = TypeVar("V", bound=BaseResource)
