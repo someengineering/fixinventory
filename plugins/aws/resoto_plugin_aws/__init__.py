@@ -88,9 +88,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: AWS collecting resources")
         aws_config: AwsConfig = Config.aws
         assert self.core_feedback, "core_feedback is not set"
-        cloud = Cloud(id=self.cloud, name="AWS")
 
-        accounts = get_accounts(self.core_feedback.with_context(cloud.id))
+        accounts = get_accounts(self.core_feedback.with_context(self.root.id))
         if len(accounts) == 0:
             log.error("No accounts found")
             return
@@ -123,8 +122,8 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     self.regions(profile=account.profile, partition=account.partition),
                     ArgumentParser.args,
                     Config.running_config,
-                    self.core_feedback.with_context(cloud.id, account.dname),
-                    cloud,
+                    self.core_feedback.with_context(self.root.id, account.dname),
+                    self.root,
                     self.task_data or {},
                 )
                 for account in accounts
