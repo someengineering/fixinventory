@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Union
+from typing import List, Optional, Any, Tuple, Union
+from urllib.parse import urlparse
 
 from attr import define
 from azure.core.exceptions import (
@@ -18,7 +19,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.resource.resources._serialization import Serializer
 from azure.mgmt.resource.resources.models import GenericResource
 
-from resoto_plugin_azure.config import AzureConfig, AzureCredentials
+from resoto_plugin_azure.config import AzureCredentials
 from resotolib.types import Json
 
 
@@ -54,19 +55,13 @@ class AzureClient(ABC):
     def delete_resource_tag(self, tag_name: str, resource_id: str) -> bool:
         pass
 
-    @property
-    @abstractmethod
-    def config(self) -> AzureConfig:
-        pass
-
     @staticmethod
     def __create_management_client(
         credential: AzureCredentials,
         subscription_id: str,
         resource_group: Optional[str] = None,
-        config: Optional[AzureConfig] = None,
     ) -> AzureClient:
-        return AzureResourceManagementClient(credential, subscription_id, resource_group, config)
+        return AzureResourceManagementClient(credential, subscription_id, resource_group)
 
     create = __create_management_client
 
@@ -77,19 +72,11 @@ class AzureResourceManagementClient(AzureClient):
         credential: AzureCredentials,
         subscription_id: str,
         location: Optional[str] = None,
-        config: Optional[AzureConfig] = None,
     ) -> None:
-        self._config = config
         self.credential = credential
         self.subscription_id = subscription_id
         self.location = location
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
-
-    @property
-    def config(self) -> AzureConfig:
-        if self._config is not None:
-            return self._config
-        return AzureConfig()
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         try:
@@ -194,11 +181,6 @@ class AzureResourceManagementClient(AzureClient):
         request = HttpRequest(method="GET", url=url, params=params, headers=headers)
         pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
         response = pipeline_response.http_response
-
-        # Handle error responses
-        if response.status_code not in [200]:
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
-            raise HttpResponseError(response=response, error_format=ARMErrorFormat)
 
         # Parse json content
         js: Union[Json, List[Json]] = response.json()

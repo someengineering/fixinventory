@@ -463,6 +463,7 @@ class GraphBuilder:
         client: AzureClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
+        config: AzureConfig,
         location_lookup: Optional[Dict[str, AzureLocation]] = None,
         location: Optional[AzureLocation] = None,
         graph_nodes_access: Optional[Lock] = None,
@@ -480,21 +481,12 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
         self.name = f"Azure:{subscription.name}"
+        self._config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        if last_run_started_at:
-            now = utc()
-            start = last_run_started_at
-            delta = now - start
-
-        else:
-            now = utc()
-            delta = timedelta(hours=1)
-            start = now - delta
-
-        self.metrics_start = start
-        self.metrics_delta = delta
+        self.metrics_delta = last_run_started_at or timedelta(hours=1)
+        self.metrics_start = utc() - self.metrics_delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -641,7 +633,7 @@ class GraphBuilder:
 
     @property
     def config(self) -> AzureConfig:
-        return self.client.config
+        return self._config
 
     def fetch_locations(self) -> List[AzureLocation]:
         locations = AzureLocation.collect_resources(self)
@@ -660,6 +652,7 @@ class GraphBuilder:
             location=location,
             graph_nodes_access=self.graph_nodes_access,
             graph_edges_access=self.graph_edges_access,
+            config=self.config,
         )
 
 

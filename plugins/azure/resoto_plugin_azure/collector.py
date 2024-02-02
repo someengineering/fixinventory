@@ -64,18 +64,15 @@ class AzureSubscriptionCollector:
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
-            client = AzureClient.create(self.credentials, self.subscription.subscription_id, config=self.config)
+            client = AzureClient.create(self.credentials, self.subscription.subscription_id)
 
             def get_last_run() -> Optional[datetime]:
                 td = self.task_data
                 if not td:
                     return None
-                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
-
-                if timestamp is None:
-                    return None
-
-                return datetime.fromtimestamp(timestamp, timezone.utc)
+                if timestamp := value_in_path(self.task_data, ["timing", td.get("step", ""), "started_at"]):
+                    return datetime.fromtimestamp(timestamp, timezone.utc)
+                return None
 
             last_run = get_last_run()
             builder = GraphBuilder(
@@ -85,6 +82,7 @@ class AzureSubscriptionCollector:
                 client,
                 queue,
                 self.core_feedback,
+                config=self.config,
                 last_run_started_at=last_run,
             )
             # collect all locations
