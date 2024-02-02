@@ -29,7 +29,7 @@ class NodePath:
     security_opened_at = ["security", "opened_at"]
     security_reopen_counter = ["security", "reopen_counter"]
     security_issues = ["security", "issues"]
-    security_hash = ["security", "hash"]
+    security_severity = ["security", "severity"]
 
 
 @define(frozen=True)
