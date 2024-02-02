@@ -88,7 +88,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
         log.debug("plugin: AWS collecting resources")
         aws_config: AwsConfig = Config.aws
         assert self.core_feedback, "core_feedback is not set"
-        cloud = Cloud(id=self.cloud, name="AWS")
+        cloud = self.root
 
         accounts = get_accounts(self.core_feedback.with_context(cloud.id))
         if len(accounts) == 0:

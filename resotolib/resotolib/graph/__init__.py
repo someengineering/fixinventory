@@ -484,6 +484,22 @@ def sanitize(graph: Graph, maybe_root: Optional[GraphRoot] = None) -> None:
         else:
             log.debug(f"Found unknown node {node.id} of type {node.kind}")
 
+    for node in list(graph.nodes):
+        if (
+            isinstance(node, Cloud)
+            and node not in plugin_roots.values()
+            and len(list(graph.predecessors(node))) == 0
+            and node.id in plugin_roots
+        ):
+            log.debug(
+                f"Found unconnected plugin root {node.id} with same id as existing plugin root"
+                " - moving child nodes to existing plugin root and removing unconnected plugin root"
+            )
+            for node_child in list(graph.successors(node)):
+                graph.add_edge(plugin_roots[node.id], node_child)
+                graph.remove_edge(node, node_child)
+            graph.remove_node(node)
+
     if len(graph_roots) > 0:
         for graph_root in graph_roots:
             log.debug(f"Moving children of graph root {graph_root.id}")
