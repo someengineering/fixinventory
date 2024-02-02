@@ -47,7 +47,7 @@ from resoto_plugin_aws.resource import (
 )
 from resoto_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
-from resotolib.baseresources import Cloud, EdgeType
+from resotolib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
 from resotolib.core.actions import CoreFeedback
 from resotolib.core.progress import ProgressDone, ProgressTree
 from resotolib.graph import Graph, BySearchCriteria, ByNodeId
@@ -373,14 +373,14 @@ class AwsAccountCollector:
 
 
 @define(eq=False, slots=False)
-class AwsOrganizationalRoot(AwsResource):
+class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
     kind: ClassVar[str] = "aws_organizational_root"
     kind_display: ClassVar[str] = "AWS Organizational Root"
     kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
 
 
 @define(eq=False, slots=False)
-class AwsOrganizationalUnit(AwsResource):
+class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
     kind: ClassVar[str] = "aws_organizational_unit"
     kind_display: ClassVar[str] = "AWS Organizational Unit"
     kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."

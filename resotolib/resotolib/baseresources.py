@@ -1249,6 +1249,22 @@ class BaseDNSRecord(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseOrganizationalRoot(BaseResource):
+    kind: ClassVar[str] = "organizational_root"
+    kind_display: ClassVar[str] = "Organizational Root"
+    kind_description: ClassVar[str] = "An Organizational Root."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
+
+
+@define(eq=False, slots=False)
+class BaseOrganizationalUnit(BaseResource):
+    kind: ClassVar[str] = "organizational_unit"
+    kind_display: ClassVar[str] = "Organizational Unit"
+    kind_description: ClassVar[str] = "An Organizational Unit."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
+
+
+@define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
     kind_display: ClassVar[str] = "Unknown Cloud"
