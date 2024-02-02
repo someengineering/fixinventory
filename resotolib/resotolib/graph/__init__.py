@@ -27,6 +27,7 @@ from resotolib.baseresources import (
     EdgeType,
     BaseRegion,
     BaseZone,
+    BaseOrganizationalRoot,
     MetricName,
     StatName,
 )
@@ -614,12 +615,15 @@ class GraphExportIterator:
             start_time = time()
             for node in self.graph.nodes:
                 node_dict = node_to_dict(node)
-                if isinstance(node, self.graph_merge_kind):
+                if isinstance(node, self.graph_merge_kind) or (
+                    isinstance(node, BaseOrganizationalRoot) and self.graph_merge_kind == GraphMergeKind.account
+                ):
                     log.debug(f"Replacing sub graph below {node.kdname}")
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
                         node_dict["metadata"] = {}
                     node_dict["metadata"]["replace"] = True
-                    self.found_replace_node = True
+                    if not isinstance(node, BaseOrganizationalRoot):
+                        self.found_replace_node = True
                 if isinstance(node, BaseAccount):
                     log.debug(f"Setting export time on {node.kdname}")
                     if "metadata" not in node_dict or not isinstance(node_dict["metadata"], dict):
