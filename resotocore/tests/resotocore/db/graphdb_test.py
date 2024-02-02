@@ -810,6 +810,14 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
         ) as cursor:
             return [entry async for entry in cursor]
 
+    async def query_history(change: str) -> List[Json]:
+        async with await filled_graph_db.search_history(
+            QueryModel(
+                Query.by((P("security.has_issues").eq(True)) & P("security.run_id").eq(change)), foo_model
+            )  # noqa
+        ) as cursor:
+            return [entry async for entry in cursor]
+
     async def security_issues(num: int) -> AsyncIterator[Tuple[NodeId, List[SecurityIssue]]]:
         checks = [
             SecurityIssue(benchmark="test", check=f"check{n}", severity=ReportSeverity.medium) for n in range(num)
@@ -821,7 +829,9 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
         if False:
             yield  # noqa
 
-    async def assert_security(run_id: str, count: int, expected_vulnerabilities: int, reopen: int = 0) -> None:
+    async def assert_security(
+        run_id: str, count: int, expected_vulnerabilities: int, reopen: int = 0, history_count: Optional[int] = None
+    ) -> None:
         vulnerable = await query_vulnerable()
         assert len(vulnerable) == count
         for node in vulnerable:
@@ -831,14 +841,23 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
             assert security["opened_at"] is not None
             assert security["reopen_counter"] == reopen
             assert security["run_id"] == run_id
+        history = await query_history(run_id)
+        assert len(history) == (history_count if history_count is not None else count)
 
-    await filled_graph_db.update_security_section("change1", security_issues(1), foo_model)
+    result = await filled_graph_db.update_security_section("change1", security_issues(1), foo_model)
+    assert result == (10, 0)
     await assert_security("change1", 10, 1)
-    await filled_graph_db.update_security_section("change2", security_issues(3), foo_model)
+    result = await filled_graph_db.update_security_section("change1_again", security_issues(1), foo_model)
+    assert result == (0, 0)
+    await assert_security("change1_again", 10, 1, history_count=0)
+    result = await filled_graph_db.update_security_section("change2", security_issues(3), foo_model)
+    assert result == (0, 10)
     await assert_security("change2", 10, 3)
-    await filled_graph_db.update_security_section("change3", no_issues(), foo_model)
+    result = await filled_graph_db.update_security_section("change3", no_issues(), foo_model)
+    assert result == (0, 0)
     await assert_security("change3", 0, 0)
-    await filled_graph_db.update_security_section("change4", security_issues(2), foo_model)
+    result = await filled_graph_db.update_security_section("change4", security_issues(2), foo_model)
+    assert result == (10, 0)
     await assert_security("change4", 10, 2, reopen=1)
 
 

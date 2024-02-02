@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from functools import reduce
-from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple
+from functools import reduce, total_ordering
+from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Any
 
 from attr import define, field, evolve
 
@@ -29,6 +29,7 @@ ReportConfigRoot = "report_config"
 _ReportSeverityPriority: Dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
 
+@total_ordering
 class ReportSeverity(Enum):
     kind: ClassVar[str] = "resoto_core_report_check_severity"
     info = "info"
@@ -39,6 +40,15 @@ class ReportSeverity(Enum):
 
     def prio(self) -> int:
         return _ReportSeverityPriority[self.value]
+
+    def __lt__(self, other: Any) -> bool:
+        if isinstance(other, ReportSeverity):
+            return self.prio() < other.prio()
+        return NotImplemented
+
+    @staticmethod
+    def from_name(name: str) -> ReportSeverity:
+        return ReportSeverity[name]
 
 
 @define
@@ -53,6 +63,9 @@ class SecurityIssue:
     def __attrs_post_init__(self) -> None:
         if self.benchmark:
             self.benchmarks.add(self.benchmark)
+
+    def has_changed(self, other: SecurityIssue) -> bool:
+        return self.severity != other.severity or self.benchmarks != other.benchmarks
 
     def to_json(self) -> Json:
         return {

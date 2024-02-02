@@ -515,11 +515,10 @@ class ArangoGraphDB(GraphDB):
 
         def update_security_section(
             existing_issues: List[Json], actual_issues: List[SecurityIssue]
-        ) -> Tuple[List[Json], ReportSeverity, bool]:
+        ) -> Tuple[List[Json], HistoryChange, ReportSeverity, Dict[str, List[Json]]]:
             existing = read_checks(existing_issues)
-            # TODO: 17.01.2024: default to false after deployed to prd: update the security section in old format
-            update = any(issue.benchmark is not None for issue in existing.values())
-            updated: Dict[str, SecurityIssue] = {}
+            updated: Dict[str, SecurityIssue] = {}  # check id -> issue
+            changes: Dict[str, List[Json]] = defaultdict(list)
             # use this loop to merge actual issues with the same check
             for issue in actual_issues:
                 if same_check := updated.get(issue.check):
@@ -529,17 +528,29 @@ class ArangoGraphDB(GraphDB):
             # now compare the updated with the existing issues
             for key, issue in updated.items():
                 if same_check := existing.get(key):
-                    if same_check.benchmarks != issue.benchmarks:
+                    if same_check.benchmarks != issue.benchmarks or same_check.severity != issue.severity:
+                        changes["updated"].append(same_check.to_json())
+                        same_check.severity = issue.severity
                         same_check.benchmarks = issue.benchmarks
-                        update = True
                     updated[key] = same_check
                 else:
                     issue.opened_at = now
                     issue.run_id = report_run_id
-                    update = True
+                    changes["added"].append(issue.to_json())
+            # compute deleted issues
+            if deleted := [v.to_json() for k, v in existing.items() if k not in updated]:
+                changes["removed"] = deleted
             # the node severity is the highest severity of all issues
-            severity = max((a.severity for a in updated.values()), key=lambda s: s.prio(), default=ReportSeverity.info)
-            return [a.to_json() for a in updated.values()], severity, update
+            previous = max((a.severity for a in existing.values()), default=ReportSeverity.info)
+            severity = max((a.severity for a in updated.values()), default=ReportSeverity.info)
+            # the node is still vulnerable: the change marks either improvement or worsening
+            change = (
+                HistoryChange.node_compliant
+                # better #1: severity is lower, #2: severity is the same, but less issues
+                if (severity < previous or (severity == previous and len(existing) < len(updated)))
+                else HistoryChange.node_vulnerable
+            )
+            return [a.to_json() for a in updated.values()], change, severity, changes
 
         async def update_chunk(chunk: Dict[NodeId, List[SecurityIssue]]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
@@ -551,7 +562,7 @@ class ArangoGraphDB(GraphDB):
                     node_id = NodeId(node.pop("_key", ""))
                     node["id"] = node_id  # store the id in the id column (not _key)
                     existing: List[Json] = value_in_path_get(node, NodePath.security_issues, [])
-                    updated, severity, is_update = update_security_section(existing, chunk.get(node_id, []))
+                    updated, change, severity, diff = update_security_section(existing, chunk.get(node_id, []))
                     security_section = dict(
                         issues=updated,
                         opened_at=value_in_path_get(node, NodePath.security_opened_at, now),
@@ -568,11 +579,11 @@ class ArangoGraphDB(GraphDB):
                         security_section["reopen_counter"] = security_section["reopen_counter"] + 1  # type: ignore
                         node["change"] = "node_vulnerable"
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
-                    elif is_update:  # the content has changed
+                    elif diff:  # the content has changed
                         nodes_vulnerable_updated += 1
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
-                        node["before"] = existing
-                        node["change"] = "node_vulnerable"
+                        node["diff"] = diff
+                        node["change"] = change.value
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
                 # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
