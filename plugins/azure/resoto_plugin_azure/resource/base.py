@@ -485,8 +485,12 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        self.metrics_delta = last_run_started_at or timedelta(hours=1)
-        self.metrics_start = utc() - self.metrics_delta
+        now = self.created_at
+        start = last_run_started_at or (now - timedelta(hours=1))
+        delta = now - start
+
+        self.metrics_start = start
+        self.metrics_delta = delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

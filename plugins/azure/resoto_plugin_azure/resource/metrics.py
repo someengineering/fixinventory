@@ -3,7 +3,8 @@ from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
 from attr import define, field
 
-from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
+from resoto_plugin_azure.azure_client import AzureApiSpec
+from resoto_plugin_azure.resource.base import GraphBuilder
 from resoto_plugin_azure.utils import MetricNormalization
 from resotolib.baseresources import BaseResource
 from resotolib.json import from_json
@@ -160,7 +161,7 @@ class AzureMetricData:
 
     @staticmethod
     def query_for(
-        client: AzureClient,
+        builder: GraphBuilder,
         queries: List[AzureMetricQuery],
         start_time: datetime,
         end_time: datetime,
@@ -187,7 +188,7 @@ class AzureMetricData:
 
         for query in queries:
             api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
-            part = client.list(
+            part = builder.client.list(
                 api_spec,
                 metricnames=query.metric_name,
                 metricNamespace=query.metric_namespace,
@@ -200,7 +201,6 @@ class AzureMetricData:
                 metric_id = metric.metric_id
                 if metric_id is not None:
                     result[lookup[metric_id]] = metric
-
         return result
 
 

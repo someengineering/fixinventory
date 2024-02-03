@@ -23,7 +23,8 @@ from resoto_plugin_azure.resource.network import (
     AzureLoadBalancer,
 )
 from resoto_plugin_azure.utils import MetricNormalization
-from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
+from resotolib.json import from_json
+from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F, bend
 from resotolib.types import Json
 from resotolib.baseresources import (
     BaseInstance,
@@ -764,7 +765,7 @@ class AzureDisk(AzureResource, BaseVolume):
             "Composite Disk Read Operations/sec": MetricNormalization(name="volume_read_ops"),
         }
 
-        metric_result = AzureMetricData.query_for(builder.client, queries, start, now)
+        metric_result = AzureMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(volumes, metric_result, metric_normalizers)
 
@@ -2542,12 +2543,6 @@ class AzureVirtualMachineIdentity:
 
 
 InstanceStatusMapping = {
-    # "Starting"
-    # "Running"
-    # "Stopping"
-    # "Stopped"
-    # "Deallocating"
-    # "Deallocated"
     "Creating": InstanceStatus.BUSY,
     "Updating": InstanceStatus.BUSY,
     "Succeeded": InstanceStatus.RUNNING,
@@ -2736,7 +2731,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             "Disk Write Bytes": MetricNormalization(name="disk_write_bytes"),
         }
 
-        metric_result = AzureMetricData.query_for(builder.client, queries, start, now)
+        metric_result = AzureMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(virtual_machines, metric_result, metric_normalizers)
 

@@ -97,6 +97,7 @@ def builder(
     azure_subscription: AzureSubscription,
     azure_client: AzureClient,
     core_feedback: CoreFeedback,
+    config: AzureConfig,
 ) -> GraphBuilder:
     builder = GraphBuilder(
         graph=Graph(),
@@ -105,6 +106,7 @@ def builder(
         client=azure_client,
         executor=executor_queue,
         core_feedback=core_feedback,
+        config=config
     )
     location_west = AzureLocation(id="westeurope", display_name="West Europe", name="westeurope")
     location_east = AzureLocation(id="eastus", display_name="East US", name="eastus")
