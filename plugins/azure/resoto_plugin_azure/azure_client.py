@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Tuple, Union
-from urllib.parse import urlparse
+from typing import List, Optional, Any, Union
 
 from attr import define
 from azure.core.exceptions import (
@@ -181,6 +180,11 @@ class AzureResourceManagementClient(AzureClient):
         request = HttpRequest(method="GET", url=url, params=params, headers=headers)
         pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
         response = pipeline_response.http_response
+
+        # Handle error responses
+        if response.status_code not in [200]:
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response, error_format=ARMErrorFormat)
 
         # Parse json content
         js: Union[Json, List[Json]] = response.json()

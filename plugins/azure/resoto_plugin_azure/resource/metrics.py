@@ -181,7 +181,7 @@ class AzureMetricData:
                 "timespan",
                 "aggregation",
             ],
-            access_path="value",
+            access_path=None,
             expect_array=False,
         )
         timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"

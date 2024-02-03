@@ -23,8 +23,7 @@ from resoto_plugin_azure.resource.network import (
     AzureLoadBalancer,
 )
 from resoto_plugin_azure.utils import MetricNormalization
-from resotolib.json import from_json
-from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F, bend
+from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
     BaseInstance,
@@ -2543,6 +2542,12 @@ class AzureVirtualMachineIdentity:
 
 
 InstanceStatusMapping = {
+    "starting": InstanceStatus.BUSY,
+    "running": InstanceStatus.RUNNING,
+    "stopping": InstanceStatus.BUSY,
+    "stopped": InstanceStatus.STOPPED,
+    "deallocating": InstanceStatus.BUSY,
+    "deallocated": InstanceStatus.TERMINATED,
     "Creating": InstanceStatus.BUSY,
     "Updating": InstanceStatus.BUSY,
     "Succeeded": InstanceStatus.RUNNING,
@@ -2621,8 +2626,6 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "vm_id": S("properties", "vmId"),
         "location": S("location"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
-        "instance_status": S("properties", "provisioningState")
-        >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
@@ -2655,6 +2658,33 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        api_spec = AzureApiSpec(
+            service="compute",
+            version="2022-03-01",
+            path=self.id,
+            path_parameters=[],
+            query_parameters=["api-version", "$expand"],
+            access_path=None,
+            expect_array=False,
+        )
+        params = {"$expand": "instanceView"}
+        items = graph_builder.client.list(api_spec, **params)
+        if items:
+            item = items[0]
+        try:
+            instance_v_statuses = item["properties"]["instanceView"]["statuses"]
+        except KeyError:
+            instance_v_statuses = []
+        instance_status_set = False
+        for instance_v_status in instance_v_statuses:
+            status_code = instance_v_status.get("code", "").split("/")
+            if status_code[0] == "PowerState":
+                self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
+                instance_status_set = True
+        if not instance_status_set:
+            self.instance_status = InstanceStatus.UNKNOWN
 
     @classmethod
     def collect_usage_metrics(
