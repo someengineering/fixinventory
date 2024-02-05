@@ -126,12 +126,18 @@ def create_graph_org_root_like(bla_text: str, width: int = 10, org_root_id: str 
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
         graph.add_edge(from_node, to_node, key, edge_type=edge_type)
 
-    def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
+    def add_node(
+        uid: str, kind: str, node: Optional[Json] = None, replace: bool = False, org_root: bool = False
+    ) -> None:
         reported = {**(node if node else to_json(Foo(uid))), "kind": kind}
+        kinds_set = {kind}
+        if org_root:
+            kinds_set.add("organizational_root")
         graph.add_node(
             uid,
             id=uid,
             kinds=[kind],
+            kinds_set=kinds_set,
             reported=reported,
             desired={"node_id": uid},
             metadata={"node_id": uid, "replace": replace},
@@ -145,7 +151,7 @@ def create_graph_org_root_like(bla_text: str, width: int = 10, org_root_id: str 
     add_edge("root", "aws")
     add_edge("aws", "aws_account")
 
-    add_node(org_root_id, "foo")
+    add_node(org_root_id, "foo", org_root=True)
     add_edge("aws", org_root_id)
 
     for o in range(0, width):

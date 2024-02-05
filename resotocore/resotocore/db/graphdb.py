@@ -1081,14 +1081,41 @@ class ArangoGraphDB(GraphDB):
             cloud_ids = [cid for cid in cloud_ids if cid]
             cloud_id = cloud_ids[0] if cloud_ids else None
 
-            def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
-                edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
-                return self.edges_by_ids_and_until_replace_node(edge_type), {"ids": edge_ids, "node_id": cloud_id}
+            def parent_queries() -> Tuple[Tuple[str, Json], Callable[[EdgeType], Tuple[str, Json]]]:
+                has_org_root = any(
+                    "organizational_root" in node[1].get("kinds_set", {}) for node in graph_to_merge.nodes(data=True)
+                )
 
-            parents_nodes = self.nodes_by_ids_and_until_replace_node(), {
-                "ids": list(parent.g.nodes),
-                "node_id": cloud_id,
-            }
+                if has_org_root:
+
+                    def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
+                        edge_ids = [
+                            self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type
+                        ]
+                        return self.edges_by_ids_and_until_replace_node(edge_type), {
+                            "ids": edge_ids,
+                            "node_id": cloud_id,
+                        }
+
+                    parents_nodes: Tuple[str, Json] = self.nodes_by_ids_and_until_replace_node(), {
+                        "ids": list(parent.g.nodes),
+                        "node_id": cloud_id,
+                    }
+                    return parents_nodes, parent_edges
+                else:
+
+                    def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
+                        edge_ids = [
+                            self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type
+                        ]
+                        return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
+
+                    parents_nodes = self.query_update_nodes_by_ids(), {
+                        "ids": list(parent.g.nodes),
+                    }
+                    return parents_nodes, parent_edges
+
+            parents_nodes, parent_edges = parent_queries()
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
@@ -1531,6 +1558,21 @@ class ArangoGraphDB(GraphDB):
             RETURN count
             """
         )
+
+    def query_update_nodes_by_ids(self) -> str:
+        return f"""
+        FOR a IN `{self.vertex_name}`
+        FILTER a._key IN @ids
+        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
+        """
+
+    def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
+        collection = self.edge_collection(edge_type)
+        return f"""
+        FOR a IN `{collection}`
+        FILTER a._key in @ids
+        RETURN {{_key: a._key, _from: a._from, _to: a._to}}
+        """
 
     def nodes_by_ids_and_until_replace_node(self) -> str:
         query_update_nodes_by_ids = (
