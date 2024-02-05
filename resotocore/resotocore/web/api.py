@@ -1213,10 +1213,10 @@ class Api(Service):
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         before = request.query.get("before")
         after = request.query.get("after")
-        change = request.query.get("change")
+        changes = if_set(request.query.get("change"), lambda x: x.split(","))
         async with await graph_db.search_history(
             query=query_model,
-            change=HistoryChange[change] if change else None,
+            change=[HistoryChange[change] for change in changes] if changes else None,
             before=parse_utc(before) if before else None,
             after=parse_utc(after) if after else None,
         ) as cursor:
