@@ -56,7 +56,6 @@ class SecurityIssue:
     check: str
     severity: ReportSeverity
     opened_at: Optional[str] = None
-    run_id: Optional[str] = None
     benchmark: Optional[str] = None
     benchmarks: Set[str] = field(factory=set)
 
@@ -64,15 +63,24 @@ class SecurityIssue:
         if self.benchmark:
             self.benchmarks.add(self.benchmark)
 
-    def has_changed(self, other: SecurityIssue) -> bool:
-        return self.severity != other.severity or self.benchmarks != other.benchmarks
+    def diff(self, other: SecurityIssue) -> Tuple[Optional[SecurityIssue], Optional[SecurityIssue]]:
+        """
+        Diff two security issues and return the differences as a tuple of (vulnerable, compliant).
+        """
+        if self.severity != other.severity:  # different severity: the whole issue either improved or got worse
+            return (other, None) if self.severity < other.severity else (None, other)
+        elif self.benchmarks != other.benchmarks:  # same severity but different benchmarks: compute diff
+            add = other.benchmarks - self.benchmarks
+            delete = self.benchmarks - other.benchmarks
+            return evolve(self, benchmarks=add) if add else None, evolve(self, benchmarks=delete) if delete else None
+        else:  # same severity and same benchmarks: no change
+            return None, None
 
     def to_json(self) -> Json:
         return {
             "check": self.check,
             "severity": self.severity.value,
             "opened_at": self.opened_at,
-            "run_id": self.run_id,
             "benchmarks": list(self.benchmarks),
         }
 
