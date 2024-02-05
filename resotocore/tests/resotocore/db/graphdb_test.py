@@ -812,9 +812,7 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
 
     async def query_history(change: str) -> List[Json]:
         async with await filled_graph_db.search_history(
-            QueryModel(
-                Query.by((P("security.has_issues").eq(True)) & P("security.run_id").eq(change)), foo_model
-            )  # noqa
+            QueryModel(Query.by(P("security.run_id").eq(change)), foo_model)  # noqa
         ) as cursor:
             return [entry async for entry in cursor]
 
@@ -830,8 +828,15 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
             yield  # noqa
 
     async def assert_security(
-        run_id: str, count: int, expected_vulnerabilities: int, reopen: int = 0, history_count: Optional[int] = None
-    ) -> None:
+        run_id: str,
+        count: int,
+        expected_vulnerabilities: int,
+        reopen: int = 0,
+        history_count: Optional[int] = None,
+        added_vulnerable: Optional[int] = None,
+        added_compliant_count: Optional[int] = None,
+        previous_severity: Optional[ReportSeverity] = None,
+    ) -> List[Json]:
         vulnerable = await query_vulnerable()
         assert len(vulnerable) == count
         for node in vulnerable:
@@ -843,22 +848,45 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
             assert security["run_id"] == run_id
         history = await query_history(run_id)
         assert len(history) == (history_count if history_count is not None else count)
+        for he in history:
+            security = he["security"]
+            assert security["has_issues"] is (count > 0)
+            assert len(security.get("issues", [])) == expected_vulnerabilities
+            assert security["opened_at"] is not None
+            assert security["reopen_counter"] == reopen
+            assert security["run_id"] == run_id
+            diff = he.get("diff", {})
+            if previous_severity:
+                assert diff["previous"] == previous_severity.value
+            else:
+                assert "previous" not in diff
+            assert len(diff.get("node_vulnerable", [])) == (added_vulnerable or 0)
+            assert len(diff.get("node_compliant", [])) == (added_compliant_count or 0)
+
+        return history
 
     result = await filled_graph_db.update_security_section("change1", security_issues(1), foo_model)
     assert result == (10, 0)
-    await assert_security("change1", 10, 1)
+    # no previous issues: nodes get vulnerable
+    await assert_security("change1", 10, 1, added_vulnerable=1)
     result = await filled_graph_db.update_security_section("change1_again", security_issues(1), foo_model)
     assert result == (0, 0)
+    # same vulnerabilities: no changes
     await assert_security("change1_again", 10, 1, history_count=0)
     result = await filled_graph_db.update_security_section("change2", security_issues(3), foo_model)
     assert result == (0, 10)
-    await assert_security("change2", 10, 3)
+    # 2 additional issues per resource
+    await assert_security("change2", 10, 3, added_vulnerable=2, previous_severity=ReportSeverity.medium)
     result = await filled_graph_db.update_security_section("change3", no_issues(), foo_model)
     assert result == (0, 0)
-    await assert_security("change3", 0, 0)
+    # the resources are now compliant
+    await assert_security(
+        "change3", 0, 0, history_count=10, added_compliant_count=3, previous_severity=ReportSeverity.medium
+    )
     result = await filled_graph_db.update_security_section("change4", security_issues(2), foo_model)
     assert result == (10, 0)
-    await assert_security("change4", 10, 2, reopen=1)
+    # the issue us reopened
+    await assert_security("change4", 10, 2, reopen=1, added_vulnerable=2)
 
 
 def to_json(obj: BaseResource) -> Json:

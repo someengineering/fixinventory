@@ -62,6 +62,9 @@ class Section:
     # This section holds information about security issues detected for this node.
     security = "security"
 
+    # Available in history nodes.
+    diff = "diff"
+
     # Following sections are used to lookup special kinds in the graph hierarchy to simplify access.
     # See GraphResolver for details.
     # All resolved ancestors are written to this section.
@@ -75,7 +78,7 @@ class Section:
     usage = "usage"
 
     # The set of all content sections
-    content_ordered = [reported, security, desired, metadata]
+    content_ordered = [reported, security, desired, metadata, diff]
     content = set(content_ordered)
 
     # The list of all lookup sections
@@ -563,10 +566,10 @@ class GraphAccess:
             data = graph.nodes[source]
             replace = (data.get("metadata", {}) or {}).get("replace", False)
             if replace:
-                return {source: data}, set([source])
+                return {source: data}, {source}
 
             replace_nodes: Dict[NodeId, Json] = {}
-            replace_nodes_predecessors: Set[NodeId] = set([source])
+            replace_nodes_predecessors: Set[NodeId] = {source}
 
             for child in graph.successors(source):
                 rn, pred = collect_until_replace_node(graph, child, seen)
