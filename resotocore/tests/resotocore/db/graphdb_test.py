@@ -390,8 +390,8 @@ async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -
     assert len(await nodes(Query.by("foo"))) == 10
     assert len(await nodes(Query.by("foo"), after=five_min_ago)) == 10
     assert len(await nodes(Query.by("foo"), before=five_min_ago)) == 0
-    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_created)) == 10
-    assert len(await nodes(Query.by("foo"), after=five_min_ago, change=HistoryChange.node_deleted)) == 0
+    assert len(await nodes(Query.by("foo"), after=five_min_ago, changes=[HistoryChange.node_created])) == 10
+    assert len(await nodes(Query.by("foo"), after=five_min_ago, changes=[HistoryChange.node_deleted])) == 0
 
 
 @mark.asyncio
