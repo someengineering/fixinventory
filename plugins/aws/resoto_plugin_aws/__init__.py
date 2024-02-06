@@ -81,7 +81,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             if self.core_feedback:
                 self.core_feedback.error(f"Unhandled exception in AWS Plugin: {ex}", log)
             else:
-                log.error(f"No CoreFeedback available! Unhandled exception in AWS Plugin: {ex}")
+                log.warning(f"No CoreFeedback available! Unhandled exception in AWS Plugin: {ex}")
             raise
 
     def collect_aws(self) -> None:
@@ -91,7 +91,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
 
         accounts = get_accounts(self.core_feedback.with_context(self.root.id))
         if len(accounts) == 0:
-            log.error("No accounts found")
+            log.warning("No accounts found")
             return
 
         progress = ProgressTree(self.cloud)
@@ -262,12 +262,12 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 graph = resource._graph
 
             if resource.protected:
-                log.error(f"Resource {resource.rtdname} is protected - refusing modification")
+                log.warning(f"Resource {resource.rtdname} is protected - refusing modification")
                 resource.log("Modification was requested even though resource is protected" " - refusing")
                 return False
 
             if resource.phantom:
-                log.error(f"Can't cleanup phantom resource {resource.rtdname}")
+                log.warning(f"Can't cleanup phantom resource {resource.rtdname}")
                 return False
 
             if resource.cleaned:
@@ -277,7 +277,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             account = resource.account(graph)
             region = resource.region(graph)
             if not isinstance(account, BaseAccount) or not isinstance(region, BaseRegion):
-                log.error(f"Could not determine account or region for pre cleanup of {resource.rtdname}")
+                log.warning(f"Could not determine account or region for pre cleanup of {resource.rtdname}")
                 return False
 
             log_suffix = f" in account {account.dname} region {region.name}"
@@ -286,13 +286,13 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
             try:
                 if not getattr(resource, "pre_delete_resource")(client, graph):
                     resource.log("Failed to run pre clean up")
-                    log.error(f"Failed to run pre clean up {resource.rtdname}{log_suffix}")
+                    log.warning(f"Failed to run pre clean up {resource.rtdname}{log_suffix}")
                     return False
                 resource.log("Successfully ran pre clean up")
                 log.info(f"Successfully ran pre clean up {resource.rtdname}{log_suffix}")
             except Exception as e:
                 resource.log("An error occurred during pre clean up", exception=e)
-                log.exception(f"An error occurred during pre clean up {resource.rtdname}{log_suffix}")
+                log.warning(f"An error occurred during pre clean up {resource.rtdname}{log_suffix}")
                 cloud = resource.cloud(graph)
                 metrics_resource_pre_cleanup_exceptions.labels(
                     cloud=cloud.name,
@@ -316,7 +316,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 return True
 
             if resource.protected:
-                log.error(f"Resource {resource.rtdname} is protected - refusing modification")
+                log.warning(f"Resource {resource.rtdname} is protected - refusing modification")
                 resource.log(("Modification was requested even though resource is protected" " - refusing"))
                 return False
 

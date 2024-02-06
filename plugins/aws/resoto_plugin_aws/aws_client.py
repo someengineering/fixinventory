@@ -185,7 +185,7 @@ class AwsClient:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
         except Exception as e:
-            log.error(f"[Aws] called service={aws_service} with resource: hit unexpected error: {e}")
+            log.warning(f"[Aws] called service={aws_service} with resource: hit unexpected error: {e}")
             raise
 
     def call_single(
@@ -258,7 +258,7 @@ class AwsClient:
             log.debug(f"The Aws endpoint does not exist in this region. Skipping. {e}")
             return None
         except Exception as e:
-            log.error(f"[Aws] called service={aws_service} action={action}: hit unexpected error: {e}", exc_info=e)
+            log.warning(f"[Aws] called service={aws_service} action={action}: hit unexpected error: {e}", exc_info=e)
             if self.config.discard_account_on_resource_error:
                 raise
             return None
