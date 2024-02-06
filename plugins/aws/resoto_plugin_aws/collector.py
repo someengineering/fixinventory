@@ -233,7 +233,7 @@ class AwsAccountCollector:
                         global_builder.add_edge(self.account, EdgeType.default, node=node)
                     node.connect_in_graph(global_builder, data.get("source", {}))
                 else:
-                    log.error(f"Unexpected node type {node} in graph")
+                    log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
             # wait for all futures to finish
