@@ -477,6 +477,7 @@ class HistoryPart(SearchCLIPart):
                 help_text="type of change",
                 expects_value=True,
                 possible_values=[e.value for e in list(HistoryChange)],
+                can_occur_multiple_times=True,
             ),
             ArgInfo(expects_value=True, value_hint="search"),
         ]
@@ -1391,7 +1392,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
         parser.add_argument("--history", dest="history", default=None, action="store_true")
         parser.add_argument("--after", dest="after", default=None)
         parser.add_argument("--before", dest="before", default=None)
-        parser.add_argument("--change", dest="change", default=None)
+        parser.add_argument("--change", dest="change", action="append", default=[])
         parser.add_argument("--at", dest="at", default=None)
         try:
             # try to parse as many arguments as possible
@@ -1408,12 +1409,20 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
     @staticmethod
     def argument_string(args: Dict[str, Any]) -> str:
         result = []
+
+        def render_flag(name: str, value: Any) -> None:
+            result.append(f"--{name}")
+            if value is not True:
+                result.append(f"'{value}'")  # put the value into single quotes to maintain the spaces
+
         for key, value in args.items():
             if value is None or value is False:
                 continue
-            result.append(f"--{key}")
-            if value is not True:
-                result.append(f"'{value}'")  # put the value into single quotes to maintain the spaces
+            if isinstance(value, list):
+                for v in value:
+                    render_flag(key, v)
+            else:
+                render_flag(key, value)
         return " ".join(result) + " " if result else ""
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
@@ -1473,8 +1482,10 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
             if history:
                 before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))
                 after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))
-                change = if_set(parsed.get("change"), lambda x: HistoryChange[strip_quotes(x)])
-                context = await db.search_history(query_model, change, before, after, with_count=count, timeout=timeout)
+                changes = [HistoryChange[strip_quotes(x)] for x in parsed.get("change", [])]
+                context = await db.search_history(
+                    query_model, changes, before, after, with_count=count, timeout=timeout
+                )
             elif query.aggregate:
                 context = await db.search_aggregation(query_model)
             elif with_edges:

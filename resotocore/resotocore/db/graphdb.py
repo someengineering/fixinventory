@@ -170,7 +170,7 @@ class GraphDB(ABC):
     async def search_history(
         self,
         query: QueryModel,
-        change: Optional[HistoryChange] = None,
+        changes: Optional[List[HistoryChange]] = None,
         before: Optional[datetime] = None,
         after: Optional[datetime] = None,
         with_count: bool = False,
@@ -691,7 +691,7 @@ class ArangoGraphDB(GraphDB):
     async def search_history(
         self,
         query: QueryModel,
-        change: Optional[HistoryChange] = None,
+        changes: Optional[List[HistoryChange]] = None,
         before: Optional[datetime] = None,
         after: Optional[datetime] = None,
         with_count: bool = False,
@@ -705,8 +705,8 @@ class ArangoGraphDB(GraphDB):
             raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
         # adjust query
         term = query.query.current_part.term
-        if change:
-            term = term.and_term(P.single("change").eq(change.value))
+        if changes:
+            term = term.and_term(P.single("change").is_in([c.value for c in changes]))
         if after:
             term = term.and_term(P.single("changed_at").gt(utc_str(after)))
         if before:
@@ -1767,7 +1767,7 @@ class EventGraphDB(GraphDB):
     async def search_history(
         self,
         query: QueryModel,
-        change: Optional[HistoryChange] = None,
+        changes: Optional[List[HistoryChange]] = None,
         before: Optional[datetime] = None,
         after: Optional[datetime] = None,
         with_count: bool = False,
@@ -1776,7 +1776,7 @@ class EventGraphDB(GraphDB):
     ) -> AsyncCursorContext:
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.HistoryQuery, context, **counters)
-        return await self.real.search_history(query, change, before, after, with_count, timeout, **kwargs)
+        return await self.real.search_history(query, changes, before, after, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
