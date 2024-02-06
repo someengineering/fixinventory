@@ -207,15 +207,15 @@ def add_logging_level(level_name: str, level_num: int, method_name: Optional[str
 
 
 class ResotoLogger(Logger):
-    def debug2(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+    def debug2(self, msg: str, *args: Any, **kwargs: Any) -> None: ...  # noqa: E704
 
-    def debug3(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+    def debug3(self, msg: str, *args: Any, **kwargs: Any) -> None: ...  # noqa: E704
 
-    def debug4(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+    def debug4(self, msg: str, *args: Any, **kwargs: Any) -> None: ...  # noqa: E704
 
-    def debug5(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+    def debug5(self, msg: str, *args: Any, **kwargs: Any) -> None: ...  # noqa: E704
 
-    def trace(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+    def trace(self, msg: str, *args: Any, **kwargs: Any) -> None: ...  # noqa: E704
 
 
 def get_resoto_logger(name: Optional[str] = None) -> ResotoLogger:
