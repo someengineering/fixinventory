@@ -208,9 +208,9 @@ class GcpGeoTaxonomy:
 class GcpAggregationInfo:
     kind: ClassVar[str] = "gcp_aggregation_info"
     kind_display: ClassVar[str] = "GCP Aggregation Info"
-    kind_description: ClassVar[
-        str
-    ] = "GCP Aggregation Info refers to how usage and cost data are compiled and summarized over time."
+    kind_description: ClassVar[str] = (
+        "GCP Aggregation Info refers to how usage and cost data are compiled and summarized over time."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aggregation_count": S("aggregationCount"),
         "aggregation_interval": S("aggregationInterval"),

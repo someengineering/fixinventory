@@ -1797,9 +1797,9 @@ class AwsSagemakerCodeRepository(AwsResource):
 class AwsSagemakerDeployedImage:
     kind: ClassVar[str] = "aws_sagemaker_deployed_image"
     kind_display: ClassVar[str] = "AWS SageMaker Deployed Image"
-    kind_description: ClassVar[
-        str
-    ] = "An image that has been deployed and is used for running machine learning models on Amazon SageMaker."
+    kind_description: ClassVar[str] = (
+        "An image that has been deployed and is used for running machine learning models on Amazon SageMaker."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "specified_image": S("SpecifiedImage"),
         "resolved_image": S("ResolvedImage"),
@@ -2867,9 +2867,9 @@ class AwsSagemakerAutoMLJobConfig:
 class AwsSagemakerFinalAutoMLJobObjectiveMetric:
     kind: ClassVar[str] = "aws_sagemaker_final_auto_ml_job_objective_metric"
     kind_display: ClassVar[str] = "AWS SageMaker Final AutoML Job Objective Metric"
-    kind_description: ClassVar[
-        str
-    ] = "The final objective metric value calculated at the end of an Amazon SageMaker AutoML job."
+    kind_description: ClassVar[str] = (
+        "The final objective metric value calculated at the end of an Amazon SageMaker AutoML job."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"type": S("Type"), "metric_name": S("MetricName"), "value": S("Value")}
     type: Optional[str] = field(default=None)
     metric_name: Optional[str] = field(default=None)
@@ -3906,9 +3906,9 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
         "hyper_parameter_tuning_job_failure_reason": S("FailureReason"),
     }
     hyper_parameter_tuning_job_config: Optional[AwsSagemakerHyperParameterTuningJobConfig] = field(default=None)
-    hyper_parameter_tuning_job_training_job_definition: Optional[
-        AwsSagemakerHyperParameterTrainingJobDefinition
-    ] = field(default=None)
+    hyper_parameter_tuning_job_training_job_definition: Optional[AwsSagemakerHyperParameterTrainingJobDefinition] = (
+        field(default=None)
+    )
     hyper_parameter_tuning_job_training_job_definitions: List[AwsSagemakerHyperParameterTrainingJobDefinition] = field(
         factory=list
     )
@@ -3923,9 +3923,9 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     hyper_parameter_tuning_job_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = field(
         default=None
     )
-    hyper_parameter_tuning_job_overall_best_training_job: Optional[
-        AwsSagemakerHyperParameterTrainingJobSummary
-    ] = field(default=None)
+    hyper_parameter_tuning_job_overall_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = (
+        field(default=None)
+    )
     hyper_parameter_tuning_job_warm_start_config: Optional[AwsSagemakerHyperParameterTuningJobWarmStartConfig] = field(
         default=None
     )
@@ -4370,9 +4370,9 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     inference_recommendations_job_completion_time: Optional[datetime] = field(default=None)
     inference_recommendations_job_failure_reason: Optional[str] = field(default=None)
     inference_recommendations_job_input_config: Optional[AwsSagemakerRecommendationJobInputConfig] = field(default=None)
-    inference_recommendations_job_stopping_conditions: Optional[
-        AwsSagemakerRecommendationJobStoppingConditions
-    ] = field(default=None)
+    inference_recommendations_job_stopping_conditions: Optional[AwsSagemakerRecommendationJobStoppingConditions] = (
+        field(default=None)
+    )
     inference_recommendations_job_inference_recommendations: List[AwsSagemakerInferenceRecommendation] = field(
         factory=list
     )

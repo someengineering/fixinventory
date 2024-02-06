@@ -412,9 +412,9 @@ class GcpContainerTimeWindow:
 class GcpContainerRecurringTimeWindow:
     kind: ClassVar[str] = "gcp_container_recurring_time_window"
     kind_display: ClassVar[str] = "GCP Container Recurring Time Window"
-    kind_description: ClassVar[
-        str
-    ] = "Container Recurring Time Window defines the schedule for regular maintenance operations."
+    kind_description: ClassVar[str] = (
+        "Container Recurring Time Window defines the schedule for regular maintenance operations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "recurrence": S("recurrence"),
         "window": S("window", default={}) >> Bend(GcpContainerTimeWindow.mapping),
@@ -702,9 +702,9 @@ class GcpContainerNodePoolLoggingConfig:
 class GcpContainerReservationAffinity:
     kind: ClassVar[str] = "gcp_container_reservation_affinity"
     kind_display: ClassVar[str] = "GCP Container Reservation Affinity"
-    kind_description: ClassVar[
-        str
-    ] = "Container Reservation Affinity is a setting that controls how instances are scheduled on reservations."
+    kind_description: ClassVar[str] = (
+        "Container Reservation Affinity is a setting that controls how instances are scheduled on reservations."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "consume_reservation_type": S("consumeReservationType"),
         "key": S("key"),

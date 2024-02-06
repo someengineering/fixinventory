@@ -1346,9 +1346,9 @@ class AwsCloudFrontCachePolicyConfig:
     default_ttl: Optional[int] = field(default=None)
     max_ttl: Optional[int] = field(default=None)
     min_ttl: Optional[int] = field(default=None)
-    parameters_in_cache_key_and_forwarded_to_origin: Optional[
-        AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin
-    ] = field(default=None)
+    parameters_in_cache_key_and_forwarded_to_origin: Optional[AwsCloudFrontParametersInCacheKeyAndForwardedToOrigin] = (
+        field(default=None)
+    )
 
 
 @define(eq=False, slots=False)

@@ -1778,9 +1778,9 @@ class GcpNetworkEndpointGroup(GcpResource):
 class GcpErrorInfo:
     kind: ClassVar[str] = "gcp_error_info"
     kind_display: ClassVar[str] = "GCP Error Info"
-    kind_description: ClassVar[
-        str
-    ] = "GCP Error Info provides information about errors encountered in Google Cloud Platform services."
+    kind_description: ClassVar[str] = (
+        "GCP Error Info provides information about errors encountered in Google Cloud Platform services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"domain": S("domain"), "metadatas": S("metadatas"), "reason": S("reason")}
     domain: Optional[str] = field(default=None)
     metadatas: Optional[Dict[str, str]] = field(default=None)
@@ -1849,9 +1849,9 @@ class GcpErrordetails:
 class GcpErrors:
     kind: ClassVar[str] = "gcp_errors"
     kind_display: ClassVar[str] = "GCP Errors"
-    kind_description: ClassVar[
-        str
-    ] = "GCP Errors refer to any kind of error encountered while using Google Cloud Platform services."
+    kind_description: ClassVar[str] = (
+        "GCP Errors refer to any kind of error encountered while using Google Cloud Platform services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "code": S("code"),
         "error_details": S("errorDetails", default=[]) >> ForallBend(GcpErrordetails.mapping),
@@ -3828,9 +3828,9 @@ class GcpLicenseResourceRequirements:
 class GcpLicense(GcpResource):
     kind: ClassVar[str] = "gcp_license"
     kind_display: ClassVar[str] = "GCP License"
-    kind_description: ClassVar[
-        str
-    ] = "GCP Licenses are used to authorize the use of certain Google Cloud Platform services and resources."
+    kind_description: ClassVar[str] = (
+        "GCP Licenses are used to authorize the use of certain Google Cloud Platform services and resources."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -4516,9 +4516,9 @@ class GcpLocalDisk:
 class GcpNodeTemplateNodeTypeFlexibility:
     kind: ClassVar[str] = "gcp_node_template_node_type_flexibility"
     kind_display: ClassVar[str] = "GCP Node Template Node Type Flexibility"
-    kind_description: ClassVar[
-        str
-    ] = "This resource allows for flexible node type configuration in Google Cloud Platform node templates."
+    kind_description: ClassVar[str] = (
+        "This resource allows for flexible node type configuration in Google Cloud Platform node templates."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"cpus": S("cpus"), "local_ssd": S("localSsd"), "memory": S("memory")}
     cpus: Optional[str] = field(default=None)
     local_ssd: Optional[str] = field(default=None)
@@ -6120,9 +6120,9 @@ class GcpUrlMapTestHeader:
 class GcpUrlMapTest:
     kind: ClassVar[str] = "gcp_url_map_test"
     kind_display: ClassVar[str] = "GCP URL Map Test"
-    kind_description: ClassVar[
-        str
-    ] = "GCP URL Map Test is a test configuration for mapping URLs to backend services in Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP URL Map Test is a test configuration for mapping URLs to backend services in Google Cloud Platform."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "description": S("description"),
         "expected_output_url": S("expectedOutputUrl"),
