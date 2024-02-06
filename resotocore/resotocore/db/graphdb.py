@@ -135,6 +135,7 @@ class GraphDB(ABC):
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
         update_history: bool = True,
+        preserve_parent_structure: bool = False,
     ) -> Tuple[List[str], GraphUpdate]:
         pass
 
@@ -1028,6 +1029,7 @@ class ArangoGraphDB(GraphDB):
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
         update_history: bool = True,
+        preserve_parent_structure: bool = False,
     ) -> Tuple[List[str], GraphUpdate]:
         change_id = maybe_change_id if maybe_change_id else uuid_str()
 
@@ -1077,45 +1079,12 @@ class ArangoGraphDB(GraphDB):
         log.debug("Mark all parent nodes for this update to avoid conflicting changes")
         await self.mark_update(roots, list(parent.nodes), change_id, is_batch)
         try:
-            cloud_ids = [node[1].get("id") for node in parent.nodes(data=True) if "cloud" in node[1].get("kinds", [])]
-            cloud_ids = [cid for cid in cloud_ids if cid]
-            cloud_id = cloud_ids[0] if cloud_ids else None
 
-            def parent_queries() -> Tuple[Tuple[str, Json], Callable[[EdgeType], Tuple[str, Json]]]:
-                has_org_root = any(
-                    "organizational_root" in node[1].get("kinds_set", {}) for node in graph_to_merge.nodes(data=True)
-                )
+            def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
+                edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
+                return self.edges_by_ids_and_until_replace_node(edge_type, preserve_parent_structure, parent, edge_ids)
 
-                if has_org_root:
-
-                    def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
-                        edge_ids = [
-                            self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type
-                        ]
-                        return self.edges_by_ids_and_until_replace_node(edge_type), {
-                            "ids": edge_ids,
-                            "node_id": cloud_id,
-                        }
-
-                    parents_nodes: Tuple[str, Json] = self.nodes_by_ids_and_until_replace_node(), {
-                        "ids": list(parent.g.nodes),
-                        "node_id": cloud_id,
-                    }
-                    return parents_nodes, parent_edges
-                else:
-
-                    def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
-                        edge_ids = [
-                            self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type
-                        ]
-                        return self.query_update_edges_by_ids(edge_type), {"ids": edge_ids}
-
-                    parents_nodes = self.query_update_nodes_by_ids(), {
-                        "ids": list(parent.g.nodes),
-                    }
-                    return parents_nodes, parent_edges
-
-            parents_nodes, parent_edges = parent_queries()
+            parents_nodes = self.nodes_by_ids_and_until_replace_node(preserve_parent_structure, parent)
             info, nis, nus, nds, eis, eds = await prepare_graph(parent, parents_nodes, parent_edges)
             for num, (root, graph) in enumerate(graphs):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
@@ -1559,63 +1528,69 @@ class ArangoGraphDB(GraphDB):
             """
         )
 
-    def query_update_nodes_by_ids(self) -> str:
-        return f"""
-        FOR a IN `{self.vertex_name}`
-        FILTER a._key IN @ids
-        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
-        """
-
-    def query_update_edges_by_ids(self, edge_type: EdgeType) -> str:
-        collection = self.edge_collection(edge_type)
-        return f"""
-        FOR a IN `{collection}`
-        FILTER a._key in @ids
-        RETURN {{_key: a._key, _from: a._from, _to: a._to}}
-        """
-
-    def nodes_by_ids_and_until_replace_node(self) -> str:
+    def nodes_by_ids_and_until_replace_node(
+        self, preserve_parent_structure: bool, access: GraphAccess
+    ) -> Tuple[str, Json]:
         query_update_nodes_by_ids = (
             f"FOR a IN `{self.vertex_name}` "
             "FILTER a._key IN @ids RETURN {_key: a._key, hash:a.hash, created:a.created}"
         )
-        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
-        nodes_until_replace_node = f"""
-        FOR node IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(EdgeTypes.default)}`
-        PRUNE node.metadata["replace"] == true
-        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
-        FILTER {filter_section}
-        RETURN {{_key: node._key, hash: node.hash, created: node.created}}
-        """
+        bind_vars: Json = {"ids": list(access.g.nodes)}
+        if preserve_parent_structure:
+            cloud_id = access.cloud_node_id()
+            assert cloud_id is not None, "When parent structure should be preserved, a cloud node is required!"
+            bind_vars["node_id"] = cloud_id
+            filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+            nodes_until_replace_node = f"""
+            FOR cloud_node in `{self.vertex_name}` FILTER cloud_node._key == @node_id
+            FOR node IN 0..100 OUTBOUND cloud_node
+            `{self.edge_collection(EdgeTypes.default)}`
+            PRUNE node.metadata["replace"] == true
+            OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+            FILTER {filter_section}
+            RETURN {{_key: node._key, hash: node.hash, created: node.created}}
+            """
 
-        return f"""
-        LET nodes_by_ids = ({query_update_nodes_by_ids})
-        LET nodes_until_replace = ({nodes_until_replace_node})
-        LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_replace)
-        FOR n IN all_of_them RETURN n
-        """
+            statement = f"""
+            LET nodes_by_ids = ({query_update_nodes_by_ids})
+            LET nodes_until_replace = ({nodes_until_replace_node})
+            LET all_of_them = UNION_DISTINCT(nodes_by_ids, nodes_until_replace)
+            FOR n IN all_of_them RETURN n
+            """
+            return statement, bind_vars
+        else:
+            return query_update_nodes_by_ids, bind_vars
 
-    def edges_by_ids_and_until_replace_node(self, edge_type: EdgeType) -> str:
+    def edges_by_ids_and_until_replace_node(
+        self, edge_type: EdgeType, preserve_parent_structure: bool, access: GraphAccess, edge_ids: List[str]
+    ) -> Tuple[str, Json]:
         collection = self.edge_collection(edge_type)
+        bind_vars: Json = {"ids": edge_ids}
         query_update_edges_by_ids = (
             f"FOR a IN `{collection}` FILTER a._key in @ids RETURN {{_key: a._key, _from: a._from, _to: a._to}}"
         )
-
-        filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
-        edges_until_replace_node = f"""
-        FOR node, edge IN 0..100 OUTBOUND DOCUMENT('{self.vertex_name}', @node_id) `{self.edge_collection(edge_type)}`
-        PRUNE node.metadata["replace"] == true
-        OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
-        FILTER {filter_section}
-        RETURN {{_key: edge._key, _from: edge._from, _to: edge._to}}
-        """
-
-        return f"""
-        LET edges_by_ids = ({query_update_edges_by_ids})
-        LET edges_until_replace = ({edges_until_replace_node})
-        LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_replace)
-        FOR e IN all_of_them RETURN e
-        """
+        if preserve_parent_structure:
+            cloud_id = access.cloud_node_id()
+            assert cloud_id is not None, "When parent structure should be preserved, a cloud node is required!"
+            bind_vars["node_id"] = cloud_id
+            filter_section = " AND ".join(f"'{kind}' not in node.kinds" for kind in GraphResolver.resolved_ancestors)
+            edges_until_replace_node = f"""
+            FOR cloud_node in `{self.vertex_name}` FILTER cloud_node._key == @node_id
+            FOR node, edge IN 0..100 OUTBOUND cloud_node `{self.edge_collection(edge_type)}`
+            PRUNE node.metadata["replace"] == true
+            OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
+            FILTER {filter_section}
+            RETURN {{_key: edge._key, _from: edge._from, _to: edge._to}}
+            """
+            statement = f"""
+            LET edges_by_ids = ({query_update_edges_by_ids})
+            LET edges_until_replace = ({edges_until_replace_node})
+            LET all_of_them = UNION_DISTINCT(edges_by_ids, edges_until_replace)
+            FOR e IN all_of_them RETURN e
+            """
+            return statement, bind_vars
+        else:
+            return query_update_edges_by_ids, bind_vars
 
 
 class EventGraphDB(GraphDB):
@@ -1697,8 +1672,11 @@ class EventGraphDB(GraphDB):
         maybe_change_id: Optional[str] = None,
         is_batch: bool = False,
         update_history: bool = True,
+        preserve_parent_structure: bool = False,
     ) -> Tuple[List[str], GraphUpdate]:
-        roots, info = await self.real.merge_graph(graph_to_merge, model, maybe_change_id, is_batch, update_history)
+        roots, info = await self.real.merge_graph(
+            graph_to_merge, model, maybe_change_id, is_batch, update_history, preserve_parent_structure
+        )
         root_counter: Dict[str, int] = {}
         for root in roots:
             root_node = graph_to_merge.nodes[root]

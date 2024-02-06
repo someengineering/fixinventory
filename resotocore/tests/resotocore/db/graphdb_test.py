@@ -313,15 +313,20 @@ async def test_delete_old_nodes_when_merging_graph(graph_db: ArangoGraphDB, foo_
 
     p = ["aws_account"]
     # empty database: all nodes and all edges have to be inserted, the root node is updated and the link to root added
-    assert await graph_db.merge_graph(create("yes or no"), foo_model, maybe_change_id="foo") == (
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, preserve_parent_structure=True) == (
         p,
         GraphUpdate(113, 1, 0, 213, 0, 0),
     )
 
     # exactly the same graph is updated: no changes
-    assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))
+    assert await graph_db.merge_graph(create("yes or no"), foo_model, preserve_parent_structure=True) == (
+        p,
+        GraphUpdate(0, 0, 0, 0, 0, 0),
+    )
     # root_branch_id is changed: old node should be deleted and new one inserted
-    assert await graph_db.merge_graph(create("yes or no", org_root_id="new_org_root"), foo_model) == (
+    assert await graph_db.merge_graph(
+        create("yes or no", org_root_id="new_org_root"), foo_model, preserve_parent_structure=True
+    ) == (
         p,
         GraphUpdate(1, 0, 1, 1, 0, 1),
     )

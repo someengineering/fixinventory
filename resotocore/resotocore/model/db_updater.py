@@ -186,7 +186,13 @@ class DbUpdaterProcess(Process):
             graphdb = db.get_graph_db(nxt.graph)
             outer_edge_db = db.deferred_outer_edge_db
             await graphdb.insert_usage_data(builder.usage)
-            _, result = await graphdb.merge_graph(builder.graph, model, nxt.change_id, nxt.is_batch)
+            _, result = await graphdb.merge_graph(
+                builder.graph,
+                model,
+                nxt.change_id,
+                is_batch=nxt.is_batch,
+                preserve_parent_structure=builder.organizational_root is not None,
+            )
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             await model_handler.update_model(graphdb.name, list(model.kinds.values()), False)
             if nxt.task_id and builder.deferred_edges:

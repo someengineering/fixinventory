@@ -154,13 +154,14 @@ class GraphBuilder:
         self.usage: List[UsageDatapoint] = []
         self.at = int(utc().timestamp())
         self.change_id = change_id
+        self.organizational_root: Optional[NodeId] = None
 
     def add_from_json(self, js: Json) -> None:
         if "id" in js and Section.reported in js:
             usage_json = js.get(Section.usage, {})
             if len(usage_json) == 0:
                 usage_json = None
-            self.add_node(
+            node = self.add_node(
                 node_id=js["id"],
                 reported=js[Section.reported],
                 desired=js.get(Section.desired, None),
@@ -168,6 +169,9 @@ class GraphBuilder:
                 search=js.get("search", None),
                 replace=js.get("replace", False) is True,
             )
+            if "organizational_root" in node["kinds_set"]:
+                assert self.organizational_root is None, "There can be only one organizational root!"
+                self.organizational_root = node["id"]
             if usage_json:
                 usage = UsageDatapoint(
                     id=js["id"],
@@ -236,7 +240,7 @@ class GraphBuilder:
         metadata: Optional[Json] = None,
         search: Optional[str] = None,
         replace: bool = False,
-    ) -> None:
+    ) -> Dict[str, Any]:
         self.nodes += 1
         # validate kind of this reported json
         coerced = self.model.check_valid(reported)
@@ -250,8 +254,7 @@ class GraphBuilder:
         sha = GraphBuilder.content_hash(reported, desired, metadata)
         # flat all properties into a single string for search
         flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
-        self.graph.add_node(
-            node_id,
+        node = dict(
             id=node_id,
             reported=reported,
             desired=desired,
@@ -262,8 +265,10 @@ class GraphBuilder:
             kinds_set=kind.kind_hierarchy(),
             flat=flat,
         )
+        self.graph.add_node(node_id, **node)
         # update property sizes
         self.__update_property_size(kind, reported)
+        return node
 
     def add_edge(self, from_node: str, to_node: str, edge_type: EdgeType) -> None:
         self.edges += 1
@@ -376,6 +381,13 @@ class GraphAccess:
             return self.dump(node_id, n)
         else:
             return None
+
+    def cloud_node_id(self) -> Optional[NodeId]:
+        cloud_ids = [
+            data.get("id") for nid, data in self.nodes(data=True) if "cloud" in data.get("kinds", []) and data.get("id")
+        ]
+        assert len(cloud_ids) <= 1, f"More than one cloud node found: {cloud_ids}"
+        return cloud_ids[0] if cloud_ids else None
 
     def has_edge(self, from_id: object, to_id: object, edge_type: EdgeType) -> bool:
         key = self.edge_key(from_id, to_id, edge_type)
@@ -563,10 +575,10 @@ class GraphAccess:
             data = graph.nodes[source]
             replace = (data.get("metadata", {}) or {}).get("replace", False)
             if replace:
-                return {source: data}, set([source])
+                return {source: data}, {source}
 
             replace_nodes: Dict[NodeId, Json] = {}
-            replace_nodes_predecessors: Set[NodeId] = set([source])
+            replace_nodes_predecessors: Set[NodeId] = {source}
 
             for child in graph.successors(source):
                 rn, pred = collect_until_replace_node(graph, child, seen)
