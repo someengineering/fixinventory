@@ -58,7 +58,16 @@ from resotocore.model.typed_model import to_js, from_js
 from resotocore.query.model import Query, FulltextTerm, MergeTerm, P, Predicate
 from resotocore.report import ReportSeverity, SecurityIssue
 from resotocore.types import JsonElement, EdgeType
-from resotocore.util import first, value_in_path_get, utc_str, uuid_str, value_in_path, json_hash, set_value_in_path
+from resotocore.util import (
+    first,
+    value_in_path_get,
+    utc_str,
+    uuid_str,
+    value_in_path,
+    json_hash,
+    set_value_in_path,
+    if_set,
+)
 
 log = logging.getLogger(__name__)
 
@@ -516,10 +525,11 @@ class ArangoGraphDB(GraphDB):
 
         def update_security_section(
             existing_issues: List[Json], actual_issues: List[SecurityIssue]
-        ) -> Tuple[List[Json], HistoryChange, ReportSeverity, Dict[str, List[Json]]]:
+        ) -> Tuple[List[Json], HistoryChange, ReportSeverity, bool, Json]:
             existing = read_checks(existing_issues)
             updated: Dict[str, SecurityIssue] = {}  # check id -> issue
-            changes: Dict[str, List[Json]] = defaultdict(list)
+            diff_compliant: List[Json] = []
+            diff_vulnerable: List[Json] = []
             # use this loop to merge actual issues with the same check
             for issue in actual_issues:
                 if same_check := updated.get(issue.check):
@@ -529,18 +539,18 @@ class ArangoGraphDB(GraphDB):
             # now compare the updated with the existing issues
             for key, issue in updated.items():
                 if same_check := existing.get(key):
-                    if same_check.benchmarks != issue.benchmarks or same_check.severity != issue.severity:
-                        changes["updated"].append(same_check.to_json())
+                    vulnerable_diff, compliant_diff = same_check.diff(issue)
+                    if vulnerable_diff or compliant_diff:
+                        if_set(vulnerable_diff, lambda x: diff_vulnerable.append(x.to_json()))
+                        if_set(compliant_diff, lambda x: diff_compliant.append(x.to_json()))
                         same_check.severity = issue.severity
                         same_check.benchmarks = issue.benchmarks
                     updated[key] = same_check
                 else:
                     issue.opened_at = now
-                    issue.run_id = report_run_id
-                    changes["added"].append(issue.to_json())
-            # compute deleted issues
-            if deleted := [v.to_json() for k, v in existing.items() if k not in updated]:
-                changes["removed"] = deleted
+                    diff_vulnerable.append(issue.to_json())
+            # deleted issues are compliant
+            diff_compliant.extend(v.to_json() for k, v in existing.items() if k not in updated)
             # the node severity is the highest severity of all issues
             previous = max((a.severity for a in existing.values()), default=ReportSeverity.info)
             severity = max((a.severity for a in updated.values()), default=ReportSeverity.info)
@@ -551,7 +561,14 @@ class ArangoGraphDB(GraphDB):
                 if (severity < previous or (severity == previous and len(existing) < len(updated)))
                 else HistoryChange.node_vulnerable
             )
-            return [a.to_json() for a in updated.values()], change, severity, changes
+            diff: Json = {
+                HistoryChange.node_compliant.value: diff_compliant,
+                HistoryChange.node_vulnerable.value: diff_vulnerable,
+            }
+            if existing:
+                diff["previous"] = previous.value
+            changed = bool(diff_compliant or diff_vulnerable)
+            return [a.to_json() for a in updated.values()], change, severity, changed, diff
 
         async def update_chunk(chunk: Dict[NodeId, List[SecurityIssue]]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
@@ -563,7 +580,7 @@ class ArangoGraphDB(GraphDB):
                     node_id = NodeId(node.pop("_key", ""))
                     node["id"] = node_id  # store the id in the id column (not _key)
                     existing: List[Json] = value_in_path_get(node, NodePath.security_issues, [])
-                    updated, change, severity, diff = update_security_section(existing, chunk.get(node_id, []))
+                    updated, change, severity, changed, diff = update_security_section(existing, chunk.get(node_id, []))
                     security_section = dict(
                         issues=updated,
                         opened_at=value_in_path_get(node, NodePath.security_opened_at, now),
@@ -579,12 +596,13 @@ class ArangoGraphDB(GraphDB):
                         security_section["opened_at"] = now
                         security_section["reopen_counter"] = security_section["reopen_counter"] + 1  # type: ignore
                         node["change"] = "node_vulnerable"
+                        node["diff"] = diff
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
-                    elif diff:  # the content has changed
+                    elif changed:
                         nodes_vulnerable_updated += 1
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
-                        node["diff"] = diff
                         node["change"] = change.value
+                        node["diff"] = diff
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
                 # note: we can not detect deleted nodes here -> since we marked all new/existing nodes, we can detect deleted nodes in the next step # noqa
@@ -593,14 +611,18 @@ class ArangoGraphDB(GraphDB):
         async def move_security_temp_to_proper() -> None:
             temp_name = temp_collection.name
             accounts_quoted = ",".join(f'"{acc}"' for acc in accounts_list)
-            account_filter = f"and e.refs.account_id in [{accounts_quoted}]" if accounts else ""
+            account_filter = f"and e.ancestors.account.reported.id in [{accounts_quoted}]" if accounts else ""
             aql_updates = [
                 # Select all new or updated vulnerable nodes. Insert into history and update vertex.
                 f'for e in {temp_name} filter e.action=="node_vulnerable" insert e.data in {self.node_history} update {{_key: e.node_id, security: e.data.security}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa
                 # Update security.run_id for all items with the same security issues
-                f'for e in {temp_name} filter e.action=="mark" update {{_key: e.node_id, security: {{run_id: e.run_id}}}} in {self.vertex_name} OPTIONS {{mergeObjects: true}}',  # noqa
-                # Select all remaining nodes with a different run_id -> they are compliant again
-                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" {account_filter} insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "node_compliant", changed_at: "{now}", security: MERGE(e.security, {{closed_at: "{now}"}})}}) in {self.node_history} OPTIONS {{mergeObjects: true}} update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
+                # Mark all nodes in the graph from the nodes in the temp collection.
+                f'for e in {temp_name} filter e.action=="mark" update {{_key: e.node_id, security: {{run_id: e.run_id}}}} in {self.vertex_name} OPTIONS {{mergeObjects: true}}',  # Noqa
+                # All unmarked nodes in the graph are compliant again.
+                # Add history entry and update vertex.
+                f'for e in {self.vertex_name} filter e.security.run_id!=null and e.security.run_id!="{report_run_id}" {account_filter} '  # noqa: E501
+                f'insert MERGE(UNSET(e, "_key", "_id", "_rev", "flat", "hash"), {{id: e._key, change: "{HistoryChange.node_compliant.value}", changed_at: "{now}", diff:{{previous: e.security.severity, node_compliant:e.security.issues}}, security: {{has_issues:false, run_id:"{report_run_id}", reopen_counter:e.security.reopen_counter, opened_at:e.security.opened_at, closed_at: "{now}"}}}}) in {self.node_history} '  # noqa: E501
+                f'update {{_key: e._key, security: {{reopen_counter: e.security.reopen_counter, closed_at: "{now}"}}}} in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
             ]
             updates = ";\n".join(map(lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()", aql_updates))
             await self.db.execute_transaction(
