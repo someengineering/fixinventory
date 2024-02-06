@@ -713,9 +713,11 @@ class CommandLineCompleter(Completer):
             def walk_commands(sub_commands: Dict[str, Union["ArgsInfo", List[ArgInfo]]]) -> Completer:
                 return NestedCompleter.from_nested_dict(
                     {
-                        sub_cmd: ArgsCompleter([arg_value_completer(arg) for arg in options])
-                        if isinstance(options, list)
-                        else walk_commands(options)
+                        sub_cmd: (
+                            ArgsCompleter([arg_value_completer(arg) for arg in options])
+                            if isinstance(options, list)
+                            else walk_commands(options)
+                        )
                         for sub_cmd, options in sub_commands.items()
                     }
                 )

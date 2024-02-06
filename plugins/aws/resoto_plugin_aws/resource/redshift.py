@@ -299,9 +299,9 @@ class AwsRedshiftElasticIpStatus:
 class AwsRedshiftClusterIamRole:
     kind: ClassVar[str] = "aws_redshift_cluster_iam_role"
     kind_display: ClassVar[str] = "AWS Redshift Cluster IAM Role"
-    kind_description: ClassVar[
-        str
-    ] = "An IAM role that is used to grant permissions to an Amazon Redshift cluster to access other AWS services."
+    kind_description: ClassVar[str] = (
+        "An IAM role that is used to grant permissions to an Amazon Redshift cluster to access other AWS services."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"iam_role_arn": S("IamRoleArn"), "apply_status": S("ApplyStatus")}
     iam_role_arn: Optional[str] = field(default=None)
     apply_status: Optional[str] = field(default=None)
@@ -417,9 +417,9 @@ class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     kind_display: ClassVar[str] = "AWS Redshift Cluster"
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip
-    kind_description: ClassVar[
-        str
-    ] = "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
+    kind_description: ClassVar[str] = (
+        "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

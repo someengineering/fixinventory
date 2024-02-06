@@ -69,9 +69,9 @@ class AwsLambdaPolicy:
 class AwsLambdaEnvironmentError:
     kind: ClassVar[str] = "aws_lambda_environment_error"
     kind_display: ClassVar[str] = "AWS Lambda Environment Error"
-    kind_description: ClassVar[
-        str
-    ] = "An error occurring in the environment setup or configuration of an AWS Lambda function."
+    kind_description: ClassVar[str] = (
+        "An error occurring in the environment setup or configuration of an AWS Lambda function."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {"error_code": S("ErrorCode"), "message": S("Message")}
     error_code: Optional[str] = field(default=None)
     message: Optional[str] = field(default=None)

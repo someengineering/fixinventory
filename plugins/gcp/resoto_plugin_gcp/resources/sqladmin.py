@@ -113,9 +113,9 @@ class GcpSqlDatabase(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_database"
     kind_display: ClassVar[str] = "GCP SQL Database"
-    kind_description: ClassVar[
-        str
-    ] = "GCP SQL Database is a managed relational database service provided by Google Cloud Platform."
+    kind_description: ClassVar[str] = (
+        "GCP SQL Database is a managed relational database service provided by Google Cloud Platform."
+    )
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="sqladmin",
         version="v1",
@@ -871,9 +871,9 @@ class GcpSqlBakimportoptions:
 class GcpSqlCsvimportoptions:
     kind: ClassVar[str] = "gcp_sql_csvimportoptions"
     kind_display: ClassVar[str] = "GCP SQL CSV Import Options"
-    kind_description: ClassVar[
-        str
-    ] = "CSV Import Options in GCP SQL enables users to efficiently import CSV data into Google Cloud SQL databases."
+    kind_description: ClassVar[str] = (
+        "CSV Import Options in GCP SQL enables users to efficiently import CSV data into Google Cloud SQL databases."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "columns": S("columns", default=[]),
         "escape_character": S("escapeCharacter"),

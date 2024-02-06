@@ -3794,8 +3794,8 @@ class AzureIpGroup(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = (
-            lambda n: n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
+        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda n: (
+            n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
         )
 
         virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""

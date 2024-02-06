@@ -143,9 +143,9 @@ class AwsRdsSubnet:
 class AwsRdsDBSubnetGroup:
     kind: ClassVar[str] = "aws_rds_db_subnet_group"
     kind_display: ClassVar[str] = "AWS RDS DB Subnet Group"
-    kind_description: ClassVar[
-        str
-    ] = "DB Subnet Groups are used to specify the VPC subnets where Amazon RDS DB instances are created."
+    kind_description: ClassVar[str] = (
+        "DB Subnet Groups are used to specify the VPC subnets where Amazon RDS DB instances are created."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "db_subnet_group_name": S("DBSubnetGroupName"),
         "db_subnet_group_description": S("DBSubnetGroupDescription"),

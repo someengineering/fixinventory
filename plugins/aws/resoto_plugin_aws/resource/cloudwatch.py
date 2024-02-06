@@ -188,9 +188,9 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
-    kind_description: ClassVar[
-        str
-    ] = "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
+    kind_description: ClassVar[str] = (
+        "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-alarms", "MetricAlarms")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
