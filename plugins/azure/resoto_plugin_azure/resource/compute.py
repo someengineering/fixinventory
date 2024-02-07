@@ -729,6 +729,7 @@ class AzureDisk(AzureResource, BaseVolume):
         queries = []
         start = builder.metrics_start
         now = builder.created_at
+        delta = builder.metrics_delta
         for volume_id in volumes:
             queries.extend(
                 [
@@ -764,7 +765,7 @@ class AzureDisk(AzureResource, BaseVolume):
             "Composite Disk Read Operations/sec": MetricNormalization(name="volume_read_ops"),
         }
 
-        metric_result = AzureMetricData.query_for(builder, queries, start, now)
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
 
         update_resource_metrics(volumes, metric_result, metric_normalizers)
 
@@ -2548,12 +2549,6 @@ InstanceStatusMapping = {
     "stopped": InstanceStatus.STOPPED,
     "deallocating": InstanceStatus.BUSY,
     "deallocated": InstanceStatus.TERMINATED,
-    "Creating": InstanceStatus.BUSY,
-    "Updating": InstanceStatus.BUSY,
-    "Succeeded": InstanceStatus.RUNNING,
-    "Failed": InstanceStatus.STOPPED,
-    "Deleting": InstanceStatus.BUSY,
-    "Migrating": InstanceStatus.BUSY,
 }
 
 
@@ -2694,19 +2689,17 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         queries = []
         start = builder.metrics_start
         now = builder.created_at
+        delta = builder.metrics_delta
         for vm_id in virtual_machines:
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name="Percentage CPU",
-                        metric_namespace="Microsoft.Compute/virtualMachines",
-                        instance_id=vm_id,
-                        aggregation=aggregation,
-                        ref_id=vm_id,
-                        unit="Percent",
-                    )
-                    for aggregation in ["minimum", "maximum", "average"]
-                ]
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="Percentage CPU",
+                    metric_namespace="Microsoft.Compute/virtualMachines",
+                    instance_id=vm_id,
+                    aggregation="average,minimum,maximum",
+                    ref_id=vm_id,
+                    unit="Percent",
+                )
             )
             queries.extend(
                 [
@@ -2714,7 +2707,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="total",
+                        aggregation="average,minimum,maximum",
                         ref_id=vm_id,
                         unit="Bytes",
                     )
@@ -2727,7 +2720,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="total",
+                        aggregation="average,minimum,maximum",
                         ref_id=vm_id,
                         unit="CountPerSecond",
                     )
@@ -2740,7 +2733,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="total",
+                        aggregation="average,minimum,maximum",
                         ref_id=vm_id,
                         unit="Bytes",
                     )
@@ -2761,7 +2754,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             "Disk Write Bytes": MetricNormalization(name="disk_write_bytes"),
         }
 
-        metric_result = AzureMetricData.query_for(builder, queries, start, now)
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
 
         update_resource_metrics(virtual_machines, metric_result, metric_normalizers)
 

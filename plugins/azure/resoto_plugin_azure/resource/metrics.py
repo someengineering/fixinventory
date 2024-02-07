@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
+from typing import ClassVar, Dict, Optional, List, TypeVar
 
 from attr import define, field
 
@@ -90,7 +90,7 @@ class AzureMetricQuery:
     ref_id: str
     instance_id: str
     metric_id: str
-    aggregation: str = "total"
+    aggregation: str = "average,minimum,maximum"
     unit: str = "Count"
 
     @staticmethod
@@ -100,7 +100,7 @@ class AzureMetricQuery:
         instance_id: str,
         ref_id: str,
         metric_id: Optional[str] = None,
-        aggregation: str = "total",
+        aggregation: str = "average,minimum,maximum",
         unit: str = "Count",
     ) -> "AzureMetricQuery":
         metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
@@ -129,7 +129,6 @@ class AzureMetricData:
     full_metric_values_data: List[AzureMetricValue] = field(factory=list)
     metric_id: Optional[str] = field(default=None)
     metric_values: Optional[List[float]] = field(default=None)
-    metric_timestamps: Optional[List[datetime]] = field(default=None)
     timespan: Optional[str] = field(default=None)
     interval: Optional[str] = field(default=None)
     namespace: Optional[str] = field(default=None)
@@ -137,27 +136,40 @@ class AzureMetricData:
 
     def set_values(self, query_aggregation: str) -> None:
         if self.full_metric_values_data:
+            aggregations = query_aggregation.split(",")
             metric_values_result = [
                 data
-                for metric_value in self.full_metric_values_data
+                for metric_value in self.full_metric_values_data or []
                 for timeseries in metric_value.timeseries or []
                 for data in timeseries.data or []
             ]
-            self.metric_values = [getattr(metric, query_aggregation) for metric in metric_values_result][::-1]
-            self.metric_timestamps = [
-                data.timestamp
-                for metric_value in self.full_metric_values_data
-                for timeseries in metric_value.timeseries or []
-                for data in timeseries.data or []
-            ][::-1]
+
+            metric_values: List[float] = []
+
+            for attr in aggregations:
+                metric_attrs = [getattr(metric, attr) for metric in metric_values_result]
+                if metric_attrs:
+                    metric_values.append(sum(metric_attrs) / len(metric_attrs))
+
+            self.metric_values = metric_values
+
             self.metric_id = self.full_metric_values_data[0].id
 
-    def first_non_zero(self) -> Optional[Tuple[datetime, float]]:
-        if self.metric_timestamps and self.metric_values:
-            for timestamp, value in zip(self.metric_timestamps, self.metric_values):
-                if value != 0 and value is not None:
-                    return timestamp, value
-        return None
+    @staticmethod
+    def compute_interval(period: float) -> str:
+        intervals = {
+            5: "1M",
+            15: "5M",
+            30: "15M",
+            60: "30M",
+            360: "1H",
+            720: "6H",
+            1440: "12H",
+        }
+        for interval, time in intervals.items():
+            if period < interval:
+                return "PT" + time
+        return "P1D"
 
     @staticmethod
     def query_for(
@@ -165,6 +177,7 @@ class AzureMetricData:
         queries: List[AzureMetricQuery],
         start_time: datetime,
         end_time: datetime,
+        period: float,
     ) -> "Dict[AzureMetricQuery, AzureMetricData]":
         lookup = {q.metric_id: q for q in queries}
         result: Dict[AzureMetricQuery, AzureMetricData] = {}
@@ -180,11 +193,14 @@ class AzureMetricData:
                 "metricNamespace",
                 "timespan",
                 "aggregation",
+                "interval",
+                "AutoAdjustTimegrain",
             ],
             access_path=None,
             expect_array=False,
         )
         timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"
+        interval = AzureMetricData.compute_interval(period)
 
         for query in queries:
             api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
@@ -194,9 +210,11 @@ class AzureMetricData:
                 metricNamespace=query.metric_namespace,
                 timespan=timespan,
                 aggregation=query.aggregation,
+                interval=interval,
+                AutoAdjustTimegrain=True,
             )
             for single in part:
-                metric = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
+                metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
                 metric.set_values(query.aggregation)
                 metric_id = metric.metric_id
                 if metric_id is not None:
@@ -217,17 +235,13 @@ def update_resource_metrics(
         if resource is None:
             continue
         metric_data = metric.metric_values
+        aggregations = query.aggregation.split(",")
         if metric_data:
-            metric_value = next(iter(metric_data), None)
-        else:
-            metric_value = None
-        if metric_value is None:
-            continue
-        normalizer = metric_normalizers.get(query.metric_name)
-        if not normalizer:
-            continue
+            for aggregation, metric_value in zip(aggregations, metric_data):
+                normalizer = metric_normalizers.get(query.metric_name)
+                if not normalizer:
+                    continue
+                name = normalizer.name
+                value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
-        name = normalizer.name
-        value = metric_normalizers[query.metric_name].normalize_value(metric_value)
-
-        resource._resource_usage[name][normalizer.stat_map[query.aggregation]] = value
+                resource._resource_usage[name][normalizer.stat_map[aggregation]] = value
