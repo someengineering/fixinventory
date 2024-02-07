@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, TypeVar
+from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
 from attr import define, field
 
@@ -202,24 +202,51 @@ class AzureMetricData:
         timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"
         interval = AzureMetricData.compute_interval(period)
 
+        futures = []
         for query in queries:
-            api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
-            part = builder.client.list(
+            future = builder.submit_work(
+                "azure_metric",
+                AzureMetricData._query_for_single,
+                builder,
+                query,
                 api_spec,
-                metricnames=query.metric_name,
-                metricNamespace=query.metric_namespace,
-                timespan=timespan,
-                aggregation=query.aggregation,
-                interval=interval,
-                AutoAdjustTimegrain=True,
+                timespan,
+                interval,
             )
-            for single in part:
-                metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
-                metric.set_values(query.aggregation)
-                metric_id = metric.metric_id
-                if metric_id is not None:
-                    result[lookup[metric_id]] = metric
+            futures.append(future)
+
+        for future in futures:
+            metric, metric_id = future.result()
+            if metric is not None and metric_id is not None:
+                result[lookup[metric_id]] = metric
+
         return result
+
+    @staticmethod
+    def _query_for_single(
+        builder: GraphBuilder,
+        query: AzureMetricQuery,
+        api_spec: AzureApiSpec,
+        timespan: str,
+        interval: str,
+    ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
+        api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
+        part = builder.client.list(
+            api_spec,
+            metricnames=query.metric_name,
+            metricNamespace=query.metric_namespace,
+            timespan=timespan,
+            aggregation=query.aggregation,
+            interval=interval,
+            AutoAdjustTimegrain=True,
+        )
+        for single in part:
+            metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
+            metric.set_values(query.aggregation)
+            metric_id = metric.metric_id
+            if metric_id is not None:
+                return metric, metric_id
+        return None, None
 
 
 V = TypeVar("V", bound=BaseResource)

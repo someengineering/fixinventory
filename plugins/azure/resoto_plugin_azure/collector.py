@@ -124,7 +124,7 @@ class AzureSubscriptionCollector:
         group_futures = []
         self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.subscription.subscription_id])
         for resource_type in resources:
-            group_futures.append(builder.submit_work(collect_resource, resource_type))
+            group_futures.append(builder.submit_work("azure_all", collect_resource, resource_type))
         all_done = GatherFutures.all(group_futures)
         all_done.add_done_callback(work_done)
         return all_done

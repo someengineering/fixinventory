@@ -317,7 +317,7 @@ class AzureResourceGroup(AzureResource):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
-        graph_builder.submit_work(collect_resources_in_group)
+        graph_builder.submit_work("azure_all", collect_resources_in_group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
@@ -493,12 +493,12 @@ class GraphBuilder:
         # Converting the total seconds in 'delta' to minutes to futher compute interval
         self.metrics_delta = delta.total_seconds() / 60
 
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+    def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
         Use this method for work that can be done in parallel.
         Example: fetching tags of a resource.
         """
-        return self.executor.submit_work("azure_all", fn, *args, **kwargs)
+        return self.executor.submit_work(service, fn, *args, **kwargs)
 
     def node(
         self,
