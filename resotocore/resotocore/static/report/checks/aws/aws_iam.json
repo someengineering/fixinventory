@@ -124,7 +124,7 @@
             "risk": "The root account is the most privileged user in an AWS account. Enabling MFA adds an extra layer of protection by requiring an authentication code from a hardware MFA device along with the user name and password, significantly reducing the risk of unauthorized access to the root account. It is important for Level 2 security to have the root account protected with a hardware MFA device.",
             "severity": "low",
             "detect": {
-                "resoto": "is(aws_root_user) and user_virtual_mfa_devices!=null and user_virtual_mfa_devices!=[]"
+                "resoto": "is(aws_root_user) and mfa_active==true and user_virtual_mfa_devices!=null and user_virtual_mfa_devices!=[]"
             },
             "remediation": {
                 "text": "To enable hardware MFA for the root account, navigate to the IAM console Dashboard and activate MFA.",
