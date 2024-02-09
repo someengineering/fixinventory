@@ -566,6 +566,15 @@ class GraphBuilder:
             # add edge from subscription to resource
             last_edge_key = self.add_edge(self.subscription, node=node)
 
+        if node._metadata.get("provider_link") is None:
+            link_tpl = "https://portal.azure.com/#@/resource/subscriptions{resource_id}/overview"
+            try:
+                src = source.copy() if source else {}
+                src["resource_id"] = node.id
+                node._metadata["provider_link"] = link_tpl.format(**src)
+            except Exception as e:
+                log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
+
         if last_edge_key is not None:
             with self.graph_nodes_access:
                 self.graph.add_node(node, source=source or {})
