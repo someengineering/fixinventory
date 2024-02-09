@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, List
 
@@ -125,3 +126,29 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 140
     assert await timeseries_db.downsample(now=now + timedelta(days=400)) == {}
     assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 140
+
+
+async def test_acquire_lock(timeseries_db: TimeSeriesDB) -> None:
+    flag = False
+
+    async def with_lock(num: int) -> None:
+        nonlocal flag
+        async with timeseries_db._lock(
+            get_lock=timedelta(seconds=1), retry_interval=timedelta(microseconds=1)
+        ) as locked:
+            assert locked, f"{num} not locked!"
+            assert flag == False
+            flag = True
+            await asyncio.sleep(0.01)
+            flag = False
+
+    # run a couple of tasks in parallel
+    await asyncio.gather(*(with_lock(n) for n in range(10)))
+
+    # counter example: getting the lock should fail in case it was acquired
+    timeseries_db.db.collection(timeseries_db.meta_db).insert({"_key": "__lock__"})
+    async with timeseries_db._lock(
+        get_lock=timedelta(milliseconds=5), retry_interval=timedelta(microseconds=1)
+    ) as locked:
+        assert not locked, "Was able to get the lock!"
+    timeseries_db.db.collection(timeseries_db.meta_db).delete({"_key": "__lock__"})

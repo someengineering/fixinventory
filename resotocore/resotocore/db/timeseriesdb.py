@@ -1,10 +1,12 @@
+import asyncio
 import logging
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import timedelta, datetime, timezone
 from functools import partial
 from numbers import Number
-from typing import Optional, List, Set, Union, cast, Callable, Dict
+from typing import Optional, List, Set, Union, cast, Callable, Dict, AsyncIterator
 
 from attr import evolve, define
 from resotocore.core_config import CoreConfig
@@ -12,6 +14,7 @@ from resotocore.db import arango_query
 from resotocore.db.async_arangodb import AsyncArangoDB, AsyncCursor, AsyncArangoTransactionDB
 from resotocore.db.graphdb import GraphDB
 from resotocore.db.model import QueryModel
+from resotocore.error import ConflictingChangeInProgress
 from resotocore.query.model import Predicate
 from resotocore.types import Json, JsonElement
 from resotocore.util import utc_str, utc, if_set, parse_utc
@@ -86,17 +89,19 @@ class TimeSeriesDB:
         )
         at = at if at is not None else int(time.time())  # only use seconds
         qs, bv = arango_query.create_time_series(QueryModel(query, model), graph_db, self.collection_name, name, at)
-        result, *_ = cast(List[int], await self.__execute_aql(qs, bv))
-        if result > 0:
-            # update meta information
-            await self.__execute_aql(
-                "UPSERT { _key: @key } "
-                "INSERT { _key: @key, created_at: DATE_NOW(), last_updated: DATE_NOW(), count: @count } "
-                f"UPDATE {{ last_updated: DATE_NOW(), count: @count }} IN `{self.names_db}`",
-                dict(key=name, count=result),
-            )
-
-        return result
+        async with self._lock() as locked:
+            if not locked:
+                raise ConflictingChangeInProgress("Another update is already in progress.")
+            result, *_ = cast(List[int], await self.__execute_aql(qs, bv))
+            if result > 0:
+                # update meta information
+                await self.__execute_aql(
+                    "UPSERT { _key: @key } "
+                    "INSERT { _key: @key, created_at: DATE_NOW(), last_updated: DATE_NOW(), count: @count } "
+                    f"UPDATE {{ last_updated: DATE_NOW(), count: @count }} IN `{self.names_db}`",
+                    dict(key=name, count=result),
+                )
+            return result
 
     async def load_time_series(
         self,
@@ -164,17 +169,10 @@ class TimeSeriesDB:
         last_run = if_set(await self.db.get(self.meta_db, last_run_name), lambda d: parse_utc(d[last_run_name]), oldest)
         if (now - last_run) < self.smallest_resolution:
             return "No changes since last downsample run"
-        # acquire a lock to ensure exclusive access
-        try:
-            ttl = int((now + timedelta(minutes=15)).timestamp())
-            await self.db.insert(self.meta_db, dict(_key="lock", expires=ttl), sync=True)
-        except Exception:
-            return "Another downsample run is already in progress."
-        # If we come here, the lock is acquired: exclusive access.
-        # We only touch time series that are older than the minimal resolution (>1h).
-        # So we never interfere with snapshots that are eventually created concurrently.
-        result: Json = defaultdict(list)
-        try:
+        async with self._lock() as locked:
+            if not locked:
+                return "Another downsample run is already in progress."
+            result: Json = defaultdict(list)
             for ts in await self.list_time_series():
                 dst = ts.downsample_times.copy()
                 for bucket in self.buckets:
@@ -229,8 +227,6 @@ class TimeSeriesDB:
                             )
             # update last run
             await self.db.insert(self.meta_db, {"_key": last_run_name, last_run_name: utc_str(now)}, overwrite=True)
-        finally:
-            await self.db.delete(self.meta_db, "lock", ignore_missing=True)
         return result
 
     async def create_update_schema(self) -> None:
@@ -259,6 +255,38 @@ class TimeSeriesDB:
             and await self.db.truncate(self.names_db)
             and await self.db.truncate(self.meta_db)
         )
+
+    @asynccontextmanager
+    async def _lock(
+        self,
+        get_lock: timedelta = timedelta(seconds=30),  # how long to try to get the lock
+        lock_for: timedelta = timedelta(minutes=10),  # acquired: how long to hold the lock max
+        retry_interval: timedelta = timedelta(seconds=1),  # how long to wait between retries
+    ) -> AsyncIterator[bool]:
+        now = utc()
+        ttl = int((now + lock_for).timestamp())
+        deadline = now + get_lock
+        flag = False
+        while utc() < deadline:
+            try:
+                # try to insert a document with key __lock__
+                await self.db.insert(self.meta_db, dict(_key="__lock__", expires=ttl), sync=True)
+            except Exception:
+                # could not insert the document. Wait and try again
+                await asyncio.sleep(retry_interval.total_seconds())
+                continue
+            try:
+                # if we come here, the document was written. Enter context.
+                yield True
+            finally:
+                # we yielded the context
+                flag = True
+                # make sure to delete the document
+                await self.db.delete(self.meta_db, "__lock__", ignore_missing=True)
+                # we only want to execute the context once
+                break
+        if not flag:
+            yield False
 
     def _buckets(self) -> List[TimeSeriesBucket]:
         result: List[TimeSeriesBucket] = []
