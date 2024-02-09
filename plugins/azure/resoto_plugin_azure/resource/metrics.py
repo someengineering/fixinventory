@@ -135,8 +135,12 @@ class AzureMetricData:
     resource_region: Optional[str] = field(default=None)
 
     def set_values(self, query_aggregation: str) -> None:
+        # Check if there are full metric values data available
         if self.full_metric_values_data:
+            # Split the query aggregation string to get individual aggregations
             aggregations = query_aggregation.split(",")
+
+            # Extract metric values from the full metric values data
             metric_values_result = [
                 data
                 for metric_value in self.full_metric_values_data or []
@@ -144,15 +148,19 @@ class AzureMetricData:
                 for data in timeseries.data or []
             ]
 
+            # Calculate aggregated metric values based on the provided aggregations
             metric_values: List[float] = []
-
             for attr in aggregations:
+                # Extract attribute values for each metric
                 metric_attrs = [getattr(metric, attr) for metric in metric_values_result]
+                # Calculate the average value for the attribute across metrics and add it to metric_values list
                 if metric_attrs:
                     metric_values.append(sum(metric_attrs) / len(metric_attrs))
 
+            # Set the calculated metric values
             self.metric_values = metric_values
 
+            # Set the metric ID
             self.metric_id = self.full_metric_values_data[0].id
 
     @staticmethod
@@ -179,9 +187,24 @@ class AzureMetricData:
         end_time: datetime,
         period: float,
     ) -> "Dict[AzureMetricQuery, AzureMetricData]":
+        """
+        A static method to query Azure metrics for multiple queries simultaneously.
+
+        Args:
+            builder (GraphBuilder): An instance of GraphBuilder used for submitting work.
+            queries (List[AzureMetricQuery]): A list of AzureMetricQuery objects representing the metrics to query.
+            start_time (datetime): The start time for the metrics query.
+            end_time (datetime): The end time for the metrics query.
+            period (float): The period over which to aggregate the metrics.
+
+        Returns:
+            Dict[AzureMetricQuery, AzureMetricData]: A dictionary mapping each query to its corresponding metric data.
+        """
+        # Create a lookup dictionary for efficient mapping of metric IDs to queries
         lookup = {q.metric_id: q for q in queries}
         result: Dict[AzureMetricQuery, AzureMetricData] = {}
 
+        # Define API specifications for querying Azure metrics
         api_spec = AzureApiSpec(
             service="metric",
             version="2021-05-01",
@@ -199,9 +222,11 @@ class AzureMetricData:
             access_path=None,
             expect_array=False,
         )
+        # Define the timespan and interval for the query
         timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"
         interval = AzureMetricData.compute_interval(period)
 
+        # Submit queries for each AzureMetricQuery
         futures = []
         for query in queries:
             future = builder.submit_work(
@@ -215,6 +240,7 @@ class AzureMetricData:
             )
             futures.append(future)
 
+        # Retrieve results from submitted queries and populate the result dictionary
         for future in futures:
             metric, metric_id = future.result()
             if metric is not None and metric_id is not None:
@@ -230,7 +256,9 @@ class AzureMetricData:
         timespan: str,
         interval: str,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
+        # Set the path for the API call based on the instance ID of the query
         api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
+        # Retrieve metric data from the API
         part = builder.client.list(
             api_spec,
             metricnames=query.metric_name,
@@ -240,6 +268,7 @@ class AzureMetricData:
             interval=interval,
             AutoAdjustTimegrain=True,
         )
+        # Iterate over the retrieved data and map it to AzureMetricData objects
         for single in part:
             metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
             metric.set_values(query.aggregation)

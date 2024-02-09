@@ -490,7 +490,7 @@ class GraphBuilder:
         delta = now - start
 
         self.metrics_start = start
-        # Converting the total seconds in 'delta' to minutes to futher compute interval
+        # Convert the total seconds in 'delta' to minutes for interval computation
         self.metrics_delta = delta.total_seconds() / 60
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
@@ -566,6 +566,7 @@ class GraphBuilder:
             # add edge from subscription to resource
             last_edge_key = self.add_edge(self.subscription, node=node)
 
+        # create provider link
         if node._metadata.get("provider_link") is None:
             link_tpl = "https://portal.azure.com/#@/resource/subscriptions{resource_id}/overview"
             try:
