@@ -266,8 +266,8 @@ class TimeSeriesDB:
         now = utc()
         ttl = int((now + lock_for).timestamp())
         deadline = now + get_lock
-        flag = False
-        while utc() < deadline:
+        flag = True
+        while flag and utc() < deadline:
             try:
                 # try to insert a document with key __lock__
                 await self.db.insert(self.meta_db, dict(_key="__lock__", expires=ttl), sync=True)
@@ -275,17 +275,12 @@ class TimeSeriesDB:
                 # could not insert the document. Wait and try again
                 await asyncio.sleep(retry_interval.total_seconds())
                 continue
+            flag = False
             try:
-                # if we come here, the document was written. Enter context.
                 yield True
             finally:
-                # we yielded the context
-                flag = True
-                # make sure to delete the document
                 await self.db.delete(self.meta_db, "__lock__", ignore_missing=True)
-                # we only want to execute the context once
-                break
-        if not flag:
+        if flag:
             yield False
 
     def _buckets(self) -> List[TimeSeriesBucket]:
