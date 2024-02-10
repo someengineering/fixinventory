@@ -18,6 +18,100 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
+      - name: Check out someengineering/docs.fix.security
+        uses: actions/checkout@v3
+        with:
+          repository: someengineering/docs.fix.security
+          path: docs.fix.security
+          token: ${{ secrets.SOME_CI_PAT }}
+
+      - name: Install dependencies
+        working-directory: ./docs.fix.security
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Wait for AWS policies to be uploaded
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: aws
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update AWS policy JSON
+        shell: bash
+        working-directory: ./docs.fix.security/iam/aws
+        run: |
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/edge/ResotoOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
+
+      - name: Wait for GCP policies to be uploaded
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: gcp
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update GCP policy JSON
+        shell: bash
+        working-directory: ./docs.fix.security/iam/gcp
+        run: |
+          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/edge/resoto_access.json
+
+      - name: Clean existing Kroki images
+        shell: bash
+        working-directory: ./docs.fix.security/static/img/kroki
+        run: |
+          find . -type f -name "*.svg" -prune -exec rm {} \+
+
+      - name: Wait for Docker images to build
+        if: github.event_name != 'workflow_dispatch'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: Build split Docker images
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update resource data models
+        continue-on-error: true
+        shell: bash
+        run: |
+          yq '.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
+          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          cd ${{ github.workspace }}/docs.fix.security/docs/resources
+          python3 ${{ github.workspace }}/docs.fix.security/tools/export_models.py
+
+      - name: Build
+        continue-on-error: true
+        working-directory: ./docs.fix.security
+        run: |
+          yarn build
+
+      - name: Optimize and format
+        working-directory: ./docs.fix.security
+        run: |
+          yarn optimize
+          yarn format
+
+      - name: Create someengineering/docs.fix.security pull request
+        uses: peter-evans/create-pull-request@v4
+        env:
+          HUSKY: 0
+        with:
+          path: docs.fix.security
+          commit-message: "chore: update documentation"
+          title: "chore: update documentation"
+          body: |
+            Updates documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+          labels: |
+            🤖 bot
+          branch: some-ci # stable branch name so any additional commits to main update the existing PR instead of creating a new one
+          delete-branch: true
+          token: ${{ secrets.SOME_CI_PAT }}
+          committer: C.K. <98986935+some-ci@users.noreply.github.com>
+          author: C.K. <98986935+some-ci@users.noreply.github.com>
+
       - name: Check out someengineering/resoto.com
         uses: actions/checkout@v3
         with:
@@ -39,14 +133,6 @@ jobs:
         working-directory: ./resoto.com
         run: |
           yarn gen-api-docs
-
-      - name: Wait for AWS policies to be uploaded
-        if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: aws
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update AWS policy JSON
         shell: bash
@@ -74,17 +160,9 @@ jobs:
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
+        working-directory: ./resoto.com/static/img/kroki
         run: |
-          cd ${{ github.workspace }}/resoto.com/static/img/kroki
           find . -type f -name "*.svg" -prune -exec rm {} \+
-
-      - name: Wait for Docker images to build
-        if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: Build split Docker images
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update resource data models
         continue-on-error: true
@@ -248,8 +326,8 @@ jobs:
       - name: Clean existing Kroki images
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
+        working-directory: ./resoto.com/static/img/kroki
         run: |
-          cd ${{ github.workspace }}/resoto.com/static/img/kroki
           find . -type f -name "*.svg" -prune -exec rm {} \+
 
       - name: Wait for Docker images to build
