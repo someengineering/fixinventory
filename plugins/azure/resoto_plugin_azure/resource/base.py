@@ -481,7 +481,7 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
         self.name = f"Azure:{subscription.name}"
-        self._config = config
+        self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
@@ -638,10 +638,6 @@ class GraphBuilder:
                 for (from_node, to_node, key) in self.graph.edges
                 if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
             ]
-
-    @property
-    def config(self) -> AzureConfig:
-        return self._config
 
     def fetch_locations(self) -> List[AzureLocation]:
         locations = AzureLocation.collect_resources(self)
