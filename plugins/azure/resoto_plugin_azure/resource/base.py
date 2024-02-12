@@ -485,12 +485,11 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        now = self.created_at
-        start = last_run_started_at or (now - timedelta(hours=1))
-        delta = now - start
+        start = last_run_started_at or (self.created_at - timedelta(hours=1))
+        delta = self.created_at - start
 
         self.metrics_start = start
-        # Convert the total seconds in 'delta' to minutes for interval computation
+        # Converting the total seconds in 'delta' to minutes for further compute interval
         self.metrics_delta = delta.total_seconds() / 60
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
@@ -568,13 +567,7 @@ class GraphBuilder:
 
         # create provider link
         if node._metadata.get("provider_link") is None:
-            link_tpl = "https://portal.azure.com/#@/resource/subscriptions{resource_id}/overview"
-            try:
-                src = source.copy() if source else {}
-                src["resource_id"] = node.id
-                node._metadata["provider_link"] = link_tpl.format(**src)
-            except Exception as e:
-                log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
+            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource/subscriptions{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_nodes_access:
