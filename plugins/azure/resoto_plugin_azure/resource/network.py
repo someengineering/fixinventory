@@ -4734,6 +4734,9 @@ class AzureRouteFilter(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "ctime": K(None),
+        "mtime": K(None),
+        "atime": K(None),
         "etag": S("etag"),
         "ipv6_peerings": S("properties", "ipv6Peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
         "filter_peerings": S("properties", "peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
@@ -5134,7 +5137,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             )
             AzureSubnet.collect(items, graph_builder)
 
-        graph_builder.submit_work(collect_subnets)
+        graph_builder.submit_work("azure_all", collect_subnets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnets := self._subnet_ids:

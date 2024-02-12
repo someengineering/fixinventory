@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import Future
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Lock
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
@@ -12,6 +12,7 @@ from azure.identity import DefaultAzureCredential
 
 from resoto_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from resoto_plugin_azure.config import AzureConfig, AzureCredentials
+from resotolib.utils import utc
 from resotolib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from resotolib.core.actions import CoreFeedback
 from resotolib.graph import Graph, EdgeKey
@@ -135,6 +136,13 @@ class AzureResource(BaseResource):
         pass
 
     @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        # Default behavior: do nothing
+        pass
+
+    @classmethod
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
@@ -143,7 +151,13 @@ class AzureResource(BaseResource):
         if spec := cls.api_spec:
             # TODO: add error handling
             items = builder.client.list(spec, **kwargs)
-            return cls.collect(items, builder)
+            collected = cls.collect(items, builder)
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+            return collected
         return []
 
     @classmethod
@@ -303,7 +317,7 @@ class AzureResourceGroup(AzureResource):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
-        graph_builder.submit_work(collect_resources_in_group)
+        graph_builder.submit_work("azure_all", collect_resources_in_group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
@@ -449,10 +463,12 @@ class GraphBuilder:
         client: AzureClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
+        config: AzureConfig,
         location_lookup: Optional[Dict[str, AzureLocation]] = None,
         location: Optional[AzureLocation] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
+        last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -465,13 +481,23 @@ class GraphBuilder:
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
         self.name = f"Azure:{subscription.name}"
+        self.config = config
+        self.last_run_started_at = last_run_started_at
+        self.created_at = utc()
 
-    def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
+        start = last_run_started_at or (self.created_at - timedelta(hours=1))
+        delta = self.created_at - start
+
+        self.metrics_start = start
+        # Converting the total seconds in 'delta' to minutes for further compute interval
+        self.metrics_delta = delta.total_seconds() / 60
+
+    def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
         Use this method for work that can be done in parallel.
         Example: fetching tags of a resource.
         """
-        return self.executor.submit_work("azure_all", fn, *args, **kwargs)
+        return self.executor.submit_work(service, fn, *args, **kwargs)
 
     def node(
         self,
@@ -538,6 +564,10 @@ class GraphBuilder:
         elif last_edge_key is None:
             # add edge from subscription to resource
             last_edge_key = self.add_edge(self.subscription, node=node)
+
+        # create provider link
+        if node._metadata.get("provider_link") is None:
+            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource/subscriptions{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_nodes_access:
@@ -626,6 +656,7 @@ class GraphBuilder:
             location=location,
             graph_nodes_access=self.graph_nodes_access,
             graph_edges_access=self.graph_edges_access,
+            config=self.config,
         )
 
 

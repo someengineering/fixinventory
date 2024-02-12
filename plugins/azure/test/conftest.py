@@ -27,7 +27,13 @@ class StaticFileAzureClient(AzureClient):
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:
             js = json.load(f)
-            return js[spec.access_path] if spec.access_path else js  # type: ignore
+
+            if spec.expect_array:
+                js = js[spec.access_path]
+            if spec.expect_array and isinstance(js, list):
+                return js
+            else:
+                return [js]
 
     @staticmethod
     def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
@@ -44,6 +50,10 @@ class StaticFileAzureClient(AzureClient):
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
+
+    @property
+    def config(self) -> AzureConfig:
+        return AzureConfig()
 
 
 @fixture
@@ -87,6 +97,7 @@ def builder(
     azure_subscription: AzureSubscription,
     azure_client: AzureClient,
     core_feedback: CoreFeedback,
+    config: AzureConfig,
 ) -> GraphBuilder:
     builder = GraphBuilder(
         graph=Graph(),
@@ -95,6 +106,7 @@ def builder(
         client=azure_client,
         executor=executor_queue,
         core_feedback=core_feedback,
+        config=config,
     )
     location_west = AzureLocation(id="westeurope", display_name="West Europe", name="westeurope")
     location_east = AzureLocation(id="eastus", display_name="East US", name="eastus")

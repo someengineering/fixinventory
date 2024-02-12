@@ -56,7 +56,9 @@ class AzureClient(ABC):
 
     @staticmethod
     def __create_management_client(
-        credential: AzureCredentials, subscription_id: str, resource_group: Optional[str] = None
+        credential: AzureCredentials,
+        subscription_id: str,
+        resource_group: Optional[str] = None,
     ) -> AzureClient:
         return AzureResourceManagementClient(credential, subscription_id, resource_group)
 
@@ -64,7 +66,12 @@ class AzureClient(ABC):
 
 
 class AzureResourceManagementClient(AzureClient):
-    def __init__(self, credential: AzureCredentials, subscription_id: str, location: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        credential: AzureCredentials,
+        subscription_id: str,
+        location: Optional[str] = None,
+    ) -> None:
         self.credential = credential
         self.subscription_id = subscription_id
         self.location = location
@@ -181,8 +188,10 @@ class AzureResourceManagementClient(AzureClient):
 
         # Parse json content
         js: Union[Json, List[Json]] = response.json()
+
         if spec.access_path and isinstance(js, dict):
-            js = js[spec.access_path]
+            if spec.expect_array:
+                js = js[spec.access_path]
         if spec.expect_array and isinstance(js, list):
             return js
         else:

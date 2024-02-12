@@ -1,0 +1,45 @@
+{
+  "cost": 59,
+  "interval": "PT15M",
+  "namespace": "Microsoft.Compute/virtualMachines",
+  "resourceregion": "westeurope",
+  "timespan": "2020-01-18T16:40:00Z/2020-01-18T18:40:00Z",
+  "value": [
+    {
+      "displayDescription": "Bytes written to disk during monitoring period",
+      "errorCode": "Success",
+      "id": "/subscriptions/rwqrr2-31f1-rwqrrw-5325-wrq2r/resourceGroups/FOO/providers/Microsoft.Compute/virtualMachines/test1/providers/Microsoft.Insights/metrics/Disk Write Operations/Sec",
+      "name": {
+        "localizedValue": "Disk Write Operations/Sec",
+        "value": "Disk Write Operations/Sec"
+      },
+      "timeseries": [
+        {
+          "data": [
+            {
+              "timeStamp": "2020-01-18T16:40:00Z",
+              "average": 421533.3433333334,
+              "maximum": 581710.34,
+              "minimum": 286929.44
+            },
+            {
+              "timeStamp": "2020-01-18T17:40:00Z",
+              "average": 321523.34334,
+              "maximum": 0,
+              "minimum": 586929.43
+            },
+            {
+              "timeStamp": "2020-01-18T18:40:00Z",
+              "average": 0,
+              "maximum": 0,
+              "minimum": 0
+            }
+          ],
+          "metadatavalues": []
+        }
+      ],
+      "type": "Microsoft.Insights/metrics",
+      "unit": "Bytes"
+    }
+  ]
+}

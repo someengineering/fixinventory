@@ -6,6 +6,7 @@ from attr import define, field
 from resoto_plugin_azure.azure_client import AzureApiSpec
 from resoto_plugin_azure.resource.base import (
     AzureResource,
+    AzureResourceType,
     GraphBuilder,
     AzureSubResource,
     AzureSystemData,
@@ -14,12 +15,14 @@ from resoto_plugin_azure.resource.base import (
     AzurePrincipalidClientid,
     AzurePrivateLinkServiceConnectionState,
 )
+from resoto_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from resoto_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
     AzureSubnet,
     AzureNetworkInterface,
     AzureLoadBalancer,
 )
+from resoto_plugin_azure.utils import MetricNormalization
 from resotolib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from resotolib.types import Json
 from resotolib.baseresources import (
@@ -717,6 +720,54 @@ class AzureDisk(AzureResource, BaseVolume):
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
+
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        volumes = {volume.id: volume for volume in collected_resources if volume}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for volume_id in volumes:
+            queries.extend(
+                [
+                    AzureMetricQuery.create(
+                        metric_name=metric_name,
+                        metric_namespace="Microsoft.Compute/disks",
+                        instance_id=volume_id,
+                        aggregation=("average",),
+                        ref_id=volume_id,
+                        unit="BytesPerSecond",
+                    )
+                    for metric_name in ["Composite Disk Write Bytes/sec", "Composite Disk Read Bytes/sec"]
+                ]
+            )
+            queries.extend(
+                [
+                    AzureMetricQuery.create(
+                        metric_name=metric_name,
+                        metric_namespace="Microsoft.Compute/disks",
+                        instance_id=volume_id,
+                        aggregation=("average",),
+                        ref_id=volume_id,
+                        unit="CountPerSecond",
+                    )
+                    for metric_name in ["Composite Disk Write Operations/sec", "Composite Disk Read Operations/sec"]
+                ]
+            )
+
+        metric_normalizers = {
+            "Composite Disk Write Bytes/sec": MetricNormalization(name="volume_write_bytes"),
+            "Composite Disk Read Bytes/sec": MetricNormalization(name="volume_read_bytes"),
+            "Composite Disk Write Operations/sec": MetricNormalization(name="volume_write_ops"),
+            "Composite Disk Read Operations/sec": MetricNormalization(name="volume_read_ops"),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(volumes, metric_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if disk_id := self.id:
@@ -2492,18 +2543,12 @@ class AzureVirtualMachineIdentity:
 
 
 InstanceStatusMapping = {
-    # "Starting"
-    # "Running"
-    # "Stopping"
-    # "Stopped"
-    # "Deallocating"
-    # "Deallocated"
-    "Creating": InstanceStatus.BUSY,
-    "Updating": InstanceStatus.BUSY,
-    "Succeeded": InstanceStatus.RUNNING,
-    "Failed": InstanceStatus.STOPPED,
-    "Deleting": InstanceStatus.BUSY,
-    "Migrating": InstanceStatus.BUSY,
+    "starting": InstanceStatus.BUSY,
+    "running": InstanceStatus.RUNNING,
+    "stopping": InstanceStatus.BUSY,
+    "stopped": InstanceStatus.STOPPED,
+    "deallocating": InstanceStatus.BUSY,
+    "deallocated": InstanceStatus.TERMINATED,
 }
 
 
@@ -2576,8 +2621,6 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "vm_id": S("properties", "vmId"),
         "location": S("location"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
-        "instance_status": S("properties", "provisioningState")
-        >> MapEnum(InstanceStatusMapping, default=InstanceStatus.UNKNOWN),
     }
     virtual_machine_capabilities: Optional[AzureAdditionalCapabilities] = field(default=None, metadata={'description': 'Enables or disables a capability on the virtual machine or virtual machine scale set.'})  # fmt: skip
     application_profile: Optional[AzureApplicationProfile] = field(default=None, metadata={'description': 'Contains the list of gallery applications that should be made available to the vm/vmss.'})  # fmt: skip
@@ -2610,6 +2653,113 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_instance_status() -> None:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2022-03-01",
+                path=self.id,
+                path_parameters=[],
+                query_parameters=["api-version", "$expand"],
+                access_path=None,
+                expect_array=False,
+            )
+            params = {"$expand": "instanceView"}
+            items = graph_builder.client.list(api_spec, **params)
+            if items:
+                item = items[0]
+            try:
+                instance_v_statuses = item["properties"]["instanceView"]["statuses"]
+            except KeyError:
+                instance_v_statuses = []
+            instance_status_set = False
+            for instance_v_status in instance_v_statuses:
+                status_code = instance_v_status.get("code", "").split("/")
+                if status_code[0] == "PowerState":
+                    self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
+                    instance_status_set = True
+            if not instance_status_set:
+                self.instance_status = InstanceStatus.UNKNOWN
+
+        graph_builder.submit_work("azure_all", collect_instance_status)
+
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        virtual_machines = {vm.id: vm for vm in collected_resources if vm}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for vm_id in virtual_machines:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="Percentage CPU",
+                    metric_namespace="Microsoft.Compute/virtualMachines",
+                    instance_id=vm_id,
+                    aggregation=("average", "minimum", "maximum"),
+                    ref_id=vm_id,
+                    unit="Percent",
+                )
+            )
+            queries.extend(
+                [
+                    AzureMetricQuery.create(
+                        metric_name=metric_name,
+                        metric_namespace="Microsoft.Compute/virtualMachines",
+                        instance_id=vm_id,
+                        aggregation=("average", "minimum", "maximum"),
+                        ref_id=vm_id,
+                        unit="Bytes",
+                    )
+                    for metric_name in ["Disk Write Bytes", "Disk Read Bytes"]
+                ]
+            )
+            queries.extend(
+                [
+                    AzureMetricQuery.create(
+                        metric_name=metric_name,
+                        metric_namespace="Microsoft.Compute/virtualMachines",
+                        instance_id=vm_id,
+                        aggregation=("average", "minimum", "maximum"),
+                        ref_id=vm_id,
+                        unit="CountPerSecond",
+                    )
+                    for metric_name in ["Disk Write Operations/Sec", "Disk Read Operations/Sec"]
+                ]
+            )
+            queries.extend(
+                [
+                    AzureMetricQuery.create(
+                        metric_name=metric_name,
+                        metric_namespace="Microsoft.Compute/virtualMachines",
+                        instance_id=vm_id,
+                        aggregation=("average", "minimum", "maximum"),
+                        ref_id=vm_id,
+                        unit="Bytes",
+                    )
+                    for metric_name in ["Network In", "Network Out"]
+                ]
+            )
+
+        metric_normalizers = {
+            "Percentage CPU": MetricNormalization(
+                name="cpu_utilization",
+                normalize_value=lambda x: round(x, ndigits=3),
+            ),
+            "Network In": MetricNormalization(name="network_in"),
+            "Network Out": MetricNormalization(name="network_out"),
+            "Disk Read Operations/Sec": MetricNormalization(name="disk_read_ops"),
+            "Disk Write Operations/Sec": MetricNormalization(name="disk_write_ops"),
+            "Disk Read Bytes": MetricNormalization(name="disk_read_bytes"),
+            "Disk Write Bytes": MetricNormalization(name="disk_write_bytes"),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(virtual_machines, metric_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
