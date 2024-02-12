@@ -737,7 +737,7 @@ class AzureDisk(AzureResource, BaseVolume):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/disks",
                         instance_id=volume_id,
-                        aggregation="average",
+                        aggregation=("average",),
                         ref_id=volume_id,
                         unit="BytesPerSecond",
                     )
@@ -750,7 +750,7 @@ class AzureDisk(AzureResource, BaseVolume):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/disks",
                         instance_id=volume_id,
-                        aggregation="average",
+                        aggregation=("average",),
                         ref_id=volume_id,
                         unit="CountPerSecond",
                     )
@@ -2699,7 +2699,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                     metric_name="Percentage CPU",
                     metric_namespace="Microsoft.Compute/virtualMachines",
                     instance_id=vm_id,
-                    aggregation="average,minimum,maximum",
+                    aggregation=("average", "minimum", "maximum"),
                     ref_id=vm_id,
                     unit="Percent",
                 )
@@ -2710,7 +2710,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="average,minimum,maximum",
+                        aggregation=("average", "minimum", "maximum"),
                         ref_id=vm_id,
                         unit="Bytes",
                     )
@@ -2723,7 +2723,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="average,minimum,maximum",
+                        aggregation=("average", "minimum", "maximum"),
                         ref_id=vm_id,
                         unit="CountPerSecond",
                     )
@@ -2736,7 +2736,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                         metric_name=metric_name,
                         metric_namespace="Microsoft.Compute/virtualMachines",
                         instance_id=vm_id,
-                        aggregation="average,minimum,maximum",
+                        aggregation=("average", "minimum", "maximum"),
                         ref_id=vm_id,
                         unit="Bytes",
                     )

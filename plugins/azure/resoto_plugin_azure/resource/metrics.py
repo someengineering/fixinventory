@@ -1,4 +1,5 @@
 from datetime import datetime
+from concurrent.futures import as_completed
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
 from attr import define, field
@@ -90,7 +91,7 @@ class AzureMetricQuery:
     ref_id: str
     instance_id: str
     metric_id: str
-    aggregation: str = "average,minimum,maximum"
+    aggregation: Tuple[str, ...]
     unit: str = "Count"
 
     @staticmethod
@@ -99,8 +100,8 @@ class AzureMetricQuery:
         metric_namespace: str,
         instance_id: str,
         ref_id: str,
+        aggregation: Tuple[str, ...],
         metric_id: Optional[str] = None,
-        aggregation: str = "average,minimum,maximum",
         unit: str = "Count",
     ) -> "AzureMetricQuery":
         metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
@@ -128,18 +129,15 @@ class AzureMetricData:
     }
     full_metric_values_data: List[AzureMetricValue] = field(factory=list)
     metric_id: Optional[str] = field(default=None)
-    metric_values: Optional[List[float]] = field(default=None)
+    metric_values: Optional[Dict[str, float]] = field(default=None)
     timespan: Optional[str] = field(default=None)
     interval: Optional[str] = field(default=None)
     namespace: Optional[str] = field(default=None)
     resource_region: Optional[str] = field(default=None)
 
-    def set_values(self, query_aggregation: str) -> None:
+    def set_values(self, query_aggregations: Tuple[str, ...]) -> None:
         # Check if there are full metric values data available
         if self.full_metric_values_data:
-            # Split the query aggregation string to get individual aggregations
-            aggregations = query_aggregation.split(",")
-
             # Extract metric values from the full metric values data
             metric_values_result = [
                 data
@@ -149,13 +147,14 @@ class AzureMetricData:
             ]
 
             # Calculate aggregated metric values based on the provided aggregations
-            metric_values: List[float] = []
-            for attr in aggregations:
+            metric_values: Dict[str, float] = {}
+
+            for attr in query_aggregations:
                 # Extract attribute values for each metric
                 metric_attrs = [getattr(metric, attr) for metric in metric_values_result]
                 # Calculate the average value for the attribute across metrics and add it to metric_values list
                 if metric_attrs:
-                    metric_values.append(sum(metric_attrs) / len(metric_attrs))
+                    metric_values[attr] = sum(metric_attrs) / len(metric_attrs)
 
             # Set the calculated metric values
             self.metric_values = metric_values
@@ -241,10 +240,13 @@ class AzureMetricData:
             futures.append(future)
 
         # Retrieve results from submitted queries and populate the result dictionary
-        for future in futures:
-            metric, metric_id = future.result()
-            if metric is not None and metric_id is not None:
-                result[lookup[metric_id]] = metric
+        for future in as_completed(futures):
+            try:
+                metric, metric_id = future.result()
+                if metric is not None and metric_id is not None:
+                    result[lookup[metric_id]] = metric
+            except Exception as e:
+                raise e
 
         return result
 
@@ -259,12 +261,13 @@ class AzureMetricData:
         # Set the path for the API call based on the instance ID of the query
         api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
         # Retrieve metric data from the API
+        aggregation = ",".join(query.aggregation)
         part = builder.client.list(
             api_spec,
             metricnames=query.metric_name,
             metricNamespace=query.metric_namespace,
             timespan=timespan,
-            aggregation=query.aggregation,
+            aggregation=aggregation,
             interval=interval,
             AutoAdjustTimegrain=True,
         )
@@ -291,9 +294,8 @@ def update_resource_metrics(
         if resource is None:
             continue
         metric_data = metric.metric_values
-        aggregations = query.aggregation.split(",")
         if metric_data:
-            for aggregation, metric_value in zip(aggregations, metric_data):
+            for aggregation, metric_value in metric_data.items():
                 normalizer = metric_normalizers.get(query.metric_name)
                 if not normalizer:
                     continue

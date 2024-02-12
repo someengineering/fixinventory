@@ -14,9 +14,14 @@ def test_metric(builder: GraphBuilder) -> None:
         "Microsoft.Compute/virtualMachines",
         resource_id,
         resource_id,
+        ("average", "minimum", "maximum"),
         unit="CountPerSecond",
     )
     result = AzureMetricData.query_for(
         builder=builder, queries=[write], start_time=earlier, end_time=now, period=period
     )
-    assert result[write].metric_values == [247685.56222444447, 291286.29000000004, 193903.44666666666]
+    assert result[write].metric_values == {
+        "average": 247685.56222444447,
+        "minimum": 291286.29000000004,
+        "maximum": 193903.44666666666,
+    }
