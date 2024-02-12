@@ -151,7 +151,9 @@ class AzureMetricData:
 
             for attr in query_aggregations:
                 # Extract attribute values for each metric
-                metric_attrs = [getattr(metric, attr) for metric in metric_values_result]
+                metric_attrs = [
+                    getattr(metric, attr) for metric in metric_values_result if getattr(metric, attr) is not None
+                ]
                 # Calculate the average value for the attribute across metrics and add it to metric_values list
                 if metric_attrs:
                     metric_values[attr] = sum(metric_attrs) / len(metric_attrs)
