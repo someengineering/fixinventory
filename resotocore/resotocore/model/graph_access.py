@@ -301,9 +301,9 @@ class GraphBuilder:
     def history_hash(js: Json, kind: Kind) -> str:
         sha256 = hashlib.sha256()
 
-        def walk_element(el: JsonElement, el_kind: Kind):
-            if el == None:
-                return
+        def walk_element(el: JsonElement, el_kind: Kind) -> None:
+            if el is None:
+                pass
             elif isinstance(el_kind, ComplexKind):
                 walk_kind(el, el_kind)
             elif isinstance(el_kind, ArrayKind):
@@ -317,19 +317,18 @@ class GraphBuilder:
             elif isinstance(el_kind, SimpleKind):
                 sha256.update(str(el).encode("utf-8"))
 
-        def walk_kind(el: JsonElement, el_kind: ComplexKind):
-            if not isinstance(el, dict):
-                return None
-            for prop, prop_kind in el_kind.direct_property_with_kinds():  # properties are already sorted
-                if (
-                    (not prop.meta_get("ignore_history", bool, False))
-                    and (prop.name not in PropsToIgnoreForHistory)
-                    and (prop_val := el.get(prop.name))
-                ):
-                    walk_element(prop_val, prop_kind)
-            if not el_kind.metadata.get("ignore_history"):  # if defined on type, do not walk the hierarchy
-                for base in el_kind.resolved_bases().values():
-                    walk_kind(el, base)
+        def walk_kind(el: JsonElement, el_kind: ComplexKind) -> None:
+            if isinstance(el, dict):
+                for prop, prop_kind in el_kind.direct_property_with_kinds():  # properties are already sorted
+                    if (
+                        (not prop.meta_get("ignore_history", bool, False))
+                        and (prop.name not in PropsToIgnoreForHistory)
+                        and (prop_val := el.get(prop.name))
+                    ):
+                        walk_element(prop_val, prop_kind)
+                if not el_kind.metadata.get("ignore_history"):  # if defined on type, do not walk the hierarchy
+                    for base in el_kind.resolved_bases().values():
+                        walk_kind(el, base)
 
         walk_element(js, kind)
         return sha256.hexdigest()

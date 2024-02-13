@@ -884,10 +884,8 @@ class ArangoGraphDB(GraphDB):
                 lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()",
                 (history_updates if self.config.keep_history and update_history else [])
                 + [
-                    f'for e in {temp_name} filter e.action=="node_created" insert UNSET(e.data, "history") in {self.vertex_name}'
-                    ' OPTIONS{overwriteMode: "replace"}',
-                    f'for e in {temp_name} filter e.action=="node_updated" update UNSET(e.data, "history") in {self.vertex_name}'
-                    " OPTIONS {mergeObjects: false}",
+                    f'for e in {temp_name} filter e.action=="node_created" insert UNSET(e.data, "history") in {self.vertex_name} OPTIONS{{overwriteMode: "replace"}}',  # noqa: E501
+                    f'for e in {temp_name} filter e.action=="node_updated" update UNSET(e.data, "history") in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
                     f'for e in {temp_name} filter e.action=="node_deleted" remove UNSET(e.data, "history") in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
                 ]
                 + edge_inserts
