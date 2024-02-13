@@ -956,7 +956,7 @@ class ComplexKind(Kind):
             self.__resolved = True
             kinds = []
             # resolve properties
-            for prop in self.properties:
+            for prop in sorted(self.properties, key=lambda p: p.name):
                 kind = prop.resolve(model)
                 self.__resolved_direct_props[prop.name] = (prop, kind)
                 self.__resolved_props[prop.name] = (prop, kind)
@@ -980,7 +980,7 @@ class ComplexKind(Kind):
                     if isinstance(base, ComplexKind):
                         self.__resolved_bases[base_name] = base
                         self.__resolved_props.update(base.__resolved_props)
-                        self.__all_props = list(sorted(base.__all_props + self.__all_props, key=lambda p: p.name))
+                        self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
 
