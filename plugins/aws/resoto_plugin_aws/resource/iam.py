@@ -135,7 +135,7 @@ class AwsIamRole(AwsResource):
     }
     path: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
-    role_assume_role_policy_document: Optional[Any] = field(default=None)
+    role_assume_role_policy_document: Optional[Json] = field(default=None)
     role_max_session_duration: Optional[int] = field(default=None)
     role_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
     role_last_used: Optional[AwsIamRoleLastUsed] = field(default=None)
@@ -488,9 +488,9 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Access Key"
-    kind_description: ClassVar[str] = (
-        "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),

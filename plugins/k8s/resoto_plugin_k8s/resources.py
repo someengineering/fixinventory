@@ -20,7 +20,19 @@ from resotolib.baseresources import (
     ModelReference,
 )
 from resotolib.graph import Graph
-from resotolib.json_bender import StringToUnitNumber, CPUCoresToNumber, Bend, F, S, K, bend, ForallBend, Bender, MapEnum
+from resotolib.json_bender import (
+    StringToUnitNumber,
+    CPUCoresToNumber,
+    Bend,
+    F,
+    S,
+    K,
+    bend,
+    ForallBend,
+    Bender,
+    MapEnum,
+    Sort,
+)
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.k8s")
@@ -145,9 +157,9 @@ class KubernetesNodeCondition:
 class KubernetesNodeStatusConfigSource:
     kind: ClassVar[str] = "kubernetes_node_status_config_active_configmap"
     kind_display: ClassVar[str] = "Kubernetes Node Status Config Active ConfigMap"
-    kind_description: ClassVar[str] = (
-        "This represents the active configuration map for the node status in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "This represents the active configuration map for the node status in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "kubelet_config_key": S("kubeletConfigKey"),
         "name": S("name"),
@@ -398,7 +410,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     }
 
     provider_id: Optional[str] = None
-    node_status: Optional[KubernetesNodeStatus] = field(default=None)
+    node_status: Optional[KubernetesNodeStatus] = field(default=None, metadata=dict(ignore_history=True))
     node_spec: Optional[KubernetesNodeSpec] = field(default=None)
 
 
@@ -433,9 +445,9 @@ class KubernetesPodStatusConditions:
 class KubernetesContainerStateRunning:
     kind: ClassVar[str] = "kubernetes_container_state_running"
     kind_display: ClassVar[str] = "Kubernetes Container State Running"
-    kind_description: ClassVar[str] = (
-        "Running state indicates that the container is currently up and running within a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Running state indicates that the container is currently up and running within a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "started_at": S("startedAt"),
     }
@@ -489,9 +501,9 @@ class KubernetesContainerStateWaiting:
 class KubernetesContainerState:
     kind: ClassVar[str] = "kubernetes_container_state"
     kind_display: ClassVar[str] = "Kubernetes Container State"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Container State represents the current state of a container running in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Container State represents the current state of a container running in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "running": S("running") >> Bend(KubernetesContainerStateRunning.mapping),
         "terminated": S("terminated") >> Bend(KubernetesContainerStateTerminated.mapping),
@@ -957,7 +969,7 @@ class KubernetesPod(KubernetesResource):
         }
     }
 
-    pod_status: Optional[KubernetesPodStatus] = field(default=None)
+    pod_status: Optional[KubernetesPodStatus] = field(default=None, metadata=dict(ignore_history=True))
     pod_spec: Optional[KubernetesPodSpec] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1111,7 +1123,9 @@ class KubernetesPersistentVolumeClaim(KubernetesResource):
         "successors": {"default": ["kubernetes_persistent_volume"], "delete": []}
     }
 
-    persistent_volume_claim_status: Optional[KubernetesPersistentVolumeClaimStatus] = field(default=None)
+    persistent_volume_claim_status: Optional[KubernetesPersistentVolumeClaimStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     persistent_volume_claim_spec: Optional[KubernetesPersistentVolumeClaimSpec] = field(default=None)
 
 
@@ -1161,9 +1175,9 @@ class KubernetesLoadbalancerIngress:
 class KubernetesLoadbalancerStatus:
     kind: ClassVar[str] = "kubernetes_loadbalancer_status"
     kind_display: ClassVar[str] = "Kubernetes LoadBalancer Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes LoadBalancer Status represents the status of a load balancer in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes LoadBalancer Status represents the status of a load balancer in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ingress": S("ingress", default=[]) >> ForallBend(KubernetesLoadbalancerIngress.mapping),
     }
@@ -1305,7 +1319,7 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
             "delete": [],
         }
     }
-    service_status: Optional[KubernetesServiceStatus] = field(default=None)
+    service_status: Optional[KubernetesServiceStatus] = field(default=None, metadata=dict(ignore_history=True))
     service_spec: Optional[KubernetesServiceSpec] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1330,7 +1344,7 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
                 for pod in pods_by_labels.get((key, value), []):
                     resolved_backends.add(pod.name or pod.id)
 
-        self.backends = list(resolved_backends)
+        self.backends = list(sorted(resolved_backends))
 
 
 # endregion
@@ -1405,15 +1419,19 @@ class KubernetesConfigMap(KubernetesResource):
         "A Kubernetes Config Map is a way to store key-value pairs of configuration"
         " data that can be accessed by containers within a cluster."
     )
+    # only use changed data for making a history change (not any base prop(
+    metadata: ClassVar[Dict[str, Any]] = {"ignore_history": True}
+    mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {"data": S("data")}
+    data: Optional[Dict[str, str]] = field(default=None)
 
 
 @define(eq=False, slots=False)
 class KubernetesEndpointAddress:
     kind: ClassVar[str] = "kubernetes_endpoint_address"
     kind_display: ClassVar[str] = "Kubernetes Endpoint Address"
-    kind_description: ClassVar[str] = (
-        "The address of the Kubernetes endpoint, which is used to access and interact with a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "The address of the Kubernetes endpoint, which is used to access and interact with a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "ip": S("ip"),
         "node_name": S("nodeName"),
@@ -1456,7 +1474,7 @@ class KubernetesEndpointSubset:
         " network addresses where the Kubernetes services are accessible."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "addresses": S("addresses", default=[]) >> ForallBend(KubernetesEndpointAddress.mapping),
+        "addresses": S("addresses", default=[]) >> ForallBend(KubernetesEndpointAddress.mapping) >> Sort(S("ip")),
         "ports": S("ports", default=[]) >> ForallBend(KubernetesEndpointPort.mapping),
     }
     addresses: List[KubernetesEndpointAddress] = field(factory=list)
@@ -1594,7 +1612,7 @@ class KubernetesNamespace(KubernetesResource, BaseRegion):
         }
     }
 
-    namespace_status: Optional[KubernetesNamespaceStatus] = field(default=None)
+    namespace_status: Optional[KubernetesNamespaceStatus] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)
@@ -1729,7 +1747,9 @@ class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
         "volume_type": S("spec", "storageClassName"),
         "volume_status": S("status", "phase") >> MapEnum(VolumeStatusMapping, VolumeStatus.UNKNOWN),
     }
-    persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(default=None)
+    persistent_volume_status: Optional[KubernetesPersistentVolumeStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     persistent_volume_spec: Optional[KubernetesPersistentVolumeSpec] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1800,7 +1820,9 @@ class KubernetesReplicationController(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "replication_controller_status": S("status") >> Bend(KubernetesReplicationControllerStatus.mapping),
     }
-    replication_controller_status: Optional[KubernetesReplicationControllerStatus] = field(default=None)
+    replication_controller_status: Optional[KubernetesReplicationControllerStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
 
 
 @define(eq=False, slots=False)
@@ -1851,7 +1873,9 @@ class KubernetesResourceQuota(KubernetesResource, BaseQuota):
         "resource_quota_status": S("status") >> Bend(KubernetesResourceQuotaStatus.mapping),
         "resource_quota_spec": S("spec") >> Bend(KubernetesResourceQuotaSpec.mapping),
     }
-    resource_quota_status: Optional[KubernetesResourceQuotaStatus] = field(default=None)
+    resource_quota_status: Optional[KubernetesResourceQuotaStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     resource_quota_spec: Optional[KubernetesResourceQuotaSpec] = field(default=None)
 
 
@@ -1909,9 +1933,9 @@ class KubernetesValidatingWebhookConfiguration(KubernetesResource):
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
     kind_display: ClassVar[str] = "Kubernetes Controller Revision"
-    kind_description: ClassVar[str] = (
-        "Controller Revision in Kubernetes represents a specific revision of a controller's configuration and state."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Controller Revision in Kubernetes represents a specific revision of a controller's configuration and state."
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -2017,9 +2041,9 @@ class KubernetesDaemonSetSpec:
 class KubernetesDaemonSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_daemon_set"
     kind_display: ClassVar[str] = "Kubernetes DaemonSet"
-    kind_description: ClassVar[str] = (
-        "A Kubernetes DaemonSet ensures that all (or some) nodes in a cluster run a copy of a specified pod."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A Kubernetes DaemonSet ensures that all (or some) nodes in a cluster run a copy of a specified pod."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
@@ -2031,7 +2055,7 @@ class KubernetesDaemonSet(KubernetesResource):
         }
     }
 
-    daemon_set_status: Optional[KubernetesDaemonSetStatus] = field(default=None)
+    daemon_set_status: Optional[KubernetesDaemonSetStatus] = field(default=None, metadata=dict(ignore_history=True))
     daemon_set_spec: Optional[KubernetesDaemonSetSpec] = field(default=None)
 
 
@@ -2171,7 +2195,7 @@ class KubernetesDeployment(KubernetesResource):
             "delete": [],
         }
     }
-    deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None)
+    deployment_status: Optional[KubernetesDeploymentStatus] = field(default=None, metadata=dict(ignore_history=True))
     deployment_spec: Optional[KubernetesDeploymentSpec] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -2234,9 +2258,9 @@ class KubernetesReplicaSetStatus:
 class KubernetesReplicaSetSpec:
     kind: ClassVar[str] = "kubernetes_replica_set_spec"
     kind_display: ClassVar[str] = "Kubernetes Replica Set Spec"
-    kind_description: ClassVar[str] = (
-        "A Kubernetes Replica Set Spec defines the desired state for creating and managing a group of replica pods."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "A Kubernetes Replica Set Spec defines the desired state for creating and managing a group of replica pods."
     mapping: ClassVar[Dict[str, Bender]] = {
         "min_ready_seconds": S("minReadySeconds"),
         "replicas": S("replicas"),
@@ -2269,7 +2293,7 @@ class KubernetesReplicaSet(KubernetesResource):
         }
     }
 
-    replica_set_status: Optional[KubernetesReplicaSetStatus] = field(default=None)
+    replica_set_status: Optional[KubernetesReplicaSetStatus] = field(default=None, metadata=dict(ignore_history=True))
     replica_set_spec: Optional[KubernetesReplicaSetSpec] = field(default=None)
 
 
@@ -2381,7 +2405,7 @@ class KubernetesStatefulSet(KubernetesResource):
         }
     }
 
-    stateful_set_status: Optional[KubernetesStatefulSetStatus] = field(default=None)
+    stateful_set_status: Optional[KubernetesStatefulSetStatus] = field(default=None, metadata=dict(ignore_history=True))
     stateful_set_spec: Optional[KubernetesStatefulSetSpec] = field(default=None)
 
 
@@ -2459,7 +2483,9 @@ class KubernetesHorizontalPodAutoscaler(KubernetesResource):
         "horizontal_pod_autoscaler_status": S("status") >> Bend(KubernetesHorizontalPodAutoscalerStatus.mapping),
         "horizontal_pod_autoscaler_spec": S("spec") >> Bend(KubernetesHorizontalPodAutoscalerSpec.mapping),
     }
-    horizontal_pod_autoscaler_status: Optional[KubernetesHorizontalPodAutoscalerStatus] = field(default=None)
+    horizontal_pod_autoscaler_status: Optional[KubernetesHorizontalPodAutoscalerStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     horizontal_pod_autoscaler_spec: Optional[KubernetesHorizontalPodAutoscalerSpec] = field(default=None)
 
 
@@ -2492,9 +2518,9 @@ class KubernetesCronJobStatusActive:
 class KubernetesCronJobStatus:
     kind: ClassVar[str] = "kubernetes_cron_job_status"
     kind_display: ClassVar[str] = "Kubernetes Cron Job Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Cron Job Status represents the status of a scheduled job in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Cron Job Status represents the status of a scheduled job in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active", default=[]) >> ForallBend(KubernetesCronJobStatusActive.mapping),
         "last_schedule_time": S("lastScheduleTime"),
@@ -2594,7 +2620,7 @@ class KubernetesCronJob(KubernetesResource):
     }
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_job"], "delete": []}}
 
-    cron_job_status: Optional[KubernetesCronJobStatus] = field(default=None)
+    cron_job_status: Optional[KubernetesCronJobStatus] = field(default=None, metadata=dict(ignore_history=True))
     cron_job_spec: Optional[KubernetesCronJobSpec] = field(default=None)
 
 
@@ -2626,9 +2652,9 @@ class KubernetesJobStatusConditions:
 class KubernetesJobStatus:
     kind: ClassVar[str] = "kubernetes_job_status"
     kind_display: ClassVar[str] = "Kubernetes Job Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Job Status refers to the current state and progress of a job in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Job Status refers to the current state and progress of a job in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "active": S("active"),
         "completed_indexes": S("completedIndexes"),
@@ -2667,7 +2693,7 @@ class KubernetesJob(KubernetesResource):
         "successors": {"default": ["kubernetes_pod"], "delete": ["kubernetes_cron_job"]}
     }
 
-    job_status: Optional[KubernetesJobStatus] = field(default=None)
+    job_status: Optional[KubernetesJobStatus] = field(default=None, metadata=dict(ignore_history=True))
     job_spec: Optional[KubernetesJobSpec] = field(default=None)
 
 
@@ -2675,9 +2701,9 @@ class KubernetesJob(KubernetesResource):
 class KubernetesFlowSchemaStatusConditions:
     kind: ClassVar[str] = "kubernetes_flow_schema_status_conditions"
     kind_display: ClassVar[str] = "Kubernetes Flow Schema Status Conditions"
-    kind_description: ClassVar[str] = (
-        "Flow Schema Status Conditions represent the current status of a flow schema in a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Flow Schema Status Conditions represent the current status of a flow schema in a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = {
         "last_transition_time": S("lastTransitionTime"),
         "message": S("message"),
@@ -2719,7 +2745,7 @@ class KubernetesFlowSchema(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "flow_schema_status": S("status") >> Bend(KubernetesFlowSchemaStatus.mapping),
     }
-    flow_schema_status: Optional[KubernetesFlowSchemaStatus] = field(default=None)
+    flow_schema_status: Optional[KubernetesFlowSchemaStatus] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)
@@ -2771,7 +2797,9 @@ class KubernetesPriorityLevelConfiguration(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "priority_level_configuration_status": S("status") >> Bend(KubernetesPriorityLevelConfigurationStatus.mapping),
     }
-    priority_level_configuration_status: Optional[KubernetesPriorityLevelConfigurationStatus] = field(default=None)
+    priority_level_configuration_status: Optional[KubernetesPriorityLevelConfigurationStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
 
 
 @define(eq=False, slots=False)
@@ -2918,9 +2946,9 @@ def get_backend_service_names(json: Json) -> List[str]:
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
     kind_display: ClassVar[str] = "Kubernetes Ingress"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Ingress is an API object that manages external access to services within a Kubernetes cluster."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Ingress is an API object that manages external access to services within a Kubernetes cluster."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "ingress_status": S("status") >> Bend(KubernetesIngressStatus.mapping),
         "public_ip_address": S("status", "loadBalancer", "ingress", default=[])[0]["ip"],
@@ -2929,7 +2957,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
         # temporary values, they will be replaced in connect_in_graph call with pod ids
         "backends": F(get_backend_service_names),
     }
-    ingress_status: Optional[KubernetesIngressStatus] = field(default=None)
+    ingress_status: Optional[KubernetesIngressStatus] = field(default=None, metadata=dict(ignore_history=True))
     ingress_spec: Optional[KubernetesIngressSpec] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -2962,7 +2990,7 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
                     for pod in pods_by_labels.get((key, value), []):
                         resolved_backends.add(pod.name or pod.id)
 
-        self.backends = list(resolved_backends)
+        self.backends = list(sorted(resolved_backends))
 
 
 @define(eq=False, slots=False)
@@ -3028,7 +3056,9 @@ class KubernetesNetworkPolicy(KubernetesResource):
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "network_policy_status": S("status") >> Bend(KubernetesNetworkPolicyStatus.mapping),
     }
-    network_policy_status: Optional[KubernetesNetworkPolicyStatus] = field(default=None)
+    network_policy_status: Optional[KubernetesNetworkPolicyStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
 
 
 @define(eq=False, slots=False)
@@ -3125,7 +3155,9 @@ class KubernetesPodDisruptionBudget(KubernetesResource):
         "pod_disruption_budget_status": S("status") >> Bend(KubernetesPodDisruptionBudgetStatus.mapping),
         "pod_disruption_budget_spec": S("spec") >> Bend(KubernetesPodDisruptionBudgetSpec.mapping),
     }
-    pod_disruption_budget_status: Optional[KubernetesPodDisruptionBudgetStatus] = field(default=None)
+    pod_disruption_budget_status: Optional[KubernetesPodDisruptionBudgetStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     pod_disruption_budget_spec: Optional[KubernetesPodDisruptionBudgetSpec] = field(default=None)
 
 
@@ -3244,9 +3276,9 @@ class KubernetesVolumeError:
 class KubernetesVolumeAttachmentStatus:
     kind: ClassVar[str] = "kubernetes_volume_attachment_status"
     kind_display: ClassVar[str] = "Kubernetes Volume Attachment Status"
-    kind_description: ClassVar[str] = (
-        "Kubernetes Volume Attachment Status reflects the current attachment state of a volume to a node."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Kubernetes Volume Attachment Status reflects the current attachment state of a volume to a node."
     mapping: ClassVar[Dict[str, Bender]] = {
         "attach_error": S("attachError") >> Bend(KubernetesVolumeError.mapping),
         "attached": S("attached"),
@@ -3290,7 +3322,9 @@ class KubernetesVolumeAttachment(KubernetesResource):
         "volume_attachment_status": S("status") >> Bend(KubernetesVolumeAttachmentStatus.mapping),
         "volume_attachment_spec": S("spec") >> Bend(KubernetesVolumeAttachmentSpec.mapping),
     }
-    volume_attachment_status: Optional[KubernetesVolumeAttachmentStatus] = field(default=None)
+    volume_attachment_status: Optional[KubernetesVolumeAttachmentStatus] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
     volume_attachment_spec: Optional[KubernetesVolumeAttachmentSpec] = field(default=None)
 
 

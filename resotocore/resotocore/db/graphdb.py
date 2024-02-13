@@ -49,7 +49,7 @@ from resotocore.model.model import (
     Model,
     ComplexKind,
     TransformKind,
-    ResolvedProperty,
+    ResolvedPropertyPath,
     UsageDatapoint,
     synthetic_metadata_kinds,
 )
@@ -790,7 +790,9 @@ class ArangoGraphDB(GraphDB):
                 if prop in doc and doc[prop]:
                     result[prop] = doc[prop]
 
-        def synth_props(doc: Json, result: Json, section: str, synthetic_properties: List[ResolvedProperty]) -> None:
+        def synth_props(
+            doc: Json, result: Json, section: str, synthetic_properties: List[ResolvedPropertyPath]
+        ) -> None:
             if (section_in := doc.get(section)) and (section_out := result.get(section)):
                 for synth in synthetic_properties:
                     if isinstance(synth.kind, TransformKind) and synth.prop.synthetic:
@@ -870,9 +872,9 @@ class ArangoGraphDB(GraphDB):
             for a in EdgeTypes.all
         ]
         history_updates = [
-            f'for e in {temp_name} filter e.action=="node_created" insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_updated" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated, before: node.reported}}, UNSET(e.data, "_key", "flat", "hash")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_deleted" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_created" and e.data.history==true insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash", "history")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated, before: node.reported}}, UNSET(e.data, "_key", "flat", "hash", "history")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_deleted" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash")) in {self.node_history}',  # noqa: E501
         ]
         usage_updates = [
             f'for u in {self.usage_db.collection_name} filter u.change_id=="{change_id}" update {{_key: u.id}} with {{ usage: MERGE(u.v, {{ start: DATE_ISO8601(u.at*1000), duration: "1h" }}) }} in {self.vertex_name} options {{ mergeObjects: false }}'  # noqa: E501
@@ -882,11 +884,11 @@ class ArangoGraphDB(GraphDB):
                 lambda aql: f"db._createStatement({{ query: `{aql}` }}).execute()",
                 (history_updates if self.config.keep_history and update_history else [])
                 + [
-                    f'for e in {temp_name} filter e.action=="node_created" insert e.data in {self.vertex_name}'
+                    f'for e in {temp_name} filter e.action=="node_created" insert UNSET(e.data, "history") in {self.vertex_name}'
                     ' OPTIONS{overwriteMode: "replace"}',
-                    f'for e in {temp_name} filter e.action=="node_updated" update e.data in {self.vertex_name}'
+                    f'for e in {temp_name} filter e.action=="node_updated" update UNSET(e.data, "history") in {self.vertex_name}'
                     " OPTIONS {mergeObjects: false}",
-                    f'for e in {temp_name} filter e.action=="node_deleted" remove e.data in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
+                    f'for e in {temp_name} filter e.action=="node_deleted" remove UNSET(e.data, "history") in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
                 ]
                 + edge_inserts
                 + edge_deletes
@@ -959,11 +961,11 @@ class ArangoGraphDB(GraphDB):
         resource_updates: List[Json] = []
         resource_deletes: List[Json] = []
 
-        optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash"]
+        optional_properties = [*Section.all_ordered, "refs", "kinds", "flat", "hash", "hist_hash"]
 
         def insert_node(node: Json) -> None:
             elem = self.adjust_node(model, node, access.at_json, access.at_json, mtime_from_ctime=True)
-            js_doc: Json = {"_key": elem["id"], "created": access.at_json, "updated": access.at_json}
+            js_doc: Json = {"_key": elem["id"], "created": access.at_json, "updated": access.at_json, "history": True}
             for prop in optional_properties:
                 value = node.get(prop, None)
                 if value:
@@ -977,12 +979,13 @@ class ArangoGraphDB(GraphDB):
             elem = access.node(key)
             if elem is None:
                 # node is in db, but not in the graph any longer: delete node
-                resource_deletes.append({"_key": key, "deleted": access.at_json})
+                resource_deletes.append({"_key": key, "deleted": access.at_json, "history": True})
                 info.nodes_deleted += 1
             elif elem["hash"] != hash_string:
                 # node is in db and in the graph, content is different
                 adjusted: Json = self.adjust_node(model, elem, node["created"], access.at_json)
-                js = {"_key": key, "created": node["created"], "updated": access.at_json}
+                history = elem.get("hist_hash") != node.get("hist_hash")
+                js = {"_key": key, "created": node["created"], "updated": access.at_json, "history": history}
                 for prop in optional_properties:
                     value = adjusted.get(prop, None)
                     if value:
@@ -1251,15 +1254,19 @@ class ArangoGraphDB(GraphDB):
 
         def create_node_indexes(nodes: VertexCollection) -> None:
             node_idxes = {idx["name"]: idx for idx in cast(List[Json], nodes.indexes())}
+            # old update node index: remove if still exists
+            if "update_nodes_ref_id" in node_idxes:
+                nodes.delete_index("update_nodes_ref_id")
+
             # this index will hold all the necessary data to query for an update (index only query)
-            if "update_nodes_ref_id" not in node_idxes:
-                log.info(f"Add index update_nodes_ref_id on {nodes.name}")
+            if "update_nodes" not in node_idxes:
+                log.info(f"Add index update_nodes on {nodes.name}")
                 nodes.add_persistent_index(
-                    # if _key would be defined as first property, the optimizer would use it in case
+                    # if _key was defined as first property, the optimizer would use it in case
                     # a simple id() query would be executed.
-                    ["refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "created", "_key"],
+                    ["refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "hist_hash", "created", "_key"],
                     sparse=False,
-                    name="update_nodes_ref_id",
+                    name="update_nodes",
                 )
 
             if "kinds_id_name_ctime" not in node_idxes:
@@ -1474,7 +1481,7 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN `{self.vertex_name}`
         FILTER a.refs.{merge_node_kind}_id==@update_id
-        RETURN {{_key: a._key, hash:a.hash, created:a.created}}
+        RETURN {{_key: a._key, hash:a.hash, hist_hash:a.hist_hash, created:a.created}}
         """
 
     def query_update_edges(self, edge_type: EdgeType, merge_node_kind: str) -> str:
@@ -1555,7 +1562,7 @@ class ArangoGraphDB(GraphDB):
     ) -> Tuple[str, Json]:
         query_update_nodes_by_ids = (
             f"FOR a IN `{self.vertex_name}` "
-            "FILTER a._key IN @ids RETURN {_key: a._key, hash:a.hash, created:a.created}"
+            "FILTER a._key IN @ids RETURN {_key: a._key, hash:a.hash, hist_hash:a.hist_hash, created:a.created}"
         )
         bind_vars: Json = {"ids": list(access.g.nodes)}
         if preserve_parent_structure:
@@ -1570,7 +1577,7 @@ class ArangoGraphDB(GraphDB):
             PRUNE node.metadata["replace"] == true
             OPTIONS {{ bfs: true, uniqueVertices: 'global' }}
             FILTER {filter_section}
-            RETURN {{_key: node._key, hash: node.hash, created: node.created}}
+            RETURN {{_key: node._key, hash: node.hash, hist_hash:node.hist_hash, created: node.created}}
             """
 
             statement = f"""

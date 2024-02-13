@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from attr import field
 from attrs import define
 from typing import Optional, ClassVar, List, Dict
 from resotolib.graph import Graph
@@ -42,7 +44,7 @@ class DockerHubRepository(DockerHubResource, BaseResource):
     repository_type: Optional[str] = None
     is_private: Optional[bool] = None
     star_count: Optional[int] = None
-    pull_count: Optional[int] = None
+    pull_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     affiliation: Optional[str] = None
     media_types: Optional[List[str]] = None
 
