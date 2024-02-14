@@ -114,7 +114,7 @@ def to_query(
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = query_model.query
-    start = from_collection or f"`{db.vertex_name}`"
+    start = from_collection or f"`{db.graph_vertex_name()}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
     last_limit = (
         f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
