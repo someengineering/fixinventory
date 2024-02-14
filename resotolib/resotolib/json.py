@@ -208,7 +208,7 @@ def sort_json(js_object: Json, *, sort_list: bool = False) -> Json:
             return {k: walk(v) for k, v in sorted(js.items())}
         elif isinstance(js, list):
             gen = (walk(v) for v in js)
-            return list(sorted(gen, key=lambda x: 1 if isinstance(x, (dict, list)) else x)) if sort_list else list(gen)
+            return list(sorted(gen, key=lambda x: 1 if isinstance(x, (dict, list)) else x)) if sort_list else list(gen)  # type: ignore # noqa
         else:
             return js
 

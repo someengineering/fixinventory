@@ -74,9 +74,9 @@ class AwsS3Owner:
 class AwsS3Grantee:
     kind: ClassVar[str] = "aws_s3_grantee"
     kind_display: ClassVar[str] = "AWS S3 Grantee"
-    kind_description: ClassVar[
-        str
-    ] = "AWS S3 Grantees are entities that have been given permission to access objects in an S3 bucket."
+    kind_description: ClassVar[str] = (
+        "AWS S3 Grantees are entities that have been given permission to access objects in an S3 bucket."
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "display_name": S("DisplayName"),
         "email_address": S("EmailAddress"),
