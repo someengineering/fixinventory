@@ -114,7 +114,7 @@ def to_query(
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = query_model.query
-    start = from_collection or f"`{db.vertex_name}`"
+    start = from_collection or f"`{db.graph_vertex_name()}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
     last_limit = (
         f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
@@ -473,7 +473,9 @@ def query_string(
             part_res = ctx.next_crs("part_res")
             resolved = is_already_resolved(mq_in.query)
             if resolved:
-                merge_result += f'LET {part_res} = DOCUMENT("{db.vertex_name}", {merge_cursor}.refs.{resolved}_id)'
+                merge_result += (
+                    f'LET {part_res} = DOCUMENT("{db.graph_vertex_name()}", {merge_cursor}.refs.{resolved}_id)'
+                )
             else:
                 add_merge_query(mq_in, part_res)
             set_value_in_path(part_res, mq_in.name, merge_parts)
@@ -549,7 +551,7 @@ def query_string(
                     for r in {after_filter_cursor}
                         let resource=r
                         let resource_usage = first(
-                            for m in {db.usage_db.collection_name}
+                            for m in {db.graph_usage_collection_nane()}
                             filter m.at>=@{start} and m.at<=@{end} and m.id==r._key
                             collect aggregate {", ".join(avgs)}, count = sum(1)
                             return {{usage:{{{",".join(merges)},entries:count,start:@{start_s},duration:@{duration}}}}}
@@ -740,7 +742,7 @@ def query_string(
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
         query_parts[0] = evolve(query_parts[0], term=filter_term)
         crs = ctx.next_crs()
-        doc = f"search_{db.vertex_name}"
+        doc = f"search_{db.graph_vertex_name()}"
         ftt = ft_term("ft", ft_part)
         q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
         return q, crs
@@ -783,7 +785,7 @@ def possible_values(
     skip: Optional[int] = None,
 ) -> Tuple[str, Json]:
     path = path_or_predicate if isinstance(path_or_predicate, str) else path_or_predicate.name
-    start = f"`{db.vertex_name}`"
+    start = f"`{db.graph_vertex_name()}`"
     ctx = ArangoQueryContext()
     cursor, query_str = query_string(db, query.query, query, start, False, ctx, id_column="_key")
 
@@ -845,7 +847,7 @@ def create_time_series(
 ) -> Tuple[str, Json]:
     query = query_model.query
     ctx = ArangoQueryContext()
-    start = f"`{db.vertex_name}`"
+    start = f"`{db.graph_vertex_name()}`"
     cursor, query_str = query_string(db, query, query_model, start, False, ctx)
     next_crs = ctx.next_crs()
     at_bvn = ctx.add_bind_var(at)
