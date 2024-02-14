@@ -230,6 +230,18 @@ class GraphDB(ABC):
     async def insert_usage_data(self, data: List[UsageDatapoint]) -> None:
         pass
 
+    @abstractmethod
+    def graph_vertex_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def graph_usage_collection_nane(self) -> str:
+        pass
+
+    @abstractmethod
+    def edge_collection(self, edge_type: EdgeType) -> str:
+        pass
+
 
 class ArangoGraphDB(GraphDB):
     def __init__(self, db: AsyncArangoDB, name: GraphName, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
@@ -246,6 +258,12 @@ class ArangoGraphDB(GraphDB):
     @property
     def name(self) -> GraphName:
         return self._name
+
+    def graph_vertex_name(self) -> str:
+        return self.vertex_name
+
+    def graph_usage_collection_nane(self) -> str:
+        return self.usage_db.collection_name
 
     def edge_collection(self, edge_type: EdgeType) -> str:
         return f"{self.name}_{edge_type}"
@@ -1819,3 +1837,12 @@ class EventGraphDB(GraphDB):
 
     async def insert_usage_data(self, data: List[UsageDatapoint]) -> None:
         await self.real.insert_usage_data(data)
+
+    def graph_vertex_name(self) -> str:
+        return self.real.graph_vertex_name()
+
+    def graph_usage_collection_nane(self) -> str:
+        return self.real.graph_usage_collection_nane()
+
+    def edge_collection(self, edge_type: EdgeType) -> str:
+        return self.real.edge_collection(edge_type)
