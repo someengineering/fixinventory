@@ -7,7 +7,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, bend, ParseJson
+from resotolib.json_bender import F, Bender, S, bend, ParseJson, Sorted
 from resotolib.types import Json
 
 service_name = "sns"
@@ -38,7 +38,7 @@ class AwsSnsTopic(AwsResource):
         "topic_subscriptions_confirmed": S("SubscriptionsConfirmed") >> F(lambda x: int(x)),
         "topic_subscriptions_deleted": S("SubscriptionsDeleted") >> F(lambda x: int(x)),
         "topic_subscriptions_pending": S("SubscriptionsPending") >> F(lambda x: int(x)),
-        "topic_policy": S("Policy") >> ParseJson(),
+        "topic_policy": S("Policy") >> ParseJson() >> Sorted(sort_list=True),
         "topic_delivery_policy": S("DeliveryPolicy"),
         "topic_effective_delivery_policy": S("EffectiveDeliveryPolicy"),
         "topic_owner": S("Owner"),

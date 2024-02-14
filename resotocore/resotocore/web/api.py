@@ -182,6 +182,8 @@ class Api(Service):
 
         self.app = web.Application(
             client_max_size=self.deps.config.api.max_request_size or 1024**2,
+            # any individual chunk is allowed to have the same amx
+            handler_args=dict(read_bufsize=self.deps.config.api.max_request_size or 1024**2),
             # note on order: the middleware is passed in the order provided.
             middlewares=[
                 metrics_handler,

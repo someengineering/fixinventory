@@ -8,7 +8,7 @@ from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilde
 from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson
+from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
 from resotolib.types import Json
 from resotolib.utils import utc_str
 
@@ -57,7 +57,7 @@ class AwsSqsQueue(AwsResource):
         "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages") >> AsInt(),
         "sqs_approximate_number_of_messages_not_visible": S("ApproximateNumberOfMessagesNotVisible") >> AsInt(),
         "sqs_approximate_number_of_messages_delayed": S("ApproximateNumberOfMessagesDelayed") >> AsInt(),
-        "sqs_policy": S("Policy") >> ParseJson(),
+        "sqs_policy": S("Policy") >> ParseJson() >> Sorted(sort_list=True),
         "sqs_redrive_policy": S("RedrivePolicy") >> ParseJson() >> Bend(AwsSqsRedrivePolicy.mapping),
         "sqs_fifo_queue": S("FifoQueue") >> AsBool(),
         "sqs_content_based_deduplication": S("ContentBasedDeduplication") >> AsBool(),

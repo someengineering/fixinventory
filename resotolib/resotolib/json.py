@@ -199,3 +199,17 @@ def is_empty(js: JsonElement) -> bool:
         return all(is_empty(v) for v in js)
     else:
         return False
+
+
+def sort_json(js_object: Json, *, sort_list: bool = False) -> Json:
+    def walk(js: JsonElement) -> JsonElement:
+        if isinstance(js, dict):
+            # sort by
+            return {k: walk(v) for k, v in sorted(js.items())}
+        elif isinstance(js, list):
+            gen = (walk(v) for v in js)
+            return list(sorted(gen, key=lambda x: 1 if isinstance(x, (dict, list)) else x)) if sort_list else list(gen)  # type: ignore # noqa
+        else:
+            return js
+
+    return walk(js_object)  # type: ignore

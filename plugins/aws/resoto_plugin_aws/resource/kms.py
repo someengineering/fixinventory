@@ -6,6 +6,7 @@ from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilde
 from resotolib.baseresources import BaseAccessKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.graph import Graph
+from resotolib.json import sort_json
 from resotolib.json_bender import Bend, Bender, S, ForallBend, bend
 from resotolib.types import Json
 
@@ -154,7 +155,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
                     expected_errors=["NotFoundException"],
                 )
                 if key_policy is not None:
-                    key.kms_key_policy = json.loads(key_policy)
+                    key.kms_key_policy = sort_json(json.loads(key_policy), sort_list=True)
 
         def add_rotation_status(key: AwsKmsKey) -> None:
             with builder.suppress(f"{service_name}.get-key-rotation-status"):

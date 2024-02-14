@@ -1944,7 +1944,7 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
             return [
                 kind.fqn
                 for kind in model.complex_kinds()
-                if any(p for p in kind.resolved_properties() if p.path.same_as(path))
+                if any(p for p in kind.resolved_property_paths() if p.path.same_as(path))
             ]
 
         async def source() -> Tuple[int, JsGen]:

@@ -245,7 +245,7 @@ EmptyPath = PropertyPath([], "")
 
 
 @define(order=True, hash=True, frozen=True)
-class ResolvedProperty:
+class ResolvedPropertyPath:
     # The path of the resolved property in a complex kind
     path: PropertyPath
     # The metadata of the property (name etc.)
@@ -306,6 +306,9 @@ class Kind(ABC):
 
     def package(self) -> Optional[str]:
         return self.fqn.rsplit(".", 1)[0] if "." in self.fqn else None
+
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return default
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -914,12 +917,13 @@ class ComplexKind(Kind):
         self._predecessor_kinds: Dict[EdgeType, List[str]] = {}
         self.__prop_by_name = {prop.name: prop for prop in properties}
         self.__resolved = False
-        self.__resolved_kinds: Dict[str, Tuple[Property, Kind]] = {}
+        self.__resolved_props: Dict[str, Tuple[Property, Kind]] = {}
+        self.__resolved_direct_props: Dict[str, Tuple[Property, Kind]] = {}
         self.__resolved_bases: Dict[str, ComplexKind] = {}
         self.__all_props: List[Property] = list(self.properties)
         self.__resolved_hierarchy: Set[str] = {fqn}
-        self.__property_by_path: List[ResolvedProperty] = []
-        self.__synthetic_props: List[ResolvedProperty] = []
+        self.__property_by_path: List[ResolvedPropertyPath] = []
+        self.__synthetic_props: List[ResolvedPropertyPath] = []
 
     def as_json(self, **kwargs: bool) -> Json:
         result: Json = {"fqn": self.fqn, "aggregate_root": self.aggregate_root}
@@ -955,9 +959,10 @@ class ComplexKind(Kind):
             self.__resolved = True
             kinds = []
             # resolve properties
-            for prop in self.properties:
+            for prop in sorted(self.properties, key=lambda p: p.name):
                 kind = prop.resolve(model)
-                self.__resolved_kinds[prop.name] = (prop, kind)
+                self.__resolved_direct_props[prop.name] = (prop, kind)
+                self.__resolved_props[prop.name] = (prop, kind)
                 kinds.append(kind)
 
             # resolve property kinds
@@ -977,7 +982,7 @@ class ComplexKind(Kind):
                     base.resolve(model)
                     if isinstance(base, ComplexKind):
                         self.__resolved_bases[base_name] = base
-                        self.__resolved_kinds.update(base.__resolved_kinds)
+                        self.__resolved_props.update(base.__resolved_props)
                         self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
@@ -1016,15 +1021,23 @@ class ComplexKind(Kind):
     def __getitem__(self, name: str) -> Property:
         return self.__prop_by_name[name]
 
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return md if isinstance(md := self.metadata.get(name), clazz) else default
+
     def property_kind_of(self, name: str, or_else: Kind) -> Kind:
-        maybe = self.__resolved_kinds.get(name)
+        maybe = self.__resolved_props.get(name)
         return maybe[1] if maybe else or_else
 
     def property_with_kind_of(self, name: str) -> Optional[Tuple[Property, Kind]]:
-        return self.__resolved_kinds.get(name)
+        return self.__resolved_props.get(name)
 
+    # All properties in hierarchy
     def property_with_kinds(self) -> Iterable[Tuple[Property, Kind]]:
-        return self.__resolved_kinds.values()
+        return self.__resolved_props.values()
+
+    # All properties directly defined for this complex kind
+    def direct_property_with_kinds(self) -> Iterable[Tuple[Property, Kind]]:
+        return self.__resolved_direct_props.values()
 
     def is_root(self) -> bool:
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
@@ -1032,7 +1045,7 @@ class ComplexKind(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
-    def resolved_properties(self) -> List[ResolvedProperty]:
+    def resolved_property_paths(self) -> List[ResolvedPropertyPath]:
         return self.__property_by_path
 
     def resolved_bases(self) -> Dict[str, ComplexKind]:
@@ -1044,7 +1057,7 @@ class ComplexKind(Kind):
     def all_props_with_kind(self) -> List[Tuple[Property, Kind]]:
         return [(a, self.property_kind_of(a.name, any_kind)) for a in self.__all_props]
 
-    def synthetic_props(self) -> List[ResolvedProperty]:
+    def synthetic_props(self) -> List[ResolvedPropertyPath]:
         return self.__synthetic_props
 
     def predecessor_kinds(self) -> Dict[EdgeType, List[str]]:
@@ -1059,7 +1072,7 @@ class ComplexKind(Kind):
                 result[fqn] = base
 
         def add_props(ck: ComplexKind) -> None:
-            for prop in ck.resolved_properties():
+            for prop in ck.resolved_property_paths():
                 if isinstance(prop.kind, ComplexKind):
                     result[prop.kind.fqn] = prop.kind
                     in_hierarchy(prop.kind)
@@ -1084,7 +1097,7 @@ class ComplexKind(Kind):
         if isinstance(obj, dict):
             coerced = self.coerce_if_required(obj, **kwargs)
             for name, value in (coerced or obj).items():
-                known = self.__resolved_kinds.get(name, None)
+                known = self.__resolved_props.get(name, None)
                 if known:
                     prop, kind = known
                     if prop.synthetic:
@@ -1119,7 +1132,7 @@ class ComplexKind(Kind):
             result: Json = {}
             has_coerced = False
             for n, v in value.items():
-                known = self.__resolved_kinds.get(n, None)
+                known = self.__resolved_props.get(n, None)
                 if known:
                     prop, kind = known
                     if prop.synthetic:
@@ -1232,9 +1245,9 @@ class ComplexKind(Kind):
         model: Dict[str, Kind],
         from_path: PropertyPath = EmptyPath,
         maybe_visited: Optional[Dict[str, PropertyPath]] = None,
-    ) -> List[ResolvedProperty]:
+    ) -> List[ResolvedPropertyPath]:
         visited = maybe_visited or {}
-        result: List[ResolvedProperty] = []
+        result: List[ResolvedPropertyPath] = []
 
         def path_for(
             prop: Property, kind: Kind, path: PropertyPath, array: bool = False, add_prop_to_path: bool = True
@@ -1250,26 +1263,26 @@ class ComplexKind(Kind):
             # make sure the kind is resolved
             kind.resolve(model)
             if isinstance(kind, SimpleKind):
-                result.append(ResolvedProperty(relative, prop, kind))
+                result.append(ResolvedPropertyPath(relative, prop, kind))
             elif isinstance(kind, ArrayKind):
                 if name := relative.last_part:
-                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                    result.append(ResolvedPropertyPath(relative, Property(name, kind.fqn), kind))
                 path_for(prop, kind.inner, path, True)
             elif isinstance(kind, DictionaryKind):
                 child = relative.child(None)
                 if name := relative.last_part:
-                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                    result.append(ResolvedPropertyPath(relative, Property(name, kind.fqn), kind))
                     # Any child path accessing this dictionary will get a property of value kind.
                     value = kind.value_kind
-                    result.append(ResolvedProperty(child, Property("any", value.fqn), value))
+                    result.append(ResolvedPropertyPath(child, Property("any", value.fqn), value))
                 path_for(prop, kind.value_kind, child, add_prop_to_path=False)
             elif isinstance(kind, ComplexKind):
                 if name := relative.last_part:
-                    result.append(ResolvedProperty(relative, Property(name, kind.fqn), kind))
+                    result.append(ResolvedPropertyPath(relative, Property(name, kind.fqn), kind))
                 result.extend(ComplexKind.resolve_properties(kind, model, relative, visited))
 
         for x in complex_kind.all_props():
-            path_for(x, complex_kind.__resolved_kinds[x.name][1], from_path)
+            path_for(x, complex_kind.__resolved_props[x.name][1], from_path)
 
         return result
 
@@ -1361,14 +1374,14 @@ class Model:
                 r.path: r
                 for c in all_kinds
                 if isinstance(c, ComplexKind) and c.aggregate_root
-                for r in c.resolved_properties()
+                for r in c.resolved_property_paths()
             }.values()
         )
         return Model(kind_dict, resolved)
 
-    def __init__(self, kinds: Dict[str, Kind], property_kind_by_path: List[ResolvedProperty]):
+    def __init__(self, kinds: Dict[str, Kind], property_kind_by_path: List[ResolvedPropertyPath]):
         self.kinds = kinds
-        self.__property_kind_by_path: List[ResolvedProperty] = property_kind_by_path
+        self.__property_kind_by_path: List[ResolvedPropertyPath] = property_kind_by_path
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
@@ -1407,11 +1420,13 @@ class Model:
             if k.aggregate_root:
                 yield k
 
-    def property_by_path(self, path_: Union[str, List[str]]) -> ResolvedProperty:
+    def property_by_path(self, path_: Union[str, List[str]]) -> ResolvedPropertyPath:
         path = PropertyPath.from_string(path_) if isinstance(path_, str) else PropertyPath.from_list(path_)
-        found: Optional[ResolvedProperty] = first(lambda prop: prop.path.same_as(path), self.__property_kind_by_path)
+        found: Optional[ResolvedPropertyPath] = first(
+            lambda prop: prop.path.same_as(path), self.__property_kind_by_path
+        )
         # if the path is not known according to known model: it could be anything.
-        return found if found else ResolvedProperty(path, Property.any_prop(), AnyKind())
+        return found if found else ResolvedPropertyPath(path, Property.any_prop(), AnyKind())
 
     def kind_by_path(self, path: Union[str, List[str]]) -> Kind:
         return self.property_by_path(path).kind
@@ -1435,7 +1450,7 @@ class Model:
             ) from ex
 
     @lru_cache
-    def predefined_synthetic_props(self, allowed: Tuple[str, ...]) -> List[ResolvedProperty]:
+    def predefined_synthetic_props(self, allowed: Tuple[str, ...]) -> List[ResolvedPropertyPath]:
         predefined = self.get("predefined_properties")
         if isinstance(predefined, ComplexKind):
             return [p for p in predefined.synthetic_props() if p.prop.name in allowed]
@@ -1623,7 +1638,7 @@ class Model:
                     add_kind(base)
             # add prop types
             if with_prop_types:
-                for prop in cpl.resolved_properties():
+                for prop in cpl.resolved_property_paths():
                     if isinstance(prop.kind, ComplexKind):
                         add_kind(prop.kind)
 

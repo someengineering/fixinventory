@@ -68,7 +68,7 @@ class AwsSSMInstance(AwsResource):
     }
     instance_id: Optional[str] = field(default=None, metadata={"description": "The managed node ID."})  # fmt: skip
     ping_status: Optional[str] = field(default=None, metadata={"description": "Connection status of SSM Agent.   The status Inactive has been deprecated and is no longer in use."})  # fmt: skip
-    last_ping: Optional[datetime] = field(default=None, metadata={"description": "The date and time when the agent last pinged the Systems Manager service."})  # fmt: skip
+    last_ping: Optional[datetime] = field(default=None, metadata={"description": "The date and time when the agent last pinged the Systems Manager service.", "ignore_history": True})  # fmt: skip
     agent_version: Optional[str] = field(default=None, metadata={"description": "The version of SSM Agent running on your Linux managed node."})  # fmt: skip
     is_latest_version: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the latest version of SSM Agent is running on your Linux managed node. This field doesn't indicate whether or not the latest version is installed on Windows managed nodes, because some older versions of Windows Server use the EC2Config service to process Systems Manager requests."})  # fmt: skip
     platform_type: Optional[str] = field(default=None, metadata={"description": "The operating system platform type."})  # fmt: skip

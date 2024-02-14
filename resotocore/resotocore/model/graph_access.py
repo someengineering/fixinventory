@@ -126,6 +126,9 @@ class Direction:
 
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
+# Global list of properties to ignore when computing the history hash of a node.
+PropsToIgnoreForHistory = {"atime", "mtime", "last_update", "resource_version"}
+
 
 @define
 class BySearchCriteria:
@@ -255,6 +258,7 @@ class GraphBuilder:
             metadata["replace"] = True
         # create content hash
         sha = GraphBuilder.content_hash(reported, desired, metadata)
+        hist_hash = GraphBuilder.history_hash(reported, kind)
         # flat all properties into a single string for search
         flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
         node = dict(
@@ -263,6 +267,7 @@ class GraphBuilder:
             desired=desired,
             metadata=metadata,
             hash=sha,
+            hist_hash=hist_hash,
             kind=kind,
             kinds=list(kind.kind_hierarchy()),
             kinds_set=kind.kind_hierarchy(),
@@ -291,7 +296,43 @@ class GraphBuilder:
             sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
         if metadata:
             sha256.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
-        return sha256.hexdigest()
+        return sha256.hexdigest()[0:8]
+
+    @staticmethod
+    def history_hash(js: Json, kind: Kind) -> str:
+        sha256 = hashlib.sha256()
+
+        def walk_element(el: JsonElement, el_kind: Kind) -> None:
+            if el is None:
+                pass
+            elif isinstance(el_kind, ComplexKind):
+                walk_complex(el, el_kind)
+            elif isinstance(el_kind, ArrayKind):
+                if isinstance(el, list):
+                    for elem in el:
+                        walk_element(elem, el_kind.inner)
+            elif isinstance(el_kind, DictionaryKind):
+                if isinstance(el, dict):
+                    for v in el.values():
+                        walk_element(v, el_kind.value_kind)
+            elif isinstance(el_kind, SimpleKind):
+                sha256.update(str(el).encode("utf-8"))
+
+        def walk_complex(el: JsonElement, el_kind: ComplexKind) -> None:
+            if isinstance(el, dict):
+                for prop, prop_kind in el_kind.direct_property_with_kinds():  # properties are already sorted
+                    if (
+                        (not prop.meta_get("ignore_history", bool, False))
+                        and (prop.name not in PropsToIgnoreForHistory)
+                        and (prop_val := el.get(prop.name))
+                    ):
+                        walk_element(prop_val, prop_kind)
+                if not el_kind.metadata.get("ignore_history"):  # if defined on type, do not walk the hierarchy
+                    for base in el_kind.resolved_bases().values():
+                        walk_complex(el, base)
+
+        walk_element(js, kind)
+        return sha256.hexdigest()[0:8]
 
     @staticmethod
     def flatten(js: Json, kind: Kind) -> str:

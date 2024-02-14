@@ -14,7 +14,7 @@ from resotocore.db import EstimatedSearchCost, EstimatedQueryCostRating as Ratin
 from resotocore.db.arangodb_functions import as_arangodb_function
 from resotocore.db.model import QueryModel
 from resotocore.model.graph_access import Section, Direction
-from resotocore.model.model import SyntheticProperty, ResolvedProperty
+from resotocore.model.model import SyntheticProperty, ResolvedPropertyPath
 from resotocore.model.resolve_in_graph import GraphResolver
 from resotocore.query.model import (
     Predicate,
@@ -141,7 +141,7 @@ def query_string(
 
     def prop_name_kind(
         path: str, context_path: Optional[str] = None
-    ) -> Tuple[str, ResolvedProperty, Optional[str]]:  # prop_name, prop, merge_name
+    ) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
         local_path = f"{context_path}.{path}" if context_path else path
         merge_name = first(lambda name: local_path.startswith(name + "."), merge_names)
         # remove merge_name and section part (if existent) from the local_path
