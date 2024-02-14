@@ -1,5 +1,6 @@
 import base64
 import logging
+from contextlib import suppress
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
@@ -1362,7 +1363,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     Attribute="userData",
                 )
             ) and (data := result.get("Value")):
-                instance.instance_user_data = base64.b64decode(data).decode("utf-8")
+                with suppress(Exception):  # ignore userdata with wrong encoding
+                    instance.instance_user_data = base64.b64decode(data).decode("utf-8")
 
         for reservation in json:
             for instance_in in reservation["Instances"]:
