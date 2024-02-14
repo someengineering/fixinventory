@@ -210,6 +210,7 @@ def config_json() -> Json:
                 "abort_after_seconds": 1234,
                 "merge_max_wait_time_seconds": 4321,
                 "keep_history": True,
+                "keep_history_for_days": 180,
                 "parallel_imports": 5,
             },
             "runtime": {

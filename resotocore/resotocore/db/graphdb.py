@@ -1286,17 +1286,20 @@ class ArangoGraphDB(GraphDB):
                 log.info(f"Add index root_nodes on {progress.name}")
                 progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
             # history indexes ------
-            node_history_indexes = {idx["name"]: idx for idx in cast(List[Json], node_history.indexes())}
-            if "history_access" not in node_history_indexes:
+            nh_idx = {idx["name"]: idx for idx in cast(List[Json], node_history.indexes())}
+            if "history_access" not in nh_idx:
                 node_history.add_persistent_index(
                     ["id", "change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
                     sparse=False,
                     name="history_access",
                 )
-            if "ttl_index" in node_history_indexes:
+            ttl_secs = self.config.keep_history_for_days * (24 * 60 * 60)  # days to seconds
+            if "ttl_index" in nh_idx:
                 node_history.delete_index("ttl_index")
-            if "history_ttl" not in node_history_indexes:
-                node_history.add_ttl_index(["changed_at"], int(timedelta(days=14).total_seconds()), name="history_ttl")
+            if "history_ttl" not in nh_idx or value_in_path(nh_idx, ["history_ttl", "expiry_time"]) != ttl_secs:
+                if "history_ttl" in nh_idx:
+                    node_history.delete_index("history_ttl")
+                node_history.add_ttl_index(["changed_at"], ttl_secs, name="history_ttl")
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
@@ -1366,13 +1369,13 @@ class ArangoGraphDB(GraphDB):
         else:
             in_progress = await create_collection(self.in_progress)
             node_history_collection = await create_collection(self.node_history)
-            create_node_indexes(vertex)
-            create_update_collection_indexes(in_progress, node_history_collection)
+            await run_async(create_node_indexes, vertex)
+            await run_async(create_update_collection_indexes, in_progress, node_history_collection)
             await self.usage_db.create_update_schema()
 
         for edge_type in EdgeTypes.all:
             edge_collection = db.graph(self.name).edge_collection(self.edge_collection(edge_type))
-            create_update_edge_indexes(edge_collection)
+            await run_async(create_update_edge_indexes, edge_collection)
 
         await create_update_views(vertex)
         if init_with_data:

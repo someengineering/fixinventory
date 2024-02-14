@@ -509,6 +509,10 @@ class GraphUpdateConfig(ConfigObject):
         default=True,
         metadata={"description": "If true, changes of the graph are stored and are available via history."},
     )
+    keep_history_for_days: int = field(
+        default=180,
+        metadata={"description": "Duration to keep history entries in days. (default: 180)"},
+    )
     parallel_imports: int = field(
         default=5,
         metadata={"description": "Number of parallel graph merge requests handled in parallel."},
