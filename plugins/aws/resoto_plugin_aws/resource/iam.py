@@ -21,7 +21,7 @@ from resotolib.baseresources import (
 )
 from resotolib.graph import Graph
 from resotolib.json import value_in_path
-from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F
+from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F, Sorted
 from resotolib.types import Json
 from resotolib.utils import parse_utc, utc
 
@@ -62,7 +62,10 @@ class AwsIamPolicyDetail:
         "IAM Policy Detail provides information about the permissions and access"
         " control settings defined in an IAM policy."
     )
-    mapping: ClassVar[Dict[str, Bender]] = {"policy_name": S("PolicyName"), "policy_document": S("PolicyDocument")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "policy_name": S("PolicyName"),
+        "policy_document": S("PolicyDocument") >> Sorted(sort_list=True),
+    }
     policy_name: Optional[str] = field(default=None)
     policy_document: Optional[Json] = field(default=None)
 
@@ -126,7 +129,7 @@ class AwsIamRole(AwsResource):
         "atime": (S("RoleLastUsed") >> Sort(S("LastUsedDate") >> AsDate()))[-1]["LastUsedDate"],
         "path": S("Path"),
         "arn": S("Arn"),
-        "role_assume_role_policy_document": S("AssumeRolePolicyDocument"),
+        "role_assume_role_policy_document": S("AssumeRolePolicyDocument") >> Sorted(sort_list=True),
         "description": S("Description"),
         "role_max_session_duration": S("MaxSessionDuration"),
         "role_permissions_boundary": S("PermissionsBoundary") >> Bend(AwsIamAttachedPermissionsBoundary.mapping),
@@ -138,7 +141,7 @@ class AwsIamRole(AwsResource):
     role_assume_role_policy_document: Optional[Json] = field(default=None)
     role_max_session_duration: Optional[int] = field(default=None)
     role_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
-    role_last_used: Optional[AwsIamRoleLastUsed] = field(default=None)
+    role_last_used: Optional[AwsIamRoleLastUsed] = field(default=None, metadata=dict(ignore_history=True))
     role_policies: List[AwsIamPolicyDetail] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -287,7 +290,7 @@ class AwsIamPolicyVersion:
         " access control for AWS resources."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "document": S("Document"),
+        "document": S("Document") >> Sorted(sort_list=True),
         "version_id": S("VersionId"),
         "is_default_version": S("IsDefaultVersion"),
         "create_date": S("CreateDate"),
@@ -488,9 +491,9 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS IAM Access Key"
-    kind_description: ClassVar[str] = (
-        "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),

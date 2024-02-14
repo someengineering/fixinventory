@@ -307,6 +307,9 @@ class Kind(ABC):
     def package(self) -> Optional[str]:
         return self.fqn.rsplit(".", 1)[0] if "." in self.fqn else None
 
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return default
+
     # noinspection PyUnusedLocal
     @staticmethod
     def from_json(js: Json, _: type = object, **kwargs: object) -> Kind:
@@ -1017,6 +1020,9 @@ class ComplexKind(Kind):
 
     def __getitem__(self, name: str) -> Property:
         return self.__prop_by_name[name]
+
+    def meta_get(self, name: str, clazz: Type[T], default: T) -> T:
+        return md if isinstance(md := self.metadata.get(name), clazz) else default
 
     def property_kind_of(self, name: str, or_else: Kind) -> Kind:
         maybe = self.__resolved_props.get(name)

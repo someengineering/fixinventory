@@ -7,6 +7,7 @@ from boto3.exceptions import Boto3Error
 
 from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from resoto_plugin_aws.utils import ToDict
+from resotolib.json import sort_json
 from resotolib.json_bender import Bender, S, Bend
 from resotolib.types import Json
 
@@ -61,7 +62,7 @@ class AwsEcrRepository(AwsResource):
                     repositoryName=repository.name,
                     expected_errors=["LifecyclePolicyNotFoundException"],
                 ):
-                    repository.lifecycle_policy = json.loads(policy["lifecyclePolicyText"])
+                    repository.lifecycle_policy = sort_json(json.loads(policy["lifecyclePolicyText"]), sort_list=True)
 
         def collect(visibility: str, spec: AwsApiSpec) -> None:
             try:

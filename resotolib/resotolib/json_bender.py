@@ -9,6 +9,7 @@ from typing import Dict, Any, Type, Union, Optional, Callable, List
 
 from jsons import snakecase
 
+from resotolib.json import sort_json
 from resotolib.types import Json, JsonElement
 from resotolib.units import parse
 from resotolib.utils import utc_str
@@ -332,6 +333,18 @@ class Sort(Bender):
             return sorted(source, key=lambda x: bend(self._extractor, x))
         else:
             return source
+
+
+class Sorted(Bender):
+    """
+    Sort a JSON element
+    """
+
+    def __init__(self, sort_list: bool = False):
+        self.sort_list = sort_list
+
+    def execute(self, source: Any) -> Any:
+        return sort_json(source, sort_list=self.sort_list)
 
 
 class AsInt(Bender):

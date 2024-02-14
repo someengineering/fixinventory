@@ -9,6 +9,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.baseresources import EdgeType, ModelReference
 from resotolib.graph import Graph
+from resotolib.json import sort_json
 from resotolib.json_bender import S, Bend, Bender, ForallBend
 from resotolib.types import Json
 
@@ -258,7 +259,7 @@ class AwsGlacierVault(AwsResource):
                 expected_errors=["ResourceNotFoundException"],
             )
             if response and (policy_string := response.get("Policy")):
-                vault.glacier_access_policy = json.loads(policy_string)
+                vault.glacier_access_policy = sort_json(json.loads(policy_string), sort_list=True)
 
         for vault in source:
             if vault_instance := cls.from_api(vault, builder):

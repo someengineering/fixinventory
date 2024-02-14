@@ -3,7 +3,7 @@ from typing import Optional, ClassVar, Union, Literal, Any
 
 from attrs import define
 
-from resotolib.json import to_json, from_json, is_primitive_or_primitive_union
+from resotolib.json import to_json, from_json, is_primitive_or_primitive_union, sort_json
 from resotolib.utils import utc
 
 
@@ -66,3 +66,20 @@ def test_primitive_union() -> None:
     assert is_primitive_or_primitive_union(Optional[str]) is True
     assert is_primitive_or_primitive_union(Optional[int]) is True
     assert is_primitive_or_primitive_union(Optional[Foo]) is False
+
+
+def test_json_sort() -> None:
+    simple = {"c": [3, 2, 1], "b": 2, "a": 1}
+    simple2 = {"c": [3, 2, 4], "b": 3, "a": 2}
+    simple3 = {"c": [5, 2, 3], "b": 4, "a": 3}
+    assert sort_json(simple) == {"a": 1, "b": 2, "c": [3, 2, 1]}
+    assert sort_json(simple, sort_list=True) == {"a": 1, "b": 2, "c": [1, 2, 3]}
+    complex = {"d": [simple2, simple3, simple], "a": {"c": simple3, "b": simple2, "a": simple}}
+    assert sort_json(complex, sort_list=True) == {
+        "a": {
+            "a": {"a": 1, "b": 2, "c": [1, 2, 3]},
+            "b": {"a": 2, "b": 3, "c": [2, 3, 4]},
+            "c": {"a": 3, "b": 4, "c": [2, 3, 5]},
+        },
+        "d": [{"a": 2, "b": 3, "c": [2, 3, 4]}, {"a": 3, "b": 4, "c": [2, 3, 5]}, {"a": 1, "b": 2, "c": [1, 2, 3]}],
+    }

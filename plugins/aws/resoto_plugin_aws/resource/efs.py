@@ -10,6 +10,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.utils import ToDict
 from resotolib.baseresources import ModelReference, BaseNetworkShare
 from resotolib.graph import Graph
+from resotolib.json import sort_json
 from resotolib.json_bender import Bender, S, F, Bend
 from resotolib.types import Json
 
@@ -147,7 +148,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                     FileSystemId=fs.id,
                     expected_errors=["PolicyNotFound"],
                 ):
-                    fs.file_system_policy = json.loads(policy["Policy"])
+                    fs.file_system_policy = sort_json(json.loads(policy["Policy"]), sort_list=True)
 
         for js in js_list:
             if instance := cls.from_api(js, builder):

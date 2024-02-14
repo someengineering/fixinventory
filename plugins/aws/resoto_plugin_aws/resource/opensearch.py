@@ -9,7 +9,7 @@ from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpe
 from resoto_plugin_aws.resource.cognito import AwsCognitoUserPool
 from resoto_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2InstanceType
 from resoto_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, Bend, ParseJson
+from resotolib.json_bender import Bender, S, Bend, ParseJson, Sorted
 from resotolib.types import Json
 
 log = logging.getLogger("resoto.plugins.aws")
@@ -266,7 +266,7 @@ class AwsOpenSearchDomain(AwsResource):
         "engine_version": S("EngineVersion"),
         "cluster_config": S("ClusterConfig") >> Bend(AwsOpenSearchClusterConfig.mapping),
         "ebs_options": S("EBSOptions") >> Bend(AwsOpenSearchEBSOptions.mapping),
-        "access_policies": S("AccessPolicies") >> ParseJson(),
+        "access_policies": S("AccessPolicies") >> ParseJson() >> Sorted(sort_list=True),
         "ip_address_type": S("IPAddressType"),
         "snapshot_options": S("SnapshotOptions", "AutomatedSnapshotStartHour"),
         "vpc_options": S("VPCOptions") >> Bend(AwsOpenSearchVPCDerivedInfo.mapping),

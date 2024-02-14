@@ -126,7 +126,8 @@ class Direction:
 
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
-PropsToIgnoreForHistory = {"atime", "mtime", "last_update", "role_last_used", "resource_version"}
+# Global list of properties to ignore when computing the history hash of a node.
+PropsToIgnoreForHistory = {"atime", "mtime", "last_update", "resource_version"}
 
 
 @define
@@ -295,7 +296,7 @@ class GraphBuilder:
             sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
         if metadata:
             sha256.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
-        return sha256.hexdigest()
+        return sha256.hexdigest()[0:8]
 
     @staticmethod
     def history_hash(js: Json, kind: Kind) -> str:
@@ -305,7 +306,7 @@ class GraphBuilder:
             if el is None:
                 pass
             elif isinstance(el_kind, ComplexKind):
-                walk_kind(el, el_kind)
+                walk_complex(el, el_kind)
             elif isinstance(el_kind, ArrayKind):
                 if isinstance(el, list):
                     for elem in el:
@@ -317,7 +318,7 @@ class GraphBuilder:
             elif isinstance(el_kind, SimpleKind):
                 sha256.update(str(el).encode("utf-8"))
 
-        def walk_kind(el: JsonElement, el_kind: ComplexKind) -> None:
+        def walk_complex(el: JsonElement, el_kind: ComplexKind) -> None:
             if isinstance(el, dict):
                 for prop, prop_kind in el_kind.direct_property_with_kinds():  # properties are already sorted
                     if (
@@ -328,10 +329,10 @@ class GraphBuilder:
                         walk_element(prop_val, prop_kind)
                 if not el_kind.metadata.get("ignore_history"):  # if defined on type, do not walk the hierarchy
                     for base in el_kind.resolved_bases().values():
-                        walk_kind(el, base)
+                        walk_complex(el, base)
 
         walk_element(js, kind)
-        return sha256.hexdigest()
+        return sha256.hexdigest()[0:8]
 
     @staticmethod
     def flatten(js: Json, kind: Kind) -> str:

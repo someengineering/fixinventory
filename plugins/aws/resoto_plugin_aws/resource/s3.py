@@ -10,7 +10,7 @@ from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilde
 from resoto_plugin_aws.utils import tags_as_dict
 from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
 from resotolib.graph import Graph
-from resotolib.json import is_empty
+from resotolib.json import is_empty, sort_json
 from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
 from resotolib.types import Json
 
@@ -74,9 +74,9 @@ class AwsS3Owner:
 class AwsS3Grantee:
     kind: ClassVar[str] = "aws_s3_grantee"
     kind_display: ClassVar[str] = "AWS S3 Grantee"
-    kind_description: ClassVar[str] = (
-        "AWS S3 Grantees are entities that have been given permission to access objects in an S3 bucket."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "AWS S3 Grantees are entities that have been given permission to access objects in an S3 bucket."
     mapping: ClassVar[Dict[str, Bender]] = {
         "display_name": S("DisplayName"),
         "email_address": S("EmailAddress"),
@@ -225,7 +225,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     Bucket=bck.name,
                     expected_errors=["NoSuchBucketPolicy", "NoSuchBucket"],
                 ):
-                    bck.bucket_policy = json_loads(raw_policy)  # type: ignore # this is a string
+                    bck.bucket_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-bucket-versioning"):
