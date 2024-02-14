@@ -54,7 +54,7 @@ def test_access_node() -> None:
     g.add_node("1", reported=to_json(FooTuple(a="1")))
     access: GraphAccess = GraphAccess(g)
     elem: Json = node(access, "1")  # type: ignore
-    assert elem["hash"] == "153c1a5c002f6213a95383f33b63aa18b8ed6939f57418fb0f27312576f0cea4"
+    assert elem["hash"] == "153c1a5c"
     assert elem["reported"] == {
         "a": "1",
         "b": 0,
@@ -99,8 +99,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node(NodeId("3"))
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0]["hash"] == "0546994698f57ed4a7a4463b0353397ebe4acc7196b9e9ca1dd7bc0b72245be6"
-    assert not_visited[1]["hash"] == "0fead7dd5aff45049878e4c1b108b78c5fab594ac503eaba2199b71725241fce"
+    assert not_visited[0]["hash"] == "05469946"
+    assert not_visited[1]["hash"] == "0fead7dd"
 
 
 def test_edges(graph_access: GraphAccess) -> None:
