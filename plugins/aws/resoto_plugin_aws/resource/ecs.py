@@ -2040,26 +2040,26 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                             builder.add_node(task_instance, task)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
 
-            # once all clusters are collected, collect capacity providers
-            provider_names = {name for instance in instances for name in instance.cluster_capacity_providers}
-            providers: Dict[str, AwsEcsCapacityProvider] = {}
-            for chunk in chunks(list(provider_names), 100):
-                for provider in builder.client.list(
-                    service_name,
-                    "describe-capacity-providers",
-                    "capacityProviders",
-                    capacityProviders=chunk,
-                    include=["TAGS"],
-                ):
-                    if provider_instance := AwsEcsCapacityProvider.from_api(provider, builder):
-                        builder.add_node(provider_instance, provider)
-                        providers[provider_instance.safe_name] = provider_instance
+        # once all clusters are collected, collect capacity providers
+        provider_names = {name for instance in instances for name in instance.cluster_capacity_providers}
+        providers: Dict[str, AwsEcsCapacityProvider] = {}
+        for chunk in chunks(list(provider_names), 100):
+            for provider in builder.client.list(
+                service_name,
+                "describe-capacity-providers",
+                "capacityProviders",
+                capacityProviders=chunk,
+                include=["TAGS"],
+            ):
+                if provider_instance := AwsEcsCapacityProvider.from_api(provider, builder):
+                    builder.add_node(provider_instance, provider)
+                    providers[provider_instance.safe_name] = provider_instance
 
-            # connect clusters to providers
-            for instance in instances:
-                for name in instance.cluster_capacity_providers:
-                    if provider := providers.get(name):
-                        builder.add_edge(instance, edge_type=EdgeType.default, node=provider)
+        # connect clusters to providers
+        for instance in instances:
+            for name in instance.cluster_capacity_providers:
+                if provider := providers.get(name):
+                    builder.add_edge(instance, edge_type=EdgeType.default, node=provider)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable
