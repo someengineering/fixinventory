@@ -501,7 +501,7 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
         "ctime": S("CreateDate"),
         "access_key_status": S("Status"),
     }
-    access_key_last_used: Optional[AwsIamAccessKeyLastUsed] = field(default=None)
+    access_key_last_used: Optional[AwsIamAccessKeyLastUsed] = field(default=None, metadata=dict(ignore_history=True))
 
 
 class CredentialReportLine:

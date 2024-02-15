@@ -81,7 +81,7 @@ class AwsConfigRecorder(AwsResource):
         "recorder_group": S("recordingGroup") >> Bend(AwsConfigRecordingGroup.mapping),
     }
     recorder_group: Optional[AwsConfigRecordingGroup] = field(default=None)
-    recorder_status: Optional[AwsConfigRecorderStatus] = field(default=None)
+    recorder_status: Optional[AwsConfigRecorderStatus] = field(default=None, metadata=dict(ignore_history=True))
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
