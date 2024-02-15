@@ -223,6 +223,10 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5 | head 3 | tail 2")
     assert commands[0].executable_commands[0].arg == "'is(\"volume\") sort reported.name desc limit 7, 2 reversed '"
 
+    pipes = await cli.evaluate_cli_command("history --change node_vulnerable | sort /changed_at asc | limit 0, 10")
+    no_pipes = await cli.evaluate_cli_command("history --change node_vulnerable sort /changed_at asc limit 0, 10")
+    assert pipes[0].executable_commands[0].arg == no_pipes[0].executable_commands[0].arg
+
 
 @pytest.mark.asyncio
 async def test_replacements(cli: CLI) -> None:
