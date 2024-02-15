@@ -785,7 +785,9 @@ class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource)
         " customize and extend the functionality of CloudFront content delivery"
         " network, enabling advanced edge processing of HTTP requests and responses."
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "FunctionList.Items")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "list-functions", "FunctionList.Items", parameter={"Stage": "LIVE"}
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "arn": S("FunctionMetadata", "FunctionARN", default=None),

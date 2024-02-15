@@ -13,7 +13,7 @@
                 },
                 "FunctionMetadata": {
                     "FunctionARN": "arn",
-                    "Stage": "DEVELOPMENT",
+                    "Stage": "LIVE",
                     "CreatedTime": "2022-08-08T09:36:55Z",
                     "LastModifiedTime": "2022-08-08T09:36:55Z"
                 }
