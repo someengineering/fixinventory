@@ -309,8 +309,8 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
         "group_data_protection_status": S("dataProtectionStatus"),
     }
     group_retention_in_days: Optional[int] = field(default=None)
-    group_metric_filter_count: Optional[int] = field(default=None)
-    group_stored_bytes: Optional[int] = field(default=None)
+    group_metric_filter_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
+    group_stored_bytes: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     group_data_protection_status: Optional[str] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

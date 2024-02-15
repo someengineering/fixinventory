@@ -179,7 +179,7 @@ class AwsCloudTrail(AwsResource):
     trail_has_custom_event_selectors: Optional[bool] = attrs_field(default=None)
     trail_has_insight_selectors: Optional[bool] = attrs_field(default=None)
     trail_is_organization_trail: Optional[bool] = attrs_field(default=None)
-    trail_status: Optional[AwsCloudTrailStatus] = attrs_field(default=None)
+    trail_status: Optional[AwsCloudTrailStatus] = attrs_field(default=None, metadata=dict(ignore_history=True))
     trail_event_selectors: Optional[AwsCloudTrailEventSelectors] = attrs_field(default=None)
     trail_insight_selectors: Optional[List[str]] = attrs_field(default=None)
 
