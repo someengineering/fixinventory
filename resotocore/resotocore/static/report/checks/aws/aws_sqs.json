@@ -10,7 +10,7 @@
             "risk": "If server-side encryption is not enabled for SQS queues, sensitive information in transit could be compromised. This leads to risks of data leakage, breach of compliance regulations, and potential damage to the organization's reputation.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_sqs_queue) and sqs_managed_sse_enabled==false"
+                "resoto": "is(aws_sqs_queue) and sqs_managed_sse_enabled==false and sqs_kms_master_key_id==null"
             },
             "remediation": {
                 "text": "To mitigate this risk, ensure server-side encryption is turned on for all Amazon SQS queues. If possible, leverage a Customer Master Key (CMK) for enhanced management and privacy benefits.",
