@@ -10,7 +10,7 @@
             "risk": "Without ACM certificate transparency, the risk of unauthorized SSL/TLS certificates going undetected increases, posing a threat to website and infrastructure security.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_acm_certificate) and type!=IMPORTED and certificate_transparency_logging!=Enabled"
+                "resoto": "is(aws_acm_certificate) and type!=IMPORTED and certificate_transparency_logging!=ENABLED"
             },
             "remediation": {
                 "text": "To fix this issue, select the certificate you want to check in ACM. In the certificate details, look for the 'Certificate Transparency Logging' attribute and ensure it is enabled.",
