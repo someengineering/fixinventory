@@ -83,7 +83,7 @@
             "severity": "high",
             "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
             "detect": {
-                "resoto": "is(aws_lambda_function) and function_url_config.auth_type != AWS_IAM"
+                "resoto": "is(aws_lambda_function) and function_url_config != null and function_url_config.auth_type != AWS_IAM"
             },
             "remediation": {
                 "action": {
