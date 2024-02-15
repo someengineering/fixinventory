@@ -400,6 +400,7 @@ class CLIService(CLI, Service):
         additional_commands: List[ExecutableCommand] = []
         # We need to remember the first head/tail, since tail will reverse the sort order
         first_head_tail_in_a_row: Optional[CLICommand] = None
+        default_sort = DefaultSort
         head_tail_keep_order = True
         for command in commands:
             part = command.command
@@ -408,11 +409,12 @@ class CLIService(CLI, Service):
                 query = query.combine(await parse_query(arg))
             elif isinstance(part, HistoryPart):
                 parsed_options["history"] = True
+                default_sort = HistorySort
                 query = query.combine(await parse_query(arg))
                 if not query.current_part.sort and not query.aggregate:
                     query = query.set_sort(*HistorySort)
             elif isinstance(part, SortPart):
-                if query.current_part.sort == DefaultSort:
+                if query.current_part.sort == default_sort:
                     query = query.set_sort(*sort_args_p.parse(arg))
                 else:
                     query = query.add_sort(*sort_args_p.parse(arg))
@@ -467,7 +469,7 @@ class CLIService(CLI, Service):
                     query = query.with_limit(size)
                     p = query.current_part
                     # the limit might have created a new part - make sure there is a sort order
-                    p = p if p.sort else evolve(p, sort=DefaultSort)
+                    p = p if p.sort else evolve(p, sort=default_sort)
                     # reverse the sort order -> limit -> reverse the result
                     query.parts[0] = evolve(p, sort=[s.reversed() for s in p.sort], reverse_result=True)
             else:
@@ -484,14 +486,14 @@ class CLIService(CLI, Service):
             # Define default sort order, if not already defined
             # A sort order is required to always return the result in a deterministic way to the user.
             # Deterministic order is required for head/tail to work
-            parts = [pt if pt.sort else evolve(pt, sort=DefaultSort) for pt in query.parts]
+            parts = [pt if pt.sort else evolve(pt, sort=default_sort) for pt in query.parts]
             query = evolve(query, parts=parts)
 
         # If the last part is a navigation, we need to add sort which will ingest a new part.
-        with_sort = query.set_sort(*DefaultSort) if query.current_part.navigation else query
+        with_sort = query.set_sort(*default_sort) if query.current_part.navigation else query
         section = ctx.env.get("section", PathRoot)
         # If this is an aggregate query, the default sort needs to be changed
-        if query.aggregate is not None and query.current_part.sort == DefaultSort:
+        if query.aggregate is not None and query.current_part.sort == default_sort:
             with_sort = query.set_sort(*query.aggregate.sort_by_fn(section))
 
         # When all parts are combined, interpret the result on defined section.
