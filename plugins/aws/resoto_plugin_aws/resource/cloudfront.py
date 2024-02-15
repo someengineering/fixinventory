@@ -593,7 +593,7 @@ class AwsCloudFrontDistributionConfig:
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "get-distribution", "Distribution")
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home#/distributions/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:distribution/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home#/distributions/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:distribution/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS CloudFront Distribution"
     kind_description: ClassVar[str] = (
         "CloudFront Distributions are a content delivery network (CDN) offered by"
