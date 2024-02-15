@@ -10,7 +10,7 @@
             "risk": "If no listeners are configured for an Application Load Balancer, it will not be able to receive traffic from clients and route requests to registered targets.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_alb) and alb_listener not in [null, []]"
+                "resoto": "is(aws_alb) and alb_listener in [null, []]"
             },
             "remediation": {
                 "text": "To fix this issue, add listeners to the Elastic Load Balancers V2.",
@@ -33,7 +33,7 @@
             "risk": "Without listeners, Elastic Load Balancers cannot receive traffic from clients and cannot route requests to registered targets.",
             "severity": "medium",
             "detect": {
-                "resoto": "search is(aws_elb) and listener not in [null, []]"
+                "resoto": "search is(aws_elb) and listener in [null, []]"
             },
             "remediation": {
                 "text": "Add listeners to Elastic Load Balancers to allow them to receive and route traffic.",
