@@ -309,7 +309,8 @@ class AzureCloudService(AzureResource):
         "configuration": S("properties", "configuration"),
         "configuration_url": S("properties", "configurationUrl"),
         "extension_profile": S("properties", "extensionProfile") >> Bend(AzureCloudServiceExtensionProfile.mapping),
-        "network_profile": S("properties", "networkProfile") >> Bend(AzureCloudServiceNetworkProfile.mapping),
+        "cloud_service_network_profile": S("properties", "networkProfile")
+        >> Bend(AzureCloudServiceNetworkProfile.mapping),
         "os_profile": S("properties", "osProfile") >> Bend(AzureCloudServiceOsProfile.mapping),
         "package_url": S("properties", "packageUrl"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -323,7 +324,7 @@ class AzureCloudService(AzureResource):
     configuration: Optional[str] = field(default=None, metadata={'description': 'Specifies the xml service configuration (. Cscfg) for the cloud service.'})  # fmt: skip
     configuration_url: Optional[str] = field(default=None, metadata={'description': 'Specifies a url that refers to the location of the service configuration in the blob service. The service package url can be shared access signature (sas) uri from any storage account. This is a write-only property and is not returned in get calls.'})  # fmt: skip
     extension_profile: Optional[AzureCloudServiceExtensionProfile] = field(default=None, metadata={'description': 'Describes a cloud service extension profile.'})  # fmt: skip
-    network_profile: Optional[AzureCloudServiceNetworkProfile] = field(default=None, metadata={'description': 'Network profile for the cloud service.'})  # fmt: skip
+    cloud_service_network_profile: Optional[AzureCloudServiceNetworkProfile] = field(default=None, metadata={'description': 'Network profile for the cloud service.'})  # fmt: skip
     os_profile: Optional[AzureCloudServiceOsProfile] = field(default=None, metadata={'description': 'Describes the os profile for the cloud service.'})  # fmt: skip
     package_url: Optional[str] = field(default=None, metadata={'description': 'Specifies a url that refers to the location of the service package in the blob service. The service package url can be shared access signature (sas) uri from any storage account. This is a write-only property and is not returned in get calls.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
