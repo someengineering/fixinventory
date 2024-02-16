@@ -3794,8 +3794,8 @@ class AzureIpGroup(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = (
-            lambda n: n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
+        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda n: (
+            n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
         )
 
         virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
@@ -4088,6 +4088,7 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the load balancer resource.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
+    aks_public_ip_address: Optional[str] = field(default=None, metadata={"description": "AKS Load Balancer public IP address."})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_p_ip_address() -> None:
@@ -4104,17 +4105,17 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
             items = graph_builder.client.list(api_spec, **params)
             if items:
                 item = items[0]
-            frontend_ip_configs = item.get("properties", {}).get("frontendIPConfigurations", [])
-            for ip_conf in frontend_ip_configs:
-                try:
-                    public_ip_tags = ip_conf["properties"]["publicIPAddress"]["tags"]
-                    cluster_name = public_ip_tags.get("k8s-azure-cluster-name", None)
-                    if cluster_name is not None:
-                        lb_p_ip = ip_conf["properties"]["publicIPAddress"]["properties"]["ipAddress"]
-                        self.public_ip_address = lb_p_ip
-                        break
-                except KeyError:
-                    pass
+                frontend_ip_configs = item.get("properties", {}).get("frontendIPConfigurations", [])
+                for ip_conf in frontend_ip_configs:
+                    try:
+                        public_ip_tags = ip_conf["properties"]["publicIPAddress"]["tags"]
+                        cluster_name = public_ip_tags.get("k8s-azure-cluster-name", None)
+                        if cluster_name is not None:
+                            lb_p_ip = ip_conf["properties"]["publicIPAddress"]["properties"]["ipAddress"]
+                            self.aks_public_ip_address = lb_p_ip
+                            break
+                    except KeyError:
+                        pass
 
         graph_builder.submit_work("azure_all", collect_p_ip_address)
 

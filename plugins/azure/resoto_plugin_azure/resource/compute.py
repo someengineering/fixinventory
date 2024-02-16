@@ -2670,18 +2670,18 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             items = graph_builder.client.list(api_spec, **params)
             if items:
                 item = items[0]
-            try:
-                instance_v_statuses = item["properties"]["instanceView"]["statuses"]
-            except KeyError:
-                instance_v_statuses = []
-            instance_status_set = False
-            for instance_v_status in instance_v_statuses:
-                status_code = instance_v_status.get("code", "").split("/")
-                if status_code[0] == "PowerState":
-                    self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
-                    instance_status_set = True
-            if not instance_status_set:
-                self.instance_status = InstanceStatus.UNKNOWN
+                try:
+                    instance_v_statuses = item["properties"]["instanceView"]["statuses"]
+                except KeyError:
+                    instance_v_statuses = []
+                instance_status_set = False
+                for instance_v_status in instance_v_statuses:
+                    status_code = instance_v_status.get("code", "").split("/")
+                    if status_code[0] == "PowerState":
+                        self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
+                        instance_status_set = True
+                if not instance_status_set:
+                    self.instance_status = InstanceStatus.UNKNOWN
 
         graph_builder.submit_work("azure_all", collect_instance_status)
 
