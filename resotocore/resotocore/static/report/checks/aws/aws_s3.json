@@ -10,7 +10,7 @@
             "risk": "If the issue is not solved, there is a risk of data-at-rest being unencrypted, which can pose a threat to the confidentiality and integrity of stored objects.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_s3_bucket) and not bucket_encryption_rules[*].sse_algorithm!=null"
+                "resoto": "is(aws_s3_bucket) and bucket_encryption_rules[*].{sse_algorithm==null}"
             },
             "remediation": {
                 "action": {
