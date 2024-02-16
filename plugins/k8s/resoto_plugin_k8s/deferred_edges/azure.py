@@ -5,11 +5,6 @@ from resoto_plugin_k8s.deferred_edges.utils import rgetattr
 
 def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_node":
-        if (labels := rgetattr(resource, "labels", {})) and (nodegroup := labels.get("kubernetes.azure.com/cluster")):
-            graph.add_deferred_edge(
-                BySearchCriteria(f"is(azure_managed_cluster) and reported.node_resource_group={nodegroup}"),
-                ByNodeId(resource.chksum),
-            )
         if (pid := rgetattr(resource, "node_spec.provider_id", None)) and (pid.startswith("azure://")):
             _, vmss_vm_id = pid.split("azure://")
             vmss_instance_id = "/".join(vmss_vm_id.split("/")[:-2])
@@ -20,12 +15,11 @@ def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None
 
 
 def link_k8s_cluster_to_aks_cluster(graph: Graph, resource: BaseResource) -> None:
-    if (resource.kind == "kubernetes_cluster") and (server_url := rgetattr(resource, "cluster_info.server_url", None)):
-        if "azmk8s" in server_url:
-            graph.add_deferred_edge(
-                BySearchCriteria(f"is(azure_managed_cluster) and reported.name={resource.id}"),
-                ByNodeId(resource.chksum),
-            )
+    if resource.kind == "kubernetes_cluster":
+        graph.add_deferred_edge(
+            BySearchCriteria(f"is(azure_managed_cluster) and reported.name={resource.id}"),
+            ByNodeId(resource.chksum),
+        )
 
 
 def link_service_to_azure_lb(graph: Graph, resource: BaseResource) -> None:
