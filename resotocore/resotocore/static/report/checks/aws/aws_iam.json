@@ -687,7 +687,7 @@
             "risk": "Unused access keys pose a security risk and should be removed to prevent unauthorized access.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_iam_access_key) and age>{{access_key_too_old_age}} and (last_used==null or last_used<{{access_key_too_old_age.from_now}})"
+                "resoto": "is(aws_iam_access_key) and age>{{access_key_too_old_age}} and (last_used==null or last_used<{{access_key_too_old_age.ago}})"
             },
             "default_values": {
                 "access_key_too_old_age": "90d"

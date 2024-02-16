@@ -7,7 +7,7 @@ from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from resotolib.baseresources import BaseUser, EdgeType, ModelReference
 from resotolib.graph import Graph
-from resotolib.json_bender import S, Bend, Bender, ForallBend
+from resotolib.json_bender import S, Bend, Bender, ForallBend, K
 from resotolib.types import Json
 
 service_name = "cognito-idp"
@@ -28,7 +28,7 @@ class AwsCognitoGroup(AwsResource):
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("GroupName"),
+        "id": S("UserPoolId") + K(":") + S("GroupName"),
         "name": S("GroupName"),
         "ctime": S("CreationDate"),
         "mtime": S("LastModifiedDate"),
