@@ -140,36 +140,6 @@ class AzureKubernetesPatchVersion:
     upgrades: Optional[List[str]] = field(default=None, metadata={'description': 'Possible upgrade path for given patch version'})  # fmt: skip
 
 
-# @define(eq=False, slots=False)
-# class AzureKubernetesVersion(AzureResource):
-#     kind: ClassVar[str] = "azure_kubernetes_version"
-#     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-#         service="containerservice",
-#         version="2023-11-01",
-#         path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/locations/{location}/kubernetesVersions",
-#         path_parameters=["subscriptionId", "location"],
-#         query_parameters=["api-version"],
-#         access_path="values",
-#         expect_array=True,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("id"),
-#         "tags": S("tags", default={}),
-#         "name": S("name"),
-#         "ctime": K(None),
-#         "mtime": K(None),
-#         "atime": K(None),
-#         "kubernetes_version_capabilities": S("capabilities") >> Bend(AzureKubernetesVersionCapabilities.mapping),
-#         "is_preview": S("isPreview"),
-#         "patch_versions": S("patchVersions"),
-#         "kubernetes_version": S("version"),
-#     }
-#     kubernetes_version_capabilities: Optional[AzureKubernetesVersionCapabilities] = field(default=None, metadata={'description': 'Capabilities on this Kubernetes version.'})  # fmt: skip
-#     is_preview: Optional[bool] = field(default=None, metadata={'description': 'Whether this version is in preview mode.'})  # fmt: skip
-#     patch_versions: Optional[Dict[str, AzureKubernetesPatchVersion]] = field(default=None, metadata={'description': 'Patch versions of Kubernetes release'})  # fmt: skip
-#     kubernetes_version: Optional[str] = field(default=None, metadata={"description": "major.minor version of Kubernetes release"})
-
-
 @define(eq=False, slots=False)
 class AzureManagedClusterSKU:
     kind: ClassVar[str] = "azure_managed_cluster_sku"
@@ -956,146 +926,12 @@ class AzureMeshRevision:
     upgrades: Optional[List[str]] = field(default=None, metadata={'description': 'List of revisions available for upgrade of a specific mesh revision'})  # fmt: skip
 
 
-# @define(eq=False, slots=False)
-# class AzureMeshRevisionProfile(AzureResource):
-#     kind: ClassVar[str] = "azure_mesh_revision_profile"
-#     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-#         service="containerservice",
-#         version="2023-08-01",
-#         path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/locations/{location}/meshRevisionProfiles",
-#         path_parameters=["subscriptionId", "location"],
-#         query_parameters=["api-version"],
-#         access_path="value",
-#         expect_array=True,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-#         "id": S("id"),
-#         "tags": S("tags", default={}),
-#         "name": S("name"),
-#         "ctime": K(None),
-#         "mtime": K(None),
-#         "atime": K(None),
-#         "mesh_revisions": S("properties", "meshRevisions") >> ForallBend(AzureMeshRevision.mapping),
-#     }
-#     mesh_revisions: Optional[List[AzureMeshRevision]] = field(default=None, metadata={"description": ""})
-
-
 @define(eq=False, slots=False)
 class AzureOSOptionProperty:
     kind: ClassVar[str] = "azure_os_option_property"
     mapping: ClassVar[Dict[str, Bender]] = {"enable_fips_image": S("enable-fips-image"), "os_type": S("os-type")}
     enable_fips_image: Optional[bool] = field(default=None, metadata={'description': 'Whether the image is FIPS-enabled.'})  # fmt: skip
     os_type: Optional[str] = field(default=None, metadata={"description": "The OS type."})
-
-
-@define(eq=False, slots=False)
-class AzureOSOptionProfile(AzureResource):
-    kind: ClassVar[str] = "azure_os_option_profile"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="containerservice",
-        version="2023-08-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/locations/{location}/osOptions/default",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "os_option_property_list": S("properties", "osOptionPropertyList") >> ForallBend(AzureOSOptionProperty.mapping),
-    }
-    os_option_property_list: Optional[List[AzureOSOptionProperty]] = field(default=None, metadata={'description': 'The list of OS options.'})  # fmt: skip
-
-
-# @define(eq=False, slots=False)
-# class AzureProviderResourceOperationDescription:
-#     kind: ClassVar[str] = "azure_provider_resource_operation_description"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "description": S("description"),
-#         "operation": S("operation"),
-#         "provider": S("provider"),
-#         "resource": S("resource"),
-#     }
-#     description: Optional[str] = field(default=None, metadata={'description': 'The short, localized friendly description of the operation; suitable for tool tips and detailed views.'})  # fmt: skip
-#     operation: Optional[str] = field(default=None, metadata={'description': 'The concise, localized friendly name for the operation; suitable for dropdowns. E.g. Create or Update Virtual Machine , Restart Virtual Machine .'})  # fmt: skip
-#     provider: Optional[str] = field(default=None, metadata={'description': 'The localized friendly form of the resource provider name, e.g. Microsoft Monitoring Insights or Microsoft Compute .'})  # fmt: skip
-#     resource: Optional[str] = field(default=None, metadata={'description': 'The localized friendly name of the resource type related to this operation. E.g. Virtual Machines or Job Schedule Collections .'})  # fmt: skip
-
-
-# @define(eq=False, slots=False)
-# class AzureOperation(AzureResource):
-#     kind: ClassVar[str] = "azure_operation"
-#     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-#         service="containerservice",
-#         version="2023-08-15-preview",
-#         path="/providers/Microsoft.ContainerService/operations",
-#         path_parameters=[],
-#         query_parameters=["api-version"],
-#         access_path="value",
-#         expect_array=True,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("id"),
-#         "tags": S("tags", default={}),
-#         "name": S("name"),
-#         "ctime": K(None),
-#         "mtime": K(None),
-#         "atime": K(None),
-#         "action_type": S("actionType"),
-#         "display": S("display") >> Bend(AzureProviderResourceOperationDescription.mapping),
-#         "is_data_action": S("isDataAction"),
-#         "origin": S("origin"),
-#     }
-#     action_type: Optional[str] = field(default=None, metadata={'description': 'Enum. Indicates the action type. Internal refers to actions that are for internal only APIs.'})  # fmt: skip
-#     display: Optional[AzureProviderResourceOperationDescription] = field(default=None, metadata={'description': 'Localized display information for this particular operation.'})  # fmt: skip
-#     is_data_action: Optional[bool] = field(default=None, metadata={'description': 'Whether the operation applies to data-plane. This is true for data-plane operations and false for ARM/control-plane operations.'})  # fmt: skip
-#     origin: Optional[str] = field(default=None, metadata={'description': 'The intended executor of the operation; as in Resource Based Access Control (RBAC) and audit logs UX. Default value is user,system '})  # fmt: skip
-
-
-# @define(eq=False, slots=False)
-# class AzureOperationValueDisplay:
-#     kind: ClassVar[str] = "azure_operation_value_display"
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "description": S("description"),
-#         "operation": S("operation"),
-#         "provider": S("provider"),
-#         "resource": S("resource"),
-#     }
-#     description: Optional[str] = field(default=None, metadata={"description": "The description of the operation."})
-#     operation: Optional[str] = field(default=None, metadata={"description": "The display name of the operation."})
-#     provider: Optional[str] = field(default=None, metadata={"description": "The resource provider for the operation."})
-#     resource: Optional[str] = field(default=None, metadata={'description': 'The display name of the resource the operation applies to.'})  # fmt: skip
-
-
-# @define(eq=False, slots=False)
-# class AzureOperationValue(AzureResource):
-#     kind: ClassVar[str] = "azure_operation_value"
-#     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-#         service="containerservice",
-#         version="2023-08-01",
-#         path="/providers/Microsoft.ContainerService/operations",
-#         path_parameters=[],
-#         query_parameters=["api-version"],
-#         access_path="value",
-#         expect_array=True,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("id"),
-#         "tags": S("tags", default={}),
-#         "name": S("name"),
-#         "ctime": K(None),
-#         "mtime": K(None),
-#         "atime": K(None),
-#         "display": S("display") >> Bend(AzureOperationValueDisplay.mapping),
-#         "origin": S("origin"),
-#     }
-#     display: Optional[AzureOperationValueDisplay] = field(default=None, metadata={'description': 'Describes the properties of a Operation Value Display.'})  # fmt: skip
-#     origin: Optional[str] = field(default=None, metadata={"description": "The origin of the operation."})
 
 
 @define(eq=False, slots=False)
@@ -1136,4 +972,4 @@ class AzureKubernetesSnapshot(AzureResource):
     vm_size: Optional[str] = field(default=None, metadata={"description": "The size of the VM."})
 
 
-resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureKubernetesSnapshot, AzureOSOptionProfile]
+resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureKubernetesSnapshot]
