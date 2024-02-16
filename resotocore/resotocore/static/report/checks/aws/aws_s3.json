@@ -60,7 +60,7 @@
             "risk": "Without enforcing HTTPS on the bucket policy, communication between clients and S3 buckets may use unencrypted HTTP, posing a risk of transmitting sensitive information in clear text over the network or internet.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_s3_bucket) and not bucket_policy.Statement[*].{Effect=Deny and (Action=s3:PutObject or Action=\"s3:*\" or Action=\"*\") and Condition.Bool.`aws:SecureTransport`== \"false\" }"
+                "resoto_cmd": "search is(aws_s3_bucket) | jq --no-rewrite 'if (.reported.bucket_policy==null) then [.] elif any(.reported.bucket_policy.Statement[]?; .Effect? ==\"Deny\" and (.Action? == \"s3:*\" or .Action? == \"s3:PutObject\" or .Action? == \"*\") and .Condition?.Bool?.\"aws:SecureTransport\"?==\"false\") then [] else [.] end' | flatten"
             },
             "remediation": {
                 "text": "To fix the issue, ensure that S3 buckets have encryption in transit enabled to enforce secure communication.",
