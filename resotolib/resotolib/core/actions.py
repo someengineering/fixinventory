@@ -56,7 +56,7 @@ class CoreFeedback:
 
     def error(self, message: str, logger: Optional[Logger] = None) -> None:
         if logger:
-            logger.error(self.context_str + message, exc_info=True)
+            logger.warning(self.context_str + message, exc_info=True)
         self._info_message("error", message)
 
     @property
