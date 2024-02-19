@@ -719,7 +719,7 @@ class AzureDisk(AzureResource, BaseVolume):
                 [
                     AzureMetricQuery.create(
                         metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/disks",
+                        metric_namespace="microsoft.compute/disks",
                         instance_id=volume_id,
                         aggregation=("average",),
                         ref_id=volume_id,
@@ -732,7 +732,7 @@ class AzureDisk(AzureResource, BaseVolume):
                 [
                     AzureMetricQuery.create(
                         metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/disks",
+                        metric_namespace="microsoft.compute/disks",
                         instance_id=volume_id,
                         aggregation=("average",),
                         ref_id=volume_id,
@@ -2628,7 +2628,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             params = {"$expand": "instanceView"}
             items = graph_builder.client.list(api_spec, **params)
             if items:
-                item = items[0]
+                item: Json = next(iter(items), {})
                 try:
                     instance_v_statuses = item["properties"]["instanceView"]["statuses"]
                 except KeyError:

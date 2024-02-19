@@ -4,8 +4,9 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from resoto_plugin_azure.azure_client import AzureApiSpec
-from resoto_plugin_azure.resource.base import AzureResource, AzureSystemData
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K
+from resoto_plugin_azure.resource.base import AzureResource, AzureSystemData, GraphBuilder
+from resotolib.baseresources import EdgeType, ModelReference
+from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
 
 
@@ -108,6 +109,9 @@ class AzureFleet(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_managed_cluster"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -115,6 +119,7 @@ class AzureFleet(AzureResource):
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
         "e_tag": S("eTag"),
+        "resource_group": S("resourceGroup"),
         "hub_profile": S("properties", "hubProfile") >> Bend(AzureFleetHubProfile.mapping),
         "azure_fleet_identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "provisioning_state": S("properties", "provisioningState"),
@@ -123,6 +128,31 @@ class AzureFleet(AzureResource):
     hub_profile: Optional[AzureFleetHubProfile] = field(default=None, metadata={'description': 'The FleetHubProfile configures the fleet hub.'})  # fmt: skip
     azure_fleet_identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the last accepted operation.'})  # fmt: skip
+    resource_group: Optional[str] = field(default=None, metadata={"description": "Resource group name"})
+    cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "Reference to the cluster ID"})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        api_spec = AzureApiSpec(
+            service="containerservice",
+            version="2023-10-15",
+            path=f"{self.id}/members",
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items: List[Json] = graph_builder.client.list(api_spec)
+
+        item: Json = next(iter(items), {})
+
+        try:
+            self.cluster_resource_id = item["properties"]["clusterResourceId"]
+        except KeyError:
+            pass
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if cluster_id := self.cluster_resource_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
 
 
 @define(eq=False, slots=False)
@@ -783,13 +813,14 @@ class AzureManagedCluster(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_disk_encryption_set"]},
+        #    "azure_agent_pool"
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "aad_profile": S("properties", "aadProfile") >> Bend(AzureManagedClusterAADProfile.mapping),
         "addon_profiles": S("properties", "addonProfiles"),
         "agent_pool_profiles": S("properties") >> S("agentPoolProfiles", default=[]) >> ForallBend(S("name")),
@@ -812,7 +843,8 @@ class AzureManagedCluster(AzureResource):
         "fqdn_subdomain": S("properties", "fqdnSubdomain"),
         "http_proxy_config": S("properties", "httpProxyConfig") >> Bend(AzureManagedClusterHTTPProxyConfig.mapping),
         "managed_cluster_identity": S("identity") >> Bend(AzureManagedClusterIdentity.mapping),
-        "identity_profile": S("properties", "identityProfile"),
+        "identity_profile": S("properties", "identityProfile", "kubeletidentity")
+        >> Bend(AzureUserAssignedIdentity.mapping),
         "kubernetes_version": S("properties", "kubernetesVersion"),
         "linux_profile": S("properties", "linuxProfile") >> Bend(AzureContainerServiceLinuxProfile.mapping),
         "max_agent_pools": S("properties", "maxAgentPools"),
@@ -864,7 +896,7 @@ class AzureManagedCluster(AzureResource):
     fqdn_subdomain: Optional[str] = field(default=None, metadata={'description': 'This cannot be updated once the Managed Cluster has been created.'})  # fmt: skip
     http_proxy_config: Optional[AzureManagedClusterHTTPProxyConfig] = field(default=None, metadata={'description': 'Cluster HTTP proxy configuration.'})  # fmt: skip
     managed_cluster_identity: Optional[AzureManagedClusterIdentity] = field(default=None, metadata={'description': 'Identity for the managed cluster.'})  # fmt: skip
-    identity_profile: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'Identities associated with the cluster.'})  # fmt: skip
+    identity_profile: Optional[AzureUserAssignedIdentity] = field(default=None, metadata={'description': 'Identities associated with the cluster.'})  # fmt: skip
     kubernetes_version: Optional[str] = field(default=None, metadata={'description': 'Both patch version <major.minor.patch> (e.g. 1.20.13) and <major.minor> (e.g. 1.20) are supported. When <major.minor> is specified, the latest supported GA patch version is chosen automatically. Updating the cluster with the same <major.minor> once it has been created (e.g. 1.14.x -> 1.14) will not trigger an upgrade, even if a newer patch version is available. When you upgrade a supported AKS cluster, Kubernetes minor versions cannot be skipped. All upgrades must be performed sequentially by major version number. For example, upgrades between 1.14.x -> 1.15.x or 1.15.x -> 1.16.x are allowed, however 1.14.x -> 1.16.x is not allowed. See [upgrading an AKS cluster](https://docs.microsoft.com/azure/aks/upgrade-cluster) for more details.'})  # fmt: skip
     linux_profile: Optional[AzureContainerServiceLinuxProfile] = field(default=None, metadata={'description': 'Profile for Linux VMs in the container service cluster.'})  # fmt: skip
     max_agent_pools: Optional[int] = field(default=None, metadata={'description': 'The max number of agent pools for the managed cluster.'})  # fmt: skip
@@ -887,6 +919,16 @@ class AzureManagedCluster(AzureResource):
     upgrade_settings: Optional[AzureClusterUpgradeSettings] = field(default=None, metadata={'description': 'Settings for upgrading a cluster.'})  # fmt: skip
     windows_profile: Optional[AzureManagedClusterWindowsProfile] = field(default=None, metadata={'description': 'Profile for Windows VMs in the managed cluster.'})  # fmt: skip
     workload_auto_scaler_profile: Optional[AzureManagedClusterWorkloadAutoScalerProfile] = field(default=None, metadata={'description': 'Workload Auto-scaler profile for the managed cluster.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        from resoto_plugin_azure.resource.compute import AzureDiskEncryptionSet
+
+        # if (indentity := self.identity_profile) and (agent_pool_id := indentity.resource_id):
+        #     builder.add_edge(
+        #         self, edge_type=EdgeType.default, clazz=AzureAgentPool, id=agent_pool_id
+        #     )
+        if disk_id := self.disk_encryption_set_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
 
 
 @define(eq=False, slots=False)
@@ -945,6 +987,9 @@ class AzureKubernetesSnapshot(AzureResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_managed_cluster"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -967,6 +1012,11 @@ class AzureKubernetesSnapshot(AzureResource):
     os_type: Optional[str] = field(default=None, metadata={'description': 'The operating system type. The default is Linux.'})  # fmt: skip
     snapshot_type: Optional[str] = field(default=None, metadata={'description': 'The type of a snapshot. The default is NodePool.'})  # fmt: skip
     vm_size: Optional[str] = field(default=None, metadata={"description": "The size of the VM."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if agent_pool_id := self.creation_data_source_id:
+            cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
 
 
 resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureKubernetesSnapshot]
