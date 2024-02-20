@@ -5,8 +5,13 @@
         {
             "name": "cross_account_sharing_enabled",
             "title": "Ensure Cross-Account Sharing is Configured for CloudWatch Logs",
-            "result_kinds": ["aws_account"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_account"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If cross-account sharing for CloudWatch logs is not enabled, it complicates security monitoring and compliance auditing across diverse AWS accounts. This may lead to increased risk of undetected security incidents and failure to meet compliance standards.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "Navigate to Settings in the CloudWatch Console. Then, under 'Configure', select 'share data' and provide the ID of the monitoring account. This sets up cross-account sharing for CloudWatch logs.",
-                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html"
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -27,8 +33,12 @@
         {
             "name": "log_group_encryption_at_rest_enabled",
             "title": "Ensure AWS KMS is Protecting CloudWatch Log Groups",
-            "result_kinds": ["aws_cloudwatch_log_group"],
-            "categories": ["retention"],
+            "result_kinds": [
+                "aws_cloudwatch_log_group"
+            ],
+            "categories": [
+                "retention"
+            ],
             "risk": "Not using customer-managed KMS for encryption can compromise the confidentiality of the CloudWatch log group data. Neglecting encryption controls can result in unauthorized access and potential data loss.",
             "severity": "medium",
             "detect": {
@@ -36,7 +46,8 @@
             },
             "remediation": {
                 "text": "To address this, associate your CloudWatch Log Group with a KMS Key. Ensure that the specified KMS Key is used for encrypting all ingested data for the log group. Implementing this association is essential for CloudWatch Logs to decrypt the data when requested.",
-                "url": "https://docs.aws.amazon.com/cli/latest/reference/logs/associate-kms-key.html"
+                "url": "https://docs.aws.amazon.com/cli/latest/reference/logs/associate-kms-key.html",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -49,8 +60,12 @@
         {
             "name": "log_group_retention_days_at_least_365",
             "title": "Ensure that CloudWatch Log Groups Retain Data for at Least 365 Days",
-            "result_kinds": ["aws_cloudwatch_log_group"],
-            "categories": ["retention"],
+            "result_kinds": [
+                "aws_cloudwatch_log_group"
+            ],
+            "categories": [
+                "retention"
+            ],
             "risk": "Failure to retain CloudWatch Logs for at least 365 days can result in non-compliance with regulatory requirements for long-term log storage. Additionally, it could hamper forensic analysis and retrospective detection of long-term security breach patterns.",
             "severity": "medium",
             "detect": {
@@ -61,7 +76,8 @@
             },
             "remediation": {
                 "text": "Apply a log retention policy of at least 365 days to CloudWatch Log Groups. This ensures the continuity of logs and traces to aid in security analysis and regulatory obligations.",
-                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html"
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

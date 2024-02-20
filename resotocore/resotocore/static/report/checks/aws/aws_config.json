@@ -5,8 +5,13 @@
         {
             "name": "enabled_in_all_regions",
             "title": "Ensure AWS Config is enabled in all regions.",
-            "result_kinds": ["aws_region"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_region"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to enable AWS Config in all regions may result in the inability to capture the AWS configuration item history, leading to a lack of security analysis, resource change tracking, and compliance auditing.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To address this issue, it is recommended to enable AWS Config in all regions to ensure proper security analysis, resource change tracking, and compliance auditing.",
-                "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/"
+                "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -27,8 +33,13 @@
         {
             "name": "remediation_enabled",
             "title": "Ensure AWS Config Remediation is Enabled",
-            "result_kinds": ["aws_region"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_region"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to implement AWS Config remediation (manual or automatic through System Manager) configurations can lead to noncompliant resources not being remediated, leaving potential vulnerabilities in the AWS cloud infrastructure.",
             "severity": "medium",
             "detect": {
@@ -36,7 +47,8 @@
             },
             "remediation": {
                 "text": "To remediate the issue, manual configuration can be done with user-defined reviews, or automatic remediation can be set up using AWS Config.",
-                "url": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html#setup-manualremediation"
+                "url": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html#setup-manualremediation",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

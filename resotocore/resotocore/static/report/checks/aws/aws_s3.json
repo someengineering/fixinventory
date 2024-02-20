@@ -5,8 +5,13 @@
         {
             "name": "bucket_default_encryption",
             "title": "Ensure S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If the issue is not solved, there is a risk of data-at-rest being unencrypted, which can pose a threat to the confidentiality and integrity of stored objects.",
             "severity": "medium",
             "detect": {
@@ -17,7 +22,8 @@
                     "aws_cli": "aws s3api put-bucket-encryption --bucket {{name}} --server-side-encryption-configuration '{'Rules': [{'ApplyServerSideEncryptionByDefault': {'SSEAlgorithm': 'AES256'}}]}'"
                 },
                 "text": "To fix the issue, ensure that S3 buckets have encryption at rest enabled using default encryption (SSE) or enforcing it through a bucket policy.",
-                "url": "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/"
+                "url": "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -30,19 +36,25 @@
         {
             "name": "bucket_no_mfa_delete",
             "title": "Ensure S3 bucket MFA Delete is enabled.",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without enabling MFA Delete for an S3 bucket, your security credentials are at risk of being compromised, and unauthorized access may be granted.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_s3_bucket) and bucket_mfa_delete=false"
+                "resoto": "is(aws_s3_bucket) and bucket_versioning=true and bucket_mfa_delete=false"
             },
             "remediation": {
                 "action": {
                     "aws_cli": "aws s3api put-bucket-versioning --bucket {{name}} --versioning-configuration MFADelete=Enabled --mfa 'arn:aws:iam::00000000:mfa/root-account-mfa-device 123456'"
                 },
                 "text": "To enhance the security of your S3 bucket, enable MFA delete. This requires additional authentication when changing the version state of your bucket or deleting an object version, adding an extra layer of security in case your security credentials are compromised or unauthorized access is granted.",
-                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html"
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -55,8 +67,13 @@
         {
             "name": "bucket_secure_transport_policy",
             "title": "Ensure S3 buckets have secure transport policy.",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without enforcing HTTPS on the bucket policy, communication between clients and S3 buckets may use unencrypted HTTP, posing a risk of transmitting sensitive information in clear text over the network or internet.",
             "severity": "medium",
             "detect": {
@@ -64,7 +81,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, ensure that S3 buckets have encryption in transit enabled to enforce secure communication.",
-                "url": "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/"
+                "url": "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -77,8 +95,13 @@
         {
             "name": "macie_is_enabled",
             "title": "Ensure Amazon Macie is enabled",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If Amazon Macie is not enabled, sensitive data in AWS may be at risk of unauthorized access or exposure. Amazon Macie provides automated sensitive data discovery and helps protect sensitive data by using machine learning and pattern matching.",
             "severity": "medium",
             "detect": {
@@ -86,7 +109,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, enable Amazon Macie in the AWS Management Console and create appropriate jobs to discover and protect sensitive data.",
-                "url": "https://aws.amazon.com/macie/getting-started/"
+                "url": "https://aws.amazon.com/macie/getting-started/",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -99,8 +123,13 @@
         {
             "name": "bucket_policy_public_write_access",
             "title": "Ensure S3 buckets do not have policies that allow write access to the public.",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If the issue is not solved, non-intended users can put objects in a given bucket, leading to unauthorized data modifications or leaks.",
             "severity": "critical",
             "detect": {
@@ -108,7 +137,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, ensure that a proper bucket policy is in place with the principle of least privilege applied.",
-                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html"
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
             "localizations": {
@@ -122,8 +152,13 @@
         {
             "name": "account_level_public_access_blocks",
             "title": "Ensure S3 Account Level Public Access Block is Enabled",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to enable the S3 Account Level Public Access Block may lead to potential unauthorized access to sensitive data stored in S3 buckets.",
             "severity": "high",
             "detect": {
@@ -134,7 +169,8 @@
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
                 "action": {
                     "aws_cli": "aws s3control put-public-access-block --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true --account-id {{account_id}}"
-                }
+                },
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -147,8 +183,13 @@
         {
             "name": "public_bucket",
             "title": "Ensure S3 buckets are not made public",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to secure S3 buckets can lead to unauthorized access and potential security breaches in operations.",
             "severity": "high",
             "detect": {
@@ -156,7 +197,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, update the S3 bucket configurations to disable public settings and ensure bucket policies do not grant all permissions.",
-                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
             "localizations": {
@@ -170,8 +212,13 @@
         {
             "name": "bucket_object_logging_enabled",
             "title": "Ensure S3 bucket object logging is enabled to aid in identifying security breaches with AWS S3",
-            "result_kinds": ["aws_s3_bucket"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Enabling S3 bucket object logging is crucial for security and compliance, as it provides audit trails for access and modifications to objects, aiding in identifying unauthorized access or data breaches.",
             "severity": "high",
             "detect": {
@@ -179,7 +226,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, select 'Edit', choose a target bucket for the logs, set a prefix if desired, and save the changes.",
-                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html"
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
             "localizations": {

@@ -5,8 +5,13 @@
         {
             "name": "authorizers_enabled",
             "title": "Ensure API Gateway is Configured with Authorizers",
-            "result_kinds": ["aws_apigateway_rest_api"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_apigateway_rest_api"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without a defined authorizer, your service could be exposed to unsanctioned use. This lack of control poses a security risk and can lead to unauthorized access and misuse.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html",
@@ -15,7 +20,8 @@
             },
             "remediation": {
                 "text": "Implement an authorizer by adding an Amazon Cognito user pool or attaching an AWS Lambda function. This will provide controlled access for users interacting with your API.",
-                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html"
+                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html",
+                "complexity": "high"
             },
             "localizations": {
                 "de": {
@@ -28,8 +34,13 @@
         {
             "name": "client_certificate_enabled",
             "title": "Ensure that Client Certificate is Enabled on API Gateway for Backend Endpoint Access",
-            "result_kinds": ["aws_apigateway_stage"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_apigateway_stage"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without client certificate enforcement, potential 'man-in-the-middle' attacks can occur, jeopardizing data integrity and confidentiality. Unsecured API calls may also be intercepted, leading to unauthorized data access.",
             "severity": "medium",
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-mutual-tls.html",
@@ -38,7 +49,8 @@
             },
             "remediation": {
                 "text": "Enable the client certificate and implement mutual TLS for secure data transit. Mutual TLS is highly recommended for B2B applications, adhering to norms such as Open Banking. Amazon API Gateway provides integral mutual TLS authentication at no additional cost.",
-                "url": "https://aws.amazon.com/blogs/compute/introducing-mutual-tls-authentication-for-amazon-api-gateway/"
+                "url": "https://aws.amazon.com/blogs/compute/introducing-mutual-tls-authentication-for-amazon-api-gateway/",
+                "complexity": "high"
             },
             "localizations": {
                 "de": {
@@ -51,8 +63,12 @@
         {
             "name": "logging_enabled",
             "title": "Ensure API Gateway Stages Have Logging Enabled",
-            "result_kinds": ["aws_apigateway_stage"],
-            "categories": ["compliance"],
+            "result_kinds": [
+                "aws_apigateway_stage"
+            ],
+            "categories": [
+                "compliance"
+            ],
             "risk": "Without enabling logging, you compromise on the visibility and traceability of your service usage, potentially missing crucial operational insights, security vulnerabilities, and debugging information.",
             "severity": "medium",
             "detect": {
@@ -60,7 +76,8 @@
             },
             "remediation": {
                 "text": "To remediate, ensure you enable monitoring in all parts of your AWS solution. Particularly, ensure CloudTrail is active for logging API Gateway actions, which can offer insights like the nature of requests, originating IP address, the executor of the request, and more.",
-                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/security-monitoring.html"
+                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/security-monitoring.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/logging-and-monitoring.html",
             "localizations": {
@@ -74,8 +91,12 @@
         {
             "name": "waf_acl_attached",
             "title": "Ensure API Gateway Has a WAF ACL Attached.",
-            "result_kinds": ["aws_apigateway_stage"],
-            "categories": ["security"],
+            "result_kinds": [
+                "aws_apigateway_stage"
+            ],
+            "categories": [
+                "security"
+            ],
             "risk": "Without a WAF ACL, API Gateway could be exposed to common web threats such as SQL injection and XSS attacks. These could compromise security, affect availability and performance, and consume excessive resources.",
             "severity": "medium",
             "detect": {
@@ -83,7 +104,8 @@
             },
             "remediation": {
                 "text": "Mitigate this risk by using AWS WAF to protect your API Gateway from threats. AWS WAF can block these common web attacks, safeguarding both service performance and security.",
-                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html"
+                "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html",
             "localizations": {

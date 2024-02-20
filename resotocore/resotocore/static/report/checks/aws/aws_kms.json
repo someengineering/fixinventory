@@ -5,8 +5,13 @@
         {
             "name": "key_rotation_enabled",
             "title": "Ensure that Key Rotation is Enabled for Customer-Created KMS CMKs",
-            "result_kinds": ["aws_kms_key"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "The extensive reuse of encryption keys is discouraged as it may lead to the use of compromised keys. Without timely rotation, Customer Master Keys (CMKs) are at an increased risk of compromise, resulting in potential data breaches and operational disruptions.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "For every Customer Master Key (CMK), ensure that the 'Rotate this key every year' option is enabled. Regular rotation reduces the risk of compromise and improves overall system security. Check the key rotation status frequently and apply changes immediately when needed.",
-                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html"
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html",
+                "complexity": "medium"
             },
             "url": "https://aws.amazon.com/kms/features/key-rotation/",
             "localizations": {
@@ -28,8 +34,13 @@
         {
             "name": "key_not_pending_deletion",
             "title": "Ensure No AWS KMS Keys in Use are Pending Deletion",
-            "result_kinds": ["aws_kms_key"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "KMS keys marked for deletion cease to function for operations. An operational loss can occur if a key in use is pending deletion, with potential for irrecoverable data loss.",
             "severity": "high",
             "detect": {
@@ -37,7 +48,8 @@
             },
             "remediation": {
                 "text": "Confirm no keys in use are set with 'Pending deletion' status. If such a key is detected, promptly substitute the key with a new one to avoid disruption of services.",
-                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html"
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
             "localizations": {
@@ -51,8 +63,13 @@
         {
             "name": "cmk_policy_prohibit_public_access",
             "title": "Ensure Customer Managed Keys in use are Not Publicly Accessible",
-            "result_kinds": ["aws_kms_key"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Maintaining public accessibility of Customer Managed Keys exposes your system to unnecessary security risks by granting external entities potential access. This can compromise the integrity, confidentiality or availability of your services.",
             "severity": "medium",
             "detect": {
@@ -60,7 +77,8 @@
             },
             "remediation": {
                 "text": "Modify the access policy of in-use keys to restrict public access. Grant access only to necessary users or roles, adhering to a least-privilege model to uphold security.",
-                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html"
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html",
+                "complexity": "high"
             },
             "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html",
             "localizations": {

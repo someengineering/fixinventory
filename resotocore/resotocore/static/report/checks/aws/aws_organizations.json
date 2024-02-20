@@ -5,8 +5,13 @@
         {
             "name": "account_part_of_organizations",
             "title": "Ensure AWS Account is Part of an AWS Organization",
-            "result_kinds": ["aws_account"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_account"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Not being part of an AWS Organization limits centralized management and control over AWS accounts, making it difficult to enforce security policies consistently. It can also result in increased costs due to resource usage inefficiencies and hinder account usage and access tracking.",
             "severity": "high",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "Create or Join an AWS Organization",
-                "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html"
+                "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html",
             "localizations": {

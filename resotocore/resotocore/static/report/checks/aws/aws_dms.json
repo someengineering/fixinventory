@@ -5,7 +5,9 @@
         {
             "name": "public_ip_address",
             "title": "Ensure EC2 Instances for Database Migration Service (DMS) are not accessible via Public IP",
-            "result_kinds": ["aws_ec2_instance"],
+            "result_kinds": [
+                "aws_ec2_instance"
+            ],
             "categories": [],
             "risk": "Exposing an EC2 instance directly to the internet increases the attack surface and poses a high risk of compromise. In the context of DMS Replication instances, this can have significant compliance and security implications.",
             "severity": "medium",
@@ -14,7 +16,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, ensure that replication instances are created in private subnets and do not have a public IP.",
-                "url": "https://docs.aws.amazon.com/dms/latest/userguide/CHAP_ReplicationInstance.PublicPrivate.html"
+                "url": "https://docs.aws.amazon.com/dms/latest/userguide/CHAP_ReplicationInstance.PublicPrivate.html",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

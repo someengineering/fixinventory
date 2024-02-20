@@ -5,8 +5,13 @@
         {
             "name": "cluster_endpoint_restrict_public_access",
             "title": "Ensure that Public Access to EKS Cluster Endpoint is Restricted",
-            "result_kinds": ["aws_eks_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If EKS cluster endpoint is publicly accessible, it exposes the cluster to potential security risks as it is reachable from the public internet. This could lead to unauthorized access or data breaches.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "Restrict the EKS cluster's public access by adjusting the security group settings. Implement network policies that enforce secure access controls and restrict inbound traffic. You can also choose to disable public access entirely or limit the IP addresses that can access your API server from the internet.",
-                "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html"
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html",
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/premiumsupport/knowledge-center/eks-api-server-unauthorized-error/",
             "localizations": {
@@ -28,8 +34,13 @@
         {
             "name": "cluster_control_plane_audit_logging_enabled",
             "title": "Ensure Control Planes for EKS Clusters are Configured with Audit Logging to Maintain Security Forensics and Audit Compliance",
-            "result_kinds": ["aws_eks_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without audit logging, potentially suspicious activities within the cluster could go unnoticed, leaving the system vulnerable to internal and external threats. It could also make it challenging to meet audit and compliance requirements.",
             "severity": "medium",
             "detect": {
@@ -37,7 +48,8 @@
             },
             "remediation": {
                 "text": "Navigate to the 'Logging' tab of your EKS cluster in the AWS console to change settings. Select 'Edit' and enable or adjust control plane logging. Remember to save any change.",
-                "url": "https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html"
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-logging.html",
             "localizations": {
@@ -51,8 +63,13 @@
         {
             "name": "cluster_encryption_enabled",
             "title": "Ensure Kubernetes Secrets are encrypted using AWS KMS Customer Master Keys (CMKs)",
-            "result_kinds": ["aws_eks_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without envelope encryption, sensitive data may be exposed within your applications, leading to potential security breaches. This measure is crucial to a comprehensive defence-in-depth security strategy.",
             "severity": "medium",
             "detect": {
@@ -60,7 +77,8 @@
             },
             "remediation": {
                 "text": "Create a Customer Master Key (CMK) in AWS Key Management Service (KMS). Then, while creating a new Amazon EKS cluster, provide this CMK's Amazon Resource Name (ARN).",
-                "url": "https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html"
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

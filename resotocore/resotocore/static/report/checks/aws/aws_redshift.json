@@ -5,8 +5,13 @@
         {
             "name": "cluster_audit_logging_enabled",
             "title": "Ensure Cluster Audit Logging is Enabled for Optimal Compliance and Incident Investigation",
-            "result_kinds": ["aws_redshift_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to enable cluster audit logging in Amazon Redshift could compromise security by not providing a detailed record of database activities. This could affect effective monitoring, incident investigation, and compliance.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To enable audit logging, go to 'Cluster details' tab -> click 'Modify'. Next, under 'Audit logging', enable or adjust the settings as needed, then save the changes.",
-                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html"
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html",
             "localizations": {
@@ -28,8 +34,13 @@
         {
             "name": "cluster_publicly_accessible",
             "title": "Ensure Redshift Clusters are Not Publicly Accessible",
-            "result_kinds": ["aws_redshift_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Having Redshift clusters publicly accessible can lead to unauthorized access and potential data breaches. This exposes sensitive data and risks noncompliance with industry regulations.",
             "severity": "high",
             "detect": {
@@ -37,7 +48,8 @@
             },
             "remediation": {
                 "text": "Identify all publicly accessible Redshift clusters. For each cluster, review the necessity of public accessibility. If unjustified, revise the settings by disallowing public access to enhance security.",
-                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html#modify-cluster-access"
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html#modify-cluster-access",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
             "localizations": {
@@ -51,8 +63,13 @@
         {
             "name": "version_upgrade_enabled",
             "title": "Ensure Automatic Upgrades are Enabled for Redshift Clusters",
-            "result_kinds": ["aws_redshift_cluster"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Disabling automatic upgrades for Redshift clusters exposes them to security vulnerabilities due to outdated versions, potentially leading to data breaches and non-compliance with regulations.",
             "severity": "high",
             "detect": {
@@ -60,7 +77,8 @@
             },
             "remediation": {
                 "text": "To mitigate this risk, enable automatic upgrades in the AWS Management Console under the 'Maintenance' tab for each Redshift cluster. This ensures that your Redshift clusters are always operating on the latest, security patch included, version.",
-                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-settings"
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-settings",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
             "localizations": {

@@ -5,8 +5,13 @@
         {
             "name": "no_secrets_in_task_definition_env",
             "title": "Ensure there are no secrets in ECS task definition environment variables",
-            "result_kinds": ["aws_ecs_task_definition"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecs_task_definition"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Using hard-coded passwords increases the risk of password guessing. Malicious users may gain unauthorized access through the compromised account.",
             "severity": "high",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To securely provide credentials to containers, use AWS Secrets Manager or Parameter Store instead of hard-coding the secrets in the code or passing them through environment variables. Note that task definition revisions containing plaintext secrets cannot be deleted. AWS is planning to implement a feature to address this in 2023, so it is recommended to rotate plaintext secrets while moving them to Secrets Manager or Parameter Store.",
-                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html"
+                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -27,8 +33,13 @@
         {
             "name": "host_mode_not_privileged_nor_root",
             "title": "Ensure there are no task definitions with containers in host mode running as root or with privileged access",
-            "result_kinds": ["aws_ecs_task_definition"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecs_task_definition"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Running an ECS Task Definition with a container in host networking mode, either with privileged access or as the root user, grants extensive control over the host system. This configuration increases the risk of security breaches, as it could allow malicious actors, if they compromise the container, to access or compromise not only the host machine but also other containers running on it.",
             "severity": "high",
             "detect": {
@@ -36,7 +47,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, revise the ECS Task Definition to disable privileged mode and avoid running containers as the root user, especially in host networking mode. Use least-privileged user accounts within containers and limit network access where possible. Ensure that containers have only the permissions they need to operate, and review IAM roles and policies for necessary restrictions. For existing task definitions that require significant permissions, assess and implement security best practices to minimize potential attack surfaces. AWS documentation provides guidelines for securing ECS tasks and containers.",
-                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions"
+                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions",
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -49,8 +61,13 @@
         {
             "name": "writable_root_filesystem_in_ecs_tasks",
             "title": "Ensure ECS Task Definitions Have Read-Only Root Filesystems",
-            "result_kinds": ["aws_ecs_task_definition"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecs_task_definition"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Allowing writable root filesystems in ECS task definitions can pose a significant security risk. If a container is compromised, attackers can manipulate system files, install malicious software, and perform unauthorized activities.",
             "severity": "medium",
             "detect": {
@@ -58,7 +75,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, modify ECS task definitions and set 'readonly_root_filesystem' to 'true' for each container. This ensures that containers operate with a read-only root filesystem, enhancing security by preventing unauthorized changes to system files. If necessary, use attached volumes for directories that require write access. For more information, refer to the [AWS documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) on configuring container definitions in ECS task definitions.",
-                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions"
+                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -71,8 +89,13 @@
         {
             "name": "ecs_cluster_container_insights_enabled",
             "title": "Ensure Container Insights is enabled for improved visibility and monitoring of container-based applications in Amazon ECS.",
-            "result_kinds": ["aws_ecs_task_definition"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecs_task_definition"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Not enabling Container Insights could result in reduced visibility of anomalies, delayed threat responses, potential compliance violations, and unchecked resource usage in containerized applications.",
             "severity": "medium",
             "detect": {
@@ -80,7 +103,8 @@
             },
             "remediation": {
                 "text": "To enable Container Insights, check the box for default opt-in at the bottom of the AWS ECS console page.",
-                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/deploy-container-insights-ECS-cluster.html"
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/deploy-container-insights-ECS-cluster.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/deploy-container-insights-ECS-cluster.html",
             "localizations": {
@@ -94,8 +118,13 @@
         {
             "name": "ecs_task_definition_logging_enabled",
             "title": "Ensure all ECS Task Definitions have logging enabled to Cloudwatch",
-            "result_kinds": ["aws_ecs_task_definition"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecs_task_definition"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Not enabling ECS task definition logging increases the risk of missing critical information about application behavior, making it harder to diagnose issues, track security incidents, or audit system activities for compliance purposes.",
             "severity": "medium",
             "detect": {
@@ -103,7 +132,8 @@
             },
             "remediation": {
                 "text": "Update the task definition to include logging with an appropriate CloudWatch log group. Also, ensure that the task has appropriate permissions to push logs to CloudWatch from IAM.",
-                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/firelens-example-taskdefs.html"
+                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/firelens-example-taskdefs.html",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_firelens.html",
             "localizations": {
@@ -118,7 +148,10 @@
             "name": "ecs_service_fargate_using_latest_platform_version",
             "title": "Ensure that ECS Fargate services are using the latest platform version to take advantage of the latest patch and vulnerability management",
             "result_kinds": [],
-            "categories": ["security", "compliance"],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Not using the latest platform version for an ECS service can lead to exposure to vulnerabilities, missing out on security patches, and lacking the latest security features. This can potentially compromise the security of your containerized applications and data.",
             "severity": "medium",
             "detect": {
@@ -126,7 +159,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, update the task definition for Fargate to use the latest platform version.",
-                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html"
+                "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html",
             "localizations": {

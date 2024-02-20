@@ -23,7 +23,8 @@
             "xxx": null
         },
         "text": "",
-        "url": ""
+        "url": "",
+        "complexity": "high|medium|low"
     },
     "related": [],
     "internal_notes": ""

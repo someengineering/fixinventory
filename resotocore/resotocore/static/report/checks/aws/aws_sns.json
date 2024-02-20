@@ -5,8 +5,13 @@
         {
             "name": "encryption_at_rest_enabled",
             "title": "Ensure that Amazon SNS Topics are Encrypted at Rest Using KMS CMKs",
-            "result_kinds": ["aws_sns_topic"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sns_topic"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If encryption at rest is not enabled, sensitive information may be at risk of unauthorized access. A failure to protect this data can lead to potential security breaches and non-compliance with data privacy regulations.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "Activate Encryption at Rest using KMS CMKs for Amazon SNS topics. Opt for CMKs for superior management and privacy controls. This will protect messages stored at rest in SNS topics with keys managed in AWS Key Management Service.",
-                "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html"
+                "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
             "localizations": {

@@ -407,7 +407,7 @@
                                 "aws_ec2_instance_uses_imdsv2",
                                 "aws_ec2_internet_facing_with_instance_profile",
                                 "aws_opensearch_update_available",
-                                "aws_rds_db_instance_automatic_minor_version_upgrade_enabled",
+                                "aws_rds_auto_minor_version_upgrade",
                                 "aws_redshift_version_upgrade_enabled",
                                 "aws_ssm_managed_instance_compliance_patch_compliant",
                                 "aws_ssm_resource_non_compliant"

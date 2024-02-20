@@ -5,8 +5,13 @@
         {
             "name": "notebook_root_access",
             "title": "Ensure Root Access is Disabled for SageMaker Notebooks",
-            "result_kinds": ["aws_sagemaker_notebook"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_notebook"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Enabling root access in SageMaker notebooks can lead to security vulnerabilities, as it grants full control over the notebook environment.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To fix this issue and enforce security best practices, disable root access for SageMaker notebooks. This can be done by configuring the RootAccess parameter to 'Disabled' in the SageMaker console or through the API.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access-disable.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access-disable.html",
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/sagemaker/",
             "localizations": {
@@ -28,8 +34,13 @@
         {
             "name": "notebook_with_direct_internet_access",
             "title": "Ensure SageMaker Notebooks Do Not Have Direct Internet Access",
-            "result_kinds": ["aws_sagemaker_notebook"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_notebook"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Ensuring SageMaker notebooks do not have direct internet access is essential to mitigate security threats and prevent potential data breaches.",
             "severity": "medium",
             "detect": {
@@ -37,7 +48,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, configure SageMaker notebooks to use a VPC without direct internet access. This setup enhances network security and significantly reduces the risk of unauthorized external access.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/notebook-interface-vpc-endpoint.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/notebook-interface-vpc-endpoint.html",
+                "complexity": "high"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/notebook-interface-vpc-endpoint.html",
             "localizations": {
@@ -51,8 +63,13 @@
         {
             "name": "model_isolation_enabled",
             "title": "Ensure Network Isolation is Enabled for SageMaker Models",
-            "result_kinds": ["aws_sagemaker_model"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_model"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to enable network isolation for SageMaker models may result in unauthorized access to data or cyber attacks.",
             "severity": "medium",
             "detect": {
@@ -60,7 +77,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, enable network isolation for SageMaker models to prevent unauthorized access to data and ensure data security.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/model-vpc-security.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/model-vpc-security.html",
+                "complexity": "high"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/model-vpc-security.html",
             "localizations": {
@@ -74,8 +92,13 @@
         {
             "name": "model_vpc_settings_enabled",
             "title": "Ensure SageMaker Studio Classic Notebooks are Configured in a VPC",
-            "result_kinds": ["aws_sagemaker_model"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_model"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Models without VPC isolation are vulnerable to unauthorized data access or cyber attacks. Restricting traffic access by launching Studio in a Virtual Private Cloud (VPC) is crucial to ensure data security.",
             "severity": "medium",
             "detect": {
@@ -83,7 +106,8 @@
             },
             "remediation": {
                 "text": "Connect SageMaker Studio Classic Notebooks to a Virtual Private Cloud (VPC) for external resource access. Follow the instructions in the official AWS SageMaker documentation to configure VPC settings.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html",
+                "complexity": "high"
             },
             "localizations": {
                 "de": {
@@ -96,8 +120,13 @@
         {
             "name": "notebook_vpc_settings_enabled",
             "title": "Ensure VPC is configured for SageMaker Notebook",
-            "result_kinds": ["aws_sagemaker_notebook"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_notebook"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Using a SageMaker Notebook without VPC isolation increases the risk of unauthorized data access and cyber attacks.",
             "severity": "medium",
             "detect": {
@@ -105,7 +134,8 @@
             },
             "remediation": {
                 "text": "To mitigate the risk, restrict the traffic that can access the SageMaker Notebook by launching it in a Virtual Private Cloud (VPC) of your choosing.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-notebooks-and-internet-access.html",
+                "complexity": "high"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/vpc-connect-to-classic-notebook.html",
             "localizations": {
@@ -119,8 +149,13 @@
         {
             "name": "training_job_vpc_settings_enabled",
             "title": "Ensure VPC is configured for SageMaker Training Jobs",
-            "result_kinds": ["aws_sagemaker_training_job"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_training_job"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Training Jobs without VPC isolation may be vulnerable to unauthorized data access or cyber attacks. Security engineers must ensure that SageMaker training jobs are configured to use a Virtual Private Cloud (VPC) to mitigate this risk.",
             "severity": "medium",
             "detect": {
@@ -128,7 +163,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, security engineers should restrict the traffic that can access SageMaker training jobs by launching them in a Virtual Private Cloud (VPC) of their choosing. This can be done by following the instructions in the AWS documentation on how to configure a VPC interface endpoint for SageMaker.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/interface-vpc-endpoint.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/interface-vpc-endpoint.html",
+                "complexity": "high"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/interface-vpc-endpoint.html",
             "localizations": {
@@ -142,8 +178,13 @@
         {
             "name": "notebook_encryption_enabled",
             "title": "Ensure Encryption is Enabled for SageMaker Notebooks",
-            "result_kinds": ["aws_sagemaker_notebook"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_notebook"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to enable encryption for SageMaker notebooks can lead to unauthorized data access and potential data breaches. By utilizing KMS keys, organizations can add a critical layer of security through encryption.",
             "severity": "medium",
             "detect": {
@@ -151,7 +192,8 @@
             },
             "remediation": {
                 "text": "To secure data at rest, enable KMS-based encryption for SageMaker notebooks. Configure the notebooks to use AWS KMS keys for both S3 (input/output) and EBS volume encryption.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/encryption-at-rest.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/encryption-at-rest.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/encryption-at-rest.html",
             "localizations": {
@@ -165,8 +207,13 @@
         {
             "name": "training_job_encryption_enabled",
             "title": "Ensure Encryption for SageMaker Training Jobs",
-            "result_kinds": ["aws_sagemaker_training_job"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_training_job"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "SageMaker training jobs without encryption are vulnerable to data interception and unauthorized access. Encryption ensures data confidentiality during training processes.",
             "severity": "medium",
             "detect": {
@@ -174,7 +221,8 @@
             },
             "remediation": {
                 "text": "Enable TLS 1.2 encryption for inter-container traffic in SageMaker training jobs to protect data in transit. This ensures secure communication between the training containers.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html",
             "localizations": {
@@ -188,8 +236,13 @@
         {
             "name": "training_job_volume_encryption_enabled",
             "title": "Ensure encryption is enabled for SageMaker Training Jobs volumes",
-            "result_kinds": ["aws_sagemaker_training_job"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_sagemaker_training_job"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Unencrypted data poses a risk of unauthorized data access and potential data breaches. Utilizing KMS keys adds a critical layer of security through encryption.",
             "severity": "medium",
             "detect": {
@@ -197,7 +250,8 @@
             },
             "remediation": {
                 "text": "Enable volume encryption for SageMaker Training Jobs by specifying a KMS key during job creation.",
-                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works.html#resources-security-network-encryption"
+                "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works.html#resources-security-network-encryption",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works.html#resources-security-network-encryption",
             "localizations": {

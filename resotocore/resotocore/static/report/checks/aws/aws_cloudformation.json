@@ -5,8 +5,13 @@
         {
             "name": "no_secrets_in_output",
             "title": "Ensure there are no secrets in CloudFormation outputs",
-            "result_kinds": ["aws_cloudformation_stack"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_cloudformation_stack"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Using secrets hardcoded into CloudFormation outputs can enable malware and bad actors to gain unauthorized access to other services, leading to potential data breaches and compromised infrastructure.",
             "severity": "critical",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, avoid including secrets in CloudFormation outputs. Instead, use the AWS Secrets Manager service to securely store and retrieve passwords and other sensitive information.",
-                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html"
+                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html",
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

@@ -5,8 +5,13 @@
         {
             "name": "image_scan_on_push",
             "title": "Ensure ECR image scan on push is enabled",
-            "result_kinds": ["aws_ecr_repository"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Without enabling ECR image scanning, software vulnerabilities in container images may go undetected, increasing the risk of potential security incidents. ECR image scanning provides a list of scan findings based on the Common Vulnerabilities and Exposures (CVEs) database from the open-source Clair project.",
             "severity": "medium",
             "detect": {
@@ -14,7 +19,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, enable ECR image scanning and review the scan findings for information about the security of the container images being deployed.",
-                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html"
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
             "localizations": {
@@ -28,8 +34,13 @@
         {
             "name": "repository_prohibit_public_access",
             "title": "Ensure ECR repositories are not publicly accessible to mitigate security risks, prevent unauthorized access, and maintain control over container image distribution.",
-            "result_kinds": ["aws_ecr_repository"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "Failure to secure ECR repositories can lead to unauthorized access to code bases and application artifacts, posing serious security risks.",
             "severity": "medium",
             "detect": {
@@ -37,7 +48,8 @@
             },
             "remediation": {
                 "text": "To fix the issue, delete any public repositories in ECR and redeploy them as private.",
-                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html"
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
             "localizations": {
@@ -51,8 +63,13 @@
         {
             "name": "repository_lifecycle_policy_enabled",
             "title": "Ensure ECR repositories have lifecycle policies enabled",
-            "result_kinds": ["aws_ecr_repository"],
-            "categories": ["security", "compliance"],
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
             "risk": "If lifecycle policies are not enabled for Amazon ECR repositories, there is a risk of retaining a large number of images, which can result in unnecessary costs.",
             "severity": "medium",
             "detect": {
@@ -60,7 +77,8 @@
             },
             "remediation": {
                 "text": "To fix this issue, open the Amazon ECR console and create a lifecycle policy for each repository.",
-                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html"
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
             "localizations": {
