@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast
 from aiostream import stream, pipe
 from aiostream.core import Stream
 from attr import define
+
 from resotocore.analytics import CoreEvent
 from resotocore.cli import list_sink
 from resotocore.cli.model import CLIContext, CLI
@@ -48,6 +49,7 @@ SingleCheckResult = Dict[str, List[Json]]
 
 @define
 class CheckContext:
+    config: ReportConfig
     accounts: Optional[List[str]] = None
     severity: Optional[ReportSeverity] = None
     only_failed: bool = False
@@ -61,6 +63,25 @@ class CheckContext:
             return True
         else:
             return self.severity.prio() <= severity.prio()
+
+    def override_values(self) -> Optional[Json]:
+        return self.config.override_values
+
+    def filtered_accounts(self) -> Optional[List[str]]:
+        if (accounts := self.accounts) and (ignore := self.config.ignore_accounts):
+            return list(set(accounts) - set(ignore))
+        elif account := self.accounts:
+            return account
+        else:
+            return None
+
+    def ignored_accounts(self) -> Optional[List[str]]:
+        if (accounts := self.accounts) and (ignore := self.config.ignore_accounts):
+            return list(set(ignore) - set(accounts))
+        elif ignore := self.config.ignore_accounts:
+            return ignore
+        else:
+            return None
 
 
 # This defines the subset of the data provided for every resource
@@ -176,17 +197,17 @@ class InspectorService(Inspector, Service):
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
     ) -> Dict[str, BenchmarkResult]:
-        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         config = await self.report_config()
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing, config=config)
         # create query
         term: Term = P("benchmarks[]").is_in(benchmark_names)
-        # TODO: 17.01.2024: remove the next line after deployed on prd
-        term = term.or_term(P("benchmark").is_in(benchmark_names))
         if severity:
             term = term & P("severity").is_in([s.value for s in context.severities_including(severity)])
         term = P.context("security.issues[]", term)
         if accounts:
             term = term & P("ancestors.account.reported.id").is_in(accounts)
+        if config.ignore_accounts:
+            term = term & P("ancestors.account.reported.id").is_not_in(config.ignore_accounts)
         term = term & P("security.has_issues").eq(True)
         model = QueryModel(Query.by(term), await self.model_handler.load_model(graph))
 
@@ -221,15 +242,15 @@ class InspectorService(Inspector, Service):
         sync_security_section: bool = False,
         report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
-        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         config = await self.report_config()
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing, config=config)
         benchmarks = await self.__benchmarks(benchmark_names)
         # collect all checks
         check_ids = {check for b in benchmarks.values() for check in b.nested_checks() if config.check_allowed(check)}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
         check_lookup = {check.id: check for check in checks}
         # create benchmark results
-        results = await self.__perform_checks(graph, checks, context, config)
+        results = await self.__perform_checks(graph, checks, context)
         result = {
             name: self.__to_result(benchmark, check_lookup, results, context) for name, benchmark in benchmarks.items()
         }
@@ -255,8 +276,8 @@ class InspectorService(Inspector, Service):
         severity: Optional[ReportSeverity] = None,
         only_failing: bool = False,
     ) -> BenchmarkResult:
-        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing)
         config = await self.report_config()
+        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing, config=config)
         checks = await self.list_checks(
             provider=provider,
             service=service,
@@ -288,7 +309,7 @@ class InspectorService(Inspector, Service):
 
         checks_to_perform = await self.list_checks(check_ids=benchmark.nested_checks(), context=context)
         check_by_id = {c.id: c for c in checks_to_perform}
-        results = await self.__perform_checks(graph, checks_to_perform, context, config)
+        results = await self.__perform_checks(graph, checks_to_perform, context)
         await self.event_sender.core_event(CoreEvent.BenchmarkPerformed, {"benchmark": benchmark.id})
         return self.__to_result(benchmark, check_by_id, results, context)
 
@@ -303,31 +324,33 @@ class InspectorService(Inspector, Service):
     async def list_failing_resources(
         self, graph: GraphName, check_uid: str, account_ids: Optional[List[str]] = None
     ) -> AsyncIterator[Json]:
-        # create context
-        context = CheckContext(accounts=account_ids)
+        cfg = await self.report_config()
+        context = CheckContext(accounts=account_ids, config=cfg)
         # get check
         checks = await self.list_checks(check_ids=[check_uid], context=context)
         if not checks:
             raise NotFoundError(f"Check {check_uid} not found")
         model = await self.model_handler.load_model(graph)
         inspection = checks[0]
-        # load configuration
-        cfg = await self.report_config()
-        return await self.__list_failing_resources(graph, model, inspection, cfg, context)
+        return await self.__list_failing_resources(graph, model, inspection, context)
 
     async def __list_failing_resources(
-        self, graph: GraphName, model: Model, inspection: ReportCheck, config: ReportConfig, context: CheckContext
+        self, graph: GraphName, model: Model, inspection: ReportCheck, context: CheckContext
     ) -> AsyncIterator[Json]:
         # final environment: defaults are coming from the check and are eventually overriden in the config
-        env = inspection.environment(config.override_values)
+        env = inspection.environment(context.override_values())
         account_id_prop = "ancestors.account.reported.id"
+        accounts = context.filtered_accounts()
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported", env=env)
             # filter only relevant accounts if provided
-            if context.accounts:
-                query = Query.by(P.single(account_id_prop).is_in(context.accounts)).combine(query)
+            if accounts:
+                query = Query.by(P.single(account_id_prop).is_in(accounts)).combine(query)
+            if ignored := context.ignored_accounts():
+                query = Query.by(P.single(account_id_prop).is_not_in(ignored)).combine(query)
+
             try:
                 async with await self.db_access.get_graph_db(graph).search_list(QueryModel(query, model)) as ctx:
                     async for result in ctx:
@@ -337,9 +360,12 @@ class InspectorService(Inspector, Service):
 
         async def perform_cmd(cmd: str) -> AsyncIterator[Json]:
             # filter only relevant accounts if provided
-            if context.accounts:
-                account_list = ",".join(f'"{a}"' for a in context.accounts)
+            if accounts:
+                account_list = ",".join(f'"{a}"' for a in accounts)
                 cmd = f"search /{account_id_prop} in [{account_list}] | " + cmd
+            if ignored := context.ignored_accounts():
+                ignored_list = ",".join(f'"{a}"' for a in ignored)
+                cmd = f"search /{account_id_prop} not in [{ignored_list}] | " + cmd
             cli_result = await self.cli.execute_cli_command(cmd, list_sink, CLIContext(env=env))
             try:
                 for result in cli_result[0]:
@@ -351,7 +377,9 @@ class InspectorService(Inspector, Service):
             if False:  # pylint: disable=using-constant-test
                 yield {}  # noqa
 
-        if resoto_search := inspection.detect.get("resoto"):
+        if accounts is not None and not accounts:  # given accounts are filtered out
+            return empty()
+        elif resoto_search := inspection.detect.get("resoto"):
             return perform_search(resoto_search)
         elif resoto_cmd := inspection.detect.get("resoto_cmd"):
             return perform_cmd(resoto_cmd)
@@ -393,13 +421,13 @@ class InspectorService(Inspector, Service):
         )
 
     async def __perform_checks(  # type: ignore
-        self, graph: GraphName, checks: List[ReportCheck], context: CheckContext, config: ReportConfig
+        self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
     ) -> Dict[str, SingleCheckResult]:
         # load model
         model = await self.model_handler.load_model(graph)
 
         async def perform_single(check: ReportCheck) -> Tuple[str, SingleCheckResult]:
-            return check.id, await self.__perform_check(graph, model, check, config, context)
+            return check.id, await self.__perform_check(graph, model, check, context)
 
         check_results: Stream[Tuple[str, SingleCheckResult]] = stream.iterate(checks) | pipe.map(
             perform_single, ordered=False, task_limit=context.parallel_checks  # type: ignore
@@ -408,10 +436,10 @@ class InspectorService(Inspector, Service):
             return {key: value async for key, value in streamer}
 
     async def __perform_check(
-        self, graph: GraphName, model: Model, inspection: ReportCheck, config: ReportConfig, context: CheckContext
+        self, graph: GraphName, model: Model, inspection: ReportCheck, context: CheckContext
     ) -> SingleCheckResult:
         resources_by_account = defaultdict(list)
-        async for resource in await self.__list_failing_resources(graph, model, inspection, config, context):
+        async for resource in await self.__list_failing_resources(graph, model, inspection, context):
             account_id = value_in_path(resource, NodePath.ancestor_account_id)
             if account_id:
                 resources_by_account[account_id].append(bend(ReportResourceData, resource))
