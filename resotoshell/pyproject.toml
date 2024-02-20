@@ -1,6 +1,6 @@
 [project]
 name = "resotoshell"
-version = "3.8.1"
+version = "3.9.0"
 authors = [{name="Some Engineering Inc."}]
 description = "Commandline interpreter to interact with Resoto."
 license = { text="AGPLv3" }
@@ -28,7 +28,7 @@ readme = {file="README.md", content-type="text/markdown"}
 keywords = ["cloud security"]
 
 dependencies = [
-    "resotolib==3.8.1",
+    "resotolib==3.9.0",
     "prompt-toolkit",
     "rich",
     "resotoclient",
