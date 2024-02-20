@@ -12,6 +12,8 @@ from resotocore.report import (
     BenchmarkResult,
     Benchmark,
     ReportCheck,
+    ResotoReportConfig,
+    ReportConfigRoot,
 )
 from resotocore.report.inspector_service import InspectorService
 from resotocore.report.report_config import (
@@ -129,16 +131,36 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
 
 async def test_list_failing(inspector_service: InspectorService) -> None:
     graph = inspector_service.cli.env["graph"]
-    search_res = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_search")]
+    cs = "test_test_search"
+    cc = "test_test_cmd"
+    search_res = [r async for r in await inspector_service.list_failing_resources(graph, cs)]
+    cmd_res = [r async for r in await inspector_service.list_failing_resources(graph, cc)]
     assert len(search_res) == 10
-    cmd_res = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_cmd")]
     assert len(cmd_res) == 10
-    search_res_account = [
-        r async for r in await inspector_service.list_failing_resources(graph, "test_test_search", ["n/a"])
-    ]
-    assert len(search_res_account) == 0
-    cmd_res_account = [r async for r in await inspector_service.list_failing_resources(graph, "test_test_cmd", ["n/a"])]
-    assert len(cmd_res_account) == 0
+    # non existent accounts
+    search_query = [r async for r in await inspector_service.list_failing_resources(graph, cs, ["n/a"])]
+    cmd = [r async for r in await inspector_service.list_failing_resources(graph, cc, ["n/a"])]
+    assert len(search_query) == 0
+    assert len(cmd) == 0
+    # filtered by existing account
+    search_query = [r async for r in await inspector_service.list_failing_resources(graph, cs, ["sub_root"])]
+    cmd = [r async for r in await inspector_service.list_failing_resources(graph, cc, ["sub_root"])]
+    assert len(search_query) == 10
+    assert len(cmd) == 10
+    # filtered by existing account
+    await inspector_service.config_handler.patch_config(
+        ConfigEntity(ResotoReportConfig, {ReportConfigRoot: {"ignore_accounts": ["sub_root"]}})
+    )
+    # filtered by existing account that is ignored
+    search_query = [r async for r in await inspector_service.list_failing_resources(graph, cs, ["sub_root"])]
+    cmd = [r async for r in await inspector_service.list_failing_resources(graph, cc, ["sub_root"])]
+    assert len(search_query) == 0
+    assert len(cmd) == 0
+    # execute all with ignored account
+    search_query = [r async for r in await inspector_service.list_failing_resources(graph, cs)]
+    cmd = [r async for r in await inspector_service.list_failing_resources(graph, cc)]
+    assert len(cmd) == 0
+    assert len(search_query) == 0
 
 
 async def test_file_inspector(inspector_service: InspectorService) -> None:

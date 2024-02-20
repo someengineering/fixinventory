@@ -162,6 +162,7 @@ class ReportConfig:
     kind: ClassVar[str] = ReportConfigRoot
 
     ignore_checks: Optional[List[str]] = field(default=None, metadata={"description": "List of checks to ignore."})
+    ignore_accounts: Optional[List[str]] = field(default=None, metadata={"description": "List of accounts to ignore."})
     override_values: Optional[Json] = field(
         default=None,
         metadata={"description": "Default values for the report. Will be merged with the values from the config."},
