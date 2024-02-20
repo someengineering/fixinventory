@@ -43,12 +43,21 @@
           },
           "nodeResourceGroup": "MC_rg1_clustername1_location1",
           "enableRBAC": false,
-          "diskEncryptionSetID": "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/rg1/providers/Microsoft.Compute/diskEncryptionSets/des",
+          "diskEncryptionSetID": "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/diskEncryptionSets/myDiskEncryptionSet",
           "networkProfile": {
             "networkPlugin": "kubenet",
             "podCidr": "10.244.0.0/16",
             "serviceCidr": "10.0.0.0/16",
-            "dnsServiceIP": "10.0.0.10"
+            "dnsServiceIP": "10.0.0.10",
+            "loadBalancerProfile": {
+              "allocatedOutboundPorts": null,
+              "effectiveOutboundIPs": [
+                {
+                  "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPAddresses/testDNS-ip",
+                  "resourceGroup": "rg1"
+                }
+              ]
+            }
           }
         }
       }

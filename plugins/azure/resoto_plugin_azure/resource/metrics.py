@@ -208,7 +208,7 @@ class AzureMetricData:
         # Define API specifications for querying Azure metrics
         api_spec = AzureApiSpec(
             service="metric",
-            version="2021-05-01",
+            version="2019-07-01",
             path="",
             path_parameters=[],
             query_parameters=[

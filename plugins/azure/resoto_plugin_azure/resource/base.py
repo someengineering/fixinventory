@@ -75,7 +75,6 @@ class AzureResource(BaseResource):
         if part == "subscriptionId":
             if "subscriptions" not in id_parts:
                 return None
-                # raise ValueError(f"Id {self.id} does not have any subscriptionId info")
             if index := id_parts.index("subscriptions"):
                 return id_parts[index + 1]
             return None
@@ -83,14 +82,12 @@ class AzureResource(BaseResource):
         elif part == "resourceGroupName":
             if "resourceGroups" not in id_parts:
                 return None
-                # raise ValueError(f"Id {self.id} does not have any resourceGroupName info")
             if index := id_parts.index("resourceGroups"):
                 return id_parts[index + 1]
             return None
 
         else:
             return None
-            # raise ValueError(f"Value {part} does not have any cases to match")
 
     def delete(self, graph: Graph) -> bool:
         """

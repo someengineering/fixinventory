@@ -815,7 +815,6 @@ class AzureManagedCluster(AzureResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["azure_disk_encryption_set"]},
-        #    "azure_agent_pool"
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -923,10 +922,6 @@ class AzureManagedCluster(AzureResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         from resoto_plugin_azure.resource.compute import AzureDiskEncryptionSet
 
-        # if (indentity := self.identity_profile) and (agent_pool_id := indentity.resource_id):
-        #     builder.add_edge(
-        #         self, edge_type=EdgeType.default, clazz=AzureAgentPool, id=agent_pool_id
-        #     )
         if disk_id := self.disk_encryption_set_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
 
