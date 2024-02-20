@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "Navigate to Settings in the CloudWatch Console. Then, under 'Configure', select 'share data' and provide the ID of the monitoring account. This sets up cross-account sharing for CloudWatch logs.",
                 "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -47,7 +47,7 @@
             "remediation": {
                 "text": "To address this, associate your CloudWatch Log Group with a KMS Key. Ensure that the specified KMS Key is used for encrypting all ingested data for the log group. Implementing this association is essential for CloudWatch Logs to decrypt the data when requested.",
                 "url": "https://docs.aws.amazon.com/cli/latest/reference/logs/associate-kms-key.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -77,7 +77,7 @@
             "remediation": {
                 "text": "Apply a log retention policy of at least 365 days to CloudWatch Log Groups. This ensures the continuity of logs and traces to aid in security analysis and regulatory obligations.",
                 "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

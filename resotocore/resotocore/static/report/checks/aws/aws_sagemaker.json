@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To fix this issue and enforce security best practices, disable root access for SageMaker notebooks. This can be done by configuring the RootAccess parameter to 'Disabled' in the SageMaker console or through the API.",
                 "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-root-access-disable.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/sagemaker/",
             "localizations": {
@@ -193,7 +193,7 @@
             "remediation": {
                 "text": "To secure data at rest, enable KMS-based encryption for SageMaker notebooks. Configure the notebooks to use AWS KMS keys for both S3 (input/output) and EBS volume encryption.",
                 "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/encryption-at-rest.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/encryption-at-rest.html",
             "localizations": {
@@ -222,7 +222,7 @@
             "remediation": {
                 "text": "Enable TLS 1.2 encryption for inter-container traffic in SageMaker training jobs to protect data in transit. This ensures secure communication between the training containers.",
                 "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html",
             "localizations": {
@@ -251,7 +251,7 @@
             "remediation": {
                 "text": "Enable volume encryption for SageMaker Training Jobs by specifying a KMS key during job creation.",
                 "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works.html#resources-security-network-encryption",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works.html#resources-security-network-encryption",
             "localizations": {

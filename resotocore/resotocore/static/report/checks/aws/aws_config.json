@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To address this issue, it is recommended to enable AWS Config in all regions to ensure proper security analysis, resource change tracking, and compliance auditing.",
                 "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -48,7 +48,7 @@
             "remediation": {
                 "text": "To remediate the issue, manual configuration can be done with user-defined reviews, or automatic remediation can be set up using AWS Config.",
                 "url": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html#setup-manualremediation",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

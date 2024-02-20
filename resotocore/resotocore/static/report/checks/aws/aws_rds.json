@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "You should enable storage encryption for the RDS instances. This provides enhancement to your data security by preventing unauthorized access to the underlying storage. Use industry standard AES-256 encryption algorithm and ensure all logs, backups, and snapshots are included in the encryption.",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encrypting.html",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "To mitigate the risk, activate Auto Minor Version Upgrade feature for all databases and environments. This will ensure that your AWS database system is up-to-date.",
                 "url": "https://aws.amazon.com/blogs/database/best-practices-for-upgrading-amazon-rds-to-major-and-minor-versions-of-postgresql",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/blogs/database/best-practices-for-upgrading-amazon-rds-to-major-and-minor-versions-of-postgresql",
             "localizations": {
@@ -78,7 +78,7 @@
             "remediation": {
                 "text": "Navigate to the RDS instance configuration and click 'Modify'. Enable 'Enable CloudWatch Logs exports.' and specify the CloudWatch Logs group for the RDS Instance. Save the changes to implement the new settings.",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_LogAccess.Concepts.html#USER_LogAccess.Procedural.Enabling",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html",
             "localizations": {
@@ -107,7 +107,7 @@
             "remediation": {
                 "text": "Ensure that each Amazon RDS instance is properly configured to disallow public access. Use options group and DB parameter group settings to enforce this configuration.",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Security.html",
             "localizations": {
@@ -137,7 +137,7 @@
             "remediation": {
                 "text": "To remediate, disable public availability for all RDS snapshots. Ensure that only necessary and authorized AWS accounts have snapshot sharing permissions.",
                 "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html",
             "localizations": {
@@ -145,35 +145,6 @@
                     "title": "Stellen Sie sicher, dass Amazon RDS-Snapshots nicht öffentlich verfügbar sind",
                     "risk": "Wenn RDS-Snapshots öffentlich verfügbar sind, können sensible Daten offengelegt werden, was das Risiko eines Datenlecks und Verstöße gegen Datenschutzbestimmungen erhöht.",
                     "remediation": "Um das Problem zu beheben, deaktivieren Sie die öffentliche Verfügbarkeit für alle RDS-Snapshots. Stellen Sie sicher, dass nur notwendige und autorisierte AWS-Konten Berechtigungen zum Freigeben von Snapshots haben."
-                }
-            }
-        },
-        {
-            "name": "db_instance_automatic_minor_version_upgrade_enabled",
-            "title": "Ensure Automatic Minor Version Upgrades are Enabled for RDS Instances",
-            "result_kinds": [
-                "aws_rds_instance"
-            ],
-            "categories": [
-                "security",
-                "compliance"
-            ],
-            "risk": "Not enabling automatic minor version upgrades poses a critical risk as it can leave your infrastructure vulnerable to security flaws and bugs. Accelerated patching of these vulnerabilities is crucial for maintaining robust security.",
-            "severity": "critical",
-            "detect": {
-                "resoto": "is(aws_rds_instance) and rds_auto_minor_version_upgrade=false"
-            },
-            "remediation": {
-                "text": "To fix this issue, make sure to enable the Auto Minor Version Upgrade feature in your RDS instances. This allows your database to be automatically upgraded when a new minor version is available, ensuring up-to-date and secure operations.",
-                "url": "https://aws.amazon.com/about-aws/whats-new/2018/12/amazon-rds-enhances-auto-minor-version-upgrades/",
-                "complexity": "high"
-            },
-            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Upgrading.html",
-            "localizations": {
-                "de": {
-                    "title": "Stellen Sie sicher, dass automatische Upgrades für kleinere Versionen für RDS-Instanzen aktiviert sind",
-                    "risk": "Das Nichtaktivieren automatischer Upgrades für kleinere Versionen birgt ein erhebliches Risiko, da Ihre Infrastruktur anfällig für Sicherheitslücken und Fehler sein kann. Eine beschleunigte Patchung dieser Schwachstellen ist entscheidend für die Aufrechterhaltung einer robusten Sicherheit.",
-                    "remediation": "Um dieses Problem zu beheben, stellen Sie sicher, dass die Funktion 'Auto Minor Version Upgrade' in Ihren RDS-Instanzen aktiviert ist. Dadurch wird Ihre Datenbank automatisch aktualisiert, wenn eine neue kleinere Version verfügbar ist, was einen aktuellen und sicheren Betrieb gewährleistet."
                 }
             }
         }

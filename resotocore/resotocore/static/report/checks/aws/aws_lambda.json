@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "Modify your Lambda function configuration to deploy within a VPC. This requires setting up necessary security groups and network access controls.",
                 "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://aws.amazon.com/premiumsupport/knowledge-center/internet-access-lambda-function/",
             "localizations": {
@@ -82,7 +82,7 @@
                 },
                 "text": "Restrict access by updating the CORS policy to allow specific origins only, applying the principle of least privilege to function URLs to reduce potential security threats.",
                 "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -143,7 +143,7 @@
             "remediation": {
                 "text": "Upgrade AWS Lambda functions to the latest, supported runtimes. Continually test and facilitate the implementation of new runtimes as they become available, ensuring the highest level of security and performance.",
                 "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -171,7 +171,7 @@
             "remediation": {
                 "text": "Leverage AWS Secrets Manager to securely provide database credentials to your Lambda functions. This approach eliminates the need to hard-code secrets in your code or the environment variables, thus improving the security of your AWS deployments.",
                 "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

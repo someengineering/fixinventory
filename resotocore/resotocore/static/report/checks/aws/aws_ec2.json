@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "snapshot_encrypted",
-            "title": "Ensure that EBS Snapshots are both encrypted and not publicly accessible",
+            "title": "Ensure that EBS Snapshots are encrypted",
             "result_kinds": [
                 "aws_ec2_snapshot"
             ],
@@ -12,22 +12,22 @@
                 "security",
                 "compliance"
             ],
-            "risk": "Sharing snapshots publicly can expose all the data they contain. Worst, if these snapshots are not encrypted, unauthorized access and potential data breaches could occur. To maintain data privacy and comply with security standards, limit snippet access and use encryption.",
+            "risk": "Not encrypting EBS snapshots poses a significant security risk by potentially exposing sensitive data to unauthorized access, as unencrypted snapshots can be easily read if intercepted or accessed by unintended parties.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_ec2_snapshot) and encrypted=false"
             },
             "remediation": {
-                "text": "You can enforce snapshot encryption by using AWS Key Management Service (AWS KMS) keys. Modify the permissions of each snapshot to restrict public access, making them exclusively accessible to specific AWS accounts.",
+                "text": "You can enforce snapshot encryption by using AWS Key Management Service (AWS KMS) keys.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-snapshot.html",
             "localizations": {
                 "de": {
-                    "title": "Stellen Sie sicher, dass EBS-Snapshots sowohl verschlüsselt als auch nicht öffentlich zugänglich sind",
-                    "risk": "Das öffentliche Teilen von Snapshots kann alle enthaltenen Daten offenlegen. Im schlimmsten Fall könnten durch unbefugten Zugriff und potenzielle Datenverletzungen erhebliche Sicherheitsprobleme auftreten. Um die Datensicherheit zu gewährleisten und Sicherheitsstandards einzuhalten, beschränken Sie den Zugriff auf die Snippets und verwenden Sie Verschlüsselung.",
-                    "remediation": "Sie können die Snapshot-Verschlüsselung durch die Verwendung von AWS Key Management Service (AWS KMS)-Schlüsseln erzwingen. Ändern Sie die Berechtigungen jedes Snapshots, um den öffentlichen Zugriff einzuschränken und sie ausschließlich für bestimmte AWS-Konten zugänglich zu machen."
+                    "title": "Stellen Sie sicher, dass EBS-Snapshots verschlüsselt sind",
+                    "risk": "Das Nichtverschlüsseln von EBS-Snapshots stellt ein erhebliches Sicherheitsrisiko dar, da sensible Daten bei unbefugtem Zugriff oder Abfangen leicht eingesehen werden können, wenn die Snapshots unverschlüsselt sind.",
+                    "remediation": "Sie können die Snapshot-Verschlüsselung durch die Verwendung von AWS Key Management Service (AWS KMS)-Schlüsseln erzwingen."
                 }
             }
         },
@@ -167,7 +167,7 @@
             "remediation": {
                 "text": "Ensure your AWS instances access resources using IAM roles. Create and attach these roles as necessary to each corresponding EC2 instance, thereby displacing any hard-coded credentials.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html",
             "localizations": {
@@ -180,7 +180,7 @@
         },
         {
             "name": "public_ip_address",
-            "title": "Ensure EC2 Instances are not Exposed to Public IPs",
+            "title": "Ensure EC2 Instances are not using Public IPs",
             "result_kinds": [
                 "aws_ec2_instance"
             ],
@@ -201,7 +201,7 @@
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-instance-addressing.html",
             "localizations": {
                 "de": {
-                    "title": "Stellen Sie sicher, dass EC2-Instanzen nicht öffentlichen IP-Adressen ausgesetzt sind",
+                    "title": "Stellen Sie sicher, dass EC2-Instanzen keine öffentlichen IP-Adressen verwenden",
                     "risk": "Wenn EC2-Instanzen offen im Internet exponiert sind, erhöht sich das Risiko von Cyberangriffen und potenziellen Sicherheitsverletzungen erheblich, was die Integrität der Daten beeinträchtigen kann.",
                     "remediation": "Um dieses Problem zu beheben, verwenden Sie einen Application Load Balancer (ALB) als Zwischeninstanz und wenden Sie eine Web Application Firewall (WAF) Access Control List (ACL) an, um den Zugriff effektiv zu filtern."
                 }
@@ -1100,7 +1100,7 @@
             "remediation": {
                 "text": "To fix the issue, encrypt all EBS volumes and enable encryption by default. You can enforce encryption of new EBS volumes and snapshot copies in your AWS account. Amazon EBS automatically encrypts volumes created when launching an instance and copying from an unencrypted snapshot.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
             "localizations": {
@@ -1129,7 +1129,7 @@
             "remediation": {
                 "text": "To fix this issue, it is recommended to enable VPC Flow Logs for packet rejects in all VPCs.",
                 "url": "https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html",
             "localizations": {
@@ -1161,7 +1161,7 @@
                 "action": {
                     "aws_cli": "aws ec2 modify-instance-metadata-options --instance-id <instance_id> --http-tokens required"
                 },
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-transition-to-version-2.html",
             "localizations": {
@@ -1193,7 +1193,7 @@
             "remediation": {
                 "text": "To fix this issue, terminate any EC2 instance that has been shutdown for more than 30 days. Make sure to create backups of the instances that are still required for future use.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html",
             "localizations": {
@@ -1222,7 +1222,7 @@
             "remediation": {
                 "text": "To fix the issue, navigate to the EC2 Dashboard, select the unused volumes, go to the action tab, and click on \"delete volumes\".",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -1279,7 +1279,7 @@
             "remediation": {
                 "text": "To prevent unauthorized access, ensure that your EC2 AMIs are not set as public or available in the Community AMIs.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html",
             "localizations": {
@@ -1308,7 +1308,7 @@
             "remediation": {
                 "text": "Always ensure that User data picks up secrets from a managed service like Parameter Store or Secrets Manager, rather than having it hardcoded in the actual script.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html",
             "localizations": {
@@ -1337,7 +1337,7 @@
             "remediation": {
                 "text": "To fix this issue, always ensure that User Data retrieves secrets from a managed service like AWS Systems Manager Parameter Store or AWS Secrets Manager, instead of hardcoding them in the user data script.",
                 "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-best-practices",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html",
             "localizations": {
@@ -1366,7 +1366,7 @@
             "remediation": {
                 "text": "To fix this issue, select the subnet, click 'Actions', then 'Modify auto-assign IP settings', uncheck 'Auto-assign IPv4', and save.",
                 "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-ip-addressing.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

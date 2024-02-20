@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "To resolve this issue, ensure that Amazon OpenSearch/Elasticsearch domains are not set as Public and restrict access through VPC endpoints.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html",
             "localizations": {
@@ -107,7 +107,7 @@
             "remediation": {
                 "text": "Ensure that you enable logging information about Amazon OpenSearch Service operations.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html",
             "localizations": {
@@ -133,7 +133,7 @@
             "remediation": {
                 "text": "To ensure that your Amazon OpenSearch Service domains are running the latest version, regularly check the Notifications panel in the console for available updates. You can also receive notifications through Amazon EventBridge. It is recommended to apply the updates promptly to maintain the security and functionality of your domains.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-service-software.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-service-software.html",
             "localizations": {
@@ -159,7 +159,7 @@
             "remediation": {
                 "text": "To fix this issue, enable encryption at rest for your Amazon OpenSearch Service domain using AWS KMS to store and manage your encryption keys and the Advanced Encryption Standard algorithm with 256-bit keys (AES-256) for encryption.",
                 "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {

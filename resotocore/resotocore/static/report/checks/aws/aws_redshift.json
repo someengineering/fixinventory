@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To enable audit logging, go to 'Cluster details' tab -> click 'Modify'. Next, under 'Audit logging', enable or adjust the settings as needed, then save the changes.",
                 "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "Identify all publicly accessible Redshift clusters. For each cluster, review the necessity of public accessibility. If unjustified, revise the settings by disallowing public access to enhance security.",
                 "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html#modify-cluster-access",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
             "localizations": {
@@ -78,7 +78,7 @@
             "remediation": {
                 "text": "To mitigate this risk, enable automatic upgrades in the AWS Management Console under the 'Maintenance' tab for each Redshift cluster. This ensures that your Redshift clusters are always operating on the latest, security patch included, version.",
                 "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-settings",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
             "localizations": {

@@ -23,7 +23,7 @@
                 },
                 "text": "To fix the issue, ensure that S3 buckets have encryption at rest enabled using default encryption (SSE) or enforcing it through a bucket policy.",
                 "url": "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -46,7 +46,7 @@
             "risk": "Without enabling MFA Delete for an S3 bucket, your security credentials are at risk of being compromised, and unauthorized access may be granted.",
             "severity": "medium",
             "detect": {
-                "resoto": "is(aws_s3_bucket) and bucket_mfa_delete=false"
+                "resoto": "is(aws_s3_bucket) and bucket_versioning=true and bucket_mfa_delete=false"
             },
             "remediation": {
                 "action": {
@@ -54,7 +54,7 @@
                 },
                 "text": "To enhance the security of your S3 bucket, enable MFA delete. This requires additional authentication when changing the version state of your bucket or deleting an object version, adding an extra layer of security in case your security credentials are compromised or unauthorized access is granted.",
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -82,7 +82,7 @@
             "remediation": {
                 "text": "To fix the issue, ensure that S3 buckets have encryption in transit enabled to enforce secure communication.",
                 "url": "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -110,7 +110,7 @@
             "remediation": {
                 "text": "To fix this issue, enable Amazon Macie in the AWS Management Console and create appropriate jobs to discover and protect sensitive data.",
                 "url": "https://aws.amazon.com/macie/getting-started/",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -138,7 +138,7 @@
             "remediation": {
                 "text": "To fix the issue, ensure that a proper bucket policy is in place with the principle of least privilege applied.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
             "localizations": {
@@ -170,7 +170,7 @@
                 "action": {
                     "aws_cli": "aws s3control put-public-access-block --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true --account-id {{account_id}}"
                 },
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -198,7 +198,7 @@
             "remediation": {
                 "text": "To fix this issue, update the S3 bucket configurations to disable public settings and ensure bucket policies do not grant all permissions.",
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
             "localizations": {
@@ -227,7 +227,7 @@
             "remediation": {
                 "text": "To fix the issue, select 'Edit', choose a target bucket for the logs, set a prefix if desired, and save the changes.",
                 "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
             "localizations": {

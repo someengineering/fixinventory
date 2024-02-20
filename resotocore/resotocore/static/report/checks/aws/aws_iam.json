@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To maintain current contact details, access the Billing and Cost Management console and complete the necessary information.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "To fix this issue, go to the My Account section in the AWS Console, and complete the alternate contacts, specifically the Security Section.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact.html",
             "localizations": {
@@ -78,7 +78,7 @@
             "remediation": {
                 "text": "To fix this issue, login as the root account and configure Security Questions in My Account.",
                 "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-security-challenge.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -106,7 +106,7 @@
             "remediation": {
                 "text": "Ensure the access_key_1_active and access_key_2_active fields in the credential report are set to FALSE. If the access keys are still active, delete them using the IAM console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
             "localizations": {
@@ -135,7 +135,7 @@
             "remediation": {
                 "text": "To fix this issue, navigate to the AWS Identity and Access Management (IAM) console, access the Dashboard, and activate MFA on the root account.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_manage_mfa",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user_considerations",
             "localizations": {
@@ -225,7 +225,7 @@
             "remediation": {
                 "text": "To fix the issue, follow the remediation instructions provided in the 'Ensure IAM policies are attached only to groups or roles' recommendation.",
                 "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
             "localizations": {
@@ -254,7 +254,7 @@
             "remediation": {
                 "text": "To fix this issue, ensure that the \"Minimum password length\" option is checked under \"Password Policy\" in the AWS Identity and Access Management (IAM) console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
             "localizations": {
@@ -283,7 +283,7 @@
             "remediation": {
                 "text": "To fix this issue, ensure that the \"Number of passwords to remember\" in the account password policy is set to 24 or greater.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
             "localizations": {
@@ -312,7 +312,7 @@
             "remediation": {
                 "text": "To fix this issue, enable MFA for the user's account. MFA adds an extra layer of protection beyond just a username and password. It is recommended to use hardware keys instead of virtual MFA for enhanced security.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html",
             "localizations": {
@@ -341,7 +341,7 @@
             "remediation": {
                 "text": "From the IAM console, generate a credential report and disable any access keys that are not required.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
             "localizations": {
@@ -373,7 +373,7 @@
             "remediation": {
                 "text": "To fix the issue, generate a credential report from the IAM console and disable unnecessary keys.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -385,7 +385,7 @@
         },
         {
             "name": "user_has_two_active_access_keys",
-            "title": "Ensure IAM users have two active access keys",
+            "title": "Ensure IAM users do not have two active access keys",
             "result_kinds": [
                 "aws_iam_user"
             ],
@@ -393,22 +393,22 @@
                 "security",
                 "compliance"
             ],
-            "risk": "Failure to ensure IAM users have two active access keys can lead to access keys being lost or stolen, presenting a critical security risk.",
+            "risk": "Users should not have two access keys simultaneously, as it increases the risk of key mismanagement and potential unauthorized access; this practice is advised only temporarily during key rotation to ensure seamless access transition.",
             "severity": "medium",
             "detect": {
                 "resoto": "is(aws_iam_user) {access_keys[]: --> is(access_key)} access_keys[0].reported.access_key_status==\"Active\" and access_keys[1].reported.access_key_status==\"Active\""
             },
             "remediation": {
-                "text": "To fix the issue, avoid using long-lived access keys and rotate them regularly to minimize the risk of compromise.",
+                "text": "To fix the issue, avoid using long-lived access keys and delete the second one after rotation to minimize the risk of compromise.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccessKeys.html",
             "localizations": {
                 "de": {
-                    "title": "Stellen Sie sicher, dass IAM-Benutzer über zwei aktive Zugriffsschlüssel verfügen",
-                    "risk": "Wenn IAM-Benutzer nicht über zwei aktive Zugriffsschlüssel verfügen, können Zugriffsschlüssel verloren oder gestohlen werden, was ein kritisches Sicherheitsrisiko darstellt.",
-                    "remediation": "Um das Problem zu beheben, sollten Sie vermeiden, langlebige Zugriffsschlüssel zu verwenden und diese regelmäßig zu rotieren, um das Risiko einer Kompromittierung zu minimieren."
+                    "title": "Stellen Sie sicher, dass IAM-Benutzer nicht über zwei aktive Zugriffsschlüssel verfügen",
+                    "risk": "Benutzer sollten nicht gleichzeitig zwei Zugriffsschlüssel besitzen, da dies das Risiko einer fehlerhaften Schlüsselverwaltung und potenziell unbefugten Zugriffs erhöht; diese Praxis wird nur vorübergehend während des Schlüsselwechsels empfohlen, um einen nahtlosen Übergang des Zugriffs zu gewährleisten.",
+                    "remediation": "Um das Problem zu beheben, sollten Sie vermeiden, langlebige Zugriffsschlüssel zu verwenden und einen zweiten direkt nach dem Rotieren zu löschen, um das Risiko einer Kompromittierung zu minimieren."
                 }
             }
         },
@@ -433,7 +433,7 @@
             "remediation": {
                 "text": "To fix the issue, check the credential report and ensure that the access_key_X_last_rotated value is less than 90 days ago.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html",
             "localizations": {
@@ -607,7 +607,7 @@
             "remediation": {
                 "text": "To fix this issue, create an IAM role specifically for managing incidents with AWS Support.",
                 "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html",
             "localizations": {
@@ -643,7 +643,7 @@
                 },
                 "text": "To fix this issue, delete the expired SSL/TLS certificate from AWS IAM. However, keep in mind that deleting the certificate could have implications for your application if you are using it with services like Elastic Load Balancing or CloudFront. Make the necessary configurations in these services to ensure no interruption in application functionality.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html",
             "localizations": {
@@ -672,7 +672,7 @@
             "remediation": {
                 "text": "To mitigate the risk, enable IAM Access Analyzer for all accounts and create an analyzer. Take appropriate action based on the analyzer's recommendations. Enabling IAM Access Analyzer is free of charge and highly beneficial for security purposes.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -729,7 +729,7 @@
             "remediation": {
                 "text": "To restrict access to the AWSCloudShellFullAccess policy, open the IAM console at https://console.aws.amazon.com/iam/, select Policies in the left pane, search for and select AWSCloudShellFullAccess. On the Entities attached tab, select and detach each item.",
                 "url": "https://docs.aws.amazon.com/cloudshell/latest/userguide/sec-auth-with-identities.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {
@@ -757,7 +757,7 @@
             "remediation": {
                 "text": "To fix the issue, ensure that the \"Requires at least one lowercase letter\" option is checked under \"Password Policy\" in the AWS IAM console.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -785,7 +785,7 @@
             "remediation": {
                 "text": "To fix the issue, ensure that the \"Requires at least one number\" option is checked under \"Password Policy\".",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -813,7 +813,7 @@
             "remediation": {
                 "text": "To fix the issue, navigate to the \"Password Policy\" section and ensure that the option \"Require at least one non-alphanumeric character\" is checked.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -841,7 +841,7 @@
             "remediation": {
                 "text": "To fix this issue, go to the AWS Identity and Access Management (IAM) console, navigate to the \"Password Policy\" section, and ensure that \"Require at least one uppercase character\" is checked.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html",
             "localizations": {
@@ -873,7 +873,7 @@
             "remediation": {
                 "text": "To fix this issue, delete any unused access keys from the IAM user.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
             "localizations": {
@@ -905,7 +905,7 @@
             "remediation": {
                 "text": "To fix this issue, configure IAM policies to enforce password expiration within 90 days. Ensure the 'expire_passwords' setting is enabled and set 'max_password_age' to 90 days or less. Regularly rotating passwords helps maintain account security by reducing the risk of compromised credentials being used for extended periods.",
                 "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_passwords_account-policy.html#password-policy-details",
             "localizations": {
@@ -931,7 +931,7 @@
             "remediation": {
                 "text": "Enable GuardDuty in the AWS console to benefit from its intelligent threat detection capabilities.",
                 "url": "https://aws.amazon.com/guardduty/",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/guardduty/",
             "localizations": {

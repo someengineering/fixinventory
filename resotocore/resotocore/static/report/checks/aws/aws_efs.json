@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To fix the issue, ensure encryption at rest is enabled for EFS file systems. Encryption at rest can only be enabled during the file system creation.",
                 "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "Modify the EFS file system's resource policy to restrict public access. Ensure that the policy does not include a principal set to '*', which would grant access to any user. Instead, define specific principals or use AWS IAM to manage access securely. Review the AWS documentation for guidance on creating and managing EFS access policies to safeguard your file systems effectively.",
                 "url": "https://docs.aws.amazon.com/efs/latest/ug/access-control-block-public-access.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "internal_note": "Evaluate the statement in the file_system_policy to determine if it is publicly accessible.",
             "url": "https://docs.aws.amazon.com/efs/latest/ug/access-control-block-public-access.html",

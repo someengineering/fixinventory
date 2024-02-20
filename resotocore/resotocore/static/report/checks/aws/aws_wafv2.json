@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To remedy this, navigate to the 'WAF and Shield' service in AWS, select the relevant ACL, go to 'Logging', click 'Edit' and configure logging by selecting an S3 bucket.",
                 "url": "https://docs.aws.amazon.com/waf/latest/developerguide/logging.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/waf/latest/developerguide/logging-web-acl.html",
             "localizations": {

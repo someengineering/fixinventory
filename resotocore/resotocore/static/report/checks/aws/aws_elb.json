@@ -19,7 +19,7 @@
             "remediation": {
                 "text": "To fix this issue, add listeners to the Elastic Load Balancers V2.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html",
             "localizations": {
@@ -47,7 +47,7 @@
             "remediation": {
                 "text": "Add listeners to Elastic Load Balancers to allow them to receive and route traffic.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -75,7 +75,7 @@
             "remediation": {
                 "text": "To enable logging for Application load balancers, go to the Attributes tab, find the Access logs section, click the Edit button, enable access logs, provide the necessary information such as the S3 bucket and prefix, and save the changes.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "localizations": {
                 "de": {
@@ -103,7 +103,7 @@
             "remediation": {
                 "text": "To fix the issue, go to the load balancer settings, click on 'View/edit rules' for port 443, and associate a valid SSL certificate.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-certificates.html",
             "localizations": {
@@ -132,7 +132,7 @@
             "remediation": {
                 "text": "Open the AWS WAF & Shield console, and go to 'Web ACLs'. Create or select an existing Web ACL for the Load Balancer.",
                 "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

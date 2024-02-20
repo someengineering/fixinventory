@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "Activate Encryption at Rest using KMS CMKs for Amazon SNS topics. Opt for CMKs for superior management and privacy controls. This will protect messages stored at rest in SNS topics with keys managed in AWS Key Management Service.",
                 "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
             "localizations": {

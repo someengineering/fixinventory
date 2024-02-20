@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To fix this issue, enable ECR image scanning and review the scan findings for information about the security of the container images being deployed.",
                 "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "To fix the issue, delete any public repositories in ECR and redeploy them as private.",
                 "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
             "localizations": {
@@ -78,7 +78,7 @@
             "remediation": {
                 "text": "To fix this issue, open the Amazon ECR console and create a lifecycle policy for each repository.",
                 "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
             "localizations": {

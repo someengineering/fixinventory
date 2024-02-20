@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To enable query logging, navigate to the Route 53 console, select the desired hosted zone, and go to the Query logging tab. Click on 'Configure query logging', then choose a log destination (CloudWatch Logs, S3, or Kinesis Data Firehose) and configure the necessary settings. Ensure that the chosen logging service has the necessary permissions to receive logs. Finally, confirm and save your settings to start logging DNS queries.",
                 "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html",
             "localizations": {

@@ -50,7 +50,7 @@
             "remediation": {
                 "text": "Utilize AWS Secrets Manager service to safely store and retrieve passwords and sensitive information. Avoid hard-coding secrets in SSM Documents.",
                 "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html",
             "localizations": {
@@ -79,7 +79,7 @@
             "remediation": {
                 "text": "To mitigate this risk, review the document’s contents before sharing. Enable the 'Block public sharing' feature for SSM Documents, and conform sharing only to trusted accounts via preferred AWS Region.",
                 "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-managing-shared.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-doc-sharing.html",
             "localizations": {

@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "Create or Join an AWS Organization",
                 "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html",
             "localizations": {

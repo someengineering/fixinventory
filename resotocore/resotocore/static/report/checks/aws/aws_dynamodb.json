@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To fix this issue, create a new table specifying a KMS CMK encryption key, or, for an existing table, update the configuration to include a KMS CMK encryption key using the AWS Management Console.",
                 "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/encryption.tutorial.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html",
             "localizations": {

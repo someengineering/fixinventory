@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "Restrict the EKS cluster's public access by adjusting the security group settings. Implement network policies that enforce secure access controls and restrict inbound traffic. You can also choose to disable public access entirely or limit the IP addresses that can access your API server from the internet.",
                 "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://aws.amazon.com/premiumsupport/knowledge-center/eks-api-server-unauthorized-error/",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "Navigate to the 'Logging' tab of your EKS cluster in the AWS console to change settings. Select 'Edit' and enable or adjust control plane logging. Remember to save any change.",
                 "url": "https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-logging.html",
             "localizations": {
@@ -78,7 +78,7 @@
             "remediation": {
                 "text": "Create a Customer Master Key (CMK) in AWS Key Management Service (KMS). Then, while creating a new Amazon EKS cluster, provide this CMK's Amazon Resource Name (ARN).",
                 "url": "https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "localizations": {
                 "de": {

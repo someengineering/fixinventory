@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "To mitigate this risk, ensure server-side encryption is turned on for all Amazon SQS queues. If possible, leverage a Customer Master Key (CMK) for enhanced management and privacy benefits.",
                 "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-sse-existing-queue.html",
             "localizations": {

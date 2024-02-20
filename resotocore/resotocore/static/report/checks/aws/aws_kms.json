@@ -20,7 +20,7 @@
             "remediation": {
                 "text": "For every Customer Master Key (CMK), ensure that the 'Rotate this key every year' option is enabled. Regular rotation reduces the risk of compromise and improves overall system security. Check the key rotation status frequently and apply changes immediately when needed.",
                 "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://aws.amazon.com/kms/features/key-rotation/",
             "localizations": {
@@ -49,7 +49,7 @@
             "remediation": {
                 "text": "Confirm no keys in use are set with 'Pending deletion' status. If such a key is detected, promptly substitute the key with a new one to avoid disruption of services.",
                 "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
-                "complexity": "high"
+                "complexity": "low"
             },
             "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
             "localizations": {

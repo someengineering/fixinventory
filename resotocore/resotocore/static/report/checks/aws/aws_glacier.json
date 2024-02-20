@@ -19,7 +19,7 @@
             "remediation": {
                 "text": "To rectify the problem, ensure that the vault policy does not grant access to unauthorized users. Follow the guidelines provided in the AWS documentation to set up proper access controls for S3 Glacier vaults.",
                 "url": "https://docs.aws.amazon.com/amazonglacier/latest/dev/access-control-overview.html",
-                "complexity": "high"
+                "complexity": "medium"
             },
             "url": "https://docs.aws.amazon.com/AmazonS3/latest/dev/amazon-s3-glacier.html",
             "localizations": {
