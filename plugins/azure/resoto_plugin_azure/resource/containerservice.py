@@ -842,8 +842,7 @@ class AzureManagedCluster(AzureResource):
         "fqdn_subdomain": S("properties", "fqdnSubdomain"),
         "http_proxy_config": S("properties", "httpProxyConfig") >> Bend(AzureManagedClusterHTTPProxyConfig.mapping),
         "managed_cluster_identity": S("identity") >> Bend(AzureManagedClusterIdentity.mapping),
-        "identity_profile": S("properties", "identityProfile", "kubeletidentity")
-        >> Bend(AzureUserAssignedIdentity.mapping),
+        "identity_profile": S("properties", "identityProfile"),
         "kubernetes_version": S("properties", "kubernetesVersion"),
         "linux_profile": S("properties", "linuxProfile") >> Bend(AzureContainerServiceLinuxProfile.mapping),
         "max_agent_pools": S("properties", "maxAgentPools"),
@@ -895,7 +894,7 @@ class AzureManagedCluster(AzureResource):
     fqdn_subdomain: Optional[str] = field(default=None, metadata={'description': 'This cannot be updated once the Managed Cluster has been created.'})  # fmt: skip
     http_proxy_config: Optional[AzureManagedClusterHTTPProxyConfig] = field(default=None, metadata={'description': 'Cluster HTTP proxy configuration.'})  # fmt: skip
     managed_cluster_identity: Optional[AzureManagedClusterIdentity] = field(default=None, metadata={'description': 'Identity for the managed cluster.'})  # fmt: skip
-    identity_profile: Optional[AzureUserAssignedIdentity] = field(default=None, metadata={'description': 'Identities associated with the cluster.'})  # fmt: skip
+    identity_profile: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={"description": "Identities associated with the cluster."})  # fmt: skip
     kubernetes_version: Optional[str] = field(default=None, metadata={'description': 'Both patch version <major.minor.patch> (e.g. 1.20.13) and <major.minor> (e.g. 1.20) are supported. When <major.minor> is specified, the latest supported GA patch version is chosen automatically. Updating the cluster with the same <major.minor> once it has been created (e.g. 1.14.x -> 1.14) will not trigger an upgrade, even if a newer patch version is available. When you upgrade a supported AKS cluster, Kubernetes minor versions cannot be skipped. All upgrades must be performed sequentially by major version number. For example, upgrades between 1.14.x -> 1.15.x or 1.15.x -> 1.16.x are allowed, however 1.14.x -> 1.16.x is not allowed. See [upgrading an AKS cluster](https://docs.microsoft.com/azure/aks/upgrade-cluster) for more details.'})  # fmt: skip
     linux_profile: Optional[AzureContainerServiceLinuxProfile] = field(default=None, metadata={'description': 'Profile for Linux VMs in the container service cluster.'})  # fmt: skip
     max_agent_pools: Optional[int] = field(default=None, metadata={'description': 'The max number of agent pools for the managed cluster.'})  # fmt: skip
