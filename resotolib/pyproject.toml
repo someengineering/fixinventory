@@ -1,6 +1,6 @@
 [project]
 name = "resotolib"
-version = "3.9.0"
+version = "4.0.0"
 authors = [{ name = "Some Engineering Inc." }]
 description = "Resoto common library."
 license = { text = "AGPLv3" }
