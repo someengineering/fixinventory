@@ -17,8 +17,12 @@ def detect_cloud(graph: Graph) -> Optional[str]:
         server_url := rgetattr(graph.root, "cluster_info.server_url", None)
     ):
         cloud_urls = {"amazonaws.com": "AWS", "azmk8s.io": "Azure", "digitaloceanspaces.com": "DigitalOcean"}
-        url_hostname = urlparse(server_url).hostname
-        cloud_url = ".".join(url_hostname.split(".")[-2:])
+        try:
+            url_hostname = urlparse(server_url).hostname
+            cloud_url = ".".join(url_hostname.split(".")[-2:])
+        except Exception as e:
+            log.info(f"Error parsing server URL: {e}")
+            return None
 
         if cloud_url in cloud_urls:
             return cloud_urls[cloud_url]
