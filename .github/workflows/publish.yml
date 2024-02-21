@@ -285,7 +285,7 @@ jobs:
           yarn gen-api-docs
 
       - name: Wait for AWS policies to be uploaded
-        if: steps.release.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
@@ -302,7 +302,7 @@ jobs:
           wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoMutate.json
 
       - name: Wait for GCP policies to be uploaded
-        if: steps.release.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
@@ -331,7 +331,7 @@ jobs:
           find . -type f -name "*.svg" -prune -exec rm {} \+
 
       - name: Wait for Docker images to build
-        if: steps.release.outputs.prerelease == 'false'
+        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
