@@ -4,6 +4,9 @@
       "name": "testDNS-ip",
       "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPAddresses/testDNS-ip",
       "location": "westus",
+      "tags": {
+        "k8s-azure-cluster-name": "clustername1"
+      },
       "properties": {
         "publicIPPrefix": {
           "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPPrefixes/test-ipprefix"
@@ -13,6 +16,7 @@
         },
         "provisioningState": "Succeeded",
         "publicIPAddressVersion": "IPv4",
+        "ipAddress": "41.85.154.247",
         "publicIPAllocationMethod": "Dynamic",
         "idleTimeoutInMinutes": 4,
         "ipConfiguration": {

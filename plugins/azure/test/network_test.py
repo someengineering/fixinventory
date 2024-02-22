@@ -147,8 +147,10 @@ def test_load_balancer(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
     resource_types: List[Type[AzureResource]] = [AzureVirtualNetwork, AzureManagedCluster]
+    roundtrip_check(AzurePublicIPAddress, builder)
     connect_resources(builder, resource_types)
 
+    assert collected[0].aks_public_ip_address == "41.85.154.247"
     assert len(builder.edges_of(AzureVirtualNetwork, AzureLoadBalancer)) == 1
     assert len(builder.edges_of(AzureManagedCluster, AzureLoadBalancer)) == 1
 

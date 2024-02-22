@@ -4016,35 +4016,6 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
     aks_public_ip_address: Optional[str] = field(default=None, metadata={"description": "AKS Load Balancer public IP address."})  # fmt: skip
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_p_ip_address() -> None:
-            api_spec = AzureApiSpec(
-                service="network",
-                version="2021-05-01",
-                path=self.id,
-                path_parameters=[],
-                query_parameters=["api-version", "$expand"],
-                access_path=None,
-                expect_array=False,
-            )
-            params = {"$expand": "frontendIPConfigurations/publicIPAddress"}
-            items = graph_builder.client.list(api_spec, **params)
-            if items:
-                item: Json = next(iter(items), {})
-                frontend_ip_configs = item.get("properties", {}).get("frontendIPConfigurations", [])
-                for ip_conf in frontend_ip_configs:
-                    try:
-                        public_ip_tags = ip_conf["properties"]["publicIPAddress"]["tags"]
-                        cluster_name = public_ip_tags.get("k8s-azure-cluster-name", None)
-                        if cluster_name is not None:
-                            lb_p_ip = ip_conf["properties"]["publicIPAddress"]["properties"]["ipAddress"]
-                            self.aks_public_ip_address = lb_p_ip
-                            break
-                    except KeyError:
-                        pass
-
-        graph_builder.submit_work("azure_all", collect_p_ip_address)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vns := self.backends:
             for vn_id in vns:
@@ -4070,6 +4041,16 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
 
             p_ip_ids_and_cluster_ids = [(p_ip_ids(n), cluster_id(n)) for n in builder.nodes(clazz=AzureManagedCluster)]
 
+            publ_ip_id: Callable[[AzurePublicIPAddress], str] = lambda n: n.id or ""
+
+            p_ip_address: Callable[[AzurePublicIPAddress], str] = lambda n: n.ip_address or ""
+
+            publ_ip_id_and_p_ip_address = [
+                (publ_ip_id(n), p_ip_address(n))
+                for n in builder.nodes(clazz=AzurePublicIPAddress)
+                if n.tags.get("k8s-azure-cluster-name") is not None
+            ]
+
             for ip_conf in ip_confs:
                 if p_ip_address_id := ip_conf._public_ip_address_id:
                     for info in p_ip_ids_and_cluster_ids:
@@ -4083,6 +4064,10 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
                                     clazz=AzureManagedCluster,
                                     id=clust_id,
                                 )
+                    for ip_info in publ_ip_id_and_p_ip_address:
+                        pub_ip_id, ip_address = ip_info
+                        if pub_ip_id == p_ip_address_id:
+                            self.aks_public_ip_address = ip_address
 
 
 @define(eq=False, slots=False)
