@@ -6386,7 +6386,7 @@ ResourceRefinements = [
     ResourceRefinement(
         kind="instance",
         matches=ResourceRefinementMatch(PropertyPath.from_list(["reported", "instance_status"]), value="terminated"),
-        path=["kind", "metadata", "icon"],
+        path=["kind", "metadata", "state-icon"],
         value="instance_terminated",
     ),
 ]
