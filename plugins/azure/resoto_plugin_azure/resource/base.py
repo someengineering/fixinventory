@@ -96,7 +96,10 @@ class AzureResource(BaseResource):
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
-        subscription_id = self.resource_subscription_id() or ""
+        subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to delete resource. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).delete(self.id)
 
     def delete_tag(self, key: str) -> bool:
@@ -105,7 +108,10 @@ class AzureResource(BaseResource):
         This method removes a specific value from a tag associated with a subscription, while keeping the tag itself intact.
         The tag remains on the account, but the specified value will be deleted.
         """
-        subscription_id = self.resource_subscription_id() or ""
+        subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to delete tag. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).delete_resource_tag(tag_name=key, resource_id=self.id)
 
     def update_tag(self, key: str, value: str) -> bool:
@@ -114,7 +120,10 @@ class AzureResource(BaseResource):
         This method allows for the creation or update of a tag value associated with the specified tag name.
         The tag name must already exist for the operation to be successful.
         """
-        subscription_id = self.resource_subscription_id() or ""
+        subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to update tag. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).update_resource_tag(tag_name=key, tag_value=value, resource_id=self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
