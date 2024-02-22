@@ -1045,6 +1045,9 @@ class ComplexKind(Kind):
     def kind_hierarchy(self) -> Set[str]:
         return self.__resolved_hierarchy
 
+    def is_a(self, kind: str) -> bool:
+        return kind in self.__resolved_hierarchy
+
     def resolved_property_paths(self) -> List[ResolvedPropertyPath]:
         return self.__property_by_path
 

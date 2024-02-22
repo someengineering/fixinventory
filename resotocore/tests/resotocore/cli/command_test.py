@@ -18,7 +18,14 @@ from pytest import fixture
 from resotocore import version
 from resotocore.cli import is_node, JsStream, list_sink
 from resotocore.cli.cli import CLIService
-from resotocore.cli.command import HttpCommand, JqCommand, AggregateCommand, all_commands
+from resotocore.cli.command import (
+    HttpCommand,
+    JqCommand,
+    AggregateCommand,
+    all_commands,
+    ResourceRefinement,
+    ResourceRefinementMatch,
+)
 from resotocore.cli.model import CLIContext, WorkerCustomCommand, CLI, FilePath
 from resotocore.cli.tip_of_the_day import generic_tips
 from resotocore.console_renderer import ConsoleRenderer, ConsoleColorSystem
@@ -30,7 +37,7 @@ from resotocore.graph_manager.graph_manager import GraphManager
 from resotocore.ids import InfraAppName, GraphName
 from resotocore.infra_apps.package_manager import PackageManager
 from resotocore.infra_apps.runtime import Runtime
-from resotocore.model.model import Model
+from resotocore.model.model import Model, PropertyPath
 from resotocore.model.typed_model import to_js
 from resotocore.query.model import Template, Query
 from resotocore.report import Inspector
@@ -1433,6 +1440,31 @@ async def test_timeseries(cli: CLI) -> None:
     # Combine over identifier (which is unique for each entry), filter for identifier==2 --> 1 entry for one timestamp
     res = await exec(f'timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier --filter identifier=="2"')  # fmt: skip
     assert len(res) == 1
+
+
+@pytest.mark.asyncio
+async def test_refine_resource_data(cli: CLI) -> None:
+    from resotocore.cli import command
+
+    # override the default resource refinements for testing
+    command.ResourceRefinements = [
+        ResourceRefinement(
+            kind="foo",
+            matches=ResourceRefinementMatch(PropertyPath.from_list(["id"]), value="c"),
+            path=["reported", "name"],
+            value="some",
+        ),
+    ]
+
+    async def exec(js: Json) -> List[JsonElement]:
+        res = await cli.execute_cli_command(f"json {json.dumps(js)} | refine-resource-data | dump", list_sink)
+        return cast(List[JsonElement], res[0])
+
+    base = {"id": "a", "reported": {"id": "a", "name": "b", "kind": "foo"}}
+    assert await exec(base) == [base]
+    assert await exec({**base, "id": "c"}) == [{"id": "c", "reported": {"id": "a", "name": "some", "kind": "foo"}}]
+
+    # assert await exec(base) == [{"id": "a", "reported": {"id": "b", "name": "d", "kind": "foo"}}]
 
 
 @pytest.mark.asyncio

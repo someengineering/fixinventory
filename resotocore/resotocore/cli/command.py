@@ -6365,6 +6365,73 @@ class DetectSecretsCommand(CLICommand):
         return CLIFlow(detect_secrets_in)
 
 
+@frozen
+class ResourceRefinementMatch:
+    on: PropertyPath
+    value: JsonElement
+
+    def matches(self, js: JsonElement) -> bool:
+        return self.on.value_in(js) == self.value
+
+
+@frozen
+class ResourceRefinement:
+    kind: str
+    matches: ResourceRefinementMatch
+    path: List[str]
+    value: JsonElement
+
+
+ResourceRefinements = [
+    ResourceRefinement(
+        kind="instance",
+        matches=ResourceRefinementMatch(PropertyPath.from_list(["reported", "instance_status"]), value="terminated"),
+        path=["kind", "metadata", "state-icon"],
+        value="instance_terminated",
+    ),
+]
+
+
+class RefineResourceDataCommand(CLICommand, InternalPart):
+    """
+    Internal command to adjust resource data for the UI to display.
+    Not intended for direct use.
+    """
+
+    @property
+    def name(self) -> str:
+        return "refine-resource-data"
+
+    def args_info(self) -> ArgsInfo:
+        return []
+
+    def info(self) -> str:
+        return "Refine resource data"
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def load_model() -> Model:
+            return await self.dependencies.model_handler.load_model(ctx.graph_name)
+
+        def setup_stream(in_stream: JsStream) -> JsStream:
+            def with_dependencies(model: Model) -> JsStream:
+                async def process_element(el: JsonElement) -> JsonElement:
+                    if (
+                        is_node(el)
+                        and (fqn := value_in_path(el, NodePath.reported_kind))
+                        and isinstance(kind := model.get(fqn), ComplexKind)
+                    ):
+                        for refinement in ResourceRefinements:
+                            if kind.is_a(refinement.kind) and refinement.matches.matches(el):
+                                set_value_in_path(refinement.value, refinement.path, el)  # type: ignore
+                    return el
+
+                return in_stream | pipe.map(process_element)  # type: ignore
+
+            return stream.call(load_model) | pipe.flatmap(with_dependencies)  # type: ignore
+
+        return CLIFlow(setup_stream, required_permissions={Permission.read})
+
+
 def all_commands(d: TenantDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -6397,6 +6464,7 @@ def all_commands(d: TenantDependencies) -> List[CLICommand]:
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),
+        RefineResourceDataCommand(d, "action"),
         ReportCommand(d, "misc", allowed_in_source_position=True),
         SearchPart(d, "search", allowed_in_source_position=True),
         SetDesiredCommand(d, "action"),
