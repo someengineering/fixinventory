@@ -478,15 +478,15 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
             )
 
         metric_normalizers = {
-            "RequestCount": MetricNormalization(name="request_count"),
-            "ActiveConnectionCount": MetricNormalization(name="active_connection_count"),
-            "HTTPCode_Target_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
-            "HTTPCode_Target_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
-            "HTTPCode_Target_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
+            "RequestCount": MetricNormalization(metric_name="request_count"),
+            "ActiveConnectionCount": MetricNormalization(metric_name="active_connection_count"),
+            "HTTPCode_Target_2XX_Count": MetricNormalization(metric_name="status_code_2xx_count"),
+            "HTTPCode_Target_4XX_Count": MetricNormalization(metric_name="status_code_4xx_count"),
+            "HTTPCode_Target_5XX_Count": MetricNormalization(metric_name="status_code_5xx_count"),
             "TargetResponseTime": MetricNormalization(
-                name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
+                metric_name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
             ),
-            "ProcessedBytes": MetricNormalization(name="processed_bytes"),
+            "ProcessedBytes": MetricNormalization(metric_name="processed_bytes"),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
@@ -748,19 +748,19 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
             )
 
         metric_normalizers = {
-            "RequestCount": MetricNormalization(name="request_count"),
-            "HealthyHostCount": MetricNormalization(name="healthy_host_count"),
-            "UnHealthyHostCount": MetricNormalization(name="unhealthy_host_count"),
-            "HTTPCode_Target_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
-            "HTTPCode_Target_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
-            "HTTPCode_Target_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
+            "RequestCount": MetricNormalization(metric_name="request_count"),
+            "HealthyHostCount": MetricNormalization(metric_name="healthy_host_count"),
+            "UnHealthyHostCount": MetricNormalization(metric_name="unhealthy_host_count"),
+            "HTTPCode_Target_2XX_Count": MetricNormalization(metric_name="status_code_2xx_count"),
+            "HTTPCode_Target_4XX_Count": MetricNormalization(metric_name="status_code_4xx_count"),
+            "HTTPCode_Target_5XX_Count": MetricNormalization(metric_name="status_code_5xx_count"),
             "TargetResponseTime": MetricNormalization(
-                name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
+                metric_name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
             ),
-            "HealthyStateRouting": MetricNormalization(name="healthy_state_routing"),
-            "UnhealthyStateRouting": MetricNormalization(name="unhealthy_state_routing"),
-            "HealthyStateDNS": MetricNormalization(name="healthy_state_dns"),
-            "UnhealthyStateDNS": MetricNormalization(name="unhealthy_state_dns"),
+            "HealthyStateRouting": MetricNormalization(metric_name="healthy_state_routing"),
+            "UnhealthyStateRouting": MetricNormalization(metric_name="unhealthy_state_routing"),
+            "HealthyStateDNS": MetricNormalization(metric_name="healthy_state_dns"),
+            "UnhealthyStateDNS": MetricNormalization(metric_name="unhealthy_state_dns"),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)

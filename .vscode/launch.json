@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Debug Tests",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "purpose": [
@@ -17,7 +17,7 @@
         },
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -25,7 +25,7 @@
         },
         {
             "name": "resotocore",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./resotocore/resotocore/__main__.py",
             "args": [
@@ -45,7 +45,7 @@
         },
         {
             "name": "resotoworker",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./resotoworker/resotoworker/__main__.py",
             "args": [
@@ -68,7 +68,7 @@
         },
         {
             "name": "resotoshell",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./resotoshell/resotoshell/__main__.py",
             "args": [
@@ -77,7 +77,7 @@
                 "--resotocore-uri",
                 "https://localhost:8900",
                 "--resotocore-wait",
-                "10",
+                "30",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,

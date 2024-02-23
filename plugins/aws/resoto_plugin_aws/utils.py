@@ -1,7 +1,7 @@
 import uuid
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, TypeVar
 from attrs import frozen
 
 from boto3.session import Session as BotoSession
@@ -9,7 +9,7 @@ from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 from prometheus_client import Counter
 from retrying import retry
 
-from resotolib.baseresources import BaseRegion, BaseResource
+from resotolib.baseresources import BaseRegion, BaseResource, MetricName, StatName
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender
@@ -194,13 +194,22 @@ def identity(x: T) -> T:
     return x
 
 
+# by default, take the first value, and don't include a stat name
+# so the default metric stat is used
+def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
+    return [(x[0], None)]
+
+
 @frozen(kw_only=True)
 class MetricNormalization:
-    name: str
-    stat_map: Dict[str, str] = {
+    metric_name: MetricName
+    stat_map: Dict[str, StatName] = {
         "Minimum": "min",
         "Average": "avg",
         "Maximum": "max",
         "Sum": "sum",
     }
     normalize_value: Callable[[float], float] = identity
+    # function to derive stats from a list of values
+    # the default is to take the first value and use the default stat name
+    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first

@@ -535,14 +535,15 @@ def update_resource_metrics(
         resource = resources_map.get(query.ref_id)
         if resource is None:
             continue
-        metric_value = next(iter(metric.metric_values), None)
-        if metric_value is None:
+        if len(metric.metric_values) == 0:
             continue
         normalizer = metric_normalizers.get(query.metric_name)
         if not normalizer:
             continue
 
-        name = normalizer.name
-        value = metric_normalizers[query.metric_name].normalize_value(metric_value)
+        for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
+            name = normalizer.metric_name
+            value = normalizer.normalize_value(metric_value)
+            stat_name = maybe_stat_name or normalizer.stat_map[query.stat]
 
-        resource._resource_usage[name][normalizer.stat_map[query.stat]] = value
+            resource._resource_usage[name][stat_name] = value
