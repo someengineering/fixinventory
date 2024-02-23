@@ -99,7 +99,7 @@ class CollectRun:
 
     def collect(self) -> None:
         self.__collect_all([(coll, {}) for coll in self.collectors], self.config.resotoworker.graph_merge_kind)
-        while self.futures_to_wait_for:
+        while self.futures_to_wait_for or not self.graph_queue.empty():
             for future in futures.as_completed(self.futures_to_wait_for.copy()):
                 self.futures_to_wait_for.remove(future)
 
