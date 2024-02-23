@@ -494,8 +494,21 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        start = last_run_started_at or (self.created_at - timedelta(hours=1))
-        delta = self.created_at - start
+        if last_run_started_at:
+            now = utc()
+            start = last_run_started_at
+            delta = now - start
+
+            min_delta = max(delta, timedelta(seconds=60))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 60s,
+            # otherwise we get an error from Azure
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
 
         self.metrics_start = start
         # Converting the total seconds in 'delta' to minutes for further compute interval
