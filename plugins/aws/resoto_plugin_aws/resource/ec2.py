@@ -1466,7 +1466,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
         def bytes_to_mbps(bytes: float, period: int) -> float:
             return round(bytes * 8 / (1024**2) / period, 4)
-        
+
         # we expect to have several datapoints for netowrk metrics, so we calculate min, max and avg
         def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
             return [
@@ -1484,25 +1484,25 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 metric_name="network_in",
                 compute_stats=calculate_min_max_avg,
                 # normalize to Mbps
-                normalize_value=partial(bytes_to_mbps, period=network_period.seconds)
+                normalize_value=partial(bytes_to_mbps, period=network_period.seconds),
             ),
             "NetworkOut": MetricNormalization(
                 metric_name="network_out",
                 compute_stats=calculate_min_max_avg,
                 # normalize to Mbps
-                normalize_value=partial(bytes_to_mbps, period=network_period.seconds)
+                normalize_value=partial(bytes_to_mbps, period=network_period.seconds),
             ),
             "NetworkPacketsIn": MetricNormalization(
-                metric_name="network_packets_in", 
+                metric_name="network_packets_in",
                 compute_stats=calculate_min_max_avg,
                 # normalize to packets per second
-                normalize_value=lambda x: round(x / network_period.seconds, 4)
+                normalize_value=lambda x: round(x / network_period.seconds, 4),
             ),
             "NetworkPacketsOut": MetricNormalization(
                 metric_name="network_packets_out",
                 compute_stats=calculate_min_max_avg,
                 # normalize to packets per second
-                normalize_value=lambda x: round(x / network_period.seconds, 4)
+                normalize_value=lambda x: round(x / network_period.seconds, 4),
             ),
             "DiskReadOps": MetricNormalization(metric_name="disk_read_ops"),
             "DiskWriteOps": MetricNormalization(metric_name="disk_write_ops"),

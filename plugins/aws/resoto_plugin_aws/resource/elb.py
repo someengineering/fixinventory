@@ -413,7 +413,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             "HTTPCode_Backend_5XX_Count": MetricNormalization(metric_name="status_code_5xx_count"),
             "HealthyHostCount": MetricNormalization(metric_name="healthy_host_count"),
             "UnHealthyHostCount": MetricNormalization(metric_name="unhealthy_host_count"),
-            "Latency": MetricNormalization(metric_name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)),
+            "Latency": MetricNormalization(
+                metric_name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)
+            ),
             "EstimatedProcessedBytes": MetricNormalization(metric_name="processed_bytes"),
         }
 
