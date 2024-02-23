@@ -1263,6 +1263,12 @@ class BaseOrganizationalUnit(BaseResource):
     kind_description: ClassVar[str] = "An Organizational Unit."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
 
+@define(eq=False, slots=False)
+class BaseManagedKubernetesCluster(BaseResource):
+    kind: ClassVar[str] = "managed_kubernetes_cluster"
+    kind_display: ClassVar[str] = "ManagedKubernetesCluster"
+    kind_description: ClassVar[str] = "A managed kubernetes cluster."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
 
 @define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
