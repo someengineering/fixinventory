@@ -115,7 +115,7 @@ class CollectRun:
                 break
 
             # signal to the outside world, that we are busy
-            import_graph = Future()
+            import_graph: Future[bool] = Future()
             self.futures_to_wait_for.append(import_graph)
 
             # Create and sanitize the graph

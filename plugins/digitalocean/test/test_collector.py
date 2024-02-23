@@ -306,6 +306,7 @@ def test_collect_k8s_clusters() -> None:
             "list_vpcs": vpcs,
             "list_droplets": droplets,
             "list_kubernetes_clusters": k8s,
+            "get_kubeconfig_for": "kubeconfig",
         }
     )
     graph = prepare_graph(do_client)
@@ -433,6 +434,7 @@ def test_collect_projects() -> None:
             "list_databases": databases,
             "list_volumes": volumes,
             "list_spaces": spaces,
+            "get_kubeconfig_for": "kubeconfig",
         }
     )
     graph = prepare_graph(do_client)

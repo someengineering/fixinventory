@@ -1263,6 +1263,7 @@ class BaseOrganizationalUnit(BaseResource):
     kind_description: ClassVar[str] = "An Organizational Unit."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
 
+
 @define(eq=False, slots=False)
 class BaseManagedKubernetesCluster(BaseResource):
     kind: ClassVar[str] = "managed_kubernetes_cluster"
@@ -1276,6 +1277,7 @@ class BaseManagedKubernetesCluster(BaseResource):
     @property
     def kubeconfig(self) -> Optional[str]:
         return self._kubeconfig
+
 
 @define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):

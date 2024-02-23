@@ -281,6 +281,7 @@ class BaseCollectorPlugin(BasePlugin):
             raise TypeError(f"Unable to send graph - expected type Graph, got {type(graph)}")
         self._graph_queue.put(graph)
 
+
 class BaseDetectCollectorPlugin(BaseCollectorPlugin, ABC):
     """
     A collector plugin that is able to detect collectable resources in a graph.
@@ -293,4 +294,3 @@ class BaseDetectCollectorPlugin(BaseCollectorPlugin, ABC):
     @staticmethod
     def detect_collects(graph: Graph, temp_dir: Path) -> Iterator[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]]:
         return iter([])
-
