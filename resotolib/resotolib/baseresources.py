@@ -1270,6 +1270,13 @@ class BaseManagedKubernetesCluster(BaseResource):
     kind_description: ClassVar[str] = "A managed kubernetes cluster."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
 
+    # Valid kubeconfig to access this managed cluster.
+    _kubeconfig: Optional[str] = None
+
+    @property
+    def kubeconfig(self) -> Optional[str]:
+        return self._kubeconfig
+
 @define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"

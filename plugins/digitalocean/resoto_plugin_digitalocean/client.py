@@ -8,7 +8,7 @@ import requests
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
 from urllib.parse import urljoin, urlencode
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error
@@ -181,6 +181,14 @@ class StreamingWrapper:
 
     def list_kubernetes_clusters(self) -> List[Json]:
         return self._fetch("/kubernetes/clusters", "kubernetes_clusters")
+
+    def get_kubeconfig_for(self, cluster_id: str, *, expiration: timedelta = timedelta(days=7)) -> str:
+        url = f"{self.do_api_endpoint}/kubernetes/clusters/{cluster_id}/kubeconfig"
+        params = {"expiry_seconds": str(int(expiration.total_seconds()))}
+        headers = {**self.headers, "Accept": "application/yaml"}
+        response = requests.get(url, headers=headers, params=params, allow_redirects=True)
+        self.check_status_code(response)
+        return response.text
 
     def list_snapshots(self) -> List[Json]:
         return self._fetch("/snapshots", "snapshots")

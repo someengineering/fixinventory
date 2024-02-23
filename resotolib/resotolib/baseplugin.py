@@ -1,9 +1,10 @@
 import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from threading import Thread, current_thread
-from typing import Dict, Optional, Any
+from pathlib import Path
 from queue import Queue
+from threading import Thread, current_thread
+from typing import Dict, Optional, Any, Iterator, Type, Tuple
 
 from prometheus_client import Counter
 
@@ -18,7 +19,6 @@ from resotolib.core.ca import TLSData
 from resotolib.graph import Graph, GraphMergeKind
 from resotolib.logger import log
 from resotolib.types import Json
-
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",
@@ -280,3 +280,17 @@ class BaseCollectorPlugin(BasePlugin):
         if not isinstance(graph, Graph):
             raise TypeError(f"Unable to send graph - expected type Graph, got {type(graph)}")
         self._graph_queue.put(graph)
+
+class BaseDetectCollectorPlugin(BaseCollectorPlugin, ABC):
+    """
+    A collector plugin that is able to detect collectable resources in a graph.
+    Example: The KubernetesCollectorPlugin is able to collect kubernetes clusters.
+             AWS, GCP, Azure etc. have managed kubernetes clusters.
+             Once resources have been collected, the KubernetesCollectorPlugin will look for
+             Managed Clusters that are collectable.
+    """
+
+    @staticmethod
+    def detect_collects(graph: Graph, temp_dir: Path) -> Iterator[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]]:
+        return iter([])
+

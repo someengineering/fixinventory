@@ -4,19 +4,20 @@ import multiprocessing
 import threading
 from argparse import Namespace
 from concurrent import futures
-from concurrent.futures import Executor
+from concurrent.futures import Executor, Future
 from multiprocessing.managers import SyncManager
+from pathlib import Path
 from queue import Queue
 from shutil import rmtree
 from tempfile import mkdtemp
 from threading import Lock
 from time import time
 from types import TracebackType
-from typing import List, Optional, Type, Set
+from typing import List, Optional, Type, Set, Any, Dict, Tuple
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
-from resotolib.baseplugin import BaseCollectorPlugin
+from resotolib.baseplugin import BaseCollectorPlugin, BaseDetectCollectorPlugin
 from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
@@ -50,6 +51,7 @@ class CollectRun:
         self.graph_sender_threads: List[threading.Thread] = []
         self.tempdir = mkdtemp(prefix=f"resoto-{self.task_id}", dir=config.resotoworker.tempdir)
         self.pool_executor: Optional[Executor] = None
+        self.futures_to_wait_for: List[Future[bool]] = []
 
     def __enter__(self) -> CollectRun:
         log.debug("Create multi process manager")
@@ -58,7 +60,7 @@ class CollectRun:
         self.graph_queue = graph_queue
         for i in range(self.config.resotoworker.graph_sender_pool_size):
             graph_sender_t = threading.Thread(
-                target=self.graph_sender,
+                target=self.__graph_sender,
                 args=(graph_queue, self.task_id, self.tempdir),
                 name=f"graph_sender_{i}",
             )
@@ -95,21 +97,34 @@ class CollectRun:
             rmtree(self.tempdir, ignore_errors=True)
         return None
 
-    def graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId, tempdir: str) -> None:
+    def collect(self) -> None:
+        self.__collect_all([(coll, {}) for coll in self.collectors], self.config.resotoworker.graph_merge_kind)
+        while self.futures_to_wait_for:
+            for future in futures.as_completed(self.futures_to_wait_for.copy()):
+                self.futures_to_wait_for.remove(future)
+
+    def __graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId, tempdir: str) -> None:
         log.debug("Waiting for collector graphs")
         start_time = time()
         while True:
+            # wait for the next element to come in
             collector_graph = graph_queue.get()
             if collector_graph is None:
                 run_time = time() - start_time
                 log.debug(f"Ending graph sender thread for task id {task_id} after {run_time} seconds")
                 break
 
+            # signal to the outside world, that we are busy
+            import_graph = Future()
+            self.futures_to_wait_for.append(import_graph)
+
+            # Create and sanitize the graph
             graph = Graph(root=GraphRoot(id="root", tags={}))
             graph.merge(collector_graph)
             del collector_graph
             sanitize(graph)
 
+            # Create a human-readable description of the graph
             graph_info = ""
             assert isinstance(graph.root, BaseResource)
             for cloud in graph.successors(graph.root):
@@ -118,42 +133,55 @@ class CollectRun:
                 for account in graph.successors(cloud):
                     if isinstance(account, BaseAccount):
                         graph_info += f" {account.kdname}"
-
             log.info(f"Received collector graph for{graph_info}")
 
+            # Make sure the graph is not cyclic
             if (cycle := graph.find_cycle()) is not None:
                 desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
                 log.error(f"Graph of {graph_info} is not acyclic - ignoring. Cycle {desc}")
                 continue
 
+            # send it to core
             try:
                 self.resotocore.send_to_resotocore(graph, task_id, tempdir)
             except Exception as e:
                 log.error(f"Error sending graph of {graph_info} to resotocore: {e}")
+
+            # check if other collects can be detected based on the current graph
+            if to_collects := [
+                to_collect
+                for collector in self.collectors
+                if issubclass(collector, BaseDetectCollectorPlugin)
+                for to_collect in collector.detect_collects(graph, Path(self.tempdir))
+            ]:
+                log.info(f"Detected nested collect: {to_collects}")
+                self.__collect_all(to_collects, GraphMergeKind.account)
+
+            # delete the graph
             del graph
 
-    def collect(self) -> bool:
+            # mark work as done
+            import_graph.set_result(True)
+
+    def __collect_all(
+        self, collectors: List[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]], merge_kind: GraphMergeKind
+    ) -> None:
         assert self.graph_queue, "No GraphQueue - CollectRun started?"
         assert self.pool_executor, "No Executor - CollectRun started?"
-        all_success = True
-        wait_for = [
-            self.pool_executor.submit(
-                collect_plugin_graph,
-                collector,
-                self.core_feedback,
-                self.graph_queue,
-                self.config.resotoworker.graph_merge_kind,
-                task_data=self.task_data,
-                args=ArgumentParser.args,
-                running_config=self.config.running_config,
+        for collector, kwargs in collectors:
+            self.futures_to_wait_for.append(
+                self.pool_executor.submit(
+                    collect_plugin_graph,
+                    collector,
+                    self.core_feedback,
+                    self.graph_queue,
+                    merge_kind,
+                    task_data=self.task_data,
+                    args=ArgumentParser.args,
+                    running_config=self.config.running_config,
+                    **kwargs,
+                )
             )
-            for collector in self.collectors
-        ]
-        for future in futures.as_completed(wait_for):
-            collector_success = future.result()
-            if not collector_success:
-                all_success = False
-        return all_success
 
 
 class Collector:
@@ -194,10 +222,11 @@ def collect_plugin_graph(
     task_data: Json,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
+    **kwargs: Any,
 ) -> bool:
     try:
         collector: BaseCollectorPlugin = collector_plugin(
-            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data
+            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data, **kwargs
         )
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):

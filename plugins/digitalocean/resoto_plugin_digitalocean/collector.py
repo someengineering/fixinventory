@@ -859,6 +859,12 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.default: ["__nodes"], EdgeType.delete: ["__nodes"]},
             predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
+        for node in self.graph.nodes:
+            if isinstance(node, DigitalOceanKubernetesCluster):
+                try:
+                    node._kubeconfig = self.client.get_kubeconfig_for(cluster_id=node.id)
+                except Exception as e:
+                    log.warning(f"Failed to get kubeconfig for cluster {node}: {e}")
 
     @metrics_collect_snapshots.time()
     def collect_snapshots(self) -> None:
