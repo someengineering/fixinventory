@@ -56,7 +56,7 @@ from detect_secrets.core import scan, plugins
 from detect_secrets.core.potential_secret import PotentialSecret
 from detect_secrets.settings import configure_settings_from_baseline, default_settings
 from parsy import Parser, string, ParseError
-from resotoclient.models import Model as RCModel, Kind as RCKind
+from fixclient.models import Model as RCModel, Kind as RCKind
 from fixcore import version
 from fixcore.async_extensions import run_async
 from fixcore.cli import (
@@ -168,9 +168,9 @@ from fixcore.web.content_renderer import (
     respond_cytoscape,
 )
 from fixcore.worker_task_queue import WorkerTask, WorkerTaskName
-from resotodatalink import EngineConfig
-from resotodatalink.batch_stream import BatchStream
-from resotodatalink.collect_plugins import update_sql
+from fixdatalink import EngineConfig
+from fixdatalink.batch_stream import BatchStream
+from fixdatalink.collect_plugins import update_sql
 from fixlib.core import CLIEnvelope
 from fixlib.durations import parse_duration
 from fixlib.parse_util import (
@@ -429,7 +429,7 @@ class HistoryPart(SearchCLIPart):
 
     Return all changes of the graph based on the given criteria.
 
-    Whenever changes are given to Resoto, a dedicated change event is written as separate entity.
+    Whenever changes are given to Fix, a dedicated change event is written as separate entity.
     Following changes are supported:
     - node_created: a node is added to the graph that has not been seen before.
     - node_updated: a node is delivered and is different to the one in the graph.
@@ -1721,7 +1721,7 @@ class JqCommand(CLICommand, OutputTransformer):
     Every element from the incoming stream is passed to jq.
     See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
 
-    Resoto will rewrite attribute paths to match the defined section.
+    FixInventory will rewrite attribute paths to match the defined section.
     Example:
     ```bash
     # the accessed path is rewritten to jq .reported.name
@@ -1733,7 +1733,7 @@ class JqCommand(CLICommand, OutputTransformer):
     If you find yourself fighting with this rewrite mechanism, you can turn it off with the `--no-rewrite` option.
 
     ## Options
-    - `--no-rewrite` When this option is enabled, the jq filter is not preprocessed by Resoto and given as is to Jq.
+    - `--no-rewrite` When this option is enabled, the jq filter is not preprocessed by Fix and given as is to Jq.
 
     ## Parameters
     - `filter` the filter definition to create a jq program.
@@ -4720,7 +4720,7 @@ def add_tod_block(info: Table, policy: SuggestionPolicy, session_id: str, clouds
     info.add_row(Text(sod.description, style="dim"))
 
 
-ResotoWorkerConfigId = ConfigId("fix.worker")
+FixWorkerConfigId = ConfigId("fix.worker")
 
 
 class WelcomeCommand(CLICommand, InternalPart):
@@ -4748,11 +4748,11 @@ class WelcomeCommand(CLICommand, InternalPart):
         async def welcome() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            info.add_row(Text("Resoto", style="bold"))
+            info.add_row(Text("FixInventory", style="bold"))
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
             info.add_row(Padding("", pad=(0, 0, 0, 0)))
-            fixworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            fixworker_config = await self.dependencies.config_handler.get_config(FixWorkerConfigId)
             if fixworker_config:
                 confiugured_collectors = frozenset(
                     fixworker_config.config.get("fixworker", {}).get("collector", []) or []
@@ -4814,7 +4814,7 @@ class TipOfTheDayCommand(CLICommand):
         async def totd() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            fixworker_config = await self.dependencies.config_handler.get_config(ResotoWorkerConfigId)
+            fixworker_config = await self.dependencies.config_handler.get_config(FixWorkerConfigId)
             if fixworker_config:
                 confiugured_collectors = frozenset(
                     fixworker_config.config.get("fixworker", {}).get("collector", []) or []
@@ -4837,7 +4837,7 @@ class CertificateCommand(CLICommand):
     ```
 
     Create a new TLS key and certificate based on the internal root CA certificate.
-    This can be used to create a self-signed certificate for additional components that communicate with Resoto.
+    This can be used to create a self-signed certificate for additional components that communicate with FixInventory.
 
 
     ## Parameters

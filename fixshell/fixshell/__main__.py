@@ -8,7 +8,7 @@ from threading import Event
 from typing import Tuple
 
 from prompt_toolkit.formatted_text import FormattedText
-from fixclient.async_client import fixClient
+from fixclient.async_client import FixClient
 from rich.console import Console
 
 import fixlib.proc

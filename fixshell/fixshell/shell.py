@@ -13,8 +13,8 @@ import aiohttp
 from prompt_toolkit import HTML, ANSI, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.output import ColorDepth
-from resotoclient.async_client import HttpResponse
-from resotoclient.async_client import fixClient
+from fixclient.async_client import HttpResponse
+from fixclient.async_client import FixClient
 from rich.markdown import Markdown
 
 from fixlib.args import ArgumentParser
@@ -40,7 +40,7 @@ class ShutdownShellError(Exception):
 class Shell:
     def __init__(
         self,
-        client: fixClient,
+        client: FixClient,
         tty: bool,
         color_system: str,
         *,

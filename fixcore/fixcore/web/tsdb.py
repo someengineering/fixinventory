@@ -84,7 +84,7 @@ def tsdb(api_handler: "api.Api") -> Callable[[Request], Awaitable[StreamResponse
                             drop_request_specific_headers(headers)
                             via = f"{request.version.major}.{request.version.minor} {hostname()}"
                             headers["Via"] = via
-                            headers["ViaResoto"] = via  # the via header might be set by other instances ase well
+                            headers["ViaFix"] = via  # the via header might be set by other instances ase well
                             response = StreamResponse(status=cr.status, reason=cr.reason, headers=headers)
                             enable_compression(request, response)
                             await response.prepare(request)

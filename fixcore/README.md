@@ -1,5 +1,5 @@
 # `fixcore`
-Resoto core graph platform
+FixInventory core graph platform
 
 
 ## Table of contents
@@ -11,7 +11,7 @@ Resoto core graph platform
 
 
 ## Overview
-The Resoto graph platfrom `fixcore` is the persistance and search backend of fix. It maintains the graph
+The FixInventory graph platfrom `fixcore` is the persistance and search backend of fix. It maintains the graph
 of resources and provides APIs to update and access them. Within `fixcore` there are workflows consisting of steps
 that result in actions like `collect`, `cleanup` or `generate_metrics`. These actions are being received by components
 like [`fixworker`](../fixworker/) and [`fixmetrics`](../fixmetrics/).

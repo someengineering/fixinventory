@@ -15,8 +15,8 @@ from urllib.parse import urlencode
 
 import jwt
 from aiohttp import web, hdrs, ClientSession
-from resotoclient.async_client import fixClient
-from resotoclient.ca import CertificatesHolder
+from fixclient.async_client import FixClient
+from fixclient.ca import CertificatesHolder
 
 from fixlib.core import fixcore
 from fixlib.logger import log
@@ -27,7 +27,7 @@ class AccessDeniedError(Exception):
     pass
 
 
-async def new_client(args: Namespace) -> fixClient:
+async def new_client(args: Namespace) -> FixClient:
     headers = dict(args.add_headers)
     # if a PSK was defined on the command line, use it
     if args.psk:
@@ -81,7 +81,7 @@ async def new_client(args: Namespace) -> fixClient:
                     )
 
 
-async def update_auth_header(client: fixClient) -> None:
+async def update_auth_header(client: FixClient) -> None:
     if auth := client.http_client.additional_headers.get("Authorization"):
         method, token = auth.split(" ", maxsplit=1)
         ReshConfig.default().update_auth(client.http_client.url, method, token)

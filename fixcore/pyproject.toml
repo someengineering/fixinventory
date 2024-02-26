@@ -47,7 +47,7 @@ dependencies = [
     "posthog",
     "python-arango",
     "python-dateutil",
-    "resotodatalink>=1.2.0",
+    "fixdatalink",
     "resotoui",
     "rich",
     "toolz",
@@ -59,7 +59,7 @@ dependencies = [
 [project.optional-dependencies]
 
 extra = [
-    "resotodatalink[extra]"
+    "fixdatalink[extra]"
 ]
 
 test = [

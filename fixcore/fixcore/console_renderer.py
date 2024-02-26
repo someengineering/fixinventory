@@ -44,7 +44,7 @@ class ConsoleColorSystem(Enum):
 
 
 # This style is used in all consoles
-ResotoTheme = Theme(DEFAULT_STYLES)
+FixTheme = Theme(DEFAULT_STYLES)
 
 
 class ConsolePool:
@@ -71,7 +71,7 @@ class ConsolePool:
                 height=25,
                 no_color=system == ConsoleColorSystem.monochrome,
                 legacy_windows=system == ConsoleColorSystem.legacy_windows,
-                theme=ResotoTheme,
+                theme=FixTheme,
             )
         yield console
         self.consoles[system].append(console)

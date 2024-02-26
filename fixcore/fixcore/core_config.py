@@ -260,7 +260,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 "jq {fields: { "
                 'summary: "{{title}}", '
                 'issuetype: {id: "10001"}, '
-                'description: ("{{message}}" + "\\n\\n" + . + "\\n\\n" + "Issue created by Resoto"), '
+                'description: ("{{message}}" + "\\n\\n" + . + "\\n\\n" + "Issue created by Fix"), '
                 'project: {id: "{{project_id}}"}, '
                 'reporter: {id: "{{reporter_id}}"}, '
                 'labels: ["created-by-fix"]'
@@ -300,7 +300,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 # defines the fields to show in the message
                 "jq --no-rewrite [{"
                 'status: "firing", '
-                'labels: {alertname: "{{name}}", issued_by: "Resoto"}, '
+                'labels: {alertname: "{{name}}", issued_by: "Fix"}, '
                 'annotations: {summary: ("Found "+.+ " violations!"), '
                 '"description": "{{description}}"}{{#duration}}, '
                 'startAt:"@utc@", '
@@ -310,7 +310,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
             ),
             parameters=[
                 AliasTemplateParameterConfig("name", "The globally unique name of this alert."),
-                AliasTemplateParameterConfig("description", "User defined message of the post.", "Resoto Alert"),
+                AliasTemplateParameterConfig("description", "User defined message of the post.", "Fix Alert"),
                 AliasTemplateParameterConfig("duration", "The duration of this alert in alertmanager.", "3h"),
                 AliasTemplateParameterConfig("alertmanager_url", "The complete url to alertmanager."),
             ],
@@ -351,10 +351,10 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 'routing_key: "{{routing_key}}", '
                 'dedup_key: "{{dedup_key}}", '
                 'images:[{src: "https://cdn.some.engineering/assets/fix-illustrations/small/fix-alert.png", href:'
-                ' "https://inventory.fix.security/", alt: "Resoto Home Page"}], '
+                ' "https://inventory.fix.security/", alt: "Fix Home Page"}], '
                 "links:[], "
                 'event_action: "{{event_action}}", '
-                'client: "Resoto Service", '
+                'client: "Fix Service", '
                 'client_url: "https://inventory.fix.security"}\''
                 # send the event to pagerduty
                 ' | http {{webhook_url}} "Content-Type:application/json"'
@@ -368,10 +368,10 @@ def alias_templates() -> List[AliasTemplateConfig]:
                     "warning",
                 ),
                 AliasTemplateParameterConfig(
-                    "source", "The unique location of the affected system, preferably a hostname or FQDN.", "Resoto"
+                    "source", "The unique location of the affected system, preferably a hostname or FQDN.", "Fix"
                 ),
                 AliasTemplateParameterConfig(
-                    "component", "Component of the source machine that is responsible for the event.", "Resoto"
+                    "component", "Component of the source machine that is responsible for the event.", "Fix"
                 ),
                 AliasTemplateParameterConfig(
                     "routing_key",
@@ -383,7 +383,7 @@ def alias_templates() -> List[AliasTemplateConfig]:
                 ),
                 AliasTemplateParameterConfig("dedup_key", "Identifies the alert to trigger."),
                 AliasTemplateParameterConfig(
-                    "client", "The name of the monitoring client that is triggering this event.", "Resoto"
+                    "client", "The name of the monitoring client that is triggering this event.", "Fix"
                 ),
                 AliasTemplateParameterConfig(
                     "client_url",
@@ -552,7 +552,7 @@ class RuntimeConfig(ConfigObject):
         default=True,
         metadata={
             "description": "Usage metrics provide information like errors and bugs, "
-            "which we rely on to improve Resoto with every release.\n"
+            "which we rely on to improve Fix with every release.\n"
             "All metrics are anonymous. "
             "See https://inventory.fix.security/docs/edge/reference/telemetry for more information.\n"
             "Please help us by leaving this setting turned on."

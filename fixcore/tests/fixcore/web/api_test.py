@@ -12,9 +12,9 @@ from aiohttp import ClientSession, MultipartReader
 from networkx import MultiDiGraph
 from datetime import timedelta
 from fixclient import models as rc
-from resotoclient.async_client import ResotoClient
-from resotoclient.json_utils import json_loadb
-from resotoclient.models import JsObject
+from fixclient.async_client import FixClient
+from fixclient.json_utils import json_loadb
+from fixclient.models import JsObject
 from fixcore.report import ReportCheck, Benchmark
 
 from fixlib.utils import get_free_port
@@ -38,7 +38,7 @@ def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
 @fixture
 async def core_client(
     client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
-) -> AsyncIterator[ResotoClient]:
+) -> AsyncIterator[FixClient]:
     async with create_core_client(client_session, foo_kinds, db_access, None) as client:
         yield client
 
@@ -46,7 +46,7 @@ async def core_client(
 @fixture
 async def core_client_with_psk(
     client_session: ClientSession, foo_kinds: List[Kind], db_access: DbAccess
-) -> AsyncIterator[ResotoClient]:
+) -> AsyncIterator[FixClient]:
     async with create_core_client(client_session, foo_kinds, db_access, psk="test") as client:
         yield client
 
@@ -57,7 +57,7 @@ async def create_core_client(
     foo_kinds: List[Kind],
     db_access: DbAccess,
     psk: Optional[str] = None,
-) -> AsyncIterator[ResotoClient]:
+) -> AsyncIterator[FixClient]:
     """
     Note: adding this fixture to a test: a complete fixcore process is started.
           The fixture ensures that the underlying process has entered the ready state.
@@ -121,7 +121,7 @@ l1:
         count -= 1
         if count == 0:
             raise AssertionError("Process does not came up as expected")
-    async with ResotoClient(f"http://localhost:{http_port}", psk=psk) as client:
+    async with FixClient(f"http://localhost:{http_port}", psk=psk) as client:
         yield client
     # terminate the process
     process.terminate()
@@ -138,7 +138,7 @@ g = "graphtest"
 
 
 @pytest.mark.asyncio
-async def test_system_api(core_client: ResotoClient, client_session: ClientSession) -> None:
+async def test_system_api(core_client: FixClient, client_session: ClientSession) -> None:
     assert await core_client.ping() == "pong"
     assert await core_client.ready() == "ok"
     # make sure we get redirected to the api docs
@@ -151,7 +151,7 @@ async def test_system_api(core_client: ResotoClient, client_session: ClientSessi
 
 
 @pytest.mark.asyncio
-async def test_model_api(core_client: ResotoClient, client_session: ClientSession) -> None:
+async def test_model_api(core_client: FixClient, client_session: ClientSession) -> None:
     # GET /model
     assert len((await core_client.model()).kinds) >= len(predefined_kinds)
 
@@ -179,7 +179,7 @@ async def test_model_api(core_client: ResotoClient, client_session: ClientSessio
 
 
 @pytest.mark.asyncio
-async def test_graph_api(core_client: ResotoClient) -> None:
+async def test_graph_api(core_client: FixClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
         await core_client.delete_graph(g)
@@ -324,7 +324,7 @@ async def test_graph_api(core_client: ResotoClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_subscribers(core_client: ResotoClient) -> None:
+async def test_subscribers(core_client: FixClient) -> None:
     # provide a clean slate
     for subscriber in await core_client.subscribers():
         await core_client.delete_subscriber(subscriber.id)
@@ -359,7 +359,7 @@ async def test_subscribers(core_client: ResotoClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cli(core_client: ResotoClient) -> None:
+async def test_cli(core_client: FixClient) -> None:
     # make sure we have a clean slate
     with suppress(Exception):
         await core_client.delete_graph(g)
@@ -393,7 +393,7 @@ async def test_cli(core_client: ResotoClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> None:
+async def test_config(core_client: FixClient, foo_kinds: List[rc.Kind]) -> None:
     # make sure we have a clean slate
     async for config in core_client.configs():
         await core_client.delete_config(config)
@@ -475,7 +475,7 @@ async def test_config(core_client: ResotoClient, foo_kinds: List[rc.Kind]) -> No
 
 @pytest.mark.asyncio
 async def test_report(
-    core_client: ResotoClient, client_session: ClientSession, inspection_checks: List[ReportCheck], benchmark: Benchmark
+    core_client: FixClient, client_session: ClientSession, inspection_checks: List[ReportCheck], benchmark: Benchmark
 ) -> None:
     url = core_client.fixcore_url
     # get all benchmarks (predefined)
@@ -530,7 +530,7 @@ async def test_report(
 
 
 @pytest.mark.asyncio
-async def test_authorization(core_client_with_psk: ResotoClient, client_session: ClientSession) -> None:
+async def test_authorization(core_client_with_psk: FixClient, client_session: ClientSession) -> None:
     url = core_client_with_psk.fixcore_url
     # make sure all users are deleted
     await core_client_with_psk.delete_config("fix.users")

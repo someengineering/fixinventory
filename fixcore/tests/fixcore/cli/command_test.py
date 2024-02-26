@@ -927,7 +927,7 @@ async def test_jira_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple[Requ
             "summary": "test",
             "issuetype": {"id": "10001"},
             "project": {"id": "10000"},
-            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n... (results truncated)\n\nIssue created by Resoto",
+            "description": "test message\n\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\nbla: yes or no\n... (results truncated)\n\nIssue created by Fix",
             "reporter": {"id": "test"},
             "labels": ["created-by-fix"],
         }
@@ -951,9 +951,9 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
         "payload": {
             "summary": "test",
             "timestamp": "2023-02-10T15:03:33Z",
-            "source": "Resoto",
+            "source": "Fix",
             "severity": "warning",
-            "component": "Resoto",
+            "component": "Fix",
             "custom_details": {
                 "collector": {"sub_root": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
             },
@@ -964,12 +964,12 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             {
                 "src": "https://cdn.some.engineering/assets/fix-illustrations/small/fix-alert.png",
                 "href": "https://inventory.fix.security/",
-                "alt": "Resoto Home Page",
+                "alt": "Fix Home Page",
             }
         ],
         "links": [],
         "event_action": "trigger",
-        "client": "Resoto Service",
+        "client": "Fix Service",
         "client_url": "https://inventory.fix.security",
     }
 
@@ -978,7 +978,7 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
 async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
     result = await cli.execute_cli_command(f"welcome", list_sink, ctx)
-    assert "Resoto" in result[0][0]
+    assert "Fix" in result[0][0]
 
 
 @pytest.mark.asyncio

@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 def enable_compression(request: Request, response: StreamResponse) -> None:
     # The UI can not handle compressed responses. Allow compression only if requested by somebody else
-    if "resotoui-via" not in request.headers:
+    if "fixui-via" not in request.headers:
         response.enable_compression()
 
 

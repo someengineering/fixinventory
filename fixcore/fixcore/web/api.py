@@ -496,7 +496,7 @@ class Api(Service):
 
             config = await deps.config_handler.get_config(config_id, apply_overrides, resolve_env_vars)
             if config:
-                headers = {"Resoto-Config-Revision": config.revision}
+                headers = {"Fix-Config-Revision": config.revision}
                 if separate_overrides:
                     payload = {"config": config.config, "overrides": deps.config_override.get_override(config_id)}
                     if include_raw_config:
@@ -519,7 +519,7 @@ class Api(Service):
         result = await deps.config_handler.put_config(
             ConfigEntity(config_id, config), validate=validate, dry_run=dry_run
         )
-        headers = {"Resoto-Config-Revision": result.revision}
+        headers = {"Fix-Config-Revision": result.revision}
         return await single_result(request, result.config, headers)
 
     async def patch_config(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -530,7 +530,7 @@ class Api(Service):
         updated = await deps.config_handler.patch_config(
             ConfigEntity(config_id, patch), validate=validate, dry_run=dry_run
         )
-        headers = {"Resoto-Config-Revision": updated.revision}
+        headers = {"Fix-Config-Revision": updated.revision}
         return await single_result(request, updated.config, headers)
 
     async def delete_config(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1061,7 +1061,7 @@ class Api(Service):
         graph_id = GraphName(request.match_info.get("graph_id", "fix"))
         wait_for_result = request.query.get("wait_for_result", "true").lower() == "true"
         task_id: Optional[TaskId] = None
-        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+        if tid := request.headers.get("Fix-Worker-Task-Id"):
             task_id = TaskId(tid)
         log.info(
             f"Received merge_graph request for graph {graph_id}, wait_for_result={wait_for_result}, task_id={task_id}"
@@ -1076,7 +1076,7 @@ class Api(Service):
         graph_id = GraphName(request.match_info.get("graph_id", "fix"))
         wait_for_result = request.query.get("wait_for_result", "true").lower() == "true"
         task_id: Optional[TaskId] = None
-        if tid := request.headers.get("Resoto-Worker-Task-Id"):
+        if tid := request.headers.get("Fix-Worker-Task-Id"):
             task_id = TaskId(tid)
         log.info(f"Received put_sub_graph_batch request for graph {graph_id}, wait_for_result={wait_for_result}")
         db = deps.db_access.get_graph_db(graph_id)
@@ -1299,10 +1299,10 @@ class Api(Service):
     @staticmethod
     def cli_context_from_request(request: Request) -> CLIContext:
         try:
-            columns = int(request.headers.get("Resoto-Shell-Columns", "120"))
-            rows = int(request.headers.get("Resoto-Shell-Rows", "50"))
-            terminal = request.headers.get("Resoto-Shell-Terminal", "false") == "true"
-            colors = ConsoleColorSystem.from_name(request.headers.get("Resoto-Shell-Color-System", "monochrome"))
+            columns = int(request.headers.get("Fix-Shell-Columns", "120"))
+            rows = int(request.headers.get("Fix-Shell-Rows", "50"))
+            terminal = request.headers.get("Fix-Shell-Terminal", "false") == "true"
+            colors = ConsoleColorSystem.from_name(request.headers.get("Fix-Shell-Color-System", "monochrome"))
             renderer = ConsoleRenderer(width=columns, height=rows, color_system=colors, terminal=terminal)
             user = request.get("user", None)
             return CLIContext(env=dict(request.query), console_renderer=renderer, source="api", user=user)
@@ -1332,7 +1332,7 @@ class Api(Service):
             if request.content_type.startswith("text"):
                 command = (await request.text()).strip()
             elif request.content_type.startswith("multipart"):
-                command = request.headers["Resoto-Shell-Command"].strip()
+                command = request.headers["Fix-Shell-Command"].strip()
                 temp = tempfile.mkdtemp()
                 temp_dir = temp
                 files = {}

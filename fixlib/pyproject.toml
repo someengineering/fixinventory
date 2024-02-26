@@ -2,7 +2,7 @@
 name = "fixinventorylib"
 version = "4.0.0"
 authors = [{ name = "Some Engineering Inc." }]
-description = "Resoto common library."
+description = "FixInventory common library."
 license = { text = "AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
