@@ -25,17 +25,19 @@ from resotocore.async_extensions import run_async
 from resotocore.core_config import CoreConfig
 from resotocore.db.db_access import DbAccess
 from resotocore.db.deferredouteredgedb import DeferredOuterEdges
-from resotocore.db.graphdb import GraphDB
-from resotocore.db.model import GraphUpdate
+from resotocore.db.graphdb import GraphDB, HistoryChange
+from resotocore.db.model import GraphUpdate, QueryModel
 from resotocore.error import ImportAborted
 from resotocore.ids import TaskId, GraphName
 from resotocore.message_bus import MessageBus, CoreMessage
 from resotocore.model.graph_access import GraphBuilder
 from resotocore.model.model_handler import ModelHandlerDB, ModelHandler
+from resotocore.query import Query
+from resotocore.query.model import P, IsTerm
 from resotocore.service import Service
 from resotocore.system_start import db_access, setup_process, reset_process_start_method
 from resotocore.types import Json
-from resotocore.util import utc, uuid_str, shutdown_process
+from resotocore.util import utc, uuid_str, shutdown_process, value_in_path
 
 log = logging.getLogger(__name__)
 
@@ -153,6 +155,7 @@ class DbUpdaterProcess(Process):
         self.config = config
         self.change_id = change_id
         self.graph_name = graph_name
+        self.created_at = utc()
 
     def next_action(self) -> ProcessAction:
         try:
@@ -193,6 +196,24 @@ class DbUpdaterProcess(Process):
                 is_batch=nxt.is_batch,
                 preserve_parent_structure=builder.organizational_root is not None,
             )
+            # ask history if managed nodes have been deleted during this merge process
+            # note: depends on the kubernetes plugin and might fail if not present
+            try:
+                nodes_to_delete = []
+                query = Query.by(IsTerm(["managed_kubernetes_cluster"]), P("change_id").eq(self.change_id))
+                async with await graphdb.search_history(
+                    QueryModel(query, model), changes=[HistoryChange.node_deleted], after=self.created_at
+                ) as cursor:
+                    if eps := [ep async for node in cursor if (ep := value_in_path(node, ["reported", "endpoint"]))]:
+                        query = Query.by("kubernetes_cluster", P("reported.cluster_info.server_url").is_in(eps))
+                        async with await graphdb.search_list(QueryModel(query, model)) as crsr:
+                            nodes_to_delete = [node["id"] async for node in crsr]
+                for node_id in nodes_to_delete:
+                    log.info(f"Managed node has been deleted. Delete related sub-graph: {node_id}.")
+                    await graphdb.delete_node(node_id, model, keep_history=False)
+            except Exception:
+                log.warning("Failed to delete managed nodes. Ignore", exc_info=True)
+
             # sizes of model entries have been adjusted during the merge. Update the model in the db.
             await model_handler.update_model(graphdb.name, list(model.kinds.values()), False)
             if nxt.task_id and builder.deferred_edges:

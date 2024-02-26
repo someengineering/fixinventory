@@ -83,15 +83,15 @@ class CollectRun:
     def __exit__(
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> Optional[bool]:
-        if self.pool_executor:
-            log.debug("Stopping executor")
-            self.pool_executor.__exit__(exc_type, exc_val, exc_tb)
         log.debug("Telling graph sender threads to end")
         if self.graph_queue:
             for _ in self.graph_sender_threads:
                 self.graph_queue.put(None)
             for t in self.graph_sender_threads:
                 t.join(300)
+        if self.pool_executor:
+            log.debug("Stopping executor")
+            self.pool_executor.__exit__(exc_type, exc_val, exc_tb)
         self.mp_manager.shutdown()
         if not self.config.resotoworker.debug_dump_json:
             rmtree(self.tempdir, ignore_errors=True)
@@ -103,6 +103,7 @@ class CollectRun:
         while self.futures_to_wait_for or not self.graph_queue.empty():
             for future in futures.as_completed(self.futures_to_wait_for.copy()):
                 self.futures_to_wait_for.remove(future)
+        log.info("Collect done. tearing down.")
 
     def __graph_sender(self, graph_queue: Queue[Optional[Graph]], task_id: TaskId, tempdir: str) -> None:
         log.debug("Waiting for collector graphs")

@@ -1270,8 +1270,12 @@ class BaseManagedKubernetesCluster(BaseResource):
     kind_display: ClassVar[str] = "ManagedKubernetesCluster"
     kind_description: ClassVar[str] = "A managed kubernetes cluster."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
+    version: Optional[str] = field(default=None, metadata={"description": "The kubernetes version"})
+    endpoint: Optional[str] = field(default=None, metadata={"description": "The kubernetes API endpoint"})
 
     # Valid kubeconfig to access this managed cluster.
+    # This config is ephemeral and not available in the exported graph.
+    # Once it is defined, it is used to collect the cluster information.
     _kubeconfig: Optional[str] = None
 
     @property

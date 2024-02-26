@@ -1,4 +1,6 @@
 import logging
+import re
+
 import math
 from pprint import pformat
 from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast, DefaultDict
@@ -833,7 +835,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": "id",
                 "urn": lambda c: kubernetes_id(c["id"]),
-                "k8s_version": "version",
+                "version": "version",
                 "k8s_cluster_subnet": "cluster_subnet",
                 "k8s_service_subnet": "service_subnet",
                 "ipv4_address": "ipv4",
@@ -862,7 +864,9 @@ class DigitalOceanTeamCollector:
         for node in self.graph.nodes:
             if isinstance(node, DigitalOceanKubernetesCluster):
                 try:
-                    node._kubeconfig = self.client.get_kubeconfig_for(cluster_id=node.id)
+                    kubeconf = self.client.get_kubeconfig_for(cluster_id=node.id)
+                    # digitalocean prepends the name with do-<region>- so we remove it
+                    node._kubeconfig = re.sub("\\bdo-[^-]+-", "", kubeconf)
                 except Exception as e:
                     log.warning(f"Failed to get kubeconfig for cluster {node}: {e}")
 

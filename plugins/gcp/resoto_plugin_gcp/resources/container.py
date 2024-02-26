@@ -412,9 +412,9 @@ class GcpContainerTimeWindow:
 class GcpContainerRecurringTimeWindow:
     kind: ClassVar[str] = "gcp_container_recurring_time_window"
     kind_display: ClassVar[str] = "GCP Container Recurring Time Window"
-    kind_description: ClassVar[str] = (
-        "Container Recurring Time Window defines the schedule for regular maintenance operations."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Container Recurring Time Window defines the schedule for regular maintenance operations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "recurrence": S("recurrence"),
         "window": S("window", default={}) >> Bend(GcpContainerTimeWindow.mapping),
@@ -702,9 +702,9 @@ class GcpContainerNodePoolLoggingConfig:
 class GcpContainerReservationAffinity:
     kind: ClassVar[str] = "gcp_container_reservation_affinity"
     kind_display: ClassVar[str] = "GCP Container Reservation Affinity"
-    kind_description: ClassVar[str] = (
-        "Container Reservation Affinity is a setting that controls how instances are scheduled on reservations."
-    )
+    kind_description: ClassVar[
+        str
+    ] = "Container Reservation Affinity is a setting that controls how instances are scheduled on reservations."
     mapping: ClassVar[Dict[str, Bender]] = {
         "consume_reservation_type": S("consumeReservationType"),
         "key": S("key"),
@@ -1124,6 +1124,7 @@ class GcpContainerCluster(BaseManagedKubernetesCluster, GcpResource):
         "cost_management_config": S("costManagementConfig", "enabled"),
         "create_time": S("createTime"),
         "current_master_version": S("currentMasterVersion"),
+        "version": S("currentMasterVersion"),
         "current_node_count": S("currentNodeCount"),
         "current_node_version": S("currentNodeVersion"),
         "database_encryption": S("databaseEncryption", default={}) >> Bend(GcpContainerDatabaseEncryption.mapping),
@@ -1192,7 +1193,6 @@ class GcpContainerCluster(BaseManagedKubernetesCluster, GcpResource):
     default_max_pods_constraint: Optional[str] = field(default=None)
     enable_kubernetes_alpha: Optional[bool] = field(default=None)
     enable_tpu: Optional[bool] = field(default=None)
-    endpoint: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     expire_time: Optional[datetime] = field(default=None)
     identity_service_config: Optional[bool] = field(default=None)

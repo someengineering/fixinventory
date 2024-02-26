@@ -421,8 +421,8 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesCluster, AwsResource):
         "name": S("name"),
         "arn": S("arn"),
         "ctime": S("createdAt"),
-        "cluster_version": S("version"),
-        "cluster_endpoint": S("endpoint"),
+        "version": S("version"),
+        "endpoint": S("endpoint"),
         "cluster_role_arn": S("roleArn"),
         "cluster_resources_vpc_config": S("resourcesVpcConfig") >> Bend(AwsEksVpcConfigResponse.mapping),
         "cluster_kubernetes_network_config": S("kubernetesNetworkConfig")
@@ -436,8 +436,6 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesCluster, AwsResource):
         "cluster_encryption_config": S("encryptionConfig", default=[]) >> ForallBend(AwsEksEncryptionConfig.mapping),
         "cluster_connector_config": S("connectorConfig") >> Bend(AwsEksConnectorConfig.mapping),
     }
-    cluster_version: Optional[str] = field(default=None)
-    cluster_endpoint: Optional[str] = field(default=None)
     cluster_role_arn: Optional[str] = field(default=None)
     cluster_resources_vpc_config: Optional[AwsEksVpcConfigResponse] = field(default=None)
     cluster_kubernetes_network_config: Optional[AwsEksKubernetesNetworkConfigResponse] = field(default=None)

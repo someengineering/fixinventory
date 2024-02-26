@@ -890,9 +890,9 @@ class ArangoGraphDB(GraphDB):
             for a in EdgeTypes.all
         ]
         history_updates = [
-            f'for e in {temp_name} filter e.action=="node_created" and e.data.history==true insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created}}, UNSET(e.data, "_key", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_updated" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated, before: node.reported}}, UNSET(e.data, "_key", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
-            f'for e in {temp_name} filter e.action=="node_deleted" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_created" and e.data.history==true insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.created, change_id: "{change_id}"}}, UNSET(e.data, "_key", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_updated" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: e.data._key, change: e.action, changed_at: e.data.updated, change_id: "{change_id}", before: node.reported}}, UNSET(e.data, "_key", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
+            f'for e in {temp_name} filter e.action=="node_deleted" and e.data.history==true let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) insert MERGE({{id: node._key, change: "node_deleted", deleted: e.data.deleted, changed_at: e.data.deleted, change_id: "{change_id}"}}, UNSET(node, "_key", "_id", "_rev", "flat", "hash", "hist_hash", "history")) in {self.node_history}',  # noqa: E501
         ]
         usage_updates = [
             f'for u in {self.usage_db.collection_name} filter u.change_id=="{change_id}" update {{_key: u.id}} with {{ usage: MERGE(u.v, {{ start: DATE_ISO8601(u.at*1000), duration: "1h" }}) }} in {self.vertex_name} options {{ mergeObjects: false }}'  # noqa: E501
