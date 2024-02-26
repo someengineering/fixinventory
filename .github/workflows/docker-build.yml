@@ -75,13 +75,13 @@ jobs:
           echo ${{ steps.platform.outputs.uitag }}
           echo ${{ steps.platform.outputs.latest }}
 
-      - name: Docker resotobase meta
+      - name: Docker fixinventorybase meta
         id: basemeta
         uses: docker/metadata-action@v4
         with:
           images: |
-            someengineering/resotobase
-            ghcr.io/someengineering/resotobase
+            someengineering/fixinventorybase
+            ghcr.io/someengineering/fixinventorybase
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
@@ -91,16 +91,18 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=resotobase
-            org.opencontainers.image.description=Resoto base image
+            org.opencontainers.image.title=fixinventorybase
+            org.opencontainers.image.description=Fix Inventory base image
             org.opencontainers.image.vendor=Some Engineering Inc.
 
-      - name: Docker resotocore meta
+      - name: Docker fixcore meta
         if: github.event_name != 'pull_request'
         id: coremeta
         uses: docker/metadata-action@v4
-        with:
+        with: # todo: remove resotocore before tagging 4.0
           images: |
+            someengineering/fixcore
+            ghcr.io/someengineering/fixcore
             someengineering/resotocore
             ghcr.io/someengineering/resotocore
           flavor: |
@@ -112,16 +114,18 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=resotocore
-            org.opencontainers.image.description=Resoto Core
+            org.opencontainers.image.title=fixcore
+            org.opencontainers.image.description=Fix Inventory Core
             org.opencontainers.image.vendor=Some Engineering Inc.
 
-      - name: Docker resotoworker meta
+      - name: Docker fixworker meta
         if: github.event_name != 'pull_request'
         id: workermeta
         uses: docker/metadata-action@v4
-        with:
+        with: # todo: remove resotoworker before tagging 4.0
           images: |
+            someengineering/fixworker
+            ghcr.io/someengineering/fixworker
             someengineering/resotoworker
             ghcr.io/someengineering/resotoworker
           flavor: |
@@ -133,18 +137,18 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=resotoworker
-            org.opencontainers.image.description=Resoto Worker
+            org.opencontainers.image.title=fixworker
+            org.opencontainers.image.description=Fix Inventory Worker
             org.opencontainers.image.vendor=Some Engineering Inc.
 
-      - name: Docker resotometrics meta
+      - name: Docker fixmetrics meta
         if: github.event_name != 'pull_request'
         id: metricsmeta
         uses: docker/metadata-action@v4
         with:
           images: |
-            someengineering/resotometrics
-            ghcr.io/someengineering/resotometrics
+            someengineering/fixmetrics
+            ghcr.io/someengineering/fixmetrics
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
@@ -154,20 +158,18 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=resotometrics
-            org.opencontainers.image.description=Resoto Metrics
+            org.opencontainers.image.title=fixmetrics
+            org.opencontainers.image.description=Fix Inventory Metrics
             org.opencontainers.image.vendor=Some Engineering Inc.
 
-      - name: Docker resotoshell meta
+      - name: Docker fixshell meta
         if: github.event_name != 'pull_request'
         id: shellmeta
         uses: docker/metadata-action@v4
         with:
           images: |
-            someengineering/resotoshell
-            someengineering/resh
-            ghcr.io/someengineering/resotoshell
-            ghcr.io/someengineering/resh
+            someengineering/fixshell
+            ghcr.io/someengineering/fixshell
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
@@ -177,8 +179,8 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=resotoshell
-            org.opencontainers.image.description=Resoto Shell (resh)
+            org.opencontainers.image.title=fixshell
+            org.opencontainers.image.description=Fix Inventory Shell (fixsh)
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Set up QEMU
@@ -206,11 +208,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push resotobase Docker image
+      - name: Build and push fixinventorybase Docker image
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.resotobase
+          file: ./Dockerfile.fixinventorybase
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
@@ -221,12 +223,12 @@ jobs:
           labels: ${{ steps.basemeta.outputs.labels }}
           provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
-      - name: Build and push resotocore Docker image
+      - name: Build and push fixcore Docker image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.resotocore
+          file: ./Dockerfile.fixcore
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
@@ -235,12 +237,12 @@ jobs:
           labels: ${{ steps.coremeta.outputs.labels }}
           provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
-      - name: Build and push resotoworker Docker image
+      - name: Build and push fixworker Docker image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.resotoworker
+          file: ./Dockerfile.fixworker
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
@@ -249,12 +251,12 @@ jobs:
           labels: ${{ steps.workermeta.outputs.labels }}
           provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
-      - name: Build and push resotometrics Docker image
+      - name: Build and push fixmetrics Docker image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.resotometrics
+          file: ./Dockerfile.fixmetrics
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
@@ -263,12 +265,12 @@ jobs:
           labels: ${{ steps.metricsmeta.outputs.labels }}
           provenance: false # Temporary workaround for https://github.com/docker/buildx/issues/1533
 
-      - name: Build and push resotoshell Docker image
+      - name: Build and push fixshell Docker image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.resotoshell
+          file: ./Dockerfile.fixshell
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
@@ -309,7 +311,7 @@ jobs:
           echo "Use short SHA: $short_sha"
           # update the tag
           cd setup-infra
-          yq eval ".images[] |= select(.name == \"someengineering/resotocore\").newTag |= \"${short_sha}\"" -i argocd/envs/dev/inventory/kustomization.yaml
+          yq eval ".images[] |= select(.name == \"someengineering/fixcore\").newTag |= \"${short_sha}\"" -i argocd/envs/dev/inventory/kustomization.yaml
           git add .
           git commit -m "Bump fix-inventory on dev to ${short_sha}" || true
           git push origin main

@@ -82,6 +82,7 @@ test = [
 
 
 [project.scripts]
+fixcore = "resotocore.__main__:main"
 resotocore = "resotocore.__main__:main"
 
 [build-system]

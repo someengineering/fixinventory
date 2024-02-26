@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+fixworker = "resotoworker.__main__:main"
 resotoworker = "resotoworker.__main__:main"
 
 [project.urls]
