@@ -17,7 +17,7 @@ from typing import List, Optional, Type, Set, Any, Dict, Tuple
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
-from resotolib.baseplugin import BaseCollectorPlugin, BaseDetectCollectorPlugin
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import GraphRoot, BaseCloud, BaseAccount, BaseResource
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
@@ -148,16 +148,6 @@ class CollectRun:
                 self.resotocore.send_to_resotocore(graph, task_id, tempdir)
             except Exception as e:
                 log.error(f"Error sending graph of {graph_info} to resotocore: {e}")
-
-            # check if other collects can be detected based on the current graph
-            if to_collects := [
-                to_collect
-                for collector in self.collectors
-                if issubclass(collector, BaseDetectCollectorPlugin)
-                for to_collect in collector.detect_collects(graph, Path(self.tempdir))
-            ]:
-                log.info(f"Detected nested collect: {to_collects}")
-                self.__collect_all(to_collects, GraphMergeKind.account)
 
             # delete the graph
             del graph

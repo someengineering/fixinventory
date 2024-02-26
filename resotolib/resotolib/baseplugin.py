@@ -280,17 +280,3 @@ class BaseCollectorPlugin(BasePlugin):
         if not isinstance(graph, Graph):
             raise TypeError(f"Unable to send graph - expected type Graph, got {type(graph)}")
         self._graph_queue.put(graph)
-
-
-class BaseDetectCollectorPlugin(BaseCollectorPlugin, ABC):
-    """
-    A collector plugin that is able to detect collectable resources in a graph.
-    Example: The KubernetesCollectorPlugin is able to collect kubernetes clusters.
-             AWS, GCP, Azure etc. have managed kubernetes clusters.
-             Once resources have been collected, the KubernetesCollectorPlugin will look for
-             Managed Clusters that are collectable.
-    """
-
-    @staticmethod
-    def detect_collects(graph: Graph, temp_dir: Path) -> Iterator[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]]:
-        return iter([])

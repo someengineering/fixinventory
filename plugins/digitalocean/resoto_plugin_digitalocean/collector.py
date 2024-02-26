@@ -861,14 +861,6 @@ class DigitalOceanTeamCollector:
             successors={EdgeType.default: ["__nodes"], EdgeType.delete: ["__nodes"]},
             predecessors={EdgeType.default: ["__vpcs"], EdgeType.delete: ["__vpcs"]},
         )
-        for node in self.graph.nodes:
-            if isinstance(node, DigitalOceanKubernetesCluster):
-                try:
-                    kubeconf = self.client.get_kubeconfig_for(cluster_id=node.id)
-                    # digitalocean prepends the name with do-<region>- so we remove it
-                    node._kubeconfig = re.sub("\\bdo-[^-]+-", "", kubeconf)
-                except Exception as e:
-                    log.warning(f"Failed to get kubeconfig for cluster {node}: {e}")
 
     @metrics_collect_snapshots.time()
     def collect_snapshots(self) -> None:

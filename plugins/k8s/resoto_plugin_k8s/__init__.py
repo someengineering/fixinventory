@@ -16,7 +16,7 @@ from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.base import K8sConfig
 from resoto_plugin_k8s.deferred_edges import create_deferred_edges
 from resotolib.args import ArgumentParser, Namespace
-from resotolib.baseplugin import BaseCollectorPlugin, BaseDetectCollectorPlugin
+from resotolib.baseplugin import BaseCollectorPlugin
 from resotolib.baseresources import BaseManagedKubernetesCluster
 from resotolib.config import Config, RunningConfig
 from resotolib.core.actions import CoreFeedback
@@ -25,12 +25,11 @@ from resotolib.graph import Graph
 log = logging.getLogger("resoto.plugins.k8s")
 
 
-class KubernetesCollectorPlugin(BaseDetectCollectorPlugin):
+class KubernetesCollectorPlugin(BaseCollectorPlugin):
     cloud = "k8s"
 
-    def __init__(self, k8s_config: Optional[K8sConfig] = None, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.k8s_config = k8s_config
         # once defined, it will be set by the worker
         self.core_feedback: Optional[CoreFeedback] = None
 
@@ -38,9 +37,7 @@ class KubernetesCollectorPlugin(BaseDetectCollectorPlugin):
         log.debug("plugin: Kubernetes collecting resources")
         assert self.core_feedback, "core_feedback is not set"
 
-        if self.k8s_config:
-            log.info("Do not use the worker configuration, but the dynamically passed config!")
-        k8s: K8sConfig = self.k8s_config or Config.k8s
+        k8s: K8sConfig = Config.k8s
         with TemporaryDirectory() as tmpdir:
             cluster_access = k8s.cluster_access_configs(tmpdir, self.core_feedback)
 
@@ -76,18 +73,6 @@ class KubernetesCollectorPlugin(BaseDetectCollectorPlugin):
                         log.error(f"Skipping invalid cluster_graph {type(cluster_graph)}")
                         continue
                     self.send_account_graph(cluster_graph)
-
-    @staticmethod
-    def detect_collects(graph: Graph, temp_dir: Path) -> Iterator[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]]:
-        configs: List[K8sConfigFile] = []
-        for node in graph.nodes:
-            if isinstance(node, BaseManagedKubernetesCluster) and node.kubeconfig is not None:
-                path = temp_dir / node.chksum
-                with open(path, "w") as f:
-                    f.write(node.kubeconfig)
-                configs.append(K8sConfigFile(str(path.resolve().absolute())))
-        if len(configs) > 0:
-            yield KubernetesCollectorPlugin, dict(k8s_config=K8sConfig(config_files=configs))
 
     @staticmethod
     def collect_cluster(
