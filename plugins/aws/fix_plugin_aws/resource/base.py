@@ -38,7 +38,7 @@ from fixlib.lock import RWLock
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from resotodata.cloud import instances as cloud_instance_data
+from fixinventorydata.cloud import instances as cloud_instance_data
 
 log = logging.getLogger("fix.plugins.aws")
 
