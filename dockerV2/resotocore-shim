@@ -1,5 +1,5 @@
 #!/bin/bash
-. /usr/local/etc/resoto/defaults
-. /usr/local/resoto-venv-python3/bin/activate
+. /usr/local/etc/fixinventory/defaults
+. /usr/local/fix-venv-python3/bin/activate
 export RESOTOCORE_PSK
-exec resotocore "$@"
+exec fixcore "$@"
