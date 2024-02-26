@@ -1,0 +1,147 @@
+# This is the Fix Inventory base container. It includes CPython and is used
+# as the common base for all the other containers.
+FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
+FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
+
+FROM someengineering/fixpython:1.0.5 as build-env
+ENV DEBIAN_FRONTEND=noninteractive
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TESTS
+ARG SOURCE_COMMIT
+
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
+
+# Prepare whl build env
+RUN mkdir -p /build /build-python
+
+# Build Resoto
+COPY requirements-extra.txt /usr/src/requirements-extra.txt
+COPY resotolib /usr/src/fixlib
+COPY resotocore /usr/src/fixcore
+COPY resotoworker /usr/src/fixworker
+COPY resotometrics /usr/src/fixmetrics
+COPY resotoshell /usr/src/fixshell
+COPY plugins /usr/src/plugins
+
+WORKDIR /usr/src/fixcore
+RUN /usr/local/python/bin/python3 -m venv /build/jupyterlite-venv-python3
+RUN . /build/jupyterlite-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
+RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build --config jupyter_lite_config.json
+
+# Build binary wheels
+WORKDIR /usr/src
+RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
+RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
+
+# Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
+WORKDIR /tmp/arangodb
+RUN mkdir -p /tmp/arangodb/amd64 /tmp/arangodb/arm64
+COPY --from=arangodb-amd64-env /usr/bin/arangodump /tmp/arangodb/amd64/
+COPY --from=arangodb-amd64-env /usr/bin/arangorestore /tmp/arangodb/amd64/
+COPY --from=arangodb-arm64-env /usr/bin/arangodump /tmp/arangodb/arm64/
+COPY --from=arangodb-arm64-env /usr/bin/arangorestore /tmp/arangodb/arm64/
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        cp /tmp/arangodb/amd64/* /usr/local/bin/; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        cp /tmp/arangodb/arm64/* /usr/local/bin/; \
+    else \
+        echo "Building for unknown platform - not copying ArangoDB client binaries"; \
+    fi
+
+# Download AWS CLI
+WORKDIR /build/awscli
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        export AWSCLI_ARCH=x86_64; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        export AWSCLI_ARCH=aarch64; \
+    else \
+        export AWSCLI_ARCH=x86_64; \
+    fi; \
+    curl -L -o /tmp/awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip
+RUN unzip /tmp/awscliv2.zip
+RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
+
+# Copy image config and startup files
+WORKDIR /usr/src/resoto
+COPY dockerV2/defaults /usr/local/etc/fixinventory/defaults
+COPY dockerV2/common /usr/local/etc/fixinventory/common
+COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
+COPY dockerV2/postflight /usr/local/sbin/postflight
+COPY dockerV2/fixsh-shim /usr/local/bin/fixsh-shim
+COPY dockerV2/fixsh-wait /usr/local/bin/fixsh-wait
+COPY dockerV2/fixcore-shim /usr/local/bin/fixcore-shim
+COPY dockerV2/fixworker-shim /usr/local/bin/fixworker-shim
+COPY dockerV2/fixmetrics-shim /usr/local/bin/fixmetrics-shim
+RUN chmod 755 \
+    /usr/local/sbin/bootstrap \
+    /usr/local/sbin/postflight \
+    /usr/local/bin/fixsh-shim \
+    /usr/local/bin/fixcore-shim \
+    /usr/local/bin/fixworker-shim \
+    /usr/local/bin/fixmetrics-shim
+RUN if [ "${TESTS:-false}" = true ]; then \
+        shellcheck -a -x -s bash -e SC2034 \
+            /usr/local/sbin/bootstrap \
+        ; \
+    fi
+COPY dockerV2/dnsmasq.conf /usr/local/etc/dnsmasq.conf
+RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
+
+
+# Setup main image
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG="en_US.UTF-8"
+ENV TERM="xterm-256color"
+ENV COLORTERM="truecolor"
+ENV EDITOR="vim"
+ENV RESOTOSHELL_DOWNLOAD_DIRECTORY="/home/fixinventory/downloads"
+COPY --from=build-env /usr/local /usr/local
+ENV PATH=/usr/local/python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WORKDIR /
+RUN groupadd -g "${PGID:-0}" -o fixinventory \
+    && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home fixinventory \
+    && apt-get update \
+    && apt-get -y --no-install-recommends install apt-utils \
+    && apt-get -y dist-upgrade \
+    && apt-get -y --no-install-recommends install \
+        dumb-init \
+        iproute2 \
+        dnsmasq \
+        libffi7 \
+        openssl \
+        procps \
+        dateutils \
+        curl \
+        jq \
+        cron \
+        ca-certificates \
+        openssh-client \
+        locales \
+        unzip \
+        nano \
+        nvi \
+        vim \
+        joe \
+    && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
+    && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+    && mkdir -p /var/run/fixinventory /home/fixinventory/downloads \
+    && rm -f /bin/sh \
+    && ln -s /bin/bash /bin/sh \
+    && locale-gen \
+    && /usr/local/sbin/postflight \
+    && ln -s /usr/local/bin/fixsh-shim /usr/bin/fixsh \
+    && ln -s /usr/local/bin/fixcore-shim /usr/bin/fixcore \
+    && ln -s /usr/local/bin/fixworker-shim /usr/bin/fixworker \
+    && ln -s /usr/local/bin/fixmetrics-shim /usr/bin/fixmetrics \
+    && ln -s /usr/local/bin/fixsh-shim /usr/bin/resh \
+    && ln -s /usr/local/bin/fixcore-shim /usr/bin/resotocore \
+    && ln -s /usr/local/bin/fixworker-shim /usr/bin/resotoworker \
+    && ln -s /usr/local/bin/fixmetrics-shim /usr/bin/resotometrics \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
+CMD ["/bin/bash"]
