@@ -1,0 +1,27 @@
+{
+    "value": [
+      {
+        "id": "/subscriptions/subid1/resourcegroups/rg1/providers/Microsoft.ContainerService/fleets/fleet1",
+        "name": "fleet-1",
+        "properties": {
+          "provisioningState": "Succeeded"
+        },
+        "type": "Microsoft.ContainerService/fleets",
+        "systemData": {
+          "createdBy": "someUser",
+          "createdByType": "User",
+          "createdAt": "2022-03-23T05:40:40.657Z",
+          "lastModifiedBy": "someOtherUser",
+          "lastModifiedByType": "User",
+          "lastModifiedAt": "2022-03-23T05:40:40.657Z"
+        },
+        "tags": {
+          "tier": "production",
+          "archv2": ""
+        },
+        "location": "East US",
+        "eTag": "23ujdflewrj3="
+      }
+    ],
+    "nextLink": null
+  }

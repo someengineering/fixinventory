@@ -1,4 +1,4 @@
-from typing import Callable, ClassVar, Dict, Optional, List, Type
+from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
 
 from attr import define, field
 
@@ -12,6 +12,8 @@ from resoto_plugin_azure.resource.base import (
     AzurePrincipalidClientid,
     AzurePrivateLinkServiceConnectionState,
 )
+from resoto_plugin_azure.resource.containerservice import AzureManagedCluster
+from resoto_plugin_azure.utils import rgetattr
 from resotolib.baseresources import (
     BaseGateway,
     BaseFirewall,
@@ -991,9 +993,6 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "authentication_certificates": S("properties", "authenticationCertificates")
         >> ForallBend(AzureApplicationGatewayAuthenticationCertificate.mapping),
         "autoscale_configuration": S("properties", "autoscaleConfiguration")
@@ -1152,9 +1151,6 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "provisioning_state": S("properties", "provisioningState"),
         "rule_groups": S("properties", "ruleGroups") >> ForallBend(AzureApplicationGatewayFirewallRuleGroup.mapping),
         "rule_set_type": S("properties", "ruleSetType"),
@@ -1184,9 +1180,6 @@ class AzureAvailableServiceAlias(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource_name": S("resourceName"),
     }
     resource_name: Optional[str] = field(default=None, metadata={'description': 'The resource name of the service alias.'})  # fmt: skip
@@ -1409,9 +1402,6 @@ class AzureFirewall(AzureResource, BaseFirewall):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "additional_properties": S("properties", "additionalProperties"),
         "application_rule_collections": S("properties", "applicationRuleCollections")
         >> ForallBend(AzureFirewallApplicationRuleCollection.mapping),
@@ -1476,9 +1466,6 @@ class AzureFirewallFqdnTag(AzureResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "fqdn_tag_name": S("properties", "fqdnTagName"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -1504,9 +1491,6 @@ class AzureWebCategory(AzureResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "properties": S("properties", "group"),
     }
@@ -1562,9 +1546,6 @@ class AzureBastionHost(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "disable_copy_paste": S("properties", "disableCopyPaste"),
         "dns_name": S("properties", "dnsName"),
         "enable_file_copy": S("properties", "enableFileCopy"),
@@ -1623,9 +1604,6 @@ class AzureCustomIpPrefix(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "asn": S("properties", "asn"),
         "authorization_message": S("properties", "authorizationMessage"),
         "child_custom_ip_prefixes": S("properties") >> S("childCustomIpPrefixes", default=[]) >> ForallBend(S("id")),
@@ -1682,9 +1660,6 @@ class AzureDdosProtectionPlan(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id")),
@@ -1885,9 +1860,6 @@ class AzureNetworkSecurityGroup(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "default_security_rules": S("properties", "defaultSecurityRules") >> ForallBend(AzureSecurityRule.mapping),
         "etag": S("etag"),
         "flow_logs": S("properties", "flowLogs") >> ForallBend(AzureFlowLog.mapping),
@@ -2089,9 +2061,6 @@ class AzureNatGateway(AzureResource):
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
         "location": S("location"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -2135,9 +2104,6 @@ class AzurePublicIPAddress(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "ddos_settings": S("properties", "ddosSettings") >> Bend(AzureDdosSettings.mapping),
         "delete_option": S("properties", "deleteOption"),
         "ip_dns_settings": S("properties", "dnsSettings") >> Bend(AzurePublicIPAddressDnsSettings.mapping),
@@ -2299,6 +2265,7 @@ class AzureSubnet(AzureResource):
             "default": [
                 "azure_nat_gateway",
                 "azure_network_security_group",
+                # "azure_fleet",
             ]
         },
     }
@@ -2306,9 +2273,6 @@ class AzureSubnet(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "address_prefix": S("properties", "addressPrefix"),
         "address_prefixes": S("properties", "addressPrefixes"),
         "application_gateway_ip_configurations": S("properties", "applicationGatewayIPConfigurations")
@@ -2367,6 +2331,8 @@ class AzureSubnet(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
         if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
+        # if (group_name := self.resource_group_name()) and (group_name != ""):
+        #     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFleet, resource_group=group_name)
 
 
 @define(eq=False, slots=False)
@@ -2424,9 +2390,6 @@ class AzureVirtualNetworkTap(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "destination_load_balancer_front_end_ip_configuration": S(
             "properties", "destinationLoadBalancerFrontEndIPConfiguration"
         )
@@ -2630,9 +2593,6 @@ class AzurePrivateLinkService(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "alias": S("properties", "alias"),
         "auto_approval": S("properties", "autoApproval") >> Bend(AzureResourceSet.mapping),
         "enable_proxy_protocol": S("properties", "enableProxyProtocol"),
@@ -2693,9 +2653,6 @@ class AzureNetworkInterface(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "auxiliary_mode": S("properties", "auxiliaryMode"),
         "auxiliary_sku": S("properties", "auxiliarySku"),
         "disable_tcp_state_tracking": S("properties", "disableTcpStateTracking"),
@@ -2788,9 +2745,6 @@ class AzureDscpConfiguration(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces", default=[])
         >> ForallBend(S("id")),
         "destination_ip_ranges": S("properties", "destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
@@ -2822,25 +2776,32 @@ class AzureDscpConfiguration(AzureResource):
     source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        nic_id: Callable[[AzureNetworkInterface], str] = lambda n: n.id or ""
+        if network_interfaces := self._associated_network_interface_ids:
+            nis_and_subnet_id = self._get_nic_id_and_subnet_ids(builder)
 
-        ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+            if ni_ids_and_s_id := nis_and_subnet_id:
+                for network_interface_id in network_interfaces:
+                    for info in ni_ids_and_s_id:
+                        ni_id, subnet_ids = info
+                        for subnet_id in subnet_ids:
+                            if network_interface_id == ni_id:
+                                builder.add_edge(
+                                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
+                                )
+
+    def _get_nic_id_and_subnet_ids(self, builder: GraphBuilder) -> List[Tuple[str, List[str]]]:
+        get_nic_id: Callable[[AzureNetworkInterface], str] = lambda interface: interface.id or ""
+
+        get_ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
             ip_config._subnet_id
-            for ip_config in n.interface_ip_configurations or []
+            for ip_config in interface.interface_ip_configurations or []
             if ip_config._subnet_id is not None
         ]
 
-        nis_and_subnet_id = [(nic_id(n), ip_conf_subnet_ids(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
-
-        if (network_interfaces := self._associated_network_interface_ids) and (ni_ids_and_s_id := nis_and_subnet_id):
-            for network_interface_id in network_interfaces:
-                for info in ni_ids_and_s_id:
-                    ni_id, subnet_ids = info
-                    for subnet_id in subnet_ids:
-                        if network_interface_id == ni_id:
-                            builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
-                            )
+        return [
+            (get_nic_id(interface), get_ip_conf_subnet_ids(interface))
+            for interface in builder.nodes(clazz=AzureNetworkInterface)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -3067,9 +3028,6 @@ class AzureExpressRouteCircuit(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allow_classic_operations": S("properties", "allowClassicOperations"),
         "authorization_key": S("properties", "authorizationKey"),
         "authorization_status": S("properties", "authorizationStatus"),
@@ -3111,27 +3069,29 @@ class AzureExpressRouteCircuit(AzureResource):
     stag: Optional[int] = field(default=None, metadata={'description': 'The identifier of the circuit traffic. Outer tag for QinQ encapsulation.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        aerpl_name: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.name or ""
-
-        aerpl_id: Callable[[AzureExpressRoutePortsLocation], str] = lambda n: n.id or ""
-
-        ids_and_names_in_resource = [
-            (aerpl_name(n), aerpl_id(n)) for n in builder.nodes(clazz=AzureExpressRoutePortsLocation)
-        ]
-
         if route_port_id := self.express_route_port:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureExpressRoutePort, id=route_port_id)
-        if (
-            (provider_properties := self.service_provider_properties)
-            and (location_name := provider_properties.peering_location)
-            and (names_and_ids := ids_and_names_in_resource)
+        if (provider_properties := self.service_provider_properties) and (
+            location_name := provider_properties.peering_location
         ):
-            for info in names_and_ids:
-                erplocation, erplocation_id = info
-                if erplocation == location_name:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureExpressRoutePortsLocation, id=erplocation_id
-                    )
+            ids_and_names_in_resource = self._get_aerpl_name_and_id(builder)
+
+            if names_and_ids := ids_and_names_in_resource:
+                for info in names_and_ids:
+                    erplocation, erplocation_id = info
+                    if erplocation == location_name:
+                        builder.add_edge(
+                            self, edge_type=EdgeType.default, clazz=AzureExpressRoutePortsLocation, id=erplocation_id
+                        )
+
+    def _get_aerpl_name_and_id(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+        get_aerpl_name: Callable[[AzureExpressRoutePortsLocation], str] = lambda location: location.name or ""
+        get_aerpl_id: Callable[[AzureExpressRoutePortsLocation], str] = lambda location: location.id or ""
+
+        return [
+            (get_aerpl_name(location), get_aerpl_id(location))
+            for location in builder.nodes(clazz=AzureExpressRoutePortsLocation)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -3193,9 +3153,6 @@ class AzureExpressRouteCrossConnection(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "bandwidth_in_mbps": S("properties", "bandwidthInMbps"),
         "etag": S("etag"),
         "express_route_circuit": S("properties", "expressRouteCircuit", "id"),
@@ -3342,9 +3299,6 @@ class AzureExpressRouteGateway(AzureResource, BaseGateway):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allow_non_virtual_wan_traffic": S("properties", "allowNonVirtualWanTraffic"),
         "auto_scale_configuration": S("properties", "autoScaleConfiguration") >> Bend(AzureBounds.mapping),
         "etag": S("etag"),
@@ -3421,9 +3375,6 @@ class AzureExpressRoutePort(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allocation_date": S("properties", "allocationDate"),
         "bandwidth_in_gbps": S("properties", "bandwidthInGbps"),
         "billing_type": S("properties", "billingType"),
@@ -3479,9 +3430,6 @@ class AzureExpressRoutePortsLocation(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "address": S("properties", "address"),
         "available_bandwidths": S("properties", "availableBandwidths")
         >> ForallBend(AzureExpressRoutePortsLocationBandwidths.mapping),
@@ -3667,9 +3615,6 @@ class AzureFirewallPolicy(AzureResource, BasePolicy):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "base_policy": S("properties", "basePolicy", "id"),
         "child_policies": S("properties") >> S("childPolicies", default=[]) >> ForallBend(S("id")),
         "firewall_policy_dns_settings": S("properties", "dnsSettings") >> Bend(AzureDnsSettings.mapping),
@@ -3731,9 +3676,6 @@ class AzureIpAllocation(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allocation_tags": S("properties", "allocationTags"),
         "etag": S("etag"),
         "ipam_allocation_id": S("properties", "ipamAllocationId"),
@@ -3778,9 +3720,6 @@ class AzureIpGroup(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "firewall_policies": S("properties") >> S("firewallPolicies", default=[]) >> ForallBend(S("id")),
         "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id")),
@@ -3794,23 +3733,29 @@ class AzureIpGroup(AzureResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        virtual_n_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda n: (
+        if ip_addresses := self.ip_addresses:
+            virtual_networks = self._get_virtual_network_ips_and_ids(builder)
+
+            if vns := virtual_networks:
+                for ip_address in ip_addresses:
+                    for info in vns:
+                        vn_ips, vn_id = info
+                        for vn_address in vn_ips:
+                            if ip_address == vn_address:
+                                builder.add_edge(
+                                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
+                                )
+
+    def _get_virtual_network_ips_and_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
+        get_virtual_network_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda n: (
             n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
         )
 
-        virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
+        get_virtual_network_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
 
-        virtual_networks = [(virtual_n_ips(n), virtual_n_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)]
-
-        if (ip_addresses := self.ip_addresses) and (vns := virtual_networks):
-            for ip_address in ip_addresses:
-                for info in vns:
-                    vn_ips, vn_id = info
-                    for vn_address in vn_ips:
-                        if ip_address == vn_address:
-                            builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
-                            )
+        return [
+            (get_virtual_network_ips(n), get_virtual_network_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -4047,15 +3992,12 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_virtual_network", "azure_subnet"]},
+        "predecessors": {"default": ["azure_virtual_network", "azure_subnet", "azure_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "backend_address_pools": S("properties", "backendAddressPools") >> ForallBend(AzureBackendAddressPool.mapping),
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -4088,6 +4030,7 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the load balancer resource.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
+    aks_public_ip_address: Optional[str] = field(default=None, metadata={"description": "AKS Load Balancer public IP address."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vns := self.backends:
@@ -4101,6 +4044,52 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
                             builder.add_edge(
                                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
                             )
+        if ip_confs := self.lb_frontend_ip_configurations:
+            p_ip_ids_and_cluster_ids = self._get_p_ip_ids_and_cluster_ids(builder)
+
+            publ_ip_id_and_p_ip_address = self._get_publ_ip_id_and_p_ip_address(builder)
+
+            for ip_conf in ip_confs:
+                if p_ip_address_id := ip_conf._public_ip_address_id:
+                    for info in p_ip_ids_and_cluster_ids:
+                        ip_ids, clust_id = info
+                        for ip_id in ip_ids:
+                            if ip_id == p_ip_address_id:
+                                builder.add_edge(
+                                    self,
+                                    edge_type=EdgeType.default,
+                                    reverse=True,
+                                    clazz=AzureManagedCluster,
+                                    id=clust_id,
+                                )
+                    for ip_info in publ_ip_id_and_p_ip_address:
+                        pub_ip_id, ip_address = ip_info
+                        if pub_ip_id == p_ip_address_id:
+                            self.aks_public_ip_address = ip_address
+
+    def _get_publ_ip_id_and_p_ip_address(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+        get_public_ip_id: Callable[[AzurePublicIPAddress], str] = lambda ip: ip.id or ""
+        get_public_ip_address: Callable[[AzurePublicIPAddress], str] = lambda ip: ip.ip_address or ""
+
+        return [
+            (get_public_ip_id(ip), get_public_ip_address(ip))
+            for ip in builder.nodes(clazz=AzurePublicIPAddress)
+            if ip.tags.get("k8s-azure-cluster-name") is not None
+        ]
+
+    def _get_p_ip_ids_and_cluster_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
+        get_p_ip_ids: Callable[[AzureManagedCluster], List[str]] = lambda cluster: [
+            p_ip_id
+            for p_ip_id in rgetattr(
+                cluster, "container_service_network_profile.load_balancer_profile.effective_outbound_i_ps", None
+            )
+            or []
+        ]
+        get_cluster_id: Callable[[AzureManagedCluster], str] = lambda cluster: cluster.id or ""
+
+        return [
+            (get_p_ip_ids(cluster), get_cluster_id(cluster)) for cluster in builder.nodes(clazz=AzureManagedCluster)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -4188,9 +4177,6 @@ class AzureNetworkProfile(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "container_network_interface_configurations": S("properties", "containerNetworkInterfaceConfigurations")
         >> ForallBend(AzureContainerNetworkInterfaceConfiguration.mapping),
         "container_network_interfaces": S("properties", "containerNetworkInterfaces")
@@ -4209,15 +4195,9 @@ class AzureNetworkProfile(AzureResource):
         # Import placed inside the method due to circular import error resolution
         from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
-        ip_config_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
-            ip_config.id for ip_config in n.interface_ip_configurations or [] if ip_config.id is not None
-        ]
-
-        virtual_m_id: Callable[[AzureNetworkInterface], str] = lambda n: n.virtual_machine or ""
-
-        ip_confs_and_vm_ids = [(ip_config_ids(n), virtual_m_id(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
-
         if container_nic := self.container_network_interface_configurations:
+            ip_confs_and_vm_ids = self._get_ip_config_ids_and_vm_ids(builder)
+
             for container in container_nic:
                 if ip_configurations := container.ip_configurations:
                     for ip_configuration in ip_configurations:
@@ -4233,6 +4213,19 @@ class AzureNetworkProfile(AzureResource):
                                         builder.add_edge(
                                             self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id
                                         )
+
+    def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
+        get_ip_config_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
+            ip_config.id for ip_config in interface.interface_ip_configurations or [] if ip_config.id is not None
+        ]
+        get_virtual_machine_id: Callable[[AzureNetworkInterface], str] = (
+            lambda interface: interface.virtual_machine or ""
+        )
+
+        return [
+            (get_ip_config_ids(interface), get_virtual_machine_id(interface))
+            for interface in builder.nodes(clazz=AzureNetworkInterface)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -4315,9 +4308,6 @@ class AzureNetworkVirtualAppliance(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "additional_nics": S("properties", "additionalNics")
         >> ForallBend(AzureVirtualApplianceAdditionalNicProperties.mapping),
         "address_prefix": S("properties", "addressPrefix"),
@@ -4364,49 +4354,55 @@ class AzureNetworkVirtualAppliance(AzureResource):
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        va_sku_vendor: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda n: n.vendor or ""
+        if (nva := self.nva_sku) and (nva_vendor := nva.vendor):
+            vendors_in_resource = self._get_va_sku_vendor_and_name(builder)
 
-        va_sku_name: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda n: n.name or ""
+            if vendors := vendors_in_resource:
+                for vendors_info in vendors:
+                    vendor_name, nvasku_name = vendors_info
+                    if vendor_name == nva_vendor:
+                        builder.add_edge(
+                            self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, name=nvasku_name
+                        )
+                    if virtual_appliances := self.virtual_appliance_nics:
+                        nic_name_and_subnet_ids = self._get_nic_name_and_subnet_ids(builder)
 
-        vendors_in_resource = [
-            (va_sku_vendor(n), va_sku_name(n)) for n in builder.nodes(clazz=AzureNetworkVirtualApplianceSku)
+                        if nic_name_and_s_ids := nic_name_and_subnet_ids:
+                            for va in virtual_appliances:
+                                if va_nic_name := va.instance_name:
+                                    for nics_and_subnets_info in nic_name_and_s_ids:
+                                        nic_name, subnet_ids = nics_and_subnets_info
+                                        if va_nic_name == nic_name:
+                                            for subnet_id in subnet_ids:
+                                                builder.add_edge(
+                                                    self,
+                                                    edge_type=EdgeType.default,
+                                                    reverse=True,
+                                                    clazz=AzureSubnet,
+                                                    id=subnet_id,
+                                                )
+
+    def _get_va_sku_vendor_and_name(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+        get_va_sku_vendor: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda sku: sku.vendor or ""
+        get_va_sku_name: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda sku: sku.name or ""
+
+        return [
+            (get_va_sku_vendor(sku), get_va_sku_name(sku))
+            for sku in builder.nodes(clazz=AzureNetworkVirtualApplianceSku)
         ]
 
-        ni_name: Callable[[AzureNetworkInterface], str] = lambda n: n.name or ""
-
-        ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
+    def _get_nic_name_and_subnet_ids(self, builder: GraphBuilder) -> List[Tuple[str, List[str]]]:
+        ni_name: Callable[[AzureNetworkInterface], str] = lambda interface: interface.name or ""
+        get_ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
             ip_config._subnet_id
-            for ip_config in n.interface_ip_configurations or []
+            for ip_config in interface.interface_ip_configurations or []
             if ip_config._subnet_id is not None
         ]
 
-        nic_name_and_subnet_ids = [
-            (ni_name(n), ip_conf_subnet_ids(n)) for n in builder.nodes(clazz=AzureNetworkInterface)
+        return [
+            (ni_name(interface), get_ip_conf_subnet_ids(interface))
+            for interface in builder.nodes(clazz=AzureNetworkInterface)
         ]
-
-        if (nva := self.nva_sku) and (nva_vendor := nva.vendor) and (vendors := vendors_in_resource):
-            for vendors_info in vendors:
-                vendor_name, nvasku_name = vendors_info
-                if vendor_name == nva_vendor:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureNetworkVirtualApplianceSku, name=nvasku_name
-                    )
-                if (virtual_appliances := self.virtual_appliance_nics) and (
-                    nic_name_and_s_ids := nic_name_and_subnet_ids
-                ):
-                    for va in virtual_appliances:
-                        if va_nic_name := va.instance_name:
-                            for nics_and_subnets_info in nic_name_and_s_ids:
-                                nic_name, subnet_ids = nics_and_subnets_info
-                                if va_nic_name == nic_name:
-                                    for subnet_id in subnet_ids:
-                                        builder.add_edge(
-                                            self,
-                                            edge_type=EdgeType.default,
-                                            reverse=True,
-                                            clazz=AzureSubnet,
-                                            id=subnet_id,
-                                        )
 
 
 @define(eq=False, slots=False)
@@ -4433,9 +4429,6 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "available_scale_units": S("properties", "availableScaleUnits")
         >> ForallBend(AzureNetworkVirtualApplianceSkuInstances.mapping),
         "available_versions": S("properties", "availableVersions"),
@@ -4467,9 +4460,6 @@ class AzureNetworkWatcher(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "properties": S("properties", "provisioningState"),
         "location": S("location"),
@@ -4479,21 +4469,24 @@ class AzureNetworkWatcher(AzureResource):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        virtual_n_location: Callable[[AzureVirtualNetwork], str] = lambda n: n.location or ""
+        if nw_location := self.location:
+            virtual_network_locations_and_ids = self._get_virtual_network_locations_and_ids(builder)
+            if vns_info := virtual_network_locations_and_ids:
+                for info in vns_info:
+                    vn_location, vn_id = info
+                    if vn_location == nw_location:
+                        builder.add_edge(
+                            self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
+                        )
 
-        virtual_n_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
+    def _get_virtual_network_locations_and_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+        get_virtual_network_location: Callable[[AzureVirtualNetwork], str] = lambda network: network.location or ""
+        get_virtual_network_id: Callable[[AzureVirtualNetwork], str] = lambda network: network.id or ""
 
-        locations_and_ids_in_vn = [
-            (virtual_n_location(n), virtual_n_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)
+        return [
+            (get_virtual_network_location(network), get_virtual_network_id(network))
+            for network in builder.nodes(clazz=AzureVirtualNetwork)
         ]
-
-        if (nw_location := self.location) and (vns_info := locations_and_ids_in_vn):
-            for info in vns_info:
-                vn_location, vn_id = info
-                if vn_location == nw_location:
-                    builder.add_edge(
-                        self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id
-                    )
 
 
 @define(eq=False, slots=False)
@@ -4619,9 +4612,6 @@ class AzureP2SVpnGateway(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "custom_dns_servers": S("properties", "customDnsServers"),
         "etag": S("etag"),
         "is_routing_preference_internet": S("properties", "isRoutingPreferenceInternet"),
@@ -4665,9 +4655,6 @@ class AzurePublicIPPrefix(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "custom_ip_prefix": S("properties", "customIPPrefix", "id"),
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -4734,9 +4721,6 @@ class AzureRouteFilter(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "ipv6_peerings": S("properties", "ipv6Peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
         "filter_peerings": S("properties", "peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
@@ -4766,9 +4750,6 @@ class AzureSecurityPartnerProvider(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "connection_status": S("properties", "connectionStatus"),
         "etag": S("etag"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -4807,9 +4788,6 @@ class AzureUsage(AzureResource):
         "tags": S("tags", default={}),
         "name": K(None),
         "usage_name": S("name") >> Bend(AzureUsageName.mapping),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "current_value": S("currentValue"),
         "limit": S("limit"),
         "unit": S("unit"),
@@ -4896,9 +4874,6 @@ class AzureVirtualHub(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "address_prefix": S("properties", "addressPrefix"),
         "allow_branch_to_branch_traffic": S("properties", "allowBranchToBranchTraffic"),
         "azure_firewall": S("properties", "azureFirewall", "id"),
@@ -4953,18 +4928,6 @@ class AzureVirtualHub(AzureResource):
     vpn_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        ip_conf_ids: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
-            ip_config.id for ip_config in n.interface_ip_configurations or [] if ip_config.id is not None
-        ]
-
-        ip_conf_p_ip_id: Callable[[AzureNetworkInterface], List[str]] = lambda n: [
-            ip_config._public_ip_id
-            for ip_config in n.interface_ip_configurations or []
-            if ip_config._public_ip_id is not None
-        ]
-
-        p_ip_a_and_ip_c_ids = [(ip_conf_ids(n), ip_conf_p_ip_id(n)) for n in builder.nodes(clazz=AzureNetworkInterface)]
-
         if er_gateway_id := self.express_route_gateway:
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureExpressRouteGateway, id=er_gateway_id
@@ -4973,16 +4936,34 @@ class AzureVirtualHub(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVpnGateway, id=vpn_gateway_id)
         if vw_id := self.virtual_wan:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualWAN, id=vw_id)
-        if (ip_config_ids := self.ip_configuration_ids) and (p_ip_a_and_ip_conf_ids := p_ip_a_and_ip_c_ids):
-            for ip_config_id in ip_config_ids:
-                for info in p_ip_a_and_ip_conf_ids:
-                    collected_ip_conf_ids, p_ip_address_ids = info
-                    for collected_ip_conf_id in collected_ip_conf_ids:
-                        if ip_config_id == collected_ip_conf_id:
-                            for p_ip_address_id in p_ip_address_ids:
-                                builder.add_edge(
-                                    self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id
-                                )
+        if ip_config_ids := self.ip_configuration_ids:
+            ip_conf_ids_and_public_ip_ids = self._get_ip_conf_ids_and_public_ip_ids(builder)
+
+            if p_ip_a_and_ip_conf_ids := ip_conf_ids_and_public_ip_ids:
+                for ip_config_id in ip_config_ids:
+                    for info in p_ip_a_and_ip_conf_ids:
+                        collected_ip_conf_ids, p_ip_address_ids = info
+                        for collected_ip_conf_id in collected_ip_conf_ids:
+                            if ip_config_id == collected_ip_conf_id:
+                                for p_ip_address_id in p_ip_address_ids:
+                                    builder.add_edge(
+                                        self, edge_type=EdgeType.default, clazz=AzurePublicIPAddress, id=p_ip_address_id
+                                    )
+
+    def _get_ip_conf_ids_and_public_ip_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], List[str]]]:
+        get_ip_conf_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
+            ip_config.id for ip_config in interface.interface_ip_configurations or [] if ip_config.id is not None
+        ]
+        get_public_ip_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
+            ip_config._public_ip_id
+            for ip_config in interface.interface_ip_configurations or []
+            if ip_config._public_ip_id is not None
+        ]
+
+        return [
+            (get_ip_conf_ids(interface), get_public_ip_ids(interface))
+            for interface in builder.nodes(clazz=AzureNetworkInterface)
+        ]
 
 
 @define(eq=False, slots=False)
@@ -5076,9 +5057,6 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "address_space": S("properties", "addressSpace") >> Bend(AzureAddressSpace.mapping),
         "bgp_communities": S("properties", "bgpCommunities") >> Bend(AzureVirtualNetworkBgpCommunities.mapping),
         "ddos_protection_plan": S("properties", "ddosProtectionPlan", "id"),
@@ -5127,7 +5105,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
                 access_path="value",
                 expect_array=True,
             )
-            resource_group_name = self.resource_group_name()
+            resource_group_name = self.resource_group_name() or ""
             virtual_network_name = self.name if self.name else ""
 
             items = graph_builder.client.list(
@@ -5161,9 +5139,6 @@ class AzureVirtualRouter(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "etag": S("etag"),
         "hosted_gateway": S("properties", "hostedGateway", "id"),
         "hosted_subnet": S("properties", "hostedSubnet", "id"),
@@ -5197,9 +5172,6 @@ class AzureVirtualWAN(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allow_branch_to_branch_traffic": S("properties", "allowBranchToBranchTraffic"),
         "allow_vnet_to_vnet_traffic": S("properties", "allowVnetToVnetTraffic"),
         "disable_vpn_encryption": S("properties", "disableVpnEncryption"),
@@ -5464,9 +5436,6 @@ class AzureVpnGateway(AzureResource, BaseGateway):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
         "connections": S("properties", "connections") >> ForallBend(AzureVpnConnection.mapping),
         "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
@@ -5565,9 +5534,6 @@ class AzureVpnServerConfiguration(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "aad_authentication_parameters": S("properties", "aadAuthenticationParameters")
         >> Bend(AzureAadAuthenticationParameters.mapping),
         "configuration_policy_groups": S("properties", "configurationPolicyGroups")
@@ -5699,9 +5665,6 @@ class AzureVpnSite(AzureResource, BasePeeringConnection):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "address_space": S("properties", "addressSpace") >> Bend(AzureAddressSpace.mapping),
         "bgp_properties": S("properties", "bgpProperties") >> Bend(AzureBgpSettings.mapping),
         "device_properties": S("properties", "deviceProperties") >> Bend(AzureDeviceProperties.mapping),
@@ -5947,9 +5910,6 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "_application_gateway_ids": S("properties", "applicationGateways", default=[]) >> ForallBend(S("id")),
         "custom_rules": S("properties", "customRules") >> ForallBend(AzureWebApplicationFirewallCustomRule.mapping),
         "etag": S("etag"),

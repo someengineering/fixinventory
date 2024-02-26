@@ -45,13 +45,13 @@ class AzureResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
 
-    def resource_subscription_id(self) -> str:
+    def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
 
-    def resource_group_name(self) -> str:
+    def resource_group_name(self) -> Optional[str]:
         return self.extract_part("resourceGroupName")
 
-    def extract_part(self, part: str) -> str:
+    def extract_part(self, part: str) -> Optional[str]:
         """
         Extracts a specific part from a resource ID.
 
@@ -74,20 +74,20 @@ class AzureResource(BaseResource):
 
         if part == "subscriptionId":
             if "subscriptions" not in id_parts:
-                raise ValueError(f"Id {self.id} does not have any subscriptionId info")
+                return None
             if index := id_parts.index("subscriptions"):
                 return id_parts[index + 1]
-            return ""
+            return None
 
         elif part == "resourceGroupName":
             if "resourceGroups" not in id_parts:
-                raise ValueError(f"Id {self.id} does not have any resourceGroupName info")
+                return None
             if index := id_parts.index("resourceGroups"):
                 return id_parts[index + 1]
-            return ""
+            return None
 
         else:
-            raise ValueError(f"Value {part} does not have any cases to match")
+            return None
 
     def delete(self, graph: Graph) -> bool:
         """
@@ -97,6 +97,9 @@ class AzureResource(BaseResource):
         bool: True if the resource was successfully deleted; False otherwise.
         """
         subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to delete resource. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).delete(self.id)
 
     def delete_tag(self, key: str) -> bool:
@@ -106,6 +109,9 @@ class AzureResource(BaseResource):
         The tag remains on the account, but the specified value will be deleted.
         """
         subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to delete tag. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).delete_resource_tag(tag_name=key, resource_id=self.id)
 
     def update_tag(self, key: str, value: str) -> bool:
@@ -115,6 +121,9 @@ class AzureResource(BaseResource):
         The tag name must already exist for the operation to be successful.
         """
         subscription_id = self.resource_subscription_id()
+        if subscription_id is None:
+            log.warning("Failed to update tag. Subscription ID is not available.")
+            return False
         return get_client(subscription_id).update_resource_tag(tag_name=key, tag_value=value, resource_id=self.id)
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
@@ -485,8 +494,21 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
 
-        start = last_run_started_at or (self.created_at - timedelta(hours=1))
-        delta = self.created_at - start
+        if last_run_started_at:
+            now = utc()
+            start = last_run_started_at
+            delta = now - start
+
+            min_delta = max(delta, timedelta(seconds=60))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 60s,
+            # otherwise we get an error from Azure
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
 
         self.metrics_start = start
         # Converting the total seconds in 'delta' to minutes for further compute interval

@@ -74,9 +74,6 @@ class AzureAvailabilitySet(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "platform_update_domain_count": S("properties", "platformUpdateDomainCount"),
         "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
@@ -129,9 +126,6 @@ class AzureCapacityReservationGroup(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "capacity_reservations": S("properties") >> S("capacityReservations", default=[]) >> ForallBend(S("id")),
         "reservation_group_instance_view": S("properties", "instanceView")
         >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
@@ -302,14 +296,12 @@ class AzureCloudService(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "allow_model_override": S("properties", "allowModelOverride"),
         "configuration": S("properties", "configuration"),
         "configuration_url": S("properties", "configurationUrl"),
         "extension_profile": S("properties", "extensionProfile") >> Bend(AzureCloudServiceExtensionProfile.mapping),
-        "network_profile": S("properties", "networkProfile") >> Bend(AzureCloudServiceNetworkProfile.mapping),
+        "cloud_service_network_profile": S("properties", "networkProfile")
+        >> Bend(AzureCloudServiceNetworkProfile.mapping),
         "os_profile": S("properties", "osProfile") >> Bend(AzureCloudServiceOsProfile.mapping),
         "package_url": S("properties", "packageUrl"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -323,7 +315,7 @@ class AzureCloudService(AzureResource):
     configuration: Optional[str] = field(default=None, metadata={'description': 'Specifies the xml service configuration (. Cscfg) for the cloud service.'})  # fmt: skip
     configuration_url: Optional[str] = field(default=None, metadata={'description': 'Specifies a url that refers to the location of the service configuration in the blob service. The service package url can be shared access signature (sas) uri from any storage account. This is a write-only property and is not returned in get calls.'})  # fmt: skip
     extension_profile: Optional[AzureCloudServiceExtensionProfile] = field(default=None, metadata={'description': 'Describes a cloud service extension profile.'})  # fmt: skip
-    network_profile: Optional[AzureCloudServiceNetworkProfile] = field(default=None, metadata={'description': 'Network profile for the cloud service.'})  # fmt: skip
+    cloud_service_network_profile: Optional[AzureCloudServiceNetworkProfile] = field(default=None, metadata={'description': 'Network profile for the cloud service.'})  # fmt: skip
     os_profile: Optional[AzureCloudServiceOsProfile] = field(default=None, metadata={'description': 'Describes the os profile for the cloud service.'})  # fmt: skip
     package_url: Optional[str] = field(default=None, metadata={'description': 'Specifies a url that refers to the location of the service package in the blob service. The service package url can be shared access signature (sas) uri from any storage account. This is a write-only property and is not returned in get calls.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state, which only appears in the response.'})  # fmt: skip
@@ -365,9 +357,6 @@ class AzureComputeOperationValue(AzureResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "display": S("display") >> Bend(AzureComputeOperationValueDisplay.mapping),
         "origin": S("origin"),
     }
@@ -449,9 +438,6 @@ class AzureDedicatedHostGroup(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "ultra_ssd_enabled": S("properties", "additionalCapabilities", "ultraSSDEnabled"),
         "hosts": S("properties") >> S("hosts", default=[]) >> ForallBend(S("id")),
         "host_group_instance_view": S("properties", "instanceView")
@@ -640,8 +626,6 @@ class AzureDisk(AzureResource, BaseVolume):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
-        "mtime": K(None),
-        "atime": K(None),
         "bursting_enabled": S("properties", "burstingEnabled"),
         "bursting_enabled_time": S("properties", "burstingEnabledTime"),
         "completion_percent": S("properties", "completionPercent"),
@@ -735,7 +719,7 @@ class AzureDisk(AzureResource, BaseVolume):
                 [
                     AzureMetricQuery.create(
                         metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/disks",
+                        metric_namespace="microsoft.compute/disks",
                         instance_id=volume_id,
                         aggregation=("average",),
                         ref_id=volume_id,
@@ -748,7 +732,7 @@ class AzureDisk(AzureResource, BaseVolume):
                 [
                     AzureMetricQuery.create(
                         metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/disks",
+                        metric_namespace="microsoft.compute/disks",
                         instance_id=volume_id,
                         aggregation=("average",),
                         ref_id=volume_id,
@@ -813,8 +797,6 @@ class AzureDiskAccess(AzureResource):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("time_created"),
-        "mtime": K(None),
-        "atime": K(None),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureDiskAccessPrivateEndpointConnection.mapping),
@@ -900,9 +882,6 @@ class AzureDiskEncryptionSet(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "active_key": S("properties", "activeKey") >> Bend(AzureKeyForDiskEncryptionSet.mapping),
         "auto_key_rotation_error": S("properties", "autoKeyRotationError") >> Bend(AzureApiError.mapping),
         "encryption_type": S("properties", "encryptionType"),
@@ -1002,9 +981,6 @@ class AzureGallery(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "description": S("properties", "description"),
         "identifier": S("properties", "identifier", "uniqueName"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -1078,9 +1054,6 @@ class AzureImage(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "hyper_v_generation": S("properties", "hyperVGeneration"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -1129,9 +1102,6 @@ class AzureProximityPlacementGroup(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "availability_sets": S("properties", "availabilitySets")
         >> ForallBend(AzureSubResourceWithColocationStatus.mapping),
         "colocation_status": S("properties", "colocationStatus") >> Bend(AzureInstanceViewStatus.mapping),
@@ -1791,9 +1761,6 @@ class AzureRestorePointCollection(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "provisioning_state": S("properties", "provisioningState"),
         "restore_point_collection_id": S("properties", "restorePointCollectionId"),
         "restore_points": S("properties", "restorePoints") >> ForallBend(AzureRestorePoint.mapping),
@@ -1845,8 +1812,6 @@ class AzureSnapshot(AzureResource, BaseSnapshot):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
-        "mtime": K(None),
-        "atime": K(None),
         "completion_percent": S("properties", "completionPercent"),
         "copy_completion_error": S("properties", "copyCompletionError") >> Bend(AzureCopyCompletionError.mapping),
         "creation_data": S("properties", "creationData") >> Bend(AzureCreationData.mapping),
@@ -1928,9 +1893,6 @@ class AzureSshPublicKeyResource(AzureResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "properties": S("properties", "publicKey"),
     }
     properties: Optional[str] = field(default=None, metadata={"description": "Properties of the ssh public key."})
@@ -2582,8 +2544,6 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
-        "mtime": K(None),
-        "atime": K(None),
         "virtual_machine_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "application_profile": S("properties", "applicationProfile") >> Bend(AzureApplicationProfile.mapping),
@@ -2668,19 +2628,19 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             params = {"$expand": "instanceView"}
             items = graph_builder.client.list(api_spec, **params)
             if items:
-                item = items[0]
-            try:
-                instance_v_statuses = item["properties"]["instanceView"]["statuses"]
-            except KeyError:
-                instance_v_statuses = []
-            instance_status_set = False
-            for instance_v_status in instance_v_statuses:
-                status_code = instance_v_status.get("code", "").split("/")
-                if status_code[0] == "PowerState":
-                    self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
-                    instance_status_set = True
-            if not instance_status_set:
-                self.instance_status = InstanceStatus.UNKNOWN
+                item: Json = next(iter(items), {})
+                try:
+                    instance_v_statuses = item["properties"]["instanceView"]["statuses"]
+                except KeyError:
+                    instance_v_statuses = []
+                instance_status_set = False
+                for instance_v_status in instance_v_statuses:
+                    status_code = instance_v_status.get("code", "").split("/")
+                    if status_code[0] == "PowerState":
+                        self.instance_status = InstanceStatusMapping.get(status_code[1], InstanceStatus.UNKNOWN)
+                        instance_status_set = True
+                if not instance_status_set:
+                    self.instance_status = InstanceStatus.UNKNOWN
 
         graph_builder.submit_work("azure_all", collect_instance_status)
 
@@ -3276,8 +3236,6 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
-        "mtime": K(None),
-        "atime": K(None),
         "scale_set_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "automatic_repairs_policy": S("properties", "automaticRepairsPolicy")
@@ -3366,9 +3324,6 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "max_data_disk_count": S("maxDataDiskCount"),
         "memory_in_mb": S("memoryInMB"),
         "number_of_cores": S("numberOfCores"),
