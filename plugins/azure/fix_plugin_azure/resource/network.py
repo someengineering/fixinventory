@@ -4168,7 +4168,7 @@ class AzureNetworkProfile(AzureResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_subnet"]},
-        "successors": {"default": ["azure_virtual_machine"]},
+        "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4190,7 +4190,9 @@ class AzureNetworkProfile(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Import placed inside the method due to circular import error resolution
-        from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+        from fix_plugin_azure.resource.compute import (
+            AzureVirtualMachineBase,
+        )  # pylint: disable=import-outside-toplevel
 
         if container_nic := self.container_network_interface_configurations:
             ip_confs_and_vm_ids = self._get_ip_config_ids_and_vm_ids(builder)
@@ -4208,7 +4210,7 @@ class AzureNetworkProfile(AzureResource):
                                 for ip_conf_id in ip_conf_ids:
                                     if ip_conf_id == c_ip_conf_id:
                                         builder.add_edge(
-                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id
+                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id
                                         )
 
     def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:

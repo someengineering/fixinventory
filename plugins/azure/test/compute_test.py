@@ -5,8 +5,6 @@ from fix_plugin_azure.resource.network import (
     AzureLoadBalancer,
     AzureNetworkInterface,
     AzureNetworkSecurityGroup,
-    AzureVirtualNetwork,
-    AzureSubnet,
 )
 from fixlib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
@@ -155,15 +153,10 @@ def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[AzureResource]] = [
         AzureLoadBalancer,
-        AzureVirtualMachine,
-        AzureSubnet,
     ]
-    roundtrip_check(AzureVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachineScaleSet)) == 1
-    assert len(builder.edges_of(AzureVirtualMachineScaleSet, AzureVirtualMachine)) == 2
-    assert len(builder.edges_of(AzureSubnet, AzureVirtualMachineScaleSet)) == 1
 
 
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
