@@ -18,7 +18,7 @@ RUN mkdir -p /build /build-python
 
 # Build Resoto
 COPY requirements-extra.txt /usr/src/requirements-extra.txt
-COPY resotolib /usr/src/fixlib
+COPY resotolib /usr/src/fixinventorylib
 COPY resotocore /usr/src/fixcore
 COPY resotoworker /usr/src/fixworker
 COPY resotometrics /usr/src/fixmetrics
@@ -33,7 +33,7 @@ RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite bui
 # Build binary wheels
 WORKDIR /usr/src
 RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
-RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
+RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixinventorylib ./fixcore ./fixworker ./fixmetrics ./fixshell
 
 # Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
 WORKDIR /tmp/arangodb
