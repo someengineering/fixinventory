@@ -219,6 +219,7 @@ class AzureMetricData:
                 "aggregation",
                 "interval",
                 "AutoAdjustTimegrain",
+                "ValidateDimensions",
             ],
             access_path=None,
             expect_array=False,
@@ -272,6 +273,7 @@ class AzureMetricData:
             aggregation=aggregation,
             interval=interval,
             AutoAdjustTimegrain=True,
+            ValidateDimensions=False,
         )
         # Iterate over the retrieved data and map it to AzureMetricData objects
         for single in part:

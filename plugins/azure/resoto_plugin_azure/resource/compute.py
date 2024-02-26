@@ -3302,7 +3302,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
             items = graph_builder.client.list(api_spec)
             self._vmss_vm_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
 
-            AzureVirtualMachine.collect(items, graph_builder)
+            AzureVirtualMachineScaleSetInstance.collect(items, graph_builder)
 
         graph_builder.submit_work("azure_all", collect_vmss_instances)
 
@@ -3335,7 +3335,9 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                             )
         if vmss_instance_ids := self._vmss_vm_ids:
             for vmss_instance_id in vmss_instance_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vmss_instance_id)
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
+                )
 
 
 @define(eq=False, slots=False)
@@ -3372,6 +3374,11 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
+
+
+@define(eq=False, slots=False)
+class AzureVirtualMachineScaleSetInstance(AzureVirtualMachine):
+    kind: ClassVar[str] = "azure_virtual_machine_scale_set_instance"
 
 
 resources: List[Type[AzureResource]] = [
