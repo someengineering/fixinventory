@@ -155,14 +155,14 @@ def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[AzureResource]] = [
         AzureLoadBalancer,
-        AzureVirtualMachine,
+        AzureVirtualMachineScaleSetInstance,
         AzureSubnet,
     ]
     roundtrip_check(AzureVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachineScaleSet)) == 1
-    assert len(builder.edges_of(AzureVirtualMachineScaleSet, AzureVirtualMachine)) == 2
+    assert len(builder.edges_of(AzureVirtualMachineScaleSet, AzureVirtualMachineScaleSetInstance)) == 2
     assert len(builder.edges_of(AzureSubnet, AzureVirtualMachineScaleSet)) == 1
 
 
