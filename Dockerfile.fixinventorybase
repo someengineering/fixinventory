@@ -1,22 +1,9 @@
-<<<<<<<< HEAD:Dockerfile.fixbase
-# This is the fix base container. It includes CPython and is used
-# as the common base for all the other containers. The main size contributor
-# is the fix-venv-python3 virtual environment which
-# is required for all fix packages. That's why size wise it made sense to
-# use the same base package for all containers.
-ARG UI_IMAGE_TAG=latest
-FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
-FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
-
-FROM someengineering/fixpython:1.0.4 as build-env
-========
 # This is the Fix Inventory base container. It includes CPython and is used
 # as the common base for all the other containers.
 FROM docker.io/arangodb/arangodb:3.9.1-noavx as arangodb-amd64-env
 FROM docker.io/programmador/arangodb:3.9.0-devel as arangodb-arm64-env
 
 FROM someengineering/fixpython:1.0.5 as build-env
->>>>>>>> main:Dockerfile.fixinventorybase
 ENV DEBIAN_FRONTEND=noninteractive
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -31,19 +18,11 @@ RUN mkdir -p /build /build-python
 
 # Build FixInventory
 COPY requirements-extra.txt /usr/src/requirements-extra.txt
-<<<<<<<< HEAD:Dockerfile.fixbase
 COPY fixlib /usr/src/fixlib
 COPY fixcore /usr/src/fixcore
 COPY fixworker /usr/src/fixworker
 COPY fixmetrics /usr/src/fixmetrics
 COPY fixshell /usr/src/fixshell
-========
-COPY resotolib /usr/src/fixinventorylib
-COPY resotocore /usr/src/fixcore
-COPY resotoworker /usr/src/fixworker
-COPY resotometrics /usr/src/fixmetrics
-COPY resotoshell /usr/src/fixshell
->>>>>>>> main:Dockerfile.fixinventorybase
 COPY plugins /usr/src/plugins
 
 WORKDIR /usr/src/fixcore
@@ -54,11 +33,7 @@ RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite bui
 # Build binary wheels
 WORKDIR /usr/src
 RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
-<<<<<<<< HEAD:Dockerfile.fixbase
 RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
-========
-RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixinventorylib ./fixcore ./fixworker ./fixmetrics ./fixshell
->>>>>>>> main:Dockerfile.fixinventorybase
 
 # Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
 WORKDIR /tmp/arangodb
@@ -89,15 +64,6 @@ RUN unzip /tmp/awscliv2.zip
 RUN aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Copy image config and startup files
-<<<<<<<< HEAD:Dockerfile.fixbase
-WORKDIR /usr/src/fix
-COPY dockerV2/defaults /usr/local/etc/fix/defaults
-COPY dockerV2/common /usr/local/etc/fix/common
-COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
-COPY dockerV2/postflight /usr/local/sbin/postflight
-COPY dockerV2/fixsh-shim /usr/local/bin/resh-shim
-COPY dockerV2/fixsh-wait /usr/local/bin/resh-wait
-========
 WORKDIR /usr/src/resoto
 COPY dockerV2/defaults /usr/local/etc/fixinventory/defaults
 COPY dockerV2/common /usr/local/etc/fixinventory/common
@@ -105,7 +71,6 @@ COPY dockerV2/bootstrap /usr/local/sbin/bootstrap
 COPY dockerV2/postflight /usr/local/sbin/postflight
 COPY dockerV2/fixsh-shim /usr/local/bin/fixsh-shim
 COPY dockerV2/fixsh-wait /usr/local/bin/fixsh-wait
->>>>>>>> main:Dockerfile.fixinventorybase
 COPY dockerV2/fixcore-shim /usr/local/bin/fixcore-shim
 COPY dockerV2/fixworker-shim /usr/local/bin/fixworker-shim
 COPY dockerV2/fixmetrics-shim /usr/local/bin/fixmetrics-shim
@@ -132,21 +97,12 @@ ENV LANG="en_US.UTF-8"
 ENV TERM="xterm-256color"
 ENV COLORTERM="truecolor"
 ENV EDITOR="vim"
-<<<<<<<< HEAD:Dockerfile.fixbase
-ENV FIXSHELL_DOWNLOAD_DIRECTORY="/home/fix/downloads"
-COPY --from=build-env /usr/local /usr/local
-ENV PATH=/usr/local/python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-WORKDIR /
-RUN groupadd -g "${PGID:-0}" -o fix \
-    && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home resoto \
-========
 ENV RESOTOSHELL_DOWNLOAD_DIRECTORY="/home/fixinventory/downloads"
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o fixinventory \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home fixinventory \
->>>>>>>> main:Dockerfile.fixinventorybase
     && apt-get update \
     && apt-get -y --no-install-recommends install apt-utils \
     && apt-get -y dist-upgrade \
@@ -176,13 +132,10 @@ RUN groupadd -g "${PGID:-0}" -o fixinventory \
     && ln -s /bin/bash /bin/sh \
     && locale-gen \
     && /usr/local/sbin/postflight \
-<<<<<<<< HEAD:Dockerfile.fixbase
-========
     && ln -s /usr/local/bin/fixsh-shim /usr/bin/fixsh \
     && ln -s /usr/local/bin/fixcore-shim /usr/bin/fixcore \
     && ln -s /usr/local/bin/fixworker-shim /usr/bin/fixworker \
     && ln -s /usr/local/bin/fixmetrics-shim /usr/bin/fixmetrics \
->>>>>>>> main:Dockerfile.fixinventorybase
     && ln -s /usr/local/bin/fixsh-shim /usr/bin/resh \
     && ln -s /usr/local/bin/fixcore-shim /usr/bin/resotocore \
     && ln -s /usr/local/bin/fixworker-shim /usr/bin/resotoworker \
