@@ -311,7 +311,7 @@ jobs:
           echo "Use short SHA: $short_sha"
           # update the tag
           cd setup-infra
-          yq eval ".images[] |= select(.name == \"someengineering/resotocore\").newTag |= \"${short_sha}\"" -i argocd/envs/dev/inventory/kustomization.yaml
+          yq eval ".images[] |= select(.name == \"someengineering/fixcore\").newTag |= \"${short_sha}\"" -i argocd/envs/dev/inventory/kustomization.yaml
           git add .
           git commit -m "Bump fix-inventory on dev to ${short_sha}" || true
           git push origin main
