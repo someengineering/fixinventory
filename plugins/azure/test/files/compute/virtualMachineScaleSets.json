@@ -135,7 +135,7 @@
                                             "name": "{vmss-name}",
                                             "properties": {
                                                 "subnet": {
-                                                    "id": "/subscriptions/{subscription-id}/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/{existing-virtual-network-name}/subnets/{existing-subnet-name}"
+                                                    "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1/subnets/test-1"
                                                 },
                                                 "primary": true,
                                                 "publicIPAddressConfiguration": {
@@ -175,7 +175,7 @@
                                                 ],
                                                 "loadBalancerBackendAddressPools": [
                                                     {
-                                                        "id": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/availabilitySets/{availabilitySetName}"
+                                                        "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/backendAddressPools/telb"
                                                     }
                                                 ],
                                                 "loadBalancerInboundNatPools": [
