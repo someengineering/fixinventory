@@ -330,7 +330,7 @@ def test_collect_k8s_clusters() -> None:
     cluster: DigitalOceanKubernetesCluster = graph.search_first("urn", "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26")  # type: ignore # noqa: E501
     assert cluster.urn == "do:kubernetes:e1c48631-b382-4001-2168-c47c54795a26"
     assert cluster.name == "k8s-1-22-7-do-0-fra1-test"
-    assert cluster.k8s_version == "1.22.7-do.0"
+    assert cluster.version == "1.22.7-do.0"
     assert cluster.region().urn == "do:region:fra1"  # type: ignore
     assert cluster.k8s_cluster_subnet == "10.244.0.0/16"
     assert cluster.k8s_service_subnet == "10.245.0.0/16"

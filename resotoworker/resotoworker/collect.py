@@ -6,7 +6,6 @@ from argparse import Namespace
 from concurrent import futures
 from concurrent.futures import Executor, Future
 from multiprocessing.managers import SyncManager
-from pathlib import Path
 from queue import Queue
 from shutil import rmtree
 from tempfile import mkdtemp
