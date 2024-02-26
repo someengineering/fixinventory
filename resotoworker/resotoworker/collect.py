@@ -12,7 +12,7 @@ from tempfile import mkdtemp
 from threading import Lock
 from time import time
 from types import TracebackType
-from typing import List, Optional, Type, Set, Any, Dict, Tuple
+from typing import List, Optional, Type, Set
 
 import resotolib.proc
 from resotolib.args import ArgumentParser
@@ -98,7 +98,7 @@ class CollectRun:
 
     def collect(self) -> None:
         assert self.graph_queue, "No GraphQueue - CollectRun started?"
-        self.__collect_all([(coll, {}) for coll in self.collectors], self.config.resotoworker.graph_merge_kind)
+        self.__collect_all(self.collectors, self.config.resotoworker.graph_merge_kind)
         while self.futures_to_wait_for or not self.graph_queue.empty():
             for future in futures.as_completed(self.futures_to_wait_for.copy()):
                 self.futures_to_wait_for.remove(future)
@@ -154,12 +154,10 @@ class CollectRun:
             # mark work as done
             import_graph.set_result(True)
 
-    def __collect_all(
-        self, collectors: List[Tuple[Type[BaseCollectorPlugin], Dict[str, Any]]], merge_kind: GraphMergeKind
-    ) -> None:
+    def __collect_all(self, collectors: List[Type[BaseCollectorPlugin]], merge_kind: GraphMergeKind) -> None:
         assert self.graph_queue, "No GraphQueue - CollectRun started?"
         assert self.pool_executor, "No Executor - CollectRun started?"
-        for collector, kwargs in collectors:
+        for collector in collectors:
             self.futures_to_wait_for.append(
                 self.pool_executor.submit(
                     collect_plugin_graph,
@@ -170,7 +168,6 @@ class CollectRun:
                     task_data=self.task_data,
                     args=ArgumentParser.args,
                     running_config=self.config.running_config,
-                    **kwargs,
                 )
             )
 
@@ -213,11 +210,10 @@ def collect_plugin_graph(
     task_data: Json,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
-    **kwargs: Any,
 ) -> bool:
     try:
         collector: BaseCollectorPlugin = collector_plugin(
-            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data, **kwargs
+            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data
         )
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):
