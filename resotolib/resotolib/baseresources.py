@@ -1267,8 +1267,8 @@ class BaseOrganizationalUnit(BaseResource):
 @define(eq=False, slots=False)
 class BaseManagedKubernetesClusterProvider(BaseResource):
     kind: ClassVar[str] = "managed_kubernetes_cluster_provider"
-    kind_display: ClassVar[str] = "ManagedKubernetesCluster"
-    kind_description: ClassVar[str] = "A managed kubernetes cluster."
+    kind_display: ClassVar[str] = "Managed Kubernetes Cluster Provider"
+    kind_description: ClassVar[str] = "A managed kubernetes cluster provider."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
     version: Optional[str] = field(default=None, metadata={"description": "The kubernetes version"})
     endpoint: Optional[str] = field(default=None, metadata={"description": "The kubernetes API endpoint"})
