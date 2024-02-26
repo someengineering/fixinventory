@@ -48,16 +48,12 @@ class AzureResource(BaseResource):
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
 
-    def resource_group_name(self) -> Optional[str]:
-        return self.extract_part("resourceGroupName")
-
     def extract_part(self, part: str) -> Optional[str]:
         """
         Extracts a specific part from a resource ID.
 
-        The function takes a resource ID and a specified part to extract, such as 'subscriptionId'
-        or 'resourceGroupName'. The resource ID is expected to follow the Azure Resource Manager
-        path format.
+        The function takes a resource ID and a specified part to extract, such as 'subscriptionId'.
+        The resource ID is expected to follow the Azure Resource Manager path format.
 
         Example:
         For the resource ID "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...",
@@ -78,14 +74,6 @@ class AzureResource(BaseResource):
             if index := id_parts.index("subscriptions"):
                 return id_parts[index + 1]
             return None
-
-        elif part == "resourceGroupName":
-            if "resourceGroups" not in id_parts:
-                return None
-            if index := id_parts.index("resourceGroups"):
-                return id_parts[index + 1]
-            return None
-
         else:
             return None
 

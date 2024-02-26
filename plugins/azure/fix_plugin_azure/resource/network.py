@@ -2265,7 +2265,6 @@ class AzureSubnet(AzureResource):
             "default": [
                 "azure_nat_gateway",
                 "azure_network_security_group",
-                # "azure_fleet",
             ]
         },
     }
@@ -2331,8 +2330,6 @@ class AzureSubnet(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
         if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
-        # if (group_name := self.resource_group_name()) and (group_name != ""):
-        #     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFleet, resource_group=group_name)
 
 
 @define(eq=False, slots=False)
@@ -5099,20 +5096,14 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             api_spec = AzureApiSpec(
                 service="network",
                 version="2023-05-01",
-                path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets",
-                path_parameters=["subscriptionId", "resourceGroupName", "virtualNetworkName"],
+                path=f"{self.id}/subnets",
+                path_parameters=[],
                 query_parameters=["api-version"],
                 access_path="value",
                 expect_array=True,
             )
-            resource_group_name = self.resource_group_name() or ""
-            virtual_network_name = self.name if self.name else ""
 
-            items = graph_builder.client.list(
-                api_spec,
-                resourceGroupName=resource_group_name,
-                virtualNetworkName=virtual_network_name,
-            )
+            items = graph_builder.client.list(api_spec)
             AzureSubnet.collect(items, graph_builder)
 
         graph_builder.submit_work("azure_all", collect_subnets)

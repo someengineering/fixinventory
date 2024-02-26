@@ -2535,9 +2535,7 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
                 "azure_load_balancer",
             ]
         },
-        "successors": {
-            "default": ["azure_image", "azure_disk", "azure_network_interface", "azure_virtual_machine_size"]
-        },
+        "successors": {"default": ["azure_image", "azure_disk", "azure_network_interface"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3229,7 +3227,8 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_load_balancer"]},
+        "predecessors": {"default": ["azure_load_balancer", "azure_subnet"]},
+        "successors": {"default": ["azure_virtual_machine"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3286,6 +3285,26 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     upgrade_policy: Optional[AzureUpgradePolicy] = field(default=None, metadata={'description': 'Describes an upgrade policy - automatic, manual, or rolling.'})  # fmt: skip
     virtual_machine_profile: Optional[AzureVirtualMachineScaleSetVMProfile] = field(default=None, metadata={'description': 'Describes a virtual machine scale set virtual machine profile.'})  # fmt: skip
     zone_balance: Optional[bool] = field(default=None, metadata={'description': 'Whether to force strictly even virtual machine distribution cross x-zones in case there is zone outage. Zonebalance property can only be set if the zones property of the scale set contains more than one zone. If there are no zones or only one zone specified, then zonebalance property should not be set.'})  # fmt: skip
+    _vmss_vm_ids: Optional[List[str]] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_vmss_instances() -> None:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2023-09-01",
+                path=f"{self.id}/virtualMachines",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+
+            items = graph_builder.client.list(api_spec)
+            self._vmss_vm_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
+
+            AzureVirtualMachine.collect(items, graph_builder)
+
+        graph_builder.submit_work("azure_all", collect_vmss_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
@@ -3298,14 +3317,25 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                     for ip_config in ip_configs:
                         if baps := ip_config.load_balancer_backend_address_pools:
                             for bap in baps:
-                                if bap_id := bap:
-                                    builder.add_edge(
-                                        self,
-                                        edge_type=EdgeType.default,
-                                        reverse=True,
-                                        clazz=AzureLoadBalancer,
-                                        id=bap_id,
-                                    )
+                                bap_id = "/".join(bap.split("/")[:-2])
+                                builder.add_edge(
+                                    self,
+                                    edge_type=EdgeType.default,
+                                    reverse=True,
+                                    clazz=AzureLoadBalancer,
+                                    id=bap_id,
+                                )
+                        if subnet_id := ip_config.subnet:
+                            builder.add_edge(
+                                self,
+                                edge_type=EdgeType.default,
+                                reverse=True,
+                                clazz=AzureSubnet,
+                                id=subnet_id,
+                            )
+        if vmss_instance_ids := self._vmss_vm_ids:
+            for vmss_instance_id in vmss_instance_ids:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vmss_instance_id)
 
 
 @define(eq=False, slots=False)

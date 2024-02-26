@@ -1,7 +1,13 @@
 from conftest import roundtrip_check, connect_resources
 from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
 from fix_plugin_azure.resource.compute import *
-from fix_plugin_azure.resource.network import AzureLoadBalancer, AzureNetworkInterface, AzureNetworkSecurityGroup
+from fix_plugin_azure.resource.network import (
+    AzureLoadBalancer,
+    AzureNetworkInterface,
+    AzureNetworkSecurityGroup,
+    AzureVirtualNetwork,
+    AzureSubnet,
+)
 from fixlib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
 
@@ -143,9 +149,21 @@ def test_virtual_machine_resources(builder: GraphBuilder) -> None:
     assert collected.instance_status == InstanceStatus.RUNNING
 
 
-def test_scale_set(builder: GraphBuilder) -> None:
+def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineScaleSet, builder)
     assert len(collected) == 1
+
+    resource_types: List[Type[AzureResource]] = [
+        AzureLoadBalancer,
+        AzureVirtualMachine,
+        AzureSubnet,
+    ]
+    roundtrip_check(AzureVirtualNetwork, builder)
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachineScaleSet)) == 1
+    assert len(builder.edges_of(AzureVirtualMachineScaleSet, AzureVirtualMachine)) == 2
+    assert len(builder.edges_of(AzureSubnet, AzureVirtualMachineScaleSet)) == 1
 
 
 def test_virtual_machine_size(builder: GraphBuilder) -> None:
