@@ -1,0 +1,27 @@
+[project]
+name = "fixinventoryworker"
+version = "4.0.0"
+authors = [{ name = "Some Engineering Inc." }]
+description = "Runs collector plugins and sends the result to fixcore."
+license = { text="AGPLv3" }
+requires-python = ">=3.9"
+classifiers = ["Programming Language :: Python :: 3"]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+dependencies = [
+    "fixinventorylib==4.0.0",
+    "tenacity",
+    "CherryPy",
+]
+
+[project.scripts]
+fixworker = "fixworker.__main__:main"
+
+[project.urls]
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/fixworker"
+
+[build-system]
+requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]
+build-backend = "setuptools.build_meta"
+

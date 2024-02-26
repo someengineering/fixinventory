@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 from typing import Any, cast
-from resoto_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 from test.resources import round_trip_for
-from resoto_plugin_aws.resource.sagemaker import (
+from fix_plugin_aws.resource.sagemaker import (
     AwsSagemakerNotebook,
     AwsSagemakerAlgorithm,
     AwsSagemakerApp,

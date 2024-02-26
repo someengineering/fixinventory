@@ -1,11 +1,11 @@
-# resoto-plugin-posthog
-Posthog Collector Plugin for Resoto
+# fix-plugin-posthog
+Posthog Collector Plugin for Fix
 
-This collector plugin is used to collect data from Posthog. It is used internally at Some Engineering to create metrics about resoto installations and usage.
+This collector plugin is used to collect data from Posthog. It is used internally at Some Engineering to create metrics about fix installations and usage.
 
-To export the number of running installations add the following config to `resoto.metrics`
+To export the number of running installations add the following config to `fix.metrics`
 ```
-resotometrics:
+fixmetrics:
   [...]
   metrics:
     running_installations:

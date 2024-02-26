@@ -10,7 +10,7 @@ on:
       - main
   pull_request:
     paths:
-      - 'resotolib/**'
+      - 'fixlib/**'
       - 'plugins/gcp/**'
       - '.github/**'
       - 'requirements-all.txt'
@@ -40,7 +40,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
+          pip install --upgrade --editable fixlib/
           pip install tox wheel flake8 build
 
       - name: Run tests
@@ -67,7 +67,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_RESOTO_PLUGIN_GCP }}
+          password: ${{ secrets.PYPI_FIX_PLUGIN_GCP }}
           packages_dir: ./plugins/gcp/dist/
 
       - name: Upload GCP policies
@@ -82,4 +82,4 @@ jobs:
           export API_TOKEN="${{ secrets.API_TOKEN }}"
           export SPACES_KEY="${{ secrets.SPACES_KEY }}"
           export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          gcppolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/gcp/
+          gcppolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/gcp/

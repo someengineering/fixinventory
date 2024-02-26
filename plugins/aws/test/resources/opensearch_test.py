@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.opensearch import AwsOpenSearchDomain
+from fix_plugin_aws.resource.opensearch import AwsOpenSearchDomain
 from test.resources import round_trip_for
 
 

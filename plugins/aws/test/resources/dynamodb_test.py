@@ -1,9 +1,9 @@
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 from types import SimpleNamespace
 from typing import cast, Any
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobalTable
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobalTable
 
 
 def test_tables() -> None:

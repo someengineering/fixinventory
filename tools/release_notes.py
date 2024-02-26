@@ -57,7 +57,7 @@ def parse_commit(row: list[str]) -> Commit:
     elif len(brackets) == 1:
         component, group = brackets[0], "feat"
     else:
-        component, group = "resoto", "feat"
+        component, group = "fix", "feat"
 
     msg_pr = re.fullmatch("(?:\\[[^]]+]\\s*){0,2}(.*)(\\(#(\\d+)\\))?", msg)
     if len(msg_pr.groups()) == 2:
@@ -93,14 +93,14 @@ def show_log(from_tag: str, to_tag: str):
         print(f"\n### {group_names.get(group, group)}\n")
         for commit in commits:
             print(
-                f"- [`{commit.commit_hash}`](https://github.com/someengineering/resoto/commit/{commit.commit_hash}) "
+                f"- [`{commit.commit_hash}`](https://github.com/someengineering/fix/commit/{commit.commit_hash}) "
                 f'<span class="badge badge--secondary">{commit.component}</span> {commit.message}'
-                f"{f' ([#{commit.pr}](https://github.com/someengineering/resoto/pull/{commit.pr}))' if commit.pr else ''}"
+                f"{f' ([#{commit.pr}](https://github.com/someengineering/fix/pull/{commit.pr}))' if commit.pr else ''}"
             )
 
     print("\n<!--truncate-->")
     print("\n## Docker Images\n")
-    for image in ["resotocore", "resotoworker", "resotoshell", "resotometrics"]:
+    for image in ["fixcore", "fixworker", "fixshell", "fixmetrics"]:
         print(f"- `somecr.io/someengineering/{image}:{to_tag}`")
 
 

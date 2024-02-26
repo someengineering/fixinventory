@@ -1,7 +1,6 @@
-import json
 import os
-from resoto_plugin_gcp.resources.base import *
-from resoto_plugin_gcp.resources.compute import GcpMachineType
+from fix_plugin_gcp.resources.base import *
+from fix_plugin_gcp.resources.compute import GcpMachineType
 
 
 def test_node_by_filter(random_builder: GraphBuilder) -> None:

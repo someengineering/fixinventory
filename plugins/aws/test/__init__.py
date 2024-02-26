@@ -4,14 +4,14 @@ from typing import Iterator
 
 from pytest import fixture
 
-from resoto_plugin_aws.collector import AwsAccountCollector
-from resoto_plugin_aws.configuration import AwsConfig
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
-from resotolib.threading import ExecutorQueue
+from fix_plugin_aws.collector import AwsAccountCollector
+from fix_plugin_aws.configuration import AwsConfig
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.base import AwsAccount, AwsRegion, GraphBuilder
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
+from fixlib.threading import ExecutorQueue
 from test.resources import BotoFileBasedSession
 
 

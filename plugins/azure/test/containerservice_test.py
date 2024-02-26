@@ -1,7 +1,7 @@
 from conftest import roundtrip_check, connect_resources
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
-from resoto_plugin_azure.resource.containerservice import AzureFleet, AzureManagedCluster, AzureKubernetesSnapshot
-from resoto_plugin_azure.resource.compute import AzureDiskEncryptionSet
+from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
+from fix_plugin_azure.resource.containerservice import AzureFleet, AzureManagedCluster, AzureKubernetesSnapshot
+from fix_plugin_azure.resource.compute import AzureDiskEncryptionSet
 from typing import List, Type
 
 

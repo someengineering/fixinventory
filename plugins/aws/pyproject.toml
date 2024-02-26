@@ -1,8 +1,8 @@
 [project]
-name = "resoto-plugin-aws"
+name = "fixinventory-plugin-aws"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
-description = "Runs collector plugins and sends the result to resotocore."
+description = "Runs collector plugins and sends the result to fixcore."
 license = { text="AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
@@ -27,19 +27,19 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
     "resotodata",
     "retrying",
     "boto3",
     "botocore",
 ]
 
-[project.entry-points."resoto.plugins"]
-aws = "resoto_plugin_aws:AWSCollectorPlugin"
+[project.entry-points."fix.plugins"]
+aws = "fix_plugin_aws:AWSCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/aws"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/aws"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

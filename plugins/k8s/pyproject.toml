@@ -1,6 +1,6 @@
 [project]
-name = "resoto-plugin-k8s"
-description = "Resoto Kubernetes Collector Plugin"
+name = "fixinventory-plugin-k8s"
+description = "Fix Kubernetes Collector Plugin"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
@@ -27,16 +27,16 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
     "kubernetes",
 ]
 
-[project.entry-points."resoto.plugins"]
-k8s_collector = "resoto_plugin_k8s:KubernetesCollectorPlugin"
+[project.entry-points."fix.plugins"]
+k8s_collector = "fix_plugin_k8s:KubernetesCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/k8s"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/k8s"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

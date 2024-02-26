@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_onprem import OnpremCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_onprem import OnpremCollectorPlugin
 
 
 def test_config():

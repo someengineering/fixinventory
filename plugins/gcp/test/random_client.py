@@ -9,11 +9,11 @@ from typing import Tuple, List
 from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 
-from resoto_plugin_gcp.gcp_client import RegionProp, GcpApiSpec, GcpClient
-from resoto_plugin_gcp.resources.base import GcpZone, GcpRegion, GcpResource, GcpResourceType, GraphBuilder
-from resotolib.json import set_value_in_path, value_in_path
-from resotolib.types import JsonElement, Json
-from resotolib.utils import utc_str
+from fix_plugin_gcp.gcp_client import RegionProp, GcpApiSpec, GcpClient
+from fix_plugin_gcp.resources.base import GcpZone, GcpRegion, GcpResource, GcpResourceType, GraphBuilder
+from fixlib.json import set_value_in_path, value_in_path
+from fixlib.types import JsonElement, Json
+from fixlib.utils import utc_str
 
 RequestResponse = Tuple[List[str], JsonElement]
 Schema = Dict[str, Any]

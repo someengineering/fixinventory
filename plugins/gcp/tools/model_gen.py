@@ -7,7 +7,7 @@ from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 from googleapiclient.discovery import Resource
 
-from resoto_plugin_gcp.utils import MemoryCache
+from fix_plugin_gcp.utils import MemoryCache
 
 
 def to_snake(name: str) -> str:
@@ -315,7 +315,7 @@ def clazz_model(
 
 
 @define
-class GcpResotoModel:
+class GcpFixModel:
     # is_global: bool
     # resource_action_path: List[str]  # path to the resource action
     # resource_action: str  # action to perform on the client
@@ -358,7 +358,7 @@ def adjust_prefix(name: str) -> str:
 # noinspection PyProtectedMember
 def generate_models(
     service: str, version: str, client: Resource, prefix: Optional[str], ignore: List[str]
-) -> List[GcpResotoModel]:
+) -> List[GcpFixModel]:
     schemas: Dict[str, Shape] = client._rootDesc["schemas"]
 
     def result_prop(shape: Shape) -> Tuple[str, str]:
@@ -368,7 +368,7 @@ def generate_models(
 
         raise ValueError(f"Could not find result property in shape: {shape}")
 
-    def resource_models(path: List[str], desc: Shape) -> Optional[GcpResotoModel]:
+    def resource_models(path: List[str], desc: Shape) -> Optional[GcpFixModel]:
         if "aggregatedList" in desc["methods"]:
             method = desc["methods"]["aggregatedList"]
             response = schemas[method["response"]["$ref"]]
@@ -377,7 +377,7 @@ def generate_models(
             op = next(iter(set(schemas[list_kind]["properties"].keys()) - {"warning"}))
             resource_list_kind = schemas[list_kind]["properties"][op]
             resource_kind = resource_list_kind["items"]["$ref"]
-            return GcpResotoModel(
+            return GcpFixModel(
                 resource_kind,
                 prefix,
                 adjust_prefix(to_snake(resource_kind)) + "_",
@@ -388,7 +388,7 @@ def generate_models(
             response = schemas[method["response"]["$ref"]]
             required_parameters = {p: pd for p, pd in method["parameters"].items() if pd.get("required", False)}
             prop, kind = result_prop(response)
-            return GcpResotoModel(
+            return GcpFixModel(
                 kind,
                 prefix,
                 adjust_prefix(to_snake(kind)) + "_",
@@ -398,7 +398,7 @@ def generate_models(
             # print(">>>> NO LIST FOR", resource, " ", list(desc["methods"].keys()))
             return None
 
-    def models(path: List[str], schemas: Dict[str, Any]) -> List[GcpResotoModel]:
+    def models(path: List[str], schemas: Dict[str, Any]) -> List[GcpFixModel]:
         result = []
         for resource, desc in schemas.items():
             if "methods" in desc:
@@ -409,7 +409,7 @@ def generate_models(
                 result.extend(models(path + [resource], desc["resources"]))
         return result
 
-    def reduce_global_models(all_models: List[GcpResotoModel]) -> List[GcpResotoModel]:
+    def reduce_global_models(all_models: List[GcpFixModel]) -> List[GcpFixModel]:
         # There are multiple APIs to get the same resource
         # Example backend services can be listed on project level or in any region:
         #     backendServices.aggregatedList :  {'project'}
@@ -463,9 +463,9 @@ from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
-from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
+from fix_plugin_gcp.gcp_client import GcpApiSpec
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
 """
         )
         for clazz in clazz_models:
@@ -477,8 +477,8 @@ def generate_test_classes() -> None:
     for service, clazz_models in generate_class_models().items():
         print(
             f"""from .random_client import roundtrip
-from resoto_plugin_gcp.resources.base import GraphBuilder
-from resoto_plugin_gcp.resources.{service} import *
+from fix_plugin_gcp.resources.base import GraphBuilder
+from fix_plugin_gcp.resources.{service} import *
 """
         )
         for clazz in clazz_models:

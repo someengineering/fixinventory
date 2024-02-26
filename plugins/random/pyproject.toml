@@ -1,6 +1,6 @@
 [project]
-name = "resoto-plugin-random"
-description = "Resoto Random Collector Plugin"
+name = "fixinventory-plugin-random"
+description = "Fix Random Collector Plugin"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
@@ -27,15 +27,15 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
 ]
 
-[project.entry-points."resoto.plugins"]
-random = "resoto_plugin_random:RandomCollectorPlugin"
+[project.entry-points."fix.plugins"]
+random = "fix_plugin_random:RandomCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/random"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/random"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

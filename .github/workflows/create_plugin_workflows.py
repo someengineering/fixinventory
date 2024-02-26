@@ -16,7 +16,7 @@ on:
       - main
   pull_request:
     paths:
-      - 'resotolib/**'
+      - 'fixlib/**'
       - 'plugins/@name@/**'
       - '.github/**'
       - 'requirements-all.txt'
@@ -46,7 +46,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
+          pip install --upgrade --editable fixlib/
           pip install tox wheel flake8 build
 """
 
@@ -67,9 +67,9 @@ aws_policygen = """
           export API_TOKEN="${{ secrets.API_TOKEN }}"
           export SPACES_KEY="${{ secrets.SPACES_KEY }}"
           export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          export AWS_ACCESS_KEY_ID="${{ secrets.S3_RESOTOPUBLIC_AWS_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_RESOTOPUBLIC_AWS_SECRET_ACCESS_KEY }}"
-          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/aws/ --aws-s3-bucket resotopublic --aws-s3-bucket-path cf/
+          export AWS_ACCESS_KEY_ID="${{ secrets.S3_FIXPUBLIC_AWS_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_FIXPUBLIC_AWS_SECRET_ACCESS_KEY }}"
+          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/aws/ --aws-s3-bucket fixpublic --aws-s3-bucket-path cf/
 """
 
 gcp_policygen = """
@@ -85,7 +85,7 @@ gcp_policygen = """
           export API_TOKEN="${{ secrets.API_TOKEN }}"
           export SPACES_KEY="${{ secrets.SPACES_KEY }}"
           export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          gcppolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path resoto/gcp/
+          gcppolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/gcp/
 """
 
 step_run_test = """
@@ -125,14 +125,14 @@ for plugin in os.listdir(plugins_path):
             yml.write(
                 install.replace("@directory@", f"./plugins/{plugin}")
                 .replace("@name@", plugin)
-                .replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
+                .replace("@PKGNAME@", f"fix_plugin_{plugin}".upper())
             )
             if "_aws_" in plugin:
                 yml.write(aws_plugin)
             yml.write(
                 step_run_test.replace("@directory@", f"./plugins/{plugin}")
                 .replace("@name@", plugin)
-                .replace("@PKGNAME@", f"resoto_plugin_{plugin}".upper())
+                .replace("@PKGNAME@", f"fix_plugin_{plugin}".upper())
             )
             if plugin == "aws":
                 yml.write(aws_policygen)

@@ -1,4 +1,4 @@
-# Resoto GCP policy generator
+# Fix GCP policy generator
 This script creates and uploads GCP policies to the CDN
 
 ## License

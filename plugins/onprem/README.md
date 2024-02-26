@@ -1,5 +1,5 @@
-# resoto-plugin-onprem (WIP)
-On-Premises Collector Plugin for Resoto
+# fix-plugin-onprem (WIP)
+On-Premises Collector Plugin for Fix
 
 ## License
 See [LICENSE](../../LICENSE) for details.

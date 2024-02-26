@@ -1,0 +1,65 @@
+{
+    "provider": "aws",
+    "service": "cloudfront",
+    "checks": [
+        {
+            "name": "distribution_logging_enabled",
+            "title": "Ensure that logging is enabled for every CloudFront distribution",
+            "result_kinds": [
+                "aws_cloudfront_distribution"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to enable logging in CloudFront distributions may result in a lack of visibility into access patterns, hindering the detection and investigation of potential security threats. This can also lead to non-compliance with security best practices and regulatory requirements.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_cloudfront_distribution) and distribution_config.logging==null"
+            },
+            "remediation": {
+                "text": "To fix this issue, you can enable logging for your CloudFront distribution either through the AWS CLI or the management console.",
+                "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/LoggingIngesting.html",
+                "action": {
+                    "aws_cli": "aws cloudfront update-distribution --id YOUR_DISTRIBUTION_ID --logging-config '{\"enabled\":true,\"bucket\":\"YOUR_S3_BUCKET\",\"prefix\":\"LOG_PREFIX\"}'"
+                },
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Protokollierung für jede CloudFront-Distribution aktiviert ist",
+                    "risk": "Das Nichtaktivieren der Protokollierung in CloudFront-Distributionen kann zu fehlender Transparenz bei Zugriffsmustern führen, was die Erkennung und Untersuchung potenzieller Sicherheitsbedrohungen behindert. Dies kann auch zu Nichteinhaltung von Sicherheitsstandards und gesetzlichen Anforderungen führen.",
+                    "remediation": "Um dieses Problem zu beheben, können Sie die Protokollierung für Ihre CloudFront-Distribution entweder über die AWS CLI oder die Managementkonsole aktivieren."
+                }
+            }
+        },
+        {
+            "name": "distribution_waf_enabled",
+            "title": "Ensure that a Web Application Firewall (WAF) is associated with CloudFront Distribution",
+            "result_kinds": [
+                "aws_cloudfront_distribution"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Not associating a Web Application Firewall (WAF) with CloudFront Distribution can leave your distributions vulnerable to internet attacks such as DDoS.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_cloudfront_distribution) and distribution_config.web_acl_id in [null, \"\"]"
+            },
+            "remediation": {
+                "text": "To fix this issue, associate your CloudFront Distributions with a Web ACL. This will provide an additional layer of security.",
+                "url": "https://docs.aws.amazon.com/waf/latest/developerguide/cloudfront-features.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass ein Web Application Firewall (WAF) mit CloudFront Distribution verknüpft ist",
+                    "risk": "Wenn Sie keine Web Application Firewall (WAF) mit CloudFront Distribution verknüpfen, können Ihre Verteilungen anfällig für Internetangriffe wie DDoS sein.",
+                    "remediation": "Um dieses Problem zu beheben, verknüpfen Sie Ihre CloudFront-Distributionen mit einer Web ACL. Dadurch wird eine zusätzliche Sicherheitsebene bereitgestellt."
+                }
+            }
+        }
+    ]
+}

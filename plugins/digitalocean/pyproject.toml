@@ -1,6 +1,6 @@
 [project]
-name = "resoto-plugin-digitalocean"
-description = "Resoto DigitalOcean Collector Plugin"
+name = "fixinventory-plugin-digitalocean"
+description = "Fix DigitalOcean Collector Plugin"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
     "boto3",
     "requests",
     "botocore",
@@ -40,12 +40,12 @@ test = [
     "tzlocal",
 ]
 
-[project.entry-points."resoto.plugins"]
-digitalocean_collector = "resoto_plugin_digitalocean:DigitalOceanCollectorPlugin"
+[project.entry-points."fix.plugins"]
+digitalocean_collector = "fix_plugin_digitalocean:DigitalOceanCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/digitalocean"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/digitalocean"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

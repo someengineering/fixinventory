@@ -1,6 +1,6 @@
 [project]
-name = "resoto-plugin-onelogin"
-description = "Resoto OneLogin Plugin"
+name = "fixinventory-plugin-onelogin"
+description = "Fix OneLogin Plugin"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
@@ -27,16 +27,16 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
     "onelogin==2.0.4",
 ]
 
-[project.entry-points."resoto.plugins"]
-onelogin = "resoto_plugin_onelogin:OneLoginPlugin"
+[project.entry-points."fix.plugins"]
+onelogin = "fix_plugin_onelogin:OneLoginPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/onelogin"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/onelogin"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.secretsmanager import AwsSecretsManagerSecret
+from fix_plugin_aws.resource.secretsmanager import AwsSecretsManagerSecret
 from test.resources import round_trip_for
 
 

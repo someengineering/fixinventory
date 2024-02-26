@@ -1,8 +1,8 @@
 from typing import List
 
-from resotolib.json import value_in_path
-from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
-from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType
+from fixlib.json import value_in_path
+from fix_plugin_aws.resource.base import GraphBuilder, AwsRegion
+from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType
 from resotodata.cloud import instances as cloud_instance_data
 
 from test import builder, aws_client, aws_config, no_feedback  # noqa: F401

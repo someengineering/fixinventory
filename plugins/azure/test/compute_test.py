@@ -1,8 +1,8 @@
 from conftest import roundtrip_check, connect_resources
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
-from resoto_plugin_azure.resource.compute import *
-from resoto_plugin_azure.resource.network import AzureLoadBalancer, AzureNetworkInterface, AzureNetworkSecurityGroup
-from resotolib.baseresources import VolumeStatus, InstanceStatus
+from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
+from fix_plugin_azure.resource.compute import *
+from fix_plugin_azure.resource.network import AzureLoadBalancer, AzureNetworkInterface, AzureNetworkSecurityGroup
+from fixlib.baseresources import VolumeStatus, InstanceStatus
 from typing import List, Type
 
 

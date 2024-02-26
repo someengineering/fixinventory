@@ -3,9 +3,9 @@
 set -euo pipefail
 
 # Include defaults
-. /usr/local/etc/resoto/defaults
-. /usr/local/etc/resoto/common
-. /usr/local/resoto-venv-python3/bin/activate
+. /usr/local/etc/fix/defaults
+. /usr/local/etc/fix/common
+. /usr/local/fix-venv-python3/bin/activate
 
 
 main() {
@@ -13,19 +13,19 @@ main() {
     configure_timezone
     setup_etc_hosts || true
     setup_dnsmasq
-    exec runuser -u resoto -g resoto -- "$@"
+    exec runuser -u fix -g fix -- "$@"
 }
 
 
 # Apply user id and group id
 apply_permissions() {
-    info "Setting uid:gid of resoto to $PUID:$PGID"
-    groupmod -g "${PGID}" -o resoto
-    #usermod -u "${PUID}" -o -g resoto resoto
-    sed -i -E "s/^(resoto:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+    info "Setting uid:gid of fix to $PUID:$PGID"
+    groupmod -g "${PGID}" -o fix
+    #usermod -u "${PUID}" -o -g fix fix
+    sed -i -E "s/^(fix:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
-    chown resoto:resoto /home/resoto
-    chown -R resoto:resoto /var/run/resoto
+    chown fix:fix /home/fix
+    chown -R fix:fix /var/run/fix
 }
 
 
@@ -75,7 +75,7 @@ setup_dnsmasq() {
     if [ "${USE_DNS_CACHE-}" = true ]; then
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
-            echo "log-queries=extra" >> /etc/dnsmasq.d/resoto.conf
+            echo "log-queries=extra" >> /etc/dnsmasq.d/fix.conf
         fi
         dnsmasq
         echo "nameserver 127.0.0.1" > /etc/resolv.conf

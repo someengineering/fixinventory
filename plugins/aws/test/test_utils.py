@@ -2,8 +2,8 @@ import tempfile
 from pathlib import Path
 from typing import List
 
-from resoto_plugin_aws.resource.base import AwsRegion
-from resoto_plugin_aws.utils import arn_partition, get_aws_profiles_from_file
+from fix_plugin_aws.resource.base import AwsRegion
+from fix_plugin_aws.utils import arn_partition, get_aws_profiles_from_file
 
 
 def test_arn_partition() -> None:

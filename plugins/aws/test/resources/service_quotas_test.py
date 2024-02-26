@@ -3,14 +3,14 @@ from typing import cast, Any
 
 from attr import evolve
 
-from resoto_plugin_aws.resource.base import AwsResource
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.base import GraphBuilder, AwsRegion
-from resoto_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
-from resoto_plugin_aws.resource.elbv2 import AwsAlb
-from resoto_plugin_aws.resource.iam import AwsIamServerCertificate
-from resoto_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
-from resotolib.baseresources import EdgeType
+from fix_plugin_aws.resource.base import AwsResource
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.base import GraphBuilder, AwsRegion
+from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
+from fix_plugin_aws.resource.elbv2 import AwsAlb
+from fix_plugin_aws.resource.iam import AwsIamServerCertificate
+from fix_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
+from fixlib.baseresources import EdgeType
 from test.resources import round_trip_for, build_graph
 
 

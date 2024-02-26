@@ -1,0 +1,93 @@
+{
+    "provider": "aws",
+    "service": "ecr",
+    "checks": [
+        {
+            "name": "image_scan_on_push",
+            "title": "Ensure ECR image scan on push is enabled",
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without enabling ECR image scanning, software vulnerabilities in container images may go undetected, increasing the risk of potential security incidents. ECR image scanning provides a list of scan findings based on the Common Vulnerabilities and Exposures (CVEs) database from the open-source Clair project.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_ecr_repository) and image_scan_on_push = false"
+            },
+            "remediation": {
+                "text": "To fix this issue, enable ECR image scanning and review the scan findings for information about the security of the container images being deployed.",
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die ECR-Bildscan beim Pushen aktiviert ist",
+                    "risk": "Ohne die Aktivierung des ECR-Bildscans beim Pushen können Software-Schwachstellen in Container-Bildern unentdeckt bleiben. Dadurch steigt das Risiko potenzieller Sicherheitsvorfälle. Der ECR-Bildscan liefert eine Liste von Scan-Ergebnissen, die auf der Common Vulnerabilities and Exposures (CVEs) Datenbank des Open-Source-Projekts Clair basieren.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie den ECR-Bildscan und überprüfen Sie die Scan-Ergebnisse, um Informationen zur Sicherheit der bereitgestellten Container-Bilder zu erhalten."
+                }
+            }
+        },
+        {
+            "name": "repository_prohibit_public_access",
+            "title": "Ensure ECR repositories are not publicly accessible to mitigate security risks, prevent unauthorized access, and maintain control over container image distribution.",
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to secure ECR repositories can lead to unauthorized access to code bases and application artifacts, posing serious security risks.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_ecr_repository) and repository_visibility==public"
+            },
+            "remediation": {
+                "text": "To fix the issue, delete any public repositories in ECR and redeploy them as private.",
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass ECR-Repositories nicht öffentlich zugänglich sind, um Sicherheitsrisiken zu minimieren, unbefugten Zugriff zu verhindern und die Kontrolle über die Verteilung von Container-Images zu behalten.",
+                    "risk": "Die Nichtsicherung von ECR-Repositories kann zu unbefugtem Zugriff auf Code-Basen und Anwendungsartefakte führen und ernsthafte Sicherheitsrisiken darstellen.",
+                    "remediation": "Um das Problem zu beheben, löschen Sie alle öffentlichen Repositories in ECR und erstellen Sie sie erneut als private."
+                }
+            }
+        },
+        {
+            "name": "repository_lifecycle_policy_enabled",
+            "title": "Ensure ECR repositories have lifecycle policies enabled",
+            "result_kinds": [
+                "aws_ecr_repository"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If lifecycle policies are not enabled for Amazon ECR repositories, there is a risk of retaining a large number of images, which can result in unnecessary costs.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_ecr_repository) and lifecycle_policy!=null"
+            },
+            "remediation": {
+                "text": "To fix this issue, open the Amazon ECR console and create a lifecycle policy for each repository.",
+                "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon ECR-Repositories Lebenszyklusrichtlinien aktiviert haben",
+                    "risk": "Wenn für Amazon ECR-Repositories keine Lebenszyklusrichtlinien aktiviert sind, besteht das Risiko, dass eine große Anzahl von Abbildern aufbewahrt wird, was zu unnötigen Kosten führen kann.",
+                    "remediation": "Um dieses Problem zu beheben, öffnen Sie die Amazon ECR-Konsole und erstellen Sie für jedes Repository eine Lebenszyklusrichtlinie."
+                }
+            }
+        }
+    ]
+}

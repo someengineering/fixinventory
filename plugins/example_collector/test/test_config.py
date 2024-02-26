@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_example_collector import ExampleCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_example_collector import ExampleCollectorPlugin
 
 
 def test_config():

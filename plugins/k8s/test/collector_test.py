@@ -4,12 +4,12 @@ from typing import Tuple, List
 import jsons
 
 from fixtures import StaticFileClient
-from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sApiResource, K8sClient
-from resoto_plugin_k8s import KubernetesCollectorPlugin
-from resoto_plugin_k8s.resources import KubernetesCluster, KubernetesClusterInfo, KubernetesConfigMap
-from resotolib.config import Config
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from fix_plugin_k8s.base import K8sConfig, K8sAccess, K8sApiResource, K8sClient
+from fix_plugin_k8s import KubernetesCollectorPlugin
+from fix_plugin_k8s.resources import KubernetesCluster, KubernetesClusterInfo, KubernetesConfigMap
+from fixlib.config import Config
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
 from pytest import fixture
 
 

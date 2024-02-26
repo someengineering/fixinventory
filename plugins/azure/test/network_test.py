@@ -1,7 +1,7 @@
 from conftest import roundtrip_check, connect_resources
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
-from resoto_plugin_azure.resource.containerservice import AzureManagedCluster
-from resoto_plugin_azure.resource.network import *
+from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
+from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.network import *
 
 from typing import List, Type
 
@@ -156,7 +156,7 @@ def test_load_balancer(builder: GraphBuilder) -> None:
 
 
 def test_network_profile(builder: GraphBuilder) -> None:
-    from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+    from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
     collected = roundtrip_check(AzureNetworkProfile, builder)
 

@@ -1,9 +1,9 @@
 import json
 import os
-from resoto_plugin_gcp.resources.compute import *
-from resoto_plugin_gcp.resources.billing import GcpSku
+from fix_plugin_gcp.resources.compute import *
+from fix_plugin_gcp.resources.billing import GcpSku
 from .random_client import roundtrip, connect_resource, FixturedClient
-from resoto_plugin_gcp.resources.base import GraphBuilder, GcpRegion
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:

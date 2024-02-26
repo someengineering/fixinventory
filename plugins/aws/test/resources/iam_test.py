@@ -3,8 +3,8 @@ from textwrap import dedent
 from types import SimpleNamespace
 from typing import Any, cast
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.iam import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.iam import (
     AwsIamPolicy,
     AwsIamGroup,
     AwsIamServerCertificate,
@@ -14,7 +14,7 @@ from resoto_plugin_aws.resource.iam import (
     AwsIamInstanceProfile,
     CredentialReportLine,
 )
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 
 

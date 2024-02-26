@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_digitalocean import DigitalOceanCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_digitalocean import DigitalOceanCollectorPlugin
 
 
 def test_config() -> None:

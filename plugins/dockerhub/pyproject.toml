@@ -1,6 +1,6 @@
 [project]
-name = "resoto-plugin-dockerhub"
-description = "Resoto Docker Hub Collector Plugin"
+name = "fixinventory-plugin-dockerhub"
+description = "Fix Docker Hub Collector Plugin"
 version = "4.0.0"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
@@ -27,17 +27,17 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0",
     "requests",
 
 ]
 
-[project.entry-points."resoto.plugins"]
-dockerhub = "resoto_plugin_dockerhub:DockerHubCollectorPlugin"
+[project.entry-points."fix.plugins"]
+dockerhub = "fix_plugin_dockerhub:DockerHubCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/dockerhub"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/dockerhub"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

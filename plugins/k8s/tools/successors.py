@@ -1,9 +1,9 @@
 import json
 
-from resotoclient import ResotoClient
+from fixclient import FixClient
 
 
-def get_successors(client: ResotoClient) -> None:
+def get_successors(client: FixClient) -> None:
     for name, kind in client.model().kinds.items():
         if name.startswith("kubernetes") and kind.aggregate_root:
             succesors = {}
@@ -19,4 +19,4 @@ def get_successors(client: ResotoClient) -> None:
 
 
 if __name__ == "__main__":
-    get_successors(ResotoClient("https://localhost:8900"))
+    get_successors(FixClient("https://localhost:8900"))

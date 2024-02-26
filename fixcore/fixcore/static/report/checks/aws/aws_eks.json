@@ -1,0 +1,92 @@
+{
+    "provider": "aws",
+    "service": "eks",
+    "checks": [
+        {
+            "name": "cluster_endpoint_restrict_public_access",
+            "title": "Ensure that Public Access to EKS Cluster Endpoint is Restricted",
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If EKS cluster endpoint is publicly accessible, it exposes the cluster to potential security risks as it is reachable from the public internet. This could lead to unauthorized access or data breaches.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_eks_cluster) and cluster_resources_vpc_config.endpoint_public_access==true"
+            },
+            "remediation": {
+                "text": "Restrict the EKS cluster's public access by adjusting the security group settings. Implement network policies that enforce secure access controls and restrict inbound traffic. You can also choose to disable public access entirely or limit the IP addresses that can access your API server from the internet.",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html",
+                "complexity": "low"
+            },
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/eks-api-server-unauthorized-error/",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass der öffentliche Zugriff auf den EKS Cluster Endpoint eingeschränkt ist",
+                    "risk": "Wenn der EKS Cluster Endpoint öffentlich erreichbar ist, birgt dies potenzielle Sicherheitsrisiken, da er über das öffentliche Internet erreichbar ist. Dies kann zu unbefugtem Zugriff oder Datenverletzungen führen.",
+                    "remediation": "Schränken Sie den öffentlichen Zugriff auf den EKS Cluster ein, indem Sie die Sicherheitseinstellungen der Sicherheitsgruppe anpassen. Implementieren Sie Netzwerkrichtlinien, die sichere Zugriffskontrollen durchsetzen und eingehenden Datenverkehr beschränken. Sie können auch wählen, den öffentlichen Zugriff vollständig zu deaktivieren oder die IP-Adressen zu beschränken, die auf Ihren API-Server aus dem Internet zugreifen können."
+                }
+            }
+        },
+        {
+            "name": "cluster_control_plane_audit_logging_enabled",
+            "title": "Ensure Control Planes for EKS Clusters are Configured with Audit Logging to Maintain Security Forensics and Audit Compliance",
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without audit logging, potentially suspicious activities within the cluster could go unnoticed, leaving the system vulnerable to internal and external threats. It could also make it challenging to meet audit and compliance requirements.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_eks_cluster) and cluster_logging.cluster_logging[*].enabled = false"
+            },
+            "remediation": {
+                "text": "Navigate to the 'Logging' tab of your EKS cluster in the AWS console to change settings. Select 'Edit' and enable or adjust control plane logging. Remember to save any change.",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/eks/latest/userguide/cluster-logging.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Steuerungsebenen für EKS-Cluster mit Audit-Logging konfiguriert sind, um Sicherheitsforensik und Audit-Konformität zu gewährleisten",
+                    "risk": "Ohne Audit-Logging könnten potenziell verdächtige Aktivitäten innerhalb des Clusters unbemerkt bleiben und das System anfällig für interne und externe Bedrohungen machen. Es könnte auch schwierig sein, Audit- und Compliance-Anforderungen zu erfüllen.",
+                    "remediation": "Navigieren Sie zur 'Logging'-Registerkarte Ihres EKS-Clusters in der AWS-Konsole, um die Einstellungen zu ändern. Wählen Sie 'Bearbeiten' aus und aktivieren oder stellen Sie das Steuerungs-Logging ein. Vergessen Sie nicht, jede Änderung zu speichern."
+                }
+            }
+        },
+        {
+            "name": "cluster_encryption_enabled",
+            "title": "Ensure Kubernetes Secrets are encrypted using AWS KMS Customer Master Keys (CMKs)",
+            "result_kinds": [
+                "aws_eks_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without envelope encryption, sensitive data may be exposed within your applications, leading to potential security breaches. This measure is crucial to a comprehensive defence-in-depth security strategy.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_eks_cluster) and cluster_encryption_config in [null, []]"
+            },
+            "remediation": {
+                "text": "Create a Customer Master Key (CMK) in AWS Key Management Service (KMS). Then, while creating a new Amazon EKS cluster, provide this CMK's Amazon Resource Name (ARN).",
+                "url": "https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Kubernetes Secrets mit AWS KMS Customer Master Keys (CMKs) verschlüsselt sind",
+                    "risk": "Ohne Umschlagverschlüsselung können sensible Daten in Ihren Anwendungen offengelegt werden, was zu potenziellen Sicherheitsverletzungen führen kann. Diese Maßnahme ist entscheidend für eine umfassende Verteidigung-in-Depth-Sicherheitsstrategie.",
+                    "remediation": "Erstellen Sie einen Customer Master Key (CMK) im AWS Key Management Service (KMS). Geben Sie dann beim Erstellen eines neuen Amazon EKS-Clusters den Amazon Resource Name (ARN) dieses CMKs an."
+                }
+            }
+        }
+    ]
+}

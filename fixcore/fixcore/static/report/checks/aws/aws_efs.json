@@ -1,0 +1,65 @@
+{
+    "provider": "aws",
+    "service": "efs",
+    "checks": [
+        {
+            "name": "storage_encrypted",
+            "title": "Ensure EFS File Systems Encrypt Sensitive Data at Rest",
+            "result_kinds": [
+                "aws_efs_file_system"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If EFS file systems are not encrypted at rest, sensitive data may be exposed to bad actors, leading to potential data breaches and compliance violations.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_efs_file_system) and volume_encrypted==false"
+            },
+            "remediation": {
+                "text": "To fix the issue, ensure encryption at rest is enabled for EFS file systems. Encryption at rest can only be enabled during the file system creation.",
+                "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass EFS-Dateisysteme sensitive Daten in Ruhe verschlüsseln",
+                    "risk": "Wenn EFS-Dateisysteme nicht in Ruhe verschlüsselt sind, können sensible Daten für böswillige Akteure zugänglich sein, was zu potenziellen Datenverstößen und Verletzungen der Compliance führen kann.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass die Verschlüsselung in Ruhe für EFS-Dateisysteme aktiviert ist. Die Verschlüsselung in Ruhe kann nur während der Erstellung des Dateisystems aktiviert werden."
+                }
+            }
+        },
+        {
+            "name": "not_publicly_accessible",
+            "title": "Ensure Restrict Public Access in EFS File System Policies",
+            "result_kinds": [
+                "aws_efs_file_system"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Allowing public access to Elastic File System (EFS) could lead to unauthorized data exposure or data breaches. Publicly accessible EFS file systems are at risk of exposing sensitive information, making them potential targets for malicious actors.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_efs_file_system) and file_system_policy==null"
+            },
+            "remediation": {
+                "text": "Modify the EFS file system's resource policy to restrict public access. Ensure that the policy does not include a principal set to '*', which would grant access to any user. Instead, define specific principals or use AWS IAM to manage access securely. Review the AWS documentation for guidance on creating and managing EFS access policies to safeguard your file systems effectively.",
+                "url": "https://docs.aws.amazon.com/efs/latest/ug/access-control-block-public-access.html",
+                "complexity": "medium"
+            },
+            "internal_note": "Evaluate the statement in the file_system_policy to determine if it is publicly accessible.",
+            "url": "https://docs.aws.amazon.com/efs/latest/ug/access-control-block-public-access.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass der öffentliche Zugriff in EFS-Dateisystemrichtlinien eingeschränkt ist",
+                    "risk": "Die Zulassung öffentlichen Zugriffs auf das Elastic File System (EFS) kann zu unbefugter Datenexposition oder Datenverletzungen führen. Öffentlich zugängliche EFS-Dateisysteme sind gefährdet und können sensible Informationen preisgeben, was sie zu potenziellen Zielen für bösartige Akteure macht.",
+                    "remediation": "Ändern Sie die Ressourcenrichtlinie des EFS-Dateisystems, um den öffentlichen Zugriff einzuschränken. Stellen Sie sicher, dass die Richtlinie keinen Prinzipal enthält, der auf '*' gesetzt ist, was jedem Benutzer Zugriff gewähren würde. Definieren Sie stattdessen spezifische Prinzipale oder verwenden Sie AWS IAM, um den Zugriff sicher zu verwalten. Konsultieren Sie die AWS-Dokumentation für Anleitungen zur Erstellung und Verwaltung von EFS-Zugriffsrichtlinien, um Ihre Dateisysteme effektiv abzusichern."
+                }
+            }
+        }
+    ]
+}

@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_dockerhub import DockerHubCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_dockerhub import DockerHubCollectorPlugin
 
 
 def test_config():

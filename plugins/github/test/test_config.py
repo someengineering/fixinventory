@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_github import GithubCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_github import GithubCollectorPlugin
 
 
 def test_config():

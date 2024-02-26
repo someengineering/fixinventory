@@ -1,0 +1,34 @@
+{
+    "provider": "aws",
+    "service": "autoscaling",
+    "checks": [
+        {
+            "name": "launch_template_public_ip_disabled",
+            "title": "Ensure Auto Scaling Launch Templates Do Not Auto-Assign Public IP Addresses",
+            "result_kinds": [
+                "aws_autoscaling_group"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Auto-assigning public IP addresses in Auto Scaling launch templates can lead to unintended public exposure of EC2 instances. This increases the risk of malicious activities such as brute force attacks, data breaches, or unauthorized access, compromising instance security and data integrity.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_autoscaling_group) with (any, --> is(aws_ec2_launch_template) and launch_template_data.network_interfaces[*].associate_public_ip_address==true)"
+            },
+            "remediation": {
+                "text": "To fix the issue, modify the Auto Scaling launch template. Set 'AssociatePublicIpAddress' to false for all network interfaces in the launch template. Additionally, ensure instances are launched in private subnets where public access is not required.",
+                "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html#launch-template-network",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Auto Scaling Launch-Vorlagen keine öffentlichen IP-Adressen automatisch zuweisen",
+                    "risk": "Die automatische Zuweisung öffentlicher IP-Adressen in Auto Scaling Launch-Vorlagen kann zu unbeabsichtigter öffentlicher Zugänglichkeit von EC2-Instanzen führen. Dadurch steigt das Risiko von bösartigen Aktivitäten wie Brute-Force-Angriffen, Datenschutzverletzungen oder unberechtigtem Zugriff, was die Sicherheit und Datenintegrität der Instanz gefährdet.",
+                    "remediation": "Um das Problem zu beheben, ändern Sie die Auto Scaling Launch-Vorlage. Setzen Sie 'AssociatePublicIpAddress' für alle Netzwerkschnittstellen in der Launch-Vorlage auf false. Stellen Sie außerdem sicher, dass Instanzen in privaten Subnetzen gestartet werden, wo kein öffentlicher Zugriff erforderlich ist."
+                }
+            }
+        }
+    ]
+}

@@ -9,7 +9,7 @@ services:
     ports:
       - "8529:8529"
     volumes:
-      - resoto_graphdb_data:/var/lib/arangodb3
+      - fix_graphdb_data:/var/lib/arangodb3
     command:
       - --database.auto-upgrade
   graphdb:
@@ -23,7 +23,7 @@ services:
     ports:
       - "8529:8529"
     volumes:
-      - resoto_graphdb_data:/var/lib/arangodb3
+      - fix_graphdb_data:/var/lib/arangodb3
     ulimits:
       nofile:
         soft: 65535
@@ -35,83 +35,83 @@ services:
       - "9090:9090"
     volumes:
       - ./dockerV2/prometheus.yml:/etc/prometheus/prometheus.yml
-      - resoto_tsdb_data:/prometheus
+      - fix_tsdb_data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=730d
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
-  resotocore:
-    image: somecr.io/someengineering/resotocore:edge
-    container_name: resotocore
+  fixcore:
+    image: somecr.io/someengineering/fixcore:edge
+    container_name: fixcore
     depends_on:
       - graphdb
     ports:
       - "8900:8900"
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
-      - RESOTOCORE_ANALYTICS_OPT_OUT
-      - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
+      - FIXCORE_ANALYTICS_OPT_OUT
+      - FIXCORE_GRAPHDB_SERVER=http://graphdb:8529
       # Resoto will create a new database and user with this password using the root account
-      - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      - FIXCORE_GRAPHDB_PASSWORD=changeme
     command:
       - --override
-      - resotocore.api.web_hosts=resotocore
-      - resotocore.api.host_certificate.common_name=resotocore
-      - resotocore.api.host_certificate.san_dns_names=resotocore
-      - resotocore.api.tsdb_proxy_url=http://tsdb:9090
-      - resotocore.runtime.start_collect_on_subscriber_connect=true
+      - fixcore.api.web_hosts=fixcore
+      - fixcore.api.host_certificate.common_name=fixcore
+      - fixcore.api.host_certificate.san_dns_names=fixcore
+      - fixcore.api.tsdb_proxy_url=http://tsdb:9090
+      - fixcore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
-  resotoworker:
-    image: somecr.io/someengineering/resotoworker:edge
-    container_name: resotoworker
+  fixworker:
+    image: somecr.io/someengineering/fixworker:edge
+    container_name: fixworker
     depends_on:
-      - resotocore
+      - fixcore
     ports:
       - 9956:9956
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
       # Pass temporary AWS credentials if provided
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
-      # Define the resotocore URI to connect to
-      - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
+      # Define the fixcore URI to connect to
+      - FIXWORKER_FIXCORE_URI=https://fixcore:8900
     restart: always
     stop_grace_period: 2m
-  resotometrics:
-    image: somecr.io/someengineering/resotometrics:edge
-    container_name: resotometrics
+  fixmetrics:
+    image: somecr.io/someengineering/fixmetrics:edge
+    container_name: fixmetrics
     depends_on:
-      - resotocore
+      - fixcore
     ports:
       - 9955:9955
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
-      - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
+      - FIXMETRICS_FIXCORE_URI=https://fixcore:8900
     restart: always
     stop_grace_period: 2m
-  resotoshell:
-    image: somecr.io/someengineering/resotoshell:edge
-    container_name: resotoshell
+  fixshell:
+    image: somecr.io/someengineering/fixshell:edge
+    container_name: fixshell
     depends_on:
-      - resotocore
+      - fixcore
     environment:
       - PSK
-      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
+      - FIXSHELL_FIXCORE_URI=https://fixcore:8900
     volumes:
-      - ~/resoto-downloads:/home/resoto/downloads
+      - ~/fix-downloads:/home/fix/downloads
     command:
       - --wait
     restart: always
     stop_grace_period: 2m
 volumes:
-  resoto_graphdb_data:
-  resoto_tsdb_data:
+  fix_graphdb_data:
+  fix_tsdb_data:

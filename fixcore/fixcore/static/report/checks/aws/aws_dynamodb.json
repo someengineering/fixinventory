@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "dynamodb",
+    "checks": [
+        {
+            "name": "table_kms_encryption_enabled",
+            "title": "Ensure DynamoDB Table is Configured with KMS CMK Encryption",
+            "result_kinds": [
+                "aws_dynamodb_table"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without encryption at rest using KMS CMK, your sensitive user data stored in DynamoDB is at risk. This failure to protect data complexity and operational burden can result in breaches or loss of confidential data.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_dynamodb_table) and dynamodb_sse_description.sse_type!=KMS"
+            },
+            "remediation": {
+                "text": "To fix this issue, create a new table specifying a KMS CMK encryption key, or, for an existing table, update the configuration to include a KMS CMK encryption key using the AWS Management Console.",
+                "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/encryption.tutorial.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/EncryptionAtRest.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die DynamoDB-Tabelle mit der KMS CMK-Verschlüsselung konfiguriert ist",
+                    "risk": "Ohne die Verschlüsselung von Daten mit KMS CMK sind Ihre sensiblen Benutzerdaten, die in DynamoDB gespeichert sind, gefährdet. Diese mangelnde Schutzkomplexität und Betriebslast kann zu Sicherheitsverletzungen oder Verlust vertraulicher Daten führen.",
+                    "remediation": "Um dieses Problem zu beheben, erstellen Sie eine neue Tabelle und geben Sie einen KMS CMK-Verschlüsselungsschlüssel an. Für eine bestehende Tabelle aktualisieren Sie die Konfiguration, um einen KMS CMK-Verschlüsselungsschlüssel mit der AWS Management Console einzuschließen."
+                }
+            }
+        }
+    ]
+}

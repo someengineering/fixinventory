@@ -1,0 +1,68 @@
+name: Check PR (fixmetrics)
+on:
+  push:
+    tags:
+      - "*.*.*"
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'fixmetrics/**'
+      - 'fixlib/**'
+      - '.github/**'
+      - 'requirements-all.txt'
+
+jobs:
+  fixmetrics:
+    name: "fixmetrics"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+
+      - name: Restore dependency cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{hashFiles('./fixmetrics/pyproject.toml')}}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox wheel flake8 build
+          pip install --upgrade --editable fixlib/
+
+      - name: Run tests
+        working-directory: ./fixmetrics
+        run: tox
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: fixmetrics-code-coverage-report
+          path: fixmetrics/htmlcov/
+
+      - name: Build a binary wheel and a source tarball
+        working-directory: ./fixmetrics
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+
+      - name: Publish distribution to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_FIXMETRICS }}
+          packages_dir: ./fixmetrics/dist/

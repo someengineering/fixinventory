@@ -1,10 +1,10 @@
-from resoto_plugin_aws.resource.lambda_ import AwsLambdaFunction, AwsLambdaPolicy
-from resotolib.graph import Graph
-from resotolib.json import from_json
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction, AwsLambdaPolicy
+from fixlib.graph import Graph
+from fixlib.json import from_json
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
-from resoto_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 
 
 def test_regression_lamda_get_policy() -> None:
