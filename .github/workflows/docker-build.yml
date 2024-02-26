@@ -75,13 +75,13 @@ jobs:
           echo ${{ steps.platform.outputs.uitag }}
           echo ${{ steps.platform.outputs.latest }}
 
-      - name: Docker fixbase meta
+      - name: Docker fixinventorybase meta
         id: basemeta
         uses: docker/metadata-action@v4
         with:
           images: |
-            someengineering/fixbase
-            ghcr.io/someengineering/fixbase
+            someengineering/fixinventorybase
+            ghcr.io/someengineering/fixinventorybase
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
@@ -91,16 +91,18 @@ jobs:
             type=sha,prefix=
             type=edge
           labels: |
-            org.opencontainers.image.title=fixbase
-            org.opencontainers.image.description=Fix base image
+            org.opencontainers.image.title=fixinventorybase
+            org.opencontainers.image.description=Fix Inventory base image
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker fixcore meta
         if: github.event_name != 'pull_request'
         id: coremeta
         uses: docker/metadata-action@v4
-        with:
+        with: # todo: remove resotocore before tagging 4.0
           images: |
+            someengineering/fixcore
+            ghcr.io/someengineering/fixcore
             someengineering/fixcore
             ghcr.io/someengineering/fixcore
           flavor: |
@@ -113,15 +115,17 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=fixcore
-            org.opencontainers.image.description=Fix Core
+            org.opencontainers.image.description=Fix Inventory Core
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker fixworker meta
         if: github.event_name != 'pull_request'
         id: workermeta
         uses: docker/metadata-action@v4
-        with:
+        with: # todo: remove resotoworker before tagging 4.0
           images: |
+            someengineering/fixworker
+            ghcr.io/someengineering/fixworker
             someengineering/fixworker
             ghcr.io/someengineering/fixworker
           flavor: |
@@ -134,7 +138,7 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=fixworker
-            org.opencontainers.image.description=Fix Worker
+            org.opencontainers.image.description=Fix Inventory Worker
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker fixmetrics meta
@@ -155,7 +159,7 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=fixmetrics
-            org.opencontainers.image.description=Fix Metrics
+            org.opencontainers.image.description=Fix Inventory Metrics
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Docker fixshell meta
@@ -178,7 +182,7 @@ jobs:
             type=edge
           labels: |
             org.opencontainers.image.title=fixshell
-            org.opencontainers.image.description=Fix Shell (resh)
+            org.opencontainers.image.description=Fix Inventory Shell (fixsh)
             org.opencontainers.image.vendor=Some Engineering Inc.
 
       - name: Set up QEMU
@@ -206,11 +210,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push fixbase Docker image
+      - name: Build and push fixinventorybase Docker image
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.fixbase
+          file: ./Dockerfile.fixinventorybase
           platforms: ${{ steps.platform.outputs.targets }}
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |

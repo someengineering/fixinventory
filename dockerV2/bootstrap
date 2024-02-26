@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # Include defaults
-. /usr/local/etc/fix/defaults
-. /usr/local/etc/fix/common
+. /usr/local/etc/fixinventory/defaults
+. /usr/local/etc/fixinventory/common
 . /usr/local/fix-venv-python3/bin/activate
 
 
@@ -19,13 +19,13 @@ main() {
 
 # Apply user id and group id
 apply_permissions() {
-    info "Setting uid:gid of fix to $PUID:$PGID"
-    groupmod -g "${PGID}" -o fix
-    #usermod -u "${PUID}" -o -g fix fix
-    sed -i -E "s/^(fix:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+    info "Setting uid:gid of fixinventory to $PUID:$PGID"
+    groupmod -g "${PGID}" -o fixinventory
+    #usermod -u "${PUID}" -o -g fixinventory fixinventory
+    sed -i -E "s/^(fixinventory:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
-    chown fix:fix /home/fix
-    chown -R fix:fix /var/run/fix
+    chown fixinventory:fixinventory /home/fix
+    chown -R fixinventory:fixinventory /var/run/fixinventory
 }
 
 
@@ -75,7 +75,7 @@ setup_dnsmasq() {
     if [ "${USE_DNS_CACHE-}" = true ]; then
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
-            echo "log-queries=extra" >> /etc/dnsmasq.d/fix.conf
+            echo "log-queries=extra" >> /etc/dnsmasq.d/fixinventory.conf
         fi
         dnsmasq
         echo "nameserver 127.0.0.1" > /etc/resolv.conf

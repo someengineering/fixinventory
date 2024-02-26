@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 fixworker = "fixworker.__main__:main"
+resotoworker = "fixworker.__main__:main"
 
 [project.urls]
 Documentation = "https://inventory.fix.security"

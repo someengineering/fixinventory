@@ -83,6 +83,7 @@ test = [
 
 [project.scripts]
 fixcore = "fixcore.__main__:main"
+resotocore = "fixcore.__main__:main"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

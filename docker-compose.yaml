@@ -9,7 +9,7 @@ services:
     ports:
       - "8529:8529"
     volumes:
-      - fix_graphdb_data:/var/lib/arangodb3
+      - fixinventory_graphdb_data:/var/lib/arangodb3
     command:
       - --database.auto-upgrade
   graphdb:
@@ -23,7 +23,7 @@ services:
     ports:
       - "8529:8529"
     volumes:
-      - fix_graphdb_data:/var/lib/arangodb3
+      - fixinventory_graphdb_data:/var/lib/arangodb3
     ulimits:
       nofile:
         soft: 65535
@@ -35,7 +35,7 @@ services:
       - "9090:9090"
     volumes:
       - ./dockerV2/prometheus.yml:/etc/prometheus/prometheus.yml
-      - fix_tsdb_data:/prometheus
+      - fixinventory_tsdb_data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=730d
@@ -107,11 +107,11 @@ services:
       - PSK
       - FIXSHELL_FIXCORE_URI=https://fixcore:8900
     volumes:
-      - ~/fix-downloads:/home/fix/downloads
+      - ~/fixinventory-downloads:/home/fixinventory/downloads
     command:
       - --wait
     restart: always
     stop_grace_period: 2m
 volumes:
-  fix_graphdb_data:
-  fix_tsdb_data:
+  fixinventory_graphdb_data:
+  fixinventory_tsdb_data:

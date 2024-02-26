@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-. /usr/local/etc/fix/common
+. /usr/local/etc/fixinventory/common
 
 info "Running postflight checks"
 . /usr/local/fix-venv-python3/bin/activate
@@ -10,5 +10,5 @@ for prg in fix{core,worker,metrics}; do
     "$prg" --help > /dev/null
 done
 info "Checking resh in CPython"
-resh --help > /dev/null
+fixsh --help > /dev/null
 info "All checks passed"

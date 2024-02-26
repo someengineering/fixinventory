@@ -35,6 +35,7 @@ test = ["pytest"]
 
 [project.scripts]
 fixmetrics = "fixmetrics.__main__:main"
+resotometrics = "fixmetrics.__main__:main"
 
 [project.urls]
 Documentation = "https://inventory.fix.security"

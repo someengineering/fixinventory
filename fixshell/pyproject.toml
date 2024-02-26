@@ -36,6 +36,7 @@ dependencies = [
 ]
 
 [project.scripts]
+fixsh = "resotoshell.__main__:main"
 resh = "fixshell.__main__:main"
 
 [project.urls]
