@@ -27,7 +27,7 @@ from resotolib.baseresources import (
     BaseDNSRecord,
     ModelReference,
     PhantomBaseResource,
-    BaseManagedKubernetesCluster,
+    BaseManagedKubernetesClusterProvider,
 )
 from resotolib.graph import Graph
 import time
@@ -288,7 +288,7 @@ class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource)
 
 
 @define(eq=False, slots=False)
-class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseManagedKubernetesCluster):
+class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseManagedKubernetesClusterProvider):
     """DigitalOcean Kubernetes Cluster"""
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"

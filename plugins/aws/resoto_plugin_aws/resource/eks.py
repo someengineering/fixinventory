@@ -6,7 +6,7 @@ from attrs import define, field
 from resoto_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from resoto_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from resoto_plugin_aws.resource.iam import AwsIamRole
-from resotolib.baseresources import ModelReference, BaseManagedKubernetesCluster
+from resotolib.baseresources import ModelReference, BaseManagedKubernetesClusterProvider
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend
 from resotolib.types import Json
@@ -399,7 +399,7 @@ class AwsEksConnectorConfig:
 
 
 @define(eq=False, slots=False)
-class AwsEksCluster(EKSTaggable, BaseManagedKubernetesCluster, AwsResource):
+class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     kind_display: ClassVar[str] = "AWS EKS Cluster"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip

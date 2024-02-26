@@ -5,7 +5,7 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from resotolib.baseresources import ModelReference, BaseManagedKubernetesCluster
+from resotolib.baseresources import ModelReference, BaseManagedKubernetesClusterProvider
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
 from resotolib.types import Json
 
@@ -1083,7 +1083,7 @@ class GcpContainerResourceUsageExportConfig:
 
 
 @define(eq=False, slots=False)
-class GcpContainerCluster(BaseManagedKubernetesCluster, GcpResource):
+class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
     kind: ClassVar[str] = "gcp_container_cluster"
     kind_display: ClassVar[str] = "GCP Container Cluster"
     kind_description: ClassVar[str] = (
