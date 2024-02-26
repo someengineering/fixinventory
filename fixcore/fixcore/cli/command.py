@@ -4748,7 +4748,7 @@ class WelcomeCommand(CLICommand, InternalPart):
         async def welcome() -> str:
             info = Table.grid(expand=True)
             info.add_column(justify="center")
-            info.add_row(Text("FixInventory", style="bold"))
+            info.add_row(Text("Fix Inventory", style="bold"))
             info.add_row(Text(f"Version: {version()}", style="dim"))
 
             info.add_row(Padding("", pad=(0, 0, 0, 0)))

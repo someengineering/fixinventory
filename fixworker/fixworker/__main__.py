@@ -237,7 +237,7 @@ def core_actions_processor(
         try:
             if message_type == "collect":
                 if len(collectors) == 0:
-                    log.error("No no collector plugins loaded - skipping collect")
+                    log.error("No collector plugins loaded or configured - skipping collect")
                     return None
                 if config.fixworker.pool_size == 0:
                     log.error("Zero workers configured - skipping collect")
