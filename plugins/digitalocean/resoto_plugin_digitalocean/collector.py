@@ -1,4 +1,5 @@
 import logging
+
 import math
 from pprint import pformat
 from typing import Tuple, Type, List, Dict, Callable, Any, Optional, cast, DefaultDict
@@ -833,7 +834,7 @@ class DigitalOceanTeamCollector:
             attr_map={
                 "id": "id",
                 "urn": lambda c: kubernetes_id(c["id"]),
-                "k8s_version": "version",
+                "version": "version",
                 "k8s_cluster_subnet": "cluster_subnet",
                 "k8s_service_subnet": "service_subnet",
                 "ipv4_address": "ipv4",

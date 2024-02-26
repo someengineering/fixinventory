@@ -1784,7 +1784,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
         "arn": S("containerInstanceArn"),
         "ec2_instance_id": S("ec2InstanceId"),
         "capacity_provider_name": S("capacityProviderName"),
-        "version": S("version"),
+        "version": S("version") >> F(str),
         "version_info": S("versionInfo") >> Bend(AwsEcsVersionInfo.mapping),
         "remaining_resources": S("remainingResources", default=[]) >> ForallBend(AwsEcsResource.mapping),
         "registered_resources": S("registeredResources", default=[]) >> ForallBend(AwsEcsResource.mapping),
@@ -1800,7 +1800,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     }
     ec2_instance_id: Optional[str] = field(default=None)
     capacity_provider_name: Optional[str] = field(default=None)
-    version: Optional[int] = field(default=None)
+    version: Optional[str] = field(default=None)
     version_info: Optional[AwsEcsVersionInfo] = field(default=None)
     remaining_resources: List[AwsEcsResource] = field(factory=list)
     registered_resources: List[AwsEcsResource] = field(factory=list)

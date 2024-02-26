@@ -1,4 +1,6 @@
 import logging
+from dataclasses import field
+
 from attrs import define
 from typing import ClassVar, Dict, List, Optional, Tuple, Any
 
@@ -25,6 +27,7 @@ from resotolib.baseresources import (
     BaseDNSRecord,
     ModelReference,
     PhantomBaseResource,
+    BaseManagedKubernetesClusterProvider,
 )
 from resotolib.graph import Graph
 import time
@@ -285,7 +288,7 @@ class DigitalOceanDropletNeighborhood(DigitalOceanResource, PhantomBaseResource)
 
 
 @define(eq=False, slots=False)
-class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
+class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseManagedKubernetesClusterProvider):
     """DigitalOcean Kubernetes Cluster"""
 
     kind: ClassVar[str] = "digitalocean_kubernetes_cluster"
@@ -301,13 +304,11 @@ class DigitalOceanKubernetesCluster(DigitalOceanResource, BaseResource):
         }
     }
 
-    k8s_version: Optional[str] = None
     k8s_cluster_subnet: Optional[str] = None
     k8s_service_subnet: Optional[str] = None
     ipv4_address: Optional[str] = None
-    endpoint: Optional[str] = None
     auto_upgrade_enabled: Optional[bool] = None
-    cluster_status: Optional[str] = None
+    cluster_status: Optional[str] = field(default=None, metadata=dict(ignore_history=True))
     surge_upgrade_enabled: Optional[bool] = None
     registry_enabled: Optional[bool] = None
     ha_enabled: Optional[bool] = None

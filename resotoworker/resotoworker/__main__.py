@@ -236,6 +236,12 @@ def core_actions_processor(
     if kind == "action":
         try:
             if message_type == "collect":
+                if len(collectors) == 0:
+                    log.error("No no collector plugins loaded - skipping collect")
+                    return None
+                if config.resotoworker.pool_size == 0:
+                    log.error("Zero workers configured - skipping collect")
+                    return None
                 collect_event.set()
                 start_time = time.time()
                 collector.collect_and_send(collectors, task_data=data)

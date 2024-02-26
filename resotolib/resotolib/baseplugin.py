@@ -1,9 +1,9 @@
 import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from queue import Queue
 from threading import Thread, current_thread
 from typing import Dict, Optional, Any
-from queue import Queue
 
 from prometheus_client import Counter
 
@@ -18,7 +18,6 @@ from resotolib.core.ca import TLSData
 from resotolib.graph import Graph, GraphMergeKind
 from resotolib.logger import log
 from resotolib.types import Json
-
 
 metrics_unhandled_plugin_exceptions = Counter(
     "resoto_unhandled_plugin_exceptions_total",

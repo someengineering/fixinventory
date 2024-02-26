@@ -5,14 +5,14 @@ from concurrent.futures import Executor
 from tempfile import TemporaryDirectory
 from typing import Dict, Any, Type, Optional
 
-import resotolib.logger
-import resotolib.proc
 from kubernetes.client import ApiException
 from kubernetes.client import Configuration
 
+import resotolib.logger
+import resotolib.proc
 from resoto_plugin_k8s.base import K8sApiClient, K8sClient
-from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.base import K8sConfig
+from resoto_plugin_k8s.collector import KubernetesCollector
 from resoto_plugin_k8s.deferred_edges import create_deferred_edges
 from resotolib.args import ArgumentParser, Namespace
 from resotolib.baseplugin import BaseCollectorPlugin

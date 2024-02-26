@@ -1,14 +1,14 @@
 import logging
-from attrs import define
+from datetime import datetime
 from functools import lru_cache
 from typing import List, Any, Optional, Union, TypeVar, Callable, Mapping
+from urllib.parse import urljoin, urlencode
 
 import boto3
 import requests
+from attrs import define
 from botocore.exceptions import EndpointConnectionError, HTTPClientError
 from retrying import retry as retry_decorator
-from urllib.parse import urljoin, urlencode
-from datetime import datetime
 
 from resoto_plugin_digitalocean.utils import RetryableHttpError
 from resoto_plugin_digitalocean.utils import retry_on_error

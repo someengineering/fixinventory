@@ -5,7 +5,7 @@ from attr import define, field
 
 from resoto_plugin_gcp.gcp_client import GcpApiSpec
 from resoto_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from resotolib.baseresources import ModelReference
+from resotolib.baseresources import ModelReference, BaseManagedKubernetesClusterProvider
 from resotolib.json_bender import Bender, S, Bend, ForallBend, MapDict
 from resotolib.types import Json
 
@@ -1083,7 +1083,7 @@ class GcpContainerResourceUsageExportConfig:
 
 
 @define(eq=False, slots=False)
-class GcpContainerCluster(GcpResource):
+class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
     kind: ClassVar[str] = "gcp_container_cluster"
     kind_display: ClassVar[str] = "GCP Container Cluster"
     kind_description: ClassVar[str] = (
@@ -1124,6 +1124,7 @@ class GcpContainerCluster(GcpResource):
         "cost_management_config": S("costManagementConfig", "enabled"),
         "create_time": S("createTime"),
         "current_master_version": S("currentMasterVersion"),
+        "version": S("currentMasterVersion"),
         "current_node_count": S("currentNodeCount"),
         "current_node_version": S("currentNodeVersion"),
         "database_encryption": S("databaseEncryption", default={}) >> Bend(GcpContainerDatabaseEncryption.mapping),
@@ -1192,7 +1193,6 @@ class GcpContainerCluster(GcpResource):
     default_max_pods_constraint: Optional[str] = field(default=None)
     enable_kubernetes_alpha: Optional[bool] = field(default=None)
     enable_tpu: Optional[bool] = field(default=None)
-    endpoint: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     expire_time: Optional[datetime] = field(default=None)
     identity_service_config: Optional[bool] = field(default=None)
