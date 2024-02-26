@@ -5,12 +5,12 @@ from attr import define, field
 
 from resoto_plugin_aws.aws_client import AwsClient
 from resoto_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
+from resoto_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
 from resoto_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from resoto_plugin_aws.resource.kinesis import AwsKinesisStream
 from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resoto_plugin_aws.utils import ToDict, TagsValue
-from resotolib.baseresources import BaseDatabase, ModelReference, BaseSnapshot
+from resoto_plugin_aws.utils import MetricNormalization, ToDict, TagsValue
+from resotolib.baseresources import BaseDatabase, MetricName, MetricUnit, ModelReference, BaseSnapshot
 from resotolib.graph import Graph
 from resotolib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from resotolib.types import Json
@@ -568,6 +568,110 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        rds_instances = {
+            instance.id: instance
+            for instance in builder.nodes(clazz=AwsRdsInstance)
+            if instance.region().id == builder.region.id
+        }
+        queries = []
+        delta_since_last_scan = builder.metrics_delta
+
+        # for metrics which are expressed as sum, we want the period to be
+        # 5 minutes or less if the last scan was less than 5 minutes ago
+
+        start = builder.metrics_start
+        now = builder.created_at
+        for instance_id in rds_instances:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/RDS",
+                        period=delta_since_last_scan,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Percent",
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta_since_last_scan,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Count",
+                        InstanceId=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "ReadLatency", "WriteLatency"]
+                ]
+            )
+
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="FreeStorageSpace",
+                        namespace="AWS/RDS",
+                        period=delta_since_last_scan,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Bytes",
+                        InstanceId=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+
+        metric_normalizers = {
+            "CPUUtilization": MetricNormalization(
+                metric_name=MetricName.CpuUtilization,
+                unit=MetricUnit.Percent,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "DatabaseConnections": MetricNormalization(
+                metric_name=MetricName.DatabaseConnections,
+                unit=MetricUnit.Count,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ReadIOPS": MetricNormalization(
+                metric_name=MetricName.DiskRead,
+                unit=MetricUnit.IOPS,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "WriteIOPS": MetricNormalization(
+                metric_name=MetricName.DiskWrite,
+                unit=MetricUnit.IOPS,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ReadLatency": MetricNormalization(
+                metric_name=MetricName.ReadLatency,
+                unit=MetricUnit.Seconds,
+                # normalize to packets per second
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "WriteLatency": MetricNormalization(
+                metric_name=MetricName.WriteLatency,
+                unit=MetricUnit.Seconds,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "FreeStorageSpace": MetricNormalization(
+                metric_name=MetricName.FreeStorageSpace,
+                unit=MetricUnit.Bytes,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(rds_instances, cloudwatch_result, metric_normalizers)
 
 
 @define(eq=False, slots=False)

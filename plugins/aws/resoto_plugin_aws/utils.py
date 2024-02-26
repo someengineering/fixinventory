@@ -9,7 +9,7 @@ from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 from prometheus_client import Counter
 from retrying import retry
 
-from resotolib.baseresources import BaseRegion, BaseResource, MetricName, StatName
+from resotolib.baseresources import BaseRegion, BaseResource, MetricName, MetricUnit, StatName
 from resotolib.config import Config
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender
@@ -203,11 +203,12 @@ def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
 @frozen(kw_only=True)
 class MetricNormalization:
     metric_name: MetricName
+    unit: MetricUnit
     stat_map: Dict[str, StatName] = {
-        "Minimum": "min",
-        "Average": "avg",
-        "Maximum": "max",
-        "Sum": "sum",
+        "Minimum": StatName.min,
+        "Average": StatName.avg,
+        "Maximum": StatName.max,
+        "Sum": StatName.sum,
     }
     normalize_value: Callable[[float], float] = identity
     # function to derive stats from a list of values

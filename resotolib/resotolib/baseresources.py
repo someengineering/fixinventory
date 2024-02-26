@@ -114,8 +114,72 @@ class ResourceChanges:
         return changes
 
 
-MetricName = str
-StatName = str
+# todo: replace to StrEnum once resoto is on 3.11
+class MetricName(str, Enum):
+    def __str__(self) -> str:
+        return self.value
+
+    # ec2
+    CpuUtilization = "cpu_utilization"
+    NetworkIn = "network_in"
+    NetworkOut = "network_out"
+    DiskRead = "disk_read"
+    DiskWrite = "disk_write"
+
+    # ebs
+    VolumeWrite = "volume_write"
+    VolumeRead = "volume_read"
+    VolumeTotalWriteTime = "volume_total_write_time"
+    VolumeIdleTime = "volume_idle_time"
+    VolumeQueueLength = "volume_queue_length"
+
+    # elb
+    RequestCount = "request"  # _count will be added to the end because of the unit
+    ActiveConnection = "active_connection"
+    StatusCode2XX = "status_code_2xx"
+    StatusCode4XX = "status_code_4xx"
+    StatusCode5XX = "status_code_5xx"
+    Latency = "latency"
+    ProcessedBytes = "processed"  # _bytes will be added to the end because of the unit
+    HealthyHostCount = "healthy_host"  # _count will be added to the end because of the unit
+    UnhealthyHostCount = "unhealthy_host"  # _count will be added to the end because of the unit
+    HealthyStateRouting = "healthy_state_routing"
+    UnhealthyStateRouting = "unhealthy_state_routing"
+    HealthyStateDNS = "healthy_state_dns"
+    UnhealthyStateDNS = "unhealthy_state_dns"
+
+    # rds
+    DatabaseConnections = "database_connections"
+    ReadLatency = "read_latency"
+    WriteLatency = "write_latency"
+    FreeStorageSpace = "free_storage_space"
+
+
+class MetricUnit(str, Enum):
+    def __str__(self) -> str:
+        return self.value
+
+    Count = "count"
+    Bytes = "bytes"
+    Seconds = "seconds"
+    Percent = "percent"
+    MegabitsPerSecond = "Mbps"
+    MegabytesPerSecond = "MBps"
+    PacketsPerSecond = "pps"
+    IOPS = "iops"
+
+
+class StatName(str, Enum):
+    def __str__(self) -> str:
+        return self.value
+
+    min = "min"
+    max = "max"
+    avg = "avg"
+    sum = "sum"
+
+
+MetricNameWithUnit = str
 
 
 @define(eq=False, slots=False, kw_only=True)
@@ -158,7 +222,7 @@ class BaseResource(ABC):
     _cleaned: bool = False
     _protected: bool = False
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
-    _resource_usage: Dict[MetricName, Dict[StatName, float]] = field(factory=lambda: defaultdict(dict))
+    _resource_usage: Dict[MetricNameWithUnit, Dict[StatName, float]] = field(factory=lambda: defaultdict(dict))
     _metadata: Dict[str, Any] = field(factory=dict)  # values will be exported in the metadata section of the node
 
     ctime: Optional[datetime] = field(
