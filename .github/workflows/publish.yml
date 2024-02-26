@@ -42,8 +42,8 @@ jobs:
         shell: bash
         working-directory: ./docs.fix.security/iam/aws
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
 
       - name: Wait for GCP policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
@@ -57,7 +57,7 @@ jobs:
         shell: bash
         working-directory: ./docs.fix.security/iam/gcp
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
 
       - name: Clean existing Kroki images
         shell: bash
@@ -138,9 +138,9 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/aws/edge
         run: |
-          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
-          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
-          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+          wget -qO ResotoMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
 
       - name: Wait for GCP policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
@@ -154,8 +154,8 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/gcp/edge
         run: |
-          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
-          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
+          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+          wget -qO resoto_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
 
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
