@@ -1,10 +1,9 @@
 import time
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from pathlib import Path
 from queue import Queue
 from threading import Thread, current_thread
-from typing import Dict, Optional, Any, Iterator, Type, Tuple
+from typing import Dict, Optional, Any
 
 from prometheus_client import Counter
 

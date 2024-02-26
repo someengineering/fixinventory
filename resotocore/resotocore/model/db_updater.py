@@ -153,7 +153,6 @@ class DbUpdaterProcess(Process):
         self.config = config
         self.change_id = change_id
         self.graph_name = graph_name
-        self.created_at = utc()
 
     def next_action(self) -> ProcessAction:
         try:
