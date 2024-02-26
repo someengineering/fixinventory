@@ -544,7 +544,7 @@ def update_resource_metrics(
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             name = normalizer.metric_name + "_" + normalizer.unit
             value = normalizer.normalize_value(metric_value)
-            stat_name = maybe_stat_name or normalizer.stat_map[query.stat]
+            stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
 
             resource._resource_usage[name][stat_name] = value
 

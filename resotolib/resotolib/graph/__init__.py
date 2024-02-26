@@ -373,7 +373,7 @@ def resource_classes_to_resotocore_model(classes: Set[Type[Any]], **kwargs: Any)
             "account": Union[BaseAccount, str],  # type: ignore
             "region": Union[BaseRegion, str],  # type: ignore
             "zone": Union[BaseZone, str],  # type: ignore
-            "usage": Dict[MetricName, Dict[StatName, float]],
+            "usage": Dict[str, Dict[str, float]],
         }
     }
     for name, dynamic in dynamic_types.items():
