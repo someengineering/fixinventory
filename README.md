@@ -26,8 +26,6 @@
 
 🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://inventory.fix.security/docs/concepts/automation).
 
-![Fix Inventory UI Graph View](./misc/fix_graph.gif)
-
 Currently, Fix Inventory can collect [AWS](plugins/aws), [Google Cloud](plugins/gcp), [DigitalOcean](plugins/digitalocean), [VMWare Vsphere](plugins/vsphere), [OneLogin](plugins/onelogin), and [Slack](plugins/slack) resources. If the cloud you are using is not listed, it is easy to write your own collectors. An example can be found [here](plugins/example_collector).
 
 ## Getting started
