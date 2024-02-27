@@ -404,7 +404,13 @@ class GraphBuilder:
 
         if last_run_started_at:
             now = utc()
-            start = last_run_started_at
+            
+            # limit the metrics to the last hour
+            if now - last_run_started_at > timedelta(hours=1):
+                start = now - timedelta(hours=1)                
+            else:
+                start = last_run_started_at
+
             delta = now - start
             # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
             delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
@@ -422,11 +428,6 @@ class GraphBuilder:
         self.metrics_start = start
         self.metrics_delta = delta
 
-        # let's be mindful of how much data we request from AWS and
-        # limit the time range to 63 days (so that we still can do 5 minute resolution)
-        if self.metrics_delta > timedelta(days=62):  # 62 days to be safe
-            self.metrics_start = now - timedelta(days=62)
-            self.metrics_delta = timedelta(days=62)
 
     def suppress(self, message: str) -> SuppressWithFeedback:
         return SuppressWithFeedback(message, self.core_feedback, log)
