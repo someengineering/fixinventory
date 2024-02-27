@@ -404,10 +404,10 @@ class GraphBuilder:
 
         if last_run_started_at:
             now = utc()
-            
+
             # limit the metrics to the last hour
-            if now - last_run_started_at > timedelta(hours=1):
-                start = now - timedelta(hours=1)                
+            if now - last_run_started_at > timedelta(hours=2):
+                start = now - timedelta(hours=2)                
             else:
                 start = last_run_started_at
 
