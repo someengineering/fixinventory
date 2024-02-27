@@ -64,5 +64,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIXWORKER }}
+          password: ${{ secrets.PYPI_FIXINVENTORYWORKER }}
           packages_dir: ./fixworker/dist/
