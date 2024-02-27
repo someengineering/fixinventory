@@ -119,21 +119,21 @@ class MetricName(str, Enum):
     def __str__(self) -> str:
         return self.value
 
-    # ec2
+    # instances
     CpuUtilization = "cpu_utilization"
     NetworkIn = "network_in"
     NetworkOut = "network_out"
     DiskRead = "disk_read"
     DiskWrite = "disk_write"
 
-    # ebs
+    # volumes
     VolumeWrite = "volume_write"
     VolumeRead = "volume_read"
     VolumeTotalWriteTime = "volume_total_write_time"
     VolumeIdleTime = "volume_idle_time"
     VolumeQueueLength = "volume_queue_length"
 
-    # elb
+    # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
     ActiveConnection = "active_connection"
     StatusCode2XX = "status_code_2xx"
@@ -148,7 +148,7 @@ class MetricName(str, Enum):
     HealthyStateDNS = "healthy_state_dns"
     UnhealthyStateDNS = "unhealthy_state_dns"
 
-    # rds
+    # databases
     DatabaseConnections = "database_connections"
     ReadLatency = "read_latency"
     WriteLatency = "write_latency"
