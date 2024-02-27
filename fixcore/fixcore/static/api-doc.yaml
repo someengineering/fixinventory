@@ -3,7 +3,7 @@ servers:
   - url: ../
     description: current system
 info:
-  title: FixInventory Core REST API
+  title: Fix Inventory Core REST API
   version: V1
 tags:
   - name: graph_search

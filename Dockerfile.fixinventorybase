@@ -16,7 +16,7 @@ RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
 # Prepare whl build env
 RUN mkdir -p /build /build-python
 
-# Build FixInventory
+# Build Fix Inventory
 COPY requirements-extra.txt /usr/src/requirements-extra.txt
 COPY fixlib /usr/src/fixlib
 COPY fixcore /usr/src/fixcore

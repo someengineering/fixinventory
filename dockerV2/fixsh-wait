@@ -13,7 +13,7 @@ main() {
         trap shutdown SIGINT SIGTERM
         trap 'error_handler $? $LINENO $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]}); trap - ERR' ERR
         while [ $run = true ]; do
-            info "Connect to this container and execute 'fixsh' to start the FixInventory shell"
+            info "Connect to this container and execute 'fixsh' to start the Fix Inventory shell"
             sleep 900 || true
         done
     else
