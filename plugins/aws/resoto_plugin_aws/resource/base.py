@@ -407,7 +407,7 @@ class GraphBuilder:
 
             # limit the metrics to the last hour
             if now - last_run_started_at > timedelta(hours=2):
-                start = now - timedelta(hours=2)                
+                start = now - timedelta(hours=2)               
             else:
                 start = last_run_started_at
 
@@ -427,7 +427,6 @@ class GraphBuilder:
 
         self.metrics_start = start
         self.metrics_delta = delta
-
 
     def suppress(self, message: str) -> SuppressWithFeedback:
         return SuppressWithFeedback(message, self.core_feedback, log)

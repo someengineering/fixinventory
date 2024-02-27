@@ -672,13 +672,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         metric_normalizers = {
             "VolumeWriteBytes": MetricNormalization(
                 metric_name=MetricName.VolumeWrite,
-                unit=MetricUnit.Bytes,
+                unit=MetricUnit.MegabytesPerSecond,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=partial(bytes_to_megabytes_per_second, period=five_minutes_or_less),
             ),
             "VolumeReadBytes": MetricNormalization(
                 metric_name=MetricName.VolumeRead,
-                unit=MetricUnit.Bytes,
+                unit=MetricUnit.MegabytesPerSecond,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=partial(bytes_to_megabytes_per_second, period=five_minutes_or_less),
             ),

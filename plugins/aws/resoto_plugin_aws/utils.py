@@ -208,7 +208,6 @@ class MetricNormalization:
         "Minimum": StatName.min,
         "Average": StatName.avg,
         "Maximum": StatName.max,
-        "Sum": StatName.sum,
     }
     normalize_value: Callable[[float], float] = identity
     # function to derive stats from a list of values

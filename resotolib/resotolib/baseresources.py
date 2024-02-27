@@ -176,7 +176,6 @@ class StatName(str, Enum):
     min = "min"
     max = "max"
     avg = "avg"
-    sum = "sum"
 
 
 MetricNameWithUnit = str
