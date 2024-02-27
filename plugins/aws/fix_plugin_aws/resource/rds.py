@@ -5,12 +5,17 @@ from attr import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchQuery,
+    AwsCloudwatchMetricData,
+    update_resource_metrics,
+)
+from fix_plugin_aws.utils import MetricNormalization
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, TagsValue
-from fixlib.baseresources import BaseDatabase, ModelReference, BaseSnapshot
+from fixlib.baseresources import BaseDatabase, MetricName, MetricUnit, ModelReference, BaseSnapshot
 from fixlib.graph import Graph
 from fixlib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from fixlib.types import Json

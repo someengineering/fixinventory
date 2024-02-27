@@ -6,13 +6,20 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
-from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchQuery,
+    AwsCloudwatchMetricData,
+    calculate_min_max_avg,
+    update_resource_metrics,
+    bytes_to_megabits_per_second,
+)
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import BaseLoadBalancer, ModelReference
+from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
+
 
 service_name = "elbv2"
 
