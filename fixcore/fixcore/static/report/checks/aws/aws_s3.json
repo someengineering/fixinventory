@@ -1,0 +1,242 @@
+{
+    "provider": "aws",
+    "service": "s3",
+    "checks": [
+        {
+            "name": "bucket_default_encryption",
+            "title": "Ensure S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If the issue is not solved, there is a risk of data-at-rest being unencrypted, which can pose a threat to the confidentiality and integrity of stored objects.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_s3_bucket) and bucket_encryption_rules[*].{sse_algorithm==null}"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws s3api put-bucket-encryption --bucket {{name}} --server-side-encryption-configuration '{'Rules': [{'ApplyServerSideEncryptionByDefault': {'SSEAlgorithm': 'AES256'}}]}'"
+                },
+                "text": "To fix the issue, ensure that S3 buckets have encryption at rest enabled using default encryption (SSE) or enforcing it through a bucket policy.",
+                "url": "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass S3-Buckets standardmäßige Verschlüsselung (SSE) aktiviert haben oder erzwingen Sie dies über eine Bucket-Richtlinie",
+                    "risk": "Wenn das Problem nicht gelöst wird, besteht die Gefahr, dass Daten im Ruhezustand unverschlüsselt sind, was eine Bedrohung für die Vertraulichkeit und Integrität der gespeicherten Objekte darstellen kann.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass S3-Buckets die Verschlüsselung im Ruhezustand aktiviert haben, indem Sie die standardmäßige Verschlüsselung (SSE) verwenden oder sie über eine Bucket-Richtlinie erzwingen."
+                }
+            }
+        },
+        {
+            "name": "bucket_no_mfa_delete",
+            "title": "Ensure S3 bucket MFA Delete is enabled.",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without enabling MFA Delete for an S3 bucket, your security credentials are at risk of being compromised, and unauthorized access may be granted.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_s3_bucket) and bucket_versioning=true and bucket_mfa_delete=false"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws s3api put-bucket-versioning --bucket {{name}} --versioning-configuration MFADelete=Enabled --mfa 'arn:aws:iam::00000000:mfa/root-account-mfa-device 123456'"
+                },
+                "text": "To enhance the security of your S3 bucket, enable MFA delete. This requires additional authentication when changing the version state of your bucket or deleting an object version, adding an extra layer of security in case your security credentials are compromised or unauthorized access is granted.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass MFA Delete für den S3-Bucket aktiviert ist.",
+                    "risk": "Ohne die Aktivierung von MFA Delete für einen S3-Bucket sind Ihre Sicherheitsanmeldedaten gefährdet und es besteht die Möglichkeit einer unbefugten Zugriffsgewährung.",
+                    "remediation": "Aktivieren Sie MFA Delete für Ihren S3-Bucket, um die Sicherheit zu verbessern. Dadurch ist bei Änderungen des Versionierungsstatus des Buckets oder beim Löschen einer Objektversion eine zusätzliche Authentifizierung erforderlich. Dadurch wird eine zusätzliche Sicherheitsebene hinzugefügt, falls Ihre Sicherheitsanmeldedaten gefährdet sind oder unbefugter Zugriff gewährt wird."
+                }
+            }
+        },
+        {
+            "name": "bucket_secure_transport_policy",
+            "title": "Ensure S3 buckets have secure transport policy.",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without enforcing HTTPS on the bucket policy, communication between clients and S3 buckets may use unencrypted HTTP, posing a risk of transmitting sensitive information in clear text over the network or internet.",
+            "severity": "medium",
+            "detect": {
+                "fix_cmd": "search is(aws_s3_bucket) | jq --no-rewrite 'if (.reported.bucket_policy==null) then [.] elif any(.reported.bucket_policy.Statement[]?; .Effect? ==\"Deny\" and (.Action? == \"s3:*\" or .Action? == \"*\") and .Condition?.Bool?.\"aws:SecureTransport\"?==\"false\") then [] else [.] end' | flatten"
+            },
+            "remediation": {
+                "text": "To fix the issue, ensure that S3 buckets have encryption in transit enabled to enforce secure communication.",
+                "url": "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass S3-Buckets über eine sichere Transportrichtlinie verfügen.",
+                    "risk": "Ohne die Durchsetzung von HTTPS in der Bucket-Richtlinie kann die Kommunikation zwischen Clients und S3-Buckets unverschlüsseltes HTTP verwenden. Dies birgt das Risiko, dass sensible Informationen im Klartext über das Netzwerk oder das Internet übertragen werden.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass S3-Buckets die Verschlüsselung während der Übertragung aktiviert haben, um eine sichere Kommunikation durchzusetzen."
+                }
+            }
+        },
+        {
+            "name": "macie_is_enabled",
+            "title": "Ensure Amazon Macie is enabled",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If Amazon Macie is not enabled, sensitive data in AWS may be at risk of unauthorized access or exposure. Amazon Macie provides automated sensitive data discovery and helps protect sensitive data by using machine learning and pattern matching.",
+            "severity": "medium",
+            "detect": {
+                "manual": "Check if Amazon Macie is enabled."
+            },
+            "remediation": {
+                "text": "To fix this issue, enable Amazon Macie in the AWS Management Console and create appropriate jobs to discover and protect sensitive data.",
+                "url": "https://aws.amazon.com/macie/getting-started/",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon Macie aktiviert ist",
+                    "risk": "Wenn Amazon Macie nicht aktiviert ist, kann sensibler Datenbestand in AWS einem unbefugten Zugriff oder einer Offenlegung ausgesetzt sein. Amazon Macie bietet automatisierte Erkennung sensibler Daten und schützt diese durch den Einsatz von maschinellem Lernen und Mustererkennung.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie Amazon Macie in der AWS Management Console und erstellen Sie entsprechende Aufträge zur Erkennung und zum Schutz sensibler Daten."
+                }
+            }
+        },
+        {
+            "name": "bucket_policy_public_write_access",
+            "title": "Ensure S3 buckets do not have policies that allow write access to the public.",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If the issue is not solved, non-intended users can put objects in a given bucket, leading to unauthorized data modifications or leaks.",
+            "severity": "critical",
+            "detect": {
+                "fix": "is(aws_s3_bucket) and bucket_policy!=null and bucket_public_access_block_configuration.restrict_public_buckets==false"
+            },
+            "remediation": {
+                "text": "To fix the issue, ensure that a proper bucket policy is in place with the principle of least privilege applied.",
+                "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html",
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass S3 Buckets keine Richtlinien haben, die öffentlichen Schreibzugriff erlauben.",
+                    "risk": "Wenn das Problem nicht behoben wird, können nicht beabsichtigte Benutzer Objekte in einen bestimmten Bucket ablegen, was zu unbefugten Datenänderungen oder Lecks führen kann.",
+                    "remediation": "Um das Problem zu beheben, stellen Sie sicher, dass eine angemessene Bucket-Richtlinie mit dem Prinzip des geringsten Privilegs vorhanden ist."
+                }
+            }
+        },
+        {
+            "name": "account_level_public_access_blocks",
+            "title": "Ensure S3 Account Level Public Access Block is Enabled",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to enable the S3 Account Level Public Access Block may lead to potential unauthorized access to sensitive data stored in S3 buckets.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_s3_bucket) {account_setting: <-[0:]- is(aws_account) --> is(aws_s3_account_settings)} (bucket_public_access_block_configuration.block_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.block_public_acls==false) or (bucket_public_access_block_configuration.ignore_public_acls==false and account_setting.reported.bucket_public_access_block_configuration.ignore_public_acls==false) or (bucket_public_access_block_configuration.block_public_policy==false and account_setting.reported.bucket_public_access_block_configuration.block_public_policy==false) or (bucket_public_access_block_configuration.restrict_public_buckets==false and account_setting.reported.bucket_public_access_block_configuration.restrict_public_buckets==false)"
+            },
+            "remediation": {
+                "text": "To fix this issue, ensure you enable Public Access Block at the account level to prevent the exposure of your data stored in S3. Follow the instructions in the AWS documentation.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+                "action": {
+                    "aws_cli": "aws s3control put-public-access-block --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true --account-id {{account_id}}"
+                },
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass der S3 Account Level Public Access Block aktiviert ist",
+                    "risk": "Das Versäumnis, den S3 Account Level Public Access Block zu aktivieren, kann zu potenziell unbefugtem Zugriff auf sensible Daten führen, die in S3 Buckets gespeichert sind.",
+                    "remediation": "Um dieses Problem zu beheben, stellen Sie sicher, dass Sie den Public Access Block auf Kontenebene aktivieren, um die Offenlegung Ihrer in S3 gespeicherten Daten zu verhindern. Befolgen Sie die Anweisungen in der AWS-Dokumentation."
+                }
+            }
+        },
+        {
+            "name": "public_bucket",
+            "title": "Ensure S3 buckets are not made public",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to secure S3 buckets can lead to unauthorized access and potential security breaches in operations.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_s3_bucket) and bucket_public_access_block_configuration.{block_public_acls!=true or ignore_public_acls!=true or block_public_policy!=true or restrict_public_buckets!=true} or bucket_acl.grants[*].{permission in [READ, READ_ACP] and grantee.uri==\"http://acs.amazonaws.com/groups/global/AllUsers\"}"
+            },
+            "remediation": {
+                "text": "To fix this issue, update the S3 bucket configurations to disable public settings and ensure bucket policies do not grant all permissions.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+            "localizations": {
+                "de": {
+                    "title": "Stelle sicher, dass S3-Buckets nicht öffentlich zugänglich sind",
+                    "risk": "Die fehlende Absicherung von S3-Buckets kann unberechtigten Zugriff ermöglichen und potenzielle Sicherheitsverstöße in den Betriebsabläufen verursachen.",
+                    "remediation": "Um dieses Problem zu beheben, aktualisiere die Konfiguration des S3-Buckets, um öffentliche Einstellungen zu deaktivieren und sicherzustellen, dass Bucket-Richtlinien keine umfassenden Berechtigungen gewähren."
+                }
+            }
+        },
+        {
+            "name": "bucket_object_logging_enabled",
+            "title": "Ensure S3 bucket object logging is enabled to aid in identifying security breaches with AWS S3",
+            "result_kinds": [
+                "aws_s3_bucket"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Enabling S3 bucket object logging is crucial for security and compliance, as it provides audit trails for access and modifications to objects, aiding in identifying unauthorized access or data breaches.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_s3_bucket) and bucket_logging==null"
+            },
+            "remediation": {
+                "text": "To fix the issue, select 'Edit', choose a target bucket for the logs, set a prefix if desired, and save the changes.",
+                "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Protokollierung von Objekten in S3-Buckets aktiviert ist, um bei AWS S3-Sicherheitsverstößen zu helfen",
+                    "risk": "Die Aktivierung der Protokollierung von Objekten in S3-Buckets ist für die Sicherheit und Compliance entscheidend, da sie Audit Trails für den Zugriff und Änderungen an Objekten bereitstellt und hilft, unbefugten Zugriff oder Datenverstöße zu identifizieren.",
+                    "remediation": "Um das Problem zu beheben, wählen Sie 'Bearbeiten', wählen Sie einen Zielspeicherort für die Protokolle aus, legen Sie bei Bedarf einen Präfix fest und speichern Sie die Änderungen ab."
+                }
+            }
+        }
+    ]
+}

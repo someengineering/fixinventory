@@ -1,6 +1,6 @@
-from resotolib.proc import num_default_threads
-from resotolib.config import Config
-from resoto_plugin_gcp import GCPCollectorPlugin
+from fixlib.proc import num_default_threads
+from fixlib.config import Config
+from fix_plugin_gcp import GCPCollectorPlugin
 
 
 def test_args() -> None:

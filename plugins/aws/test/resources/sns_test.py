@@ -1,9 +1,9 @@
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import Any, Dict, cast
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.sns import AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication
-from resotolib.graph import Graph
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.sns import AwsSnsTopic, AwsSnsSubscription, AwsSnsPlatformApplication
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 
 

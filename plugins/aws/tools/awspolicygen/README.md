@@ -1,4 +1,4 @@
-# Resoto AWS policy generator
+# Fix AWS policy generator
 This script creates and uploads AWS policies to the CDN
 
 ## License

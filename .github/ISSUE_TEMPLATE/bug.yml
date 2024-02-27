@@ -17,7 +17,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of Resoto are you running?
+      description: What version of FixInventory are you running?
     validations:
       required: true
   - type: input
@@ -52,4 +52,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        By submitting this bug report, I agree to follow the [code of conduct](https://resoto.com/code-of-conduct).
+        By submitting this bug report, I agree to follow the [code of conduct](https://inventory.fix.security/code-of-conduct).

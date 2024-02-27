@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "sqs",
+    "checks": [
+        {
+            "name": "server_side_encryption_enabled",
+            "title": "Ensure that Server-Side Encryption is Enabled for SQS Queues",
+            "result_kinds": [
+                "aws_sqs_queue"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If server-side encryption is not enabled for SQS queues, sensitive information in transit could be compromised. This leads to risks of data leakage, breach of compliance regulations, and potential damage to the organization's reputation.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_sqs_queue) and sqs_managed_sse_enabled==false and sqs_kms_master_key_id==null"
+            },
+            "remediation": {
+                "text": "To mitigate this risk, ensure server-side encryption is turned on for all Amazon SQS queues. If possible, leverage a Customer Master Key (CMK) for enhanced management and privacy benefits.",
+                "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-sse-existing-queue.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die serverseitige Verschlüsselung für SQS-Warteschlangen aktiviert ist",
+                    "risk": "Wenn die serverseitige Verschlüsselung für SQS-Warteschlangen nicht aktiviert ist, kann vertrauliche Information während der Übertragung kompromittiert werden. Dadurch besteht das Risiko von Datenlecks, Verstößen gegen Compliance-Vorschriften und potenziellem Schaden für den Ruf der Organisation.",
+                    "remediation": "Um dieses Risiko zu minimieren, stellen Sie sicher, dass die serverseitige Verschlüsselung für alle Amazon SQS-Warteschlangen aktiviert ist. Nutzen Sie falls möglich einen Kundenschlüssel (CMK) für verbessertes Management und mehr Privatsphäre."
+                }
+            }
+        }
+    ]
+}

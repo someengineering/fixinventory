@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_slack import SlackBotPlugin, SlackCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_slack import SlackBotPlugin, SlackCollectorPlugin
 
 
 def test_config():

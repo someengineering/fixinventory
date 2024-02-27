@@ -1,0 +1,32 @@
+{
+    "Summaries": [
+        {
+            "StackSetId": "FixAccessStack:some-id",
+            "Region": "us-east-1",
+            "Account": "111111111111",
+            "StackId": "arn:aws:cloudformation:us-east-1:111111111111:stack/StackSet-FixAccess-030402e3/b0f1bfe0",
+            "Status": "CURRENT",
+            "StatusReason": "No updates are to be performed.",
+            "StackInstanceStatus": {
+                "DetailedStatus": "SUCCEEDED"
+            },
+            "OrganizationalUnitId": "r-7h7x",
+            "DriftStatus": "NOT_CHECKED",
+            "LastOperationId": "d915bb2c-21b5-65cd-a9fa-8e8fa3cdbe9e"
+        },
+        {
+            "StackSetId": "FixAccessStack:some-id",
+            "Region": "us-east-1",
+            "Account": "222222222222",
+            "StackId": "arn:aws:cloudformation:us-east-1:222222222222:stack/StackSet-FixAccess-a4af3d73/e2a4b370",
+            "Status": "CURRENT",
+            "StatusReason": "No updates are to be performed.",
+            "StackInstanceStatus": {
+                "DetailedStatus": "SUCCEEDED"
+            },
+            "OrganizationalUnitId": "r-7h7x",
+            "DriftStatus": "NOT_CHECKED",
+            "LastOperationId": "d915bb2c-21b5-65cd-a9fa-8e8fa3cdbe9e"
+        }
+    ]
+}

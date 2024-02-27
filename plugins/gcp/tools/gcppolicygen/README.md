@@ -1,8 +1,8 @@
-# Resoto GCP policy generator
+# Fix GCP policy generator
 This script creates and uploads GCP policies to the CDN
 
 ## License
 ```
-Copyright 2023 Some Engineering Inc.
+Copyright 2024 Some Engineering Inc.
 See repository LICENSE for details.
 ```

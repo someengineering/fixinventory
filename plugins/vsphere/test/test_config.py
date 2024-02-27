@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_vsphere import VSphereCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_vsphere import VSphereCollectorPlugin
 
 
 def test_config():

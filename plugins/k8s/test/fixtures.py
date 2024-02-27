@@ -7,11 +7,11 @@ import pytest
 from _pytest.fixtures import SubRequest
 from kubernetes.client import Configuration
 
-from resoto_plugin_k8s.base import K8sApiResource, K8sClient
-from resoto_plugin_k8s.base import KubernetesResourceType
-from resotolib.core.actions import CoreFeedback
-from resotolib.json import from_json
-from resotolib.types import Json
+from fix_plugin_k8s.base import K8sApiResource, K8sClient
+from fix_plugin_k8s.base import KubernetesResourceType
+from fixlib.core.actions import CoreFeedback
+from fixlib.json import from_json
+from fixlib.types import Json
 
 
 def from_file(name: str) -> Optional[Json]:

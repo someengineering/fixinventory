@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.waf import AwsWafWebACL
+from fix_plugin_aws.resource.waf import AwsWafWebACL
 from test.resources import round_trip_for
 
 

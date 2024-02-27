@@ -1,7 +1,7 @@
 [project]
-name = "resoto-plugin-vsphere"
-description = "Resoto VSphere Collector Plugin"
-version = "4.0.0"
+name = "fixinventory-plugin-vsphere"
+description = "Fix VSphere Collector Plugin"
+version = "4.0.0a2"
 authors = [{name="Some Engineering Inc."}]
 license = {file="LICENSE"}
 requires-python = ">=3.9"
@@ -27,16 +27,16 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0a2",
     "pyvmomi",
 ]
 
-[project.entry-points."resoto.plugins"]
-vsphere = "resoto_plugin_vsphere:VSphereCollectorPlugin"
+[project.entry-points."fix.plugins"]
+vsphere = "fix_plugin_vsphere:VSphereCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/vsphere"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/vsphere"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

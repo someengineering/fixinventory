@@ -1,0 +1,93 @@
+{
+    "provider": "aws",
+    "service": "kms",
+    "checks": [
+        {
+            "name": "key_rotation_enabled",
+            "title": "Ensure that Key Rotation is Enabled for Customer-Created KMS CMKs",
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "The extensive reuse of encryption keys is discouraged as it may lead to the use of compromised keys. Without timely rotation, Customer Master Keys (CMKs) are at an increased risk of compromise, resulting in potential data breaches and operational disruptions.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_kms_key) and kms_key_manager==CUSTOMER and access_key_status=Enabled and kms_key_rotation_enabled=false"
+            },
+            "remediation": {
+                "text": "For every Customer Master Key (CMK), ensure that the 'Rotate this key every year' option is enabled. Regular rotation reduces the risk of compromise and improves overall system security. Check the key rotation status frequently and apply changes immediately when needed.",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html",
+                "complexity": "medium"
+            },
+            "url": "https://aws.amazon.com/kms/features/key-rotation/",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Schlüsselrotation für benutzerdefinierte KMS CMKs aktiviert ist",
+                    "risk": "Die umfangreiche Wiederverwendung von Verschlüsselungsschlüsseln wird nicht empfohlen, da dies zu kompromittierten Schlüsseln führen kann. Ohne regelmäßige Rotation besteht ein erhöhtes Risiko, dass Customer Master Keys (CMKs) kompromittiert werden, was zu potenziellen Datenverletzungen und Betriebsunterbrechungen führen kann.",
+                    "remediation": "Stellen Sie für jeden Customer Master Key (CMK) sicher, dass die Option Diesen Schlüssel einmal pro Jahr drehen aktiviert ist. Durch regelmäßige Rotation wird das Risiko einer Kompromittierung reduziert und die allgemeine Systemsicherheit verbessert. überprüfen Sie den Rotationsstatus des Schlüssels regelmäßig und wenden Sie änderungen sofort an, wenn dies erforderlich ist."
+                }
+            }
+        },
+        {
+            "name": "key_not_pending_deletion",
+            "title": "Ensure No AWS KMS Keys in Use are Pending Deletion",
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "KMS keys marked for deletion cease to function for operations. An operational loss can occur if a key in use is pending deletion, with potential for irrecoverable data loss.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_kms_key) and access_key_status==PendingDeletion with(any, <-- not is(region))"
+            },
+            "remediation": {
+                "text": "Confirm no keys in use are set with 'Pending deletion' status. If such a key is detected, promptly substitute the key with a new one to avoid disruption of services.",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass keine AWS KMS-Schlüssel ausstehend gelöscht werden",
+                    "risk": "KMS-Schlüssel, die zur Löschung markiert sind, funktionieren nicht mehr ordnungsgemäß für Operationen. Bei einem Schlüssel, der noch verwendet wird und zur Löschung aussteht, kann ein Betriebsverlust auftreten, der zu unwiederbringlichem Datenverlust führen kann.",
+                    "remediation": "Überprüfen Sie, ob keine verwendeten Schlüssel den Status 'Ausstehende Löschung' haben. Wenn ein solcher Schlüssel erkannt wird, ersetzen Sie ihn umgehend durch einen neuen, um Unterbrechungen von Diensten zu vermeiden."
+                }
+            }
+        },
+        {
+            "name": "cmk_policy_prohibit_public_access",
+            "title": "Ensure Customer Managed Keys in use are Not Publicly Accessible",
+            "result_kinds": [
+                "aws_kms_key"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Maintaining public accessibility of Customer Managed Keys exposes your system to unnecessary security risks by granting external entities potential access. This can compromise the integrity, confidentiality or availability of your services.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_kms_key) and kms_key_policy.Statement[*].{ Effect==Allow and Principal==\"*\" and Action in [\"*\", \"kms:*\"] and Condition==null}"
+            },
+            "remediation": {
+                "text": "Modify the access policy of in-use keys to restrict public access. Grant access only to necessary users or roles, adhering to a least-privilege model to uphold security.",
+                "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html",
+                "complexity": "high"
+            },
+            "url": "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass verwendete benutzerdefinierte Schlüssel nicht öffentlich zugänglich sind",
+                    "risk": "Die Aufrechterhaltung der öffentlichen Zugänglichkeit von benutzerdefinierten Schlüsseln ermöglicht externen Entitäten potenziellen Zugriff und gefährdet somit die Integrität, Vertraulichkeit oder Verfügbarkeit Ihrer Dienste.",
+                    "remediation": "Ändern Sie die Zugriffsrichtlinie der verwendeten Schlüssel, um den öffentlichen Zugriff einzuschränken. Gewähren Sie nur notwendigen Benutzern oder Rollen Zugriff und halten Sie sich dabei an das Modell des minimalen Privilegienlevels, um die Sicherheit zu gewährleisten."
+                }
+            }
+        }
+    ]
+}

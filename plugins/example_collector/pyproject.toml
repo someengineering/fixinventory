@@ -1,7 +1,7 @@
 [project]
-name = "resoto-plugin-example-collector"
-description = "Resoto Example Collector Plugin"
-version = "4.0.0"
+name = "fixinventory-plugin-example-collector"
+description = "Fix Example Collector Plugin"
+version = "4.0.0a2"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
 requires-python = ">=3.9"
@@ -27,15 +27,15 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "resotolib==4.0.0",
+    "fixinventorylib==4.0.0a2",
 ]
 
-[project.entry-points."resoto.plugins"]
-example_collector = "resoto_plugin_example_collector:ExampleCollectorPlugin"
+[project.entry-points."fix.plugins"]
+example_collector = "fix_plugin_example_collector:ExampleCollectorPlugin"
 
 [project.urls]
-Documentation = "https://resoto.com"
-Source = "https://github.com/someengineering/resoto/tree/main/plugins/example_collector"
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/example_collector"
 
 [build-system]
 requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]

@@ -1,0 +1,152 @@
+{
+    "provider": "aws",
+    "service": "rds",
+    "checks": [
+        {
+            "name": "storage_encrypted",
+            "title": "Ensure that RDS instances storage is encrypted.",
+            "result_kinds": [
+                "aws_rds_instance"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If storage encryption is not enabled, sensitive data stored at rest is unprotected. This poses a serious security risk as unauthorized parties may access or compromise your data.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_rds_instance) and volume_encrypted==false"
+            },
+            "remediation": {
+                "text": "You should enable storage encryption for the RDS instances. This provides enhancement to your data security by preventing unauthorized access to the underlying storage. Use industry standard AES-256 encryption algorithm and ensure all logs, backups, and snapshots are included in the encryption.",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encrypting.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass der Speicher von RDS-Instanzen verschlüsselt ist.",
+                    "risk": "Wenn die Speicherverschlüsselung nicht aktiviert ist, sind gespeicherte sensible Daten ungeschützt. Dies stellt ein ernsthaftes Sicherheitsrisiko dar, da unbefugte Personen auf Ihre Daten zugreifen oder diese kompromittieren können.",
+                    "remediation": "Sie sollten die Speicherverschlüsselung für die RDS-Instanzen aktivieren. Dies verbessert die Datensicherheit, indem unbefugter Zugriff auf den zugrunde liegenden Speicher verhindert wird. Verwenden Sie den branchenüblichen AES-256-Verschlüsselungsalgorithmus und stellen Sie sicher, dass alle Protokolle, Backups und Snapshots in die Verschlüsselung einbezogen werden."
+                }
+            }
+        },
+        {
+            "name": "auto_minor_version_upgrade",
+            "title": "Ensure Minor Version Upgrade is Enabled for RDS Instances",
+            "result_kinds": [
+                "aws_rds_instance"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Disabling Auto Minor Version Upgrade feature exposes the AWS database to potential threats including security vulnerabilities and bugs. Regular updates ensure optimal performance of your system and protects against such threats.",
+            "severity": "low",
+            "detect": {
+                "fix": "is(aws_rds_instance) and rds_auto_minor_version_upgrade==false"
+            },
+            "remediation": {
+                "text": "To mitigate the risk, activate Auto Minor Version Upgrade feature for all databases and environments. This will ensure that your AWS database system is up-to-date.",
+                "url": "https://aws.amazon.com/blogs/database/best-practices-for-upgrading-amazon-rds-to-major-and-minor-versions-of-postgresql",
+                "complexity": "low"
+            },
+            "url": "https://aws.amazon.com/blogs/database/best-practices-for-upgrading-amazon-rds-to-major-and-minor-versions-of-postgresql",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Aktualisierung der Nebenversion für RDS-Instanzen aktiviert ist",
+                    "risk": "Das Deaktivieren der Funktion zur automatischen Aktualisierung der Nebenversion birgt potenzielle Risiken für die AWS-Datenbank, einschließlich Sicherheitslücken und Fehler. Regelmäßige Updates gewährleisten eine optimale Leistung Ihres Systems und schützen vor solchen Bedrohungen.",
+                    "remediation": "Um das Risiko zu mindern, aktivieren Sie die Funktion zur automatischen Aktualisierung der Nebenversion für alle Datenbanken und Umgebungen. Dadurch wird sichergestellt, dass Ihr AWS-Datenbanksystem auf dem neuesten Stand ist."
+                }
+            }
+        },
+        {
+            "name": "db_instance_cloudwatch_logs_enabled",
+            "title": "Ensure that AWS RDS Instances Have CloudWatch Logs Exports Enabled",
+            "result_kinds": [
+                "aws_rds_instance"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "The absence of CloudWatch Logs exports for RDS instances limits visibility into crucial performance or security metrics, possibly concealing operational issues or threats. It also makes the task of diagnosing problems significantly harder.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_rds_instance) and rds_enabled_cloudwatch_logs_exports==[]"
+            },
+            "remediation": {
+                "text": "Navigate to the RDS instance configuration and click 'Modify'. Enable 'Enable CloudWatch Logs exports.' and specify the CloudWatch Logs group for the RDS Instance. Save the changes to implement the new settings.",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_LogAccess.Concepts.html#USER_LogAccess.Procedural.Enabling",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS RDS-Instanzen CloudWatch-Protokolle aktiviert haben",
+                    "risk": "Das Fehlen von CloudWatch-Protokollen für RDS-Instanzen begrenzt die Sichtbarkeit wichtiger Leistungs- oder Sicherheitsmetriken, was potenziell betriebliche Probleme oder Bedrohungen verbirgt. Es erschwert auch die Aufgabe der Problembehandlung erheblich.",
+                    "remediation": "Navigieren Sie zur Konfiguration der RDS-Instanz und klicken Sie auf 'Ändern'. Aktivieren Sie 'CloudWatch-Protokollierungen exportieren' und geben Sie die CloudWatch-Protokollgruppe für die RDS-Instanz an. Speichern Sie die Änderungen, um die neuen Einstellungen zu implementieren."
+                }
+            }
+        },
+        {
+            "name": "no_public_access",
+            "title": "Ensure that all Amazon RDS Instances are Secured from Public Access.",
+            "result_kinds": [
+                "aws_rds_instance"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Granting public access to databases exposes sensitive information, making the system vulnerable to malicious attacks and data breaches.",
+            "severity": "critical",
+            "detect": {
+                "fix": "is(aws_rds_instance) and db_publicly_accessible==true"
+            },
+            "remediation": {
+                "text": "Ensure that each Amazon RDS instance is properly configured to disallow public access. Use options group and DB parameter group settings to enforce this configuration.",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Configuring.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_RDS_Security.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass alle Amazon RDS-Instanzen vor öffentlichem Zugriff geschützt sind.",
+                    "risk": "Das Gewähren öffentlichen Zugriffs auf Datenbanken stellt sensible Informationen bloß und macht das System anfällig für bösartige Angriffe und Datenverstöße.",
+                    "remediation": "Stellen Sie sicher, dass jede Amazon RDS-Instanz ordnungsgemäß konfiguriert ist, um öffentlichen Zugriff zu verhindern. Verwenden Sie Optionsgruppen- und DB-Parametergruppeneinstellungen, um diese Konfiguration durchzusetzen."
+                }
+            }
+        },
+        {
+            "name": "snapshot_not_public",
+            "title": "Ensure that Amazon RDS Snapshots are Not Publicly Available",
+            "result_kinds": [
+                "aws_rds_cluster_snapshot",
+                "aws_rds_snapshot"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If RDS snapshots are publicly available, sensitive data may be exposed, increasing the risk of data breach and non-compliance with data privacy regulations.",
+            "severity": "critical",
+            "detect": {
+                "fix": "is(aws_rds_cluster_snapshot, aws_rds_snapshot) and rds_attributes.restore[*]==\"all\""
+            },
+            "remediation": {
+                "text": "To remediate, disable public availability for all RDS snapshots. Ensure that only necessary and authorized AWS accounts have snapshot sharing permissions.",
+                "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon RDS-Snapshots nicht öffentlich verfügbar sind",
+                    "risk": "Wenn RDS-Snapshots öffentlich verfügbar sind, können sensible Daten offengelegt werden, was das Risiko eines Datenlecks und Verstöße gegen Datenschutzbestimmungen erhöht.",
+                    "remediation": "Um das Problem zu beheben, deaktivieren Sie die öffentliche Verfügbarkeit für alle RDS-Snapshots. Stellen Sie sicher, dass nur notwendige und autorisierte AWS-Konten Berechtigungen zum Freigeben von Snapshots haben."
+                }
+            }
+        }
+    ]
+}

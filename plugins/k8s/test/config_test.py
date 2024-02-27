@@ -5,12 +5,12 @@ from tempfile import TemporaryDirectory
 import jsons
 import yaml
 
-from resotolib.json import to_json
-from resotolib.types import Json
-from resotolib.proc import num_default_threads
-from resotolib.config import Config
-from resoto_plugin_k8s import KubernetesCollectorPlugin
-from resoto_plugin_k8s.base import K8sConfig, K8sAccess, K8sConfigFile
+from fixlib.json import to_json
+from fixlib.types import Json
+from fixlib.proc import num_default_threads
+from fixlib.config import Config
+from fix_plugin_k8s import KubernetesCollectorPlugin
+from fix_plugin_k8s.base import K8sConfig, K8sAccess, K8sConfigFile
 
 
 def test_k8s_config_pickle() -> None:

@@ -1,10 +1,10 @@
 # noinspection PyUnresolvedReferences
 import pytest
 
-from resotolib.json import from_json
+from fixlib.json import from_json
 
 # noinspection PyUnresolvedReferences
-from resotolib.types import Json
+from fixlib.types import Json
 
 # noinspection PyUnresolvedReferences
 from typing import Type, Tuple, TypeVar, List
@@ -15,10 +15,10 @@ import jsons
 
 # noinspection PyUnresolvedReferences
 from fixtures import json_file
-from resoto_plugin_k8s.base import KubernetesResourceType
-from resoto_plugin_k8s.resources import *
-from resotolib.types import Json
-from resotolib.graph import Graph
+from fix_plugin_k8s.base import KubernetesResourceType
+from fix_plugin_k8s.resources import *
+from fixlib.types import Json
+from fixlib.graph import Graph
 
 
 @pytest.mark.json_file("apis_apps_v1_controllerrevisions.json")

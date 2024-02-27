@@ -1,0 +1,62 @@
+{
+    "provider": "aws",
+    "service": "config",
+    "checks": [
+        {
+            "name": "enabled_in_all_regions",
+            "title": "Ensure AWS Config is enabled in all regions.",
+            "result_kinds": [
+                "aws_region"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to enable AWS Config in all regions may result in the inability to capture the AWS configuration item history, leading to a lack of security analysis, resource change tracking, and compliance auditing.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_region) with(empty, --> is(aws_config_recorder) and recorder_status.recording=true and recorder_group.all_supported=true and recorder_status.last_status=SUCCESS)"
+            },
+            "remediation": {
+                "text": "To address this issue, it is recommended to enable AWS Config in all regions to ensure proper security analysis, resource change tracking, and compliance auditing.",
+                "url": "https://aws.amazon.com/blogs/mt/aws-config-best-practices/",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS Config in allen Regionen aktiviert ist.",
+                    "risk": "Die Unterlassung, AWS Config in allen Regionen zu aktivieren, kann dazu führen, dass die AWS-Konfigurationsverlaufseinträge nicht erfasst werden können. Dies führt zu einem Mangel an Sicherheitsanalyse, Ressourcenänderungsnachverfolgung und Compliance-Prüfungen.",
+                    "remediation": "Um dieses Problem zu beheben, wird empfohlen, AWS Config in allen Regionen zu aktivieren, um eine ordnungsgemäße Sicherheitsanalyse, Ressourcenänderungsnachverfolgung und Compliance-Prüfung sicherzustellen."
+                }
+            }
+        },
+        {
+            "name": "remediation_enabled",
+            "title": "Ensure AWS Config Remediation is Enabled",
+            "result_kinds": [
+                "aws_region"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to implement AWS Config remediation (manual or automatic through System Manager) configurations can lead to noncompliant resources not being remediated, leaving potential vulnerabilities in the AWS cloud infrastructure.",
+            "severity": "medium",
+            "detect": {
+                "manual": "AWS Config allows for the remediation of noncompliant resources evaluated by AWS Config Rules. Remediation is applied through AWS Systems Manager Automation documents, defining the actions to be performed on noncompliant AWS resources."
+            },
+            "remediation": {
+                "text": "To remediate the issue, manual configuration can be done with user-defined reviews, or automatic remediation can be set up using AWS Config.",
+                "url": "https://docs.aws.amazon.com/config/latest/developerguide/remediation.html#setup-manualremediation",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass die AWS Config Behebung aktiviert ist",
+                    "risk": "Das Versäumen, AWS Config-Behebungskonfigurationen (manuell oder automatisch über System Manager) zu implementieren, kann dazu führen, dass nicht konforme Ressourcen nicht behoben werden und potenzielle Sicherheitslücken in der AWS Cloud-Infrastruktur hinterlassen.",
+                    "remediation": "Um das Problem zu beheben, kann manuelle Konfiguration mit benutzerdefinierten Überprüfungen durchgeführt werden oder automatische Behebung mithilfe von AWS Config eingerichtet werden."
+                }
+            }
+        }
+    ]
+}

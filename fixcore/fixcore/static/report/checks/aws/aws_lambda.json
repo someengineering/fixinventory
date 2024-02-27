@@ -1,0 +1,185 @@
+{
+    "provider": "aws",
+    "service": "lambda",
+    "checks": [
+        {
+            "name": "publicly_accessible_permissions",
+            "title": "Ensure Lambda Functions Avoid Public Resource-Based Policies",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If Lambda functions retain publicly accessible services, they become a potential vector for data breaches, exposing sensitive information to unauthorized use or malicious exploitation.",
+            "severity": "low",
+            "url": "https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html",
+            "detect": {
+                "fix": "is(aws_lambda_function) and function_policy.statement[*].{principal~\"*\" or principal.AWS~\"*\" or principal.CanonicalUser~\"*\"}"
+            },
+            "remediation": {
+                "text": "To address this issue, restrict usage permissions on resource-based policies, strictly granting access on a per-resource basis. Always adhere to the principle of least privilege, allowing only necessary permissions.",
+                "url": "https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html",
+                "complexity": "high"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Sicherstellen, dass Lambda-Funktionen öffentliche, ressourcenbasierte Richtlinien vermeiden",
+                    "risk": "Wenn Lambda-Funktionen öffentlich zugängliche Dienste beibehalten, werden sie zu einem potenziellen Angriffsvektor für Datenverletzungen, bei denen sensible Informationen unbefugt genutzt oder bösartig ausgebeutet werden können.",
+                    "remediation": "Um dieses Problem zu beheben, sollten Sie die Berechtigungen für ressourcenbasierte Richtlinien einschränken und den Zugriff strikt auf Basis von Ressourcen gewähren. Halten Sie sich immer an das Prinzip des geringsten Privilegs und genehmigen Sie nur die notwendigen Berechtigungen."
+                }
+            }
+        },
+        {
+            "name": "function_in_vpc",
+            "title": "Ensure that AWS Lambda functions are deployed within a VPC and configured with appropriate security groups for precise and compliant network access controls.",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Lambda functions without established controls via security groups in a VPC, are vulnerable to unauthorized access. This exposure threatens data security and compliance standards.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_lambda_function) with (empty, <-- is(aws_vpc))"
+            },
+            "remediation": {
+                "text": "Modify your Lambda function configuration to deploy within a VPC. This requires setting up necessary security groups and network access controls.",
+                "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+                "complexity": "medium"
+            },
+            "url": "https://aws.amazon.com/premiumsupport/knowledge-center/internet-access-lambda-function/",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS Lambda-Funktionen innerhalb einer VPC bereitgestellt werden und mit geeigneten Sicherheitsgruppen für präzise und konforme Netzwerkzugriffskontrollen konfiguriert sind.",
+                    "risk": "Lambda-Funktionen ohne etablierte Kontrollen über Sicherheitsgruppen in einer VPC sind anfällig für unbefugten Zugriff. Diese Exposition bedroht die Datensicherheit und Konformitätsstandards.",
+                    "remediation": "Ändern Sie die Konfiguration Ihrer Lambda-Funktion, um sie innerhalb einer VPC bereitzustellen. Dies erfordert das Einrichten der erforderlichen Sicherheitsgruppen und Netzwerkzugriffskontrollen."
+                }
+            }
+        },
+        {
+            "name": "cors_policy",
+            "title": "Ensure Appropriate CORS Configuration for AWS Lambda Functions URL.",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Unverified CORS configurations can expose services to malicious attacks and unauthorized access, leading to potential data theft or infrastructure manipulation.",
+            "severity": "medium",
+            "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
+            "detect": {
+                "fix": "is(aws_lambda_function) and function_url_config.cors.allow_origins ~ \"*\""
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM --cors 'AllowOrigins=https://www.example.com,AllowMethods=*,ExposeHeaders=keep-alive,MaxAge=3600,AllowCredentials=false'"
+                },
+                "text": "Restrict access by updating the CORS policy to allow specific origins only, applying the principle of least privilege to function URLs to reduce potential security threats.",
+                "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie eine angemessene CORS-Konfiguration für die URL der AWS Lambda-Funktionen sicher.",
+                    "risk": "Nicht verifizierte CORS-Konfigurationen können Dienste Angriffen und unbefugtem Zugriff aussetzen, was zu potenziellem Diebstahl von Daten oder Manipulation der Infrastruktur führen kann.",
+                    "remediation": "Beschränken Sie den Zugriff, indem Sie die CORS-Richtlinie aktualisieren, um nur bestimmte Ursprünge zuzulassen. Verwenden Sie das Prinzip des geringsten Privilegs für Funktions-URLs, um potenzielle Sicherheitsbedrohungen zu verringern."
+                }
+            }
+        },
+        {
+            "name": "function_restrict_public_access",
+            "title": "Ensure Lambda Functions are not Publicly Accessible.",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Publicly accessible Lambda functions pose a security threat as they can expose sensitive data and potentially allow unauthorized access to system resources. This could lead to data breaches or system compromise.",
+            "severity": "high",
+            "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
+            "detect": {
+                "fix": "is(aws_lambda_function) and function_url_config != null and function_url_config.auth_type != AWS_IAM"
+            },
+            "remediation": {
+                "action": {
+                    "aws_cli": "aws lambda update-function-url-config --region AWS_REGION --function-name FUNCTION-NAME --auth-type AWS_IAM"
+                },
+                "text": "To secure your Lambda functions, update your function URL configuration to use AWS IAM as the authentication type. This will restrict access to permitted entities and applies the 'least privilege' security principle.",
+                "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
+                "complexity": "high"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Lambda-Funktionen nicht öffentlich zugänglich sind.",
+                    "risk": "Öffentlich zugängliche Lambda-Funktionen stellen eine Sicherheitsbedrohung dar, da sie sensible Daten offenlegen und potenziell unbefugten Zugriff auf Systemressourcen ermöglichen können. Dadurch könnte es zu Datenschutzverletzungen oder Kompromittierungen des Systems kommen.",
+                    "remediation": "Um Ihre Lambda-Funktionen abzusichern, aktualisieren Sie die URL-Konfiguration Ihrer Funktion, um AWS IAM als Authentifizierungstyp zu verwenden. Dadurch wird der Zugriff auf genehmigte Entitäten beschränkt und das Sicherheitsprinzip des 'geringsten Privilegs' angewendet."
+                }
+            }
+        },
+        {
+            "name": "supported_runtime",
+            "title": "Ensure AWS Lambda Deployments are Using Supported Runtimes",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Utilizing deprecated runtimes in AWS Lambda functions could introduce severe risk. When deprecated, runtimes may become unsupported and receive no security updates, posing a potential security threat. Additionally, AWS may stop function invocation at any time without notice, causing functionality failures.",
+            "severity": "medium",
+            "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
+            "detect": {
+                "fix": "is(aws_lambda_function) and function_runtime in [python3.6, python2.7, dotnetcore2.1, ruby2.5, nodejs10.x, nodejs8.10, nodejs4.3, nodejs6.10, dotnetcore1.0, dotnetcore2.0, nodejs4.3-edge, nodejs]"
+            },
+            "remediation": {
+                "text": "Upgrade AWS Lambda functions to the latest, supported runtimes. Continually test and facilitate the implementation of new runtimes as they become available, ensuring the highest level of security and performance.",
+                "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS Lambda-Bereitstellungen unterstützte Runtimes verwenden",
+                    "risk": "Die Verwendung veralteter Runtimes in AWS Lambda-Funktionen könnte erhebliche Risiken mit sich bringen. Veraltete Runtimes werden möglicherweise nicht mehr unterstützt und erhalten keine Sicherheitsupdates mehr, was eine potenzielle Sicherheitsbedrohung darstellt. Darüber hinaus kann AWS die Funktionen jederzeit ohne Vorankündigung außer Betrieb setzen, was zu Funktionsausfällen führen kann.",
+                    "remediation": "Aktualisieren Sie AWS Lambda-Funktionen auf die neuesten unterstützten Runtimes. Testen und ermöglichen Sie kontinuierlich die Implementierung neuer Runtimes, wenn diese verfügbar werden, um das höchste Maß an Sicherheit und Leistung zu gewährleisten."
+                }
+            }
+        },
+        {
+            "name": "no_secrets_in_variables",
+            "title": "Ensure Secrets aren't Stored in AWS Lambda Environment Variables",
+            "result_kinds": [
+                "aws_lambda_function"
+            ],
+            "categories": [
+                "security"
+            ],
+            "risk": "Hard-coded passwords significantly amplify the risks of password guessing and unauthorized access. Consequently, if secrets are stored in the environment variables, they can potentially be exploited by malicious actors.",
+            "severity": "critical",
+            "url": "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html",
+            "detect": {
+                "fix_cmd": "search is(aws_lambda_function) and function_environment.variables not in [null, {}] | detect-secrets --path function_environment.variables --with-secrets"
+            },
+            "remediation": {
+                "text": "Leverage AWS Secrets Manager to securely provide database credentials to your Lambda functions. This approach eliminates the need to hard-code secrets in your code or the environment variables, thus improving the security of your AWS deployments.",
+                "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/lambda-functions.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Geheimnisse nicht in AWS Lambda Umgebungsvariablen gespeichert werden",
+                    "risk": "Hardcodierte Passwörter erhöhen signifikant die Risiken von Passwortraten und unbefugtem Zugriff. Wenn Geheimnisse in den Umgebungsvariablen gespeichert sind, können sie potenziell von bösartigen Akteuren ausgenutzt werden.",
+                    "remediation": "Nutzen Sie AWS Secrets Manager, um Datenbankanmeldeinformationen sicher an Ihre Lambda-Funktionen bereitzustellen. Dieser Ansatz beseitigt die Notwendigkeit, Geheimnisse im Code oder in den Umgebungsvariablen fest zu kodieren und verbessert somit die Sicherheit Ihrer AWS-Bereitstellungen."
+                }
+            }
+        }
+    ]
+}

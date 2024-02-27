@@ -132,15 +132,15 @@
         },
         {
             "metadata": {
-                "name": "resoto",
+                "name": "fix",
                 "namespace": "default",
                 "uid": "025691cb-38ee-420a-bb16-10cdd9c87999",
                 "resourceVersion": "21244348",
                 "generation": 1,
                 "creationTimestamp": "2022-10-20T14:02:34Z",
                 "labels": {
-                    "app.kubernetes.io/instance": "resoto-resotocore",
-                    "app.kubernetes.io/name": "resoto-resotocore"
+                    "app.kubernetes.io/instance": "fix-fixcore",
+                    "app.kubernetes.io/name": "fix-fixcore"
                 },
                 "annotations": {
                     "cert-manager.io/issuer": "letsencrypt-prod",
@@ -209,14 +209,14 @@
                 "tls": [
                     {
                         "hosts": [
-                            "resoto.some.engineering"
+                            "fix.some.engineering"
                         ],
-                        "secretName": "resoto-some-engineering-tls"
+                        "secretName": "fix-some-engineering-tls"
                     }
                 ],
                 "rules": [
                     {
-                        "host": "resoto.some.engineering",
+                        "host": "fix.some.engineering",
                         "http": {
                             "paths": [
                                 {
@@ -224,7 +224,7 @@
                                     "pathType": "Prefix",
                                     "backend": {
                                         "service": {
-                                            "name": "resoto-resotocore",
+                                            "name": "fix-fixcore",
                                             "port": {
                                                 "number": 8900
                                             }
@@ -248,7 +248,7 @@
         },
         {
             "metadata": {
-                "name": "resoto-web-installer",
+                "name": "fix-web-installer",
                 "namespace": "default",
                 "uid": "3f4fb6fc-3bcd-4614-a7e0-7d0913360356",
                 "resourceVersion": "67461592",
@@ -301,14 +301,14 @@
                 "tls": [
                     {
                         "hosts": [
-                            "install.resoto.com"
+                            "install.inventory.fix.security"
                         ],
-                        "secretName": "install-resoto-com-tls"
+                        "secretName": "install-fix-com-tls"
                     }
                 ],
                 "rules": [
                     {
-                        "host": "install.resoto.com",
+                        "host": "install.inventory.fix.security",
                         "http": {
                             "paths": [
                                 {
@@ -316,7 +316,7 @@
                                     "pathType": "Prefix",
                                     "backend": {
                                         "service": {
-                                            "name": "resoto-web-installer",
+                                            "name": "fix-web-installer",
                                             "port": {
                                                 "number": 5000
                                             }

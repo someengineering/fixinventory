@@ -1867,7 +1867,7 @@
         {
             "metadata": {
                 "name": "arango-kube-arangodb-operator",
-                "namespace": "resoto",
+                "namespace": "fix",
                 "uid": "1de8bd89-a03e-463c-9cf4-85a059a93070",
                 "resourceVersion": "44305803",
                 "creationTimestamp": "2022-04-20T13:47:17Z",
@@ -1880,7 +1880,7 @@
                 },
                 "annotations": {
                     "meta.helm.sh/release-name": "kube-arangodb",
-                    "meta.helm.sh/release-namespace": "resoto"
+                    "meta.helm.sh/release-namespace": "fix"
                 },
                 "managedFields": [
                     {
@@ -1964,23 +1964,23 @@
         },
         {
             "metadata": {
-                "name": "resoto-resotocore",
-                "namespace": "resoto",
+                "name": "fix-fixcore",
+                "namespace": "fix",
                 "uid": "df8f6c37-5542-4e17-b2f4-bb6caaa2ba17",
                 "resourceVersion": "51578078",
                 "creationTimestamp": "2022-04-20T14:52:58Z",
                 "labels": {
-                    "app.kubernetes.io/instance": "resoto",
+                    "app.kubernetes.io/instance": "fix",
                     "app.kubernetes.io/managed-by": "Helm",
-                    "app.kubernetes.io/name": "resoto",
+                    "app.kubernetes.io/name": "fix",
                     "app.kubernetes.io/version": "2.1.0",
-                    "helm.sh/chart": "resoto-0.2.0",
-                    "resoto": "core"
+                    "helm.sh/chart": "fix-0.2.0",
+                    "fix": "core"
                 },
                 "annotations": {
                     "kubernetes.digitalocean.com/load-balancer-id": "03d5ed66-fefe-41fb-a3f6-9a0e43560adb",
-                    "meta.helm.sh/release-name": "resoto",
-                    "meta.helm.sh/release-namespace": "resoto"
+                    "meta.helm.sh/release-name": "fix",
+                    "meta.helm.sh/release-namespace": "fix"
                 },
                 "finalizers": [
                     "service.kubernetes.io/load-balancer-cleanup"
@@ -2006,7 +2006,7 @@
                                     "f:app.kubernetes.io/name": {},
                                     "f:app.kubernetes.io/version": {},
                                     "f:helm.sh/chart": {},
-                                    "f:resoto": {}
+                                    "f:fix": {}
                                 }
                             },
                             "f:spec": {
@@ -2024,7 +2024,7 @@
                                     ".": {},
                                     "f:app.kubernetes.io/instance": {},
                                     "f:app.kubernetes.io/name": {},
-                                    "f:resoto": {}
+                                    "f:fix": {}
                                 },
                                 "f:sessionAffinity": {}
                             }
@@ -2079,9 +2079,9 @@
                     }
                 ],
                 "selector": {
-                    "app.kubernetes.io/instance": "resoto",
-                    "app.kubernetes.io/name": "resoto",
-                    "resoto": "core"
+                    "app.kubernetes.io/instance": "fix",
+                    "app.kubernetes.io/name": "fix",
+                    "fix": "core"
                 },
                 "clusterIP": "10.245.133.206",
                 "clusterIPs": [
@@ -2108,7 +2108,7 @@
         {
             "metadata": {
                 "name": "single-server",
-                "namespace": "resoto",
+                "namespace": "fix",
                 "uid": "1322f157-d3ba-4b30-9585-5a8af5ba768e",
                 "resourceVersion": "44321101",
                 "creationTimestamp": "2022-04-20T14:51:59Z",
@@ -2209,7 +2209,7 @@
         {
             "metadata": {
                 "name": "single-server-ea",
-                "namespace": "resoto",
+                "namespace": "fix",
                 "uid": "9a9b6647-e9ca-447c-bbdd-7fe99fa63b81",
                 "resourceVersion": "44324284",
                 "creationTimestamp": "2022-04-20T15:05:10Z",
@@ -2313,7 +2313,7 @@
         {
             "metadata": {
                 "name": "single-server-int",
-                "namespace": "resoto",
+                "namespace": "fix",
                 "uid": "e9ea2a3c-98e3-4249-b188-37640f319c05",
                 "resourceVersion": "44321094",
                 "creationTimestamp": "2022-04-20T14:51:58Z",
@@ -2413,7 +2413,7 @@
         {
             "metadata": {
                 "name": "single-server-single-hs5itknq",
-                "namespace": "resoto",
+                "namespace": "fix",
                 "uid": "6c296f48-d5e4-445c-a1aa-dd7817c2665f",
                 "resourceVersion": "44321186",
                 "creationTimestamp": "2022-04-20T14:52:11Z",

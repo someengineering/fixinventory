@@ -1,7 +1,7 @@
-# resoto-plugin-k8s
+# fix-plugin-k8s
 
-Kubernetes plugin for Resoto.
-See [Getting Started](https://resoto.com/docs/getting-started) for more information.
+Kubernetes plugin for Fix.
+See [Getting Started](https://inventory.fix.security/docs/getting-started) for more information.
 
 ## License
 See [LICENSE](../../LICENSE) for details.

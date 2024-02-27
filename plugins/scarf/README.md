@@ -1,11 +1,11 @@
-# Resoto 💜 Scarf
-Scarf Collector Plugin for Resoto
+# Fix 💜 Scarf
+Scarf Collector Plugin for Fix
 
 This collector plugin is used to collect data from Scarf. It is used internally at Some Engineering to create metrics about image downloads.
 
-To export the number of image pulls add the following config to `resoto.metrics`
+To export the number of image pulls add the following config to `fix.metrics`
 ```
-resotometrics:
+fixmetrics:
   [...]
   metrics:
     scarf_downloads_total:

@@ -1,9 +1,9 @@
 import datetime
 from typing import Dict, Any, List, cast
 
-from resoto_plugin_digitalocean.client import StreamingWrapper
-from resoto_plugin_digitalocean.collector import DigitalOceanTeamCollector
-from resoto_plugin_digitalocean.resources import (
+from fix_plugin_digitalocean.client import StreamingWrapper
+from fix_plugin_digitalocean.collector import DigitalOceanTeamCollector
+from fix_plugin_digitalocean.resources import (
     DigitalOceanTeam,
     DigitalOceanVolume,
     DigitalOceanDropletSize,
@@ -31,11 +31,11 @@ from resoto_plugin_digitalocean.resources import (
     DigitalOceanAlertPolicy,
     DigitalOceanDropletNeighborhood,
 )
-from resotolib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
-from resotolib.core.actions import CoreFeedback
-from resotolib.utils import utc
-from resotolib.graph import Graph
-from resotolib.graph import sanitize
+from fixlib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
+from fixlib.core.actions import CoreFeedback
+from fixlib.utils import utc
+from fixlib.graph import Graph
+from fixlib.graph import sanitize
 from .fixtures import (
     droplets,
     neighbor_ids,
@@ -465,12 +465,12 @@ def test_collect_projects() -> None:
     check_edges(
         graph,
         "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7",
-        "do:space:api-test-space.resoto",
+        "do:space:api-test-space.fix",
     )
     project: DigitalOceanProject = graph.search_first("urn", "do:project:75088298-73bd-4c8f-ba4b-91fc220d0ac7")  # type: ignore # noqa: E501
     assert project.owner_uuid == "d63ae7cb6500140c46fdb3585b0c1a874e195760"
     assert project.owner_id == "10225075"
-    assert project.name == "Resoto DO plugin test project"
+    assert project.name == "Fix DO plugin test project"
     assert project.description == "A project to validate assumptions about how API works"
     assert project.purpose == "Just trying out DigitalOcean"
     assert project.environment == "development"
@@ -486,10 +486,10 @@ def test_collect_space() -> None:
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:region:fra1", "do:space:api-test-space.resoto")
-    space: DigitalOceanSpace = graph.search_first("urn", "do:space:api-test-space.resoto")  # type: ignore
-    assert space.urn == "do:space:api-test-space.resoto"
-    assert space.name == "api-test-space.resoto"
+    check_edges(graph, "do:region:fra1", "do:space:api-test-space.fix")
+    space: DigitalOceanSpace = graph.search_first("urn", "do:space:api-test-space.fix")  # type: ignore
+    assert space.urn == "do:space:api-test-space.fix"
+    assert space.name == "api-test-space.fix"
     assert space.ctime == datetime.datetime(2022, 2, 23, 13, 42, 21, 455000, datetime.timezone.utc)
 
 
@@ -510,10 +510,10 @@ def test_collect_apps() -> None:
     )
     app: DigitalOceanApp = graph.search_first("urn", "do:app:5dc41512-7523-4eeb-9932-426aa570234b")  # type: ignore
     assert app.urn == "do:app:5dc41512-7523-4eeb-9932-426aa570234b"
-    assert app.default_ingress == "https://resoto_test_app.ondigitalocean.app"
-    assert app.live_url == "https://resoto_test_app.ondigitalocean.app"
-    assert app.live_url_base == "https://resoto_test_app.ondigitalocean.app"
-    assert app.live_domain == "resoto_test_apps.ondigitalocean.app"
+    assert app.default_ingress == "https://fix_test_app.ondigitalocean.app"
+    assert app.live_url == "https://fix_test_app.ondigitalocean.app"
+    assert app.live_url_base == "https://fix_test_app.ondigitalocean.app"
+    assert app.live_domain == "fix_test_apps.ondigitalocean.app"
 
 
 def test_cdn_endpoints() -> None:
@@ -531,11 +531,11 @@ def test_cdn_endpoints() -> None:
     )
     endpoint: DigitalOceanCdnEndpoint = graph.search_first("urn", "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c")  # type: ignore # noqa: E501
     assert endpoint.urn == "do:cdn_endpoint:4edbbc3a-79a5-4950-b2d2-ae8f8f8e8e8c"
-    assert endpoint.origin == "resoto_test.ams3.digitaloceanspaces.com"
-    assert endpoint.endpoint == "resoto_test.ams3.cdn.digitaloceanspaces.com"
+    assert endpoint.origin == "fix_test.ams3.digitaloceanspaces.com"
+    assert endpoint.endpoint == "fix_test.ams3.cdn.digitaloceanspaces.com"
     assert endpoint.ctime == datetime.datetime(2021, 11, 16, 16, 00, 44, 0, datetime.timezone.utc)
     assert endpoint.certificate_id == "429199eb-e6c6-4ab3-bad6-f8f8f8f8f8f8"
-    assert endpoint.custom_domain == "test.domain.resoto"
+    assert endpoint.custom_domain == "test.domain.fix"
     assert endpoint.ttl == 3600
 
 
@@ -549,9 +549,9 @@ def test_collect_certificates() -> None:
     )
     cert: DigitalOceanCertificate = graph.search_first("urn", "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c")  # type: ignore # noqa: E501
     assert cert.urn == "do:certificate:429199eb-7137-4e2b-a15e-f74700173e3c"
-    assert cert.name == "cdn.resoto.test"
+    assert cert.name == "cdn.fix.test"
     assert cert.sha1_fingerprint == "5909e5e05bbce0c63c2e2523542f74700173e3c2"
-    assert cert.dns_names == ["*.resoto.test", "resoto.test"]
+    assert cert.dns_names == ["*.fix.test", "fix.test"]
     assert cert.certificate_state == "verified"
     assert cert.certificate_type == "custom"
 
@@ -566,30 +566,30 @@ def test_collect_container_registries() -> None:
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:region:fra1", "do:cr:resoto-do-plugin-test")
-    container_registry: DigitalOceanContainerRegistry = graph.search_first("urn", "do:cr:resoto-do-plugin-test")  # type: ignore # noqa: E501
-    assert container_registry.urn == "do:cr:resoto-do-plugin-test"
-    assert container_registry.name == "resoto-do-plugin-test"
+    check_edges(graph, "do:region:fra1", "do:cr:fix-do-plugin-test")
+    container_registry: DigitalOceanContainerRegistry = graph.search_first("urn", "do:cr:fix-do-plugin-test")  # type: ignore # noqa: E501
+    assert container_registry.urn == "do:cr:fix-do-plugin-test"
+    assert container_registry.name == "fix-do-plugin-test"
     assert container_registry.storage_usage_bytes == 6144
     assert container_registry.is_read_only is False
 
-    check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crr:resoto-do-plugin-test/hw")
-    container_registry_repository: DigitalOceanContainerRegistryRepository = graph.search_first("urn", "do:crr:resoto-do-plugin-test/hw")  # type: ignore # noqa: E501
-    assert container_registry_repository.urn == "do:crr:resoto-do-plugin-test/hw"
+    check_edges(graph, "do:cr:fix-do-plugin-test", "do:crr:fix-do-plugin-test/hw")
+    container_registry_repository: DigitalOceanContainerRegistryRepository = graph.search_first("urn", "do:crr:fix-do-plugin-test/hw")  # type: ignore # noqa: E501
+    assert container_registry_repository.urn == "do:crr:fix-do-plugin-test/hw"
     assert container_registry_repository.name == "hw"
     assert container_registry_repository.tag_count == 1
     assert container_registry_repository.manifest_count == 1
 
     check_edges(
         graph,
-        "do:crr:resoto-do-plugin-test/hw",
-        "do:crrt:resoto-do-plugin-test/hw:latest",
+        "do:crr:fix-do-plugin-test/hw",
+        "do:crrt:fix-do-plugin-test/hw:latest",
     )
-    check_edges(graph, "do:cr:resoto-do-plugin-test", "do:crrt:resoto-do-plugin-test/hw:latest")
+    check_edges(graph, "do:cr:fix-do-plugin-test", "do:crrt:fix-do-plugin-test/hw:latest")
     tag: DigitalOceanContainerRegistryRepositoryTag = graph.search_first(  # type: ignore
-        "urn", "do:crrt:resoto-do-plugin-test/hw:latest"
+        "urn", "do:crrt:fix-do-plugin-test/hw:latest"
     )
-    assert tag.urn == "do:crrt:resoto-do-plugin-test/hw:latest"
+    assert tag.urn == "do:crrt:fix-do-plugin-test/hw:latest"
     assert tag.name == "latest"
     assert tag.manifest_digest == "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e"
     assert tag.compressed_size_bytes == 5164
@@ -622,16 +622,16 @@ def test_collect_domains() -> None:
         }
     )
     graph = prepare_graph(do_client)
-    check_edges(graph, "do:team:test_team", "do:domain:do-plugin-test.resoto")
-    domain: DigitalOceanDomain = graph.search_first("urn", "do:domain:do-plugin-test.resoto")  # type: ignore
+    check_edges(graph, "do:team:test_team", "do:domain:do-plugin-test.fix")
+    domain: DigitalOceanDomain = graph.search_first("urn", "do:domain:do-plugin-test.fix")  # type: ignore
     assert domain.ttl == 1800
-    assert domain.zone_file == "$ORIGIN do-plugin-test.resoto."
+    assert domain.zone_file == "$ORIGIN do-plugin-test.fix."
 
-    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035870")
-    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035871")
-    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035872")
-    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300035874")
-    check_edges(graph, "do:domain:do-plugin-test.resoto", "do:domain_record:300036132")
+    check_edges(graph, "do:domain:do-plugin-test.fix", "do:domain_record:300035870")
+    check_edges(graph, "do:domain:do-plugin-test.fix", "do:domain_record:300035871")
+    check_edges(graph, "do:domain:do-plugin-test.fix", "do:domain_record:300035872")
+    check_edges(graph, "do:domain:do-plugin-test.fix", "do:domain_record:300035874")
+    check_edges(graph, "do:domain:do-plugin-test.fix", "do:domain_record:300036132")
     domain_record: DigitalOceanDomainRecord = graph.search_first("urn", "do:domain_record:300035870")  # type: ignore
     assert domain_record.urn == "do:domain_record:300035870"
     assert domain_record.name == "@"

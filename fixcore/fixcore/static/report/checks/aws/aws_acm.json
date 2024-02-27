@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "acm",
+    "checks": [
+        {
+            "name": "certificate_transparency_logging_enabled",
+            "title": "Ensure ACM certificate transparency is enabled to enhance website security and detect unauthorized SSL/TLS certificates.",
+            "result_kinds": [
+                "aws_acm_certificate"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without ACM certificate transparency, the risk of unauthorized SSL/TLS certificates going undetected increases, posing a threat to website and infrastructure security.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_acm_certificate) and type!=IMPORTED and certificate_transparency_logging!=ENABLED"
+            },
+            "remediation": {
+                "text": "To fix this issue, select the certificate you want to check in ACM. In the certificate details, look for the 'Certificate Transparency Logging' attribute and ensure it is enabled.",
+                "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die ACM-Zertifikatstransparenz aktiviert ist, um die Sicherheit der Website zu verbessern und nicht autorisierte SSL/TLS-Zertifikate zu erkennen.",
+                    "risk": "Ohne die ACM-Zertifikatstransparenz besteht ein erhöhtes Risiko, dass nicht autorisierte SSL/TLS-Zertifikate unbemerkt bleiben und eine Bedrohung für die Sicherheit der Website und der Infrastruktur darstellen.",
+                    "remediation": "Um dieses Problem zu beheben, wählen Sie das Zertifikat aus, das Sie überprüfen möchten, in ACM aus. In den Zertifikatdetails suchen Sie nach dem Attribut 'Zertifikatstransparenzprotokollierung' und stellen Sie sicher, dass es aktiviert ist."
+                }
+            }
+        }
+    ]
+}

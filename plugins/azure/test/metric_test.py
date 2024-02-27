@@ -1,7 +1,7 @@
 from datetime import timedelta, datetime, timezone
-from resoto_plugin_azure.resource.base import GraphBuilder
+from fix_plugin_azure.resource.base import GraphBuilder
 
-from resoto_plugin_azure.resource.metrics import AzureMetricQuery, AzureMetricData
+from fix_plugin_azure.resource.metrics import AzureMetricQuery, AzureMetricData
 
 
 def test_metric(builder: GraphBuilder) -> None:

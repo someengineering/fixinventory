@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.acm import AwsAcmCertificate
+from fix_plugin_aws.resource.acm import AwsAcmCertificate
 from test.resources import round_trip_for
 
 

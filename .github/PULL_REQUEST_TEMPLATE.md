@@ -12,4 +12,4 @@
 
 # Code of Conduct
 
-By submitting this pull request, I agree to follow the [code of conduct](https://resoto.com/code-of-conduct).
+By submitting this pull request, I agree to follow the [code of conduct](https://inventory.fix.security/code-of-conduct).

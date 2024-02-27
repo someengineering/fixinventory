@@ -1,6 +1,6 @@
 from .random_client import connect_resource, roundtrip
-from resoto_plugin_gcp.resources.container import *
-from resoto_plugin_gcp.resources.base import GraphBuilder
+from fix_plugin_gcp.resources.container import *
+from fix_plugin_gcp.resources.base import GraphBuilder
 
 
 def test_gcp_container_cluster(random_builder: GraphBuilder) -> None:

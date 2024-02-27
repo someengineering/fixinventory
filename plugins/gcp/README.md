@@ -1,5 +1,5 @@
-# resoto-plugin-gcp
-An GCP collector plugin for Resoto.
+# fix-plugin-gcp
+An GCP collector plugin for Fix.
 
 ## License
 See [LICENSE](../../LICENSE) for details.

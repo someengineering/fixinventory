@@ -1,0 +1,93 @@
+{
+    "provider": "aws",
+    "service": "redshift",
+    "checks": [
+        {
+            "name": "cluster_audit_logging_enabled",
+            "title": "Ensure Cluster Audit Logging is Enabled for Optimal Compliance and Incident Investigation",
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to enable cluster audit logging in Amazon Redshift could compromise security by not providing a detailed record of database activities. This could affect effective monitoring, incident investigation, and compliance.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_redshift_cluster) and redshift_logging_status.logging_enabled=false"
+            },
+            "remediation": {
+                "text": "To enable audit logging, go to 'Cluster details' tab -> click 'Modify'. Next, under 'Audit logging', enable or adjust the settings as needed, then save the changes.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing-console.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Audit-Protokollierung für den Cluster aktiviert ist, um optimale Compliance und Untersuchung von Vorfällen zu gewährleisten",
+                    "risk": "Die Nichtaktivierung der Audit-Protokollierung für den Cluster in Amazon Redshift kann die Sicherheit gefährden, indem keine detaillierte Aufzeichnung der Datenbankaktivitäten bereitgestellt wird. Dies kann sich auf die wirksame Überwachung, Untersuchung von Vorfällen und Compliance auswirken.",
+                    "remediation": "Um die Audit-Protokollierung zu aktivieren, gehen Sie zum Tab 'Clusterdetails' -> Klicken Sie auf 'Ändern'. Aktivieren oder passen Sie unter 'Audit-Protokollierung' die Einstellungen nach Bedarf an und speichern Sie die Änderungen."
+                }
+            }
+        },
+        {
+            "name": "cluster_publicly_accessible",
+            "title": "Ensure Redshift Clusters are Not Publicly Accessible",
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Having Redshift clusters publicly accessible can lead to unauthorized access and potential data breaches. This exposes sensitive data and risks noncompliance with industry regulations.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_redshift_cluster) and redshift_publicly_accessible=true and redshift_endpoint.address!=null"
+            },
+            "remediation": {
+                "text": "Identify all publicly accessible Redshift clusters. For each cluster, review the necessity of public accessibility. If unjustified, revise the settings by disallowing public access to enhance security.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html#modify-cluster-access",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
+            "localizations": {
+                "de": {
+                    "title": "Redshift-Cluster dürfen nicht öffentlich erreichbar sein",
+                    "risk": "Öffentlich erreichbare Redshift-Cluster können zu unbefugtem Zugriff und potenziellen Datenlecks führen. Dadurch werden sensible Daten offengelegt und es besteht das Risiko der Nichtkonformität mit branchenspezifischen Vorschriften.",
+                    "remediation": "Ermitteln Sie alle öffentlich zugänglichen Redshift-Cluster. Überprüfen Sie für jeden Cluster die Notwendigkeit der öffentlichen Erreichbarkeit. Wenn nicht gerechtfertigt, ändern Sie die Einstellungen, um den öffentlichen Zugriff zu untersagen und die Sicherheit zu verbessern."
+                }
+            }
+        },
+        {
+            "name": "version_upgrade_enabled",
+            "title": "Ensure Automatic Upgrades are Enabled for Redshift Clusters",
+            "result_kinds": [
+                "aws_redshift_cluster"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Disabling automatic upgrades for Redshift clusters exposes them to security vulnerabilities due to outdated versions, potentially leading to data breaches and non-compliance with regulations.",
+            "severity": "high",
+            "detect": {
+                "fix": "is(aws_redshift_cluster) and redshift_allow_version_upgrade=false"
+            },
+            "remediation": {
+                "text": "To mitigate this risk, enable automatic upgrades in the AWS Management Console under the 'Maintenance' tab for each Redshift cluster. This ensures that your Redshift clusters are always operating on the latest, security patch included, version.",
+                "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-maintenance-settings",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-vpc.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass automatische Upgrades für Redshift-Cluster aktiviert sind",
+                    "risk": "Das Deaktivieren automatischer Upgrades für Redshift-Cluster macht sie anfällig für Sicherheitslücken aufgrund veralteter Versionen und kann zu Datenverstößen und Nichteinhaltung von Vorschriften führen.",
+                    "remediation": "Um dieses Risiko zu minimieren, aktivieren Sie automatische Upgrades in der AWS Management Console im 'Maintenance'-Tab für jeden Redshift-Cluster. Dadurch gewährleisten Sie, dass Ihre Redshift-Cluster immer mit der neuesten Version, einschließlich Sicherheitspatches, betrieben werden."
+                }
+            }
+        }
+    ]
+}

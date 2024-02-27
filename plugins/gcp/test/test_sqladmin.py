@@ -2,9 +2,9 @@ import json
 import os
 
 from .random_client import connect_resource, roundtrip
-from resoto_plugin_gcp.resources.sqladmin import *
-from resoto_plugin_gcp.resources.base import GraphBuilder
-from resoto_plugin_gcp.resources.compute import GcpSslCertificate
+from fix_plugin_gcp.resources.sqladmin import *
+from fix_plugin_gcp.resources.base import GraphBuilder
+from fix_plugin_gcp.resources.compute import GcpSslCertificate
 
 
 def test_gcp_sql_database_instance(random_builder: GraphBuilder) -> None:

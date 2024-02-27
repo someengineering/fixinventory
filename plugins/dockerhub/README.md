@@ -1,11 +1,11 @@
-# resoto-plugin-dockerhub
-Docker Hub Collector Plugin for Resoto
+# fix-plugin-dockerhub
+Docker Hub Collector Plugin for Fix
 
 This collector plugin is used to collect data from Docker Hub. It is used internally at Some Engineering to create metrics about image downloads.
 
-To export the number of image pulls add the following config to `resoto.metrics`
+To export the number of image pulls add the following config to `fix.metrics`
 ```
-resotometrics:
+fixmetrics:
   [...]
   metrics:
     dockerhub_downloads_total:

@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_random import RandomCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_random import RandomCollectorPlugin
 
 
 def test_config():

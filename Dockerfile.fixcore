@@ -1,4 +1,4 @@
-# This container runs `resotocore`.
+# This container runs `fixcore`.
 ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/fixinventorybase:${IMAGE_TAG}
 EXPOSE 8900

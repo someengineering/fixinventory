@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "wafv2",
+    "checks": [
+        {
+            "name": "web_acl_logging_enabled",
+            "title": "Ensure that Logging is Enabled for Every Web ACL to Improve Security Insight",
+            "result_kinds": [
+                "aws_waf_web_acl"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Without Web ACL logging, comprehensive traffic insights, specifically the inspected and blocked requests, are lost. This absence of crucial data impedes security analysis, auditing, and the identification of threats or misconfigurations.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_waf_web_acl) and logging_configuration==null"
+            },
+            "remediation": {
+                "text": "To remedy this, navigate to the 'WAF and Shield' service in AWS, select the relevant ACL, go to 'Logging', click 'Edit' and configure logging by selecting an S3 bucket.",
+                "url": "https://docs.aws.amazon.com/waf/latest/developerguide/logging.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/waf/latest/developerguide/logging-web-acl.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass für jeden Web ACL das Logging aktiviert ist, um die Sicherheitsüberwachung zu verbessern",
+                    "risk": "Ohne Web ACL-Protokollierung gehen umfassende Einblicke in den Datenverkehr verloren, insbesondere in überprüfte und blockierte Anfragen. Das Fehlen dieser wichtigen Daten beeinträchtigt die Sicherheitsanalyse, Überprüfung und die Identifizierung von Bedrohungen oder Fehlkonfigurationen.",
+                    "remediation": "Um dieses Problem zu beheben, navigieren Sie zum Dienst 'WAF und Shield' in AWS, wählen Sie das relevante ACL aus, gehen Sie zu 'Protokollierung', klicken Sie auf 'Bearbeiten' und konfigurieren Sie das Logging, indem Sie einen S3-Bucket auswählen."
+                }
+            }
+        }
+    ]
+}

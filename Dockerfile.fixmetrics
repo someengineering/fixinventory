@@ -1,4 +1,4 @@
-# This container runs `resotometrics`.
+# This container runs `fixmetrics`.
 ARG IMAGE_TAG=edge
 FROM ghcr.io/someengineering/fixinventorybase:${IMAGE_TAG}
 EXPOSE 9955

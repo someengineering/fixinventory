@@ -1,0 +1,34 @@
+{
+    "provider": "aws",
+    "service": "cloudformation",
+    "checks": [
+        {
+            "name": "no_secrets_in_output",
+            "title": "Ensure there are no secrets in CloudFormation outputs",
+            "result_kinds": [
+                "aws_cloudformation_stack"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Using secrets hardcoded into CloudFormation outputs can enable malware and bad actors to gain unauthorized access to other services, leading to potential data breaches and compromised infrastructure.",
+            "severity": "critical",
+            "detect": {
+                "fix_cmd": "search is(aws_cloudformation_stack) | detect-secrets --path stack_outputs --with-secrets"
+            },
+            "remediation": {
+                "text": "To fix this issue, avoid including secrets in CloudFormation outputs. Instead, use the AWS Secrets Manager service to securely store and retrieve passwords and other sensitive information.",
+                "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-secretsmanager-secret-generatesecretstring.html",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass in den CloudFormation-Ausgaben keine Geheimnisse enthalten sind",
+                    "risk": "Die Verwendung von in CloudFormation-Ausgaben fest codierten Geheimnissen kann Malware und bösartigen Akteuren ermöglichen, unbefugten Zugriff auf andere Dienste zu erlangen, was zu potenziellen Datenschutzverletzungen und beeinträchtigter Infrastruktur führen kann.",
+                    "remediation": "Um dieses Problem zu beheben, vermeiden Sie die Verwendung von Geheimnissen in den CloudFormation-Ausgaben. Verwenden Sie stattdessen den AWS Secrets Manager-Dienst, um Passwörter und andere sensitive Informationen sicher zu speichern und abzurufen."
+                }
+            }
+        }
+    ]
+}

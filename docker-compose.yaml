@@ -50,19 +50,19 @@ services:
       - "8900:8900"
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
-      - RESOTOCORE_ANALYTICS_OPT_OUT
-      - RESOTOCORE_GRAPHDB_SERVER=http://graphdb:8529
-      # Resoto will create a new database and user with this password using the root account
-      - RESOTOCORE_GRAPHDB_PASSWORD=changeme
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
+      - FIXCORE_ANALYTICS_OPT_OUT
+      - FIXCORE_GRAPHDB_SERVER=http://graphdb:8529
+      # FixInventory will create a new database and user with this password using the root account
+      - FIXCORE_GRAPHDB_PASSWORD=changeme
     command:
       - --override
-      - resotocore.api.web_hosts=resotocore
-      - resotocore.api.host_certificate.common_name=resotocore
-      - resotocore.api.host_certificate.san_dns_names=resotocore
-      - resotocore.api.tsdb_proxy_url=http://tsdb:9090
-      - resotocore.runtime.start_collect_on_subscriber_connect=true
+      - fixcore.api.web_hosts=fixcore
+      - fixcore.api.host_certificate.common_name=fixcore
+      - fixcore.api.host_certificate.san_dns_names=fixcore
+      - fixcore.api.tsdb_proxy_url=http://tsdb:9090
+      - fixcore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
   fixworker:
@@ -74,14 +74,14 @@ services:
       - 9956:9956
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
       # Pass temporary AWS credentials if provided
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
-      # Define the resotocore URI to connect to
-      - RESOTOWORKER_RESOTOCORE_URI=https://resotocore:8900
+      # Define the fixcore URI to connect to
+      - FIXWORKER_FIXCORE_URI=https://fixcore:8900
     restart: always
     stop_grace_period: 2m
   fixmetrics:
@@ -93,9 +93,9 @@ services:
       - 9955:9955
     environment:
       - PSK
-      - RESOTO_VERBOSE
-      - RESOTO_LOG_TEXT
-      - RESOTOMETRICS_RESOTOCORE_URI=https://resotocore:8900
+      - FIX_VERBOSE
+      - FIX_LOG_TEXT
+      - FIXMETRICS_FIXCORE_URI=https://fixcore:8900
     restart: always
     stop_grace_period: 2m
   fixshell:
@@ -105,7 +105,7 @@ services:
       - fixcore
     environment:
       - PSK
-      - RESOTOSHELL_RESOTOCORE_URI=https://resotocore:8900
+      - FIXSHELL_FIXCORE_URI=https://fixcore:8900
     volumes:
       - ~/fixinventory-downloads:/home/fixinventory/downloads
     command:

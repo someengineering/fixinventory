@@ -2,14 +2,14 @@ import os
 import json
 from queue import Queue
 
-from resoto_plugin_azure.azure_client import AzureClient
-from resoto_plugin_azure.collector import AzureSubscriptionCollector
-from resoto_plugin_azure.config import AzureCredentials, AzureConfig
-from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder
-from resoto_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from fix_plugin_azure.azure_client import AzureClient
+from fix_plugin_azure.collector import AzureSubscriptionCollector
+from fix_plugin_azure.config import AzureCredentials, AzureConfig
+from fix_plugin_azure.resource.base import AzureSubscription, GraphBuilder
+from fix_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
 
 
 def collector_with_graph(

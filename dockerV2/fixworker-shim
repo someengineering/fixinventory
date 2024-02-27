@@ -1,6 +1,6 @@
 #!/bin/bash
 . /usr/local/etc/fixinventory/defaults
 . /usr/local/fix-venv-python3/bin/activate
-export RESOTOWORKER_PSK
-export RESOTOWORKER_RESOTOCORE_URI
+export FIXWORKER_PSK
+export FIXWORKER_FIXCORE_URI
 exec fixworker "$@"

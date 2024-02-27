@@ -18,14 +18,14 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "resotocore"
+  - job_name: "fixcore"
     static_configs:
       - targets: ["localhost:8900"]
 
-  - job_name: "resotometrics"
+  - job_name: "fixmetrics"
     static_configs:
       - targets: ["localhost:9955"]
 
-  - job_name: "resotoworker"
+  - job_name: "fixworker"
     static_configs:
       - targets: ["localhost:9956"]

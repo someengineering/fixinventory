@@ -6,14 +6,14 @@ from google.auth.credentials import AnonymousCredentials
 from googleapiclient import discovery
 from pytest import fixture
 
-from resoto_plugin_gcp import gcp_client
-from resoto_plugin_gcp.config import GcpConfig
-from resoto_plugin_gcp.resources.base import GcpRegion, GraphBuilder, GcpProject
-from resotolib.baseresources import Cloud
-from resotolib.config import Config
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
-from resotolib.threading import ExecutorQueue
+from fix_plugin_gcp import gcp_client
+from fix_plugin_gcp.config import GcpConfig
+from fix_plugin_gcp.resources.base import GcpRegion, GraphBuilder, GcpProject
+from fixlib.baseresources import Cloud
+from fixlib.config import Config
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
+from fixlib.threading import ExecutorQueue
 from .random_client import build_random_data_client, random_predefined
 
 

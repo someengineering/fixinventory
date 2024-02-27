@@ -1,0 +1,91 @@
+{
+    "provider": "aws",
+    "service": "cloudwatch",
+    "checks": [
+        {
+            "name": "cross_account_sharing_enabled",
+            "title": "Ensure Cross-Account Sharing is Configured for CloudWatch Logs",
+            "result_kinds": [
+                "aws_account"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If cross-account sharing for CloudWatch logs is not enabled, it complicates security monitoring and compliance auditing across diverse AWS accounts. This may lead to increased risk of undetected security incidents and failure to meet compliance standards.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_account) with(empty, -[1:2]-> is(aws_iam_role) and name=\"CloudWatch-CrossAccountSharingRole\")"
+            },
+            "remediation": {
+                "text": "Navigate to Settings in the CloudWatch Console. Then, under 'Configure', select 'share data' and provide the ID of the monitoring account. This sets up cross-account sharing for CloudWatch logs.",
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Cross-Account-Freigabe für CloudWatch-Logs konfiguriert ist",
+                    "risk": "Wenn die Cross-Account-Freigabe für CloudWatch-Logs nicht aktiviert ist, erschwert dies die Überwachung der Sicherheit und die Prüfung der Einhaltung von Vorschriften in verschiedenen AWS-Konten. Dies kann zu erhöhtem Risiko nicht erkannter Sicherheitsvorfälle und Nichteinhaltung von Standards führen.",
+                    "remediation": "Gehen Sie zur CloudWatch Console auf die Einstellungen. Wählen Sie dann unter 'Konfigurieren' 'Daten freigeben' und geben Sie die ID des Überwachungskontos ein. Dadurch wird die Cross-Account-Freigabe für CloudWatch-Logs eingerichtet."
+                }
+            }
+        },
+        {
+            "name": "log_group_encryption_at_rest_enabled",
+            "title": "Ensure AWS KMS is Protecting CloudWatch Log Groups",
+            "result_kinds": [
+                "aws_cloudwatch_log_group"
+            ],
+            "categories": [
+                "retention"
+            ],
+            "risk": "Not using customer-managed KMS for encryption can compromise the confidentiality of the CloudWatch log group data. Neglecting encryption controls can result in unauthorized access and potential data loss.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_cloudwatch_log_group) with(empty, --> is(aws_kms_key))"
+            },
+            "remediation": {
+                "text": "To address this, associate your CloudWatch Log Group with a KMS Key. Ensure that the specified KMS Key is used for encrypting all ingested data for the log group. Implementing this association is essential for CloudWatch Logs to decrypt the data when requested.",
+                "url": "https://docs.aws.amazon.com/cli/latest/reference/logs/associate-kms-key.html",
+                "complexity": "medium"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass AWS KMS CloudWatch Log-Gruppen schützt",
+                    "risk": "Die Verwendung von nicht kundenverwalteter KMS-Verschlüsselung kann die Vertraulichkeit der Daten in der CloudWatch Log-Gruppe gefährden. Die Vernachlässigung von Verschlüsselungskontrollen kann zu unbefugtem Zugriff und potenziellem Datenverlust führen.",
+                    "remediation": "Um dies zu beheben, verknüpfen Sie Ihre CloudWatch Log-Gruppe mit einem KMS-Schlüssel. Stellen Sie sicher, dass der angegebene KMS-Schlüssel zur Verschlüsselung aller eingespeisten Daten für die Log-Gruppe verwendet wird. Die Implementierung dieser Verknüpfung ist für CloudWatch-Logs unerlässlich, um die Daten auf Anforderung zu entschlüsseln."
+                }
+            }
+        },
+        {
+            "name": "log_group_retention_days_at_least_365",
+            "title": "Ensure that CloudWatch Log Groups Retain Data for at Least 365 Days",
+            "result_kinds": [
+                "aws_cloudwatch_log_group"
+            ],
+            "categories": [
+                "retention"
+            ],
+            "risk": "Failure to retain CloudWatch Logs for at least 365 days can result in non-compliance with regulatory requirements for long-term log storage. Additionally, it could hamper forensic analysis and retrospective detection of long-term security breach patterns.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_cloudwatch_log_group) and group_retention_in_days<{{log_group_retention_days}}"
+            },
+            "default_values": {
+                "log_group_retention_days": "365d"
+            },
+            "remediation": {
+                "text": "Apply a log retention policy of at least 365 days to CloudWatch Log Groups. This ensures the continuity of logs and traces to aid in security analysis and regulatory obligations.",
+                "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass CloudWatch Log-Gruppen Daten für mindestens 365 Tage aufbewahren",
+                    "risk": "Das Nichtvorhandensein einer Datenbewahrung von CloudWatch-Logs für mindestens 365 Tage kann zu Nichteinhaltung von Vorschriften für die langfristige Speicherung von Logs führen. Außerdem kann es die forensische Analyse und rückwirkende Erkennung von Sicherheitsverletzungen mit Langzeitmuster beeinträchtigen.",
+                    "remediation": "Legen Sie eine Protokollbewahrungspolitik von mindestens 365 Tagen für CloudWatch-Log-Gruppen fest. Dadurch wird die Fortführung von Protokollen und Traces sichergestellt, um bei Sicherheitsanalysen und regulatorischen Verpflichtungen zu helfen."
+                }
+            }
+        }
+    ]
+}

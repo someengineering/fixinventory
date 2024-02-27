@@ -1,0 +1,4 @@
+include README.md
+recursive-include fixcore/static *
+recursive-include fixcore/templates *
+recursive-include fixcore/jupyterlite *

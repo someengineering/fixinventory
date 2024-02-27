@@ -6,16 +6,16 @@ from typing import List
 
 import yaml
 
-from resoto_plugin_gcp import GcpConfig
-from resoto_plugin_gcp.collector import GcpProjectCollector, all_resources, called_collect_apis, called_mutator_apis
-from resoto_plugin_gcp.gcp_client import GcpApiSpec
-from resoto_plugin_gcp.resources.base import GcpProject, GraphBuilder
-from resoto_plugin_gcp.resources.billing import GcpSku
-from resoto_plugin_gcp.resources.compute import GcpMachineType
-from resotolib.baseresources import Cloud
-from resotolib.config import current_config
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from fix_plugin_gcp import GcpConfig
+from fix_plugin_gcp.collector import GcpProjectCollector, all_resources, called_collect_apis, called_mutator_apis
+from fix_plugin_gcp.gcp_client import GcpApiSpec
+from fix_plugin_gcp.resources.base import GcpProject, GraphBuilder
+from fix_plugin_gcp.resources.billing import GcpSku
+from fix_plugin_gcp.resources.compute import GcpMachineType
+from fixlib.baseresources import Cloud
+from fixlib.config import current_config
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
 
 
 def collector_with_graph(graph: Graph) -> GcpProjectCollector:
@@ -71,7 +71,7 @@ def test_role_creation() -> None:
         return result
 
     write_files = False
-    c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis(), write_files)
-    m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis(), write_files)
+    c = iam_role_for("fix_access", "Permissions required to collect resources.", called_collect_apis(), write_files)
+    m = iam_role_for("fix_mutate", "Permissions required to mutate resources.", called_mutator_apis(), write_files)
     assert c is not None
     assert m is not None

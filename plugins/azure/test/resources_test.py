@@ -1,5 +1,5 @@
 from conftest import roundtrip_check
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResourceGroup
+from fix_plugin_azure.resource.base import GraphBuilder, AzureResourceGroup
 
 
 def test_resource_group(builder: GraphBuilder) -> None:

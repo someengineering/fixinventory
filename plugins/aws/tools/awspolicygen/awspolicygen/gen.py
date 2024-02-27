@@ -1,11 +1,11 @@
 import os
 from yaml import safe_dump
-from resoto_plugin_aws.collector import called_collect_apis, called_mutator_apis
-from resoto_plugin_aws.resource.base import AwsApiSpec
+from fix_plugin_aws.collector import called_collect_apis, called_mutator_apis
+from fix_plugin_aws.resource.base import AwsApiSpec
 
 
 org_list_policy = {
-    "PolicyName": "ResotoOrgList",
+    "PolicyName": "FixOrgList",
     "PolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -25,7 +25,7 @@ org_list_policy = {
 
 
 pricing_list_policy = {
-    "PolicyName": "ResotoPricingList",
+    "PolicyName": "FixPricingList",
     "PolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -61,17 +61,17 @@ def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = Tru
     if pricing_list:
         policies.append(pricing_list_policy)
     if collect:
-        collect_policy = iam_statement("ResotoCollect", called_collect_apis())
+        collect_policy = iam_statement("FixCollect", called_collect_apis())
         policies.append(collect_policy)
     if mutate:
-        mutate_policy = iam_statement("ResotoMutate", called_mutator_apis())
+        mutate_policy = iam_statement("FixMutate", called_mutator_apis())
         policies.append(mutate_policy)
     return policies
 
 
 def get_cf_template() -> str:
     local_path = os.path.abspath(os.path.dirname(__file__))
-    template_path = os.path.join(local_path, "templates/resoto-role.template.in")
+    template_path = os.path.join(local_path, "templates/fix-role.template.in")
     with open(template_path, "r") as f:
         template = f.readlines()
 

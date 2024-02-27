@@ -1,6 +1,6 @@
 #!/bin/bash
 . /usr/local/etc/fixinventory/defaults
 . /usr/local/fix-venv-python3/bin/activate
-export RESOTOMETRICS_PSK
-export RESOTOMETRICS_RESOTOCORE_URI
+export FIXMETRICS_PSK
+export FIXMETRICS_FIXCORE_URI
 exec fixmetrics "$@"

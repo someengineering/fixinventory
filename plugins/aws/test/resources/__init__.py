@@ -8,9 +8,9 @@ from typing import Type, Any, Callable, Set, Tuple, Optional
 from attrs import fields
 from boto3 import Session
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.configuration import AwsConfig
-from resoto_plugin_aws.resource.base import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.configuration import AwsConfig
+from fix_plugin_aws.resource.base import (
     GraphBuilder,
     AwsResourceType,
     AwsAccount,
@@ -18,10 +18,10 @@ from resoto_plugin_aws.resource.base import (
     AwsResource,
     AwsApiSpec,
 )
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
-from resotolib.threading import ExecutorQueue
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
+from fixlib.threading import ExecutorQueue
 
 
 class BotoDummyStsClient:

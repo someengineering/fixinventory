@@ -42,8 +42,8 @@ jobs:
         shell: bash
         working-directory: ./docs.fix.security/iam/aws
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/edge/ResotoOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
+          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
 
       - name: Wait for GCP policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
@@ -57,7 +57,7 @@ jobs:
         shell: bash
         working-directory: ./docs.fix.security/iam/gcp
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/edge/resoto_access.json
+          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
 
       - name: Clean existing Kroki images
         shell: bash
@@ -77,8 +77,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          yq '.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
-          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          yq '.services.fixworker.environment += "FIXWORKER_OVERRIDE=fixworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
+          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
           cd ${{ github.workspace }}/docs.fix.security/docs/resources
           python3 ${{ github.workspace }}/docs.fix.security/tools/export_models.py
 
@@ -103,7 +103,7 @@ jobs:
           commit-message: "chore: update documentation"
           title: "chore: update documentation"
           body: |
-            Updates documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+            Updates documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/fixinventory/commit/${{ github.sha }}).
           labels: |
             🤖 bot
           branch: some-ci # stable branch name so any additional commits to main update the existing PR instead of creating a new one
@@ -124,10 +124,10 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
-      - name: Update resotocore API YAML
+      - name: Update fixcore API YAML
         shell: bash
         run: |
-          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resotocore/resotocore/static/api-doc.yaml > resoto.com/openapi/resotocore-edge.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > resoto.com/openapi/fixcore-edge.yml
 
       - name: Regenerate API docs
         working-directory: ./resoto.com
@@ -138,9 +138,9 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/aws/edge
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/edge/ResotoOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/edge/ResotoCollect.json
-          wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/edge/ResotoMutate.json
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+          wget -qO ResotoMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
 
       - name: Wait for GCP policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
@@ -154,8 +154,8 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/gcp/edge
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/edge/resoto_access.json
-          wget -qO resoto_mutate.json https://cdn.some.engineering/resoto/gcp/edge/resoto_mutate.json
+          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+          wget -qO resoto_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
 
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
@@ -168,8 +168,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          yq '.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
-          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          yq '.services.fixworker.environment += "FIXWORKER_OVERRIDE=fixworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
+          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
           cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
@@ -194,7 +194,7 @@ jobs:
           commit-message: "chore: update edge documentation"
           title: "chore: update edge documentation"
           body: |
-            Updates `edge` documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/resoto/commit/${{ github.sha }}).
+            Updates `edge` documentation to reflect changes in [`${{ github.sha }}`](https://github.com/someengineering/fixinventory/commit/${{ github.sha }}).
           labels: |
             🤖 bot
           branch: edge # stable branch name so any additional commits to main update the existing PR instead of creating a new one
@@ -260,8 +260,8 @@ jobs:
           GITHUB_REF="${{ github.ref }}"
           tag=${GITHUB_REF##*/}
           version_major=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})
-          prev_release=$(echo $(gh api repos/someengineering/resoto/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
-          [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/resoto/releases/latest) | jq -r '.tag_name')
+          prev_release=$(echo $(gh api repos/someengineering/fixinventory/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
+          [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/fixinventory/releases/latest) | jq -r '.tag_name')
           dir="resoto.com/releases/${{ steps.release.outputs.tag }}"
           mkdir -p $dir
           file="${dir}/index.mdx"
@@ -272,11 +272,11 @@ jobs:
           echo "file=$file" >> $GITHUB_OUTPUT
           echo "link=$link" >> $GITHUB_OUTPUT
 
-      - name: Update resotocore API YAML
+      - name: Update API YAML
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' resotocore/resotocore/static/api-doc.yaml > resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
 
       - name: Regenerate API docs
         if: steps.release.outputs.prerelease == 'false'
@@ -297,9 +297,9 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/aws/${{ steps.release.outputs.docsVersion }}
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoCollect.json
-          wget -qO ResotoMutate.json https://cdn.some.engineering/resoto/aws/${{ steps.release.outputs.tag }}/ResotoMutate.json
+          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixOrgList.json
+          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixCollect.json
+          wget -qO ResotoMutate.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixMutate.json
 
       - name: Wait for GCP policies to be uploaded
         if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
@@ -314,8 +314,8 @@ jobs:
         shell: bash
         working-directory: ./resoto.com/iam/gcp/${{ steps.release.outputs.docsVersion }}
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/resoto/gcp/${{ steps.release.outputs.tag }}/resoto_access.json
-          wget -qO resoto_mutate.json https://cdn.some.engineering/resoto/gcp/${{ steps.release.outputs.tag }}/resoto_mutate.json
+          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_access.json
+          wget -qO resoto_mutate.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_mutate.json
 
       - name: Modify Docker Compose YAML
         if: steps.release.outputs.prerelease == 'false'
@@ -343,8 +343,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          yq '.services.resotoworker.environment += "RESOTOWORKER_OVERRIDE=resotoworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
-          PSK= RESOTOCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          yq '.services.fixworker.environment += "FIXWORKER_OVERRIDE=fixworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
+          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
           cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
           python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
 
@@ -372,7 +372,7 @@ jobs:
           commit-message: "chore: ${{ steps.release.outputs.tag }} release"
           title: "chore: ${{ steps.release.outputs.tag }} release"
           body: |
-            Adds automatically generated release notes for [`${{ steps.release.outputs.tag }}`](https://github.com/someengineering/resoto/releases/tag/${{ steps.release.outputs.tag }}).
+            Adds automatically generated release notes for [`${{ steps.release.outputs.tag }}`](https://github.com/someengineering/fixinventory/releases/tag/${{ steps.release.outputs.tag }}).
 
             Also updates `${{ steps.release.outputs.docsVersion }}` docs.
           labels: |
@@ -388,10 +388,10 @@ jobs:
         run: |
           [ ${{ steps.release.outputs.prerelease }} == 'false' ] && echo -e "### Release Notes\n\nhttps://resoto.com${{ steps.release_notes.outputs.link }}\n" > release_body.txt
           echo -e "### Docker Images\n" >> release_body.txt
-          echo -e "- \`somecr.io/someengineering/resotocore:${{ steps.release.outputs.tag }}\`" >> release_body.txt
-          echo -e "- \`somecr.io/someengineering/resotoworker:${{ steps.release.outputs.tag }}\`" >> release_body.txt
-          echo -e "- \`somecr.io/someengineering/resotoshell:${{ steps.release.outputs.tag }}\`" >> release_body.txt
-          echo -e "- \`somecr.io/someengineering/resotometrics:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/fixcore:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/fixworker:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/fixshell:${{ steps.release.outputs.tag }}\`" >> release_body.txt
+          echo -e "- \`somecr.io/someengineering/fixmetrics:${{ steps.release.outputs.tag }}\`" >> release_body.txt
 
       - name: Create release
         uses: ncipollo/release-action@v1
@@ -401,65 +401,65 @@ jobs:
           bodyFile: release_body.txt
           artifacts: docker-compose.yaml
 
-      - name: Check out someengineering/helm-charts
-        if: steps.release.outputs.prerelease == 'false'
-        uses: actions/checkout@v3
-        with:
-          repository: someengineering/helm-charts
-          path: helm-charts
-          token: ${{ secrets.SOME_CI_PAT }}
+      # - name: Check out someengineering/helm-charts
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: someengineering/helm-charts
+      #     path: helm-charts
+      #     token: ${{ secrets.SOME_CI_PAT }}
 
-      - name: Get current chart version
-        if: steps.release.outputs.prerelease == 'false'
-        id: current_chart_version
-        shell: bash
-        run: |
-          echo "result=$(yq '.version' helm-charts/someengineering/resoto/Chart.yaml)" >> $GITHUB_OUTPUT
+      # - name: Get current chart version
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   id: current_chart_version
+      #   shell: bash
+      #   run: |
+      #     echo "result=$(yq '.version' helm-charts/someengineering/fixinventory/Chart.yaml)" >> $GITHUB_OUTPUT
 
-      - name: Get new chart version
-        if: steps.release.outputs.prerelease == 'false'
-        id: new_chart_version
-        uses: WyriHaximus/github-action-next-semvers@v1
-        with:
-          version: ${{ steps.current_chart_version.outputs.result }}
+      # - name: Get new chart version
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   id: new_chart_version
+      #   uses: WyriHaximus/github-action-next-semvers@v1
+      #   with:
+      #     version: ${{ steps.current_chart_version.outputs.result }}
 
-      - name: Update appVersion and bump chart version
-        if: steps.release.outputs.prerelease == 'false'
-        shell: bash
-        run: |
-          yq -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release.outputs.tag }}"' helm-charts/someengineering/resoto/Chart.yaml
+      # - name: Update appVersion and bump chart version
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   shell: bash
+      #   run: |
+      #     yq -i '.version = "${{ steps.new_chart_version.outputs.patch }}" | .appVersion = "${{ steps.release.outputs.tag }}"' helm-charts/someengineering/fixinventory/Chart.yaml
 
-      - name: Set up Helm
-        if: steps.release.outputs.prerelease == 'false'
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.8.1
+      # - name: Set up Helm
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   uses: azure/setup-helm@v1
+      #   with:
+      #     version: v3.8.1
 
-      - name: Install helm-docs
-        if: steps.release.outputs.prerelease == 'false'
-        uses: supplypike/setup-bin@v1
-        with:
-          uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
-          name: helm-docs
-          version: "1.11.0"
+      # - name: Install helm-docs
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   uses: supplypike/setup-bin@v1
+      #   with:
+      #     uri: https://github.com/norwoodj/helm-docs/releases/download/v1.11.0/helm-docs_1.11.0_Linux_x86_64.tar.gz
+      #     name: helm-docs
+      #     version: "1.11.0"
 
-      - name: Generate helm-charts README.md
-        if: steps.release.outputs.prerelease == 'false'
-        run: (cd helm-charts && helm-docs)
+      # - name: Generate helm-charts README.md
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   run: (cd helm-charts && helm-docs)
 
-      - name: Create someengineering/helm-charts pull request
-        if: steps.release.outputs.prerelease == 'false'
-        uses: peter-evans/create-pull-request@v4
-        with:
-          path: helm-charts
-          commit-message: "chore: bump Resoto appVersion to ${{ steps.release.outputs.tag }}"
-          title: "chore: bump Resoto appVersion to ${{ steps.release.outputs.tag }}"
-          body: |
-            Bumps Resoto version to [${{ steps.release.outputs.tag }}](https://github.com/someengineering/resoto/releases/tag/${{ steps.release.outputs.tag }}).
-          labels: |
-            🤖 bot
-          branch: ${{ steps.release.outputs.tag }}
-          delete-branch: true
-          token: ${{ secrets.SOME_CI_PAT }}
-          committer: C.K. <98986935+some-ci@users.noreply.github.com>
-          author: C.K. <98986935+some-ci@users.noreply.github.com>
+      # - name: Create someengineering/helm-charts pull request
+      #   if: steps.release.outputs.prerelease == 'false'
+      #   uses: peter-evans/create-pull-request@v4
+      #   with:
+      #     path: helm-charts
+      #     commit-message: "chore: bump Fix Inventory appVersion to ${{ steps.release.outputs.tag }}"
+      #     title: "chore: bump Fix Inventory appVersion to ${{ steps.release.outputs.tag }}"
+      #     body: |
+      #       Bumps Fix Inventory version to [${{ steps.release.outputs.tag }}](https://github.com/someengineering/fixinventory/releases/tag/${{ steps.release.outputs.tag }}).
+      #     labels: |
+      #       🤖 bot
+      #     branch: ${{ steps.release.outputs.tag }}
+      #     delete-branch: true
+      #     token: ${{ secrets.SOME_CI_PAT }}
+      #     committer: C.K. <98986935+some-ci@users.noreply.github.com>
+      #     author: C.K. <98986935+some-ci@users.noreply.github.com>

@@ -5,15 +5,15 @@ from typing import Type, List, Tuple, Set
 
 from networkx import DiGraph, is_directed_acyclic_graph
 
-from resoto_plugin_aws.collector import (
+from fix_plugin_aws.collector import (
     AwsAccountCollector,
     all_resources,
     called_collect_apis,
     called_mutator_apis,
 )
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
-from resotolib.core.model_export import dataclasses_to_resotocore_model
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fixlib.core.model_export import dataclasses_to_fixcore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 
@@ -39,7 +39,7 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
 
 
 def test_dependencies() -> None:
-    model = dataclasses_to_resotocore_model({AwsResource})
+    model = dataclasses_to_fixcore_model({AwsResource})
 
     def for_edge_type(edge_type: str) -> DiGraph:
         graph = DiGraph()
@@ -66,13 +66,13 @@ def test_all_called_apis() -> None:
         doc = dict(Sid=name, Effect="Allow", Action=sorted(permissions), Resource="*")
         return permissions, json.dumps(doc, indent=2)
 
-    collect_allow, collect_statement = iam_statement("ResotoCollectPermission", called_collect_apis())
+    collect_allow, collect_statement = iam_statement("FixCollectPermission", called_collect_apis())
     print("\n\n", collect_statement, "\n\n")
     assert json.loads(collect_statement)
     assert len(collect_allow) >= 74
     assert "s3:ListAllMyBuckets" in collect_allow
 
-    mutate_allow, mutate_statement = iam_statement("ResotoMutatePermission", called_mutator_apis())
+    mutate_allow, mutate_statement = iam_statement("FixMutatePermission", called_mutator_apis())
     print("\n\n", mutate_statement, "\n\n")
 
 

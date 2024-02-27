@@ -78,8 +78,10 @@ jobs:
       - name: Docker fixinventorybase meta
         id: basemeta
         uses: docker/metadata-action@v4
-        with:
+        with: # todo: remove resotobase before tagging 4.0
           images: |
+            someengineering/resotobase
+            ghcr.io/someengineering/resotobase
             someengineering/fixinventorybase
             ghcr.io/someengineering/fixinventorybase
           flavor: |
@@ -169,7 +171,9 @@ jobs:
         with:
           images: |
             someengineering/fixshell
+            someengineering/resh
             ghcr.io/someengineering/fixshell
+            ghcr.io/someengineering/resh
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |

@@ -1,12 +1,12 @@
 registry_repositories = [
     {
-        "registry_name": "resoto-do-plugin-test",
+        "registry_name": "fix-do-plugin-test",
         "name": "hw",
         "tag_count": 1,
         "manifest_count": 1,
         "latest_manifest": {
             "digest": "sha256:2ce85c6b306674dcab6eae5fda252037d58f78b0e1bbd41aabf95de6cd7e4a9e",
-            "registry_name": "resoto-do-plugin-test",
+            "registry_name": "fix-do-plugin-test",
             "repository": "hw",
             "compressed_size_bytes": 5164,
             "size_bytes": 12660,

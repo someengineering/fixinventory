@@ -16,13 +16,13 @@ RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
 # Prepare whl build env
 RUN mkdir -p /build /build-python
 
-# Build Resoto
+# Build FixInventory
 COPY requirements-extra.txt /usr/src/requirements-extra.txt
-COPY resotolib /usr/src/fixinventorylib
-COPY resotocore /usr/src/fixcore
-COPY resotoworker /usr/src/fixworker
-COPY resotometrics /usr/src/fixmetrics
-COPY resotoshell /usr/src/fixshell
+COPY fixlib /usr/src/fixlib
+COPY fixcore /usr/src/fixcore
+COPY fixworker /usr/src/fixworker
+COPY fixmetrics /usr/src/fixmetrics
+COPY fixshell /usr/src/fixshell
 COPY plugins /usr/src/plugins
 
 WORKDIR /usr/src/fixcore
@@ -33,7 +33,7 @@ RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite bui
 # Build binary wheels
 WORKDIR /usr/src
 RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
-RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixinventorylib ./fixcore ./fixworker ./fixmetrics ./fixshell
+RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
 
 # Download and install ArangoDB client on x86 builds (there are no official ArangoDB binaries for arm64)
 WORKDIR /tmp/arangodb
@@ -97,7 +97,7 @@ ENV LANG="en_US.UTF-8"
 ENV TERM="xterm-256color"
 ENV COLORTERM="truecolor"
 ENV EDITOR="vim"
-ENV RESOTOSHELL_DOWNLOAD_DIRECTORY="/home/fixinventory/downloads"
+ENV FIXSHELL_DOWNLOAD_DIRECTORY="/home/fixinventory/downloads"
 COPY --from=build-env /usr/local /usr/local
 ENV PATH=/usr/local/python/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
