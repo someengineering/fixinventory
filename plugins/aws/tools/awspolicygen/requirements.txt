@@ -2,4 +2,4 @@ boto3
 requests
 python-magic
 pyyaml
-fix-plugin-aws
+fixinventory-plugin-aws
