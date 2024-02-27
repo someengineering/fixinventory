@@ -2,7 +2,7 @@
 name = "fixinventoryshell"
 version = "4.0.0a3"
 authors = [{name="Some Engineering Inc."}]
-description = "Commandline interpreter to interact with Fix."
+description = "Commandline interpreter to interact with Fix Inventory."
 license = { text="AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [

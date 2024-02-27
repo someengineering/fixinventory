@@ -2,7 +2,7 @@
 name = "fixinventorymetrics"
 version = "4.0.0a3"
 authors = [{name="Some Engineering Inc."}]
-description = "Exports Fix metrics in Prometheus format."
+description = "Exports Fix Inventory metrics in Prometheus format."
 license = { text="AGPLv3" }
 requires-python = ">=3.9"
 classifiers = [
