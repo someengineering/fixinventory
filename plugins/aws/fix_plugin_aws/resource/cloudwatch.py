@@ -550,15 +550,15 @@ def update_resource_metrics(
 
 
 def bytes_to_megabits_per_second(bytes: float, period: timedelta) -> float:
-    return round((bytes * 8) / (1024**2 * period.seconds), 4)
+    return round((bytes * 8) / (1024**2 * period.total_seconds()), 4)
 
 
 def bytes_to_megabytes_per_second(bytes: float, period: timedelta) -> float:
-    return round(bytes / (1024**2 * period.seconds), 4)
+    return round(bytes / (1024**2 * period.total_seconds()), 4)
 
 
 def operations_to_iops(ops: float, period: timedelta) -> float:
-    return round(ops / period.seconds, 4)
+    return round(ops / period.total_seconds(), 4)
 
 
 def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:

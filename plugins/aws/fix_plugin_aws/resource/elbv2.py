@@ -491,32 +491,32 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
             "RequestCount": MetricNormalization(
                 metric_name=MetricName.RequestCount,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "ActiveConnectionCount": MetricNormalization(
                 metric_name=MetricName.ActiveConnection,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "HTTPCode_Target_2XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode2XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "HTTPCode_Target_4XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode4XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "HTTPCode_Target_5XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode5XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "TargetResponseTime": MetricNormalization(
                 metric_name=MetricName.Latency, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4)
@@ -793,37 +793,37 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
             "RequestCount": MetricNormalization(
                 metric_name=MetricName.RequestCount,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "HealthyHostCount": MetricNormalization(
                 metric_name=MetricName.HealthyHostCount,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "UnHealthyHostCount": MetricNormalization(
                 metric_name=MetricName.UnhealthyHostCount,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "HTTPCode_Target_2XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode2XX,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "HTTPCode_Target_4XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode4XX,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "HTTPCode_Target_5XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode5XX,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
                 compute_stats=calculate_min_max_avg,
             ),
             "TargetResponseTime": MetricNormalization(

@@ -413,7 +413,7 @@ class GraphBuilder:
 
             delta = now - start
             # AWS requires period to be a muliple of 60, ceil because we want to overlap when in doubt
-            delta = timedelta(seconds=ceil(delta.seconds / 60) * 60)
+            delta = timedelta(seconds=ceil(delta.total_seconds() / 60) * 60)
             min_delta = max(delta, timedelta(seconds=600))
             # in case the last collection happened too quickly, raise the metrics timedelta to 600s,
             # otherwise we get no results from AWS

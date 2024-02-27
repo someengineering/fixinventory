@@ -1522,14 +1522,14 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 unit=MetricUnit.PacketsPerSecond,
                 compute_stats=calculate_min_max_avg,
                 # normalize to packets per second
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "NetworkPacketsOut": MetricNormalization(
                 metric_name=MetricName.NetworkOut,
                 unit=MetricUnit.PacketsPerSecond,
                 compute_stats=calculate_min_max_avg,
                 # normalize to packets per second
-                normalize_value=lambda x: round(x / period.seconds, 4),
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
             "DiskReadOps": MetricNormalization(
                 metric_name=MetricName.DiskRead,
