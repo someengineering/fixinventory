@@ -26,7 +26,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory, History
 from prompt_toolkit.styles import Style
-from fixclient.async_client import FixClient
+from fixclient.async_client import FixInventoryClient
 from fixclient.models import Property
 
 from fixlib.json import from_json, register_json, value_in_path
@@ -811,7 +811,7 @@ class PromptSession:
 
 
 async def core_metadata(
-    client: FixClient,
+    client: FixInventoryClient,
 ) -> Tuple[List[CommandInfo], List[str], List[str]]:
     try:
         log.debug("Fetching core metadata..")

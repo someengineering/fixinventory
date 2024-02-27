@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 
 import jwt
 from aiohttp import web, hdrs, ClientSession
-from fixclient.async_client import FixClient
+from fixclient.async_client import FixInventoryClient
 from fixclient.ca import CertificatesHolder
 
 from fixlib.core import fixcore
@@ -27,11 +27,11 @@ class AccessDeniedError(Exception):
     pass
 
 
-async def new_client(args: Namespace) -> FixClient:
+async def new_client(args: Namespace) -> FixInventoryClient:
     headers = dict(args.add_headers)
     # if a PSK was defined on the command line, use it
     if args.psk:
-        return FixClient(
+        return FixInventoryClient(
             url=fixcore.http_uri,
             psk=args.psk,
             custom_ca_cert_path=args.ca_cert,
@@ -45,7 +45,7 @@ async def new_client(args: Namespace) -> FixClient:
     try:
         await fetch_auth_header(fixcore.http_uri, ssl=ssl)
         # no authorization required
-        return FixClient(
+        return FixInventoryClient(
             url=fixcore.http_uri,
             custom_ca_cert_path=args.ca_cert,
             verify=args.verify_certs,
@@ -56,7 +56,7 @@ async def new_client(args: Namespace) -> FixClient:
         if creds := config.valid_credentials(fixcore.http_uri):
             # Valid credentials found in config file
             method, auth_token = creds
-            return FixClient(
+            return FixInventoryClient(
                 url=fixcore.http_uri,
                 custom_ca_cert_path=args.ca_cert,
                 verify=args.verify_certs,
@@ -73,7 +73,7 @@ async def new_client(args: Namespace) -> FixClient:
                     assert result, "Authorization failed"
                     method, token = result
                     config.update_auth(fixcore.http_uri, method, token)
-                    return FixClient(
+                    return FixInventoryClient(
                         url=fixcore.http_uri,
                         custom_ca_cert_path=args.ca_cert,
                         verify=args.verify_certs,
@@ -81,7 +81,7 @@ async def new_client(args: Namespace) -> FixClient:
                     )
 
 
-async def update_auth_header(client: FixClient) -> None:
+async def update_auth_header(client: FixInventoryClient) -> None:
     if auth := client.http_client.additional_headers.get("Authorization"):
         method, token = auth.split(" ", maxsplit=1)
         ReshConfig.default().update_auth(client.http_client.url, method, token)

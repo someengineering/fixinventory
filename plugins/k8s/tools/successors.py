@@ -1,9 +1,9 @@
 import json
 
-from fixclient import FixClient
+from fixclient import FixInventoryClient
 
 
-def get_successors(client: FixClient) -> None:
+def get_successors(client: FixInventoryClient) -> None:
     for name, kind in client.model().kinds.items():
         if name.startswith("kubernetes") and kind.aggregate_root:
             succesors = {}
@@ -19,4 +19,4 @@ def get_successors(client: FixClient) -> None:
 
 
 if __name__ == "__main__":
-    get_successors(FixClient("https://localhost:8900"))
+    get_successors(FixInventoryClient("https://localhost:8900"))

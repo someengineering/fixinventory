@@ -14,7 +14,7 @@ from prompt_toolkit import HTML, ANSI, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.output import ColorDepth
 from fixclient.async_client import HttpResponse
-from fixclient.async_client import FixClient
+from fixclient.async_client import FixInventoryClient
 from rich.markdown import Markdown
 
 from fixlib.args import ArgumentParser
@@ -40,7 +40,7 @@ class ShutdownShellError(Exception):
 class Shell:
     def __init__(
         self,
-        client: FixClient,
+        client: FixInventoryClient,
         tty: bool,
         color_system: str,
         *,

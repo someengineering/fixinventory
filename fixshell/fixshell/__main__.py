@@ -8,7 +8,7 @@ from threading import Event
 from typing import Tuple
 
 from prompt_toolkit.formatted_text import FormattedText
-from fixclient.async_client import FixClient
+from fixclient.async_client import FixInventoryClient
 from rich.console import Console
 
 import fixlib.proc
@@ -126,7 +126,7 @@ async def attach_to_event_stream(shell: Shell, shutdown_event: Event) -> None:
             await asyncio.sleep(1)
 
 
-async def handle_from_stdin(client: FixClient) -> None:
+async def handle_from_stdin(client: FixInventoryClient) -> None:
     shell = Shell(client, False, "monochrome")
     log.debug("Reading commands from STDIN")
     try:
