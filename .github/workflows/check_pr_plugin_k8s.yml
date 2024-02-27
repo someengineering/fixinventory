@@ -67,5 +67,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIX_PLUGIN_K8S }}
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_K8S }}
           packages_dir: ./plugins/k8s/dist/

@@ -67,5 +67,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIX_PLUGIN_DIGITALOCEAN }}
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_DIGITALOCEAN }}
           packages_dir: ./plugins/digitalocean/dist/

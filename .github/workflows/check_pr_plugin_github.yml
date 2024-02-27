@@ -67,5 +67,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIX_PLUGIN_GITHUB }}
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_GITHUB }}
           packages_dir: ./plugins/github/dist/

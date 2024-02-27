@@ -67,7 +67,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIX_PLUGIN_GCP }}
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_GCP }}
           packages_dir: ./plugins/gcp/dist/
 
       - name: Upload GCP policies
