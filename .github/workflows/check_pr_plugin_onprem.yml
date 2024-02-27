@@ -10,7 +10,7 @@ on:
       - main
   pull_request:
     paths:
-      - 'resotolib/**'
+      - 'fixlib/**'
       - 'plugins/onprem/**'
       - '.github/**'
       - 'requirements-all.txt'
@@ -40,7 +40,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --editable resotolib/
+          pip install --upgrade --editable fixlib/
           pip install tox wheel flake8 build
 
       - name: Run tests
@@ -67,5 +67,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_RESOTO_PLUGIN_ONPREM }}
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_ONPREM }}
           packages_dir: ./plugins/onprem/dist/

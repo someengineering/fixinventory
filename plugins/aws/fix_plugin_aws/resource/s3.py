@@ -8,14 +8,14 @@ from attrs import define
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.utils import tags_as_dict
-from resotolib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
-from resotolib.graph import Graph
-from resotolib.json import is_empty, sort_json
-from resotolib.json_bender import Bender, S, bend, Bend, ForallBend
-from resotolib.types import Json
+from fixlib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
+from fixlib.graph import Graph
+from fixlib.json import is_empty, sort_json
+from fixlib.json_bender import Bender, S, bend, Bend, ForallBend
+from fixlib.types import Json
 
 service_name = "s3"
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 
 @define(eq=False, slots=False)

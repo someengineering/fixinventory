@@ -1,14 +1,14 @@
 {
     "Clusters": [
         {
-            "ClusterIdentifier": "resoto-delete-me",
+            "ClusterIdentifier": "fix-delete-me",
             "NodeType": "dc2.large",
             "ClusterStatus": "available",
             "ClusterAvailabilityStatus": "Available",
             "MasterUsername": "awsuser",
             "DBName": "dev",
             "Endpoint": {
-                "Address": "resoto-delete-me.qwfparst.us-east-1.redshift.amazonaws.com",
+                "Address": "fix-delete-me.qwfparst.us-east-1.redshift.amazonaws.com",
                 "Port": 5439
             },
             "ClusterCreateTime": "2022-08-08T09:10:34Z",

@@ -8,11 +8,11 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
-from resotolib.json_bender import Bender, S, Bend, ForallBend, ParseJson, MapDict
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference
+from fixlib.json_bender import Bender, S, Bend, ForallBend, ParseJson, MapDict
+from fixlib.types import Json
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 service_name = "wafv2"
 
 

@@ -5,14 +5,14 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.sns import AwsSnsTopic
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend, K, bend
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend, K, bend
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
 from typing import Type
 from datetime import datetime
-from resotolib.types import Json
+from fixlib.types import Json
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup
 
 service_name = "elasticache"

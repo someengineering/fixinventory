@@ -9,14 +9,14 @@ def test_data_catalogs() -> None:
     res, builder = round_trip_for(AwsAthenaDataCatalog)
     assert len(builder.resources_of(AwsAthenaDataCatalog)) == 1
     assert len(res.tags) == 1
-    assert res.arn == "arn:aws:athena:eu-central-1:test:datacatalog/resoto-catalog"
+    assert res.arn == "arn:aws:athena:eu-central-1:test:datacatalog/fix-catalog"
 
 
 def test_workgroups() -> None:
     res, builder = round_trip_for(AwsAthenaWorkGroup)
     assert len(builder.resources_of(AwsAthenaWorkGroup)) == 1
     assert len(res.tags) == 1
-    assert res.arn == "arn:aws:athena:eu-central-1:test:workgroup/resoto-workgroup"
+    assert res.arn == "arn:aws:athena:eu-central-1:test:workgroup/fix-workgroup"
 
 
 def test_data_catalogs_tagging() -> None:

@@ -2,7 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import cast, Any
 from types import SimpleNamespace
 
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 
 from fix_plugin_aws.aws_client import AwsClient

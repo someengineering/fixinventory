@@ -1,0 +1,6 @@
+#!/bin/bash
+. /usr/local/etc/fixinventory/defaults
+. /usr/local/fix-venv-python3/bin/activate
+export FIXMETRICS_PSK
+export FIXMETRICS_FIXCORE_URI
+exec fixmetrics "$@"

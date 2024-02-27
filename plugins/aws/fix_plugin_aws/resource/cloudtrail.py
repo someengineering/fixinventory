@@ -11,10 +11,10 @@ from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.sns import AwsSnsTopic
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference, EdgeType
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, bend, ForallBend, EmptyToNone
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference, EdgeType
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, bend, ForallBend, EmptyToNone
+from fixlib.types import Json
 
 service_name = "cloudtrail"
 

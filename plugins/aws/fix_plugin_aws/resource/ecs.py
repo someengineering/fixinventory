@@ -12,11 +12,11 @@ from fix_plugin_aws.resource.elbv2 import AwsAlbTargetGroup
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from resotolib.baseresources import EdgeType, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, Bend, ForallBend
-from resotolib.types import Json
-from resotolib.utils import chunks
+from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend
+from fixlib.types import Json
+from fixlib.utils import chunks
 from fix_plugin_aws.utils import TagsValue, ToDict
 
 service_name = "ecs"
@@ -1784,7 +1784,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
         "arn": S("containerInstanceArn"),
         "ec2_instance_id": S("ec2InstanceId"),
         "capacity_provider_name": S("capacityProviderName"),
-        "version": S("version"),
+        "version": S("version") >> F(str),
         "version_info": S("versionInfo") >> Bend(AwsEcsVersionInfo.mapping),
         "remaining_resources": S("remainingResources", default=[]) >> ForallBend(AwsEcsResource.mapping),
         "registered_resources": S("registeredResources", default=[]) >> ForallBend(AwsEcsResource.mapping),
@@ -1800,7 +1800,7 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     }
     ec2_instance_id: Optional[str] = field(default=None)
     capacity_provider_name: Optional[str] = field(default=None)
-    version: Optional[int] = field(default=None)
+    version: Optional[str] = field(default=None)
     version_info: Optional[AwsEcsVersionInfo] = field(default=None)
     remaining_resources: List[AwsEcsResource] = field(factory=list)
     registered_resources: List[AwsEcsResource] = field(factory=list)

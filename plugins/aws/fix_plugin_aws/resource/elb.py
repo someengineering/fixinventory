@@ -6,18 +6,12 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-    AwsCloudwatchMetricData,
-    bytes_to_megabits_per_second,
-    calculate_min_max_avg,
-    update_resource_metrics,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from resotolib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, bend, ForallBend, K
-from resotolib.types import Json
+from fixlib.baseresources import BaseLoadBalancer, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
+from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
 
 service_name = "elb"

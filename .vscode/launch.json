@@ -24,40 +24,40 @@
             "justMyCode": false,
         },
         {
-            "name": "resotocore",
+            "name": "fixcore",
             "type": "debugpy",
             "request": "launch",
-            "program": "./resotocore/resotocore/__main__.py",
+            "program": "./fixcore/fixcore/__main__.py",
             "args": [
                 "--psk",
                 "changeme",
                 "-o",
-                "resotocore.api.web_hosts=0.0.0.0",
+                "fixcore.api.web_hosts=0.0.0.0",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "RESOTOCORE_ANALYTICS_OPT_OUT": "True",
+                "FIXCORE_ANALYTICS_OPT_OUT": "True",
             },
             "autoReload": {
                 "enable": true
             }
         },
         {
-            "name": "resotoworker",
+            "name": "fixworker",
             "type": "debugpy",
             "request": "launch",
-            "program": "./resotoworker/resotoworker/__main__.py",
+            "program": "./fixworker/fixworker/__main__.py",
             "args": [
                 "--psk",
                 "changeme",
-                "--resotocore-uri",
+                "--fixcore-uri",
                 "https://localhost:8900",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "RESOTOCORE_ANALYTICS_OPT_OUT": "True",
+                "FIXCORE_ANALYTICS_OPT_OUT": "True",
             },
             "autoReload": {
                 "enable": false
@@ -67,22 +67,22 @@
             ]
         },
         {
-            "name": "resotoshell",
+            "name": "fixshell",
             "type": "debugpy",
             "request": "launch",
-            "program": "./resotoshell/resotoshell/__main__.py",
+            "program": "./fixshell/fixshell/__main__.py",
             "args": [
                 "--psk",
                 "changeme",
-                "--resotocore-uri",
+                "--fixcore-uri",
                 "https://localhost:8900",
-                "--resotocore-wait",
+                "--fixcore-wait",
                 "30",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+                "FIXCORE_ANALYTICS_OPT_OUT": "True"
             },
             "autoReload": {
                 "enable": true
@@ -91,11 +91,11 @@
     ],
     "compounds": [
         {
-            "name": "Resoto - all components",
+            "name": "fix - all components",
             "configurations": [
-                "resotocore",
-                "resotoworker",
-                "resotoshell"
+                "fixcore",
+                "fixworker",
+                "fixshell"
             ],
             "stopAll": true,
             "presentation": {

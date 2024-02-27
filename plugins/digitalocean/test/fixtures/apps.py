@@ -2,15 +2,15 @@ apps = [
     {
         "id": "5dc41512-7523-4eeb-9932-426aa570234b",
         "owner_uuid": "d63ae7cb6500140c46fdb3585b0c1a874e195760",
-        "default_ingress": "https://resoto_test_app.ondigitalocean.app",
-        "live_url": "https://resoto_test_app.ondigitalocean.app",
-        "live_url_base": "https://resoto_test_app.ondigitalocean.app",
-        "live_domain": "resoto_test_apps.ondigitalocean.app",
+        "default_ingress": "https://fix_test_app.ondigitalocean.app",
+        "live_url": "https://fix_test_app.ondigitalocean.app",
+        "live_url_base": "https://fix_test_app.ondigitalocean.app",
+        "live_domain": "fix_test_apps.ondigitalocean.app",
         "spec": {
-            "name": "resoto-test-app",
+            "name": "fix-test-app",
             "services": [
                 {
-                    "name": "resoto-test-app",
+                    "name": "fix-test-app",
                     "image": {
                         "registry_type": "DOCKER_HUB",
                         "registry": "grafana",

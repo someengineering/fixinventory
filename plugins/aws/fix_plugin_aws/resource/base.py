@@ -19,8 +19,8 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice
 from fix_plugin_aws.utils import arn_partition
-from resotolib.utils import utc
-from resotolib.baseresources import (
+from fixlib.utils import utc
+from fixlib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseResource,
@@ -29,18 +29,18 @@ from resotolib.baseresources import (
     EdgeType,
     ModelReference,
 )
-from resotolib.config import Config, current_config
-from resotolib.core.actions import CoreFeedback, SuppressWithFeedback
-from resotolib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
-from resotolib.json import from_json, value_in_path
-from resotolib.json_bender import Bender, bend
-from resotolib.lock import RWLock
-from resotolib.proc import set_thread_name
-from resotolib.threading import ExecutorQueue
-from resotolib.types import Json
-from resotodata.cloud import instances as cloud_instance_data
+from fixlib.config import Config, current_config
+from fixlib.core.actions import CoreFeedback, SuppressWithFeedback
+from fixlib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
+from fixlib.json import from_json, value_in_path
+from fixlib.json_bender import Bender, bend
+from fixlib.lock import RWLock
+from fixlib.proc import set_thread_name
+from fixlib.threading import ExecutorQueue
+from fixlib.types import Json
+from fixinventorydata.cloud import instances as cloud_instance_data
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 
 def get_client(config: Config, resource: BaseResource) -> AwsClient:

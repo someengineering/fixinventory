@@ -7,10 +7,10 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseStack, ModelReference
-from resotolib.graph import ByNodeId, BySearchCriteria, Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend, F
-from resotolib.types import Json
+from fixlib.baseresources import BaseStack, ModelReference
+from fixlib.graph import ByNodeId, BySearchCriteria, Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend, F
+from fixlib.types import Json
 
 service_name = "cloudformation"
 

@@ -8,11 +8,11 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference, BaseNetworkShare
-from resotolib.graph import Graph
-from resotolib.json import sort_json
-from resotolib.json_bender import Bender, S, F, Bend
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference, BaseNetworkShare
+from fixlib.graph import Graph
+from fixlib.json import sort_json
+from fixlib.json_bender import Bender, S, F, Bend
+from fixlib.types import Json
 
 service_name = "efs"
 

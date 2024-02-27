@@ -2,14 +2,14 @@ import os
 import json
 from queue import Queue
 
-from resoto_plugin_azure.azure_client import AzureClient
-from resoto_plugin_azure.collector import AzureSubscriptionCollector
-from resoto_plugin_azure.config import AzureCredentials, AzureConfig
-from resoto_plugin_azure.resource.base import AzureSubscription, GraphBuilder
-from resoto_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
+from fix_plugin_azure.azure_client import AzureClient
+from fix_plugin_azure.collector import AzureSubscriptionCollector
+from fix_plugin_azure.config import AzureCredentials, AzureConfig
+from fix_plugin_azure.resource.base import AzureSubscription, GraphBuilder
+from fix_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
 
 
 def collector_with_graph(
@@ -36,8 +36,8 @@ def test_collect(
 ) -> None:
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
-    assert len(collector.graph.nodes) == 418
-    assert len(collector.graph.edges) == 473
+    assert len(collector.graph.nodes) == 421
+    assert len(collector.graph.edges) == 480
 
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:

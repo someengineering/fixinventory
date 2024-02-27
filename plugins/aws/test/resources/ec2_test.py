@@ -24,7 +24,7 @@ from fix_plugin_aws.resource.ec2 import (
     AwsEc2Image,
     AwsEc2LaunchTemplate,
 )
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for, build_graph, check_single_node
 
 

@@ -18,23 +18,23 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "resotocore"
+  - job_name: "fixcore"
     scheme: https
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ["resotocore:8900"]
+      - targets: ["fixcore:8900"]
 
-  - job_name: "resotometrics"
+  - job_name: "fixmetrics"
     scheme: https
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ["resotometrics:9955"]
+      - targets: ["fixmetrics:9955"]
 
-  - job_name: "resotoworker"
+  - job_name: "fixworker"
     scheme: https
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ["resotoworker:9956"]
+      - targets: ["fixworker:9956"]

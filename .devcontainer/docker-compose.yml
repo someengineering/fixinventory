@@ -1,16 +1,16 @@
 version: '3.8'
 
 services:
-  resoto:
+  fix:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
 
-    container_name: "devcontainer-resoto-${USER}"
+    container_name: "devcontainer-fix-${USER}"
 
     volumes:
       - ../..:/workspaces:cached
-      - devcontainer-resoto-bashhistory:/commandhistory
+      - devcontainer-fix-bashhistory:/commandhistory
       - ${HOME}/.ssh:/home/vscode/.ssh
 
     # Overrides default command so things don't shut down after the process ends.
@@ -40,7 +40,7 @@ services:
 
 volumes:
   # keep the bash history between container rebuilds
-  devcontainer-resoto-bashhistory:
+  devcontainer-fix-bashhistory:
 # Uncomment this in case you want to keep arangodb data in a separate volume
 #   arangodb-data:
 #   arangodb-apps-data:

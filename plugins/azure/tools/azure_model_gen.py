@@ -588,7 +588,7 @@ def path_set(obj, path, value, **options):
 
 # endregion
 
-# To run this script, make sure you have resoto venv plus: pip install "prance[osv,cli]"
+# To run this script, make sure you have fix venv plus: pip install "prance[osv,cli]"
 Debug = False
 if __name__ == "__main__":
     specs_path = os.environ.get("AZURE_REST_API_SPECS", "../../../../azure-rest-api-specs")

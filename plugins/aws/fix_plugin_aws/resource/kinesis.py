@@ -4,10 +4,10 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, bend, ForallBend
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
+from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
 from typing import Type

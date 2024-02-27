@@ -3,9 +3,9 @@
 set -euo pipefail
 
 # Include defaults
-. /usr/local/etc/resoto/defaults
-. /usr/local/etc/resoto/common
-. /usr/local/resoto-venv-python3/bin/activate
+. /usr/local/etc/fix/defaults
+. /usr/local/etc/fix/common
+. /usr/local/fix-venv-python3/bin/activate
 
 
 main() {
@@ -15,9 +15,9 @@ main() {
     setup_dnsmasq
     setup_graphdb
     setup_tsdb
-    setup_resotocore "$@"
-    setup_resotoworker "$@"
-    setup_resotometrics "$@"
+    setup_fixcore "$@"
+    setup_fixworker "$@"
+    setup_fixmetrics "$@"
     setup_runit
     exec /sbin/my_init
 }
@@ -25,18 +25,18 @@ main() {
 
 # Apply user id and group id
 apply_permissions() {
-    info "Setting uid:gid of resoto to $PUID:$PGID"
-    groupmod -g "${PGID}" -o resoto
-    #usermod -u "${PUID}" -o -g resoto resoto
-    sed -i -E "s/^(resoto:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+    info "Setting uid:gid of fix to $PUID:$PGID"
+    groupmod -g "${PGID}" -o fix
+    #usermod -u "${PUID}" -o -g fix fix
+    sed -i -E "s/^(fix:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
 
     mkdir -p \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 
-    chown resoto:resoto \
-        /home/resoto
-    chown -R resoto:resoto \
+    chown fix:fix \
+        /home/fix
+    chown -R fix:fix \
         "$TSDB_DATABASE_DIRECTORY" \
         "$GRAPHDB_DATABASE_DIRECTORY"
 }
@@ -94,7 +94,7 @@ setup_dnsmasq() {
         cp "$runit_dnsmasq_conf_in" "$runit_dnsmasq_rundir/run"
         cp /etc/resolv.conf /etc/resolv.dnsmasq
         if [ "${LOG_DNS_QUERIES-}" = true ]; then
-            echo "log-queries=extra" >> /etc/dnsmasq.d/resoto.conf
+            echo "log-queries=extra" >> /etc/dnsmasq.d/fix.conf
         fi
         echo "nameserver 127.0.0.1" > /etc/resolv.conf
     fi
@@ -127,39 +127,39 @@ setup_tsdb() {
     fi
 }
 
-setup_resotocore() {
-    rm -f "$runit_resotocore_rundir/run"
-    if [ "$START_RESOTOCORE" = true ]; then
-        info "resotocore activated"
-        mkdir -p "$runit_resotocore_rundir"
-        argsdispatcher resotocore "$runit_resotocore_conf_in" "$@" > "$runit_resotocore_rundir/run"
-        export RESOTOCORE_GRAPHDB_SERVER
-        export RESOTOCORE_GRAPHDB_DATABASE
-        export RESOTOCORE_GRAPHDB_USERNAME
-        export RESOTOCORE_GRAPHDB_PASSWORD
-        export RESOTOCORE_PSK
+setup_fixcore() {
+    rm -f "$runit_fixcore_rundir/run"
+    if [ "$START_FIXCORE" = true ]; then
+        info "fixcore activated"
+        mkdir -p "$runit_fixcore_rundir"
+        argsdispatcher fixcore "$runit_fixcore_conf_in" "$@" > "$runit_fixcore_rundir/run"
+        export FIXCORE_GRAPHDB_SERVER
+        export FIXCORE_GRAPHDB_DATABASE
+        export FIXCORE_GRAPHDB_USERNAME
+        export FIXCORE_GRAPHDB_PASSWORD
+        export FIXCORE_PSK
     fi
 }
 
-setup_resotoworker() {
-    rm -f "$runit_resotoworker_rundir/run"
-    if [ "$START_RESOTOWORKER" = true ]; then
-        info "resotoworker activated"
-        mkdir -p "$runit_resotoworker_rundir"
-        argsdispatcher resotoworker "$runit_resotoworker_conf_in" "$@" > "$runit_resotoworker_rundir/run"
-        export RESOTOWORKER_RESOTOCORE_URI
-        export RESOTOWORKER_PSK
+setup_fixworker() {
+    rm -f "$runit_fixworker_rundir/run"
+    if [ "$START_FIXWORKER" = true ]; then
+        info "fixworker activated"
+        mkdir -p "$runit_fixworker_rundir"
+        argsdispatcher fixworker "$runit_fixworker_conf_in" "$@" > "$runit_fixworker_rundir/run"
+        export FIXWORKER_FIXCORE_URI
+        export FIXWORKER_PSK
     fi
 }
 
-setup_resotometrics() {
-    rm -f "$runit_resotometrics_rundir/run"
-    if [ "$START_RESOTOMETRICS" = true ]; then
-        info "resotometrics activated"
-        mkdir -p "$runit_resotometrics_rundir"
-        argsdispatcher resotometrics "$runit_resotometrics_conf_in" "$@" > "$runit_resotometrics_rundir/run"
-        export RESOTOMETRICS_RESOTOCORE_URI
-        export RESOTOMETRICS_PSK
+setup_fixmetrics() {
+    rm -f "$runit_fixmetrics_rundir/run"
+    if [ "$START_FIXMETRICS" = true ]; then
+        info "fixmetrics activated"
+        mkdir -p "$runit_fixmetrics_rundir"
+        argsdispatcher fixmetrics "$runit_fixmetrics_conf_in" "$@" > "$runit_fixmetrics_rundir/run"
+        export FIXMETRICS_FIXCORE_URI
+        export FIXMETRICS_PSK
     fi
 }
 

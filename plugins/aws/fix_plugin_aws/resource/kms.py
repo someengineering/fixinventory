@@ -3,12 +3,12 @@ from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from resotolib.baseresources import BaseAccessKey
+from fixlib.baseresources import BaseAccessKey
 from fix_plugin_aws.utils import ToDict
-from resotolib.graph import Graph
-from resotolib.json import sort_json
-from resotolib.json_bender import Bend, Bender, S, ForallBend, bend
-from resotolib.types import Json
+from fixlib.graph import Graph
+from fixlib.json import sort_json
+from fixlib.json_bender import Bend, Bender, S, ForallBend, bend
+from fixlib.types import Json
 
 service_name = "kms"
 

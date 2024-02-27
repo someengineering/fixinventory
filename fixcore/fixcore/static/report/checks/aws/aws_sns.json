@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "sns",
+    "checks": [
+        {
+            "name": "encryption_at_rest_enabled",
+            "title": "Ensure that Amazon SNS Topics are Encrypted at Rest Using KMS CMKs",
+            "result_kinds": [
+                "aws_sns_topic"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If encryption at rest is not enabled, sensitive information may be at risk of unauthorized access. A failure to protect this data can lead to potential security breaches and non-compliance with data privacy regulations.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_sns_topic) with(empty, --> is(aws_kms_key))"
+            },
+            "remediation": {
+                "text": "Activate Encryption at Rest using KMS CMKs for Amazon SNS topics. Opt for CMKs for superior management and privacy controls. This will protect messages stored at rest in SNS topics with keys managed in AWS Key Management Service.",
+                "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon SNS-Themen mit KMS-CMKs verschlüsselt sind",
+                    "risk": "Wenn die Verschlüsselung ruhender Daten nicht aktiviert ist, können sensible Informationen einem unbefugten Zugriff ausgesetzt sein. Ein Versäumnis beim Schutz dieser Daten kann zu potenziellen Sicherheitsverletzungen und Datenschutzverstößen führen.",
+                    "remediation": "Aktivieren Sie die Verschlüsselung ruhender Daten mit KMS-CMKs für Amazon SNS-Themen. Entscheiden Sie sich für CMKs, um eine überlegene Verwaltung und Datenschutzkontrollen zu gewährleisten. Dadurch werden Nachrichten, die in SNS-Themen gespeichert sind, mit in AWS Key Management Service verwalteten Schlüsseln geschützt."
+                }
+            }
+        }
+    ]
+}

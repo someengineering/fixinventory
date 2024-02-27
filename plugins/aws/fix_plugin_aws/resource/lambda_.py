@@ -9,15 +9,15 @@ from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatew
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from resotolib.baseresources import (
+from fixlib.baseresources import (
     BaseServerlessFunction,
     ModelReference,
 )
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend, F, bend
-from resotolib.types import Json
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend, F, bend
+from fixlib.types import Json
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 service_name = "lambda"
 

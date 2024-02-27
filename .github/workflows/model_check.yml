@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
     paths:
-      - 'resotolib/**'
+      - 'fixlib/**'
       - 'plugins/aws/**'
       - 'plugins/azure/**'
       - 'plugins/digitalocean/**'
@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{hashFiles('./resotolib/pyproject.toml')}}-${{hashFiles('./resotolib/requirements-test.txt')}}-${{hashFiles('./plugins/**/pyproject.toml')}}
+          key: ${{ runner.os }}-pip-${{hashFiles('./fixlib/pyproject.toml')}}-${{hashFiles('./fixlib/requirements-test.txt')}}-${{hashFiles('./plugins/**/pyproject.toml')}}
 
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -49,10 +49,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-all.txt
-          pip install resotolib/ plugins/aws/ plugins/azure/ plugins/digitalocean/ plugins/dockerhub/ plugins/example_collector/ plugins/gcp/ plugins/github/ plugins/k8s/ plugins/onelogin/ plugins/onprem/ plugins/posthog/ plugins/random/ plugins/scarf/ plugins/slack/ plugins/vsphere/
+          pip install fixlib/ plugins/aws/ plugins/azure/ plugins/digitalocean/ plugins/dockerhub/ plugins/example_collector/ plugins/gcp/ plugins/github/ plugins/k8s/ plugins/onelogin/ plugins/onprem/ plugins/posthog/ plugins/random/ plugins/scarf/ plugins/slack/ plugins/vsphere/
 
       - name: Run tests
-        working-directory: ./resotolib
+        working-directory: ./fixlib
         env:
           MODEL_CHECK: "true"
         run: pytest test/core/model_check_test.py

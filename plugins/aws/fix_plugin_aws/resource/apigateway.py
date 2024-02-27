@@ -9,10 +9,10 @@ from fix_plugin_aws.resource.ec2 import AwsEc2VpcEndpoint
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.route53 import AwsRoute53Zone
 
-from resotolib.baseresources import EdgeType, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, bend
-from resotolib.types import Json
+from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, bend
+from fixlib.types import Json
 
 service_name = "apigateway"
 
@@ -336,7 +336,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
         " APIs in the AWS API Gateway service."
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("syntheticId"),  # created by Resoto to avoid collision with duplicate stage names
+        "id": S("syntheticId"),  # created by Fix to avoid collision with duplicate stage names
         "name": S("stageName"),
         "tags": S("tags", default={}),
         "ctime": S("createdDate"),

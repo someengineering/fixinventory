@@ -12,12 +12,12 @@ from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.waf import AwsWafWebACL
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
+from fixlib.types import Json
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 service_name = "cloudfront"
 
 

@@ -10,7 +10,7 @@ from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
 from fix_plugin_aws.resource.elbv2 import AwsAlb
 from fix_plugin_aws.resource.iam import AwsIamServerCertificate
 from fix_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
-from resotolib.baseresources import EdgeType
+from fixlib.baseresources import EdgeType
 from test.resources import round_trip_for, build_graph
 
 

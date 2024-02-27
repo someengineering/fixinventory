@@ -8,12 +8,12 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from resotolib.baseresources import ModelReference, BaseResource, StatName
-from resotolib.graph import Graph
-from resotolib.json import from_json
-from resotolib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
-from resotolib.types import Json
-from resotolib.utils import chunks
+from fixlib.baseresources import ModelReference, BaseResource
+from fixlib.graph import Graph
+from fixlib.json import from_json
+from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
+from fixlib.types import Json
+from fixlib.utils import chunks
 
 service_name = "cloudwatch"
 

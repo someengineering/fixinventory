@@ -6,8 +6,8 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, Bend
-from resotolib.types import Json
+from fixlib.json_bender import Bender, S, Bend
+from fixlib.types import Json
 
 service_name = "secretsmanager"
 

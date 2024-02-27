@@ -1,0 +1,10 @@
+{
+    "LiteBuildConfig": {
+        "lite_dir": "jupyterlite_extras",
+        "output_dir": "fixcore/jupyterlite",
+        "no_sourcemaps": true,
+        "apps": [
+            "lab"
+        ]
+    }
+}

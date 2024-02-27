@@ -1,5 +1,5 @@
-# resoto-plugin-random
-Random Cloud Collector for Resoto
+# fix-plugin-random
+Random Cloud Collector for Fix
 
 Creates a plausible pseudo-random cloud based on a configurable seed.
 

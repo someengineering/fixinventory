@@ -1,5 +1,5 @@
-from resotolib.proc import num_default_threads
-from resotolib.config import Config
+from fixlib.proc import num_default_threads
+from fixlib.config import Config
 from fix_plugin_aws import AWSCollectorPlugin
 from fix_plugin_aws.configuration import AwsConfig
 

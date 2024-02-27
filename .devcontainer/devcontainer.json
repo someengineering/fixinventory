@@ -1,9 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/postgres
 {
-	"name": "Resoto & ArangoDB",
+	"name": "Fix & ArangoDB",
 	"dockerComposeFile": "docker-compose.yml",
-	"service": "resoto",
+	"service": "fix",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -11,12 +11,12 @@
 	// This can be used to network with other containers or the host.
 	"forwardPorts": [
 		8529, // ArangoDB
-		8900 // Resoto
+		8900 // Fix
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "bash -ic .devcontainer/postCreate.sh",
 	"containerEnv": {
-		"RESOTOCORE_ANALYTICS_OPT_OUT": "True"
+		"FIXCORE_ANALYTICS_OPT_OUT": "True"
 	},
 	// Configure tool-specific properties.
 	"customizations": {

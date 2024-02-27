@@ -1,8 +1,8 @@
 {
     "Summaries": [
         {
-            "StackSetId": "ResotoAccessStack:some-id",
-            "StacKSetName": "ResotoAccess",
+            "StackSetId": "FixAccessStack:some-id",
+            "StacKSetName": "FixAccess",
             "Description": "set-2",
             "Status": "CREATE_COMPLETE",
             "AutoDeployment": {

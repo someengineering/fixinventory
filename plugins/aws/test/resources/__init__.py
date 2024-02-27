@@ -18,10 +18,10 @@ from fix_plugin_aws.resource.base import (
     AwsResource,
     AwsApiSpec,
 )
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
-from resotolib.threading import ExecutorQueue
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
+from fixlib.threading import ExecutorQueue
 
 
 class BotoDummyStsClient:

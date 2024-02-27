@@ -6,11 +6,11 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
-from resotolib.types import Json
-from resotolib.utils import utc_str
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
+from fixlib.types import Json
+from fixlib.utils import utc_str
 
 service_name = "sqs"
 

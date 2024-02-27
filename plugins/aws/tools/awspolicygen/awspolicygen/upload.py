@@ -22,8 +22,8 @@ mime = magic.Magic(mime=True)
 
 
 def upload_policies(args: Namespace) -> None:
-    """Upload the Resoto AWS policies to the CDN."""
-    log.info("Uploading Resoto AWS policies to the CDN")
+    """Upload the Fix AWS policies to the CDN."""
+    log.info("Uploading Fix AWS policies to the CDN")
     cdn_client = spaces_client(args.spaces_region, args.spaces_key, args.spaces_secret)
     s3_client = boto3.client("s3")
 
@@ -56,10 +56,10 @@ def upload_policies(args: Namespace) -> None:
 
         # Create the CloudFormation template
         cf_template = get_cf_template()
-        cf_filename = f"{tmpdirname}/resoto-role.template"
+        cf_filename = f"{tmpdirname}/fix-role.template"
         with open(cf_filename, "w") as f:
             f.write(cf_template)
-        key_name = f"{args.aws_s3_bucket_path}resoto-role.template"
+        key_name = f"{args.aws_s3_bucket_path}fix-role.template"
 
         # Upload the CloudFormation template to S3
         log.debug(f"Uploading {cf_filename} to {key_name} in {args.aws_s3_bucket}")

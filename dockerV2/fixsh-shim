@@ -1,0 +1,11 @@
+#!/bin/bash
+. /usr/local/etc/fixinventory/defaults
+. /usr/local/fix-venv-python3/bin/activate
+export FIXSHELL_PSK
+export FIXSHELL_FIXCORE_URI
+
+if [ "$1" = "--wait" ]; then
+    exec /usr/local/bin/fixsh-wait
+else
+    exec fixsh --fixcore-wait 300 "$@"
+fi

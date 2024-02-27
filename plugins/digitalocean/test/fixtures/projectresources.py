@@ -36,9 +36,9 @@ project_resources = [
         "status": "ok",
     },
     {
-        "urn": "do:space:api-test-space.resoto",
+        "urn": "do:space:api-test-space.fix",
         "assigned_at": "2022-02-23T13:42:22.636219Z",
-        "links": {"self": "https://api-test-space.resoto.fra1.digitaloceanspaces.com"},
+        "links": {"self": "https://api-test-space.fix.fra1.digitaloceanspaces.com"},
         "status": "ok",
     },
 ]

@@ -1,5 +1,5 @@
-# resoto-plugin-vsphere
-VMWare VSphere Collector Plugin for Resoto (Alpha)
+# fix-plugin-vsphere
+VMWare VSphere Collector Plugin for Fix (Alpha)
 
 ## License
 See [LICENSE](../../LICENSE) for details.

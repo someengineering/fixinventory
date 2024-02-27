@@ -35,7 +35,11 @@
                                 {
                                     "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/inboundNatRules/inrlb"
                                 }
-                            ]
+                            ],
+                            "publicIPAddress": {
+                                "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/publicIPAddresses/testDNS-ip",
+                                "resourceGroup": "rg1"
+                            }
                         }
                     }
                 ],

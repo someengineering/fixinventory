@@ -14,11 +14,11 @@ from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.sns import AwsSnsTopic
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json import value_in_path
-from resotolib.json_bender import S, Bend, Bender, ForallBend, bend
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json import value_in_path
+from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
+from fixlib.types import Json
 
 service_name = "sagemaker"
 

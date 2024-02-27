@@ -1,13 +1,13 @@
 {
     "python.testing.pytestArgs": [
-        "resotocore/tests",
+        "fixcore/tests",
         "plugins/k8s/test",
         "plugins/digitalocean/test",
         "plugins/aws/test",
         "plugins/gcp/test",
-        "resotolib/test/core",
-        "resotolib/test",
-        "resotoworker/test"
+        "fixlib/test/core",
+        "fixlib/test",
+        "fixworker/test"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": false,
@@ -16,10 +16,10 @@
         "**/*.code-search": true,
         "**/bower_components": true,
         "**/jupyterlite": true,
-        "**/node_modules": true,
+        "**/node_modules": true
     },
     "search.useParentIgnoreFiles": true,
     "python.analysis.extraPaths": [
-        "resotolib",
+        "fixlib"
     ]
 }

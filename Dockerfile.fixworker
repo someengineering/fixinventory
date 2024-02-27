@@ -1,0 +1,5 @@
+# This container runs `fixworker`.
+ARG IMAGE_TAG=edge
+FROM ghcr.io/someengineering/fixinventorybase:${IMAGE_TAG}
+EXPOSE 9956
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/fixworker"]

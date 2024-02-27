@@ -5,17 +5,17 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import (
+from fixlib.baseresources import (
     BaseDNSZone,
     BaseDNSRecord,
     EdgeType,
     BaseDNSRecordSet,
     ModelReference,
 )
-from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, Bend, ForallBend, bend
-from resotolib.types import Json
-from resotolib.utils import rrdata_as_dict
+from fixlib.graph import Graph
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, bend
+from fixlib.types import Json
+from fixlib.utils import rrdata_as_dict
 
 service_name = "route53"
 

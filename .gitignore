@@ -26,8 +26,8 @@ docs/_build/
 .DS_Store
 .coverage
 .dccache
-resotoshell/backup_*
-resotocore/tools/Assets
+fixshell/backup_*
+fixcore/tools/Assets
 out/
 *.iml
 **/.hypothesis/

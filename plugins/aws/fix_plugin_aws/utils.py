@@ -9,14 +9,14 @@ from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 from prometheus_client import Counter
 from retrying import retry
 
-from resotolib.baseresources import BaseRegion, BaseResource, MetricName, MetricUnit, StatName
-from resotolib.config import Config
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender
-from resotolib.types import Json
+from fixlib.baseresources import BaseRegion, BaseResource, MetricName, MetricUnit, StatName
+from fixlib.config import Config
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender
+from fixlib.types import Json
 
 metrics_session_exceptions = Counter(
-    "resoto_plugin_aws_session_exceptions_total",
+    "fix_plugin_aws_session_exceptions_total",
     "Unhandled AWS Plugin Session Exceptions",
 )
 

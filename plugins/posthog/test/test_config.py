@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_posthog import PosthogCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_posthog import PosthogCollectorPlugin
 
 
 def test_config():

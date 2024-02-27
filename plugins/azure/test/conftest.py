@@ -11,14 +11,14 @@ from attr import fields
 from azure.identity import DefaultAzureCredential
 from pytest import fixture
 
-from resoto_plugin_azure.config import AzureConfig
-from resoto_plugin_azure.azure_client import AzureClient, AzureApiSpec
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureSubscription, AzureResourceType, AzureLocation
-from resotolib.baseresources import Cloud
-from resotolib.core.actions import CoreFeedback
-from resotolib.graph import Graph
-from resotolib.threading import ExecutorQueue
-from resotolib.types import Json
+from fix_plugin_azure.config import AzureConfig
+from fix_plugin_azure.azure_client import AzureClient, AzureApiSpec
+from fix_plugin_azure.resource.base import GraphBuilder, AzureSubscription, AzureResourceType, AzureLocation
+from fixlib.baseresources import Cloud
+from fixlib.core.actions import CoreFeedback
+from fixlib.graph import Graph
+from fixlib.threading import ExecutorQueue
+from fixlib.types import Json
 
 
 class StaticFileAzureClient(AzureClient):

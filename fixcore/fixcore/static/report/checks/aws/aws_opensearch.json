@@ -1,0 +1,173 @@
+{
+    "provider": "aws",
+    "service": "opensearch",
+    "checks": [
+        {
+            "name": "domain_does_not_use_internal_user_database",
+            "title": "Ensure that Amazon OpenSearch Service domains do not use the internal user database",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Using the Internal User Database for production environments is risky as it lacks the security benefits of Federated authentication.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and advanced_security_options.internal_user_database_enabled==true"
+            },
+            "remediation": {
+                "text": "To fix this issue, remove the users from the internal user database and utilize Cognito for authentication instead.",
+                "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html",
+                "complexity": "high"
+            },
+            "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon OpenSearch Service-Domänen nicht die interne Benutzerdatenbank verwenden",
+                    "risk": "Die Verwendung der internen Benutzerdatenbank für Produktionsumgebungen ist riskant, da sie die Sicherheitsvorteile der föderierten Authentifizierung nicht bietet.",
+                    "remediation": "Um das Problem zu beheben, entfernen Sie die Benutzer aus der internen Benutzerdatenbank und nutzen Sie stattdessen Cognito zur Authentifizierung.\nWeitere Informationen finden Sie unter: https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html"
+                }
+            }
+        },
+        {
+            "name": "domain_is_not_publicly_accessible",
+            "title": "Ensure that Amazon OpenSearch/Elasticsearch domains are not publicly accessible or have open policy access",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Failure to address this issue may result in exposing sensitive data to unauthorized individuals or malicious actors.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and access_policies.Statement[*].{Effect==\"Allow\" and (Principal.AWS=\"*\" or Principal=\"*\") and (Condition==null or Condition.IpAddress.`aws:SourceIp`[] in [\"*\", \"0.0.0.0/0\"])}"
+            },
+            "remediation": {
+                "text": "To resolve this issue, ensure that Amazon OpenSearch/Elasticsearch domains are not set as Public and restrict access through VPC endpoints.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon OpenSearch/Elasticsearch-Domains nicht öffentlich zugänglich oder mit offenen Zugriffsrichtlinien versehen sind",
+                    "risk": "Das Nichtbeheben dieses Problems kann dazu führen, dass sensible Daten unbefugten Personen oder bösartigen Akteuren zugänglich gemacht werden.",
+                    "remediation": "Um dieses Problem zu beheben, stellen Sie sicher, dass Amazon OpenSearch/Elasticsearch-Domains nicht öffentlich zugänglich sind und beschränken Sie den Zugriff über VPC-Endpoints."
+                }
+            }
+        },
+        {
+            "name": "domain_uses_cognito_authentication",
+            "title": "Ensure that Amazon OpenSearch Service domains have Amazon Cognito authentication enabled.",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Not using Amazon Cognito authentication leaves the domain vulnerable to unauthorized access and compromises the security of the OpenSearch Service.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and cognito_options==null"
+            },
+            "remediation": {
+                "text": "To address this issue, configure Amazon Cognito authentication. This helps protect the domain by providing secure user authentication and access control.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html",
+                "complexity": "high"
+            },
+            "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon OpenSearch Service-Domänen die Amazon Cognito-Authentifizierung aktiviert haben.",
+                    "risk": "Die Nichtverwendung der Amazon Cognito-Authentifizierung macht die Domäne anfällig für unbefugten Zugriff und gefährdet die Sicherheit des OpenSearch Service.",
+                    "remediation": "Um dieses Problem zu beheben, konfigurieren Sie die Amazon Cognito-Authentifizierung. Dadurch wird die Domäne durch sichere Benutzerauthentifizierung und Zugriffskontrolle geschützt."
+                }
+            }
+        },
+        {
+            "name": "audit_logs_enabled",
+            "title": "Ensure that Amazon OpenSearch Service domains have audit logs enabled",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "If audit logs are not enabled, monitoring of service use and threat analysis is not possible.",
+            "severity": "low",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and log_publishing_options.AUDIT_LOGS.enabled in [null, false]"
+            },
+            "remediation": {
+                "text": "Ensure that you enable logging information about Amazon OpenSearch Service operations.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html",
+                "complexity": "medium"
+            },
+            "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/audit-logs.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Audit-Logs für Amazon OpenSearch Service-Domains aktiviert sind",
+                    "risk": "Wenn Audit-Logs nicht aktiviert sind, ist die Überwachung der Service-Nutzung und die Bedrohungsanalyse nicht möglich.",
+                    "remediation": "Stellen Sie sicher, dass Sie Protokollinformationen über die Amazon OpenSearch Service-Vorgänge aktivieren."
+                }
+            }
+        },
+        {
+            "name": "update_available",
+            "title": "Ensure that Amazon OpenSearch Service domains are running the latest version.",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [],
+            "risk": "Failure to update Amazon Opensearch Service domains to the latest version can leave them vulnerable to security risks and prevent them from benefiting from new features and improvements.",
+            "severity": "low",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and service_software_options.update_available==true"
+            },
+            "remediation": {
+                "text": "To ensure that your Amazon OpenSearch Service domains are running the latest version, regularly check the Notifications panel in the console for available updates. You can also receive notifications through Amazon EventBridge. It is recommended to apply the updates promptly to maintain the security and functionality of your domains.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-service-software.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-service-software.html",
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass Amazon OpenSearch Service-Domänen die neueste Version ausführen.",
+                    "risk": "Wenn Amazon OpenSearch Service-Domänen nicht auf die neueste Version aktualisiert werden, können sie anfällig für Sicherheitsrisiken sein und von neuen Funktionen und Verbesserungen nicht profitieren.",
+                    "remediation": "Um sicherzustellen, dass Ihre Amazon OpenSearch Service-Domänen die neueste Version ausführen, überprüfen Sie regelmäßig das Benachrichtigungsfenster in der Konsole auf verfügbare Updates. Sie können auch Benachrichtigungen über Amazon EventBridge erhalten. Es wird empfohlen, die Updates umgehend anzuwenden, um die Sicherheit und Funktionalität Ihrer Domänen aufrechtzuerhalten."
+                }
+            }
+        },
+        {
+            "name": "encryption_at_rest_enabled",
+            "title": "Ensure that encryption at rest is enabled for Amazon OpenSearch Service domains",
+            "result_kinds": [
+                "aws_opensearch_domain"
+            ],
+            "categories": [],
+            "risk": "Encrypting data at rest is critical to protect sensitive data from unauthorized access.",
+            "severity": "low",
+            "detect": {
+                "fix": "is(aws_opensearch_domain) and encryption_at_rest_options.enabled=false"
+            },
+            "remediation": {
+                "text": "To fix this issue, enable encryption at rest for your Amazon OpenSearch Service domain using AWS KMS to store and manage your encryption keys and the Advanced Encryption Standard algorithm with 256-bit keys (AES-256) for encryption.",
+                "url": "https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html",
+                "complexity": "low"
+            },
+            "localizations": {
+                "de": {
+                    "title": "Stellen Sie sicher, dass die Verschlüsselung in Ruhe für Amazon OpenSearch Service-Domänen aktiviert ist",
+                    "risk": "Die Verschlüsselung von Daten in Ruhe ist entscheidend, um sensible Daten vor unbefugtem Zugriff zu schützen.",
+                    "remediation": "Um dieses Problem zu beheben, aktivieren Sie die Verschlüsselung in Ruhe für Ihre Amazon OpenSearch Service-Domäne. Verwenden Sie dazu AWS KMS, um Ihre Verschlüsselungsschlüssel zu speichern und zu verwalten, und den Advanced Encryption Standard-Algorithmus mit 256-Bit-Schlüsseln (AES-256) zur Verschlüsselung."
+                }
+            }
+        }
+    ]
+}

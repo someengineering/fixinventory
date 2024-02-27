@@ -11,11 +11,11 @@ import boto3
 import botocore.exceptions
 from prometheus_client import Counter, Summary
 
-import resotolib.logger
-import resotolib.proc
-from resotolib.args import ArgumentParser, Namespace
-from resotolib.baseplugin import BaseCollectorPlugin
-from resotolib.baseresources import (
+import fixlib.logger
+import fixlib.proc
+from fixlib.args import ArgumentParser, Namespace
+from fixlib.baseplugin import BaseCollectorPlugin
+from fixlib.baseresources import (
     BaseAccount,
     BaseRegion,
     BaseResource,
@@ -23,14 +23,14 @@ from resotolib.baseresources import (
     metrics_resource_cleanup_exceptions,
     metrics_resource_pre_cleanup_exceptions,
 )
-from resotolib.config import Config, RunningConfig
-from resotolib.core.actions import CoreFeedback
-from resotolib.core.custom_command import execute_command_on_resource
-from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph
-from resotolib.logger import log, setup_logger
-from resotolib.types import JsonElement, Json
-from resotolib.utils import log_runtime
+from fixlib.config import Config, RunningConfig
+from fixlib.core.actions import CoreFeedback
+from fixlib.core.custom_command import execute_command_on_resource
+from fixlib.core.progress import ProgressDone, ProgressTree
+from fixlib.graph import Graph
+from fixlib.logger import log, setup_logger
+from fixlib.types import JsonElement, Json
+from fixlib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
@@ -38,9 +38,9 @@ from .utils import arn_partition_by_region, aws_session, global_region_by_partit
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
-metrics_collect = Summary("resoto_plugin_aws_collect_seconds", "Time it took the collect() method")
+metrics_collect = Summary("fix_plugin_aws_collect_seconds", "Time it took the collect() method")
 metrics_unhandled_account_exceptions = Counter(
-    "resoto_plugin_aws_unhandled_account_exceptions_total",
+    "fix_plugin_aws_unhandled_account_exceptions_total",
     "Unhandled AWS Plugin Account Exceptions",
     ["account"],
 )
@@ -667,11 +667,11 @@ def collect_account(
     task_data: Json,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
-    resotolib.proc.set_thread_name(collector_name)
+    fixlib.proc.set_thread_name(collector_name)
 
     if args is not None:
         ArgumentParser.args = args
-        setup_logger("resotoworker-aws", force=True, level=getattr(args, "log_level", None))
+        setup_logger("fixworker-aws", force=True, level=getattr(args, "log_level", None))
 
     if running_config is not None:
         Config.running_config.apply(running_config)
@@ -700,7 +700,7 @@ def collect_account(
 
 
 def collect_account_proxy(*args, queue: multiprocessing.Queue, **kwargs) -> None:  # type: ignore
-    resotolib.proc.collector_initializer()
+    fixlib.proc.collector_initializer()
     queue.put(collect_account(*args, **kwargs))
 
 

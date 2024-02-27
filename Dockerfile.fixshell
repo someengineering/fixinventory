@@ -1,0 +1,8 @@
+# This container runs `fixsh`. If the `--wait` flag is provided it will instead
+# go into an endless loop and wait for users to exec `fixsh` inside the container.
+# The idea being that this container is e.g. deployed into a k8s environment
+# having access to `fixcore`. Users can then authenticate with the k8s cluster
+# and kubectl exec into the container to run `fixsh`.
+ARG IMAGE_TAG=edge
+FROM ghcr.io/someengineering/fixinventorybase:${IMAGE_TAG}
+ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap", "/usr/bin/fixsh"]

@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_onelogin import OneLoginPlugin
+from fixlib.config import Config
+from fix_plugin_onelogin import OneLoginPlugin
 
 
 def test_config():

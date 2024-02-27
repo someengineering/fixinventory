@@ -13,14 +13,14 @@ from botocore.model import ServiceModel
 from fix_plugin_aws.configuration import AwsConfig
 from retrying import retry
 
-from resotolib.core.actions import CoreFeedback
-from resotolib.json import value_in_path
-from resotolib.types import Json, JsonElement
-from resotolib.utils import log_runtime, utc_str
+from fixlib.core.actions import CoreFeedback
+from fixlib.json import value_in_path
+from fixlib.types import Json, JsonElement
+from fixlib.utils import log_runtime, utc_str
 
 from .utils import global_region_by_partition
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 ThrottlingErrors = {
     "EC2ThrottledException",

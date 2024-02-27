@@ -1,5 +1,5 @@
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 from typing import cast, Any
 from types import SimpleNamespace

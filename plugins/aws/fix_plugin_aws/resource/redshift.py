@@ -2,18 +2,18 @@ from typing import ClassVar, Dict, Optional, List, Any
 
 from attrs import define, field
 
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
-from fix_plugin_aws.resource.kms import AwsKmsKey
+from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from resoto_plugin_aws.resource.kms import AwsKmsKey
 from resotolib.baseresources import ModelReference
 from resotolib.graph import Graph
 from resotolib.json_bender import Bender, S, Bend, ForallBend, K
-from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import ToDict
+from resoto_plugin_aws.aws_client import AwsClient
+from resoto_plugin_aws.utils import ToDict
 from typing import Type
 from datetime import datetime
 from resotolib.types import Json
-from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
-from fix_plugin_aws.resource.iam import AwsIamRole
+from resoto_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
+from resoto_plugin_aws.resource.iam import AwsIamRole
 
 service_name = "redshift"
 

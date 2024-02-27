@@ -1,6 +1,6 @@
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction, AwsLambdaPolicy
-from resotolib.graph import Graph
-from resotolib.json import from_json
+from fixlib.graph import Graph
+from fixlib.json import from_json
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace

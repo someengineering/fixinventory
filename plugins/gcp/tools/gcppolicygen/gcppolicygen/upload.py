@@ -23,8 +23,8 @@ mime = magic.Magic(mime=True)
 
 
 def upload_policies(args: Namespace) -> None:
-    """Upload the Resoto GCP policies to the CDN."""
-    log.info("Uploading Resoto GCP policies to the CDN")
+    """Upload the Fix GCP policies to the CDN."""
+    log.info("Uploading Fix GCP policies to the CDN")
     cdn_client = spaces_client(args.spaces_region, args.spaces_key, args.spaces_secret)
 
     # github_ref format:

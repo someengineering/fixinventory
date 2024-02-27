@@ -1,0 +1,35 @@
+{
+    "provider": "aws",
+    "service": "route53",
+    "checks": [
+        {
+            "name": "zone_query_logging_enabled",
+            "title": "Ensure Activation of DNS Query Logging in Route 53 for Enhanced Monitoring and Security",
+            "result_kinds": [
+                "aws_route53_zone"
+            ],
+            "categories": [
+                "security",
+                "compliance"
+            ],
+            "risk": "Not enabling query logging in Route 53 zones can obscure visibility into DNS query traffic, making it difficult to detect unusual patterns or malicious activities. Such a lack of visibility increases the risk of undetected security threats and hampers incident response efforts, potentially leading to prolonged exposure to cyber attacks or misuse.",
+            "severity": "medium",
+            "detect": {
+                "fix": "is(aws_route53_zone) and zone_logging_config==null"
+            },
+            "remediation": {
+                "text": "To enable query logging, navigate to the Route 53 console, select the desired hosted zone, and go to the Query logging tab. Click on 'Configure query logging', then choose a log destination (CloudWatch Logs, S3, or Kinesis Data Firehose) and configure the necessary settings. Ensure that the chosen logging service has the necessary permissions to receive logs. Finally, confirm and save your settings to start logging DNS queries.",
+                "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html",
+                "complexity": "low"
+            },
+            "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html",
+            "localizations": {
+                "de": {
+                    "title": "Aktivierung der DNS-Abfrageprotokollierung in Route 53 zur Verbesserung der Überwachung und Sicherheit gewährleisten",
+                    "risk": "Die Nichtaktivierung der Abfrageprotokollierung in Route 53-Zonen kann die Sichtbarkeit des DNS-Abfrageverkehrs beeinträchtigen und es schwierig machen, ungewöhnliche Muster oder bösartige Aktivitäten zu erkennen. Ein Mangel an Sichtbarkeit erhöht das Risiko unentdeckter Sicherheitsbedrohungen und behindert die Reaktion auf Vorfälle. Dadurch kann es zu einer längeren Exposition gegenüber Cyberangriffen oder Missbrauch kommen.",
+                    "remediation": "Um die Abfrageprotokollierung zu aktivieren, gehen Sie zur Route 53-Konsole, wählen Sie die gewünschte gehostete Zone aus und wechseln Sie zum Tab 'Abfrageprotokollierung'. Klicken Sie auf 'Abfrageprotokollierung konfigurieren' und wählen Sie dann ein Protokollziel (CloudWatch Logs, S3 oder Kinesis Data Firehose) aus und konfigurieren Sie die erforderlichen Einstellungen. Stellen Sie sicher, dass der ausgewählte Protokolldienst die erforderlichen Berechtigungen zum Empfangen von Protokollen hat. Bestätigen und speichern Sie abschließend Ihre Einstellungen, um die Protokollierung der DNS-Abfragen zu starten."
+                }
+            }
+        }
+    ]
+}

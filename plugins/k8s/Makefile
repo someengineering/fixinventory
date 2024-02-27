@@ -28,9 +28,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## static code analysis
-	black --line-length 120 --check resoto_plugin_k8s test
-	flake8 resoto_plugin_k8s
-	mypy --python-version 3.9 --strict resoto_plugin_k8s test
+	black --line-length 120 --check fix_plugin_k8s test
+	flake8 fix_plugin_k8s
+	mypy --python-version 3.9 --strict fix_plugin_k8s test
 
 test: ## run tests quickly with the default Python
 	pytest
@@ -39,7 +39,7 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source resoto_plugin_k8s -m pytest
+	coverage run --source fix_plugin_k8s -m pytest
 	coverage combine
 	coverage report -m
 	coverage html

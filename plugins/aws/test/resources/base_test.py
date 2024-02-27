@@ -6,7 +6,7 @@ from more_itertools import flatten
 
 from fix_plugin_aws.resource.base import AwsRegion, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType
-from resotolib.threading import ExecutorQueue, GatherFutures
+from fixlib.threading import ExecutorQueue, GatherFutures
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
 

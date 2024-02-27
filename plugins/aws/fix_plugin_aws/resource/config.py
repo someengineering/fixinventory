@@ -7,9 +7,9 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.utils import ToDict
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, bend
-from resotolib.types import Json
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, bend
+from fixlib.types import Json
 
 service_name = "config"
 

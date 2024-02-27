@@ -8,6 +8,7 @@ import copy
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from fix_plugin_aws.resource.cloudwatch import (
@@ -22,7 +23,7 @@ from fix_plugin_aws.resource.cloudwatch import (
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import ToDict, TagsValue, MetricNormalization
-from resotolib.baseresources import (
+from fixlib.baseresources import (
     BaseInstance,
     EdgeType,
     BaseVolume,
@@ -43,16 +44,16 @@ from resotolib.baseresources import (
     BaseRoutingTable,
     ModelReference,
 )
-from resotolib.config import current_config
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
-from resotolib.types import Json
+from fixlib.config import current_config
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
+from fixlib.types import Json
 
 
 # region InstanceType
-from resotolib.utils import utc
+from fixlib.utils import utc
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 service_name = "ec2"
 
 

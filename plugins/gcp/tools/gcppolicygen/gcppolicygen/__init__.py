@@ -3,18 +3,18 @@ import logging
 from argparse import ArgumentParser, Namespace
 
 """
-Resoto GCP policy generator and uploader
+Fix GCP policy generator and uploader
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This script generates the required GCP access policy and uploads it to the CDN.
-:copyright: © 2023 Some Engineering Inc.
+:copyright: © 2024 Some Engineering Inc.
 :license: AGPL-3.0, see LICENSE for more details.
 """
 
 __title__ = "gcppolicygen"
-__description__ = "Resoto GCP policy generator and uploader."
+__description__ = "Fix GCP policy generator and uploader."
 __author__ = "Some Engineering Inc."
 __license__ = "AGPL-3.0"
-__copyright__ = "Copyright © 2023 Some Engineering Inc."
+__copyright__ = "Copyright © 2024 Some Engineering Inc."
 __version__ = "0.0.1"
 
 
@@ -27,7 +27,7 @@ log.setLevel(logging.INFO)
 
 
 def get_arg_parser() -> ArgumentParser:
-    parser = ArgumentParser(description="Resoto GCP policy generator and uploader")
+    parser = ArgumentParser(description="Fix GCP policy generator and uploader")
     parser.add_argument(
         "--verbose",
         "-v",

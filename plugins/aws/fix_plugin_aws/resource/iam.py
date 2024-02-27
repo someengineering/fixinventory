@@ -9,7 +9,7 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import (
+from fixlib.baseresources import (
     BaseCertificate,
     BasePolicy,
     BaseGroup,
@@ -19,11 +19,11 @@ from resotolib.baseresources import (
     EdgeType,
     ModelReference,
 )
-from resotolib.graph import Graph
-from resotolib.json import value_in_path
-from resotolib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F, Sorted
-from resotolib.types import Json
-from resotolib.utils import parse_utc, utc
+from fixlib.graph import Graph
+from fixlib.json import value_in_path
+from fixlib.json_bender import Bender, S, Bend, AsDate, Sort, bend, ForallBend, F, Sorted
+from fixlib.types import Json
+from fixlib.utils import parse_utc, utc
 
 service_name = "iam"
 

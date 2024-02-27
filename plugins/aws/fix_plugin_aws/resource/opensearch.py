@@ -9,10 +9,10 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.cognito import AwsCognitoUserPool
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2InstanceType
 from fix_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, Bend, ParseJson, Sorted
-from resotolib.types import Json
+from fixlib.json_bender import Bender, S, Bend, ParseJson, Sorted
+from fixlib.types import Json
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 service_name = "opensearch"
 

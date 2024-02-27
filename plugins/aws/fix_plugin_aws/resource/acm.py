@@ -7,9 +7,9 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
-from resotolib.json_bender import Bender, S, ForallBend, Bend, F
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 service_name = "acm"
 
 

@@ -5,10 +5,10 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2LaunchTemplate
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import BaseAutoScalingGroup, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend
-from resotolib.types import Json
+from fixlib.baseresources import BaseAutoScalingGroup, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend
+from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
 
 service_name = "autoscaling"

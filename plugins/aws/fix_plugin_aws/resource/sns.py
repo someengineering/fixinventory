@@ -5,10 +5,10 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import EdgeType, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import F, Bender, S, bend, ParseJson, Sorted
-from resotolib.types import Json
+from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import F, Bender, S, bend, ParseJson, Sorted
+from fixlib.types import Json
 
 service_name = "sns"
 

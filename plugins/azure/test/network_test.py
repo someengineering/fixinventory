@@ -1,6 +1,7 @@
 from conftest import roundtrip_check, connect_resources
-from resoto_plugin_azure.resource.base import GraphBuilder, AzureResource
-from resoto_plugin_azure.resource.network import *
+from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
+from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.network import *
 
 from typing import List, Type
 
@@ -145,14 +146,17 @@ def test_load_balancer(builder: GraphBuilder) -> None:
     ]
     assert len(collected) == 2
 
-    resource_types: List[Type[AzureResource]] = [AzureVirtualNetwork]
+    resource_types: List[Type[AzureResource]] = [AzureVirtualNetwork, AzureManagedCluster]
+    roundtrip_check(AzurePublicIPAddress, builder)
     connect_resources(builder, resource_types)
 
+    assert collected[0].aks_public_ip_address == "41.85.154.247"
     assert len(builder.edges_of(AzureVirtualNetwork, AzureLoadBalancer)) == 1
+    assert len(builder.edges_of(AzureManagedCluster, AzureLoadBalancer)) == 1
 
 
 def test_network_profile(builder: GraphBuilder) -> None:
-    from resoto_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+    from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
 
     collected = roundtrip_check(AzureNetworkProfile, builder)
 

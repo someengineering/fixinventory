@@ -1,5 +1,5 @@
 from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
@@ -10,7 +10,7 @@ def test_redshift_cluster() -> None:
     res, builder = round_trip_for(AwsRedshiftCluster)
     assert len(builder.resources_of(AwsRedshiftCluster)) == 1
     assert len(res.tags) == 1
-    assert res.arn == "arn:aws:redshift:eu-central-1:test:cluster:resoto-delete-me"
+    assert res.arn == "arn:aws:redshift:eu-central-1:test:cluster:fix-delete-me"
 
 
 def test_tagging() -> None:

@@ -1,0 +1,33 @@
+{
+    "name": "",
+    "title": "",
+    "result_kinds": ["result kind returned by the query"],
+    "categories": [
+        "insights",
+        "security",
+        "compliance",
+        "cost"
+    ],
+    "risk": "",
+    "severity": "critical|high|medium|low|info",
+    "url": "",
+    "detect": {
+        "fix": "is(resource)",
+        "fix_cmd": "search is(resource) | do_something",
+        "sql": "select * from table where column = 'value'"
+    },
+    "remediation": {
+        "action": {
+            "aws_cli": null,
+            "fix": null,
+            "xxx": null
+        },
+        "text": "",
+        "url": "",
+        "complexity": "high|medium|low"
+    },
+    "related": [],
+    "internal_notes": ""
+}
+
+

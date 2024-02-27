@@ -47,18 +47,18 @@ from fix_plugin_aws.resource import (
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
-from resotolib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
-from resotolib.core.actions import CoreFeedback
-from resotolib.core.progress import ProgressDone, ProgressTree
-from resotolib.graph import Graph, BySearchCriteria, ByNodeId
-from resotolib.proc import set_thread_name
-from resotolib.threading import ExecutorQueue, GatherFutures
-from resotolib.types import Json
-from resotolib.json import value_in_path
+from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
+from fixlib.core.actions import CoreFeedback
+from fixlib.core.progress import ProgressDone, ProgressTree
+from fixlib.graph import Graph, BySearchCriteria, ByNodeId
+from fixlib.proc import set_thread_name
+from fixlib.threading import ExecutorQueue, GatherFutures
+from fixlib.types import Json
+from fixlib.json import value_in_path
 
 from .utils import global_region_by_partition
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 global_resources: List[Type[AwsResource]] = (
     cloudfront.resources

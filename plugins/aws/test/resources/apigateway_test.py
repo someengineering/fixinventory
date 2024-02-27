@@ -2,7 +2,7 @@ from collections import defaultdict
 from types import SimpleNamespace
 from typing import Any, Dict, cast
 from fix_plugin_aws.aws_client import AwsClient
-from resotolib.graph import Graph
+from fixlib.graph import Graph
 from test.resources import round_trip_for
 from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayDomainName
 

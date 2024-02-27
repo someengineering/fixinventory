@@ -6,12 +6,12 @@ from attr import field, evolve
 from attrs import define
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, AwsRegion
-from resotolib.baseresources import BaseQuota, EdgeType, ModelReference
-from resotolib.json_bender import Bender, S, Bend
-from resotolib.types import Json
+from fixlib.baseresources import BaseQuota, EdgeType, ModelReference
+from fixlib.json_bender import Bender, S, Bend
+from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 service_name = "service-quotas"
 
 

@@ -12,14 +12,14 @@ from boto3.session import Session as BotoSession
 from botocore.client import BaseClient
 from botocore.config import Config as BotoConfig
 
-from resotolib.durations import parse_duration
-from resotolib.json import from_json as from_js
-from resotolib.proc import num_default_threads
-from resotolib.types import Json
+from fixlib.durations import parse_duration
+from fixlib.json import from_json as from_js
+from fixlib.proc import num_default_threads
+from fixlib.types import Json
 
 from .utils import global_region_by_partition
 
-log = logging.getLogger("resoto.plugins.aws")
+log = logging.getLogger("fix.plugins.aws")
 
 
 @define(hash=True, slots=False)
@@ -164,7 +164,7 @@ class AwsConfig:
     scrape_org_role_arn: Optional[str] = field(
         default=None,
         metadata={
-            "description": "Role ARN to assume when listing AWS org accounts. If set to null Resoto will use the"
+            "description": "Role ARN to assume when listing AWS org accounts. If set to null Fix will use the"
             " default credentials it was started with to call organizations:ListAccounts"
         },
     )
@@ -172,7 +172,7 @@ class AwsConfig:
         default=True,
         metadata={
             "description": "Prefer the account alias as the account name instead of organization."
-            " If set to false, Resoto will try to use the organization name. If scrape_org_role_arn is defined,"
+            " If set to false, Fix will try to use the organization name. If scrape_org_role_arn is defined,"
             " the role will be assumed when calling organizations:DescribeAccount."
         },
     )
@@ -244,7 +244,7 @@ class AwsConfig:
         metadata={
             "type_hint": "duration",
             "description": "This value is used to look up atime and mtime for volumes and rds instances.\n"
-            "It defines how long Resoto should look back for CloudWatch metrics.\n"
+            "It defines how long Fix should look back for CloudWatch metrics.\n"
             "If no metric is found, now-period is used as atime and mtime. Defaults to 60 days.",
         },
     )
@@ -253,7 +253,7 @@ class AwsConfig:
         metadata={
             "type_hint": "duration",
             "description": "Granularity of atime and mtime.\n"
-            "Higher precision is more expensive: Resoto will fetch period * granularity data points.\n"
+            "Higher precision is more expensive: Fix will fetch period * granularity data points.\n"
             "Defaults to 1 hour.",
         },
     )

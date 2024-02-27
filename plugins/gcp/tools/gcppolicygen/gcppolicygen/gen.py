@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
-from resoto_plugin_gcp.collector import called_collect_apis, called_mutator_apis
-from resoto_plugin_gcp.gcp_client import GcpApiSpec
+from fix_plugin_gcp.collector import called_collect_apis, called_mutator_apis
+from fix_plugin_gcp.gcp_client import GcpApiSpec
 
 
 def get_policies(collect: bool = True, mutate: bool = True) -> None:
@@ -11,9 +11,9 @@ def get_policies(collect: bool = True, mutate: bool = True) -> None:
 
     policies = []
     if collect:
-        c = iam_role_for("resoto_access", "Permissions required to collect resources.", called_collect_apis())
+        c = iam_role_for("fix_access", "Permissions required to collect resources.", called_collect_apis())
         policies.append(c)
     if mutate:
-        m = iam_role_for("resoto_mutate", "Permissions required to mutate resources.", called_mutator_apis())
+        m = iam_role_for("fix_mutate", "Permissions required to mutate resources.", called_mutator_apis())
         policies.append(m)
     return policies

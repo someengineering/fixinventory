@@ -1,5 +1,5 @@
-from resotolib.config import Config
-from resoto_plugin_scarf import ScarfCollectorPlugin
+from fixlib.config import Config
+from fix_plugin_scarf import ScarfCollectorPlugin
 
 
 def test_config():

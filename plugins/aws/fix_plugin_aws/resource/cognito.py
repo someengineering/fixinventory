@@ -5,10 +5,10 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from resotolib.baseresources import BaseUser, EdgeType, ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import S, Bend, Bender, ForallBend, K
-from resotolib.types import Json
+from fixlib.baseresources import BaseUser, EdgeType, ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import S, Bend, Bender, ForallBend, K
+from fixlib.types import Json
 
 service_name = "cognito-idp"
 

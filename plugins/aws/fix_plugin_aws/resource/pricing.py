@@ -7,9 +7,9 @@ from attr import field, frozen
 from botocore.loaders import Loader
 from fix_plugin_aws.aws_client import AwsClient
 
-from resotolib.json import from_json
-from resotolib.json_bender import Bend, Bender, F, ForallBend, MapDict, S, bend
-from resotolib.types import Json
+from fixlib.json import from_json
+from fixlib.json_bender import Bend, Bender, F, ForallBend, MapDict, S, bend
+from fixlib.types import Json
 from fix_plugin_aws.utils import arn_partition_by_region
 
 service_name = "pricing"

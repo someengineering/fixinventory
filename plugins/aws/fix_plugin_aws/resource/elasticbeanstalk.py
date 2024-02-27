@@ -7,10 +7,10 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.elbv2 import AwsAlb
 from fix_plugin_aws.resource.sqs import AwsSqsQueue
 from fix_plugin_aws.utils import ToDict
-from resotolib.baseresources import ModelReference
-from resotolib.graph import Graph
-from resotolib.json_bender import Bender, S, Bend, ForallBend, bend
-from resotolib.types import Json
+from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
+from fixlib.json_bender import Bender, S, Bend, ForallBend, bend
+from fixlib.types import Json
 
 service_name = "elasticbeanstalk"
 
