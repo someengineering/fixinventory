@@ -1,7 +1,7 @@
 [project]
 name = "fixinventory-plugin-onelogin"
 description = "Fix OneLogin Plugin"
-version = "4.0.0a2"
+version = "4.0.0a3"
 authors = [{name="Some Engineering Inc."}]
 license = { text="AGPLv3" }
 requires-python = ">=3.9"
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "fixinventorylib==4.0.0a2",
+    "fixinventorylib==4.0.0a3",
     "onelogin==2.0.4",
 ]
 

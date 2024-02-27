@@ -1,6 +1,6 @@
 [project]
 name = "fixinventoryshell"
-version = "4.0.0a2"
+version = "4.0.0a3"
 authors = [{name="Some Engineering Inc."}]
 description = "Commandline interpreter to interact with Fix."
 license = { text="AGPLv3" }
@@ -28,7 +28,7 @@ readme = {file="README.md", content-type="text/markdown"}
 keywords = ["cloud security"]
 
 dependencies = [
-    "fixinventorylib==4.0.0a2",
+    "fixinventorylib==4.0.0a3",
     "prompt-toolkit",
     "rich",
     "fixinventoryclient",
