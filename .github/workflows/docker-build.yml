@@ -78,10 +78,8 @@ jobs:
       - name: Docker fixinventorybase meta
         id: basemeta
         uses: docker/metadata-action@v4
-        with: # todo: remove resotobase before tagging 4.0
+        with:
           images: |
-            someengineering/resotobase
-            ghcr.io/someengineering/resotobase
             someengineering/fixinventorybase
             ghcr.io/someengineering/fixinventorybase
           flavor: |
@@ -101,12 +99,10 @@ jobs:
         if: github.event_name != 'pull_request'
         id: coremeta
         uses: docker/metadata-action@v4
-        with: # todo: remove resotocore before tagging 4.0
+        with:
           images: |
             someengineering/fixcore
             ghcr.io/someengineering/fixcore
-            someengineering/resotocore
-            ghcr.io/someengineering/resotocore
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
@@ -124,12 +120,10 @@ jobs:
         if: github.event_name != 'pull_request'
         id: workermeta
         uses: docker/metadata-action@v4
-        with: # todo: remove resotoworker before tagging 4.0
+        with:
           images: |
             someengineering/fixworker
             ghcr.io/someengineering/fixworker
-            someengineering/resotoworker
-            ghcr.io/someengineering/resotoworker
           flavor: |
             latest=${{ steps.platform.outputs.latest }}
           tags: |
