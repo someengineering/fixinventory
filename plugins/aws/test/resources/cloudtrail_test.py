@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 
-from resoto_plugin_aws.resource.cloudtrail import AwsCloudTrail
-from resoto_plugin_aws.resource.kms import AwsKmsKey
-from resoto_plugin_aws.resource.s3 import AwsS3Bucket
-from resoto_plugin_aws.resource.sns import AwsSnsTopic
+from fix_plugin_aws.resource.cloudtrail import AwsCloudTrail
+from fix_plugin_aws.resource.kms import AwsKmsKey
+from fix_plugin_aws.resource.s3 import AwsS3Bucket
+from fix_plugin_aws.resource.sns import AwsSnsTopic
 from resotolib.threading import ExecutorQueue
 from test.resources import round_trip_for
 

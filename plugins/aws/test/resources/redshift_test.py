@@ -1,9 +1,9 @@
-from resoto_plugin_aws.resource.redshift import AwsRedshiftCluster
+from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
-from resoto_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 
 
 def test_redshift_cluster() -> None:

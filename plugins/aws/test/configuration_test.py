@@ -1,7 +1,7 @@
 from resotolib.proc import num_default_threads
 from resotolib.config import Config
-from resoto_plugin_aws import AWSCollectorPlugin
-from resoto_plugin_aws.configuration import AwsConfig
+from fix_plugin_aws import AWSCollectorPlugin
+from fix_plugin_aws.configuration import AwsConfig
 
 
 def test_default_config() -> None:

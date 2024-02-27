@@ -4,8 +4,8 @@ from types import SimpleNamespace
 from resotolib.graph import Graph
 from test.resources import round_trip_for
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.kms import AwsKmsKey
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.kms import AwsKmsKey
 
 
 def test_keys() -> None:

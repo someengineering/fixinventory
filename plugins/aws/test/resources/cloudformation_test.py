@@ -1,9 +1,9 @@
-from resoto_plugin_aws.resource.cloudformation import (
+from fix_plugin_aws.resource.cloudformation import (
     AwsCloudFormationStack,
     AwsCloudFormationStackSet,
     AwsCloudFormationStackInstanceSummary,
 )
-from resoto_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 from resotolib.graph import Graph
 from test.resources import round_trip_for
 from typing import Any, cast

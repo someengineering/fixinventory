@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.ssm import (
+from fix_plugin_aws.resource.ssm import (
     AwsSSMInstance,
     AwsSSMDocument,
     AwsSSMAccountSharingInfo,

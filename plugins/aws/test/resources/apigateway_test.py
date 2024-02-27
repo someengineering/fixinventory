@@ -1,10 +1,10 @@
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import Any, Dict, cast
-from resoto_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.aws_client import AwsClient
 from resotolib.graph import Graph
 from test.resources import round_trip_for
-from resoto_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayDomainName
+from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayDomainName
 
 
 def test_rest_apis() -> None:

@@ -1,7 +1,7 @@
 import os
 from yaml import safe_dump
-from resoto_plugin_aws.collector import called_collect_apis, called_mutator_apis
-from resoto_plugin_aws.resource.base import AwsApiSpec
+from fix_plugin_aws.collector import called_collect_apis, called_mutator_apis
+from fix_plugin_aws.resource.base import AwsApiSpec
 
 
 org_list_policy = {

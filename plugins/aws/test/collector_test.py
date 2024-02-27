@@ -5,14 +5,14 @@ from typing import Type, List, Tuple, Set
 
 from networkx import DiGraph, is_directed_acyclic_graph
 
-from resoto_plugin_aws.collector import (
+from fix_plugin_aws.collector import (
     AwsAccountCollector,
     all_resources,
     called_collect_apis,
     called_mutator_apis,
 )
-from resoto_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from resoto_plugin_aws.resource.ec2 import AwsEc2Instance
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from resotolib.core.model_export import dataclasses_to_resotocore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 

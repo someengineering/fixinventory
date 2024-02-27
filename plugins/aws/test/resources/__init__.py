@@ -8,9 +8,9 @@ from typing import Type, Any, Callable, Set, Tuple, Optional
 from attrs import fields
 from boto3 import Session
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.configuration import AwsConfig
-from resoto_plugin_aws.resource.base import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.configuration import AwsConfig
+from fix_plugin_aws.resource.base import (
     GraphBuilder,
     AwsResourceType,
     AwsAccount,

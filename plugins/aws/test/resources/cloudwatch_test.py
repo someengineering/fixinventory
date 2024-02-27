@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from resotolib.graph import Graph
 from test.resources import round_trip_for
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.cloudwatch import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchAlarm,
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,

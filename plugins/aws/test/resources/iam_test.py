@@ -3,8 +3,8 @@ from textwrap import dedent
 from types import SimpleNamespace
 from typing import Any, cast
 
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.iam import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.iam import (
     AwsIamPolicy,
     AwsIamGroup,
     AwsIamServerCertificate,

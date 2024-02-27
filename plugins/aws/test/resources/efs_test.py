@@ -1,4 +1,4 @@
-from resoto_plugin_aws.resource.efs import AwsEfsFileSystem, AwsEfsMountTarget, AwsEfsAccessPoint
+from fix_plugin_aws.resource.efs import AwsEfsFileSystem, AwsEfsMountTarget, AwsEfsAccessPoint
 from test.resources import round_trip_for
 
 

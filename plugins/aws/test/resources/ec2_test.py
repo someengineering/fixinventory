@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from typing import cast, Any
-from resoto_plugin_aws.aws_client import AwsClient
-from resoto_plugin_aws.resource.ec2 import (
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.resource.ec2 import (
     AwsEc2Instance,
     AwsEc2KeyPair,
     AwsEc2Volume,
