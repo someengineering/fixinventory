@@ -245,7 +245,7 @@ class CoreConfigHandler(Service):
             )
             await self.config_handler.put_config_validation(ConfigValidation(FixReportCheck, external_validation=True))
 
-            log.debug("FixInventory core config model updated.")
+            log.debug("Fix Inventory core config model updated.")
         except Exception as ex:
             log.error(f"Could not update fix core config model: {ex}", exc_info=ex)
 

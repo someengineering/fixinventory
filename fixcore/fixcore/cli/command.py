@@ -1721,7 +1721,7 @@ class JqCommand(CLICommand, OutputTransformer):
     Every element from the incoming stream is passed to jq.
     See: https://stedolan.github.io/jq/ for a list of possible jq filter definitions.
 
-    FixInventory will rewrite attribute paths to match the defined section.
+    Fix Inventory will rewrite attribute paths to match the defined section.
     Example:
     ```bash
     # the accessed path is rewritten to jq .reported.name
@@ -4837,7 +4837,7 @@ class CertificateCommand(CLICommand):
     ```
 
     Create a new TLS key and certificate based on the internal root CA certificate.
-    This can be used to create a self-signed certificate for additional components that communicate with FixInventory.
+    This can be used to create a self-signed certificate for additional components that communicate with Fix Inventory.
 
 
     ## Parameters

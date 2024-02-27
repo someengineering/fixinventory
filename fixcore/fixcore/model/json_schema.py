@@ -146,7 +146,7 @@ def json_schema(model: Model) -> Json:
     return {
         "$id": f"https://inventory.fix.security/schemas/{version()}/resources.json",
         "$schema": "https://json-schema.org/draft/2020-12/schema",  # latest draft
-        "title": "FixInventory Resource Model Schema",
+        "title": "Fix Inventory Resource Model Schema",
         "oneOf": [
             ref_type(model, k)
             for k in kinds

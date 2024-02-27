@@ -241,7 +241,7 @@ class DbAccess(Service):
                 log.info(
                     "Database is using an empty password. "
                     "Secure the root account with the provided user password. "
-                    "Login to the FixInventory database via provided username and password. "
+                    "Login to the Fix Inventory database via provided username and password. "
                     "Login to the System database via `root` and provided password!"
                 )
             if not change:
@@ -251,7 +251,7 @@ class DbAccess(Service):
                 "Database or user does not exist or does not have enough permissions. "
                 f"Attempt to create user/database via default system account is not possible. Reason: {ex}. "
                 "You can provide the password of the root user via --graphdb-root-password to setup "
-                "a FixInventory user and database automatically."
+                "a Fix Inventory user and database automatically."
             )
 
     # Only used during startup.
