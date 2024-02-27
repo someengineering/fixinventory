@@ -14,7 +14,7 @@ __title__ = "awspolicygen"
 __description__ = "Fix AWS policy generator and uploader."
 __author__ = "Some Engineering Inc."
 __license__ = "AGPL-3.0"
-__copyright__ = "Copyright © 2023 Some Engineering Inc."
+__copyright__ = "Copyright © 2024 Some Engineering Inc."
 __version__ = "0.0.1"
 
 
