@@ -65,5 +65,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIXSHELL }}
+          password: ${{ secrets.PYPI_FIXINVENTORYSHELL }}
           packages_dir: ./fixshell/dist/
