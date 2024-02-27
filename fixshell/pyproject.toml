@@ -31,7 +31,7 @@ dependencies = [
     "fixinventorylib==4.0.0a2",
     "prompt-toolkit",
     "rich",
-    "fixclient",
+    "fixinventoryclient",
     "aiohttp[speedups]",
 ]
 
