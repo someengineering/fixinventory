@@ -86,7 +86,7 @@ class PackageManager(Service):
         self.update_lock: Optional[Lock] = None
         self.repos_cache_directory: Path = repos_cache_directory
         self.cleanup_task: Optional[asyncio.Task[None]] = None
-        self.cdn_url = "https://cdn.some.engineering/fix/apps/index.json"
+        self.cdn_url = "https://cdn.some.engineering/fixinventory/apps/index.json"
         self.add_command_alias = add_command_alias
         self.remove_command_alias = remove_command_alias
 

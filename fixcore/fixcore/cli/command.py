@@ -5180,9 +5180,9 @@ class ReportCommand(CLICommand, EntityProvider):
 class AppsCommand(CLICommand):
     """
     ```shell
-    apps search [pattern] [--index-url https://cdn.some.engineering/fix/apps/index.json]
-    app info <app_name> [--index-url https://cdn.some.engineering/fix/apps/index.json]
-    app install <app_name> [--index-url https://cdn.some.engineering/fix/apps/index.json]
+    apps search [pattern] [--index-url https://cdn.some.engineering/fixinventory/apps/index.json]
+    app info <app_name> [--index-url https://cdn.some.engineering/fixinventory/apps/index.json]
+    app install <app_name> [--index-url https://cdn.some.engineering/fixinventory/apps/index.json]
     app edit <app_name>
     app uninstall <app_name>
     app update <app_name>|all
@@ -5191,7 +5191,7 @@ class AppsCommand(CLICommand):
     ```
 
     - `apps search [pattern]`: Lists all apps available in the index
-      https://cdn.some.engineering/fix/apps/index.json (or other URL if specified). Supports filtering by pattern.
+      https://cdn.some.engineering/fixinventory/apps/index.json (or other URL if specified). Supports filtering by pattern.
     - `app info <app_name>`: Show information about an app.
     - `app install <app_name>`: Install an app.
     - `app edit <app_name>`: Edit an app.
@@ -5207,7 +5207,7 @@ class AppsCommand(CLICommand):
 
     ## Options
     - `--index-url <url>`: The index file to use for searching for apps.
-      Defaults to https://cdn.some.engineering/fix/apps/index.json.
+      Defaults to https://cdn.some.engineering/fixinventory/apps/index.json.
     - `--dry-run`: Run the app but do not make any changes.
     - `--config <config_name>`: The configuration to use to run the app. Defaults to the default configuration.
     """

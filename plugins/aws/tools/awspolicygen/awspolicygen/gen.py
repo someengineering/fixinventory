@@ -71,7 +71,7 @@ def get_policies(org_list: bool = True, collect: bool = True, mutate: bool = Tru
 
 def get_cf_template() -> str:
     local_path = os.path.abspath(os.path.dirname(__file__))
-    template_path = os.path.join(local_path, "templates/fix-role.template.in")
+    template_path = os.path.join(local_path, "templates/fixinventory-role.template.in")
     with open(template_path, "r") as f:
         template = f.readlines()
 
