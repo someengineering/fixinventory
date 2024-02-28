@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple, Set
 from collections import defaultdict
 
+from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSetInstance
 from fix_plugin_k8s.base import KubernetesResource, SortTransitionTime
 from fixlib.baseresources import (
     BaseAccount,
@@ -34,7 +35,6 @@ from fixlib.json_bender import (
     Sort,
 )
 from fixlib.types import Json
-from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSetInstance
 
 log = logging.getLogger("fix.plugins.k8s")
 
@@ -416,9 +416,11 @@ class KubernetesNode(KubernetesResource, BaseInstance):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        if provider_id := self.provider_id:
+        if (provider_id := self.provider_id) and (provider_id.startswith("azure://")):
             _, vmss_vmss_instance_id = provider_id.split("azure://")
-            builder.add_edge(self, EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_vmss_instance_id)
+            builder.add_edge(
+                self, EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_vmss_instance_id
+            )
 
 
 # region pod
