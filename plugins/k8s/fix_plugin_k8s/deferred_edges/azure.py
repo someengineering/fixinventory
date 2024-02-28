@@ -2,6 +2,14 @@ from fixlib.baseresources import BaseResource
 from fixlib.graph import BySearchCriteria, ByNodeId, Graph
 from fix_plugin_k8s.deferred_edges.utils import rgetattr
 
+def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None:
+    if resource.kind == "kubernetes_node":
+        if (pid := rgetattr(resource, "node_spec.provider_id", None)) and (pid.startswith("azure://")):
+            _, vmss_vmss_instance_id = pid.split("azure://")
+            graph.add_deferred_edge(
+                BySearchCriteria(f"is(azure_virtual_machine_scale_set_instance) and reported.id={vmss_vmss_instance_id}"),
+                ByNodeId(resource.chksum),
+            )
 
 def link_k8s_cluster_to_aks_cluster(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_cluster":
@@ -37,6 +45,7 @@ def link_pv_to_azure_disk(graph: Graph, resource: BaseResource) -> None:
 
 
 def link_all(graph: Graph, resource: BaseResource) -> None:
+    link_k8s_node_to_vmss_instance(graph, resource)
     link_k8s_cluster_to_aks_cluster(graph, resource)
     link_service_to_azure_lb(graph, resource)
     link_pv_to_azure_disk(graph, resource)

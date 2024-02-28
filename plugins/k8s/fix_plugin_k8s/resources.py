@@ -34,6 +34,7 @@ from fixlib.json_bender import (
     Sort,
 )
 from fixlib.types import Json
+from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSetInstance
 
 log = logging.getLogger("fix.plugins.k8s")
 
@@ -404,7 +405,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     }
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["kubernetes_csi_node", "kubernetes_pod"],
+            "default": ["kubernetes_csi_node", "kubernetes_pod", "azure_virtual_machine_scale_set_instance"],
             "delete": [],
         }
     }
@@ -412,6 +413,12 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     provider_id: Optional[str] = None
     node_status: Optional[KubernetesNodeStatus] = field(default=None, metadata=dict(ignore_history=True))
     node_spec: Optional[KubernetesNodeSpec] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if provider_id := self.provider_id:
+            _, vmss_vmss_instance_id = provider_id.split("azure://")
+            builder.add_edge(self, EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_vmss_instance_id)
 
 
 # region pod

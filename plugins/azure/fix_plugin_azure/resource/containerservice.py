@@ -923,7 +923,7 @@ class AzureManagedCluster(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
 
         if agent_pool_profiles := self.agent_pool_profiles:
-            vmss_agent_pool_names_and_ids = self._get_ip_config_ids_and_vm_ids(builder)
+            vmss_agent_pool_names_and_ids = self._get_poolnames_and_vmss_ids(builder)
             for agent_pool_profile_name in agent_pool_profiles:
                 for info in vmss_agent_pool_names_and_ids:
                     pool_name, vmss_id = info
@@ -932,7 +932,7 @@ class AzureManagedCluster(AzureResource):
                             self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSet, id=vmss_id
                         )
 
-    def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+    def _get_poolnames_and_vmss_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
         from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSet
 
         get_poolname: Callable[[AzureVirtualMachineScaleSet], str] = (
