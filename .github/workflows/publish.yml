@@ -112,35 +112,35 @@ jobs:
           committer: C.K. <98986935+some-ci@users.noreply.github.com>
           author: C.K. <98986935+some-ci@users.noreply.github.com>
 
-      - name: Check out someengineering/resoto.com
+      - name: Check out someengineering/inventory.fix.security
         uses: actions/checkout@v3
         with:
-          repository: someengineering/resoto.com
-          path: resoto.com
+          repository: someengineering/inventory.fix.security
+          path: inventory.fix.security
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Install dependencies
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn install --frozen-lockfile
 
       - name: Update fixcore API YAML
         shell: bash
         run: |
-          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > resoto.com/openapi/fixcore-edge.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > inventory.fix.security/openapi/fixcore-edge.yml
 
       - name: Regenerate API docs
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn gen-api-docs
 
       - name: Update AWS policy JSON
         shell: bash
-        working-directory: ./resoto.com/iam/aws/edge
+        working-directory: ./inventory.fix.security/iam/aws/edge
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
-          wget -qO ResotoMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
+          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
 
       - name: Wait for GCP policies to be uploaded
         if: github.event_name != 'workflow_dispatch'
@@ -152,15 +152,15 @@ jobs:
 
       - name: Update GCP policy JSON
         shell: bash
-        working-directory: ./resoto.com/iam/gcp/edge
+        working-directory: ./inventory.fix.security/iam/gcp/edge
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
-          wget -qO resoto_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
+          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
 
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
         shell: bash
-        working-directory: ./resoto.com/static/img/kroki
+        working-directory: ./inventory.fix.security/static/img/kroki
         run: |
           find . -type f -name "*.svg" -prune -exec rm {} \+
 
@@ -170,27 +170,27 @@ jobs:
         run: |
           yq '.services.fixworker.environment += "FIXWORKER_OVERRIDE=fixworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
           PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
-          cd ${{ github.workspace }}/resoto.com/docs/reference/unified-data-model
-          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
+          cd ${{ github.workspace }}/inventory.fix.security/docs/reference/unified-data-model
+          python3 ${{ github.workspace }}/inventory.fix.security/tools/export_models.py
 
       - name: Build
         continue-on-error: true
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn build
 
       - name: Optimize and format
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn optimize
           yarn format
 
-      - name: Create someengineering/resoto.com pull request
+      - name: Create someengineering/inventory.fix.security pull request
         uses: peter-evans/create-pull-request@v4
         env:
           HUSKY: 0
         with:
-          path: resoto.com
+          path: inventory.fix.security
           commit-message: "chore: update edge documentation"
           title: "chore: update edge documentation"
           body: |
@@ -229,24 +229,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check out someengineering/resoto.com
+      - name: Check out someengineering/inventory.fix.security
         if: steps.release.outputs.prerelease == 'false'
         uses: actions/checkout@v3
         with:
-          repository: someengineering/resoto.com
-          path: resoto.com
+          repository: someengineering/inventory.fix.security
+          path: inventory.fix.security
           token: ${{ secrets.SOME_CI_PAT }}
 
       - name: Install dependencies
         if: steps.release.outputs.prerelease == 'false'
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn install --frozen-lockfile
 
       - name: Tag docs version
         if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true # versioned doc may already exist
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn run docusaurus docs:version "${{ steps.release.outputs.docsVersion }}"
 
@@ -262,12 +262,12 @@ jobs:
           version_major=$(cut -d '.' -f 1 <<< ${GITHUB_REF##*/})
           prev_release=$(echo $(gh api repos/someengineering/fixinventory/releases) | jq -r "map(select(.tag_name | startswith(\"${version_major}.\")) | select(.prerelease == false))[0].tag_name")
           [ -n "$prev_release" ] && prev_release=$(echo $(gh api repos/someengineering/fixinventory/releases/latest) | jq -r '.tag_name')
-          dir="resoto.com/releases/${{ steps.release.outputs.tag }}"
+          dir="inventory.fix.security/releases/${{ steps.release.outputs.tag }}"
           mkdir -p $dir
           file="${dir}/index.mdx"
           python3 tools/release_notes.py ${prev_release} ${{ steps.release.outputs.tag }} > $file
           link="/releases/${{ steps.release.outputs.tag }}"
-          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"]="${{ steps.release.outputs.tag }}"' resoto.com/latestRelease.json) > resoto.com/latestRelease.json
+          echo $(jq '.["${{ steps.release.outputs.docsVersion }}"]="${{ steps.release.outputs.tag }}"' inventory.fix.security/latestRelease.json) > inventory.fix.security/latestRelease.json
           echo "tag=${{ steps.release.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "file=$file" >> $GITHUB_OUTPUT
           echo "link=$link" >> $GITHUB_OUTPUT
@@ -276,11 +276,11 @@ jobs:
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
         run: |
-          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > resoto.com/openapi/resotocore-${{ steps.release.outputs.docsVersion }}.yml
+          yq '.servers[0].url = "https://{host}:{port}" | .servers[0].variables.host.default="localhost" | .servers[0].variables.port.default="8900" | del(.servers[0].description)' fixcore/fixcore/static/api-doc.yaml > inventory.fix.security/openapi/fixcore-${{ steps.release.outputs.docsVersion }}.yml
 
       - name: Regenerate API docs
         if: steps.release.outputs.prerelease == 'false'
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn gen-api-docs
 
@@ -295,11 +295,11 @@ jobs:
       - name: Update AWS policy JSON
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
-        working-directory: ./resoto.com/iam/aws/${{ steps.release.outputs.docsVersion }}
+        working-directory: ./inventory.fix.security/iam/aws/${{ steps.release.outputs.docsVersion }}
         run: |
-          wget -qO ResotoOrgList.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixOrgList.json
-          wget -qO ResotoCollect.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixCollect.json
-          wget -qO ResotoMutate.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixMutate.json
+          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixOrgList.json
+          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixCollect.json
+          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixMutate.json
 
       - name: Wait for GCP policies to be uploaded
         if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
@@ -312,10 +312,10 @@ jobs:
       - name: Update GCP policy JSON
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
-        working-directory: ./resoto.com/iam/gcp/${{ steps.release.outputs.docsVersion }}
+        working-directory: ./inventory.fix.security/iam/gcp/${{ steps.release.outputs.docsVersion }}
         run: |
-          wget -qO resoto_access.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_access.json
-          wget -qO resoto_mutate.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_mutate.json
+          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_access.json
+          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_mutate.json
 
       - name: Modify Docker Compose YAML
         if: steps.release.outputs.prerelease == 'false'
@@ -326,7 +326,7 @@ jobs:
       - name: Clean existing Kroki images
         if: steps.release.outputs.prerelease == 'false'
         shell: bash
-        working-directory: ./resoto.com/static/img/kroki
+        working-directory: ./inventory.fix.security/static/img/kroki
         run: |
           find . -type f -name "*.svg" -prune -exec rm {} \+
 
@@ -345,30 +345,30 @@ jobs:
         run: |
           yq '.services.fixworker.environment += "FIXWORKER_OVERRIDE=fixworker.collector=example"' docker-compose.yaml > docker-compose-model-gen.yaml
           PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
-          cd ${{ github.workspace }}/resoto.com/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
-          python3 ${{ github.workspace }}/resoto.com/tools/export_models.py
+          cd ${{ github.workspace }}/inventory.fix.security/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
+          python3 ${{ github.workspace }}/inventory.fix.security/tools/export_models.py
 
       - name: Build
         if: steps.release.outputs.prerelease == 'false'
         continue-on-error: true
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn build
 
       - name: Optimize and format
         if: steps.release.outputs.prerelease == 'false'
-        working-directory: ./resoto.com
+        working-directory: ./inventory.fix.security
         run: |
           yarn optimize
           yarn format
 
-      - name: Create someengineering/resoto.com pull request
+      - name: Create someengineering/inventory.fix.security pull request
         if: steps.release.outputs.prerelease == 'false'
         uses: peter-evans/create-pull-request@v4
         env:
           HUSKY: 0
         with:
-          path: resoto.com
+          path: inventory.fix.security
           commit-message: "chore: ${{ steps.release.outputs.tag }} release"
           title: "chore: ${{ steps.release.outputs.tag }} release"
           body: |
@@ -386,7 +386,7 @@ jobs:
       - name: Write release body
         shell: bash
         run: |
-          [ ${{ steps.release.outputs.prerelease }} == 'false' ] && echo -e "### Release Notes\n\nhttps://resoto.com${{ steps.release_notes.outputs.link }}\n" > release_body.txt
+          [ ${{ steps.release.outputs.prerelease }} == 'false' ] && echo -e "### Release Notes\n\nhttps://inventory.fix.security${{ steps.release_notes.outputs.link }}\n" > release_body.txt
           echo -e "### Docker Images\n" >> release_body.txt
           echo -e "- \`somecr.io/someengineering/fixcore:${{ steps.release.outputs.tag }}\`" >> release_body.txt
           echo -e "- \`somecr.io/someengineering/fixworker:${{ steps.release.outputs.tag }}\`" >> release_body.txt
