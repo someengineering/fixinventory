@@ -1,25 +1,25 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Fix Access
+Description: Fix Inventory Access
 
 Parameters:
-  FixAccountID:
-    Description: The Account ID where Fix has been deployed
+  FixInventoryAccountID:
+    Description: The Account ID where Fix Inventory has been deployed
     Type: Number
   RoleName:
-    Description: The name of the role Fix uses to run and collect resources
+    Description: The name of the role Fix Inventory uses to run and collect resources
     Type: String
-    Default: FixAccess
+    Default: FixInventoryAccess
 
 Outputs:
-  FixAccessRoleName:
-    Description: Name of the Fix Access Role
-    Value: !GetAtt FixAccessRoleNameFunction.role_name
-  FixAccessRoleArn:
-    Description: ARN of the Fix Access Role
-    Value: !GetAtt CrossAccountAccessRoleForFix.Arn
+  FixInventoryAccessRoleName:
+    Description: Name of the Fix Inventory Access Role
+    Value: !GetAtt FixInventoryAccessRoleNameFunction.role_name
+  FixInventoryAccessRoleArn:
+    Description: ARN of the Fix Inventory Access Role
+    Value: !GetAtt CrossAccountAccessRoleForFixInventory.Arn
 
 Resources:
-  FixRoleExistsCheckFunction:
+  FixInventoryRoleExistsCheckFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
@@ -48,7 +48,7 @@ Resources:
               except Exception as e:
                   print("send(..) failed executing requests.put(..): " + str(e))
           def fix_role_check(event, context):
-              role_name = event["ResourceProperties"].get("RoleName", "FixAccess")
+              role_name = event["ResourceProperties"].get("RoleName", "FixInventoryAccess")
               response_data = {"role_name": role_name}
               if event.get("RequestType") in ("Delete", "Update"):
                   send(event, context, "SUCCESS", response_data)
@@ -73,9 +73,9 @@ Resources:
       Handler: index.fix_role_check
       Runtime: python3.9
       Timeout: 30
-      Role: !GetAtt FixRoleExistsCheckExecutionRole.Arn
+      Role: !GetAtt FixInventoryRoleExistsCheckExecutionRole.Arn
 
-  FixRoleExistsCheckExecutionRole:
+  FixInventoryRoleExistsCheckExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -88,7 +88,7 @@ Resources:
           Action: sts:AssumeRole
       Path: '/'
       Policies:
-      - PolicyName: FixRoleExistsCheckExecutionPolicy
+      - PolicyName: FixInventoryRoleExistsCheckExecutionPolicy
         PolicyDocument:
           Version: 2012-10-17
           Statement:
@@ -102,23 +102,23 @@ Resources:
             Action: iam:GetRole
             Resource: '*'
 
-  FixAccessRoleNameFunction:
+  FixInventoryAccessRoleNameFunction:
     Type: Custom::Function
     Properties:
       RoleName: !Ref RoleName
-      ServiceToken: !GetAtt FixRoleExistsCheckFunction.Arn
+      ServiceToken: !GetAtt FixInventoryRoleExistsCheckFunction.Arn
 
-  CrossAccountAccessRoleForFix:
+  CrossAccountAccessRoleForFixInventory:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !GetAtt FixAccessRoleNameFunction.role_name
+      RoleName: !GetAtt FixInventoryAccessRoleNameFunction.role_name
       Path: /
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
         - Effect: Allow
           Principal:
-            AWS: !Join ['', ['arn:aws:iam::', !Ref FixAccountID, ':root']]
+            AWS: !Join ['', ['arn:aws:iam::', !Ref FixInventoryAccountID, ':root']]
           Action:
           - 'sts:AssumeRole'
           - 'sts:TagSession'
