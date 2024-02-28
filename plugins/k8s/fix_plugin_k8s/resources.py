@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import ClassVar, Optional, Dict, Type, List, Any, Union, Tuple, Set
 from collections import defaultdict
 
-from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSetInstance
 from fix_plugin_k8s.base import KubernetesResource, SortTransitionTime
 from fixlib.baseresources import (
     BaseAccount,
@@ -405,7 +404,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     }
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["kubernetes_csi_node", "kubernetes_pod", "azure_virtual_machine_scale_set_instance"],
+            "default": ["kubernetes_csi_node", "kubernetes_pod"],
             "delete": [],
         }
     }
@@ -413,14 +412,6 @@ class KubernetesNode(KubernetesResource, BaseInstance):
     provider_id: Optional[str] = None
     node_status: Optional[KubernetesNodeStatus] = field(default=None, metadata=dict(ignore_history=True))
     node_spec: Optional[KubernetesNodeSpec] = field(default=None)
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        super().connect_in_graph(builder, source)
-        if (provider_id := self.provider_id) and (provider_id.startswith("azure://")):
-            _, vmss_vmss_instance_id = provider_id.split("azure://")
-            builder.add_edge(
-                self, EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_vmss_instance_id
-            )
 
 
 # region pod
