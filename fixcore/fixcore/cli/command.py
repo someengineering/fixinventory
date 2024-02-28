@@ -5191,7 +5191,8 @@ class AppsCommand(CLICommand):
     ```
 
     - `apps search [pattern]`: Lists all apps available in the index
-      https://cdn.some.engineering/fixinventory/apps/index.json (or other URL if specified). Supports filtering by pattern.
+      https://cdn.some.engineering/fixinventory/apps/index.json (or other URL if specified).
+      Supports filtering by pattern.
     - `app info <app_name>`: Show information about an app.
     - `app install <app_name>`: Install an app.
     - `app edit <app_name>`: Edit an app.
