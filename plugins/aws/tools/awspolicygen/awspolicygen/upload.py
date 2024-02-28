@@ -56,10 +56,10 @@ def upload_policies(args: Namespace) -> None:
 
         # Create the CloudFormation template
         cf_template = get_cf_template()
-        cf_filename = f"{tmpdirname}/fix-role.template"
+        cf_filename = f"{tmpdirname}/fixinventory-role.template"
         with open(cf_filename, "w") as f:
             f.write(cf_template)
-        key_name = f"{args.aws_s3_bucket_path}fix-role.template"
+        key_name = f"{args.aws_s3_bucket_path}fixinventory-role.template"
 
         # Upload the CloudFormation template to S3
         log.debug(f"Uploading {cf_filename} to {key_name} in {args.aws_s3_bucket}")
