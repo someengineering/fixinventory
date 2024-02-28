@@ -25,7 +25,7 @@ from fixshell.shell import Shell, ShutdownShellError
 async def main_async() -> None:
     fixlib.proc.parent_pid = os.getpid()
     setup_logger("fixshell", json_format=False)
-    arg_parser = ArgumentParser(description="fix shell", env_args_prefix="fixSHELL_")
+    arg_parser = ArgumentParser(description="Fix Inventory Shell", env_args_prefix="FIXSHELL_")
     core_add_args(arg_parser)
     add_args(arg_parser)
     logging_add_args(arg_parser)

@@ -49,7 +49,7 @@ def main() -> None:
     fixlib.proc.parent_pid = os.getpid()
 
     add_event_listener(EventType.SHUTDOWN, shutdown)
-    arg_parser = ArgumentParser(description="fix metrics exporter", env_args_prefix="fixMETRICS_")
+    arg_parser = ArgumentParser(description="Fix Inventory Metrics exporter", env_args_prefix="FIXMETRICS_")
     add_args(arg_parser)
     Config.add_args(arg_parser)
     fixcore_add_args(arg_parser)
