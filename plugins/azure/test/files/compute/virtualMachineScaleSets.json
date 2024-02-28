@@ -350,7 +350,8 @@
             "name": "{virtualMachineScaleSetName}",
             "type": "Microsoft.Compute/virtualMachineScaleSets",
             "tags": {
-                "key8425": "aaa"
+                "key8425": "aaa",
+                "aks-managed-poolName": "nodepool1"
             }
         }
     ],

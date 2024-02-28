@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import Callable, ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -814,7 +814,7 @@ class AzureManagedCluster(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_disk_encryption_set"]},
+        "successors": {"default": ["azure_disk_encryption_set", "azure_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -875,9 +875,7 @@ class AzureManagedCluster(AzureResource):
     }
     aad_profile: Optional[AzureManagedClusterAADProfile] = field(default=None, metadata={'description': 'For more details see [managed AAD on AKS](https://docs.microsoft.com/azure/aks/managed-aad).'})  # fmt: skip
     addon_profiles: Optional[Dict[str, AzureManagedClusterAddonProfile]] = field(default=None, metadata={'description': 'The profile of managed cluster add-on.'})  # fmt: skip
-    agent_pool_profiles: Optional[List[str]] = field(
-        default=None, metadata={"description": "The agent pool properties."}
-    )
+    agent_pool_profiles: Optional[List[str]] = field(default=None, metadata={"description": "The agent pool properties."})  # fmt: skip
     api_server_access_profile: Optional[AzureManagedClusterAPIServerAccessProfile] = field(default=None, metadata={'description': 'Access profile for managed cluster API server.'})  # fmt: skip
     auto_scaler_profile: Optional[AutoScalerProfile] = field(default=None, metadata={'description': 'Parameters to be applied to the cluster-autoscaler when enabled'})  # fmt: skip
     auto_upgrade_profile: Optional[AzureManagedClusterAutoUpgradeProfile] = field(default=None, metadata={'description': 'Auto upgrade profile for a managed cluster.'})  # fmt: skip
@@ -919,10 +917,30 @@ class AzureManagedCluster(AzureResource):
     workload_auto_scaler_profile: Optional[AzureManagedClusterWorkloadAutoScalerProfile] = field(default=None, metadata={'description': 'Workload Auto-scaler profile for the managed cluster.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        from fix_plugin_azure.resource.compute import AzureDiskEncryptionSet
+        from fix_plugin_azure.resource.compute import AzureDiskEncryptionSet, AzureVirtualMachineScaleSet
 
         if disk_id := self.disk_encryption_set_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
+
+        if agent_pool_profiles := self.agent_pool_profiles:
+            vmss_agent_pool_names_and_ids = self._get_ip_config_ids_and_vm_ids(builder)
+            for agent_pool_profile_name in agent_pool_profiles:
+                for info in vmss_agent_pool_names_and_ids:
+                    pool_name, vmss_id = info
+                    if agent_pool_profile_name == pool_name:
+                        builder.add_edge(
+                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSet, id=vmss_id
+                        )
+
+    def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
+        from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSet
+
+        get_poolname: Callable[[AzureVirtualMachineScaleSet], str] = (
+            lambda scale_set: scale_set.tags.get("aks-managed-poolName") or ""
+        )
+        get_vmss_id: Callable[[AzureVirtualMachineScaleSet], str] = lambda scale_set: scale_set.id or ""
+
+        return [(get_poolname(vmss), get_vmss_id(vmss)) for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)]
 
 
 @define(eq=False, slots=False)
