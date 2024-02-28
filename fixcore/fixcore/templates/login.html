@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block title %}
-Login to FixInventory
+Log in to Fix Inventory
 {% endblock %}
 
 {% block content %}
 
 <main class="form-signin w-100 m-auto">
     <div class="d-flex flex-column min-vh-100 justify-content-center align-items-center text-center">
-        <img src="/static/fix_logo_and_text.svg" width="400" class="mb-3" alt="FixInventory"/>
+        <img src="/static/fix_logo_and_text.svg" width="400" class="mb-3" alt="Fix Inventory"/>
         <form action="/authenticate" method="post" enctype="multipart/form-data">
-            <h1 class="h3 mb-3 fw-normal">Sign In</h1>
+            <h1 class="h3 mb-3 fw-normal">Log In</h1>
             {% if error %}
             <div class="alert alert-danger fade show">
                 {{ error }}
@@ -25,7 +25,7 @@ Login to FixInventory
                 <label for="password">Password</label>
             </div>
             <input name="redirect" type="hidden" value="{{ redirect }}">
-            <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Log in</button>
         </form>
     </div>
 </main>
