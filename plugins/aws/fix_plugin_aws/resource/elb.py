@@ -1,12 +1,20 @@
+from datetime import timedelta
+from functools import partial
 from typing import ClassVar, Dict, Optional, Type, List, Any
 
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
-from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, update_resource_metrics
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchQuery,
+    AwsCloudwatchMetricData,
+    bytes_to_megabits_per_second,
+    calculate_min_max_avg,
+    update_resource_metrics,
+)
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import BaseLoadBalancer, ModelReference
+from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -354,13 +362,15 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
+
         for elb_id, elb in elbs.items():
             queries.extend(
                 [
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/ELB",
-                        period=delta,
+                        period=period,
                         ref_id=elb_id,
                         stat="Sum",
                         unit="Count",
@@ -396,7 +406,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name="EstimatedProcessedBytes",
                         namespace="AWS/ELB",
-                        period=delta,
+                        period=period,
                         ref_id=elb_id,
                         stat="Sum",
                         unit="Bytes",
@@ -406,15 +416,57 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             )
 
         metric_normalizers = {
-            "RequestCount": MetricNormalization(name="request_count"),
-            "EstimatedALBActiveConnectionCount": MetricNormalization(name="active_connection_count"),
-            "HTTPCode_Backend_2XX_Count": MetricNormalization(name="status_code_2xx_count"),
-            "HTTPCode_Backend_4XX_Count": MetricNormalization(name="status_code_4xx_count"),
-            "HTTPCode_Backend_5XX_Count": MetricNormalization(name="status_code_5xx_count"),
-            "HealthyHostCount": MetricNormalization(name="healthy_host_count"),
-            "UnHealthyHostCount": MetricNormalization(name="unhealthy_host_count"),
-            "Latency": MetricNormalization(name="latency_seconds", normalize_value=lambda x: round(x, ndigits=3)),
-            "EstimatedProcessedBytes": MetricNormalization(name="processed_bytes"),
+            "RequestCount": MetricNormalization(
+                metric_name=MetricName.RequestCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "EstimatedALBActiveConnectionCount": MetricNormalization(
+                metric_name=MetricName.ActiveConnection,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "HTTPCode_Backend_2XX_Count": MetricNormalization(
+                metric_name=MetricName.StatusCode2XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "HTTPCode_Backend_4XX_Count": MetricNormalization(
+                metric_name=MetricName.StatusCode4XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "HTTPCode_Backend_5XX_Count": MetricNormalization(
+                metric_name=MetricName.StatusCode5XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "HealthyHostCount": MetricNormalization(
+                metric_name=MetricName.HealthyHostCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "UnHealthyHostCount": MetricNormalization(
+                metric_name=MetricName.UnhealthyHostCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "Latency": MetricNormalization(
+                metric_name=MetricName.Latency, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4)
+            ),
+            "EstimatedProcessedBytes": MetricNormalization(
+                metric_name=MetricName.ProcessedBytes,
+                unit=MetricUnit.MegabitsPerSecond,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=partial(bytes_to_megabits_per_second, period=period),
+            ),
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)

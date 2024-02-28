@@ -8,7 +8,7 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import ModelReference, BaseResource
+from fixlib.baseresources import ModelReference, BaseResource, StatName
 from fixlib.graph import Graph
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -535,14 +535,35 @@ def update_resource_metrics(
         resource = resources_map.get(query.ref_id)
         if resource is None:
             continue
-        metric_value = next(iter(metric.metric_values), None)
-        if metric_value is None:
+        if len(metric.metric_values) == 0:
             continue
         normalizer = metric_normalizers.get(query.metric_name)
         if not normalizer:
             continue
 
-        name = normalizer.name
-        value = metric_normalizers[query.metric_name].normalize_value(metric_value)
+        for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
+            name = normalizer.metric_name + "_" + normalizer.unit
+            value = normalizer.normalize_value(metric_value)
+            stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
 
-        resource._resource_usage[name][normalizer.stat_map[query.stat]] = value
+            resource._resource_usage[name][stat_name] = value
+
+
+def bytes_to_megabits_per_second(bytes: float, period: timedelta) -> float:
+    return round((bytes * 8) / (1024**2 * period.total_seconds()), 4)
+
+
+def bytes_to_megabytes_per_second(bytes: float, period: timedelta) -> float:
+    return round(bytes / (1024**2 * period.total_seconds()), 4)
+
+
+def operations_to_iops(ops: float, period: timedelta) -> float:
+    return round(ops / period.total_seconds(), 4)
+
+
+def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
+    return [
+        (min(values), StatName.min),
+        (max(values), StatName.max),
+        (sum(values) / len(values), StatName.avg),
+    ]

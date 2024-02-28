@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Debug Tests",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "purpose": [
@@ -17,7 +17,7 @@
         },
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -25,7 +25,7 @@
         },
         {
             "name": "fixcore",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./fixcore/fixcore/__main__.py",
             "args": [
@@ -45,7 +45,7 @@
         },
         {
             "name": "fixworker",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./fixworker/fixworker/__main__.py",
             "args": [
@@ -68,7 +68,7 @@
         },
         {
             "name": "fixshell",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "./fixshell/fixshell/__main__.py",
             "args": [
@@ -77,7 +77,7 @@
                 "--fixcore-uri",
                 "https://localhost:8900",
                 "--fixcore-wait",
-                "10",
+                "30",
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
