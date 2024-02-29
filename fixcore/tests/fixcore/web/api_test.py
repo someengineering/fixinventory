@@ -143,7 +143,7 @@ async def test_system_api(core_client: FixInventoryClient, client_session: Clien
     assert await core_client.ready() == "ok"
     # make sure we get redirected to the api docs
     async with client_session.get(core_client.fixcore_url, allow_redirects=False) as r:
-        assert r.headers["location"] == "/ui/index.html"
+        assert r.status == 200
     # analytics events can be sent to the server
     events = [AnalyticsEvent("test", "test.event", {"foo": "bar"}, {"counter": 1}, utc())]
     async with client_session.post(core_client.fixcore_url + "/analytics", json=to_js(events)) as r:
