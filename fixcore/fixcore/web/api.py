@@ -114,7 +114,7 @@ from fixcore.util import (
     uuid_str,
     value_in_path_get,
 )
-from fixcore.web.auth import raw_jwt_from_auth_message, LoginWithCode, AuthHandler, authorized_user_from_context
+from fixcore.web.auth import raw_jwt_from_auth_message, LoginWithCode, AuthHandler
 from fixcore.web.content_renderer import result_binary_gen, single_result
 from fixcore.web.directives import (
     metrics_handler,
