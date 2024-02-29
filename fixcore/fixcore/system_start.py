@@ -74,8 +74,8 @@ def parse_args(args: Optional[List[str]] = None) -> Namespace:
             raise AttributeError(f"Can not parse config option: {kv}. Reason: {ex}") from ex
 
     parser = ArgumentParser(
-        env_args_prefix="fixcore_",
-        description="Maintains graphs of resources of any shape.",
+        env_args_prefix="FIXCORE_",
+        description="Fix Inventory Core: maintains graphs of resources of any shape.",
         epilog="Keeps all the things.",
     )
     jwt_add_args(parser)
