@@ -57,7 +57,6 @@ from attrs import evolve
 from dateutil import parser as date_parser
 from multidict import MultiDict
 from networkx.readwrite import cytoscape_data
-from resotoui import ui_path
 
 from fixcore.analytics import AnalyticsEvent
 from fixcore.cli.command import alias_names
@@ -158,7 +157,6 @@ AlwaysAllowed = {
     "/metrics",
     "/static/.*",
     "/system/.*",
-    "/ui.*",
     "/notebook/.*",
     "/debug/.*",
 }
@@ -299,7 +297,7 @@ class Api(Service):
                 web.get(prefix + "/work/queue", require(self.handle_work_tasks, a)),
                 web.get(prefix + "/work/list", require(self.list_work, a)),
                 # Serve static filed
-                web.get(prefix, self.forward("/ui/index.html")),
+                web.get(prefix, self.home_page),
                 web.static(prefix + "/static", static_path),
                 web.get(prefix + "/notebook", self.forward("/notebook/index.html")),
                 web.static(prefix + "/notebook", jupyterlite_path),
@@ -328,8 +326,6 @@ class Api(Service):
                 web.get(prefix + "/system/ready", self.ready),
                 # forwards
                 web.get(prefix + "/tsdb", self.forward("/tsdb/")),
-                web.get(prefix + "/ui", self.forward("/ui/index.html")),
-                web.get(prefix + "/ui/", self.forward("/ui/index.html")),
                 # auth operations
                 web.get(prefix + "/.well-known/jwks.json", self.jwks),
                 web.get(prefix + "/login", require(self.login_page)),
@@ -339,7 +335,6 @@ class Api(Service):
                 web.get(prefix + "/authorization/renew", self.renew_authorization),
                 # tsdb operations
                 web.route(METH_ANY, prefix + "/tsdb/{tail:.+}", tsdb(self)),
-                web.static(f"{prefix}/ui/", ui_path),
             ]
         )
         if self.deps.config.runtime.debug:
@@ -386,6 +381,9 @@ class Api(Service):
 
     async def jwks(self, _: Request) -> StreamResponse:
         return web.json_response(self.auth_handler.signing_key_jwk)
+
+    async def home_page(self, request: Request) -> StreamResponse:
+        return aiohttp_jinja2.render_template("home.html", request, None)
 
     async def login_page(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         template = "login.html" if await deps.user_management.has_users() else "create_first_user.html"

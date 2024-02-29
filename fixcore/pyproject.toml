@@ -48,7 +48,6 @@ dependencies = [
     "python-arango",
     "python-dateutil",
     "fixdatalink",
-    "resotoui",
     "rich",
     "toolz",
     "transitions",

@@ -13,4 +13,11 @@
 
 body {
     background-color: #f7f7f7;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.footer {
+    margin-top: auto;
 }
