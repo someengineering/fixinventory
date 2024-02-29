@@ -363,7 +363,10 @@ class DbAccess(Service):
             except ArangoServerError as ex:
                 # Backward compatibility: if we cannot connect to the fix database, but the resoto database works.
                 if args.graphdb_database == "fix" and ex.error_code in (11, 1228, 1703):
-                    return try_db("resoto")
+                    result = try_db("resoto")
+                    args.graphdb_database = "resoto"
+                    args.graphdb_username = "resoto"
+                    return result
                 else:
                     raise
 
