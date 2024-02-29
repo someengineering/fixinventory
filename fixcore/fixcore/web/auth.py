@@ -55,7 +55,7 @@ class LoginWithCode:
         return utc() - self.authorized_at < CodeLifeTime
 
 
-async def authorized_user_from_context() -> Optional[AuthorizedUser]:
+def authorized_user_from_context() -> Optional[AuthorizedUser]:
     """
     Inside a request handler, this value retrieves the current authorized user.
     """

@@ -113,7 +113,6 @@ requests-toolbelt==1.0.0
 fixinventoryclient==2.0.0
 fixinventorydata==0.2.4
 fixdatalink[extra]==2.0.1
-resotoui==3.7.1
 retrying==1.3.4
 rfc3339-validator==0.1.4
 rich==13.7.0
