@@ -7,8 +7,8 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/fixinventory/docker-build.yml)](https://github.com/someengineering/fixinventory/commits/main)
 [![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://inventory.fix.security/docs)
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/someengineering)
-[![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/fixinventory/fixlib/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
-[![CodeCoverage](https://img.shields.io/codecov/c/github/someengineering/fixinventory?token=ZEZW5JAR5J)](https://app.codecov.io/gh/someengineering/fixinventory/)
+[![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/fixinventory/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
+[![CodeCoverage](https://codecov.io/gh/someengineering/fixinventory/graph/badge.svg?token=ZEZW5JAR5J)](https://codecov.io/gh/someengineering/fixinventory)
 
 ## Table of contents
 
