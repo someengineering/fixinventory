@@ -53,7 +53,7 @@ def main() -> None:
     fixlib.proc.parent_pid = os.getpid()
 
     arg_parser = ArgumentParser(
-        description="fix worker",
+        description=("Fix Inventory Worker: Collects data from cloud providers and sends it to the Core"),
         env_args_prefix="FIXWORKER_",
     )
     add_args(arg_parser)
