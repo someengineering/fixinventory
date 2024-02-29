@@ -2,9 +2,9 @@ from typing import AsyncIterator, List, cast
 
 from attr import evolve
 
-from fixcore.graph_manager.graph_manager import GraphManager, _compress_timestamps
+from fixcore.graph_manager.graph_manager import GraphManager
 from fixcore.ids import GraphName
-from fixcore.db.db_access import DbAccess
+from fixcore.db.db_access import DbAccess, _compress_timestamps
 from fixcore.db.model import GraphUpdate
 from fixcore.model.model import Model
 from fixcore.types import Json

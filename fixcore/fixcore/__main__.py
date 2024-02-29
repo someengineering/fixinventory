@@ -38,7 +38,7 @@ from fixcore.core_config import (
     CoreConfig,
 )
 from fixcore.db import SystemData
-from fixcore.db.db_access import DbAccess
+from fixcore.db.db_access import DbAccess, CurrentDatabaseVersion
 from fixcore.db.system_data_db import EphemeralJwtSigningKey
 from fixcore.dependencies import Dependencies, ServiceNames, TenantDependencies
 from fixcore.dependencies import (
@@ -127,7 +127,7 @@ def run_process(args: Namespace) -> None:
             cert_handler_no_ca = deps.add(ServiceNames.cert_handler, CertificateHandlerNoCA.lookup(config, temp))
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler_no_ca.ca_bundle)
             deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
-            deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), 1))
+            deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), CurrentDatabaseVersion))
             deps.add(
                 ServiceNames.event_sender,
                 PostHogEventSender(deps.system_data) if config.runtime.usage_metrics else NoEventSender(),
