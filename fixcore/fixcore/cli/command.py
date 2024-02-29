@@ -3678,9 +3678,9 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 # fmt: on
                 stdout_b, stderr_b = await process.communicate()
                 maybe_proc = process
-                code = await process.wait()
                 stdout = stdout_b.decode() if stdout_b else ""
                 stderr = stderr_b.decode() if stderr_b else ""
+                code = await process.wait()
 
                 if code == 0:
                     log.debug(f"arangodump: out={stdout}, err={stderr}.")
@@ -3738,9 +3738,9 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                 # fmt: on
                 stdout_b, stderr_b = await process.communicate()
                 maybe_proc = process
-                code = await process.wait()
                 stdout = stdout_b.decode() if stdout_b else ""
                 stderr = stderr_b.decode() if stderr_b else ""
+                code = await process.wait()
 
                 if code == 0:
                     log.debug(f"arangorestore: out={stdout}, err={stderr}.")
