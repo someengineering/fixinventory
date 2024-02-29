@@ -1,7 +1,7 @@
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/fixinventory/main/misc/fixinventory_200.png" alt="Fix Inventory"/></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="/misc/fixinventory_200-darkmode.png"><source media="(prefers-color-scheme: light)" srcset="/misc/fixinventory_200-lightmode.png"><img alt="Fix Inventory" src="/misc/fixinventory_200-lightmode.png"></picture></p>
 <h1 align="center">Sync infrastructure data to a single place.</h1>
 
-<p align="center"><img src="https://raw.githubusercontent.com/someengineering/fixinventory/main/misc/fixinventory_banner.png"/></p>
+<p align="center"><img src="/misc/fixinventory_banner.png"/></p>
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/fixinventory?label=latest)](https://github.com/someengineering/fixinventory/tags/)
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/fixinventory/docker-build.yml)](https://github.com/someengineering/fixinventory/commits/main)
