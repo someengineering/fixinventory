@@ -1368,7 +1368,6 @@ class ArangoGraphDB(GraphDB):
 
             views = {view["name"]: view for view in await db.views()}
             if name not in views:
-                log.info(f"Create view {name}")
                 await db.create_view(
                     name,
                     "arangosearch",

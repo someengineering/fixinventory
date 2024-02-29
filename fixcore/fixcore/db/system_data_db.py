@@ -36,7 +36,7 @@ class SystemDataDb(JwtSigningKeyHolder):
         self.db = db
         self.collection_name = "system_data"
 
-    async def system_data(self) -> SystemData:
+    async def system_data(self) -> Optional[SystemData]:
         return if_set(await self.db.get(self.collection_name, "system"), lambda x: from_js(x, SystemData))  # type: ignore # noqa E501
 
     async def ca(self) -> Tuple[str, str]:
