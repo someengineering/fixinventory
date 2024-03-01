@@ -2,6 +2,8 @@ import unittest
 import threading
 import time
 import copy
+import os
+from unittest.mock import patch
 from datetime import datetime
 
 try:
@@ -20,9 +22,10 @@ from fixlib.utils import (
     merge_json_elements,
     drop_deleted_attributes,
     freeze,
+    stdin_generator,
+    ensure_bw_compat,
 )
 from fixlib.baseresources import BaseResource
-from fixlib.utils import stdin_generator
 from attrs import define
 from typing import ClassVar
 import pytest
@@ -478,3 +481,31 @@ def test_freeze():
     assert freeze(nested_dict) == frozendict({"foo": frozendict(flat_dict)})
     # and a list to tupple
     assert freeze([1, 2]) == (1, 2)
+
+
+def test_ensure_bw_compat_cli_args():
+    with patch("sys.argv", ["program_name", "--resotocore-uri", "some_value", "--another-arg"]):
+        ensure_bw_compat()
+        assert sys.argv == ["program_name", "--fixcore-uri", "some_value", "--another-arg"]
+
+
+def test_ensure_bw_compat_env_vars_single_replacement():
+    with patch.dict("os.environ", {"RESOTOCORE_URI": "123", "OTHER_ENV_VAR": "abc"}):
+        ensure_bw_compat()
+        assert "FIXCORE_URI" in os.environ
+        assert os.environ["FIXCORE_URI"] == "123"
+        assert "OTHER_ENV_VAR" in os.environ
+
+
+def test_ensure_bw_compat_env_vars_multiple_replacements():
+    with patch.dict("os.environ", {"RESOTOWORKER_RESOTOCORE_URI": "123"}):
+        ensure_bw_compat()
+        assert "FIXWORKER_FIXCORE_URI" in os.environ
+        assert os.environ["FIXWORKER_FIXCORE_URI"] == "123"
+
+
+def test_ensure_bw_compat_no_changes_needed():
+    with patch("sys.argv", ["program_name", "--another-arg"]), patch.dict("os.environ", {"OTHER_ENV_VAR": "abc"}):
+        ensure_bw_compat()
+        assert sys.argv == ["program_name", "--another-arg"]
+        assert "OTHER_ENV_VAR" in os.environ
