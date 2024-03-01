@@ -2265,7 +2265,6 @@ class AzureSubnet(AzureResource):
             "default": [
                 "azure_nat_gateway",
                 "azure_network_security_group",
-                # "azure_fleet",
             ]
         },
     }
@@ -2331,8 +2330,6 @@ class AzureSubnet(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
         if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
-        # if (group_name := self.resource_group_name()) and (group_name != ""):
-        #     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFleet, resource_group=group_name)
 
 
 @define(eq=False, slots=False)
@@ -2790,8 +2787,6 @@ class AzureDscpConfiguration(AzureResource):
                                 )
 
     def _get_nic_id_and_subnet_ids(self, builder: GraphBuilder) -> List[Tuple[str, List[str]]]:
-        get_nic_id: Callable[[AzureNetworkInterface], str] = lambda interface: interface.id or ""
-
         get_ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
             ip_config._subnet_id
             for ip_config in interface.interface_ip_configurations or []
@@ -2799,8 +2794,9 @@ class AzureDscpConfiguration(AzureResource):
         ]
 
         return [
-            (get_nic_id(interface), get_ip_conf_subnet_ids(interface))
+            (nic_id, get_ip_conf_subnet_ids(interface))
             for interface in builder.nodes(clazz=AzureNetworkInterface)
+            if (nic_id := interface.id)
         ]
 
 
@@ -3085,12 +3081,10 @@ class AzureExpressRouteCircuit(AzureResource):
                         )
 
     def _get_aerpl_name_and_id(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        get_aerpl_name: Callable[[AzureExpressRoutePortsLocation], str] = lambda location: location.name or ""
-        get_aerpl_id: Callable[[AzureExpressRoutePortsLocation], str] = lambda location: location.id or ""
-
         return [
-            (get_aerpl_name(location), get_aerpl_id(location))
+            (aerpl_name, aerpl_id)
             for location in builder.nodes(clazz=AzureExpressRoutePortsLocation)
+            if (aerpl_name := location.name) and (aerpl_id := location.id)
         ]
 
 
@@ -3747,14 +3741,12 @@ class AzureIpGroup(AzureResource):
                                 )
 
     def _get_virtual_network_ips_and_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
-        get_virtual_network_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda n: (
-            n.address_space.address_prefixes if n.address_space and n.address_space.address_prefixes else []
+        get_virtual_network_ips: Callable[[AzureVirtualNetwork], List[str]] = lambda vn: (
+            rgetattr(vn, "address_space.address_prefixes", None) or []
         )
 
-        get_virtual_network_id: Callable[[AzureVirtualNetwork], str] = lambda n: n.id or ""
-
         return [
-            (get_virtual_network_ips(n), get_virtual_network_id(n)) for n in builder.nodes(clazz=AzureVirtualNetwork)
+            (get_virtual_network_ips(vn), vn_id) for vn in builder.nodes(clazz=AzureVirtualNetwork) if (vn_id := vn.id)
         ]
 
 
@@ -4068,27 +4060,24 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
                             self.aks_public_ip_address = ip_address
 
     def _get_publ_ip_id_and_p_ip_address(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        get_public_ip_id: Callable[[AzurePublicIPAddress], str] = lambda ip: ip.id or ""
-        get_public_ip_address: Callable[[AzurePublicIPAddress], str] = lambda ip: ip.ip_address or ""
-
         return [
-            (get_public_ip_id(ip), get_public_ip_address(ip))
+            (pub_ip_id, pub_ip_addr)
             for ip in builder.nodes(clazz=AzurePublicIPAddress)
-            if ip.tags.get("k8s-azure-cluster-name") is not None
+            if (ip.tags.get("k8s-azure-cluster-name") is not None)
+            and (pub_ip_id := ip.id)
+            and (pub_ip_addr := ip.ip_address)
         ]
 
     def _get_p_ip_ids_and_cluster_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
-        get_p_ip_ids: Callable[[AzureManagedCluster], List[str]] = lambda cluster: [
-            p_ip_id
-            for p_ip_id in rgetattr(
-                cluster, "container_service_network_profile.load_balancer_profile.effective_outbound_i_ps", None
-            )
+        get_p_ip_ids: Callable[[AzureManagedCluster], List[str]] = lambda cluster: (
+            rgetattr(cluster, "container_service_network_profile.load_balancer_profile.effective_outbound_i_ps", None)
             or []
-        ]
-        get_cluster_id: Callable[[AzureManagedCluster], str] = lambda cluster: cluster.id or ""
+        )
 
         return [
-            (get_p_ip_ids(cluster), get_cluster_id(cluster)) for cluster in builder.nodes(clazz=AzureManagedCluster)
+            (get_p_ip_ids(cluster), cluster_id)
+            for cluster in builder.nodes(clazz=AzureManagedCluster)
+            if (cluster_id := cluster.id)
         ]
 
 
@@ -4171,7 +4160,7 @@ class AzureNetworkProfile(AzureResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_subnet"]},
-        "successors": {"default": ["azure_virtual_machine"]},
+        "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4193,7 +4182,9 @@ class AzureNetworkProfile(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Import placed inside the method due to circular import error resolution
-        from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+        from fix_plugin_azure.resource.compute import (
+            AzureVirtualMachineBase,
+        )  # pylint: disable=import-outside-toplevel
 
         if container_nic := self.container_network_interface_configurations:
             ip_confs_and_vm_ids = self._get_ip_config_ids_and_vm_ids(builder)
@@ -4211,20 +4202,18 @@ class AzureNetworkProfile(AzureResource):
                                 for ip_conf_id in ip_conf_ids:
                                     if ip_conf_id == c_ip_conf_id:
                                         builder.add_edge(
-                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id
+                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id
                                         )
 
     def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
         get_ip_config_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
             ip_config.id for ip_config in interface.interface_ip_configurations or [] if ip_config.id is not None
         ]
-        get_virtual_machine_id: Callable[[AzureNetworkInterface], str] = (
-            lambda interface: interface.virtual_machine or ""
-        )
 
         return [
-            (get_ip_config_ids(interface), get_virtual_machine_id(interface))
+            (get_ip_config_ids(interface), vm_id)
             for interface in builder.nodes(clazz=AzureNetworkInterface)
+            if (vm_id := interface.virtual_machine)
         ]
 
 
@@ -4383,16 +4372,13 @@ class AzureNetworkVirtualAppliance(AzureResource):
                                                 )
 
     def _get_va_sku_vendor_and_name(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        get_va_sku_vendor: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda sku: sku.vendor or ""
-        get_va_sku_name: Callable[[AzureNetworkVirtualApplianceSku], str] = lambda sku: sku.name or ""
-
         return [
-            (get_va_sku_vendor(sku), get_va_sku_name(sku))
+            (sku_vendor, sku_name)
             for sku in builder.nodes(clazz=AzureNetworkVirtualApplianceSku)
+            if (sku_vendor := sku.vendor) and (sku_name := sku.name)
         ]
 
     def _get_nic_name_and_subnet_ids(self, builder: GraphBuilder) -> List[Tuple[str, List[str]]]:
-        ni_name: Callable[[AzureNetworkInterface], str] = lambda interface: interface.name or ""
         get_ip_conf_subnet_ids: Callable[[AzureNetworkInterface], List[str]] = lambda interface: [
             ip_config._subnet_id
             for ip_config in interface.interface_ip_configurations or []
@@ -4400,8 +4386,9 @@ class AzureNetworkVirtualAppliance(AzureResource):
         ]
 
         return [
-            (ni_name(interface), get_ip_conf_subnet_ids(interface))
+            (ni_name, get_ip_conf_subnet_ids(interface))
             for interface in builder.nodes(clazz=AzureNetworkInterface)
+            if (ni_name := interface.name)
         ]
 
 
@@ -4480,12 +4467,10 @@ class AzureNetworkWatcher(AzureResource):
                         )
 
     def _get_virtual_network_locations_and_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        get_virtual_network_location: Callable[[AzureVirtualNetwork], str] = lambda network: network.location or ""
-        get_virtual_network_id: Callable[[AzureVirtualNetwork], str] = lambda network: network.id or ""
-
         return [
-            (get_virtual_network_location(network), get_virtual_network_id(network))
+            (vn_location, vn_id)
             for network in builder.nodes(clazz=AzureVirtualNetwork)
+            if (vn_location := network.location) and (vn_id := network.id)
         ]
 
 
@@ -5099,20 +5084,14 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             api_spec = AzureApiSpec(
                 service="network",
                 version="2023-05-01",
-                path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets",
-                path_parameters=["subscriptionId", "resourceGroupName", "virtualNetworkName"],
+                path=f"{self.id}/subnets",
+                path_parameters=[],
                 query_parameters=["api-version"],
                 access_path="value",
                 expect_array=True,
             )
-            resource_group_name = self.resource_group_name() or ""
-            virtual_network_name = self.name if self.name else ""
 
-            items = graph_builder.client.list(
-                api_spec,
-                resourceGroupName=resource_group_name,
-                virtualNetworkName=virtual_network_name,
-            )
+            items = graph_builder.client.list(api_spec)
             AzureSubnet.collect(items, graph_builder)
 
         graph_builder.submit_work("azure_all", collect_subnets)

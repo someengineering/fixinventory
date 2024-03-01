@@ -68,7 +68,7 @@ class AzureAvailabilitySet(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_proximity_placement_group", "azure_virtual_machine"]},
+        "successors": {"default": ["azure_proximity_placement_group", "azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -95,7 +95,7 @@ class AzureAvailabilitySet(AzureResource):
             )
         if virtual_machines := self.virtual_machines_availability:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -120,7 +120,7 @@ class AzureCapacityReservationGroup(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_virtual_machine"]},
+        "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -140,7 +140,7 @@ class AzureCapacityReservationGroup(AzureResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if virtual_machines := self.virtual_machines_associated:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -1755,7 +1755,7 @@ class AzureRestorePointCollection(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_virtual_machine"]},
+        "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1773,7 +1773,7 @@ class AzureRestorePointCollection(AzureResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (source_id := self.source) and (vm_id := source_id.id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachine, id=vm_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -2515,17 +2515,8 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachine(AzureResource, BaseInstance):
-    kind: ClassVar[str] = "azure_virtual_machine"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+class AzureVirtualMachineBase(AzureResource, BaseInstance):
+    kind: ClassVar[str] = "azure_virtual_machine_base"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
@@ -2778,6 +2769,20 @@ class AzureVirtualMachine(AzureResource, BaseInstance):
             builder.add_edge(
                 self, edge_type=EdgeType.default, clazz=AzureVirtualMachineSize, name=vms_type, location=vm_location
             )
+
+
+@define(eq=False, slots=False)
+class AzureVirtualMachine(AzureVirtualMachineBase):
+    kind: ClassVar[str] = "azure_virtual_machine"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="compute",
+        version="2023-03-01",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
 
 
 @define(eq=False, slots=False)
@@ -3229,7 +3234,8 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_load_balancer"]},
+        "predecessors": {"default": ["azure_load_balancer", "azure_subnet"]},
+        "successors": {"default": ["azure_virtual_machine_scale_set_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3287,6 +3293,30 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     virtual_machine_profile: Optional[AzureVirtualMachineScaleSetVMProfile] = field(default=None, metadata={'description': 'Describes a virtual machine scale set virtual machine profile.'})  # fmt: skip
     zone_balance: Optional[bool] = field(default=None, metadata={'description': 'Whether to force strictly even virtual machine distribution cross x-zones in case there is zone outage. Zonebalance property can only be set if the zones property of the scale set contains more than one zone. If there are no zones or only one zone specified, then zonebalance property should not be set.'})  # fmt: skip
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_vmss_instances() -> None:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2023-09-01",
+                path=f"{self.id}/virtualMachines",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+
+            items = graph_builder.client.list(api_spec)
+            vmss_instance_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
+
+            AzureVirtualMachineScaleSetInstance.collect(items, graph_builder)
+
+            for vmss_instance_id in vmss_instance_ids:
+                graph_builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
+                )
+
+        graph_builder.submit_work("azure_all", collect_vmss_instances)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
             (vm_profile := self.virtual_machine_profile)
@@ -3298,14 +3328,22 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                     for ip_config in ip_configs:
                         if baps := ip_config.load_balancer_backend_address_pools:
                             for bap in baps:
-                                if bap_id := bap:
-                                    builder.add_edge(
-                                        self,
-                                        edge_type=EdgeType.default,
-                                        reverse=True,
-                                        clazz=AzureLoadBalancer,
-                                        id=bap_id,
-                                    )
+                                bap_id = "/".join(bap.split("/")[:-2])
+                                builder.add_edge(
+                                    self,
+                                    edge_type=EdgeType.default,
+                                    reverse=True,
+                                    clazz=AzureLoadBalancer,
+                                    id=bap_id,
+                                )
+                        if subnet_id := ip_config.subnet:
+                            builder.add_edge(
+                                self,
+                                edge_type=EdgeType.default,
+                                reverse=True,
+                                clazz=AzureSubnet,
+                                id=subnet_id,
+                            )
 
 
 @define(eq=False, slots=False)
@@ -3342,6 +3380,13 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
+
+
+@define(eq=False, slots=False)
+class AzureVirtualMachineScaleSetInstance(AzureVirtualMachineBase):
+    # note: instances are collected as part of collecting AzureVirtualMachineScaleSets
+
+    kind: ClassVar[str] = "azure_virtual_machine_scale_set_instance"
 
 
 resources: List[Type[AzureResource]] = [
