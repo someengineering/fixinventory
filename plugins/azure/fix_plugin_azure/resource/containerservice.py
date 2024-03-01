@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, ClassVar, Dict, Optional, List, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -935,12 +935,11 @@ class AzureManagedCluster(AzureResource):
     def _get_poolnames_and_vmss_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
         from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSet
 
-        get_poolname: Callable[[AzureVirtualMachineScaleSet], str] = (
-            lambda scale_set: scale_set.tags.get("aks-managed-poolName") or ""
-        )
-        get_vmss_id: Callable[[AzureVirtualMachineScaleSet], str] = lambda scale_set: scale_set.id or ""
-
-        return [(get_poolname(vmss), get_vmss_id(vmss)) for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)]
+        return [
+            (poolname, vmss_id)
+            for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)
+            if (poolname := vmss.tags.get("aks-managed-poolName")) and (vmss_id := vmss.id)
+        ]
 
 
 @define(eq=False, slots=False)
