@@ -34,6 +34,7 @@ from fixworker.pluginloader import PluginLoader
 from fixworker.fixcore import FixCore
 from fixworker.tag import core_tag_tasks_processor
 from fixworker.exceptions import DuplicateMessageError
+from fixlib.utils import ensure_bw_compat
 
 # This will be used in main() and shutdown()
 shutdown_event = threading.Event()
@@ -42,6 +43,7 @@ exit_code = 0
 
 
 def main() -> None:
+    ensure_bw_compat()
     setup_logger("fixworker")
     # Try to run in a new process group and
     # ignore if not possible for whatever reason

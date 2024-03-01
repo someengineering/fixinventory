@@ -29,6 +29,7 @@ from fixlib.event import add_event_listener, EventType, Event as FixEvent
 from threading import Event
 from typing import Optional
 from fixlib.args import ArgumentParser
+from fixlib.utils import ensure_bw_compat
 
 
 shutdown_event = Event()
@@ -45,6 +46,7 @@ def shutdown(event: FixEvent) -> None:
 
 
 def main() -> None:
+    ensure_bw_compat()
     setup_logger("fixmetrics")
     fixlib.proc.parent_pid = os.getpid()
 
