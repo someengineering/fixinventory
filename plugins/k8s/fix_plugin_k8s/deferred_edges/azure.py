@@ -6,7 +6,7 @@ from fix_plugin_k8s.deferred_edges.utils import rgetattr
 def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_node":
         if (pid := rgetattr(resource, "node_spec.provider_id", None)) and (pid.startswith("azure://")):
-            _, vmss_vmss_instance_id = pid.split("azure://")
+            vmss_vmss_instance_id = pid.replace("azure://", "", 1)
             graph.add_deferred_edge(
                 BySearchCriteria(
                     f"is(azure_virtual_machine_scale_set_instance) and reported.id={vmss_vmss_instance_id}"

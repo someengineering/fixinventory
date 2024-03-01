@@ -3292,7 +3292,6 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
     upgrade_policy: Optional[AzureUpgradePolicy] = field(default=None, metadata={'description': 'Describes an upgrade policy - automatic, manual, or rolling.'})  # fmt: skip
     virtual_machine_profile: Optional[AzureVirtualMachineScaleSetVMProfile] = field(default=None, metadata={'description': 'Describes a virtual machine scale set virtual machine profile.'})  # fmt: skip
     zone_balance: Optional[bool] = field(default=None, metadata={'description': 'Whether to force strictly even virtual machine distribution cross x-zones in case there is zone outage. Zonebalance property can only be set if the zones property of the scale set contains more than one zone. If there are no zones or only one zone specified, then zonebalance property should not be set.'})  # fmt: skip
-    _vmss_vm_ids: Optional[List[str]] = field(default=None)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_vmss_instances() -> None:
@@ -3307,9 +3306,14 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
             )
 
             items = graph_builder.client.list(api_spec)
-            self._vmss_vm_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
+            vmss_instance_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
 
             AzureVirtualMachineScaleSetInstance.collect(items, graph_builder)
+
+            for vmss_instance_id in vmss_instance_ids:
+                graph_builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
+                )
 
         graph_builder.submit_work("azure_all", collect_vmss_instances)
 
@@ -3340,11 +3344,6 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                                 clazz=AzureSubnet,
                                 id=subnet_id,
                             )
-        if vmss_instance_ids := self._vmss_vm_ids:
-            for vmss_instance_id in vmss_instance_ids:
-                builder.add_edge(
-                    self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
-                )
 
 
 @define(eq=False, slots=False)
@@ -3385,6 +3384,8 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
 
 @define(eq=False, slots=False)
 class AzureVirtualMachineScaleSetInstance(AzureVirtualMachineBase):
+    # note: instances are collected as part of collecting AzureVirtualMachineScaleSets
+
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_instance"
 
 
