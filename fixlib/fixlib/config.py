@@ -275,6 +275,7 @@ class Config(metaclass=MetaConfig):
                     log.error(f"Invalid config override {config_key}")
                     continue
 
+                config_key = config_key.replace("resoto", "fix")  # backwards compatibility
                 config_keys = config_key.split(".")
                 num_keys = len(config_keys)
                 config_part = running_config.data
