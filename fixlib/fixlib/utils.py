@@ -582,5 +582,5 @@ def ensure_bw_compat() -> None:
 
     old_env_vars = [key for key in os.environ if key.startswith("RESOTO")]
     for old_env_var in old_env_vars:
-        new_env_var = "FIX" + old_env_var[len("RESOTO") :]
+        new_env_var = old_env_var.replace("RESOTO", "FIX")
         os.environ[new_env_var] = os.environ.pop(old_env_var)
