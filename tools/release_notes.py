@@ -98,7 +98,7 @@ def show_log(from_tag: str, to_tag: str):
                 f"{f' ([#{commit.pr}](https://github.com/someengineering/fix/pull/{commit.pr}))' if commit.pr else ''}"
             )
 
-    print("\n<!--truncate-->")
+    print("\n{/* truncate */}")
     print("\n## Docker Images\n")
     for image in ["fixcore", "fixworker", "fixshell", "fixmetrics"]:
         print(f"- `somecr.io/someengineering/{image}:{to_tag}`")
