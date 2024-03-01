@@ -15,7 +15,7 @@ declare -a debian_packages=(curl bash python3-minimal python3-venv python3-dev g
 declare -a centos_packages=(curl bash python39 python39-devel git make gcc gcc-c++)
 declare -a fedora_packages=(curl bash python3 python3-devel git make gcc gcc-c++ findutils)
 declare -a alpine_packages=(curl bash python3 python3-dev git make gcc g++ linux-headers libffi-dev)
-declare install_path="$HOME/fix"
+declare install_path="$HOME/fixinventory"
 declare python_cmd
 declare git_install=false
 declare dev_mode=false
@@ -25,7 +25,7 @@ declare install_plugins=true
 declare branch=main
 
 main() {
-    echo "fix bootstrapper"
+    echo "fixinventory bootstrapper"
 
     if [ -f .git/config -a -d fixcore ]; then
         install_path="$PWD"
@@ -89,7 +89,7 @@ main() {
     if [ "$dev_mode" = true ]; then
         install_dev
     fi
-    install_fix
+    install_fixinventory
     if [ "$install_plugins" = true ]; then
         install_plugins
     fi
@@ -102,7 +102,7 @@ Usage: $(basename "$0") [options]
 
 Valid options:
   -h, --help        show this help message and exit
-  --path <path>     install directory (default: . if in fix git repo else ~/fix/)
+  --path <path>     install directory (default: . if in fixinventory git repo else ~/fixinventory/)
   --python <path>   Python binary to use (default: search for best match)
   --branch <branch> Git branch/tag to use (default: main)
   --dev             install development dependencies (default: false)
@@ -143,7 +143,7 @@ activate_venv() {
         echo -e "Virtual Python env already exists!\nRun\n\trm -rf venv/\nif you want to recreate it."
     else
         echo "Creating virtual Python env in venv/ using $python_cmd"
-        "$python_cmd" -m venv venv --prompt "fix venv"
+        "$python_cmd" -m venv venv --prompt "fixinventory venv"
     fi
     echo "Activating venv"
     source venv/bin/activate
@@ -162,19 +162,19 @@ install_dev() {
     if [ -f "requirements-all.txt" ]; then
         pip install -q -r "requirements-all.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/fix/main/requirements-all.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/fixinventory/main/requirements-all.txt"
     fi
 }
 
-install_fix() {
-    echo "Installing fix"
+install_fixinventory() {
+    echo "Installing fixinventory"
     if [ -f "requirements-extra.txt" ]; then
         pip install -q -r "requirements-extra.txt"
     else
-        pip install -q -r "https://raw.githubusercontent.com/someengineering/fix/main/requirements-extra.txt"
+        pip install -q -r "https://raw.githubusercontent.com/someengineering/fixinventory/main/requirements-extra.txt"
     fi
-    local fix_components=(fixlib fixcore fixshell fixworker fixmetrics)
-    for component in "${fix_components[@]}"; do
+    local fixinventory_components=(fixlib fixcore fixshell fixworker fixmetrics)
+    for component in "${fixinventory_components[@]}"; do
         pip_install "$component"
     done
 }
@@ -211,7 +211,7 @@ pip_install() {
         pip install -q --editable "$relative_path" --config-settings editable_mode=compat
     else
         ensure_git
-        local git_repo="git+https://github.com/someengineering/fix.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
+        local git_repo="git+https://github.com/someengineering/fixinventory.git@${branch}#egg=${package_name}&subdirectory=${relative_path}"
         echo "Installing $package_name from remote $git_repo"
         pip install -q -U "$git_repo"
     fi
