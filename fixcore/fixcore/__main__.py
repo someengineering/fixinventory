@@ -67,6 +67,7 @@ from fixcore.web.api import Api
 from fixcore.web.certificate_handler import CertificateHandlerWithCA, CertificateHandlerNoCA
 from fixcore.worker_task_queue import WorkerTaskQueue
 from fixlib.asynchronous.web import runner
+from fixlib.utils import ensure_bw_compat
 
 log = logging.getLogger("fixcore")
 
@@ -75,6 +76,7 @@ def main() -> None:
     """
     Application entrypoint - no arguments are allowed.
     """
+    ensure_bw_compat()
     try:
         run(sys.argv[1:])
         log.info("Process finished.")

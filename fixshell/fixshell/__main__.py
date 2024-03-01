@@ -20,6 +20,7 @@ from fixlib.logger import log, setup_logger, add_args as logging_add_args
 from fixshell import authorized_client
 from fixshell.promptsession import PromptSession, core_metadata, FixHistory
 from fixshell.shell import Shell, ShutdownShellError
+from fixlib.utils import ensure_bw_compat
 
 
 async def main_async() -> None:
@@ -218,6 +219,7 @@ def add_args(arg_parser: ArgumentParser) -> None:
 
 
 def main() -> None:
+    ensure_bw_compat()
     asyncio.run(main_async())
     fixlib.proc.kill_children(SIGTERM, ensure_death=True)
     log.debug("Shutdown complete")

@@ -573,3 +573,14 @@ def freeze(elem: JsonElement) -> Any:
         return frozendict({k: freeze(v) for k, v in elem.items()})
     else:
         return elem
+
+
+def ensure_bw_compat() -> None:
+    for i, arg in enumerate(sys.argv):
+        if arg.startswith("--resoto"):
+            sys.argv[i] = "--fix" + arg[len("--resoto") :]
+
+    old_env_vars = [key for key in os.environ if key.startswith("RESOTO")]
+    for old_env_var in old_env_vars:
+        new_env_var = old_env_var.replace("RESOTO", "FIX")
+        os.environ[new_env_var] = os.environ.pop(old_env_var)
