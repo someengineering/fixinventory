@@ -1416,60 +1416,27 @@ class ArangoGraphDB(GraphDB):
 
         # we want to have a consistent snapshot view of the graph
         async def copy_data() -> None:
-            old_vertex = self.vertex_name
-            old_default_edge = self.edge_collection(EdgeTypes.default)
-            old_delete_edge = self.edge_collection(EdgeTypes.delete)
+            read = [self.vertex_name]
+            write = [new_graph_db.vertex_name]
+            queries = [f"FOR v IN `{self.vertex_name}` INSERT v INTO `{new_graph_db.vertex_name}`"]
+            if not to_snapshot:  # no history for snapshots
+                read.append(self.node_history)
+                write.append(new_graph_db.node_history)
+                queries.append(f"FOR v IN `{self.node_history}` INSERT v INTO `{new_graph_db.node_history}`")
+            for et in EdgeTypes.all:
+                new_vertex = new_graph_db.vertex_name
+                read.append(self.edge_collection(et))
+                write.append(new_graph_db.edge_collection(et))
+                queries.append(
+                    f"FOR edge IN `{self.edge_collection(et)}` "
+                    f"LET from = CONCAT('{new_vertex}', '/', PARSE_IDENTIFIER(edge._from)['key']) "
+                    f"LET to = CONCAT('{new_vertex}', '/', PARSE_IDENTIFIER(edge._to)['key']) "
+                    f"INSERT MERGE(edge, {{_from: from, _to: to}}) INTO `{new_graph_db.edge_collection(et)}`"
+                )
 
-            new_vertex = new_graph_db.vertex_name
-            new_default_edge = new_graph_db.edge_collection(EdgeTypes.default)
-            new_delete_edge = new_graph_db.edge_collection(EdgeTypes.delete)
-
-            tx = f"""
-                function () {{
-                    const db = require('@arangodb').db;
-
-                    db._query(
-                        query="FOR vertex IN @@old_vertex "
-                        + "LET clean_vertex = UNSET(vertex, '_id', '_rev') "
-                        + "INSERT clean_vertex INTO @@new_vertex",
-                        bindVars= {{
-                            "@old_vertex": "{old_vertex}",
-                            "@new_vertex": "{new_vertex}"
-                        }}
-                    );
-
-                    db._query(
-                        query="FOR edge IN @@old_default_edge "
-                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._from)['key']) "
-                        + "LET to = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._to)['key']) "
-                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO @@new_default_edge",
-                        bindVars= {{
-                            "@old_default_edge": "{old_default_edge}",
-                            "@new_default_edge": "{new_default_edge}",
-                            "new_vertex": "{new_vertex}"
-                        }}
-                    );
-
-                    db._query(
-                        query="FOR edge IN @@old_delete_edge "
-                        + "LET clean_edge = UNSET(edge, '_id', '_rev') "
-                        + "LET from = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._from)['key']) "
-                        + "LET to = CONCAT(@new_vertex, '/', PARSE_IDENTIFIER(edge._to)['key']) "
-                        + "INSERT MERGE(clean_edge, {{_from: from, _to: to}}) INTO @@new_delete_edge",
-                        bindVars= {{
-                            "@old_delete_edge": "{old_delete_edge}",
-                            "@new_delete_edge": "{new_delete_edge}",
-                            "new_vertex": "{new_vertex}"
-                        }}
-                    );
-                }}
-            """
-            await self.db.execute_transaction(
-                tx,
-                read=[old_vertex, old_default_edge, old_delete_edge],
-                write=[new_vertex, new_default_edge, new_delete_edge],
-            )
+            q_str = "\n".join([f'db._query(query="{q}");' for q in queries])
+            tx = f""" function () {{ const db = require('@arangodb').db; {q_str} }}"""
+            await self.db.execute_transaction(tx, read=read, write=write)
 
         await create_new_collections(new_graph_db, to_snapshot=to_snapshot)
         await copy_data()
