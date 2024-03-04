@@ -44,6 +44,8 @@ class AzureResource(BaseResource):
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
+    # Check if we want to create provider link. Default is True
+    _is_provider_link: bool = True
 
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
@@ -576,8 +578,8 @@ class GraphBuilder:
             last_edge_key = self.add_edge(self.subscription, node=node)
 
         # create provider link
-        if node._metadata.get("provider_link") is None:
-            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource/subscriptions{node.id}/overview"
+        if node._metadata.get("provider_link") is None and node._is_provider_link:
+            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_nodes_access:

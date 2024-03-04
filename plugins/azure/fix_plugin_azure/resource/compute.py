@@ -3350,6 +3350,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    _is_provider_link: bool = False
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""

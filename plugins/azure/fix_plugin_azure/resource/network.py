@@ -1163,6 +1163,7 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
     rule_set_type: Optional[str] = field(default=None, metadata={'description': 'The type of the web application firewall rule set.'})  # fmt: skip
     rule_set_version: Optional[str] = field(default=None, metadata={'description': 'The version of the web application firewall rule set type.'})  # fmt: skip
     tiers: Optional[List[str]] = field(default=None, metadata={'description': 'Tier of an application gateway that support the rule set.'})  # fmt: skip
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -4358,6 +4359,7 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
     available_versions: Optional[List[str]] = field(default=None, metadata={'description': 'Available Network Virtual Appliance versions.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     vendor: Optional[str] = field(default=None, metadata={"description": "Network Virtual Appliance Sku vendor."})
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -4717,6 +4719,7 @@ class AzureUsage(AzureResource, BaseNetworkQuota):
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
