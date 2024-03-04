@@ -737,7 +737,7 @@ class ArangoGraphDB(GraphDB):
             else self.document_to_instance_fn(
                 query.model,
                 query,
-                ["change", "changed_at", "created", "updated", "deleted"],
+                ["change", "changed_at", "before", "diff"],
                 id_column="id",
             )
         )
