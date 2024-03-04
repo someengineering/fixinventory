@@ -209,7 +209,7 @@
         },
         {
             "name": "allow_ingress_any_port_ipv4",
-            "title": "Ensure No Network ACLs Allow Ingress from 0.0.0.0/0 to Any Port.",
+            "title": "Ensure No Network ACLs Allow Ingress From 0.0.0.0/0 to Every Port.",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -269,7 +269,7 @@
         },
         {
             "name": "allow_ingress_ssh_port_22_ipv4",
-            "title": "Ensure Network ACLs Do Not Allow Ingress from 0.0.0.0/0 to SSH Port 22",
+            "title": "Ensure Network ACLs Do Not Allow Ingress From 0.0.0.0/0 to SSH Port 22",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -299,7 +299,7 @@
         },
         {
             "name": "allow_ingress_ssh_port_22_ipv6",
-            "title": "Ensure No Network ACLs Allow Ingress from ::/0 to SSH Port 22",
+            "title": "Ensure No Network ACLs Allow Ingress From ::/0 to SSH Port 22",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -310,7 +310,7 @@
             "risk": "Leaving network ACLs open can inadvertently give any user or malware with VPC access the ability to scan sensitive ports and access instances, making your infrastructure more susceptible to malicious activities.",
             "severity": "high",
             "detect": {
-                "fix_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<22 and port_range.to_range>22)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<22) | select(.port_range.to_range>=22)) end  | contains({egress:false, ipv6_cidr_block:\"::/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_RANGE<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
+                "fix_cmd": "search is(aws_ec2_network_acl) and acl_entries[*].{(egress=false and ipv6_cidr_block=\"::/0\" and rule_action=allow and (protocol=-1 or (port_range.from_range<22 and port_range.to_range>22)))} | jq --no-rewrite  'if (( [.reported.acl_entries[]? | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<22) | select(.port_range.to_range>=22)) end  | contains({egress:false, ipv6_cidr_block:\"::/0\", rule_action:\"deny\"}) ] | any | not ) or ((.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"allow\") | .rule_number) < (.reported.acl_entries | sort_by(.rule_number) | .[]? | select(.egress==false) | if .protocol==\"-1\" then . else (. | select(.port_range.from_range<=22) | select(.port_range.to_range>=22) ) end | select(.ipv6_cidr_block==\"::/0\") | select(.rule_action==\"deny\") | .rule_number))) then [.] else [] end' | flatten"
             },
             "remediation": {
                 "text": "Consider implementing the Zero Trust approach. Consistently scan and remediate unrestricted or overly permissive network ACLs. As a best practice, limit traffic to minimum necessary ports.",
@@ -418,7 +418,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv4",
-            "title": "Ensure No Security Groups Allow Ingress from 0.0.0.0/0 to Any Port.",
+            "title": "Ensure No Security Groups Allow Ingress From 0.0.0.0/0 to Every Port.",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -650,7 +650,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv4",
-            "title": "Ensure Security Groups do not Allow Ingress from 0.0.0.0/0 to TCP Port 3389.",
+            "title": "Ensure Security Groups do not Allow Ingress From 0.0.0.0/0 to TCP Port 3389.",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -737,7 +737,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_kibana_ports",
-            "title": "Ensure Security Groups Disallow Ingress from 0.0.0.0/0 or ::/0 to Elasticsearch/Kibana Ports",
+            "title": "Ensure Security Groups Disallow Ingress From 0.0.0.0/0 or ::/0 to Elasticsearch/Kibana Ports",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -1008,7 +1008,7 @@
             "risk": "Improperly configured security groups increase the attack surface, making the AWS cloud infrastructure vulnerable.",
             "severity": "high",
             "detect": {
-                "fix": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^192\" and cidr_ip!~\"^10\" and cidr_ip~\"\\/(([1-9])|(1[0-9])|(2[0-3]))$\"}"
+                "fix": "is(aws_ec2_security_group) and group_ip_permissions[*].ip_ranges[*].{cidr_ip!=\"0.0.0.0/0\" and cidr_ip!~\"^(10\\.|^172\\.(1[6-9]|2[0-9]|3[0-1])\\.|^192\\.168\\.)\" and cidr_ip!~\"/(2[4-9]|[3][0-2])$\"}"
             },
             "remediation": {
                 "text": "To fix the issue, implement a Zero Trust approach and establish a process to regularly scan and remediate unrestricted or overly permissive network access control lists. It is recommended to narrow the definition of the minimum required ports.",
