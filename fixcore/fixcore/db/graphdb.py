@@ -1416,8 +1416,8 @@ class ArangoGraphDB(GraphDB):
 
         # we want to have a consistent snapshot view of the graph
         async def copy_data() -> None:
-            read = [self.vertex_name]
-            write = [new_graph_db.vertex_name]
+            read: List[str] = [self.vertex_name]
+            write: List[str] = [new_graph_db.vertex_name]
             queries = [f"FOR v IN `{self.vertex_name}` INSERT v INTO `{new_graph_db.vertex_name}`"]
             if not to_snapshot:  # no history for snapshots
                 read.append(self.node_history)
