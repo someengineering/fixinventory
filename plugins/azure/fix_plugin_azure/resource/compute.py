@@ -30,6 +30,8 @@ from fixlib.baseresources import (
     BaseVolume,
     BaseInstanceType,
     BaseSnapshot,
+    MetricName,
+    MetricUnit,
     VolumeStatus,
     BaseAutoScalingGroup,
     InstanceStatus,
@@ -324,44 +326,6 @@ class AzureCloudService(AzureResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'The system meta data relating to this resource.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'The unique identifier for the cloud service.'})  # fmt: skip
     upgrade_mode: Optional[str] = field(default=None, metadata={'description': 'Upgrade mode for the cloud service. Role instances are allocated to update domains when the service is deployed. Updates can be initiated manually in each update domain or initiated automatically in all update domains. Possible values are **auto** **manual** **simultaneous** if not specified, the default value is auto. If set to manual, put updatedomain must be called to apply the update. If set to auto, the update is automatically applied to each update domain in sequence.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureComputeOperationValueDisplay:
-    kind: ClassVar[str] = "azure_compute_operation_value_display"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "The description of the operation."})
-    operation: Optional[str] = field(default=None, metadata={'description': 'The display name of the compute operation.'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={"description": "The resource provider for the operation."})
-    resource: Optional[str] = field(default=None, metadata={'description': 'The display name of the resource the operation applies to.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureComputeOperationValue(AzureResource):
-    kind: ClassVar[str] = "azure_compute_operation_value"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/providers/Microsoft.Compute/operations",
-        path_parameters=[],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "display": S("display") >> Bend(AzureComputeOperationValueDisplay.mapping),
-        "origin": S("origin"),
-    }
-    display: Optional[AzureComputeOperationValueDisplay] = field(default=None, metadata={'description': 'Describes the properties of a compute operation value display.'})  # fmt: skip
-    origin: Optional[str] = field(default=None, metadata={"description": "The origin of the compute operation."})
 
 
 @define(eq=False, slots=False)
@@ -743,10 +707,18 @@ class AzureDisk(AzureResource, BaseVolume):
             )
 
         metric_normalizers = {
-            "Composite Disk Write Bytes/sec": MetricNormalization(name="volume_write_bytes"),
-            "Composite Disk Read Bytes/sec": MetricNormalization(name="volume_read_bytes"),
-            "Composite Disk Write Operations/sec": MetricNormalization(name="volume_write_ops"),
-            "Composite Disk Read Operations/sec": MetricNormalization(name="volume_read_ops"),
+            "Composite Disk Write Bytes/sec": MetricNormalization(
+                metric_name=MetricName.VolumeWrite, unit=MetricUnit.Bytes
+            ),
+            "Composite Disk Read Bytes/sec": MetricNormalization(
+                metric_name=MetricName.VolumeRead, unit=MetricUnit.Bytes
+            ),
+            "Composite Disk Write Operations/sec": MetricNormalization(
+                metric_name=MetricName.VolumeWrite, unit=MetricUnit.IOPS
+            ),
+            "Composite Disk Read Operations/sec": MetricNormalization(
+                metric_name=MetricName.VolumeRead, unit=MetricUnit.IOPS
+            ),
         }
 
         metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
@@ -2697,15 +2669,16 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
 
         metric_normalizers = {
             "Percentage CPU": MetricNormalization(
-                name="cpu_utilization",
+                metric_name=MetricName.CpuUtilization,
+                unit=MetricUnit.Percent,
                 normalize_value=lambda x: round(x, ndigits=3),
             ),
-            "Network In": MetricNormalization(name="network_in"),
-            "Network Out": MetricNormalization(name="network_out"),
-            "Disk Read Operations/Sec": MetricNormalization(name="disk_read_ops"),
-            "Disk Write Operations/Sec": MetricNormalization(name="disk_write_ops"),
-            "Disk Read Bytes": MetricNormalization(name="disk_read_bytes"),
-            "Disk Write Bytes": MetricNormalization(name="disk_write_bytes"),
+            "Network In": MetricNormalization(metric_name=MetricName.NetworkIn, unit=MetricUnit.Bytes),
+            "Network Out": MetricNormalization(metric_name=MetricName.NetworkOut, unit=MetricUnit.Bytes),
+            "Disk Read Operations/Sec": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.IOPS),
+            "Disk Write Operations/Sec": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.IOPS),
+            "Disk Read Bytes": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.Bytes),
+            "Disk Write Bytes": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.Bytes),
         }
 
         metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
@@ -3393,7 +3366,6 @@ resources: List[Type[AzureResource]] = [
     AzureAvailabilitySet,
     AzureCapacityReservationGroup,
     AzureCloudService,
-    AzureComputeOperationValue,
     AzureDedicatedHostGroup,
     AzureDisk,
     AzureDiskAccess,

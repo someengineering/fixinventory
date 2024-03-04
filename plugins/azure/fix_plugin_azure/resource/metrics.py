@@ -303,7 +303,7 @@ def update_resource_metrics(
                 normalizer = metric_normalizers.get(query.metric_name)
                 if not normalizer:
                     continue
-                name = normalizer.name
+                name = normalizer.metric_name + "_" + normalizer.unit
                 value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
                 resource._resource_usage[name][normalizer.stat_map[aggregation]] = value

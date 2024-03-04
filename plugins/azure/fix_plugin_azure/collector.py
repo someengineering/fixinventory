@@ -16,7 +16,11 @@ from fix_plugin_azure.resource.base import (
     AzureResource,
     resources as base_resources,
 )
-from fix_plugin_azure.resource.network import resources as network_resources
+from fix_plugin_azure.resource.network import (
+    AzureExpressRoutePortsLocation,
+    AzureNetworkVirtualApplianceSku,
+    resources as network_resources,
+)
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
 from fixlib.baseresources import Cloud, GraphRoot
 from fixlib.core.actions import CoreFeedback
@@ -152,3 +156,5 @@ class AzureSubscriptionCollector:
             remove_nodes.clear()
 
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
+        rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
+        rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)

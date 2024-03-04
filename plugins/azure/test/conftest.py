@@ -28,12 +28,13 @@ class StaticFileAzureClient(AzureClient):
         with open(path) as f:
             js = json.load(f)
 
-            if spec.expect_array:
+        if isinstance(js, dict):
+            if spec.access_path:
                 js = js[spec.access_path]
-            if spec.expect_array and isinstance(js, list):
-                return js
-            else:
-                return [js]
+        if spec.expect_array and isinstance(js, list):
+            return js
+        else:
+            return [js]
 
     @staticmethod
     def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
