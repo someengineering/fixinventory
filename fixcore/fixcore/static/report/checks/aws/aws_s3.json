@@ -122,7 +122,7 @@
         },
         {
             "name": "bucket_policy_public_write_access",
-            "title": "Ensure S3 Buckets Do Not Have Policies That Allow Write Access to the Public",
+            "title": "Ensure S3 Buckets Do Not Have Policies That Allow Public Write Access",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
