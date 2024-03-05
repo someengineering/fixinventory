@@ -315,7 +315,7 @@
         },
         {
             "name": "log_metric_filters_console_login_no_mfa",
-            "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA.",
+            "title": "Ensure a log metric filter and alarm exist for Management Console sign-in without MFA",
             "result_kinds": [
                 "aws_cloud_trail"
             ],
@@ -455,7 +455,7 @@
         },
         {
             "name": "log_metric_filters_kms_key_deletion",
-            "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer-created KMS CMKs.",
+            "title": "Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer-created KMS CMKs",
             "result_kinds": [
                 "aws_cloud_trail"
             ],
@@ -511,7 +511,7 @@
         },
         {
             "name": "log_metric_filters_config_configuration_changes",
-            "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes.",
+            "title": "Ensure a log metric filter and alarm exist for AWS Config configuration changes",
             "result_kinds": [
                 "aws_cloud_trail"
             ],
@@ -539,7 +539,7 @@
         },
         {
             "name": "log_metric_filters_security_group_changes",
-            "title": "Ensure a log metric filter and alarm exist for security group changes.",
+            "title": "Ensure a log metric filter and alarm exist for security group changes",
             "result_kinds": [
                 "aws_cloud_trail"
             ],

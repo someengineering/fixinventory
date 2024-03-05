@@ -62,7 +62,7 @@
         },
         {
             "name": "domain_uses_cognito_authentication",
-            "title": "Ensure that Amazon OpenSearch Service domains have Amazon Cognito authentication enabled.",
+            "title": "Ensure that Amazon OpenSearch Service domains have Amazon Cognito authentication enabled",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -120,7 +120,7 @@
         },
         {
             "name": "update_available",
-            "title": "Ensure that Amazon OpenSearch Service domains are running the latest version.",
+            "title": "Ensure that Amazon OpenSearch Service domains are running the latest version",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],

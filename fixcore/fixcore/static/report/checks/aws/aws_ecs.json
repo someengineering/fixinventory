@@ -88,7 +88,7 @@
         },
         {
             "name": "ecs_cluster_container_insights_enabled",
-            "title": "Ensure Container Insights is enabled for improved visibility and monitoring of container-based applications in Amazon ECS.",
+            "title": "Ensure Container Insights is enabled for improved visibility and monitoring of container-based applications in Amazon ECS",
             "result_kinds": [
                 "aws_ecs_task_definition"
             ],

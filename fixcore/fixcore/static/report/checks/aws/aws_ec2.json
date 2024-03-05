@@ -119,7 +119,7 @@
         },
         {
             "name": "old_instances",
-            "title": "Ensure EC2 Instances Are Not Older Than Specific Days.",
+            "title": "Ensure EC2 Instances Are Not Older Than Specific Days",
             "result_kinds": [
                 "aws_ec2_instance"
             ],
@@ -209,7 +209,7 @@
         },
         {
             "name": "allow_ingress_any_port_ipv4",
-            "title": "Ensure No Network ACLs Allow Ingress From 0.0.0.0/0 to Every Port.",
+            "title": "Ensure No Network ACLs Allow Ingress From 0.0.0.0/0 to Every Port",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -239,7 +239,7 @@
         },
         {
             "name": "allow_ingress_any_port_ipv6",
-            "title": "Ensure that Network ACLs do not permit ingress from ::/0 to any port.",
+            "title": "Ensure that Network ACLs do not permit ingress from ::/0 to any port",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -389,7 +389,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port",
-            "title": "Ensure that no security groups permit ingress from 0.0.0.0/0 or ::/0 to any port.",
+            "title": "Ensure that no security groups permit ingress from 0.0.0.0/0 or ::/0 to any port",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -418,7 +418,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv4",
-            "title": "Ensure No Security Groups Allow Ingress From 0.0.0.0/0 to Every Port.",
+            "title": "Ensure No Security Groups Allow Ingress From 0.0.0.0/0 to Every Port",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -447,7 +447,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
-            "title": "Ensure that no security groups are allowing ingress from ::/0 to any port in your VPC.",
+            "title": "Ensure that no security groups are allowing ingress from ::/0 to any port in your VPC",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -476,7 +476,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_port_mongodb_27017_27018",
-            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to MongoDB ports 27017 and 27018.",
+            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to MongoDB ports 27017 and 27018",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -505,7 +505,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22",
-            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to SSH port 22.",
+            "title": "Ensure no security groups permit ingress from 0.0.0.0/0 or ::/0 to SSH port 22",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -534,7 +534,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv4",
-            "title": "Ensure that no security groups permit unrestricted ingress from 0.0.0.0/0 to SSH port 22.",
+            "title": "Ensure that no security groups permit unrestricted ingress from 0.0.0.0/0 to SSH port 22",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -563,7 +563,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv6",
-            "title": "Ensure No Security Groups Allow Ingress From ::/0 to SSH Port 22 via IPV6.",
+            "title": "Ensure No Security Groups Allow Ingress From ::/0 to SSH Port 22 via IPV6",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -592,7 +592,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_ftp_port_20_21",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to FTP ports 20 or 21.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to FTP ports 20 or 21",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -621,7 +621,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389",
-            "title": "Ensure that security groups don't permit ingress from 0.0.0.0/0 or ::/0 to port 3389.",
+            "title": "Ensure that security groups don't permit ingress from 0.0.0.0/0 or ::/0 to port 3389",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -650,7 +650,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv4",
-            "title": "Ensure Security Groups do not Allow Ingress From 0.0.0.0/0 to TCP Port 3389.",
+            "title": "Ensure Security Groups do not Allow Ingress From 0.0.0.0/0 to TCP Port 3389",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -679,7 +679,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv6",
-            "title": "Ensure that no security groups permit ingress from ::/0 to port 3389.",
+            "title": "Ensure that no security groups permit ingress from ::/0 to port 3389",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -766,7 +766,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_kafka_ports",
-            "title": "Ensure that security groups restrict ingress from 0.0.0.0/0 or ::/0 to Kafka ports.",
+            "title": "Ensure that security groups restrict ingress from 0.0.0.0/0 or ::/0 to Kafka ports",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -795,7 +795,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_memcached_ports",
-            "title": "Ensure security groups do not permit ingress from 0.0.0.0/0 or ::/0 to Memcached ports 11211.",
+            "title": "Ensure security groups do not permit ingress from 0.0.0.0/0 or ::/0 to Memcached ports 11211",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -881,7 +881,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_postgresql_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to PostgreSQL ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to PostgreSQL ports",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -939,7 +939,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_sql_server_ports",
-            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SQL Server ports.",
+            "title": "Ensure no security groups allow ingress from 0.0.0.0/0 or ::/0 to SQL Server ports",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -997,7 +997,7 @@
         },
         {
             "name": "wide_open_ipv4_security_group",
-            "title": "Ensure security group is properly configured to reduce attack surface.",
+            "title": "Ensure security group is properly configured to reduce attack surface",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -1055,7 +1055,7 @@
         },
         {
             "name": "routing_tables_with_least_privilege",
-            "title": "Ensure VPC peering routing tables have least access.",
+            "title": "Ensure VPC peering routing tables have least access",
             "result_kinds": [
                 "aws_vpc"
             ],
@@ -1084,7 +1084,7 @@
         },
         {
             "name": "volume_not_encrypted",
-            "title": "Ensure all EBS Volumes are encrypted.",
+            "title": "Ensure all EBS Volumes are encrypted",
             "result_kinds": [
                 "aws_ec2_volume"
             ],
@@ -1263,7 +1263,7 @@
         },
         {
             "name": "image_public",
-            "title": "Ensure EC2 AMIs are not publicly accessible.",
+            "title": "Ensure EC2 AMIs are not publicly accessible",
             "result_kinds": [
                 "aws_ec2_image"
             ],
@@ -1292,7 +1292,7 @@
         },
         {
             "name": "no_secrets_in_instance_user_data",
-            "title": "Ensure there are no secrets in EC2 User Data.",
+            "title": "Ensure there are no secrets in EC2 User Data",
             "result_kinds": [
                 "aws_ec2_instance"
             ],

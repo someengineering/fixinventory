@@ -296,7 +296,7 @@
         },
         {
             "name": "user_mfa_enabled_console_access",
-            "title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users with console passwords.",
+            "title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users with console passwords",
             "result_kinds": [
                 "aws_iam_user"
             ],
@@ -504,7 +504,7 @@
         },
         {
             "name": "user_inline_policy_no_star_star",
-            "title": "Ensure IAM users do not have inline policies granting full administrative privileges \"*:*\".",
+            "title": "Ensure IAM users do not have inline policies granting full administrative privileges \"*:*\"",
             "result_kinds": [
                 "aws_iam_user"
             ],
@@ -562,7 +562,7 @@
         },
         {
             "name": "role_inline_policy_no_star_star",
-            "title": "Ensure IAM roles do not use inline policies with full administrative privileges.",
+            "title": "Ensure IAM roles do not use inline policies with full administrative privileges",
             "result_kinds": [
                 "aws_iam_role"
             ],
@@ -620,7 +620,7 @@
         },
         {
             "name": "expired_server_certificates",
-            "title": "Ensure that all expired SSL/TLS certificates are removed from AWS IAM.",
+            "title": "Ensure that all expired SSL/TLS certificates are removed from AWS IAM",
             "result_kinds": [
                 "aws_iam_server_certificate"
             ],

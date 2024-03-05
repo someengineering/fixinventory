@@ -33,7 +33,7 @@
         },
         {
             "name": "function_in_vpc",
-            "title": "Ensure that AWS Lambda functions are deployed within a VPC and configured with appropriate security groups for precise and compliant network access controls.",
+            "title": "Ensure that AWS Lambda functions are deployed within a VPC and configured with appropriate security groups for precise and compliant network access controls",
             "result_kinds": [
                 "aws_lambda_function"
             ],
@@ -62,7 +62,7 @@
         },
         {
             "name": "cors_policy",
-            "title": "Ensure Appropriate CORS Configuration for AWS Lambda Functions URL.",
+            "title": "Ensure Appropriate CORS Configuration for AWS Lambda Functions URL",
             "result_kinds": [
                 "aws_lambda_function"
             ],
@@ -94,7 +94,7 @@
         },
         {
             "name": "function_restrict_public_access",
-            "title": "Ensure Lambda Functions are not Publicly Accessible.",
+            "title": "Ensure Lambda Functions are not Publicly Accessible",
             "result_kinds": [
                 "aws_lambda_function"
             ],

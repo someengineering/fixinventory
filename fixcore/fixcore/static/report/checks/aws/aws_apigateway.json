@@ -90,7 +90,7 @@
         },
         {
             "name": "waf_acl_attached",
-            "title": "Ensure API Gateway Has a WAF ACL Attached.",
+            "title": "Ensure API Gateway Has a WAF ACL Attached",
             "result_kinds": [
                 "aws_apigateway_stage"
             ],

@@ -34,7 +34,7 @@
         },
         {
             "name": "no_secrets_in_content",
-            "title": "Ensure SSM Documents Do Not Contain Secrets.",
+            "title": "Ensure SSM Documents Do Not Contain Secrets",
             "result_kinds": [
                 "aws_ssm_document"
             ],
@@ -63,7 +63,7 @@
         },
         {
             "name": "document_is_shared",
-            "title": "Ensure that AWS Systems Manager (SSM) documents are not inappropriately or inadvertently shared.",
+            "title": "Ensure that AWS Systems Manager (SSM) documents are not inappropriately or inadvertently shared",
             "result_kinds": [
                 "aws_ssm_document"
             ],

@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "alb_has_no_listeners",
-            "title": "Ensure that Elastic Load Balancers V2 have listeners configured.",
+            "title": "Ensure that Elastic Load Balancers V2 have listeners configured",
             "result_kinds": [
                 "aws_alb"
             ],
@@ -32,7 +32,7 @@
         },
         {
             "name": "elb_has_no_listeners",
-            "title": "Ensure Elastic Load Balancers have listeners.",
+            "title": "Ensure Elastic Load Balancers have listeners",
             "result_kinds": [
                 "aws_elb"
             ],
