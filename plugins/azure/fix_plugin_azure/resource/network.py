@@ -25,7 +25,7 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringToUnitNumber
+from fixlib.json_bender import Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
 from fixlib.types import Json
 
 
@@ -4705,7 +4705,7 @@ class AzureUsage(AzureResource, BaseNetworkQuota):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
+        "name": S("name", "value"),
         "usage_name": S("name") >> Bend(AzureUsageName.mapping),
         "current_value": S("currentValue"),
         "limit": S("limit"),
@@ -4719,7 +4719,6 @@ class AzureUsage(AzureResource, BaseNetworkQuota):
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
-    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)

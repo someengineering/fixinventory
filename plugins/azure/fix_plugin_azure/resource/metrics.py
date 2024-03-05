@@ -1,6 +1,11 @@
 from datetime import datetime
 from concurrent.futures import as_completed
+from time import sleep
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
+
+from azure.core.exceptions import (
+    HttpResponseError,
+)
 
 from attr import define, field
 
@@ -260,29 +265,43 @@ class AzureMetricData:
         api_spec: AzureApiSpec,
         timespan: str,
         interval: str,
+        max_retries: int = 3,
+        backoff_factor: float = 2,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
-        # Set the path for the API call based on the instance ID of the query
-        api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
-        # Retrieve metric data from the API
-        aggregation = ",".join(query.aggregation)
-        part = builder.client.list(
-            api_spec,
-            metricnames=query.metric_name,
-            metricNamespace=query.metric_namespace,
-            timespan=timespan,
-            aggregation=aggregation,
-            interval=interval,
-            AutoAdjustTimegrain=True,
-            ValidateDimensions=False,
-        )
-        # Iterate over the retrieved data and map it to AzureMetricData objects
-        for single in part:
-            metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
-            metric.set_values(query.aggregation)
-            metric_id = metric.metric_id
-            if metric_id is not None:
-                return metric, metric_id
-        return None, None
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                # Set the path for the API call based on the instance ID of the query
+                api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
+                # Retrieve metric data from the API
+                aggregation = ",".join(query.aggregation)
+                part = builder.client.list(
+                    api_spec,
+                    metricnames=query.metric_name,
+                    metricNamespace=query.metric_namespace,
+                    timespan=timespan,
+                    aggregation=aggregation,
+                    interval=interval,
+                    AutoAdjustTimegrain=True,
+                    ValidateDimensions=False,
+                )
+                # Iterate over the retrieved data and map it to AzureMetricData objects
+                for single in part:
+                    metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
+                    metric.set_values(query.aggregation)
+                    metric_id = metric.metric_id
+                    if metric_id is not None:
+                        return metric, metric_id
+                return None, None
+            except HttpResponseError:
+                # Handle unsupported metric namespace error
+                retry_count += 1
+                if retry_count >= max_retries:
+                    raise
+                wait_time = backoff_factor**retry_count
+                sleep(wait_time)  # Sleep for calculated wait time
+
+        return None, None  # No data retrieved after all retries
 
 
 V = TypeVar("V", bound=BaseResource)

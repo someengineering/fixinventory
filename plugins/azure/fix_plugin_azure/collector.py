@@ -19,6 +19,7 @@ from fix_plugin_azure.resource.base import (
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
+    AzureUsage,
     resources as network_resources,
 )
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
@@ -146,15 +147,28 @@ class AzureSubscriptionCollector:
                     pred = [p for p in pred if not isinstance(p, ignore_kinds)]
                 if not pred:
                     remove_nodes.append(node)
-            removed = set()
-            for node in remove_nodes:
-                if node in removed:
-                    continue
-                removed.add(node)
-                self.graph.remove_node(node)
+            self._delete_nodes(remove_nodes)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            remove_nodes.clear()
+
+        def remove_usage_zero_value() -> None:
+            for node in self.graph.nodes:
+                if not isinstance(node, AzureUsage):
+                    continue
+                if node.current_value == 0:
+                    remove_nodes.append(node)
+            self._delete_nodes(remove_nodes)
             remove_nodes.clear()
 
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
+        remove_usage_zero_value()
+
+    def _delete_nodes(self, nodes_to_delte: Any) -> None:
+        removed = set()
+        for node in nodes_to_delte:
+            if node in removed:
+                continue
+            removed.add(node)
+            self.graph.remove_node(node)
