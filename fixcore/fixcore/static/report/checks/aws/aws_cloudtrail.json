@@ -707,7 +707,7 @@
         },
         {
             "name": "security_hub_enabled",
-            "title": "Ensure Security Hub Is Enabled and Its Standard Subscriptions",
+            "title": "Ensure Security Hub and Its Standard Subscriptions Are Enabled",
             "result_kinds": [
                 "aws_cloud_trail"
             ],
@@ -727,7 +727,7 @@
             },
             "localizations": {
                 "de": {
-                    "title": "Stellen Sie sicher, dass Security Hub aktiviert ist und seine Standard-Abonnements",
+                    "title": "Stellen Sie sicher, dass Security Hub und seine Standard-Abonnements aktiviert sind",
                     "risk": "Wenn Security Hub nicht aktiviert ist, werden Sicherheitsteams keine umfassende Übersicht über Sicherheitswarnungen und den Sicherheitsstatus in AWS-Konten haben.",
                     "remediation": "Beachten Sie, dass Security Hub regional ist, daher wirkt sich das Aktivieren oder Deaktivieren eines Sicherheitsstandards nur auf die aktuelle Region oder die angegebene Region aus. Befolgen Sie die Schritte in der Dokumentation, um Standards in Security Hub zu aktivieren oder zu deaktivieren."
                 }
