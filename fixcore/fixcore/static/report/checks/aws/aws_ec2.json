@@ -389,7 +389,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port",
-            "title": "Ensure That No Security Groups Permit Ingress from 0.0.0.0/0 or ::/0 to Every Port",
+            "title": "Ensure No Security Groups Permit Ingress from 0.0.0.0/0 or ::/0 to Every Port",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -447,7 +447,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
-            "title": "Ensure That No Security Groups Are Allowing Ingress from ::/0 to Every Port in Your VPC",
+            "title": "Ensure No Security Groups Are Allowing Ingress from ::/0 to Every Port in Your VPC",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -534,7 +534,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_ssh_port_22_ipv4",
-            "title": "Ensure That No Security Groups Permit Unrestricted Ingress from 0.0.0.0/0 to SSH Port 22",
+            "title": "Ensure No Security Groups Permit Unrestricted Ingress from 0.0.0.0/0 to SSH Port 22",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
@@ -679,7 +679,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389_ipv6",
-            "title": "Ensure That No Security Groups Permit Ingress from ::/0 to Port 3389",
+            "title": "Ensure No Security Groups Permit Ingress from ::/0 to Port 3389",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
