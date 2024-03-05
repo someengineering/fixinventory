@@ -155,7 +155,7 @@
         },
         {
             "name": "no_secrets_in_variables",
-            "title": "Ensure Secrets Aren't Stored in AWS Lambda Environment Variables",
+            "title": "Ensure Secrets Are Not Stored in AWS Lambda Environment Variables",
             "result_kinds": [
                 "aws_lambda_function"
             ],

@@ -621,7 +621,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_rdp_port_3389",
-            "title": "Ensure That Security Groups Don't Permit Ingress from 0.0.0.0/0 or ::/0 to Port 3389",
+            "title": "Ensure That Security Groups Do Not Permit Ingress from 0.0.0.0/0 or ::/0 to Port 3389",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
