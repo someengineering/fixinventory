@@ -229,12 +229,14 @@ class AzureResourceManagementClient(AzureClient):
         return nextlink_jsons
 
     def _split_nextlink(self, nextlink: str) -> Tuple[str, str]:
+        # Parse url to extract queries and path
         parsed_url = urlparse(nextlink)
         path_without_query = parsed_url.path
         path_queries = parsed_url.query
         return (path_without_query, path_queries)
 
     def _parse_query_parameters(self, queries: str) -> Dict[str, str]:
+        # Construct parameters for requesting the next link
         params = {}
         for query in queries.split("&"):
             key, value = query.split("=")
@@ -242,8 +244,6 @@ class AzureResourceManagementClient(AzureClient):
         return params
 
     def _make_request(self, url: str, params: MutableMapping[str, Any], headers: MutableMapping[str, Any]) -> Any:
-        # Make HTTP request with retries, authentication, etc.
-
         # Construct and send request
         request = HttpRequest(method="GET", url=url, params=params, headers=headers)
         pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
