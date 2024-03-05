@@ -1,5 +1,6 @@
 from datetime import datetime
 from concurrent.futures import as_completed
+import logging
 from time import sleep
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
@@ -16,6 +17,8 @@ from fixlib.baseresources import BaseResource
 from fixlib.json import from_json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.utils import utc_str
+
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -254,7 +257,7 @@ class AzureMetricData:
                 if metric is not None and metric_id is not None:
                     result[lookup[metric_id]] = metric
             except Exception as e:
-                raise e
+                log.warning(f"An error occurred while processing a metric query: {e}")
 
         return result
 
@@ -293,11 +296,12 @@ class AzureMetricData:
                     if metric_id is not None:
                         return metric, metric_id
                 return None, None
-            except HttpResponseError:
+            except HttpResponseError as e:
                 # Handle unsupported metric namespace error
                 retry_count += 1
                 if retry_count >= max_retries:
-                    raise
+                    raise e
+                log.warning(f"Request error occurred: {e}. Retrying...")
                 wait_time = backoff_factor**retry_count
                 sleep(wait_time)  # Sleep for calculated wait time
 
