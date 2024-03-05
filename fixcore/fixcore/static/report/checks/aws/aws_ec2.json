@@ -447,7 +447,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port_ipv6",
-            "title": "Ensure That No Security Groups Are All... (truncated for brevity)",
+            "title": "Ensure That No Security Groups Are Allowing Ingress from ::/0 to Every Port in Your VPC",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
