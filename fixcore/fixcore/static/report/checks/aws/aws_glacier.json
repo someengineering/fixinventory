@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "vaults_policy_public_access",
-            "title": "Ensure S3 Glacier vaults have policies that restrict access to authorized users.",
+            "title": "Ensure S3 Glacier Vaults Have Policies That Restrict Access to Authorized Users",
             "result_kinds": [
                 "aws_glacier_vault"
             ],

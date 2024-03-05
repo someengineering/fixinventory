@@ -34,7 +34,7 @@
         },
         {
             "name": "no_secrets_in_content",
-            "title": "Ensure SSM Documents Do Not Contain Secrets.",
+            "title": "Ensure SSM Documents Do Not Contain Secrets",
             "result_kinds": [
                 "aws_ssm_document"
             ],
@@ -63,7 +63,7 @@
         },
         {
             "name": "document_is_shared",
-            "title": "Ensure that AWS Systems Manager (SSM) documents are not inappropriately or inadvertently shared.",
+            "title": "Ensure that AWS Systems Manager (SSM) Documents Are Not Inappropriately or Inadvertently Shared",
             "result_kinds": [
                 "aws_ssm_document"
             ],
@@ -92,7 +92,7 @@
         },
         {
             "name": "resource_non_compliant",
-            "title": "Ensure AWS Systems Manager Compliance across Multiple Resources",
+            "title": "Ensure AWS Systems Manager Compliance Across Multiple Resources",
             "result_kinds": [
                 "aws_ec2_instance",
                 "aws_dynamodb_table",

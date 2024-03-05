@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "domain_does_not_use_internal_user_database",
-            "title": "Ensure that Amazon OpenSearch Service domains do not use the internal user database",
+            "title": "Ensure That Amazon OpenSearch Service Domains Do Not Use the Internal User Database",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -33,7 +33,7 @@
         },
         {
             "name": "domain_is_not_publicly_accessible",
-            "title": "Ensure that Amazon OpenSearch/Elasticsearch domains are not publicly accessible or have open policy access",
+            "title": "Ensure That Amazon OpenSearch/Elasticsearch Domains Are Not Publicly Accessible or Have Open Policy Access",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -62,7 +62,7 @@
         },
         {
             "name": "domain_uses_cognito_authentication",
-            "title": "Ensure that Amazon OpenSearch Service domains have Amazon Cognito authentication enabled.",
+            "title": "Ensure That Amazon OpenSearch Service Domains Have Amazon Cognito Authentication Enabled",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -91,7 +91,7 @@
         },
         {
             "name": "audit_logs_enabled",
-            "title": "Ensure that Amazon OpenSearch Service domains have audit logs enabled",
+            "title": "Ensure That Amazon OpenSearch Service Domains Have Audit Logs Enabled",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -120,7 +120,7 @@
         },
         {
             "name": "update_available",
-            "title": "Ensure that Amazon OpenSearch Service domains are running the latest version.",
+            "title": "Ensure That Amazon OpenSearch Service Domains Are Running the Latest Version",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
@@ -146,7 +146,7 @@
         },
         {
             "name": "encryption_at_rest_enabled",
-            "title": "Ensure that encryption at rest is enabled for Amazon OpenSearch Service domains",
+            "title": "Ensure That Encryption at Rest Is Enabled for Amazon OpenSearch Service Domains",
             "result_kinds": [
                 "aws_opensearch_domain"
             ],
