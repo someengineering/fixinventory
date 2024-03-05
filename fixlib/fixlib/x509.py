@@ -285,10 +285,12 @@ def load_cert_from_bytes(cert: bytes) -> Certificate:
 def load_key_from_bytes(
     key: bytes, passphrase: Optional[str] = None, skip_rsa_key_validation: bool = False
 ) -> RSAPrivateKey:
-    backend = default_backend()
-    if passphrase is not None:
-        passphrase = passphrase.encode()  # type: ignore
-    return backend.load_pem_private_key(key, passphrase, skip_rsa_key_validation)  # type: ignore
+    passphrase_bytes: Optional[bytes] = passphrase.encode() if passphrase is not None else None
+    private_key = serialization.load_pem_private_key(
+        key, passphrase_bytes, unsafe_skip_rsa_key_validation=skip_rsa_key_validation
+    )
+    assert isinstance(private_key, RSAPrivateKey)
+    return private_key
 
 
 def make_ip(ip: str) -> Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network]:

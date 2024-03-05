@@ -27,16 +27,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: 'x64'
 
       - name: Restore dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{runner.os}}-pip-${{hashFiles('@directory@/pyproject.toml')}}
@@ -67,9 +67,9 @@ aws_policygen = """
           export API_TOKEN="${{ secrets.API_TOKEN }}"
           export SPACES_KEY="${{ secrets.SPACES_KEY }}"
           export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          export AWS_ACCESS_KEY_ID="${{ secrets.S3_FIXPUBLIC_AWS_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_FIXPUBLIC_AWS_SECRET_ACCESS_KEY }}"
-          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/aws/ --aws-s3-bucket fixpublic --aws-s3-bucket-path cf/
+          export AWS_ACCESS_KEY_ID="${{ secrets.S3_FIXINVENTORYPUBLIC_AWS_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_FIXINVENTORYPUBLIC_AWS_SECRET_ACCESS_KEY }}"
+          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/aws/ --aws-s3-bucket fixinventorypublic --aws-s3-bucket-path cf/
 """
 
 gcp_policygen = """
@@ -125,14 +125,14 @@ for plugin in os.listdir(plugins_path):
             yml.write(
                 install.replace("@directory@", f"./plugins/{plugin}")
                 .replace("@name@", plugin)
-                .replace("@PKGNAME@", f"fix_plugin_{plugin}".upper())
+                .replace("@PKGNAME@", f"fixinventory_plugin_{plugin}".upper())
             )
             if "_aws_" in plugin:
                 yml.write(aws_plugin)
             yml.write(
                 step_run_test.replace("@directory@", f"./plugins/{plugin}")
                 .replace("@name@", plugin)
-                .replace("@PKGNAME@", f"fix_plugin_{plugin}".upper())
+                .replace("@PKGNAME@", f"fixinventory_plugin_{plugin}".upper())
             )
             if plugin == "aws":
                 yml.write(aws_policygen)

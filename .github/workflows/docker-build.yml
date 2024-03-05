@@ -34,7 +34,7 @@ jobs:
           remove-codeql: 'true'
 
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check free space before build
         run: |
