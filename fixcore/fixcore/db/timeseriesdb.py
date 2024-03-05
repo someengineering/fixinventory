@@ -142,8 +142,8 @@ class TimeSeriesDB:
             grl = granularity
         else:
             grl = duration / 20  # default to 20 datapoints if nothing is specified
-        if grl < timedelta(hours=1):
-            grl = timedelta(hours=1)
+
+        grl = max(grl, timedelta(hours=1))
 
         qs, bv = arango_query.load_time_series(self.collection_name, name, start, end, grl, group_by, filter_by)
 
