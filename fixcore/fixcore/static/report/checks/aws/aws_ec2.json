@@ -239,7 +239,7 @@
         },
         {
             "name": "allow_ingress_any_port_ipv6",
-            "title": "Ensure That Network ACLs Do Not Permit Ingress from ::/0 to Any Port",
+            "title": "Ensure That Network ACLs Do Not Permit Ingress from ::/0 to Every Port",
             "result_kinds": [
                 "aws_ec2_network_acl"
             ],
@@ -389,7 +389,7 @@
         },
         {
             "name": "allow_ingress_from_internet_to_any_port",
-            "title": "Ensure That No Security Groups Permit Ingress from 0.0.0.0/0 or ::/0 to Any Port",
+            "title": "Ensure That No Security Groups Permit Ingress from 0.0.0.0/0 or ::/0 to Every Port",
             "result_kinds": [
                 "aws_ec2_security_group"
             ],
