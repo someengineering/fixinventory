@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Wait for FixLib to be published on PyPI
         uses: lewagon/wait-on-check-action@v1.3.1

@@ -31,9 +31,9 @@ jobs:
           - 8529:8529
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
           architecture: 'x64'
@@ -44,7 +44,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Restore dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
