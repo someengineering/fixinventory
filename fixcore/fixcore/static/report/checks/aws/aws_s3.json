@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "bucket_default_encryption",
-            "title": "Ensure S3 buckets have default encryption (SSE) enabled or use a bucket policy to enforce it",
+            "title": "Ensure S3 Buckets Have Default Encryption (SSE) Enabled or Use a Bucket Policy to Enforce It",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -35,7 +35,7 @@
         },
         {
             "name": "bucket_no_mfa_delete",
-            "title": "Ensure S3 bucket MFA Delete is enabled",
+            "title": "Ensure S3 Bucket MFA Delete Is Enabled",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -66,7 +66,7 @@
         },
         {
             "name": "bucket_secure_transport_policy",
-            "title": "Ensure S3 buckets have secure transport policy",
+            "title": "Ensure S3 Buckets Have Secure Transport Policy",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -94,7 +94,7 @@
         },
         {
             "name": "macie_is_enabled",
-            "title": "Ensure Amazon Macie is enabled",
+            "title": "Ensure Amazon Macie Is Enabled",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -122,7 +122,7 @@
         },
         {
             "name": "bucket_policy_public_write_access",
-            "title": "Ensure S3 buckets do not have policies that allow write access to the public",
+            "title": "Ensure S3 Buckets Do Not Have Policies That Allow Write Access to the Public",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -151,7 +151,7 @@
         },
         {
             "name": "account_level_public_access_blocks",
-            "title": "Ensure S3 Account Level Public Access Block is Enabled",
+            "title": "Ensure S3 Account Level Public Access Block Is Enabled",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -182,7 +182,7 @@
         },
         {
             "name": "public_bucket",
-            "title": "Ensure S3 buckets are not made public",
+            "title": "Ensure S3 Buckets Are Not Made Public",
             "result_kinds": [
                 "aws_s3_bucket"
             ],
@@ -211,7 +211,7 @@
         },
         {
             "name": "bucket_object_logging_enabled",
-            "title": "Ensure S3 bucket object logging is enabled to aid in identifying security breaches with AWS S3",
+            "title": "Ensure S3 Bucket Object Logging Is Enabled to Aid in Identifying Security Breaches with AWS S3",
             "result_kinds": [
                 "aws_s3_bucket"
             ],

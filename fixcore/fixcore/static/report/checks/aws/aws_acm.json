@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "certificate_transparency_logging_enabled",
-            "title": "Ensure ACM certificate transparency is enabled to enhance website security and detect unauthorized SSL/TLS certificates",
+            "title": "Ensure ACM Certificate Transparency Is Enabled to Enhance Website Security and Detect Unauthorized SSL/TLS Certificates",
             "result_kinds": [
                 "aws_acm_certificate"
             ],

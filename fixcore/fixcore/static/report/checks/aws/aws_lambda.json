@@ -33,7 +33,7 @@
         },
         {
             "name": "function_in_vpc",
-            "title": "Ensure that AWS Lambda functions are deployed within a VPC and configured with appropriate security groups for precise and compliant network access controls",
+            "title": "Ensure That AWS Lambda Functions Are Deployed within a VPC and Configured with Appropriate Security Groups for Precise and Compliant Network Access Controls",
             "result_kinds": [
                 "aws_lambda_function"
             ],
@@ -94,7 +94,7 @@
         },
         {
             "name": "function_restrict_public_access",
-            "title": "Ensure Lambda Functions are not Publicly Accessible",
+            "title": "Ensure Lambda Functions Are Not Publicly Accessible",
             "result_kinds": [
                 "aws_lambda_function"
             ],
@@ -126,7 +126,7 @@
         },
         {
             "name": "supported_runtime",
-            "title": "Ensure AWS Lambda Deployments are Using Supported Runtimes",
+            "title": "Ensure AWS Lambda Deployments Are Using Supported Runtimes",
             "result_kinds": [
                 "aws_lambda_function"
             ],
@@ -155,7 +155,7 @@
         },
         {
             "name": "no_secrets_in_variables",
-            "title": "Ensure Secrets aren't Stored in AWS Lambda Environment Variables",
+            "title": "Ensure Secrets Aren't Stored in AWS Lambda Environment Variables",
             "result_kinds": [
                 "aws_lambda_function"
             ],

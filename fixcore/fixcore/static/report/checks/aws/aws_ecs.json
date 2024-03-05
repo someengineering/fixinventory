@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "no_secrets_in_task_definition_env",
-            "title": "Ensure there are no secrets in ECS task definition environment variables",
+            "title": "Ensure There Are No Secrets in ECS Task Definition Environment Variables",
             "result_kinds": [
                 "aws_ecs_task_definition"
             ],
@@ -32,7 +32,7 @@
         },
         {
             "name": "host_mode_not_privileged_nor_root",
-            "title": "Ensure there are no task definitions with containers in host mode running as root or with privileged access",
+            "title": "Ensure There Are No Task Definitions with Containers in Host Mode Running as Root or with Privileged Access",
             "result_kinds": [
                 "aws_ecs_task_definition"
             ],
@@ -88,7 +88,7 @@
         },
         {
             "name": "ecs_cluster_container_insights_enabled",
-            "title": "Ensure Container Insights is enabled for improved visibility and monitoring of container-based applications in Amazon ECS",
+            "title": "Ensure Container Insights Is Enabled for Improved Visibility and Monitoring of Container-Based Applications in Amazon ECS",
             "result_kinds": [
                 "aws_ecs_task_definition"
             ],
@@ -117,7 +117,7 @@
         },
         {
             "name": "ecs_task_definition_logging_enabled",
-            "title": "Ensure all ECS Task Definitions have logging enabled to Cloudwatch",
+            "title": "Ensure All ECS Task Definitions Have Logging Enabled to Cloudwatch",
             "result_kinds": [
                 "aws_ecs_task_definition"
             ],
@@ -146,7 +146,7 @@
         },
         {
             "name": "ecs_service_fargate_using_latest_platform_version",
-            "title": "Ensure that ECS Fargate services are using the latest platform version to take advantage of the latest patch and vulnerability management",
+            "title": "Ensure That ECS Fargate Services Are Using the Latest Platform Version to Take Advantage of the Latest Patch and Vulnerability Management",
             "result_kinds": [],
             "categories": [
                 "security",

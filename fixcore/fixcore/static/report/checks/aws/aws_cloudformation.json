@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "no_secrets_in_output",
-            "title": "Ensure there are no secrets in CloudFormation outputs",
+            "title": "Ensure There Are No Secrets in CloudFormation Outputs",
             "result_kinds": [
                 "aws_cloudformation_stack"
             ],

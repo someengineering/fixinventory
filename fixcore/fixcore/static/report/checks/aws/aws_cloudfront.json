@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "distribution_logging_enabled",
-            "title": "Ensure that logging is enabled for every CloudFront distribution",
+            "title": "Ensure That Logging Is Enabled for Every CloudFront Distribution",
             "result_kinds": [
                 "aws_cloudfront_distribution"
             ],
@@ -35,7 +35,7 @@
         },
         {
             "name": "distribution_waf_enabled",
-            "title": "Ensure that a Web Application Firewall (WAF) is associated with CloudFront Distribution",
+            "title": "Ensure That a Web Application Firewall (WAF) Is Associated with CloudFront Distribution",
             "result_kinds": [
                 "aws_cloudfront_distribution"
             ],

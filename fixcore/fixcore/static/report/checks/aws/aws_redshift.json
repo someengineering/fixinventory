@@ -4,7 +4,7 @@
     "checks": [
         {
             "name": "cluster_audit_logging_enabled",
-            "title": "Ensure Cluster Audit Logging is Enabled for Optimal Compliance and Incident Investigation",
+            "title": "Ensure Cluster Audit Logging Is Enabled for Optimal Compliance and Incident Investigation",
             "result_kinds": [
                 "aws_redshift_cluster"
             ],
@@ -33,7 +33,7 @@
         },
         {
             "name": "cluster_publicly_accessible",
-            "title": "Ensure Redshift Clusters are Not Publicly Accessible",
+            "title": "Ensure Redshift Clusters Are Not Publicly Accessible",
             "result_kinds": [
                 "aws_redshift_cluster"
             ],
@@ -62,7 +62,7 @@
         },
         {
             "name": "version_upgrade_enabled",
-            "title": "Ensure Automatic Upgrades are Enabled for Redshift Clusters",
+            "title": "Ensure Automatic Upgrades Are Enabled for Redshift Clusters",
             "result_kinds": [
                 "aws_redshift_cluster"
             ],

@@ -119,7 +119,7 @@
         },
         {
             "name": "notebook_vpc_settings_enabled",
-            "title": "Ensure VPC is configured for SageMaker Notebook",
+            "title": "Ensure VPC is Configured for SageMaker Notebook",
             "result_kinds": [
                 "aws_sagemaker_notebook"
             ],
@@ -148,7 +148,7 @@
         },
         {
             "name": "training_job_vpc_settings_enabled",
-            "title": "Ensure VPC is configured for SageMaker Training Jobs",
+            "title": "Ensure VPC is Configured for SageMaker Training Jobs",
             "result_kinds": [
                 "aws_sagemaker_training_job"
             ],
@@ -235,7 +235,7 @@
         },
         {
             "name": "training_job_volume_encryption_enabled",
-            "title": "Ensure encryption is enabled for SageMaker Training Jobs volumes",
+            "title": "Ensure Encryption is Enabled for SageMaker Training Jobs Volumes",
             "result_kinds": [
                 "aws_sagemaker_training_job"
             ],
