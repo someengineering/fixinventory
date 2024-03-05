@@ -21,6 +21,7 @@ from fixcore.report import (
 )
 from fixcore.types import Json
 from fixlib.core.model_export import dataclasses_to_fixcore_model
+from fixcompliance import benchmarks_from_files, checks_from_files
 
 log = logging.getLogger(__name__)
 
@@ -68,15 +69,7 @@ class ReportCheckCollectionConfig:
 
     @staticmethod
     def from_files() -> Dict[str, Json]:
-        # load the checks from the report directory
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../static/report/checks")
-        result = {}
-        if os.path.exists(static_path):
-            for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-                for service in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                    with open(service, "rt", encoding="utf-8") as f:
-                        result[basename(service).rsplit(".", maxsplit=1)[0]] = json.load(f)
-        return result
+        return checks_from_files()
 
     @staticmethod
     def from_config(cfg: ConfigEntity) -> List[ReportCheck]:
@@ -137,18 +130,7 @@ class BenchmarkConfig(CheckCollectionConfig):
 
     @staticmethod
     def from_files() -> Dict[str, Json]:
-        # load the benchmarks from the report directory
-        static_path = os.path.abspath(os.path.dirname(__file__) + "/../static/report/benchmark")
-        result = {}
-        if os.path.exists(static_path):
-            for provider in (d.path for d in os.scandir(static_path) if d.is_dir()):
-                for path in (d.path for d in os.scandir(provider) if d.is_file() and d.name.endswith(".json")):
-                    with open(path, "rt", encoding="utf-8") as f:
-                        bid = basename(path).rsplit(".", maxsplit=1)[0]
-                        benchmark = json.load(f)
-                        benchmark["id"] = bid
-                        result[bid] = benchmark
-        return result
+        return benchmarks_from_files()
 
     @staticmethod
     def from_config(cfg: ConfigEntity) -> Benchmark:

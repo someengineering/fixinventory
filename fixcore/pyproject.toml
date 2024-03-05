@@ -53,6 +53,7 @@ dependencies = [
     "transitions",
     "tzlocal",
     "ustache",
+    "fixcompliance",
 ]
 
 [project.optional-dependencies]
