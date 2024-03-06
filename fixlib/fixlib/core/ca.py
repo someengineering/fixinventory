@@ -28,7 +28,7 @@ from tempfile import TemporaryDirectory
 from threading import Lock, Event, Thread, Condition
 from fixlib.logger import log
 from fixlib.event import add_event_listener, Event as FixEvent, EventType
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jwt.exceptions import InvalidSignatureError
 
 
@@ -197,7 +197,7 @@ class TLSData:
                     for cert in (self.__ca_cert, self.__cert):
                         if (
                             isinstance(cert, Certificate)
-                            and cert.not_valid_after < datetime.utcnow() - self.renew_before
+                            and cert.not_valid_after_utc < datetime.now(timezone.utc) - self.renew_before
                         ):
                             self.reload()
                             break
