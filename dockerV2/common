@@ -83,13 +83,13 @@ iec_size_format() {
             byte_size=$((byte_size/1024))
         fi
     done
-    printf "%.2f YiB\\n" $byte_size
+    printf "%.2f YiB\\n" "$byte_size"
 }
 
 
 ipv_enabled() {
     local ip_version=$1
-    if [ "$(ip -$ip_version addr | wc -l)" -gt 0 ]; then
+    if [ "$(ip "-$ip_version" addr | wc -l)" -gt 0 ]; then
         return 0
     fi
     return 1

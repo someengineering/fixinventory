@@ -1,41 +1,33 @@
 # This is the Fix Inventory base container. It includes CPython and is used
 # as the common base for all the other containers.
-FROM python:3.12.2-slim-bookworm AS build-env
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG="en_US.UTF-8"
+FROM fedora:40 AS build-env
+ENV LANG="C.UTF-8"
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TESTS
 ARG SOURCE_COMMIT
 ARG ARANGO_VERSION=3.11.8
+ARG AWS_CLI_VERSION=master
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN echo "I am running on ${BUILDPLATFORM}, building for ${TARGETPLATFORM}"
 
 WORKDIR /
-RUN apt-get update \
-    && apt-get -y --no-install-recommends install apt-utils \
-    && apt-get -y dist-upgrade \
-    && apt-get -y install \
-        build-essential \
+RUN dnf -y update \
+    && dnf -y groupinstall "Development Tools" "Development Libraries" \
+    && dnf -y install \
+        gcc \
+        python3-devel \
+        python3-pip \
+        shellcheck \
+        curl \
+        ca-certificates \
+        dateutils \
+        openssl \
+        openssl-devel \
         rustc \
         cargo \
-        curl \
-        shellcheck \
-        libffi-dev \
-        libssl-dev \
-        linux-headers-generic \
-        libffi8 \
-        openssl \
-        procps \
-        dateutils \
-        ca-certificates \
-        locales \
-    && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
-    && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
-    && rm -f /bin/sh \
-    && ln -s /bin/bash /bin/sh \
-    && locale-gen
+        git
 
 # Create CPython venv
 WORKDIR /usr/local
@@ -61,10 +53,15 @@ RUN python3 -m venv /build/jupyterlite-venv-python3
 RUN . /build/jupyterlite-venv-python3/bin/activate && python -m pip install -r requirements-jupyterlite.txt
 RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite build --config jupyter_lite_config.json
 
-# Build binary wheels
+# Install Fix Inventory
 WORKDIR /usr/src
 RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
 RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
+
+# Install AWS CLI
+WORKDIR /usr/src
+RUN . /usr/local/fix-venv-python3/bin/activate \
+    && pip install "git+https://github.com/aws/aws-cli.git@${AWS_CLI_VERSION}"
 
 # Download and install ArangoDB tools
 WORKDIR /tmp/arangodb
@@ -108,9 +105,8 @@ RUN echo "${SOURCE_COMMIT:-unknown}" > /usr/local/etc/git-commit.HEAD
 
 
 # Setup main image
-FROM python:3.12.2-slim-bookworm
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG="en_US.UTF-8"
+FROM fedora:40
+ENV LANG="C.UTF-8"
 ENV TERM="xterm-256color"
 ENV COLORTERM="truecolor"
 ENV EDITOR="vim"
@@ -120,36 +116,29 @@ ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /
 RUN groupadd -g "${PGID:-0}" -o fixinventory \
     && useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home fixinventory \
-    && apt-get update \
-    && apt-get -y --no-install-recommends install apt-utils \
-    && apt-get -y dist-upgrade \
-    && apt-get -y --no-install-recommends install \
+    && dnf -y update \
+    && dnf -y install \
         dumb-init \
-        iproute2 \
+        python3 \
+        python3-pip \
+        iproute \
         dnsmasq \
-        libffi8 \
+        libffi \
         openssl \
         procps \
         dateutils \
         curl \
         jq \
-        cron \
         ca-certificates \
-        openssh-client \
-        locales \
+        openssh \
         unzip \
         nano \
-        nvi \
         vim \
         joe \
-        awscli \
-    && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
-    && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
     && mkdir -p /var/run/fixinventory /home/fixinventory/downloads \
-    && rm -f /bin/sh \
-    && ln -s /bin/bash /bin/sh \
-    && locale-gen \
     && /usr/local/sbin/postflight \
+    && rm -f /etc/dnsmasq.conf \
+    && ln -s /usr/local/etc/dnsmasq.conf /etc/dnsmasq.conf \
     && ln -s /usr/local/bin/fixsh-shim /usr/bin/fixsh \
     && ln -s /usr/local/bin/fixcore-shim /usr/bin/fixcore \
     && ln -s /usr/local/bin/fixworker-shim /usr/bin/fixworker \
@@ -158,8 +147,8 @@ RUN groupadd -g "${PGID:-0}" -o fixinventory \
     && ln -s /usr/local/bin/fixcore-shim /usr/bin/resotocore \
     && ln -s /usr/local/bin/fixworker-shim /usr/bin/resotoworker \
     && ln -s /usr/local/bin/fixmetrics-shim /usr/bin/resotometrics \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && dnf clean all \
+    && rm -rf /var/cache/dnf /tmp/* /var/tmp/*
 
 ENTRYPOINT ["/bin/dumb-init", "--", "/usr/local/sbin/bootstrap"]
 CMD ["/bin/bash"]
