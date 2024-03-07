@@ -59,10 +59,10 @@ jobs:
                 echo "latest=true" >> $GITHUB_OUTPUT
               fi
           else
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
-            else
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
               echo "targets=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+            else
+              echo "targets=linux/amd64" >> $GITHUB_OUTPUT
             fi
             echo "uitag=edge" >> $GITHUB_OUTPUT
             echo "latest=false" >> $GITHUB_OUTPUT
