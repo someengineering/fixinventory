@@ -209,6 +209,8 @@ class AzureResourceManagementClient(AzureClient):
             nextlink_jsons.append(js)
         while "nextLink" in js:
             nextlink = js["nextLink"]
+            if nextlink is None:
+                break
             # Split nextlink to parts
             path, queries = self._split_nextlink(nextlink)
 

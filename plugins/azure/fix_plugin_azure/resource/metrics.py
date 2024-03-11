@@ -257,7 +257,8 @@ class AzureMetricData:
                 if metric is not None and metric_id is not None:
                     result[lookup[metric_id]] = metric
             except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
+                log.error(f"An error occurred while processing a metric query: {e}")
+                raise e
 
         return result
 
@@ -268,11 +269,11 @@ class AzureMetricData:
         api_spec: AzureApiSpec,
         timespan: str,
         interval: str,
-        max_retries: int = 3,
+        max_retries: int = 2,
         backoff_factor: float = 2,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
         retry_count = 0
-        while retry_count < max_retries:
+        while retry_count != max_retries:
             try:
                 # Set the path for the API call based on the instance ID of the query
                 api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
@@ -299,11 +300,11 @@ class AzureMetricData:
             except HttpResponseError as e:
                 # Handle unsupported metric namespace error
                 retry_count += 1
-                if retry_count >= max_retries:
-                    raise e
                 log.warning(f"Request error occurred: {e}. Retrying...")
                 wait_time = backoff_factor**retry_count
                 sleep(wait_time)  # Sleep for calculated wait time
+            except Exception as ex:
+                raise ex
 
         return None, None  # No data retrieved after all retries
 
