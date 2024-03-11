@@ -74,7 +74,7 @@ search id = i-039e06bb2539e5484 | tag update owner lukas
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/fix/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/fixsecurity) or [open a GitHub issue](https://github.com/someengineering/fix/issues/new).
 
 
 ## License

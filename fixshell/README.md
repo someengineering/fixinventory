@@ -89,7 +89,7 @@ search is(aws_ec2_volume) and volume_status = available and ctime < -30d and ati
 
 
 ## Contact
-If you have any questions feel free to [join our Discord](https://discord.gg/someengineering) or [open a GitHub issue](https://github.com/someengineering/fix/issues/new).
+If you have any questions feel free to [join our Discord](https://discord.gg/fixsecurity) or [open a GitHub issue](https://github.com/someengineering/fix/issues/new).
 
 
 ## License
