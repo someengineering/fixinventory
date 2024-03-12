@@ -155,7 +155,11 @@ class AzureSubscriptionCollector:
             for node in self.graph.nodes:
                 if not isinstance(node, AzureUsage):
                     continue
+                # Azure Usage is only for network resources
+                # And Azure Usage just keep info about how many network resources on account exists
+                # Check if the current usage value of the Azure Usage node is 0
                 if node.current_value == 0:
+                    # If the current usage value is 0, add the node to the list of nodes to remove
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
             remove_nodes.clear()

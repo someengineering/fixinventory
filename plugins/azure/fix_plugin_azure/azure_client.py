@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, MutableMapping, Optional, Any, Tuple, Union, Dict
-from urllib.parse import urlparse
+from typing import List, MutableMapping, Optional, Any, Union, Dict
 
 from attr import define
 from azure.core.exceptions import (
@@ -153,7 +152,6 @@ class AzureResourceManagementClient(AzureClient):
 
         # Construct headers
         headers = case_insensitive_dict()
-        headers["Accept"] = ser.header("accept", headers.pop("Accept", "application/json"), "str")  # type: ignore # noqa: E501
 
         # Construct path map
         path_map = case_insensitive_dict()
@@ -190,7 +188,7 @@ class AzureResourceManagementClient(AzureClient):
 
         if isinstance(js, dict):
             if "nextLink" in js:
-                js = self._handle_pagination(js, spec, error_map, headers)
+                js = self._handle_pagination(js, spec, error_map)
             else:
                 if spec.access_path:
                     js = js[spec.access_path]
@@ -199,25 +197,14 @@ class AzureResourceManagementClient(AzureClient):
         else:
             return [js]  # type: ignore
 
-    def _handle_pagination(
-        self, js: Json, spec: AzureApiSpec, error_map: Dict[int, Any], headers: MutableMapping[str, Any]
-    ) -> List[Json]:
+    def _handle_pagination(self, js: Json, spec: AzureApiSpec, error_map: Dict[int, Any]) -> List[Json]:
         nextlink_jsons: List[Json] = []
         if spec.access_path:
             nextlink_jsons.extend(js[spec.access_path])
         else:
             nextlink_jsons.append(js)
-        while "nextLink" in js:
-            nextlink = js["nextLink"]
-            if nextlink is None:
-                break
-            # Split nextlink to parts
-            path, queries = self._split_nextlink(nextlink)
-
-            nextlink_params = self._parse_query_parameters(queries)
-            url = self.client._client.format_url(path)
-
-            response = self._make_request(url, nextlink_params, headers)
+        while nextlink_url := js.get("nextLink"):
+            response = self._make_request(nextlink_url, {}, {})
             if response.status_code != 200:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)
                 raise HttpResponseError(response=response, error_format=ARMErrorFormat)
@@ -229,21 +216,6 @@ class AzureResourceManagementClient(AzureClient):
                     nextlink_jsons.append(js)
 
         return nextlink_jsons
-
-    def _split_nextlink(self, nextlink: str) -> Tuple[str, str]:
-        # Parse url to extract queries and path
-        parsed_url = urlparse(nextlink)
-        path_without_query = parsed_url.path
-        path_queries = parsed_url.query
-        return (path_without_query, path_queries)
-
-    def _parse_query_parameters(self, queries: str) -> Dict[str, str]:
-        # Construct parameters for requesting the next link
-        params = {}
-        for query in queries.split("&"):
-            key, value = query.split("=")
-            params[key] = value
-        return params
 
     def _make_request(self, url: str, params: MutableMapping[str, Any], headers: MutableMapping[str, Any]) -> Any:
         # Construct and send request

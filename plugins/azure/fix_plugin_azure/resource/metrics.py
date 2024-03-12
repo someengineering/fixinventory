@@ -1,7 +1,6 @@
 from datetime import datetime
 from concurrent.futures import as_completed
 import logging
-from time import sleep
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
 from azure.core.exceptions import (
