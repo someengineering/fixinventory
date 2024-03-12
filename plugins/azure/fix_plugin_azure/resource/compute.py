@@ -590,6 +590,7 @@ class AzureDisk(AzureResource, BaseVolume):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
+        "mtime": S("LastOwnershipUpdateTime"),
         "bursting_enabled": S("properties", "burstingEnabled"),
         "bursting_enabled_time": S("properties", "burstingEnabledTime"),
         "completion_percent": S("properties", "completionPercent"),
@@ -2605,7 +2606,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
-        graph_builder.submit_work("azure_all", collect_instance_status)
+        graph_builder.submit_work("azure_virtual_machine", collect_instance_status)
 
     @classmethod
     def collect_usage_metrics(
@@ -3288,7 +3289,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                     self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
                 )
 
-        graph_builder.submit_work("azure_all", collect_vmss_instances)
+        graph_builder.submit_work("azure_vm_scale_set", collect_vmss_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (

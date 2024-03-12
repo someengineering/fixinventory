@@ -316,7 +316,7 @@ class AzureResourceGroup(AzureResource):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
-        graph_builder.submit_work("azure_all", collect_resources_in_group)
+        graph_builder.submit_work("azure_resource_group", collect_resources_in_group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:

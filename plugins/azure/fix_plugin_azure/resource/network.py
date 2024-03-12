@@ -5030,7 +5030,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             items = graph_builder.client.list(api_spec)
             AzureSubnet.collect(items, graph_builder)
 
-        graph_builder.submit_work("azure_all", collect_subnets)
+        graph_builder.submit_work("azure_virtual_network", collect_subnets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnets := self._subnet_ids:
