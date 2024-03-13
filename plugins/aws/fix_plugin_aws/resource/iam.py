@@ -534,7 +534,7 @@ class CredentialReportLine:
             service_name = self.value_of(f"access_key_{i}_last_used_service")
             region = self.value_of(f"access_key_{i}_last_used_region")
             last_rotated = self.value_of(f"access_key_{i}_last_rotated", parse_utc)
-            last_used = (
+            ak_last_used = (
                 None
                 if last_used is None and service_name is None and region is None and last_rotated is None
                 else AwsIamAccessKeyLastUsed(
@@ -545,8 +545,8 @@ class CredentialReportLine:
                 id=f"root_key_{i}",
                 name=f"root_key_{i}",
                 access_key_status="Active" if self.value_of(f"access_key_{i}_active") == "true" else "Inactive",
-                atime=last_used.last_used if last_used else None,
-                access_key_last_used=last_used,
+                atime=last_used,
+                access_key_last_used=ak_last_used,
             )
 
         # the report holds 2 entries
@@ -730,7 +730,9 @@ class AwsIamUser(AwsResource, BaseUser):
                     ):
                         if key := AwsIamAccessKey.from_api(ak, builder):
                             if line and idx < len(line_keys):
-                                key.access_key_last_used = line_keys[idx].access_key_last_used
+                                lk = line_keys[idx]
+                                key.access_key_last_used = lk.access_key_last_used
+                                key.atime = lk.atime
                             builder.add_node(key, ak)
                             builder.dependant_node(user, node=key)
 
