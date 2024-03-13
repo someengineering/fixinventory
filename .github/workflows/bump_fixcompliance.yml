@@ -9,12 +9,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SOME_CI_PAT }}
 
-      - name: Authenticate with GitHub CLI
+      - name: Configure Git
         run: |
           git config --global user.email "ci@some.engineering"
           git config --global user.name "Some CI"
-          gh auth login --with-token <<< "${{ secrets.SOME_CI_PAT }}"
 
       - name: Run bumpfixcompliance script
         run: bash ./tools/bumpfixcompliance.sh
