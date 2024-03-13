@@ -3,7 +3,7 @@ name: Bump fixcompliance
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [bump-fixcompliance]
+    types: [bump_fixcompliance]
 
 jobs:
   bump-version:
