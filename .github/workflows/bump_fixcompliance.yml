@@ -1,0 +1,32 @@
+name: Bump fixcompliance
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GitHub CLI
+        run: |
+          git config --global user.email "ci@some.engineering"
+          git config --global user.name "Some CI"
+          gh auth login --with-token <<< "${{ secrets.SOME_CI_PAT }}"
+
+      - name: Run bumpfixcompliance script
+        run: bash ./tools/bumpfixcompliance.sh
+
+      - name: Commit and push if changes
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.SOME_CI_PAT }}
+        run: |
+          git add -A
+          if git commit -m "[fixinventory][chore] Bump fixcompliance to latest"; then
+            git push
+          else
+            echo "No changes to commit"
+          fi
