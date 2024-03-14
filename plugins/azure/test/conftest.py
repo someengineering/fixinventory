@@ -23,18 +23,10 @@ from fixlib.types import Json
 
 class StaticFileAzureClient(AzureClient):
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        last = spec.path.rsplit("/", maxsplit=1)[-1]
-        path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
-        with open(path) as f:
-            js = json.load(f)
-
-            if isinstance(js, dict):
-                if spec.access_path:
-                    js = js[spec.access_path]
-            if spec.expect_array and isinstance(js, list):
-                return js
-            else:
-                return [js]
+        result = self.get_with_retry(spec, **kwargs)
+        if result is None:
+            return []
+        return result
 
     @staticmethod
     def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
@@ -51,6 +43,20 @@ class StaticFileAzureClient(AzureClient):
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
+
+    def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
+        last = spec.path.rsplit("/", maxsplit=1)[-1]
+        path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
+        with open(path) as f:
+            js = json.load(f)
+
+            if isinstance(js, dict):
+                if spec.access_path:
+                    js = js[spec.access_path]
+            if spec.expect_array and isinstance(js, list):
+                return js
+            else:
+                return [js]
 
     @property
     def config(self) -> AzureConfig:

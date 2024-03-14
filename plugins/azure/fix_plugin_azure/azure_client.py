@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from typing import List, MutableMapping, Optional, Any, Union, Dict
 
 from attr import define
+from retrying import retry
 from azure.core.exceptions import (
     ClientAuthenticationError,
     ResourceNotFoundError,
+    ResourceExistsError,
     map_error,
     HttpResponseError,
 )
@@ -21,6 +24,29 @@ from azure.mgmt.resource.resources.models import GenericResource
 from fix_plugin_azure.config import AzureCredentials
 from fixlib.types import Json
 
+log = logging.getLogger("fix.plugins.azure")
+
+
+def retryable_exception_wrapper(exception: Exception, spec: AzureApiSpec) -> bool:
+    # Define a wrapper to pass the spec service name
+    return is_retryable_exception(exception, spec.service)
+
+
+def is_retryable_exception(e: Exception, service: str) -> bool:
+    if isinstance(e, HttpResponseError):
+        error_code = getattr(e.error, "code", None)
+        status_code = getattr(e.response, "status_code", None)
+
+        if service == "metric":
+            if status_code == 400 or error_code == "BadRequest":
+                logging.debug(f"Azure metric fetch failed: {e}. Retrying...")
+                return True
+        if error_code == "TooManyRequests" or status_code == 429:
+            logging.debug(f"Azure API request limit exceeded or throttling, retrying with exponential backoff: {e}")
+            return True
+
+    return False
+
 
 @define
 class AzureApiSpec:
@@ -34,6 +60,14 @@ class AzureApiSpec:
 
 
 class AzureClient(ABC):
+    @abstractmethod
+    def get_with_retry(
+        self,
+        spec: AzureApiSpec,
+        **kwargs: Any,
+    ) -> List[Json]:
+        pass
+
     @abstractmethod
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         pass
@@ -78,23 +112,20 @@ class AzureResourceManagementClient(AzureClient):
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        try:
-            return self._call(spec, **kwargs)
-        except HttpResponseError as e:
-            if e.error and e.error.code == "NoRegisteredProviderFound":
-                return []  # API not available in this region
-            else:
-                raise e
+        result = self.get_with_retry(spec, **kwargs)
+        if result is None:
+            return []
+        return result  # type: ignore
 
     def delete(self, resource_id: str) -> bool:
         try:
             self.client.resources.begin_delete_by_id(resource_id=resource_id, api_version="2021-04-01")
+        except ResourceNotFoundError:
+            return False  # Resource not found to delete
         except HttpResponseError as e:
-            if e.error and e.error.code == "ResourceNotFoundError":
-                return False  # Resource not found to delete
-            else:
-                raise e
-
+            raise e
+        except Exception as e:
+            raise e
         return True
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
@@ -128,15 +159,37 @@ class AzureResourceManagementClient(AzureClient):
             updated_resource = GenericResource(location=resource.location, tags=resource.tags)
             self.client.resources.begin_create_or_update_by_id(resource_id, "2021-04-01", updated_resource)
 
+        except ResourceNotFoundError:
+            return False  # Resource not found
+        except ResourceExistsError:
+            return False  # Tag for update/delete does not exist
         except HttpResponseError as e:
-            if e.error and e.error.code == "ResourceNotFoundError":
-                return False  # Resource not found
-            elif e.error and e.error.code == "ResourceExistsError":
-                return False  # Tag for update/delete does not exist
-            else:
-                raise e
+            raise e
+        except Exception as e:
+            raise e
 
         return True
+
+    @retry(  # type: ignore
+        stop_max_attempt_number=3,  # max 3 attempts
+        wait_exponential_multiplier=1000,
+        wait_exponential_max=60000,
+        retry_on_exception=retryable_exception_wrapper,
+    )
+    def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
+        try:
+            return self._call(spec, **kwargs)
+        except ClientAuthenticationError as e:
+            log.warning(f"[Azure] Call to Azure API is not authorized!: {e}")
+            return None
+        except HttpResponseError as e:
+            if e.error and e.error.code == "NoRegisteredProviderFound":
+                return None  # API not available in this region
+            log.warning(f"[Azure] Error encountered while requesting resource: {e}")
+            return None
+        except Exception as e:
+            log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}", exc_info=e)
+            return None
 
     # noinspection PyProtectedMember
     def _call(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
