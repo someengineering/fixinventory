@@ -53,7 +53,7 @@ def all_project_definitions() -> Iterator[ProjectDefinition]:
                     raise
 
 
-filter_out = ["fixlib", "fix-plugin-aws"]
+filter_out = ["fixinventorylib", "fixinventory-plugin-aws"]
 
 
 def filter_dependencies(deps: List[str]) -> List[str]:
