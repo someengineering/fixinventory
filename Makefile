@@ -1,4 +1,4 @@
-.PHONY: clean, setup
+.PHONY: clean, setup, requirements
 
 clean:
 	find . -type d -name 'venv' -prune -o -type d -name 'build' -exec rm -rf {} +
@@ -22,3 +22,6 @@ clean:
 setup: clean
 	rm -rf venv
 	./setup_venv.sh --dev --path .
+
+requirements:
+	python3 tools/requirements.py

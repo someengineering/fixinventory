@@ -131,7 +131,7 @@ NoneType = type(None)
 
 
 def convert(value: Any, type_goal: Union[type, Callable[[Any], Any]]) -> Any:
-    if type_goal is NoneType:  # type: ignore
+    if type_goal is NoneType:
         return value
     elif isinstance(type_goal, type):
         try:
