@@ -1565,7 +1565,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         super().connect_in_graph(builder, source)
         # connect instance type and copy values
         # noinspection PyTypeChecker
-        if instance_type := builder.instance_type(self.region(), self.instance_type):
+        if instance_type := builder.instance_type(self.region(), self.instance_type):  # type: ignore
             self.instance_cores = instance_type.instance_cores
             self.instance_memory = instance_type.instance_memory
             builder.add_edge(instance_type, EdgeType.default, node=self)
