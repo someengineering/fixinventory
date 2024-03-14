@@ -65,6 +65,8 @@ services:
       - fixcore.runtime.start_collect_on_subscriber_connect=true
     restart: always
     stop_grace_period: 2m
+    volumes:
+      - ~/fixinventory-downloads:/home/fixinventory/downloads
   fixworker:
     image: somecr.io/someengineering/fixworker:edge
     container_name: fixworker
