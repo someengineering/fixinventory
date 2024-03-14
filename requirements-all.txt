@@ -44,7 +44,7 @@ dill==0.3.8
 distlib==0.3.8
 fastjsonschema==2.19.1
 filelock==3.13.1
-fixcompliance==0.4.9
+fixcompliance==0.4.10
 fixdatalink[extra]==2.0.1
 fixinventoryclient==2.0.0
 fixinventorydata==0.2.4
