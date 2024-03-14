@@ -26,30 +26,15 @@ def test_application_gateway_web_application_firewall_policy(builder: GraphBuild
     assert len(collected) == 1
 
 
-def test_available_service_alias(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureAvailableServiceAlias, builder)
-    assert len(collected) == 2
-
-
-def test_azure_firewall_fqdn_tag(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureFirewallFqdnTag, builder)
-    assert len(collected) == 1
-
-
 def test_azure_firewall(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureFirewall, builder)
     assert len(collected) == 1
 
-    resource_types: List[Type[AzureResource]] = [AzureFirewallPolicy, AzureFirewallFqdnTag, AzureVirtualHub]
+    resource_types: List[Type[AzureResource]] = [AzureFirewallPolicy, AzureVirtualHub]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureFirewall, AzureFirewallPolicy)) == 1
     assert len(builder.edges_of(AzureFirewall, AzureVirtualHub)) == 1
-
-
-def test_azure_web_category(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureWebCategory, builder)
-    assert len(collected) == 1
 
 
 def test_bastion_host(builder: GraphBuilder) -> None:

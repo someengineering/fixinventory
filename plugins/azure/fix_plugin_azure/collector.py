@@ -16,7 +16,12 @@ from fix_plugin_azure.resource.base import (
     AzureResource,
     resources as base_resources,
 )
-from fix_plugin_azure.resource.network import resources as network_resources
+from fix_plugin_azure.resource.network import (
+    AzureExpressRoutePortsLocation,
+    AzureNetworkVirtualApplianceSku,
+    AzureUsage,
+    resources as network_resources,
+)
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
 from fixlib.baseresources import Cloud, GraphRoot
 from fixlib.core.actions import CoreFeedback
@@ -142,13 +147,32 @@ class AzureSubscriptionCollector:
                     pred = [p for p in pred if not isinstance(p, ignore_kinds)]
                 if not pred:
                     remove_nodes.append(node)
-            removed = set()
-            for node in remove_nodes:
-                if node in removed:
-                    continue
-                removed.add(node)
-                self.graph.remove_node(node)
+            self._delete_nodes(remove_nodes)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
             remove_nodes.clear()
 
+        def remove_usage_zero_value() -> None:
+            for node in self.graph.nodes:
+                if not isinstance(node, AzureUsage):
+                    continue
+                # Azure Usage is only for network resources
+                # And Azure Usage just keep info about how many network resources on account exists
+                # Check if the current usage value of the Azure Usage node is 0
+                if node.current_value == 0:
+                    # If the current usage value is 0, add the node to the list of nodes to remove
+                    remove_nodes.append(node)
+            self._delete_nodes(remove_nodes)
+            remove_nodes.clear()
+
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
+        rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
+        rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
+        remove_usage_zero_value()
+
+    def _delete_nodes(self, nodes_to_delte: Any) -> None:
+        removed = set()
+        for node in nodes_to_delte:
+            if node in removed:
+                continue
+            removed.add(node)
+            self.graph.remove_node(node)

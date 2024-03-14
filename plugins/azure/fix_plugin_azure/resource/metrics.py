@@ -1,6 +1,11 @@
 from datetime import datetime
 from concurrent.futures import as_completed
+import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
+
+from azure.core.exceptions import (
+    HttpResponseError,
+)
 
 from attr import define, field
 
@@ -11,6 +16,8 @@ from fixlib.baseresources import BaseResource
 from fixlib.json import from_json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.utils import utc_str
+
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -249,6 +256,7 @@ class AzureMetricData:
                 if metric is not None and metric_id is not None:
                     result[lookup[metric_id]] = metric
             except Exception as e:
+                log.error(f"An error occurred while processing a metric query: {e}")
                 raise e
 
         return result
@@ -261,28 +269,35 @@ class AzureMetricData:
         timespan: str,
         interval: str,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
-        # Set the path for the API call based on the instance ID of the query
-        api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
-        # Retrieve metric data from the API
-        aggregation = ",".join(query.aggregation)
-        part = builder.client.list(
-            api_spec,
-            metricnames=query.metric_name,
-            metricNamespace=query.metric_namespace,
-            timespan=timespan,
-            aggregation=aggregation,
-            interval=interval,
-            AutoAdjustTimegrain=True,
-            ValidateDimensions=False,
-        )
-        # Iterate over the retrieved data and map it to AzureMetricData objects
-        for single in part:
-            metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
-            metric.set_values(query.aggregation)
-            metric_id = metric.metric_id
-            if metric_id is not None:
-                return metric, metric_id
-        return None, None
+        try:
+            # Set the path for the API call based on the instance ID of the query
+            api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
+            # Retrieve metric data from the API
+            aggregation = ",".join(query.aggregation)
+            part = builder.client.list(
+                api_spec,
+                metricnames=query.metric_name,
+                metricNamespace=query.metric_namespace,
+                timespan=timespan,
+                aggregation=aggregation,
+                interval=interval,
+                AutoAdjustTimegrain=True,
+                ValidateDimensions=False,
+            )
+            # Iterate over the retrieved data and map it to AzureMetricData objects
+            for single in part:
+                metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
+                metric.set_values(query.aggregation)
+                metric_id = metric.metric_id
+                if metric_id is not None:
+                    return metric, metric_id
+            return None, None
+        except HttpResponseError as e:
+            # Handle unsupported metric namespace error
+            log.debug(f"Request error occurred: {e}.")
+            return None, None
+        except Exception as ex:
+            raise ex
 
 
 V = TypeVar("V", bound=BaseResource)
@@ -303,7 +318,7 @@ def update_resource_metrics(
                 normalizer = metric_normalizers.get(query.metric_name)
                 if not normalizer:
                     continue
-                name = normalizer.name
+                name = normalizer.metric_name + "_" + normalizer.unit
                 value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
                 resource._resource_usage[name][normalizer.stat_map[aggregation]] = value

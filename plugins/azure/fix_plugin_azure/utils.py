@@ -2,6 +2,8 @@ from typing import Callable, Dict, TypeVar, Any
 from attr import frozen
 import functools
 
+from fixlib.baseresources import StatName, MetricName, MetricUnit
+
 
 T = TypeVar("T")
 
@@ -19,11 +21,11 @@ def identity(x: T) -> T:
 
 @frozen(kw_only=True)
 class MetricNormalization:
-    name: str
-    stat_map: Dict[str, str] = {
-        "minimum": "min",
-        "maximum": "max",
-        "average": "avg",
-        "total": "sum",
+    metric_name: MetricName
+    unit: MetricUnit
+    stat_map: Dict[str, StatName] = {
+        "minimum": StatName.min,
+        "average": StatName.avg,
+        "maximum": StatName.max,
     }
     normalize_value: Callable[[float], float] = identity

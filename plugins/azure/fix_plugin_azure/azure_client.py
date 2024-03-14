@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Union
+from typing import List, MutableMapping, Optional, Any, Union, Dict
 
 from attr import define
 from azure.core.exceptions import (
@@ -152,7 +152,6 @@ class AzureResourceManagementClient(AzureClient):
 
         # Construct headers
         headers = case_insensitive_dict()
-        headers["Accept"] = ser.header("accept", headers.pop("Accept", "application/json"), "str")  # type: ignore # noqa: E501
 
         # Construct path map
         path_map = case_insensitive_dict()
@@ -176,10 +175,8 @@ class AzureResourceManagementClient(AzureClient):
         path = spec.path.format_map(path_map)
         url = self.client._client.format_url(path)  # pylint: disable=protected-access
 
-        # Construct and send request
-        request = HttpRequest(method="GET", url=url, params=params, headers=headers)
-        pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
-        response = pipeline_response.http_response
+        # Send request
+        response = self._make_request(url, params, headers)
 
         # Handle error responses
         if response.status_code not in [200]:
@@ -189,13 +186,44 @@ class AzureResourceManagementClient(AzureClient):
         # Parse json content
         js: Union[Json, List[Json]] = response.json()
 
-        if spec.access_path and isinstance(js, dict):
-            if spec.expect_array:
-                js = js[spec.access_path]
+        if isinstance(js, dict):
+            if "nextLink" in js:
+                js = self._handle_pagination(js, spec, error_map)
+            else:
+                if spec.access_path:
+                    js = js[spec.access_path]
         if spec.expect_array and isinstance(js, list):
             return js
         else:
             return [js]  # type: ignore
+
+    def _handle_pagination(self, js: Json, spec: AzureApiSpec, error_map: Dict[int, Any]) -> List[Json]:
+        nextlink_jsons: List[Json] = []
+        if spec.access_path:
+            nextlink_jsons.extend(js[spec.access_path])
+        else:
+            nextlink_jsons.append(js)
+        while nextlink_url := js.get("nextLink"):
+            response = self._make_request(nextlink_url, {}, {})
+            if response.status_code != 200:
+                map_error(status_code=response.status_code, response=response, error_map=error_map)
+                raise HttpResponseError(response=response, error_format=ARMErrorFormat)
+            js = response.json()
+            if isinstance(js, dict):
+                if spec.access_path:
+                    nextlink_jsons.extend(js[spec.access_path])
+                else:
+                    nextlink_jsons.append(js)
+
+        return nextlink_jsons
+
+    def _make_request(self, url: str, params: MutableMapping[str, Any], headers: MutableMapping[str, Any]) -> Any:
+        # Construct and send request
+        request = HttpRequest(method="GET", url=url, params=params, headers=headers)
+        pipeline_response: PipelineResponse = self.client._client._pipeline.run(request, stream=False)  # type: ignore
+        response = pipeline_response.http_response
+
+        return response
 
     def for_location(self, location: str) -> AzureClient:
         return AzureClient.create(self.credential, self.subscription_id, location)

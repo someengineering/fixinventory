@@ -28,8 +28,9 @@ class StaticFileAzureClient(AzureClient):
         with open(path) as f:
             js = json.load(f)
 
-            if spec.expect_array:
-                js = js[spec.access_path]
+            if isinstance(js, dict):
+                if spec.access_path:
+                    js = js[spec.access_path]
             if spec.expect_array and isinstance(js, list):
                 return js
             else:

@@ -30,6 +30,8 @@ from fixlib.baseresources import (
     BaseVolume,
     BaseInstanceType,
     BaseSnapshot,
+    MetricName,
+    MetricUnit,
     VolumeStatus,
     BaseAutoScalingGroup,
     InstanceStatus,
@@ -327,44 +329,6 @@ class AzureCloudService(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureComputeOperationValueDisplay:
-    kind: ClassVar[str] = "azure_compute_operation_value_display"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "The description of the operation."})
-    operation: Optional[str] = field(default=None, metadata={'description': 'The display name of the compute operation.'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={"description": "The resource provider for the operation."})
-    resource: Optional[str] = field(default=None, metadata={'description': 'The display name of the resource the operation applies to.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureComputeOperationValue(AzureResource):
-    kind: ClassVar[str] = "azure_compute_operation_value"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/providers/Microsoft.Compute/operations",
-        path_parameters=[],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "display": S("display") >> Bend(AzureComputeOperationValueDisplay.mapping),
-        "origin": S("origin"),
-    }
-    display: Optional[AzureComputeOperationValueDisplay] = field(default=None, metadata={'description': 'Describes the properties of a compute operation value display.'})  # fmt: skip
-    origin: Optional[str] = field(default=None, metadata={"description": "The origin of the compute operation."})
-
-
-@define(eq=False, slots=False)
 class AzureContainerServiceServicePrincipalProfile:
     kind: ClassVar[str] = "azure_container_service_service_principal_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "secret": S("secret")}
@@ -626,6 +590,7 @@ class AzureDisk(AzureResource, BaseVolume):
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
+        "mtime": S("LastOwnershipUpdateTime"),
         "bursting_enabled": S("properties", "burstingEnabled"),
         "bursting_enabled_time": S("properties", "burstingEnabledTime"),
         "completion_percent": S("properties", "completionPercent"),
@@ -743,10 +708,18 @@ class AzureDisk(AzureResource, BaseVolume):
             )
 
         metric_normalizers = {
-            "Composite Disk Write Bytes/sec": MetricNormalization(name="volume_write_bytes"),
-            "Composite Disk Read Bytes/sec": MetricNormalization(name="volume_read_bytes"),
-            "Composite Disk Write Operations/sec": MetricNormalization(name="volume_write_ops"),
-            "Composite Disk Read Operations/sec": MetricNormalization(name="volume_read_ops"),
+            "Composite Disk Write Bytes/sec": MetricNormalization(
+                metric_name=MetricName.VolumeWrite, unit=MetricUnit.Bytes
+            ),
+            "Composite Disk Read Bytes/sec": MetricNormalization(
+                metric_name=MetricName.VolumeRead, unit=MetricUnit.Bytes
+            ),
+            "Composite Disk Write Operations/sec": MetricNormalization(
+                metric_name=MetricName.VolumeWrite, unit=MetricUnit.IOPS
+            ),
+            "Composite Disk Read Operations/sec": MetricNormalization(
+                metric_name=MetricName.VolumeRead, unit=MetricUnit.IOPS
+            ),
         }
 
         metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
@@ -2633,7 +2606,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
-        graph_builder.submit_work("azure_all", collect_instance_status)
+        graph_builder.submit_work("azure_virtual_machine", collect_instance_status)
 
     @classmethod
     def collect_usage_metrics(
@@ -2697,15 +2670,16 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
 
         metric_normalizers = {
             "Percentage CPU": MetricNormalization(
-                name="cpu_utilization",
+                metric_name=MetricName.CpuUtilization,
+                unit=MetricUnit.Percent,
                 normalize_value=lambda x: round(x, ndigits=3),
             ),
-            "Network In": MetricNormalization(name="network_in"),
-            "Network Out": MetricNormalization(name="network_out"),
-            "Disk Read Operations/Sec": MetricNormalization(name="disk_read_ops"),
-            "Disk Write Operations/Sec": MetricNormalization(name="disk_write_ops"),
-            "Disk Read Bytes": MetricNormalization(name="disk_read_bytes"),
-            "Disk Write Bytes": MetricNormalization(name="disk_write_bytes"),
+            "Network In": MetricNormalization(metric_name=MetricName.NetworkIn, unit=MetricUnit.Bytes),
+            "Network Out": MetricNormalization(metric_name=MetricName.NetworkOut, unit=MetricUnit.Bytes),
+            "Disk Read Operations/Sec": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.IOPS),
+            "Disk Write Operations/Sec": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.IOPS),
+            "Disk Read Bytes": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.Bytes),
+            "Disk Write Bytes": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.Bytes),
         }
 
         metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
@@ -3315,7 +3289,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                     self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
                 )
 
-        graph_builder.submit_work("azure_all", collect_vmss_instances)
+        graph_builder.submit_work("azure_vm_scale_set", collect_vmss_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
@@ -3377,6 +3351,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    _is_provider_link: bool = False
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
@@ -3393,7 +3368,6 @@ resources: List[Type[AzureResource]] = [
     AzureAvailabilitySet,
     AzureCapacityReservationGroup,
     AzureCloudService,
-    AzureComputeOperationValue,
     AzureDedicatedHostGroup,
     AzureDisk,
     AzureDiskAccess,

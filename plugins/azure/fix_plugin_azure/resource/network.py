@@ -20,11 +20,12 @@ from fixlib.baseresources import (
     BasePolicy,
     BaseLoadBalancer,
     BaseNetwork,
+    BaseNetworkQuota,
     BasePeeringConnection,
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import Bender, S, Bend, ForallBend, K, AsInt, StringToUnitNumber
+from fixlib.json_bender import Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
 from fixlib.types import Json
 
 
@@ -1162,27 +1163,7 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
     rule_set_type: Optional[str] = field(default=None, metadata={'description': 'The type of the web application firewall rule set.'})  # fmt: skip
     rule_set_version: Optional[str] = field(default=None, metadata={'description': 'The version of the web application firewall rule set type.'})  # fmt: skip
     tiers: Optional[List[str]] = field(default=None, metadata={'description': 'Tier of an application gateway that support the rule set.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureAvailableServiceAlias(AzureResource):
-    kind: ClassVar[str] = "azure_available_service_alias"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/availableServiceAliases",
-        path_parameters=["location", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "resource_name": S("resourceName"),
-    }
-    resource_name: Optional[str] = field(default=None, metadata={'description': 'The resource name of the service alias.'})  # fmt: skip
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -1448,54 +1429,6 @@ class AzureFirewall(AzureResource, BaseFirewall):
                     builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
         if vh_id := self.virtual_hub:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualHub, id=vh_id)
-
-
-@define(eq=False, slots=False)
-class AzureFirewallFqdnTag(AzureResource):
-    kind: ClassVar[str] = "azure_firewall_fqdn_tag"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/azureFirewallFqdnTags",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "etag": S("etag"),
-        "fqdn_tag_name": S("properties", "fqdnTagName"),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    fqdn_tag_name: Optional[str] = field(default=None, metadata={"description": "The name of this FQDN Tag."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureWebCategory(AzureResource):
-    kind: ClassVar[str] = "azure_web_category"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="network",
-        version="2023-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/azureWebCategories",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "etag": S("etag"),
-        "properties": S("properties", "group"),
-    }
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    properties: Optional[str] = field(default=None, metadata={"description": "Azure Web Category Properties."})
 
 
 @define(eq=False, slots=False)
@@ -4426,6 +4359,7 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
     available_versions: Optional[List[str]] = field(default=None, metadata={'description': 'Available Network Virtual Appliance versions.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     vendor: Optional[str] = field(default=None, metadata={"description": "Network Virtual Appliance Sku vendor."})
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -4757,7 +4691,7 @@ class AzureUsageName:
 
 
 @define(eq=False, slots=False)
-class AzureUsage(AzureResource):
+class AzureUsage(AzureResource, BaseNetworkQuota):
     kind: ClassVar[str] = "azure_usage"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
@@ -4771,11 +4705,13 @@ class AzureUsage(AzureResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
+        "name": S("name", "value"),
         "usage_name": S("name") >> Bend(AzureUsageName.mapping),
         "current_value": S("currentValue"),
         "limit": S("limit"),
         "unit": S("unit"),
+        "quota_type": S("unit"),
+        "quota": S("limit"),
     }
     usage_name: Optional[AzureUsageName] = field(
         default=None, metadata={"description": "The name of the type of usage."}
@@ -5094,7 +5030,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             items = graph_builder.client.list(api_spec)
             AzureSubnet.collect(items, graph_builder)
 
-        graph_builder.submit_work("azure_all", collect_subnets)
+        graph_builder.submit_work("azure_virtual_network", collect_subnets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnets := self._subnet_ids:
@@ -5913,10 +5849,7 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
 resources: List[Type[AzureResource]] = [
     AzureApplicationGateway,
     AzureApplicationGatewayFirewallRuleSet,
-    AzureAvailableServiceAlias,
     AzureFirewall,
-    AzureFirewallFqdnTag,
-    AzureWebCategory,
     AzureBastionHost,
     AzureCustomIpPrefix,
     AzureDdosProtectionPlan,

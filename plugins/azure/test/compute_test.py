@@ -36,11 +36,6 @@ def test_cloud_service(builder: GraphBuilder) -> None:
     assert len(collected) == 1
 
 
-def test_compute_operation_value(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureComputeOperationValue, builder)
-    assert len(collected) == 1
-
-
 def test_dedicated_host_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDedicatedHostGroup, builder)
     assert len(collected) == 1
