@@ -27,9 +27,9 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugins.azure")
 
 
-def with_spec_service(func: Callable[..., bool]):
-    def wrapper(spec: AzureApiSpec):  # Capture spec in the closure
-        def inner_wrapper(exception: Exception):
+def with_spec_service(func: Callable[..., bool]) -> Callable[[AzureApiSpec], Callable[[Exception], bool]]:
+    def wrapper(spec: AzureApiSpec) -> Callable[[Exception], bool]:  # Capture spec in the closure
+        def inner_wrapper(exception: Exception) -> bool:
             return func(exception, spec.service)
 
         return inner_wrapper
