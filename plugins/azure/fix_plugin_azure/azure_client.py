@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List, MutableMapping, Optional, Any, Union, Dict
+from typing import Callable, List, MutableMapping, Optional, Any, Union, Dict
 
 from attr import define
 from retrying import retry
@@ -27,9 +27,14 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugins.azure")
 
 
-def retryable_exception_wrapper(exception: Exception, spec: AzureApiSpec) -> bool:
-    # Define a wrapper to pass the spec service name
-    return is_retryable_exception(exception, spec.service)
+def with_spec_service(func: Callable[..., bool]):
+    def wrapper(spec: AzureApiSpec):  # Capture spec in the closure
+        def inner_wrapper(exception: Exception):
+            return func(exception, spec.service)
+
+        return inner_wrapper
+
+    return wrapper
 
 
 def is_retryable_exception(e: Exception, service: str) -> bool:
@@ -174,7 +179,7 @@ class AzureResourceManagementClient(AzureClient):
         stop_max_attempt_number=3,  # max 3 attempts
         wait_exponential_multiplier=1000,
         wait_exponential_max=60000,
-        retry_on_exception=retryable_exception_wrapper,
+        retry_on_exception=with_spec_service(is_retryable_exception),
     )
     def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
         try:
