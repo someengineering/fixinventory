@@ -74,6 +74,10 @@ def compile_dependencies(name: Optional[str], deps: List[str], use_version: Opti
     # make sure, none of the filtered dependencies was selected as transitive dependency
     with open(f"requirements{delim}.txt", "r+") as f:
         lines = [line for line in f.readlines() if not any(name in line for name in filter_out)]
+        # required for transitive dependencies not defined in deps
+        if use_version:
+            lookup = dict(((dep.split("==", maxsplit=1)[0], dep) for dep in use_version))
+            lines = [lookup.get(dep.split("==", maxsplit=1)[0], dep) for dep in lines]
         f.seek(0)
         f.writelines(lines)
         f.truncate()
