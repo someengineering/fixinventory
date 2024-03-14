@@ -120,6 +120,11 @@ class CLIContext:
         return self.env.get("section", PathRoot)
 
     @property
+    def intern(self) -> bool:
+        # currently only 2 sources: api and task_handler
+        return self.source == "task_handler"
+
+    @property
     def user_permissions(self) -> Set[Permission]:
         return self.user.permissions if self.user else set()
 

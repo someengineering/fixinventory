@@ -3834,9 +3834,9 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         return [ArgInfo(expects_value=True, value_hint="file", help_text="file to write to")]
 
     @staticmethod
-    async def write_result_to_file(in_stream: JsStream, file_name: str) -> AsyncIterator[JsonElement]:
+    async def write_result_to_file(ctx: CLIContext, in_stream: JsStream, file_name: str) -> AsyncIterator[JsonElement]:
         async with TemporaryDirectory() as temp_dir:
-            path = os.path.join(temp_dir, uuid_str())
+            path = file_name if ctx.intern else os.path.join(temp_dir, uuid_str())
             async with aiofiles.open(path, "w") as f:
                 async with in_stream.stream() as streamer:
                     async for out in streamer:
@@ -3858,7 +3858,7 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         if (ex := self.get_previous_command(kwargs)) and ex.action.produces == MediaType.FilePath:
             fn = self.already_file_stream
         else:
-            fn = self.write_result_to_file
+            fn = partial(self.write_result_to_file, ctx)
         return CLIFlow(lambda in_stream: fn(in_stream, arg), MediaType.FilePath, required_permissions={Permission.read})
 
 
