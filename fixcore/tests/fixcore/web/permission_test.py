@@ -45,7 +45,7 @@ def test_static_permission() -> None:
     assert_allowed(True, ernie, Permission.read)
     assert_allowed(False, ernie, Permission.read, Permission.write)
     assert_allowed(False, ernie, Permission.read, Permission.write, Permission.admin)
-    # same goes for batman
+    # the same goes for batman
     assert_allowed(True, batman, Permission.read)
     assert_allowed(False, batman, Permission.read, Permission.write)
     assert_allowed(False, batman, Permission.read, Permission.write, Permission.admin)
@@ -53,11 +53,11 @@ def test_static_permission() -> None:
 
 def test_allow_all_permission() -> None:
     assert_allowed = create_assert(NoPermissionChecker())
-    # ernie is allowed to read
+    # ernie can do everything
     assert_allowed(True, ernie, Permission.read)
     assert_allowed(True, ernie, Permission.read, Permission.write)
     assert_allowed(True, ernie, Permission.read, Permission.write, Permission.admin)
-    # same goes for batman
+    # the same goes for batman
     assert_allowed(True, batman, Permission.read)
     assert_allowed(True, batman, Permission.read, Permission.write)
     assert_allowed(True, batman, Permission.read, Permission.write, Permission.admin)
