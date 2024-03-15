@@ -28,6 +28,12 @@ log = logging.getLogger("fix.plugins.azure")
 
 
 def is_retryable_exception(e: Exception) -> bool:
+    # Placed there to avoid circular import issues
+    from fix_plugin_azure.resource.metrics import MetricRequestError
+
+    if isinstance(e, MetricRequestError):
+        log.error(f"Azure Metric request error occured, retrying: {e}")
+        return True
     if isinstance(e, HttpResponseError):
         error_code = getattr(e.error, "code", None)
         status_code = getattr(e.response, "status_code", None)
@@ -132,7 +138,7 @@ class AzureResourceManagementClient(AzureClient):
             # Get the resource by its ID
             resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
 
-            # Check if need to update or delete tag
+            # Check if need BadRequestErroro update or delete tag
             if is_update:
                 # Create the tag or update its value if it exists
                 resource.tags[tag_name] = tag_value
@@ -168,14 +174,21 @@ class AzureResourceManagementClient(AzureClient):
         retry_on_exception=is_retryable_exception,
     )
     def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
+        # Placed there to avoid circular import issues
+        from fix_plugin_azure.resource.metrics import MetricRequestError
+
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
             log.error(f"[Azure] Call to Azure API is not authorized!: {e}")
             return None
         except HttpResponseError as e:
-            if e.error and e.error.code == "NoRegisteredProviderFound":
-                return None  # API not available in this region
+            if e.error:
+                if e.error.code == "NoRegisteredProviderFound":
+                    log.warning("[Azure] API not available in this region")
+                    return None
+                elif e.error.code == "BadRequest" and spec.service == "metric":
+                    raise MetricRequestError from e
             log.warning(f"[Azure] Error encountered while requesting resource: {e}")
             raise e
         except Exception as e:

@@ -20,6 +20,11 @@ from fixlib.utils import utc_str
 log = logging.getLogger("fix.plugins.azure")
 
 
+class MetricRequestError(HttpResponseError):
+    """An error response with status code 400
+    This need to handle disk metric error when it occured"""
+
+
 @define(eq=False, slots=False)
 class AzureMetricValueName:
     kind: ClassVar[str] = "azure_metric_value_name"
