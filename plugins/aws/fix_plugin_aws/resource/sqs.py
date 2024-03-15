@@ -74,9 +74,11 @@ class AwsSqsQueue(AwsResource):
         "sqs_managed_sse_enabled": S("SqsManagedSseEnabled") >> AsBool(),
     }
     sqs_queue_url: Optional[str] = field(default=None)
-    sqs_approximate_number_of_messages: Optional[int] = field(default=None)
-    sqs_approximate_number_of_messages_not_visible: Optional[int] = field(default=None)
-    sqs_approximate_number_of_messages_delayed: Optional[int] = field(default=None)
+    sqs_approximate_number_of_messages: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
+    sqs_approximate_number_of_messages_not_visible: Optional[int] = field(
+        default=None, metadata=dict(ignore_history=True)
+    )
+    sqs_approximate_number_of_messages_delayed: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     sqs_policy: Optional[Json] = field(default=None)
     sqs_redrive_policy: Optional[AwsSqsRedrivePolicy] = field(default=None)
     sqs_fifo_queue: Optional[bool] = field(default=None)

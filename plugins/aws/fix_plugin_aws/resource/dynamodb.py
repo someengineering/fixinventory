@@ -177,8 +177,8 @@ class AwsDynamoDbGlobalSecondaryIndexDescription:
     index_status: Optional[str] = field(default=None)
     backfilling: Optional[bool] = field(default=None)
     provisioned_throughput: Optional[AwsDynamoDbProvisionedThroughputDescription] = field(default=None)
-    index_size_bytes: Optional[int] = field(default=None)
-    item_count: Optional[int] = field(default=None)
+    index_size_bytes: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
+    item_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     index_arn: Optional[str] = field(default=None)
 
 
@@ -376,8 +376,8 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_key_schema: List[AwsDynamoDbKeySchemaElement] = field(factory=list)
     dynamodb_table_status: Optional[str] = field(default=None)
     dynamodb_provisioned_throughput: Optional[AwsDynamoDbProvisionedThroughputDescription] = field(default=None)
-    dynamodb_table_size_bytes: Optional[int] = field(default=None)
-    dynamodb_item_count: Optional[int] = field(default=None)
+    dynamodb_table_size_bytes: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
+    dynamodb_item_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     dynamodb_billing_mode_summary: Optional[AwsDynamoDbBillingModeSummary] = field(default=None)
     dynamodb_local_secondary_indexes: List[AwsDynamoDbLocalSecondaryIndexDescription] = field(factory=list)
     dynamodb_global_secondary_indexes: List[AwsDynamoDbGlobalSecondaryIndexDescription] = field(factory=list)

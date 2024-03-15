@@ -124,7 +124,7 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 # Global list of properties to ignore when computing the history hash of a node.
-PropsToIgnoreForHistory = {"atime", "mtime", "last_update", "resource_version"}
+PropsToIgnoreForHistory = {"ctime", "atime", "mtime", "last_update", "resource_version"}
 
 
 @define
@@ -310,7 +310,7 @@ class GraphBuilder:
                         walk_element(elem, el_kind.inner)
             elif isinstance(el_kind, DictionaryKind):
                 if isinstance(el, dict):
-                    for v in el.values():
+                    for _, v in sorted(el.items()):
                         walk_element(v, el_kind.value_kind)
             elif isinstance(el_kind, SimpleKind):
                 sha256.update(str(el).encode("utf-8"))

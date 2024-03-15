@@ -2028,7 +2028,7 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
         "nic_ipv6_address": S("Ipv6Address"),
     }
     nic_association: Optional[AwsEc2NetworkInterfaceAssociation] = field(default=None)
-    nic_attachment: Optional[AwsEc2NetworkInterfaceAttachment] = field(default=None)
+    nic_attachment: Optional[AwsEc2NetworkInterfaceAttachment] = field(default=None, metadata=dict(ignore_history=True))
     nic_availability_zone: Optional[str] = field(default=None)
     nic_groups: List[AwsEc2GroupIdentifier] = field(factory=list)
     nic_outpost_arn: Optional[str] = field(default=None)
@@ -2532,7 +2532,7 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     }
     subnet_availability_zone: Optional[str] = field(default=None)
     subnet_availability_zone_id: Optional[str] = field(default=None)
-    subnet_available_ip_address_count: Optional[int] = field(default=None)
+    subnet_available_ip_address_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     subnet_cidr_block: Optional[str] = field(default=None)
     subnet_default_for_az: Optional[bool] = field(default=None)
     subnet_enable_lni_at_device_index: Optional[int] = field(default=None)
