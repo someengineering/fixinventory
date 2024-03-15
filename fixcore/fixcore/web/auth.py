@@ -20,11 +20,11 @@ from jwt import PyJWTError
 from fixcore.core_config import CoreConfig
 from fixcore.db.system_data_db import JwtSigningKeyHolder
 from fixcore.dependencies import TenantDependencyProvider
-from fixcore.error import NotEnoughPermissions
 from fixcore.service import Service
 from fixcore.user.model import AuthorizedUser, Permission
 from fixcore.util import uuid_str
 from fixcore.web.certificate_handler import CertificateHandler
+from fixcore.web.permission import PermissionChecker
 from fixlib import jwt as ck_jwt
 from fixlib.asynchronous.web import RequestHandler, Middleware, TenantRequestHandler
 from fixlib.jwt import encode_jwt, create_jwk_dict
@@ -101,6 +101,7 @@ class AuthHandler(Service):
         self.always_allowed_paths = always_allowed_paths
         self.not_allowed = not_allowed
         self.authorization_codes: Dict[str, LoginWithCode] = {}
+        self.permission_checker: PermissionChecker = PermissionChecker.create(config)
         self.signing_key_private: Optional[RSAPrivateKey] = None  # set on start
         self.signing_key_certificate: Optional[Certificate] = None  # set on start
         self.signing_key_jwk: Optional[Json] = None  # set on start
@@ -211,31 +212,12 @@ class AuthHandler(Service):
 
         return valid_auth_handler
 
-    async def requires_permission(self, request: Request, *permission: Union[Permission, Set[Permission]]) -> None:
-        if self.psk:  # only require permissions if authentication is enabled
-            required_permissions = set()
-            for p in permission:
-                if isinstance(p, Permission):
-                    required_permissions.add(p)
-                elif isinstance(p, set):
-                    required_permissions.update(p)
-                else:
-                    raise ValueError(f"Invalid permission {p}")
-            # If no permissions are required, we can skip the check
-            if not required_permissions:
-                return
-            # Make sure, the current user has the required permissions
-            if current_user := request.get("user"):
-                if not current_user.has_permission(required_permissions):
-                    raise NotEnoughPermissions(current_user.permissions, required_permissions)
-            else:
-                raise web.HTTPUnauthorized()
-
     def allow_with(
-        self, handler: TenantRequestHandler, *permission: Union[Permission, Set[Permission]]
+        self, handler: TenantRequestHandler, *required_permissions: Union[Permission, Set[Permission]]
     ) -> RequestHandler:
         async def wrapper(request: Request) -> StreamResponse:
-            await self.requires_permission(request, *permission)
+            if required_permissions:
+                self.permission_checker.requires_permission(request, *required_permissions)
             tenant_dependencies = await self.tenant_dependency_provider.dependencies(request)
             return await handler(request, tenant_dependencies)
 

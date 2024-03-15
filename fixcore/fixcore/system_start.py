@@ -18,6 +18,7 @@ from fixcore.core_config import CoreConfig, parse_config, current_git_hash, insi
 from fixcore.db.db_access import DbAccess
 from fixcore.model.adjust_node import DirectAdjuster
 from fixcore.types import JsonElement
+from fixcore.user.model import AllowedRoleNames
 from fixcore.util import utc
 from fixlib.args import ArgumentParser
 from fixlib.jwt import add_args as jwt_add_args
@@ -222,6 +223,11 @@ aws:
         default=False,
         action="store_true",
         help="Launch in multi tenant setup.",
+    )
+    parser.add_argument(
+        "--role",
+        choices=AllowedRoleNames,
+        help="Assign this role to the service. Only takes effect when no PSK / UserManagement is used.",
     )
 
     parsed: Namespace = parser.parse_args(args if args else [])

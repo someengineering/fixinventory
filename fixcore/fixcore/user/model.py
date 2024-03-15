@@ -20,15 +20,11 @@ class Role:
         return permission in self.permissions
 
 
-PredefineRoles = {
-    r.name: r
-    for r in [
-        Role("admin", {Permission.admin, Permission.read, Permission.write}),
-        Role("readwrite", {Permission.read, Permission.write}),
-        Role("readonly", {Permission.read}),
-        Role("service", {Permission.admin, Permission.read, Permission.write}),
-    ]
-}
+RoleAdmin = Role("admin", {Permission.admin, Permission.read, Permission.write})
+RoleReadWrite = Role("readwrite", {Permission.read, Permission.write})
+RoleReadOnly = Role("readonly", {Permission.read})
+RoleService = Role("service", {Permission.admin, Permission.read, Permission.write})
+PredefineRoles = {r.name: r for r in [RoleAdmin, RoleReadWrite, RoleReadOnly, RoleService]}
 AllowedRoleNames = set(PredefineRoles.keys()) - {"service"}
 
 
