@@ -83,7 +83,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     }
     zone_caller_reference: Optional[str] = field(default=None)
     zone_config: Optional[AwsRoute53ZoneConfig] = field(default=None)
-    zone_resource_record_set_count: Optional[int] = field(default=None)
+    zone_resource_record_set_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     zone_linked_service: Optional[AwsRoute53LinkedService] = field(default=None)
     zone_logging_config: Optional[AwsRoute53LoggingConfig] = field(default=None)
 

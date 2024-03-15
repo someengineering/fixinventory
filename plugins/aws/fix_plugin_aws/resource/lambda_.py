@@ -90,7 +90,7 @@ class AwsLambdaEnvironment:
         "error": S("Error") >> Bend(AwsLambdaEnvironmentError.mapping),
     }
     variables: Optional[Dict[str, str]] = field(default=None)
-    error: Optional[AwsLambdaEnvironmentError] = field(default=None)
+    error: Optional[AwsLambdaEnvironmentError] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)

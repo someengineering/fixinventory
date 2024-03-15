@@ -68,7 +68,7 @@ class AwsSSMInstance(AwsResource):
     }
     instance_id: Optional[str] = field(default=None, metadata={"description": "The managed node ID."})  # fmt: skip
     ping_status: Optional[str] = field(default=None, metadata={"description": "Connection status of SSM Agent.   The status Inactive has been deprecated and is no longer in use."})  # fmt: skip
-    last_ping: Optional[datetime] = field(default=None, metadata={"description": "The date and time when the agent last pinged the Systems Manager service.", "ignore_history": True})  # fmt: skip
+    last_ping: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time when the agent last pinged the Systems Manager service."})  # fmt: skip
     agent_version: Optional[str] = field(default=None, metadata={"description": "The version of SSM Agent running on your Linux managed node."})  # fmt: skip
     is_latest_version: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the latest version of SSM Agent is running on your Linux managed node. This field doesn't indicate whether or not the latest version is installed on Windows managed nodes, because some older versions of Windows Server use the EC2Config service to process Systems Manager requests."})  # fmt: skip
     platform_type: Optional[str] = field(default=None, metadata={"description": "The operating system platform type."})  # fmt: skip
@@ -82,8 +82,8 @@ class AwsSSMInstance(AwsResource):
     ip_address: Optional[str] = field(default=None, metadata={"description": "The IP address of the managed node."})  # fmt: skip
     computer_name: Optional[str] = field(default=None, metadata={"description": "The fully qualified host name of the managed node."})  # fmt: skip
     association_status: Optional[str] = field(default=None, metadata={"description": "The status of the association."})  # fmt: skip
-    last_association_execution_date: Optional[datetime] = field(default=None, metadata={"description": "The date the association was last run."})  # fmt: skip
-    last_successful_association_execution_date: Optional[datetime] = field(default=None, metadata={"description": "The last date the association was successfully run."})  # fmt: skip
+    last_association_execution_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date the association was last run."})  # fmt: skip
+    last_successful_association_execution_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The last date the association was successfully run."})  # fmt: skip
     association_overview: Optional[AwsSSMInstanceAggregatedAssociationOverview] = field(default=None, metadata={"description": "Information about the association."})  # fmt: skip
     source_id: Optional[str] = field(default=None, metadata={"description": "The ID of the source resource. For IoT Greengrass devices, SourceId is the Thing name."})  # fmt: skip
     source_type: Optional[str] = field(default=None, metadata={"description": "The type of the source resource. For IoT Greengrass devices, SourceType is AWS::IoT::Thing."})  # fmt: skip
@@ -374,7 +374,7 @@ class AwsSSMResourceCompliance(AwsResource):
     resource_id: Optional[str] = field(default=None, metadata={"description": "The resource ID."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The compliance status for the resource."})  # fmt: skip
     overall_severity: Optional[str] = field(default=None, metadata={"description": "The highest severity item found for the resource. The resource is compliant for this item."})  # fmt: skip
-    execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"description": "Information about the execution."})  # fmt: skip
+    execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"ignore_history": True, "description": "Information about the execution."})  # fmt: skip
     compliant_summary: Optional[AwsSSMCompliantSummary] = field(default=None, metadata={"description": "A list of items that are compliant for the resource."})  # fmt: skip
     non_compliant_summary: Optional[AwsSSMNonCompliantSummary] = field(default=None, metadata={"description": "A list of items that aren't compliant for the resource."})  # fmt: skip
 
