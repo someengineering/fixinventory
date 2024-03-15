@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, List, MutableMapping, Optional, Any, Union, Dict
+from typing import List, MutableMapping, Optional, Any, Union, Dict
 
 from attr import define
 from retrying import retry
@@ -27,25 +27,11 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugins.azure")
 
 
-def with_spec_service(func: Callable[..., bool]) -> Callable[[AzureApiSpec], Callable[[Exception], bool]]:
-    def wrapper(spec: AzureApiSpec) -> Callable[[Exception], bool]:  # Capture spec in the closure
-        def inner_wrapper(exception: Exception) -> bool:
-            return func(exception, spec.service)
-
-        return inner_wrapper
-
-    return wrapper
-
-
-def is_retryable_exception(e: Exception, service: str) -> bool:
+def is_retryable_exception(e: Exception) -> bool:
     if isinstance(e, HttpResponseError):
         error_code = getattr(e.error, "code", None)
         status_code = getattr(e.response, "status_code", None)
 
-        if service == "metric":
-            if status_code == 400 or error_code == "BadRequest":
-                logging.debug(f"Azure metric fetch failed: {e}. Retrying...")
-                return True
         if error_code == "TooManyRequests" or status_code == 429:
             logging.debug(f"Azure API request limit exceeded or throttling, retrying with exponential backoff: {e}")
             return True
@@ -179,19 +165,19 @@ class AzureResourceManagementClient(AzureClient):
         stop_max_attempt_number=3,  # max 3 attempts
         wait_exponential_multiplier=1000,
         wait_exponential_max=60000,
-        retry_on_exception=with_spec_service(is_retryable_exception),
+        retry_on_exception=is_retryable_exception,
     )
     def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
-            log.warning(f"[Azure] Call to Azure API is not authorized!: {e}")
+            log.error(f"[Azure] Call to Azure API is not authorized!: {e}")
             return None
         except HttpResponseError as e:
             if e.error and e.error.code == "NoRegisteredProviderFound":
                 return None  # API not available in this region
             log.warning(f"[Azure] Error encountered while requesting resource: {e}")
-            return None
+            raise e
         except Exception as e:
             log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}", exc_info=e)
             return None
