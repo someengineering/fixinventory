@@ -9,7 +9,7 @@ from aiohttp.web_request import Request
 
 from fixcore.core_config import CoreConfig
 from fixcore.error import NotEnoughPermissions
-from fixcore.user.model import Permission, Role, PredefineRoles, RoleReadOnly
+from fixcore.user.model import Permission, Role, PredefineRoles
 
 log = logging.getLogger(__name__)
 
