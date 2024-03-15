@@ -9,7 +9,6 @@ from retrying import retry
 from azure.core.exceptions import (
     ClientAuthenticationError,
     ResourceNotFoundError,
-    ResourceExistsError,
     map_error,
     HttpResponseError,
 )
@@ -27,12 +26,14 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugins.azure")
 
 
-def is_retryable_exception(e: Exception) -> bool:
-    # Placed there to avoid circular import issues
-    from fix_plugin_azure.resource.metrics import MetricRequestError
+class MetricRequestError(HttpResponseError):
+    """Error raised when there's an issue retrieving metric data from the Azure API."""
 
+
+def is_retryable_exception(e: Exception) -> bool:
+    # If we receive a metric request error, then repeat the request
     if isinstance(e, MetricRequestError):
-        log.error(f"Azure Metric request error occured, retrying: {e}")
+        log.debug(f"Azure Metric request error occured, retrying: {e}")
         return True
     if isinstance(e, HttpResponseError):
         error_code = getattr(e.error, "code", None)
@@ -58,7 +59,7 @@ class AzureApiSpec:
 
 class AzureClient(ABC):
     @abstractmethod
-    def get_with_retry(
+    def list_with_retry(
         self,
         spec: AzureApiSpec,
         **kwargs: Any,
@@ -109,7 +110,7 @@ class AzureResourceManagementClient(AzureClient):
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        result = self.get_with_retry(spec, **kwargs)
+        result = self.list_with_retry(spec, **kwargs)
         if result is None:
             return []
         return result  # type: ignore
@@ -117,12 +118,12 @@ class AzureResourceManagementClient(AzureClient):
     def delete(self, resource_id: str) -> bool:
         try:
             self.client.resources.begin_delete_by_id(resource_id=resource_id, api_version="2021-04-01")
-        except ResourceNotFoundError:
-            return False  # Resource not found to delete
         except HttpResponseError as e:
-            raise e
-        except Exception as e:
-            raise e
+            if e.error and e.error.code == "ResourceNotFoundError":
+                return False  # Resource not found to delete
+            else:
+                raise e
+
         return True
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
@@ -138,7 +139,7 @@ class AzureResourceManagementClient(AzureClient):
             # Get the resource by its ID
             resource = self.client.resources.get_by_id(resource_id=resource_id, api_version="2021-04-01")
 
-            # Check if need BadRequestErroro update or delete tag
+            # Check if need to update or delete tag
             if is_update:
                 # Create the tag or update its value if it exists
                 resource.tags[tag_name] = tag_value
@@ -156,38 +157,33 @@ class AzureResourceManagementClient(AzureClient):
             updated_resource = GenericResource(location=resource.location, tags=resource.tags)
             self.client.resources.begin_create_or_update_by_id(resource_id, "2021-04-01", updated_resource)
 
-        except ResourceNotFoundError:
-            return False  # Resource not found
-        except ResourceExistsError:
-            return False  # Tag for update/delete does not exist
         except HttpResponseError as e:
-            raise e
-        except Exception as e:
-            raise e
+            if e.error and e.error.code == "ResourceNotFoundError":
+                return False  # Resource not found
+            elif e.error and e.error.code == "ResourceExistsError":
+                return False  # Tag for update/delete does not exist
+            else:
+                raise e
 
         return True
 
     @retry(  # type: ignore
-        stop_max_attempt_number=3,  # max 3 attempts
+        stop_max_attempt_number=10,  # 10 attempts: 1000 max 60000: max wait time is 5 minutes
         wait_exponential_multiplier=1000,
         wait_exponential_max=60000,
         retry_on_exception=is_retryable_exception,
     )
-    def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
-        # Placed there to avoid circular import issues
-        from fix_plugin_azure.resource.metrics import MetricRequestError
-
+    def list_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
             log.error(f"[Azure] Call to Azure API is not authorized!: {e}")
             return None
         except HttpResponseError as e:
-            if e.error:
-                if e.error.code == "NoRegisteredProviderFound":
-                    log.warning("[Azure] API not available in this region")
-                    return None
-                elif e.error.code == "BadRequest" and spec.service == "metric":
+            if error := e.error:
+                if error.code == "NoRegisteredProviderFound":
+                    return None  # API not available in this region
+                elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e
             log.warning(f"[Azure] Error encountered while requesting resource: {e}")
             raise e

@@ -20,11 +20,6 @@ from fixlib.utils import utc_str
 log = logging.getLogger("fix.plugins.azure")
 
 
-class MetricRequestError(HttpResponseError):
-    """An error response with status code 400
-    This need to handle disk metric error when it occured"""
-
-
 @define(eq=False, slots=False)
 class AzureMetricValueName:
     kind: ClassVar[str] = "azure_metric_value_name"
@@ -299,10 +294,10 @@ class AzureMetricData:
             return None, None
         except HttpResponseError as e:
             # Handle unsupported metric namespace error
-            log.debug(f"Request error occurred: {e}.")
+            log.warning(f"Request error occurred: {e}.")
             return None, None
-        except Exception as ex:
-            raise ex
+        except Exception as e:
+            raise e
 
 
 V = TypeVar("V", bound=BaseResource)
