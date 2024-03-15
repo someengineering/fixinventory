@@ -23,7 +23,7 @@ from fixlib.types import Json
 
 class StaticFileAzureClient(AzureClient):
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        result = self.get_with_retry(spec, **kwargs)
+        result = self.list_with_retry(spec, **kwargs)
         if result is None:
             return []
         return result
@@ -44,7 +44,7 @@ class StaticFileAzureClient(AzureClient):
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
 
-    def get_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
+    def list_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         last = spec.path.rsplit("/", maxsplit=1)[-1]
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:
