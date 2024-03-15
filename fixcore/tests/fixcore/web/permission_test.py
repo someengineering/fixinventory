@@ -27,7 +27,7 @@ batman = AuthorizedUser("batman", AllowedRoleNames, {Permission.read, Permission
 
 def test_user_permission() -> None:
     assert_allowed = create_assert(UserPermissionChecker())
-    # max is allowed to read
+    # ernie is allowed to read
     assert_allowed(True, ernie)
     assert_allowed(True, ernie, Permission.read)
     assert_allowed(False, ernie, Permission.read, Permission.write)
@@ -41,13 +41,11 @@ def test_user_permission() -> None:
 
 def test_static_permission() -> None:
     assert_allowed = create_assert(StaticRoleChecker(RoleReadOnly))
-    # max is allowed to read
-    max = AuthorizedUser("max", {"readonly"}, {Permission.read}, True)
-    assert_allowed(True, max, Permission.read)
-    assert_allowed(False, max, Permission.read, Permission.write)
-    assert_allowed(False, max, Permission.read, Permission.write, Permission.admin)
+    # ernie is allowed to read
+    assert_allowed(True, ernie, Permission.read)
+    assert_allowed(False, ernie, Permission.read, Permission.write)
+    assert_allowed(False, ernie, Permission.read, Permission.write, Permission.admin)
     # same goes for batman
-    batman = AuthorizedUser("batman", AllowedRoleNames, {Permission.read, Permission.write, Permission.admin}, True)
     assert_allowed(True, batman, Permission.read)
     assert_allowed(False, batman, Permission.read, Permission.write)
     assert_allowed(False, batman, Permission.read, Permission.write, Permission.admin)
@@ -55,13 +53,11 @@ def test_static_permission() -> None:
 
 def test_allow_all_permission() -> None:
     assert_allowed = create_assert(NoPermissionChecker())
-    # max is allowed to read
-    max = AuthorizedUser("max", {"readonly"}, {Permission.read}, True)
-    assert_allowed(True, max, Permission.read)
-    assert_allowed(True, max, Permission.read, Permission.write)
-    assert_allowed(True, max, Permission.read, Permission.write, Permission.admin)
+    # ernie is allowed to read
+    assert_allowed(True, ernie, Permission.read)
+    assert_allowed(True, ernie, Permission.read, Permission.write)
+    assert_allowed(True, ernie, Permission.read, Permission.write, Permission.admin)
     # same goes for batman
-    batman = AuthorizedUser("batman", AllowedRoleNames, {Permission.read, Permission.write, Permission.admin}, True)
     assert_allowed(True, batman, Permission.read)
     assert_allowed(True, batman, Permission.read, Permission.write)
     assert_allowed(True, batman, Permission.read, Permission.write, Permission.admin)
