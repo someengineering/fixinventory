@@ -51,9 +51,6 @@ class StaticFileAzureClient(AzureClient):
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
 
-    def list_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        return []
-
     @property
     def config(self) -> AzureConfig:
         return AzureConfig()

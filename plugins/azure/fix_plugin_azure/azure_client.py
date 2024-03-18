@@ -59,14 +59,6 @@ class AzureApiSpec:
 
 class AzureClient(ABC):
     @abstractmethod
-    def list_with_retry(
-        self,
-        spec: AzureApiSpec,
-        **kwargs: Any,
-    ) -> List[Json]:
-        pass
-
-    @abstractmethod
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         pass
 
@@ -110,7 +102,7 @@ class AzureResourceManagementClient(AzureClient):
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        result = self.list_with_retry(spec, **kwargs)
+        result = self._list_with_retry(spec, **kwargs)
         if result is None:
             return []
         return result  # type: ignore
@@ -173,7 +165,7 @@ class AzureResourceManagementClient(AzureClient):
         wait_exponential_max=60000,
         retry_on_exception=is_retryable_exception,
     )
-    def list_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
+    def _list_with_retry(self, spec: AzureApiSpec, **kwargs: Any) -> Optional[List[Json]]:
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
