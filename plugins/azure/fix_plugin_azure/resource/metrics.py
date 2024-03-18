@@ -294,10 +294,10 @@ class AzureMetricData:
             return None, None
         except HttpResponseError as e:
             # Handle unsupported metric namespace error
-            log.debug(f"Request error occurred: {e}.")
+            log.warning(f"Request error occurred: {e}.")
             return None, None
-        except Exception as ex:
-            raise ex
+        except Exception as e:
+            raise e
 
 
 V = TypeVar("V", bound=BaseResource)
