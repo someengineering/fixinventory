@@ -5483,7 +5483,7 @@ class GcpSslCertificate(GcpResource):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "certificate": S("certificate"),
         "expire_time": S("expireTime"),
-        "managed": S("managed", default={}) >> Bend(GcpSslCertificateManagedSslCertificate.mapping),
+        "certificate_managed": S("managed", default={}) >> Bend(GcpSslCertificateManagedSslCertificate.mapping),
         "private_key": S("privateKey"),
         "self_managed": S("selfManaged", default={}) >> Bend(GcpSslCertificateSelfManagedSslCertificate.mapping),
         "subject_alternative_names": S("subjectAlternativeNames", default=[]),
@@ -5491,7 +5491,7 @@ class GcpSslCertificate(GcpResource):
     }
     certificate: Optional[str] = field(default=None)
     expire_time: Optional[datetime] = field(default=None)
-    managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
+    certificate_managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
     private_key: Optional[str] = field(default=None)
     self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
     subject_alternative_names: Optional[List[str]] = field(default=None)
