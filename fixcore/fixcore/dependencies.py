@@ -191,10 +191,13 @@ class Dependencies(Service):
 
     async def stop(self) -> None:
         if session := cast(Optional[ClientSession], self.get(ServiceNames.http_session)):
+            log.debug("Closing http session")
             await session.close()
         for service in reversed(self.services):
+            log.debug(f"Stopping service {service.__class__.__name__}")
             await service.stop()
         for callback in self.on_stop_callbacks:
+            log.debug("Running on stop callback")
             callback()
 
 
@@ -317,14 +320,22 @@ class TenantDependencyCache(Service):
 
     async def _expire(self) -> None:
         now = self._time()
+        to_delete: List[Tuple[str, TenantDependencies]] = []
         for key, (timestamp, value) in list(self._cache.items()):
             if now - timestamp > self._ttl:
                 lock = await self._lock_for(key)
                 async with lock:
-                    log.info(f"Stop tenant dependencies for {key}")
-                    self._cache.pop(key, None)
-                    await value.stop()
-                    log.info(f"Tenant dependencies for {key} stopped.")
+                    # test again with lock
+                    if (item := self._cache.get(key)) and now - item[0] > self._ttl and item[1] is not None:
+                        self._cache.pop(key, None)
+                        to_delete.append((key, item[1]))
+        for key, value in to_delete:
+            log.info(f"Stop tenant dependencies for {key}")
+            try:
+                await value.stop()
+                log.info(f"Tenant dependencies for {key} stopped.")
+            except Exception as e:
+                log.error(f"Failed to stop tenant dependencies for {key}: {e}", exc_info=True)
 
     async def get(self, key: str, if_empty: Callable[[], Awaitable[TenantDependencies]]) -> TenantDependencies:
         now = self._time()
