@@ -35,7 +35,7 @@ deprecated==1.2.14
 detect-secrets==1.4.0
 fastjsonschema==2.19.1
 filelock==3.13.1
-fixcompliance==0.4.12
+fixcompliance==0.4.13
 fixdatalink[extra]==2.0.1
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.4
