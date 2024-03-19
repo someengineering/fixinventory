@@ -88,19 +88,6 @@ class CloudFrontTaggable:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontOriginCustomHeader:
-    kind: ClassVar[str] = "aws_cloudfront_origin_custom_header"
-    kind_display: ClassVar[str] = "AWS CloudFront Origin Custom Header"
-    kind_description: ClassVar[str] = (
-        "AWS CloudFront Origin Custom Header is a feature of Amazon CloudFront that"
-        " allows users to add custom headers to requests sent to the origin server."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {"header_name": S("HeaderName"), "header_value": S("HeaderValue")}
-    header_name: Optional[str] = field(default=None)
-    header_value: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class AwsCloudFrontCustomOriginConfig:
     kind: ClassVar[str] = "aws_cloudfront_custom_origin_config"
     kind_display: ClassVar[str] = "AWS CloudFront Custom Origin Configuration"
@@ -152,7 +139,7 @@ class AwsCloudFrontOrigin:
         "id": S("Id"),
         "domain_name": S("DomainName"),
         "origin_path": S("OriginPath"),
-        "custom_header": S("CustomHeaders", "Items", default=[]) >> ForallBend(AwsCloudFrontOriginCustomHeader.mapping),
+        "custom_header": S("CustomHeaders", "Items", default=[]) >> ToDict("HeaderName", "HeaderValue"),
         "s3_origin_config": S("S3OriginConfig", "OriginAccessIdentity"),
         "custom_origin_config": S("CustomOriginConfig") >> Bend(AwsCloudFrontCustomOriginConfig.mapping),
         "connection_attempts": S("ConnectionAttempts"),
@@ -163,7 +150,7 @@ class AwsCloudFrontOrigin:
     id: Optional[str] = field(default=None)
     domain_name: Optional[str] = field(default=None)
     origin_path: Optional[str] = field(default=None)
-    custom_header: List[AwsCloudFrontOriginCustomHeader] = field(factory=list)
+    custom_header: Dict[str, str] = field(factory=list)
     s3_origin_config: Optional[str] = field(default=None)
     custom_origin_config: Optional[AwsCloudFrontCustomOriginConfig] = field(default=None)
     connection_attempts: Optional[int] = field(default=None)

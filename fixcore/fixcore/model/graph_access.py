@@ -124,7 +124,7 @@ class Direction:
 EdgeKey = namedtuple("EdgeKey", ["from_node", "to_node", "edge_type"])
 
 # Global list of properties to ignore when computing the history hash of a node.
-PropsToIgnoreForHistory = {"ctime", "atime", "mtime", "last_update", "resource_version"}
+PropsToIgnoreForHistory = {"ctime", "atime", "mtime", "age", "last_access", "last_update", "resource_version"}
 
 
 @define
