@@ -332,7 +332,7 @@ class TenantDependencyCache(Service):
         for key, value in to_delete:
             log.info(f"Stop tenant dependencies for {key}")
             try:
-                await value.stop()
+                await asyncio.wait_for(value.stop(), timeout=60)  # should not take longer than 60 seconds
                 log.info(f"Tenant dependencies for {key} stopped.")
             except Exception as e:
                 log.error(f"Failed to stop tenant dependencies for {key}: {e}", exc_info=True)
