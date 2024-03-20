@@ -217,18 +217,19 @@ class Api(Service):
             jupyterlite_path.mkdir(parents=True, exist_ok=True)
         require = self.auth_handler.allow_with
         r = Permission.read
+        w = Permission.write
         a = Permission.admin
 
         self.app.add_routes(
             [
                 # Model operations (backwards compatible)
                 web.get(prefix + "/model", require(self.get_model, r)),
-                web.patch(prefix + "/model", require(self.update_model, a)),
+                web.patch(prefix + "/model", require(self.update_model, r, w)),
                 web.get(prefix + "/model/uml", require(self.model_uml, r)),
                 # Graph based model operations
                 web.get(prefix + "/graph/{graph_id}/model", require(self.get_model, r)),
-                web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
-                web.put(prefix + "/graph/{graph_id}/model", require(self.update_model, a)),
+                web.patch(prefix + "/graph/{graph_id}/model", require(self.update_model, r, w)),
+                web.put(prefix + "/graph/{graph_id}/model", require(self.update_model, r, w)),
                 web.get(prefix + "/graph/{graph_id}/model/uml", require(self.model_uml, r)),
                 # CRUD Graph operations
                 web.get(prefix + "/graph", require(self.list_graphs, r)),
@@ -248,20 +249,22 @@ class Api(Service):
                 web.post(prefix + "/graph/{graph_id}/property/values", require(self.possible_values, r)),
                 web.post(prefix + "/graph/{graph_id}/property/path/complete", require(self.property_path_complete, r)),
                 # maintain the graph
-                web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, a)),
-                web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, a)),
-                web.post(prefix + "/graph/{graph_id}/batch/merge", require(self.update_merge_graph_batch, a)),
-                web.get(prefix + "/graph/{graph_id}/batch", require(self.list_batches, a)),
-                web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.commit_batch, a)),
-                web.delete(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.abort_batch, a)),
+                web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, r, w)),
+                web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, r, w)),
+                web.post(prefix + "/graph/{graph_id}/batch/merge", require(self.update_merge_graph_batch, r, w)),
+                web.get(prefix + "/graph/{graph_id}/batch", require(self.list_batches, r, w)),
+                web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.commit_batch, r, w)),
+                web.delete(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.abort_batch, r, w)),
                 # node specific actions
                 web.post(
-                    prefix + "/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", require(self.create_node, a)
+                    prefix + "/graph/{graph_id}/node/{node_id}/under/{parent_node_id}", require(self.create_node, r, w)
                 ),
                 web.get(prefix + "/graph/{graph_id}/node/{node_id}", require(self.get_node, r)),
-                web.patch(prefix + "/graph/{graph_id}/node/{node_id}", require(self.update_node, a)),
-                web.delete(prefix + "/graph/{graph_id}/node/{node_id}", require(self.delete_node, a)),
-                web.patch(prefix + "/graph/{graph_id}/node/{node_id}/section/{section}", require(self.update_node, a)),
+                web.patch(prefix + "/graph/{graph_id}/node/{node_id}", require(self.update_node, r, w)),
+                web.delete(prefix + "/graph/{graph_id}/node/{node_id}", require(self.delete_node, r, w)),
+                web.patch(
+                    prefix + "/graph/{graph_id}/node/{node_id}/section/{section}", require(self.update_node, r, w)
+                ),
                 # Subscriptions
                 web.get(prefix + "/subscribers", require(self.list_all_subscriptions, a)),
                 web.get(prefix + "/subscribers/for/{event_type}", require(self.list_subscription_for_event, a)),
@@ -305,19 +308,19 @@ class Api(Service):
                 web.get(prefix + "/metrics", self.metrics),
                 # config operations
                 web.get(prefix + "/configs", require(self.list_configs, r)),
-                web.patch(prefix + "/config/{config_id:[^{}]+}", require(self.patch_config, a)),
-                web.delete(prefix + "/config/{config_id:[^{}]+}", require(self.delete_config, a)),
+                web.patch(prefix + "/config/{config_id:[^{}]+}", require(self.patch_config, r, w)),
+                web.delete(prefix + "/config/{config_id:[^{}]+}", require(self.delete_config, r, w)),
                 # config model operations
                 web.get(prefix + "/configs/validation", require(self.list_config_models, r)),
                 web.get(prefix + "/configs/model", require(self.get_configs_model, r)),
-                web.patch(prefix + "/configs/model", require(self.update_configs_model, a)),
+                web.patch(prefix + "/configs/model", require(self.update_configs_model, r, w)),
                 web.put(prefix + "/config_validation/{config_id:[^{}]+}", require(self.put_config_validation, a)),
                 web.get(prefix + "/config_validation/{config_id:[^{}]+}", require(self.get_config_validation, a)),
                 web.put(prefix + "/config/{config_id:[^{}]+}/validation", require(self.put_config_validation, a)),
                 web.get(prefix + "/config/{config_id:[^{}]+}/validation", require(self.get_config_validation, a)),
                 # config operations, moved here to avoid early matching
-                web.put(prefix + "/config/{config_id:[^{}]+}", require(self.put_config, a)),
-                web.get(prefix + "/config/{config_id:[^{}]+}", require(self.get_config, a)),
+                web.put(prefix + "/config/{config_id:[^{}]+}", require(self.put_config, r, w)),
+                web.get(prefix + "/config/{config_id:[^{}]+}", require(self.get_config, r, w)),
                 # ca operations
                 web.get(prefix + "/ca/cert", self.certificate),
                 web.post(prefix + "/ca/sign", require(self.sign_certificate, a)),
