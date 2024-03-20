@@ -1029,7 +1029,7 @@ class Query:
         return self.__change_current_part(lambda p: evolve(p, tag=name))
 
     def is_simple_fulltext_search(self) -> bool:
-        return len(self.parts) == 1 and self.find_terms(lambda x: isinstance(x, FulltextTerm))
+        return len(self.parts) == 1 and len(self.find_terms(lambda x: isinstance(x, FulltextTerm))) == 1
 
     @property
     def current_part(self) -> Part:
