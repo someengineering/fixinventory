@@ -483,11 +483,15 @@ class CLIService(CLI, Service):
                 first_head_tail_in_a_row = None
                 head_tail_keep_order = True
 
-            # Define default sort order, if not already defined
-            # A sort order is required to always return the result in a deterministic way to the user.
-            # Deterministic order is required for head/tail to work
-            parts = [pt if pt.sort else evolve(pt, sort=default_sort) for pt in query.parts]
-            query = evolve(query, parts=parts)
+        # Define default sort order, if not already defined
+        # A sort order is required to always return the result in a deterministic way to the user.
+        # Deterministic order is required for head/tail to work
+        if query.is_simple_fulltext_search():
+            # Do not define any additional sort order for fulltext searches
+            # Fulltext searches are using the BM25 score as default sort order
+            default_sort = []
+        parts = [pt if pt.sort else evolve(pt, sort=default_sort) for pt in query.parts]
+        query = evolve(query, parts=parts)
 
         # If the last part is a navigation, we need to add sort which will ingest a new part.
         with_sort = query.set_sort(*default_sort) if query.current_part.navigation else query
