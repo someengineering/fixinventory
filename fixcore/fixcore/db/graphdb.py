@@ -903,7 +903,7 @@ class ArangoGraphDB(GraphDB):
                 (history_updates if self.config.keep_history and update_history else [])
                 + [
                     f'for e in {temp_name} filter e.action=="node_created" insert UNSET(e.data, "history") in {self.vertex_name} OPTIONS{{overwriteMode: "replace"}}',  # noqa: E501
-                    f'for e in {temp_name} filter e.action=="node_updated" update UNSET(e.data, "history") in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
+                    f'for e in {temp_name} filter e.action=="node_updated" let node = Document(CONCAT("{self.vertex_name}/", e.data._key)) update MERGE(UNSET(e.data, "history"), {{metadata: MERGE(NOT_NULL(node.metadata, {{}}), NOT_NULL(e.data.metadata, {{}}))}}) in {self.vertex_name} OPTIONS {{mergeObjects: false}}',  # noqa: E501
                     f'for e in {temp_name} filter e.action=="node_deleted" remove UNSET(e.data, "history") in {self.vertex_name} OPTIONS {{ ignoreErrors: true }}',  # noqa: E501
                 ]
                 + edge_inserts
