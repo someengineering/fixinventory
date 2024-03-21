@@ -7,6 +7,7 @@ from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fix_plugin_azure.azure_client import AzureClient
 from fix_plugin_azure.resource.compute import (
     AzureVirtualMachineSize,
+    AzureDiskType,
     resources as compute_resources,
 )
 from fix_plugin_azure.resource.base import (
@@ -173,6 +174,7 @@ class AzureSubscriptionCollector:
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
+        rm_nodes(AzureDiskType, AzureLocation)
         remove_usage_zero_value()
 
     def _delete_nodes(self, nodes_to_delte: Any) -> None:

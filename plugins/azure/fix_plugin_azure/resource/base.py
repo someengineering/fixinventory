@@ -130,6 +130,13 @@ class AzureResource(BaseResource):
         """
         pass
 
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        """
+        Hook method to post process the resource after all connections are done.
+        Default: do nothing.
+        """
+        pass
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Default behavior: add resource to the namespace
         pass
