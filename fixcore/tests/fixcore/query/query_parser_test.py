@@ -100,20 +100,20 @@ def test_all_term() -> None:
 
 
 def test_parse_predicate_array() -> None:
-    assert_round_trip(predicate_term, P.array("mem").for_any() < 23)
-    assert_round_trip(predicate_term, P.array("mem").for_all() >= 23)
-    assert_round_trip(predicate_term, P.array("mem").for_none().matches("foo.*"))
-    assert_round_trip(predicate_term, P.array("num").for_any().is_in([1, 2, 5]))
-    assert_round_trip(predicate_term, P.array("num").for_all().is_in([1, 2, 5]))
-    assert_round_trip(predicate_term, P.array("num").for_none().is_in([1, 2, 5]))
+    assert_round_trip(predicate_term, P.array("mem").for_any < 23)
+    assert_round_trip(predicate_term, P.array("mem").for_all >= 23)
+    assert_round_trip(predicate_term, P.array("mem").for_none.matches("foo.*"))
+    assert_round_trip(predicate_term, P.array("num").for_any.is_in([1, 2, 5]))
+    assert_round_trip(predicate_term, P.array("num").for_all.is_in([1, 2, 5]))
+    assert_round_trip(predicate_term, P.array("num").for_none.is_in([1, 2, 5]))
 
 
 def test_parse_context() -> None:
     assert context_term.parse("a.b[*].{ c<1 and d>2 }") == P.context("a.b[*]", P.single("c") < 1, P.single("d") > 2)
     assert_element = partial(assert_round_trip, context_term)
     assert_element(P.context("foo", P.single("mem") < 23))
-    assert_element(P.context("foo", P.array("mem").for_all() < 23, P.single("cpu") > 2))
-    assert_element(P.context("foo", P.single("core") > 2, P.context("inner", P.array("c").for_any() < 23)))
+    assert_element(P.context("foo", P.array("mem").for_all < 23, P.single("cpu") > 2))
+    assert_element(P.context("foo", P.single("core") > 2, P.context("inner", P.array("c").for_any < 23)))
 
 
 def test_kind() -> None:

@@ -120,6 +120,10 @@ class P:
     def __ne__(self, other: Any) -> Predicate:  # type: ignore
         return self.ne(other)
 
+    @property
+    def arr(self) -> PArray:
+        return PArray(self.name + "[*]")
+
     def gt(self, other: Any) -> Predicate:
         return Predicate(self.name, ">", other, self.args)
 
@@ -163,12 +167,15 @@ class PArray:
     def __init__(self, name: str):
         self.name = name
 
+    @property
     def for_any(self) -> P:
         return P(self.name, filter="any")
 
+    @property
     def for_none(self) -> P:
         return P(self.name, filter="none")
 
+    @property
     def for_all(self) -> P:
         return P(self.name, filter="all")
 

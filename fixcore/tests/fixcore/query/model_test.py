@@ -48,9 +48,9 @@ def simple_reference() -> None:
     Query.by(P.of_kind("ec2") & P("num").is_not_in([1, 2, 5]))
 
     # array: all above operators are available
-    Query.by(P.of_kind("ec2") & (P.array("some.array").for_all() > 12.23))
-    Query.by(P.of_kind("ec2") & (P.array("some.array").for_any().is_in([1, 2, 3])))
-    Query.by(P.of_kind("ec2") & (P.array("some.array").for_none() == 5))
+    Query.by(P.of_kind("ec2") & (P.array("some.array").for_all > 12.23))
+    Query.by(P.of_kind("ec2") & (P.array("some.array").for_any.is_in([1, 2, 3])))
+    Query.by(P.of_kind("ec2") & (P.array("some.array").for_none == 5))
 
     # call a function
     Query.by(P.function("in_subnet").on("ip", "1.2.3.4/16"))
