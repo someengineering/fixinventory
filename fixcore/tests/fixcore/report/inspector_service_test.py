@@ -4,7 +4,8 @@ from pytest import fixture
 from fixcore.cli.cli import CLIService
 from fixcore.config import ConfigEntity
 from fixcore.db.model import QueryModel
-from fixcore.ids import ConfigId, GraphName
+from fixcore.ids import ConfigId, GraphName, NodeId
+from fixcore.model.model import Model
 from fixcore.query.model import P, Query
 from fixcore.report import (
     BenchmarkConfigRoot,
@@ -63,6 +64,16 @@ async def test_list_inspect_checks(inspector_service: InspectorService) -> None:
     assert last_len < len(all_checks)
 
 
+# make sure the result is persisted as part of the node
+async def count_vulnerable(inspector_service: InspectorService) -> int:
+    graph_name = GraphName(inspector_service.cli.env["graph"])
+    db = inspector_service.db_access.get_graph_db(graph_name)
+    model = await inspector_service.model_handler.load_model(graph_name)
+    all_vunerable = Query.by(P("security.has_issues") == True)  # noqa
+    async with await db.search_list(QueryModel(all_vunerable, model), with_count=True) as cursor:
+        return cursor.count()  # type: ignore
+
+
 async def test_perform_benchmark(inspector_service: InspectorService) -> None:
     def assert_result(results: Dict[str, BenchmarkResult]) -> None:
         result = results["test"]
@@ -84,19 +95,40 @@ async def test_perform_benchmark(inspector_service: InspectorService) -> None:
     performed = await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
     assert_result(performed)
 
-    # make sure the result is persisted as part of the node
-    async def count_vulnerable() -> int:
-        db = inspector_service.db_access.get_graph_db(graph_name)
-        model = await inspector_service.model_handler.load_model(graph_name)
-        all_vunerable = Query.by(P("security.has_issues") == True)  # noqa
-        async with await db.search_list(QueryModel(all_vunerable, model), with_count=True) as cursor:
-            return cursor.count()  # type: ignore
-
-    assert await count_vulnerable() == 10
+    assert await count_vulnerable(inspector_service) == 10
 
     # loading the result from the db should give the same information
     loaded = await inspector_service.load_benchmarks(graph_name, ["test"])
     assert_result(loaded)
+
+
+async def test_perform_benchmark_ignored(
+    inspector_service: InspectorService, foo_model: Model, inspection_checks: List[ReportCheck]
+) -> None:
+    check_ids = [c.id for c in inspection_checks]
+    first_half = [NodeId(str(a)) for a in range(5)]
+    graph_name = GraphName(inspector_service.cli.env["graph"])
+    graphdb = inspector_service.db_access.get_graph_db(graph_name)
+    await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    assert await count_vulnerable(inspector_service) == 10
+
+    # mark nodes 0-5 as ignored for only a single check: expect all resources to be vulnerable (2 checks per resource)
+    async for _ in graphdb.update_nodes_metadata(foo_model, {"security_ignore": check_ids[0:1]}, first_half):
+        pass
+    await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    assert await count_vulnerable(inspector_service) == 10
+
+    # mark nodes 0-5 as ignored for all available checks: expect only 5 vulnerable resources
+    async for _ in graphdb.update_nodes_metadata(foo_model, {"security_ignore": check_ids}, first_half):
+        pass
+    await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    assert await count_vulnerable(inspector_service) == 5
+
+    # mark nodes 0-5 as ignored for all checks: expect only 5 vulnerable resources
+    async for _ in graphdb.update_nodes_metadata(foo_model, {"security_ignore": "*"}, first_half):
+        pass
+    await inspector_service.perform_benchmarks(graph_name, ["test"], sync_security_section=True)
+    assert await count_vulnerable(inspector_service) == 5
 
 
 async def test_benchmark_node_result(inspector_service: InspectorService) -> None:
