@@ -25,6 +25,7 @@ from fix_plugin_azure.resource.network import (
 from fix_plugin_azure.utils import MetricNormalization
 from fixlib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
 from fixlib.types import Json
+from fix_plugin_azure.utils import rgetattr
 from fixlib.baseresources import (
     BaseInstance,
     BaseVolume,
@@ -3355,6 +3356,29 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
+
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        if (location := self.location) and (sku_name := self.name):
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2023-01-01-preview",
+                path=f"https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Virtual Machines' and armSkuName eq '{sku_name}' and armRegionName eq '{location}' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="Items",
+                expect_array=True,
+            )
+            items = builder.client.list(api_spec)
+            for predecessor in self.predecessors():
+                if isinstance(predecessor, AzureVirtualMachineBase) and (
+                    os_type := rgetattr(predecessor, "virtual_machine_storage_profile.os_disk.os_type", None)
+                ):
+                    for item in items:
+                        if product_name := item.get("productName"):
+                            if "Windows" in product_name and os_type == "Windows":
+                                self.ondemand_cost = item.get("unitPrice")
+                            elif "Windows" not in product_name and os_type == "Linux":
+                                self.ondemand_cost = item.get("unitPrice")
 
 
 @define(eq=False, slots=False)

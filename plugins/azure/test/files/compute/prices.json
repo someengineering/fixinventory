@@ -1,0 +1,53 @@
+{
+    "BillingCurrency": "USD",
+    "CustomerEntityId": "Default",
+    "CustomerEntityType": "Retail",
+    "Items": [
+        {
+            "currencyCode": "USD",
+            "tierMinimumUnits": 0.0,
+            "retailPrice": 0.00679,
+            "unitPrice": 0.00679,
+            "armRegionName": "eastus",
+            "location": "East US",
+            "effectiveStartDate": "2024-03-01T00:00:00Z",
+            "meterId": "3859aa03-cc02-5512-b8ce-89b6026e5acd",
+            "meterName": "DS1 v2 Spot",
+            "productId": "DZH318Z0BQ4C",
+            "skuId": "DZH318Z0BQ4C/041J",
+            "productName": "Virtual Machines DSv2 Series",
+            "skuName": "DS1 v2 Spot",
+            "serviceName": "Virtual Machines",
+            "serviceId": "DZH313Z7MMC8",
+            "serviceFamily": "Compute",
+            "unitOfMeasure": "1 Hour",
+            "type": "Consumption",
+            "isPrimaryMeterRegion": true,
+            "armSkuName": "Standard_A1_V2"
+        },
+        {
+            "currencyCode": "USD",
+            "tierMinimumUnits": 0.0,
+            "retailPrice": 0.0133,
+            "unitPrice": 0.0133,
+            "armRegionName": "eastus",
+            "location": "East US",
+            "effectiveStartDate": "2024-03-01T00:00:00Z",
+            "meterId": "bf47b368-f3c2-5272-94d1-d50ed7c69f68",
+            "meterName": "DS1 v2 Spot",
+            "productId": "DZH318Z0BQPW",
+            "skuId": "DZH318Z0BQPW/01P2",
+            "productName": "Virtual Machines DSv2 Series Windows",
+            "skuName": "DS1 v2 Spot",
+            "serviceName": "Virtual Machines",
+            "serviceId": "DZH313Z7MMC8",
+            "serviceFamily": "Compute",
+            "unitOfMeasure": "1 Hour",
+            "type": "Consumption",
+            "isPrimaryMeterRegion": true,
+            "armSkuName": "Standard_A1_V2"
+        }
+    ],
+    "NextPageLink": null,
+    "Count": 2
+}

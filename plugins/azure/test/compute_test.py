@@ -158,6 +158,12 @@ def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
     assert len(collected) == 12
 
+    resource_types: List[Type[AzureResource]] = [
+        AzureVirtualMachine,
+    ]
+    connect_resources(builder, resource_types)
+    assert len(builder.edges_of(AzureVirtualMachine, AzureVirtualMachineSize)) == 2
+
 
 def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)[0]
