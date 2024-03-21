@@ -23,11 +23,10 @@ from fixlib.types import Json
 
 class StaticFileAzureClient(AzureClient):
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        last = spec.path.rsplit("/", maxsplit=1)[-1]
-        # check if query parameters in the path
-        if "?" in last:
-            # remove them if true
-            last = last.split("?")[0]
+        query_start_index = spec.path.find("?")
+        spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
+        last = spec_path.rsplit("/", maxsplit=1)[-1]
+
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:
             js = json.load(f)

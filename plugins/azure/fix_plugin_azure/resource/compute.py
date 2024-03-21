@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
@@ -31,6 +32,7 @@ from fixlib.baseresources import (
     BaseVolume,
     BaseInstanceType,
     BaseSnapshot,
+    BaseVolumeType,
     MetricName,
     MetricUnit,
     VolumeStatus,
@@ -39,6 +41,8 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
+
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -558,6 +562,131 @@ class AzureDiskSecurityProfile:
     security_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the securitytype of the vm. Applicable for os disks only.'})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AzureDiskType(AzureResource, BaseVolumeType):
+    kind: ClassVar[str] = "azure_disk_type"
+    # Define api spec to collect as regional resources
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="compute",
+        version="2023-01-01-preview",
+        path="",
+        path_parameters=["subscriptionId", "location"],
+        query_parameters=[],
+        access_path="Items",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("skuName"),
+        "name": S("skuName"),
+        "full_name": S("armSkuName"),
+        "product_name": S("productName"),
+        "tier": S("skuName") >> F(lambda sku: sku.split(" ")[0]),
+        "redundancy": S("skuName") >> F(lambda sku: sku.split(" ")[1]),
+        "information_name": S("productName") >> F(lambda name: "_".join(name.split(" ")[:2])),
+        "ondemand_cost": S("unitPrice") >> F(lambda price: (price / 30) / 24),
+    }
+    full_name: Optional[str] = None
+    product_name: Optional[str] = None
+    tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
+    redundancy: Optional[str] = None
+    information_name: Optional[str] = None
+    volume_iops: Optional[int] = None
+    volume_throughput: Optional[int] = None
+    volume_size: Optional[int] = None
+    _is_provider_link: bool = False
+
+    _resource_group_map = {
+        "Premium_SSD_LRS": "Premium_LRS",
+        "Premium_SSD_ZRS": "Premium_ZRS",
+        "Standard_HDD": "Standard_LRS",
+        "Standard_SSD_LRS": "StandardSSD_LRS",
+        "Standard_SSD_ZRS": "StandardSSD_ZRS",
+    }
+
+    _disk_type_infos = {
+        "Premium_SSD": {
+            "P1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
+            "P2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
+            "P3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
+            "P4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
+            "P6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
+            "P10": {"size": 128, "maxIOPS": 500, "maxThroughput": 100},
+            "P15": {"size": 256, "maxIOPS": 1100, "maxThroughput": 125},
+            "P20": {"size": 512, "maxIOPS": 2300, "maxThroughput": 150},
+            "P30": {"size": 1024, "maxIOPS": 5000, "maxThroughput": 200},
+            "P40": {"size": 2048, "maxIOPS": 7500, "maxThroughput": 250},
+            "P50": {"size": 4096, "maxIOPS": 7500, "maxThroughput": 250},
+            "P60": {"size": 8192, "maxIOPS": 16000, "maxThroughput": 500},
+            "P70": {"size": 16384, "maxIOPS": 18000, "maxThroughput": 750},
+            "P80": {"size": 32768, "maxIOPS": 20000, "maxThroughput": 900},
+        },
+        "Standard_SSD": {
+            "E1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
+            "E2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
+            "E3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
+            "E4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
+            "E6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
+            "E10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
+            "E15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
+            "E20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
+            "E30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
+            "E40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
+            "E50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
+            "E60": {"size": 8192, "maxIOPS": 2000, "maxThroughput": 400},
+            "E70": {"size": 16384, "maxIOPS": 4000, "maxThroughput": 600},
+            "E80": {"size": 32768, "maxIOPS": 6000, "maxThroughput": 750},
+        },
+        "Standard_HDD": {
+            "S4": {"size": 32, "maxIOPS": 500, "maxThroughput": 60},
+            "S6": {"size": 64, "maxIOPS": 500, "maxThroughput": 60},
+            "S10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
+            "S15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
+            "S20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
+            "S30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
+            "S40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
+            "S50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
+            "S60": {"size": 8192, "maxIOPS": 1300, "maxThroughput": 300},
+            "S70": {"size": 16384, "maxIOPS": 2000, "maxThroughput": 500},
+            "S80": {"size": 32768, "maxIOPS": 2000, "maxThroughput": 500},
+        },
+    }
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if (info_name := self.information_name) and (sku_tier := self.tier):
+            disk_configuration = self._disk_type_infos.get(info_name)
+            if disk_configuration is not None:
+                disk_tier_information = disk_configuration.get(sku_tier)
+                if disk_tier_information is not None:
+                    self.volume_size = disk_tier_information.get("size")
+                    self.volume_iops = disk_tier_information.get("maxIOPS")
+                    self.volume_throughput = disk_tier_information.get("maxThroughput")
+                    if redundancy := self.redundancy:
+                        self.volume_type = self._resource_group_map.get(info_name + f"_{redundancy}") or ""
+
+    @classmethod
+    def collect_resources(
+        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[AzureResourceType]:
+        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        product_names = {"Standard SSD Managed Disks", "Premium SSD Managed Disks", "Standard HDD Managed Disks"}
+        sku_items = []
+        for product_name in product_names:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="2023-01-01-preview",
+                path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq "
+                + "'{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
+                path_parameters=["location"],
+                query_parameters=["api-version"],
+                access_path="Items",
+                expect_array=True,
+            )
+
+            items = builder.client.list(api_spec, **kwargs)
+            sku_items.extend(items)
+        return cls.collect(sku_items, builder)
+
+
 VolumeStatusMapping = {
     "ActiveSAS": VolumeStatus.IN_USE,
     "ActiveSASFrozen": VolumeStatus.IN_USE,
@@ -584,7 +713,7 @@ class AzureDisk(AzureResource, BaseVolume):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_disk_access"]},
-        "successors": {"default": ["azure_disk_encryption_set"]},
+        "successors": {"default": ["azure_disk_encryption_set", "azure_disk_type"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -728,6 +857,8 @@ class AzureDisk(AzureResource, BaseVolume):
         update_resource_metrics(volumes, metric_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if volume_type := self.volume_type:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskType, volume_type=volume_type)
         if disk_id := self.id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
@@ -3394,6 +3525,7 @@ resources: List[Type[AzureResource]] = [
     AzureCloudService,
     AzureDedicatedHostGroup,
     AzureDisk,
+    AzureDiskType,
     AzureDiskAccess,
     AzureDiskEncryptionSet,
     AzureGallery,
