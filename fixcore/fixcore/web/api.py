@@ -1013,7 +1013,17 @@ class Api(Service):
         graph = deps.db_access.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
         md = await deps.model_handler.load_model(graph_id)
-        node = await graph.update_node(md, node_id, patch, False, section)
+        node: Optional[Json] = None
+        if section == Section.metadata:
+            async for n in graph.update_nodes_metadata(md, patch, [node_id]):
+                node = n
+        elif section == Section.desired:
+            async for n in graph.update_nodes_desired(md, patch, [node_id]):
+                node = n
+        else:
+            node = await graph.update_node(md, node_id, patch, False, section)
+        if node is None:
+            return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
         return await single_result(request, node)
 
     async def delete_node(self, request: Request, deps: TenantDependencies) -> StreamResponse:

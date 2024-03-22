@@ -485,7 +485,9 @@ class ArangoGraphDB(GraphDB):
         self, db: AsyncArangoDBBase, model: Model, section: str, patch: Json, node_ids: List[NodeId]
     ) -> AsyncGenerator[Json, None]:
         log.info(f"Update nodes section: section={section}, patch={patch} on {len(node_ids)} nodes.")
-        bind_var = {"patch": patch, "node_ids": node_ids}
+        to_delete = [k for k, v in patch.items() if v is None]
+        update = {k: v for k, v in patch.items() if v is not None}
+        bind_var = {"patch": update, "delete": to_delete, "node_ids": node_ids}
         trafo = self.document_to_instance_fn(model)
         with await db.aql(query=self.query_update_desired_metadata_many(section), bind_vars=bind_var) as cursor:
             for element in cursor:
@@ -1488,7 +1490,9 @@ class ArangoGraphDB(GraphDB):
         return f"""
         FOR a IN `{self.vertex_name}`
         FILTER a._key in @node_ids
-        UPDATE a with {{ "{section}": @patch }} IN `{self.vertex_name}`
+        LET merged_section = MERGE(UNSET(NOT_NULL(a.{section}, {{}}), @delete), @patch)
+        UPDATE a with {{ "{section}": merged_section}} IN `{self.vertex_name}`
+        OPTIONS {{mergeObjects: false}}
         RETURN NEW
         """
 
