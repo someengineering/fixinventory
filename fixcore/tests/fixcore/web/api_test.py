@@ -215,6 +215,16 @@ async def test_graph_api(core_client: FixInventoryClient) -> None:
     assert node.id == uid
     assert node.reported.name == "moritz"
 
+    # update the metadata section
+    node = AccessJson(await core_client.patch_node(uid, {"name": "moritz"}, "metadata", g))
+    assert node.id == uid
+    assert node.metadata.name == "moritz"
+
+    # update the desired section
+    node = AccessJson(await core_client.patch_node(uid, {"name": "moritz"}, "desired", g))
+    assert node.id == uid
+    assert node.desired.name == "moritz"
+
     # get the node
     node = AccessJson(await core_client.get_node(uid, g))
     assert node.id == uid
