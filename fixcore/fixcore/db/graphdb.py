@@ -576,7 +576,7 @@ class ArangoGraphDB(GraphDB):
             change = (
                 HistoryChange.node_compliant
                 # better #1: severity is lower, #2: severity is the same, but less issues
-                if (severity < previous or (severity == previous and len(existing) < len(updated)))
+                if (severity < previous or (severity == previous and len(existing) > len(updated)))
                 else HistoryChange.node_vulnerable
             )
             diff: Json = {
