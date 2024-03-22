@@ -278,7 +278,12 @@ def query_string(
         if "filter" in p.args:
             arr_filter = p.args["filter"]
             extra = f" {arr_filter} "
-            path = p.name if p.name.endswith("[*]") or p.name.endswith("[]") else f"{p.name}[*]"
+            if p.name.endswith("[*]"):
+                path = p.name
+            elif p.name.endswith("[]"):
+                path = f"{p.name[:-2]}[*]"
+            else:
+                path = f"{p.name}[*]"
         elif p.name.endswith("[*]"):
             extra = " any "
             path = p.name

@@ -338,11 +338,15 @@ class InspectorService(Inspector, Service):
         # final environment: defaults are coming from the check and are eventually overriden in the config
         env = inspection.environment(context.override_values())
         account_id_prop = "ancestors.account.reported.id"
+        ignore_prop = "metadata.security_ignore"
         accounts = context.filtered_accounts()
 
         async def perform_search(search: str) -> AsyncIterator[Json]:
             # parse query
             query = await self.template_expander.parse_query(search, on_section="reported", env=env)
+            # add ignore filter
+            ip = P.single(ignore_prop)
+            query = query.combine(Query.by(ip.eq(None).or_term(ip.ne("*").and_term(ip.arr.for_all.ne(inspection.id)))))
             # filter only relevant accounts if provided
             if accounts:
                 query = Query.by(P.single(account_id_prop).is_in(accounts)).combine(query)
@@ -357,6 +361,8 @@ class InspectorService(Inspector, Service):
                 log.warning(f"Error while executing query {query}: {e}. Assume empty result.")
 
         async def perform_cmd(cmd: str) -> AsyncIterator[Json]:
+            # add ignore filter
+            cmd = f'search /{ignore_prop}==null or (/{ignore_prop}!="*" and /{ignore_prop}[] all !={inspection.id}) | {cmd}'  # noqa: E501
             # filter only relevant accounts if provided
             if accounts:
                 account_list = ",".join(f'"{a}"' for a in accounts)
