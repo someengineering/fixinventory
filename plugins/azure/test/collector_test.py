@@ -9,7 +9,7 @@ from fix_plugin_azure.azure_client import AzureClient
 from fix_plugin_azure.collector import AzureSubscriptionCollector
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
 from fix_plugin_azure.resource.base import AzureResource, AzureSubscription, GraphBuilder
-from fix_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize
+from fix_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize, AzureDisk, AzureDiskType
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
@@ -39,8 +39,8 @@ def test_collect(
 ) -> None:
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
-    assert len(collector.graph.nodes) == 200
-    assert len(collector.graph.edges) == 275
+    assert len(collector.graph.nodes) == 201
+    assert len(collector.graph.edges) == 277
 
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
@@ -63,11 +63,16 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
         AzureVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/virtualMachines.json") as f:
         AzureVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
+    with open(os.path.dirname(__file__) + "/files/compute/prices.json") as f:
+        AzureDiskType.collect(raw=json.load(f)["Items"], builder=builder)
+    with open(os.path.dirname(__file__) + "/files/compute/disks.json") as f:
+        AzureDisk.collect(raw=json.load(f)["value"], builder=builder)
 
     collector = collector_with_graph(builder.graph, credentials)
 
     resource_types: List[Type[AzureResource]] = [
         AzureVirtualMachine,
+        AzureDisk,
     ]
     connect_resources(builder, resource_types)
 
@@ -76,3 +81,4 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
             node.post_process_instance(builder, data.get("source", {}))
 
     assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[0].ondemand_cost == 0.0133  # type: ignore[attr-defined]
+    assert list(collector.graph.search("kind", "azure_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]

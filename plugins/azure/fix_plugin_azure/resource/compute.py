@@ -603,7 +603,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         "Standard_SSD_ZRS": "StandardSSD_ZRS",
     }
 
-    _disk_type_infos = {
+    _storage_sku_info = {
         "Premium_SSD": {
             "P1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
             "P2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
@@ -652,16 +652,23 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (info_name := self.information_name) and (sku_tier := self.tier):
-            disk_configuration = self._disk_type_infos.get(info_name)
-            if disk_configuration is not None:
-                disk_tier_information = disk_configuration.get(sku_tier)
-                if disk_tier_information is not None:
-                    self.volume_size = disk_tier_information.get("size")
-                    self.volume_iops = disk_tier_information.get("maxIOPS")
-                    self.volume_throughput = disk_tier_information.get("maxThroughput")
-                    if redundancy := self.redundancy:
-                        self.volume_type = self._resource_group_map.get(info_name + f"_{redundancy}") or ""
+        if not (information_name := self.information_name) or not (tier := self.tier):
+            return
+
+        disk_configuration = self._storage_sku_info.get(information_name)
+        if not disk_configuration:
+            return
+
+        disk_info = disk_configuration.get(tier)
+        if not disk_info:
+            return
+
+        self.volume_size = disk_info.get("size")
+        self.volume_iops = disk_info.get("maxIOPS")
+        self.volume_throughput = disk_info.get("maxThroughput")
+
+        if redundancy := self.redundancy:
+            self.volume_type = self._resource_group_map.get(f"{information_name}_{redundancy}", "")
 
     @classmethod
     def collect_resources(
