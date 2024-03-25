@@ -714,7 +714,9 @@ def query_string(
         else:
             cursor = filter_statement(cursor, part_term, filter_limit)
 
-        cursor = with_clause(cursor, p.with_clause, p.limit) if p.with_clause else cursor
+        # See filter_limit documentation above
+        with_clause_limit = p.limit if (not last_part or query.is_aggregate()) else None
+        cursor = with_clause(cursor, p.with_clause, with_clause_limit) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
 
