@@ -1,5 +1,4 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="/misc/fixinventory_200-darkmode.png"><source media="(prefers-color-scheme: light)" srcset="/misc/fixinventory_200-lightmode.png"><img alt="Fix Inventory" src="/misc/fixinventory_200-lightmode.png"></picture></p>
-<h1 align="center">Sync infrastructure data to a single place.</h1>
 
 <p align="center"><img src="/misc/fixinventory_banner.png"/></p>
 
