@@ -602,7 +602,7 @@ async def test_list_command(cli: CLI) -> None:
         "|a|true|false|null|12|1.234|null        |",
     ]
 
-    # List supports markdown output
+    # List supports json table output
     result = await cli.execute_cli_command(
         'json {"id": "foo", "reported":{}, "name": "a", "some_int": 1, "tags": {"foo․bla․bar.test.rest.best.":"yup"}} | list --json-table name, some_int, tags.`foo․bla․bar.test.rest.best.`',
         list_sink,
@@ -622,6 +622,11 @@ async def test_list_command(cli: CLI) -> None:
         },
         {"id": "foo", "row": {"foo․bla․bar.test.rest.best.": "yup", "name": "a", "some_int": 1}},
     ]
+
+    # Default columns for json table view
+    result = await cli.execute_cli_command('json {"id": "foo", "reported":{}} | list --json-table', list_sink)
+    expected = ["Kind", "Id", "Name", "Age", "Cloud", "Account", "Region / Zone"]
+    assert [c["display"] for c in result[0][0]["columns"]] == expected
 
     # List supports only markdown or csv, but not both at the same time
     with pytest.raises(CLIParseError):
