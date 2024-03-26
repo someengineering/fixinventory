@@ -2438,10 +2438,18 @@ class DumpCommand(CLICommand, OutputTransformer):
 class PropToShow:
     path: List[str]
     name: str
+    display: str
     path_access: Optional[str] = None
+    alternative_path: Optional[List[str]] = None
 
     def full_path(self) -> str:
         return self.path_access or ".".join(self.path)
+
+    def value(self, node: JsonElement) -> Optional[JsonElement]:
+        result = js_value_at(node, self.path)
+        return (
+            result if result is not None or self.alternative_path is None else js_value_at(node, self.alternative_path)
+        )
 
 
 class ListCommand(CLICommand, OutputTransformer):
@@ -2547,23 +2555,23 @@ class ListCommand(CLICommand, OutputTransformer):
 
     # This is the list of properties to show in the list command by default
     default_properties_to_show = [
-        PropToShow(["reported", "kind"], "kind"),
-        PropToShow(["reported", "id"], "id"),
-        PropToShow(["reported", "name"], "name"),
+        PropToShow(["reported", "kind"], "kind", "Kind"),
+        PropToShow(["reported", "id"], "id", "Id"),
+        PropToShow(["reported", "name"], "name", "Name"),
     ]
     default_live_properties_to_show = [
-        PropToShow(["reported", "age"], "age"),
-        PropToShow(["reported", "last_update"], "last_update"),
+        PropToShow(["reported", "age"], "age", "Age"),
+        PropToShow(["reported", "last_update"], "last_update", "Last Update"),
     ]
     default_context_properties_to_show = [
-        PropToShow(["ancestors", "cloud", "reported", "name"], "cloud"),
-        PropToShow(["ancestors", "account", "reported", "name"], "account"),
-        PropToShow(["ancestors", "region", "reported", "name"], "region"),
-        PropToShow(["ancestors", "zone", "reported", "name"], "zone"),
+        PropToShow(["ancestors", "cloud", "reported", "name"], "cloud", "Cloud"),
+        PropToShow(["ancestors", "account", "reported", "name"], "account", "Account"),
+        PropToShow(["ancestors", "region", "reported", "name"], "region", "Region"),
+        PropToShow(["ancestors", "zone", "reported", "name"], "zone", "Zone"),
     ]
     default_history_properties_to_show = [
-        PropToShow(["change"], "change"),
-        PropToShow(["changed_at"], "changed_at"),
+        PropToShow(["change"], "change", "Change"),
+        PropToShow(["changed_at"], "changed_at", "Changed At"),
     ]
     default_properties_to_ignore = {
         "ancestors.cloud.reported.id",
@@ -2571,13 +2579,31 @@ class ListCommand(CLICommand, OutputTransformer):
         "ancestors.region.reported.id",
         "ancestors.zone.reported.id",
     }
-    all_default_props = {
-        ".".join(prop.path)
-        for prop in default_properties_to_show
-        + default_context_properties_to_show
-        + default_history_properties_to_show
-        + default_live_properties_to_show
-    }
+    json_table_live_properties_to_show = [
+        PropToShow(["reported", "age"], "age", "Age"),
+    ]
+    json_table_context_properties_to_show = [
+        PropToShow(["ancestors", "cloud", "reported", "name"], "cloud", "Cloud"),
+        PropToShow(["ancestors", "account", "reported", "name"], "account", "Account"),
+        PropToShow(
+            ["ancestors", "zone", "reported", "name"],
+            "region_zone",
+            "Region / Zone",
+            alternative_path=["ancestors", "region", "reported", "name"],
+        ),
+    ]
+    default_list = (
+        default_properties_to_show,
+        default_context_properties_to_show,
+        default_history_properties_to_show,
+        default_live_properties_to_show,
+    )
+    json_table_list = (
+        default_properties_to_show,
+        json_table_context_properties_to_show,
+        default_history_properties_to_show,
+        json_table_live_properties_to_show,
+    )
 
     @property
     def name(self) -> str:
@@ -2607,23 +2633,31 @@ class ListCommand(CLICommand, OutputTransformer):
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
 
-        def default_props_to_show() -> List[PropToShow]:
+        def display(name: str) -> str:
+            return " ".join(word.capitalize() for word in name.split("_"))
+
+        def default_props_to_show(
+            props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
+        ) -> List[PropToShow]:
+            default_props, context_props, history_props, live_props = props_setting
+            all_default_props = {".".join(prop.path) for props in props_setting for prop in props}
+
             result: List[PropToShow] = []
             local_paths = set()
             # with the object id, if edges are requested
             if ctx.query_options.get("with-edges") is True:
-                result.append(PropToShow(["id"], "node_id"))
+                result.append(PropToShow(["id"], "node_id", "Node Id"))
             if ctx.query_options.get("history") is True:
-                result.extend(self.default_history_properties_to_show)
+                result.extend(history_props)
             # add additional props from commands
             for exc in ctx.commands:
                 for path, name in exc.command.additional_properties_to_show():
                     prop = ".".join(path)
-                    if name not in self.all_default_props and prop not in local_paths:
+                    if name not in all_default_props and prop not in local_paths:
                         local_paths.add(prop)
-                        result.append(PropToShow(path, name))
+                        result.append(PropToShow(path, name, display(name)))
             # add all default props
-            result.extend(self.default_properties_to_show)
+            result.extend(default_props)
             # add all predicates the user has queried
             if ctx.query:
                 # add all predicates the user has queried
@@ -2633,14 +2667,14 @@ class ListCommand(CLICommand, OutputTransformer):
                 # add sort keys of the last part the user has defined
                 sort_names = (s.name for s in ctx.query.current_part.sort)
                 for name in chain(predicate_names, sort_names):
-                    if name not in self.all_default_props and name not in local_paths:
+                    if name not in all_default_props and name not in local_paths:
                         local_paths.add(name)
                         path = PropertyPath.from_string(name).unescaped_parts()
-                        result.append(PropToShow(path, path[-1], name))
+                        result.append(PropToShow(path, path[-1], display(name), name))
             if ctx.query_options.get("history") is not True:
-                result.extend(self.default_live_properties_to_show)
+                result.extend(live_props)
             # add all context properties
-            result.extend(self.default_context_properties_to_show)
+            result.extend(context_props)
             return result
 
         def adjust_path(prop_path: str) -> List[str]:
@@ -2665,7 +2699,7 @@ class ListCommand(CLICommand, OutputTransformer):
             for prop, as_name in list_arg_parse.parse(props_arg):
                 path = adjust_path(prop)
                 as_name = path[-1] if prop == as_name or as_name is None else as_name
-                props.append(PropToShow(path, as_name, prop))
+                props.append(PropToShow(path, as_name, display(as_name), prop))
             return props
 
         def create_unique_names(all_props: List[PropToShow]) -> List[PropToShow]:
@@ -2700,15 +2734,18 @@ class ListCommand(CLICommand, OutputTransformer):
                 result.append(evolve(prop, name=name))
             return result
 
-        props_to_show = parse_props_to_show(properties) if properties is not None else default_props_to_show()
-        props_to_show = create_unique_names(props_to_show)
+        def props_to_show(
+            props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
+        ) -> List[PropToShow]:
+            props = parse_props_to_show(properties) if properties is not None else default_props_to_show(props_setting)
+            return create_unique_names(props)
 
         def fmt_json(elem: Json) -> JsonElement:
             if node := get_node(elem):
                 result = ""
                 first = True
-                for prop in props_to_show:
-                    value = js_value_at(node, prop.path)
+                for prop in props_to_show(self.default_list):
+                    value = prop.value(node)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(prop.name, value)}"
@@ -2731,15 +2768,16 @@ class ListCommand(CLICommand, OutputTransformer):
                 output.seek(0)
                 return csv_value
 
-            header_values = [prop.name for prop in props_to_show]
+            props = props_to_show(self.default_list)
+            header_values = [prop.name for prop in props]
             yield to_csv_string(header_values)
 
             async with in_stream.stream() as s:
                 async for elem in s:
                     if node := get_node(elem):
                         result = []
-                        for prop in props_to_show:
-                            value = js_value_at(node, prop.path)
+                        for prop in props:
+                            value = prop.value(node)
                             result.append(value)
                         yield to_csv_string(result)
 
@@ -2764,6 +2802,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 else:
                     return elem
 
+            props = props_to_show(self.json_table_list)
             # header columns
             yield {
                 "columns": [
@@ -2771,9 +2810,9 @@ class ListCommand(CLICommand, OutputTransformer):
                         "name": prop.name,
                         "path": "/" + prop.full_path(),
                         "kind": kind_of(prop.path).fqn,
-                        "display": " ".join(word.capitalize() for word in prop.name.split("_")),
+                        "display": prop.display,
                     }
-                    for prop in props_to_show
+                    for prop in props
                 ],
             }
             # data columns
@@ -2782,20 +2821,21 @@ class ListCommand(CLICommand, OutputTransformer):
                     if node := get_node(elem):
                         yield {
                             "id": node["id"],
-                            "row": {prop.name: render_prop(js_value_at(node, prop.path)) for prop in props_to_show},
+                            "row": {prop.name: render_prop(prop.value(node)) for prop in props},
                         }
 
         def markdown_stream(in_stream: JsStream) -> JsGen:
             chunk_size = 500
 
-            headers = [prop.name for prop in props_to_show]
+            props = props_to_show(self.default_list)
+            headers = [prop.name for prop in props]
             columns_padding = [len(name) for name in headers]
 
             def extract_values(elem: JsonElement) -> List[Any | None]:
                 result = []
                 prop_idx: int
-                for prop_idx, prop in enumerate(props_to_show):
-                    value = js_value_at(elem, prop.path)
+                for prop_idx, prop in enumerate(props):
+                    value = prop.value(elem)
                     columns_padding[prop_idx] = max(columns_padding[prop_idx], len(str(value)))
                     result.append(value)
                 return result
