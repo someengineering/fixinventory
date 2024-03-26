@@ -116,20 +116,35 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
     aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     # query unfolds all nested loops
     assert aql == (
-        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  FOR pre0 IN "
-        "APPEND(TO_ARRAY(m0.reported.nested), {_internal: true}) FOR pre1 IN "
-        "APPEND(TO_ARRAY(pre0.inner), {_internal: true})  FOR pre2 IN "
-        "APPEND(TO_ARRAY(m0.reported.parents), {_internal: true}) FILTER ((@b0 IN "
-        "m0.kinds) and (((pre0.name == @b1) and ((pre1.name == @b2 AND "
-        "pre1._internal!=true)) AND pre0._internal!=true))) and ((pre2.some_int == "
-        "@b3 AND pre2._internal!=true)) RETURN DISTINCT m0) FOR m1 in "
-        "nested_distinct0  RETURN m1) FOR result in filter0 RETURN UNSET(result, "
-        '["flat"])'
+        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  "
+        "FOR pre0 IN APPEND(TO_ARRAY(m0.reported.nested), {_internal: true}) "
+        "FOR pre1 IN APPEND(TO_ARRAY(pre0.inner), {_internal: true})  "
+        "FOR pre2 IN APPEND(TO_ARRAY(m0.reported.parents), {_internal: true}) "
+        "FILTER ((@b0 IN m0.kinds) and ((pre0.name == @b1) and (pre1.name == @b2))) and (pre2.some_int == @b3) AND "
+        "(pre0._internal!=true AND pre1._internal!=true AND pre2._internal!=true) "
+        "RETURN DISTINCT m0) "
+        "FOR m1 in nested_distinct0  RETURN m1) "
+        'FOR result in filter0 RETURN UNSET(result, ["flat"])'
     )
     # coercing works correctly for context terms
     assert bind_vars["b1"] == "true"  # true is coerced to a string
     assert bind_vars["b2"] == "true"  # inner true is coerced to a string
     assert bind_vars["b3"] == 23  # 23 is coerced to an int
+
+    query = 'is(foo) and not nested[*].{name=true and not inner[*].{name=true}} and not parents[*].{some_int="23"}'
+    aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
+    assert aql == (
+        "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  "
+        "FOR pre0 IN APPEND(TO_ARRAY(m0.reported.nested), {_internal: true}) "
+        "FOR pre1 IN APPEND(TO_ARRAY(pre0.inner), {_internal: true})  "
+        "FOR pre2 IN APPEND(TO_ARRAY(m0.reported.parents), {_internal: true}) "
+        "FILTER ((@b0 IN m0.kinds) and (NOT ((pre0.name == @b1) and (NOT (pre1.name == @b2))))) and "
+        "(NOT (pre2.some_int == @b3)) AND "
+        "(pre0._internal!=true AND pre1._internal!=true AND pre2._internal!=true) "
+        "RETURN DISTINCT m0) "
+        "FOR m1 in nested_distinct0  RETURN m1) "
+        'FOR result in filter0 RETURN UNSET(result, ["flat"])'
+    )
 
     # fixed index works as well
     query = "is(foo) and inner[1].{name=true and inner[0].name==true}"

@@ -269,7 +269,9 @@ def query_string(
         return_result = f"{{{group_result} {agg_funcs}}}"
         return "aggregated", f"LET aggregated = ({for_loop} {array_functions} {aggregate_term} RETURN {return_result})"
 
-    def predicate(cursor: str, p: Predicate, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
+    def predicate(
+        cursor: str, p: Predicate, context_path: Optional[str] = None
+    ) -> Tuple[Optional[str], str, Optional[str]]:
         pre = ""
         extra = ""
         path = p.name
@@ -320,15 +322,16 @@ def query_string(
             p_term = f"REGEX_TEST({var_name}, @{bvn}, true)"
         else:
             p_term = f"{var_name}{extra} {op} @{bvn}"
-        if ars_stmts:
-            p_term = f"({p_term} AND {' AND '.join(ars_stmts)})"
+        post = " AND ".join(ars_stmts) if ars_stmts else None
         # null check is required, since x<anything evaluates to true if x is null!
-        return pre, f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term
+        return pre, f"({var_name}!=null and {p_term})" if op in arangodb_matches_null_ops else p_term, post
 
-    def context_term(cursor: str, aep: ContextTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
+    def context_term(
+        cursor: str, aep: ContextTerm, context_path: Optional[str] = None
+    ) -> Tuple[Optional[str], str, Optional[str]]:
         predicate_statement = ""
         filter_statement = ""
-        ars_stmts = []
+        post_stmts = []
         path_cursor = cursor
         context_path = f"{context_path}.{aep.name}" if context_path else aep.name
         # unfold only, if random access is required
@@ -340,22 +343,23 @@ def query_string(
             for ar in [a.lstrip(".") for a in spath]:
                 nxt_crs = ctx.next_crs("pre")
                 # see predicate for explanation
-                ars_stmts.append(f"{nxt_crs}._internal!=true")
+                post_stmts.append(f"{nxt_crs}._internal!=true")
                 predicate_statement += f" FOR {nxt_crs} IN APPEND(TO_ARRAY({path_cursor}.{ar}), {{_internal: true}})"
                 path_cursor = nxt_crs
-            ps, fs = term(path_cursor, aep.term, context_path)
+            ps, fs, pss = term(path_cursor, aep.term, context_path)
         else:
             # no unfolding required, just use the current cursor
             # move the context path into the variable name, do not use any local path for rendering
             # (a.b.{c=1 and d=2}) ==> (a.b.c=1 and a.b.d=2)
-            ps, fs = term(path_cursor, aep.term.change_variable(lambda x: f"{context_path}.{x}"))
+            ps, fs, pss = term(path_cursor, aep.term.change_variable(lambda x: f"{context_path}.{x}"))
         if ps:
             predicate_statement += ps
+        if pss:
+            post_stmts.append(pss)
         if fs:
             filter_statement += fs
-        if ars_stmts:
-            filter_statement = f"({filter_statement} AND {' AND '.join(ars_stmts)})"
-        return predicate_statement, filter_statement
+        post = " AND ".join(post_stmts) if post_stmts else None
+        return predicate_statement, filter_statement, post
 
     def with_id(cursor: str, t: IdTerm) -> str:
         bvn = ctx.next_bind_var_name()
@@ -386,32 +390,39 @@ def query_string(
         ctx.bind_vars[bvn] = dl.pattern.join(f"{re.escape(w)}" for w in dl.split(t.text))
         return f"REGEX_TEST({cursor}.flat, @{bvn}, true)"
 
-    def not_term(cursor: str, t: NotTerm, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
-        pre, term_string = term(cursor, t.term, context_path)
-        return pre, f"NOT ({term_string})"
+    def not_term(
+        cursor: str, t: NotTerm, context_path: Optional[str] = None
+    ) -> Tuple[Optional[str], str, Optional[str]]:
+        pre, term_string, post = term(cursor, t.term, context_path)
+        return pre, f"NOT ({term_string})", post
 
-    def term(cursor: str, ab_term: Term, context_path: Optional[str] = None) -> Tuple[Optional[str], str]:
+    def term(
+        cursor: str, ab_term: Term, context_path: Optional[str] = None
+    ) -> Tuple[Optional[str], str, Optional[str]]:
         if isinstance(ab_term, AllTerm):
-            return None, "true"
+            return None, "true", None
         if isinstance(ab_term, Predicate):
             return predicate(cursor, ab_term, context_path)
         if isinstance(ab_term, ContextTerm):
             return context_term(cursor, ab_term, context_path)
         elif isinstance(ab_term, FunctionTerm):
-            return None, as_arangodb_function(cursor, ctx.bind_vars, ab_term, query_model)
+            return None, as_arangodb_function(cursor, ctx.bind_vars, ab_term, query_model), None
         elif isinstance(ab_term, IdTerm):
-            return None, with_id(cursor, ab_term)
+            return None, with_id(cursor, ab_term), None
         elif isinstance(ab_term, IsTerm):
-            return None, is_term(cursor, ab_term)
+            return None, is_term(cursor, ab_term), None
         elif isinstance(ab_term, NotTerm):
             return not_term(cursor, ab_term, context_path)
         elif isinstance(ab_term, FulltextTerm):
-            return None, fulltext_term(cursor, ab_term)
+            return None, fulltext_term(cursor, ab_term), None
         elif isinstance(ab_term, CombinedTerm):
-            pre_left, left = term(cursor, ab_term.left, context_path)
-            pre_right, right = term(cursor, ab_term.right, context_path)
+            pre_left, left, post_left = term(cursor, ab_term.left, context_path)
+            pre_right, right, post_right = term(cursor, ab_term.right, context_path)
             pre = pre_left + " " + pre_right if pre_left and pre_right else pre_left if pre_left else pre_right
-            return pre, f"({left}) {ab_term.op} ({right})"
+            post = (
+                post_left + " AND " + post_right if post_left and post_right else post_left if post_left else post_right
+            )
+            return pre, f"({left}) {ab_term.op} ({right})", post
         else:
             raise AttributeError(f"Do not understand: {ab_term}")
 
@@ -505,9 +516,10 @@ def query_string(
             filtered_out = ctx.next_crs("filter")
             md = f"NOT_NULL({crsr}.metadata, {{}})"
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
-            pre, term_string = term(crsr, part_term)
-            pre_string = pre + " FILTER" if pre else "FILTER"
-            for_stmt = f"FOR {crsr} in {current_cursor} {pre_string} {term_string}"
+            pre, term_string, post = term(crsr, part_term)
+            pre_string = " " + pre if pre else ""
+            post_string = f" AND ({post})" if post else ""
+            for_stmt = f"FOR {crsr} in {current_cursor}{pre_string} FILTER {term_string}{post_string}"
             # in case nested properties get unfolded, we need to make the list distinct again
             if pre:
                 nested_distinct = ctx.next_crs("nested_distinct")
@@ -602,8 +614,9 @@ def query_string(
                 crsr = cursor_in(depth)
                 direction = "OUTBOUND" if nav.direction == Direction.outbound else "INBOUND"
                 unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
-                pre, term_string = term(crsr, cl.term) if cl.term else (None, "true")
-                pre_string = pre + " FILTER" if pre else "FILTER"
+                pre, term_string, post = term(crsr, cl.term) if cl.term else (None, "true", None)
+                pre_string = " " + pre if pre else ""
+                post_string = f" AND ({post})" if post else ""
                 filter_clause = f"({term_string})"
                 inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
                 filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
@@ -611,7 +624,7 @@ def query_string(
                 return (
                     f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
-                    f"{pre_string} {filter_root}{filter_clause} "
+                    f"{pre_string} FILTER {filter_root}{filter_clause}{post_string} "
                 ) + inner
 
             def collect_filter(cl: WithClause, depth: int) -> str:
