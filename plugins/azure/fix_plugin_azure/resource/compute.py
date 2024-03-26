@@ -24,9 +24,8 @@ from fix_plugin_azure.resource.network import (
     AzureLoadBalancer,
 )
 from fix_plugin_azure.utils import MetricNormalization
-from fixlib.json_bender import Bender, S, Bend, MapEnum, ForallBend, K, F
+from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
 from fixlib.types import Json
-from fix_plugin_azure.utils import rgetattr
 from fixlib.baseresources import (
     BaseInstance,
     BaseVolume,
@@ -562,6 +561,63 @@ class AzureDiskSecurityProfile:
     security_type: Optional[str] = field(default=None, metadata={'description': 'Specifies the securitytype of the vm. Applicable for os disks only.'})  # fmt: skip
 
 
+resource_group_map = {
+    "Premium_SSD_LRS": "Premium_LRS",
+    "Premium_SSD_ZRS": "Premium_ZRS",
+    "Standard_HDD_LRS": "Standard_LRS",
+    "Standard_SSD_LRS": "StandardSSD_LRS",
+    "Standard_SSD_ZRS": "StandardSSD_ZRS",
+}
+
+storage_sku_info = {
+    "Premium_SSD": {
+        "P1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
+        "P2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
+        "P3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
+        "P4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
+        "P6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
+        "P10": {"size": 128, "maxIOPS": 500, "maxThroughput": 100},
+        "P15": {"size": 256, "maxIOPS": 1100, "maxThroughput": 125},
+        "P20": {"size": 512, "maxIOPS": 2300, "maxThroughput": 150},
+        "P30": {"size": 1024, "maxIOPS": 5000, "maxThroughput": 200},
+        "P40": {"size": 2048, "maxIOPS": 7500, "maxThroughput": 250},
+        "P50": {"size": 4096, "maxIOPS": 7500, "maxThroughput": 250},
+        "P60": {"size": 8192, "maxIOPS": 16000, "maxThroughput": 500},
+        "P70": {"size": 16384, "maxIOPS": 18000, "maxThroughput": 750},
+        "P80": {"size": 32768, "maxIOPS": 20000, "maxThroughput": 900},
+    },
+    "Standard_SSD": {
+        "E1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
+        "E2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
+        "E3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
+        "E4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
+        "E6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
+        "E10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
+        "E15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
+        "E20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
+        "E30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
+        "E40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
+        "E50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
+        "E60": {"size": 8192, "maxIOPS": 2000, "maxThroughput": 400},
+        "E70": {"size": 16384, "maxIOPS": 4000, "maxThroughput": 600},
+        "E80": {"size": 32768, "maxIOPS": 6000, "maxThroughput": 750},
+    },
+    "Standard_HDD": {
+        "S4": {"size": 32, "maxIOPS": 500, "maxThroughput": 60},
+        "S6": {"size": 64, "maxIOPS": 500, "maxThroughput": 60},
+        "S10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
+        "S15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
+        "S20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
+        "S30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
+        "S40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
+        "S50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
+        "S60": {"size": 8192, "maxIOPS": 1300, "maxThroughput": 300},
+        "S70": {"size": 16384, "maxIOPS": 2000, "maxThroughput": 500},
+        "S80": {"size": 32768, "maxIOPS": 2000, "maxThroughput": 500},
+    },
+}
+
+
 @define(eq=False, slots=False)
 class AzureDiskType(AzureResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_disk_type"
@@ -584,6 +640,14 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         "redundancy": S("skuName") >> F(lambda sku: sku.split(" ")[1]),
         "information_name": S("productName") >> F(lambda name: "_".join(name.split(" ")[:2])),
         "ondemand_cost": S("unitPrice") >> F(lambda price: (price / 30) / 24),
+        "volume_type": (
+            (
+                (S("productName") >> F(lambda name: "_".join(name.split(" ")[:2])))
+                + K("_")
+                + (S("skuName") >> F(lambda sku: sku.split(" ")[1]))
+            )
+            >> MapValue(resource_group_map)
+        ),
     }
     full_name: Optional[str] = None
     product_name: Optional[str] = None
@@ -595,67 +659,10 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     volume_size: Optional[int] = None
     _is_provider_link: bool = False
 
-    _resource_group_map = {
-        "Premium_SSD_LRS": "Premium_LRS",
-        "Premium_SSD_ZRS": "Premium_ZRS",
-        "Standard_HDD": "Standard_LRS",
-        "Standard_SSD_LRS": "StandardSSD_LRS",
-        "Standard_SSD_ZRS": "StandardSSD_ZRS",
-    }
-
-    _storage_sku_info = {
-        "Premium_SSD": {
-            "P1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
-            "P2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
-            "P3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
-            "P4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
-            "P6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
-            "P10": {"size": 128, "maxIOPS": 500, "maxThroughput": 100},
-            "P15": {"size": 256, "maxIOPS": 1100, "maxThroughput": 125},
-            "P20": {"size": 512, "maxIOPS": 2300, "maxThroughput": 150},
-            "P30": {"size": 1024, "maxIOPS": 5000, "maxThroughput": 200},
-            "P40": {"size": 2048, "maxIOPS": 7500, "maxThroughput": 250},
-            "P50": {"size": 4096, "maxIOPS": 7500, "maxThroughput": 250},
-            "P60": {"size": 8192, "maxIOPS": 16000, "maxThroughput": 500},
-            "P70": {"size": 16384, "maxIOPS": 18000, "maxThroughput": 750},
-            "P80": {"size": 32768, "maxIOPS": 20000, "maxThroughput": 900},
-        },
-        "Standard_SSD": {
-            "E1": {"size": 4, "maxIOPS": 120, "maxThroughput": 25},
-            "E2": {"size": 8, "maxIOPS": 120, "maxThroughput": 25},
-            "E3": {"size": 16, "maxIOPS": 120, "maxThroughput": 25},
-            "E4": {"size": 32, "maxIOPS": 120, "maxThroughput": 25},
-            "E6": {"size": 64, "maxIOPS": 240, "maxThroughput": 50},
-            "E10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
-            "E15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
-            "E20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
-            "E30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
-            "E40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
-            "E50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
-            "E60": {"size": 8192, "maxIOPS": 2000, "maxThroughput": 400},
-            "E70": {"size": 16384, "maxIOPS": 4000, "maxThroughput": 600},
-            "E80": {"size": 32768, "maxIOPS": 6000, "maxThroughput": 750},
-        },
-        "Standard_HDD": {
-            "S4": {"size": 32, "maxIOPS": 500, "maxThroughput": 60},
-            "S6": {"size": 64, "maxIOPS": 500, "maxThroughput": 60},
-            "S10": {"size": 128, "maxIOPS": 500, "maxThroughput": 60},
-            "S15": {"size": 256, "maxIOPS": 500, "maxThroughput": 60},
-            "S20": {"size": 512, "maxIOPS": 500, "maxThroughput": 60},
-            "S30": {"size": 1024, "maxIOPS": 500, "maxThroughput": 60},
-            "S40": {"size": 2048, "maxIOPS": 500, "maxThroughput": 60},
-            "S50": {"size": 4096, "maxIOPS": 500, "maxThroughput": 60},
-            "S60": {"size": 8192, "maxIOPS": 1300, "maxThroughput": 300},
-            "S70": {"size": 16384, "maxIOPS": 2000, "maxThroughput": 500},
-            "S80": {"size": 32768, "maxIOPS": 2000, "maxThroughput": 500},
-        },
-    }
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if not (information_name := self.information_name) or not (tier := self.tier):
             return
-
-        disk_configuration = self._storage_sku_info.get(information_name)
+        disk_configuration = storage_sku_info.get(information_name)
         if not disk_configuration:
             return
 
@@ -666,9 +673,6 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         self.volume_size = disk_info.get("size")
         self.volume_iops = disk_info.get("maxIOPS")
         self.volume_throughput = disk_info.get("maxThroughput")
-
-        if redundancy := self.redundancy:
-            self.volume_type = self._resource_group_map.get(f"{information_name}_{redundancy}", "")
 
     @classmethod
     def collect_resources(
@@ -3495,7 +3499,7 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
 
-    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+    def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         if (location := self.location) and (sku_name := self.name):
             api_spec = AzureApiSpec(
                 service="compute",
@@ -3507,16 +3511,9 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
                 expect_array=True,
             )
             items = builder.client.list(api_spec)
-            for predecessor in self.predecessors():
-                if isinstance(predecessor, AzureVirtualMachineBase) and (
-                    os_type := rgetattr(predecessor, "virtual_machine_storage_profile.os_disk.os_type", None)
-                ):
-                    for item in items:
-                        if product_name := item.get("productName"):
-                            if "Windows" in product_name and os_type == "Windows":
-                                self.ondemand_cost = item.get("unitPrice")
-                            elif "Windows" not in product_name and os_type == "Linux":
-                                self.ondemand_cost = item.get("unitPrice")
+            for item in items:
+                if (product_name := item.get("productName")) and ("Windows" not in product_name):
+                    self.ondemand_cost = item.get("unitPrice")
 
 
 @define(eq=False, slots=False)

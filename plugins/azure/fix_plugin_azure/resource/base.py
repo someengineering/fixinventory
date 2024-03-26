@@ -130,7 +130,7 @@ class AzureResource(BaseResource):
         """
         pass
 
-    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+    def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         """
         Hook method to post process the resource after all connections are done.
         Default: do nothing.

@@ -78,7 +78,7 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
 
     for node, data in list(collector.graph.nodes(data=True)):
         if isinstance(node, AzureVirtualMachineSize):
-            node.post_process_instance(builder, data.get("source", {}))
+            node.after_collect(builder, data.get("source", {}))
 
-    assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[0].ondemand_cost == 0.0133  # type: ignore[attr-defined]
+    assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[0].ondemand_cost == 13.14  # type: ignore[attr-defined]
     assert list(collector.graph.search("kind", "azure_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]

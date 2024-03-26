@@ -118,7 +118,7 @@ class AzureSubscriptionCollector:
             # post process nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, AzureResource):
-                    node.post_process_instance(builder, data.get("source", {}))
+                    node.after_collect(builder, data.get("source", {}))
 
             self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
