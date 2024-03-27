@@ -1,0 +1,75 @@
+{
+    "offers": {
+        "ultrassd-iops": {
+            "prices": {
+                "europe-west": {
+                    "value": 0.000088
+                }
+            }
+        },
+        "ultrassd-stored": {
+            "prices": {
+                "europe-west": {
+                    "value": 0.000213
+                }
+            }
+        },
+        "ultrassd-throughput": {
+            "prices": {
+                "europe-west": {
+                    "value": 0.000572
+                }
+            }
+        },
+        "premiumssdv2-capacity": {
+            "prices": {
+                "europe-west": {
+                    "value": 0.000132
+                }
+            }
+        }
+    },
+    "graduatedOffers": {
+        "pools-basic": {},
+        "pools-premium": {},
+        "pools-standard": {},
+        "premiumssdv2-iops": {
+            "europe-west": {
+                "prices": [
+                    {
+                        "limit": 3000.0,
+                        "price": {
+                            "value": 0.0
+                        }
+                    },
+                    {
+                        "limit": 1.7976931348623157E+308,
+                        "price": {
+                            "value": 0.000007
+                        }
+                    }
+                ],
+                "pricingTypes": "WebDirect"
+            }
+        },
+        "premiumssdv2-throughput": {
+            "europe-west": {
+                "prices": [
+                    {
+                        "limit": 125.0,
+                        "price": {
+                            "value": 0.0
+                        }
+                    },
+                    {
+                        "limit": 1.7976931348623157E+308,
+                        "price": {
+                            "value": 0.000066
+                        }
+                    }
+                ],
+                "pricingTypes": "WebDirect"
+            }
+        }
+    }
+}

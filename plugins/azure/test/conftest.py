@@ -25,7 +25,9 @@ class StaticFileAzureClient(AzureClient):
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         query_start_index = spec.path.find("?")
         spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
-        last = spec_path.rsplit("/", maxsplit=1)[-1]
+        splitted_path = spec_path.rsplit("/")
+
+        last = splitted_path[-1] if splitted_path[-1] != "" else splitted_path[-2]
 
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:

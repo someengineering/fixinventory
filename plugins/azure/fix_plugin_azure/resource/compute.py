@@ -567,6 +567,7 @@ resource_group_map = {
     "Standard_HDD_LRS": "Standard_LRS",
     "Standard_SSD_LRS": "StandardSSD_LRS",
     "Standard_SSD_ZRS": "StandardSSD_ZRS",
+    "Ultra_SSD": "UltraSSD_LRS",
 }
 
 storage_sku_info = {
@@ -617,6 +618,164 @@ storage_sku_info = {
     },
 }
 
+ultra_disk_sku_info = {
+    4: {"maxIOPS": 1200, "maxThroughput": 300},
+    8: {"maxIOPS": 2400, "maxThroughput": 600},
+    16: {"maxIOPS": 4800, "maxThroughput": 1200},
+    32: {"maxIOPS": 9600, "maxThroughput": 2400},
+    64: {"maxIOPS": 19200, "maxThroughput": 4900},
+    128: {"maxIOPS": 38400, "maxThroughput": 9800},
+    256: {"maxIOPS": 76800, "maxThroughput": 10000},
+    512: {"maxIOPS": 153600, "maxThroughput": 10000},
+    1024: {"maxIOPS": 307200, "maxThroughput": 10000},
+    2048: {"maxIOPS": 400000, "maxThroughput": 10000},
+    3072: {"maxIOPS": 400000, "maxThroughput": 10000},
+    4096: {"maxIOPS": 400000, "maxThroughput": 10000},
+    5120: {"maxIOPS": 400000, "maxThroughput": 10000},
+    6144: {"maxIOPS": 400000, "maxThroughput": 10000},
+    7168: {"maxIOPS": 400000, "maxThroughput": 10000},
+    8192: {"maxIOPS": 400000, "maxThroughput": 10000},
+    9216: {"maxIOPS": 400000, "maxThroughput": 10000},
+    10240: {"maxIOPS": 400000, "maxThroughput": 10000},
+    11264: {"maxIOPS": 400000, "maxThroughput": 10000},
+    12288: {"maxIOPS": 400000, "maxThroughput": 10000},
+    13312: {"maxIOPS": 400000, "maxThroughput": 10000},
+    14336: {"maxIOPS": 400000, "maxThroughput": 10000},
+    15360: {"maxIOPS": 400000, "maxThroughput": 10000},
+    16384: {"maxIOPS": 400000, "maxThroughput": 10000},
+    17408: {"maxIOPS": 400000, "maxThroughput": 10000},
+    18432: {"maxIOPS": 400000, "maxThroughput": 10000},
+    19456: {"maxIOPS": 400000, "maxThroughput": 10000},
+    20480: {"maxIOPS": 400000, "maxThroughput": 10000},
+    21504: {"maxIOPS": 400000, "maxThroughput": 10000},
+    22528: {"maxIOPS": 400000, "maxThroughput": 10000},
+    23552: {"maxIOPS": 400000, "maxThroughput": 10000},
+    24576: {"maxIOPS": 400000, "maxThroughput": 10000},
+    25600: {"maxIOPS": 400000, "maxThroughput": 10000},
+    26624: {"maxIOPS": 400000, "maxThroughput": 10000},
+    27648: {"maxIOPS": 400000, "maxThroughput": 10000},
+    28672: {"maxIOPS": 400000, "maxThroughput": 10000},
+    29696: {"maxIOPS": 400000, "maxThroughput": 10000},
+    30720: {"maxIOPS": 400000, "maxThroughput": 10000},
+    31744: {"maxIOPS": 400000, "maxThroughput": 10000},
+    32768: {"maxIOPS": 400000, "maxThroughput": 10000},
+    33792: {"maxIOPS": 400000, "maxThroughput": 10000},
+    34816: {"maxIOPS": 400000, "maxThroughput": 10000},
+    35840: {"maxIOPS": 400000, "maxThroughput": 10000},
+    36864: {"maxIOPS": 400000, "maxThroughput": 10000},
+    37888: {"maxIOPS": 400000, "maxThroughput": 10000},
+    38912: {"maxIOPS": 400000, "maxThroughput": 10000},
+    39936: {"maxIOPS": 400000, "maxThroughput": 10000},
+    40960: {"maxIOPS": 400000, "maxThroughput": 10000},
+    41984: {"maxIOPS": 400000, "maxThroughput": 10000},
+    43008: {"maxIOPS": 400000, "maxThroughput": 10000},
+    44032: {"maxIOPS": 400000, "maxThroughput": 10000},
+    45056: {"maxIOPS": 400000, "maxThroughput": 10000},
+    46080: {"maxIOPS": 400000, "maxThroughput": 10000},
+    47104: {"maxIOPS": 400000, "maxThroughput": 10000},
+    48128: {"maxIOPS": 400000, "maxThroughput": 10000},
+    49152: {"maxIOPS": 400000, "maxThroughput": 10000},
+    50176: {"maxIOPS": 400000, "maxThroughput": 10000},
+    51200: {"maxIOPS": 400000, "maxThroughput": 10000},
+    52224: {"maxIOPS": 400000, "maxThroughput": 10000},
+    53248: {"maxIOPS": 400000, "maxThroughput": 10000},
+    54272: {"maxIOPS": 400000, "maxThroughput": 10000},
+    55296: {"maxIOPS": 400000, "maxThroughput": 10000},
+    56320: {"maxIOPS": 400000, "maxThroughput": 10000},
+    57344: {"maxIOPS": 400000, "maxThroughput": 10000},
+    58368: {"maxIOPS": 400000, "maxThroughput": 10000},
+    59392: {"maxIOPS": 400000, "maxThroughput": 10000},
+    60416: {"maxIOPS": 400000, "maxThroughput": 10000},
+    61440: {"maxIOPS": 400000, "maxThroughput": 10000},
+    62464: {"maxIOPS": 400000, "maxThroughput": 10000},
+    63488: {"maxIOPS": 400000, "maxThroughput": 10000},
+    64512: {"maxIOPS": 400000, "maxThroughput": 10000},
+    65536: {"maxIOPS": 400000, "maxThroughput": 10000},
+}
+
+ultra_disk_pricing_locations = {
+    "australiacentral": "australia-central",
+    "australiaeast": "australia-east",
+    "brazilsouth": "brazil-south",
+    "brazilsoutheast": "brazil-southeast",
+    "canadacentral": "canada-central",
+    "centralindia": "central-india",
+    "centralus": "us-central",
+    "eastasia": "asia-pacific-east",
+    "eastus": "us-east",
+    "eastus2": "us-east-2",
+    "francecentral": "france-central",
+    "germanywestcentral": "germany-west-central",
+    "italynorth": "italy-north",
+    "japaneast": "japan-east",
+    "koreacentral": "korea-central",
+    "koreasouth": "korea-south",
+    "northcentralus": "us-north-central",
+    "northeurope": "europe-north",
+    "norwayeast": "norway-east",
+    "polandcentral": "poland-central",
+    "qatarcentral": "qatar-central",
+    "southafricanorth": "south-africa-north",
+    "southcentralus": "us-south-central",
+    "southeastasia": "asia-pacific-southeast",
+    "swedencentral": "sweden-central",
+    "switzerlandnorth": "switzerland-north",
+    "uaenorth": "uae-north",
+    "uksouth": "united-kingdom-south",
+    "ukwest": "united-kingdom-west",
+    "usgov-arizona": "usgov-arizona",
+    "usgov-texas": "usgov-texas",
+    "usgov-virginia": "usgov-virginia",
+    "westeurope": "europe-west",
+    "westus": "us-west",
+    "westus2": "us-west-2",
+    "westus3": "us-west-3",
+}
+premium_ssd_v2_pricing_locations = {
+    "australiacentral": "australia-central",
+    "australiaeast": "australia-east",
+    "brazilsouth": "brazil-south",
+    "canadacentral": "canada-central",
+    "centralindia": "central-india",
+    "centralus": "us-central",
+    "eastasia": "asia-pacific-east",
+    "eastus": "us-east",
+    "eastus2": "us-east-2",
+    "francecentral": "france-central",
+    "germanywestcentral": "germany-west-central",
+    "italynorth": "italy-north",
+    "japaneast": "japan-east",
+    "koreacentral": "korea-central",
+    "koreasouth": "korea-south",
+    "northcentralus": "us-north-central",
+    "northeurope": "europe-north",
+    "norwayeast": "norway-east",
+    "polandcentral": "poland-central",
+    "qatarcentral": "qatar-central",
+    "southafricanorth": "south-africa-north",
+    "southcentralus": "us-south-central",
+    "southeastasia": "asia-pacific-southeast",
+    "swedencentral": "sweden-central",
+    "switzerlandnorth": "switzerland-north",
+    "uaenorth": "uae-north",
+    "uksouth": "united-kingdom-south",
+    "ukwest": "united-kingdom-west",
+    "usgov-arizona": "usgov-arizona",
+    "usgov-virginia": "usgov-virginia",
+    "westeurope": "europe-west",
+    "westus": "us-west",
+    "westus2": "us-west-2",
+    "westus3": "us-west-3",
+    "australiacentral2": "australia-central-2",
+    "canadaeast": "canada-east",
+    "japanwest": "japan-west",
+    "southafricawest": "south-africa-west",
+    "southindia": "south-india",
+    "swedensouth": "sweden-south",
+    "switzerlandwest": "switzerland-west",
+    "westcentralus": "us-west-central",
+}
+
 
 @define(eq=False, slots=False)
 class AzureDiskType(AzureResource, BaseVolumeType):
@@ -647,7 +806,11 @@ class AzureDiskType(AzureResource, BaseVolumeType):
                 + (S("skuName") >> F(lambda sku: sku.split(" ")[1]))
             )
             >> MapValue(resource_group_map)
-        ),
+        ).or_else(S("type")),
+        "volume_size": S("size"),
+        "volume_iops": S("maxIOPS"),
+        "volume_throughput": S("maxThroughput"),
+        "location": S("location"),
     }
     full_name: Optional[str] = None
     product_name: Optional[str] = None
@@ -657,22 +820,101 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     volume_iops: Optional[int] = None
     volume_throughput: Optional[int] = None
     volume_size: Optional[int] = None
+    location: Optional[str] = None
+    ultrassd_iops_price: Optional[int] = None
+    ultrassd_throughput_price: Optional[int] = None
+    ultrassd_size_price: Optional[int] = None
+    premium_v2_size_price: Optional[int] = None
+    premium_v2_iops_price: Optional[int] = None
+    premium_v2_throughput_price: Optional[int] = None
     _is_provider_link: bool = False
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if not (information_name := self.information_name) or not (tier := self.tier):
-            return
-        disk_configuration = storage_sku_info.get(information_name)
-        if not disk_configuration:
-            return
+        if (volume_type := self.volume_type) and (volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]):
+            if not (information_name := self.information_name) or not (tier := self.tier):
+                return
+            disk_configuration = storage_sku_info.get(information_name)
+            if not disk_configuration:
+                return
 
-        disk_info = disk_configuration.get(tier)
-        if not disk_info:
-            return
+            disk_info = disk_configuration.get(tier)
+            if not disk_info:
+                return
 
-        self.volume_size = disk_info.get("size")
-        self.volume_iops = disk_info.get("maxIOPS")
-        self.volume_throughput = disk_info.get("maxThroughput")
+            self.volume_size = disk_info.get("size")
+            self.volume_iops = disk_info.get("maxIOPS")
+            self.volume_throughput = disk_info.get("maxThroughput")
+
+    @staticmethod
+    def _get_ultra_and_prem_v2_sku(builder: GraphBuilder, location: str) -> List[Json]:
+        # Fetch prices for Ultra SSD and Premium SSD V2
+        def collect_prices() -> Json:
+            api_spec = AzureApiSpec(
+                service="compute",
+                version="",
+                path="https://azure.microsoft.com/api/v2/pricing/managed-disks/calculator/",
+                path_parameters=[],
+                query_parameters=[],
+                access_path=None,
+                expect_array=False,
+            )
+            items = builder.client.list(api_spec)[0]
+            return items
+
+        price = collect_prices()
+
+        def set_ondemand_cost(sku: Json) -> None:
+            if sku["type"] == "UltraSSD_LRS" and ultra_disk_pricing_locations.get(location) is not None:
+                try:
+                    sku["ultrassd_iops_price"] = price["offers"]["ultrassd-iops"]["prices"][
+                        ultra_disk_pricing_locations[location]
+                    ]["value"]
+                    sku["ultrassd_throughput_price"] = price["offers"]["ultrassd-throughput"]["prices"][
+                        ultra_disk_pricing_locations[location]
+                    ]["value"]
+                    sku["ultrassd_size_price"] = price["offers"]["ultrassd-stored"]["prices"][
+                        ultra_disk_pricing_locations[location]
+                    ]["value"]
+                except KeyError as e:
+                    log.debug(f"Invalid key occured: {e}")
+            elif sku["type"] == "UltraSSD_LRS" and premium_ssd_v2_pricing_locations.get(location) is not None:
+                try:
+                    sku["premium_v2_size_price"] = price["offers"]["premiumssdv2-capacity"]["prices"][
+                        premium_ssd_v2_pricing_locations[location]
+                    ]["value"]
+                    sku["premium_v2_iops_price"] = price["graduatedOffers"]["premiumssdv2-iops"][
+                        premium_ssd_v2_pricing_locations[location]
+                    ]["prices"][1]["price"]["value"]
+                    sku["premium_v2_throughput_price"] = price["graduatedOffers"]["premiumssdv2-throughput"][
+                        premium_ssd_v2_pricing_locations[location]
+                    ]["prices"][1]["price"]["value"]
+                except KeyError as e:
+                    log.debug(f"Invalid key occured: {e}")
+
+        ultra_ssd_list = []
+        for disk_size, attributes in ultra_disk_sku_info.items():
+            # Create an ultra disk object
+            ulta_ssd_object = {
+                "size": disk_size,
+                "id": "Ultra SSD",
+                "name": "Ultra SSD",
+                "type": "UltraSSD_LRS",
+                "location": location,
+                **attributes,
+            }
+            ultra_ssd_list.append(ulta_ssd_object)
+        # Create a premium ssd v2 object
+        premium_ssd_v2_object = {
+            "id": "Premium SSD V2",
+            "name": "Premium SSD V2",
+            "type": "PremiumV2_LRS",
+            "location": location,
+        }
+        skus = [premium_ssd_v2_object] + ultra_ssd_list
+        for sku in skus:
+            # Set cost to the skus
+            set_ondemand_cost(sku)
+        return skus
 
     @classmethod
     def collect_resources(
@@ -695,6 +937,9 @@ class AzureDiskType(AzureResource, BaseVolumeType):
 
             items = builder.client.list(api_spec, **kwargs)
             sku_items.extend(items)
+        if (location := builder.location) and (location_name := location.name):
+            ultra_and_premium_v2_skus = AzureDiskType._get_ultra_and_prem_v2_sku(builder, location_name)
+            sku_items.extend(ultra_and_premium_v2_skus)
         return cls.collect(sku_items, builder)
 
 
