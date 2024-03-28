@@ -15,6 +15,17 @@ def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
     return functools.reduce(_getattr, [obj] + attr.split("."))
 
 
+def rgetvalue(data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
+    keys = key_path.split(".")
+    nested_value = data
+    for key in keys:
+        if isinstance(nested_value, Dict) and key in nested_value:
+            nested_value = nested_value[key]
+        else:
+            return default
+    return nested_value
+
+
 def identity(x: T) -> T:
     return x
 

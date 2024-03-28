@@ -23,7 +23,7 @@ from fix_plugin_azure.resource.network import (
     AzureNetworkInterface,
     AzureLoadBalancer,
 )
-from fix_plugin_azure.utils import MetricNormalization
+from fix_plugin_azure.utils import MetricNormalization, rgetvalue
 from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
 from fixlib.types import Json
 from fixlib.baseresources import (
@@ -567,7 +567,6 @@ resource_group_map = {
     "Standard_HDD_LRS": "Standard_LRS",
     "Standard_SSD_LRS": "StandardSSD_LRS",
     "Standard_SSD_ZRS": "StandardSSD_ZRS",
-    "Ultra_SSD": "UltraSSD_LRS",
 }
 
 storage_sku_info = {
@@ -778,6 +777,54 @@ premium_ssd_v2_pricing_locations = {
 
 
 @define(eq=False, slots=False)
+class AzurePricingGraduatedOffers:
+    kind: ClassVar[str] = "azure_pricing_graduated_offers"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "premium_ssd_v2_iops": S("premiumssdv2-iops").or_else(K({})),
+        "premium_ssd_v2_throughput": S("premiumssdv2-throughput").or_else(K({})),
+    }
+    premium_ssd_v2_iops: Optional[Dict[str, Any]] = None
+    premium_ssd_v2_throughput: Optional[Dict[str, Any]] = None
+
+
+@define(eq=False, slots=False)
+class AzurePricingOffers:
+    kind: ClassVar[str] = "azure_pricing_offers"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ultra_ssd_iops": S("ultrassd-iops", "prices").or_else(K({})),
+        "ultra_ssd_stored": S("ultrassd-stored", "prices").or_else(K({})),
+        "ultra_ssd_throughput": S("ultrassd-throughput", "prices").or_else(K({})),
+        "premium_ssd_v2_capacity": S("premiumssdv2-capacity", "prices").or_else(K({})),
+    }
+    ultra_ssd_iops: Optional[Dict[str, Any]] = None
+    ultra_ssd_stored: Optional[Dict[str, Any]] = None
+    ultra_ssd_throughput: Optional[Dict[str, Any]] = None
+    premium_ssd_v2_capacity: Optional[Dict[str, Any]] = None
+
+
+@define(eq=False, slots=False)
+class AzureDiskTypePricing(AzureResource):
+    kind: ClassVar[str] = "azure_disk_type_pricing"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="compute",
+        version="",
+        path="https://azure.microsoft.com/api/v2/pricing/managed-disks/calculator/",
+        # Define path param 'subscriptionId' to collect as global resources
+        path_parameters=["subscriptionId"],
+        query_parameters=[],
+        access_path=None,
+        expect_array=False,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": K(None),
+        "offers": S("offers") >> Bend(AzurePricingOffers.mapping),
+        "graduated_offers": S("graduatedOffers") >> Bend(AzurePricingGraduatedOffers.mapping),
+    }
+    offers: Optional[AzurePricingOffers] = None
+    graduated_offers: Optional[AzurePricingGraduatedOffers] = None
+
+
+@define(eq=False, slots=False)
 class AzureDiskType(AzureResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_disk_type"
     # Define api spec to collect as regional resources
@@ -821,13 +868,74 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     volume_throughput: Optional[int] = None
     volume_size: Optional[int] = None
     location: Optional[str] = None
-    ultrassd_iops_price: Optional[int] = None
-    ultrassd_throughput_price: Optional[int] = None
-    ultrassd_size_price: Optional[int] = None
-    premium_v2_size_price: Optional[int] = None
-    premium_v2_iops_price: Optional[int] = None
-    premium_v2_throughput_price: Optional[int] = None
+    iops_price: Optional[int] = None
+    size_price: Optional[int] = None
+    throughput_price: Optional[int] = None
     _is_provider_link: bool = False
+
+    def after_collect(self, builder: GraphBuilder, source: Json) -> None:
+        location = self.location
+        volume_type = self.volume_type
+
+        if location and volume_type in ("UltraSSD_LRS", "PremiumV2_LRS"):
+            for node in builder.graph.nodes:
+                if isinstance(node, AzureDiskTypePricing):
+                    offers = node.offers
+                    grad_offers = node.graduated_offers
+
+                    # Set pricing based on location and volume type
+                    if offers and grad_offers:
+                        if volume_type == "UltraSSD_LRS":
+                            location_data = ultra_disk_pricing_locations.get(location)
+                            if location_data:
+                                # Check if each attribute is not None before using it
+                                if offers.ultra_ssd_iops:
+                                    self.iops_price = rgetvalue(offers.ultra_ssd_iops, f"{location_data}.value", None)
+                                if offers.ultra_ssd_stored:
+                                    self.size_price = rgetvalue(offers.ultra_ssd_stored, f"{location_data}.value", None)
+                                if offers.ultra_ssd_throughput:
+                                    self.throughput_price = rgetvalue(
+                                        offers.ultra_ssd_throughput, f"{location_data}.value", None
+                                    )
+                        elif volume_type == "PremiumV2_LRS":
+                            location_data = premium_ssd_v2_pricing_locations.get(location)
+                            if location_data:
+                                # Check if each attribute is not None before using it
+                                if offers.premium_ssd_v2_capacity:
+                                    self.size_price = rgetvalue(
+                                        offers.premium_ssd_v2_capacity, f"{location_data}.prices", None
+                                    )
+                                if grad_offers.premium_ssd_v2_iops:
+                                    self.iops_price = rgetvalue(
+                                        grad_offers.premium_ssd_v2_iops, f"{location_data}.prices", None
+                                    )[1]["price"]["value"]
+                                if grad_offers.premium_ssd_v2_throughput:
+                                    self.throughput_price = rgetvalue(
+                                        grad_offers.premium_ssd_v2_throughput, f"{location_data}.prices", None
+                                    )[1]["price"]["value"]
+                elif isinstance(node, AzureDisk):
+                    volume_iops = node.volume_iops
+                    volume_throughput = node.volume_throughput
+
+                    if (
+                        volume_iops
+                        and volume_throughput
+                        and self.iops_price
+                        and self.size_price
+                        and self.throughput_price
+                    ):
+                        volume_size = node.volume_size
+
+                        ondemand_cost = volume_size * self.size_price
+                        if volume_type == "UltraSSD_LRS":
+                            ondemand_cost += volume_iops * self.iops_price + volume_throughput * self.throughput_price
+
+                        if volume_type == "PremiumV2_LRS":
+                            # Add cost for exceeding Premium V2 SSD IOPS/throughput limits
+                            ondemand_cost += max(0, volume_iops - 3000) * self.iops_price
+                            ondemand_cost += max(0, volume_throughput - 125) * self.throughput_price
+
+                        self.ondemand_cost = ondemand_cost
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if (volume_type := self.volume_type) and (volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]):
@@ -846,54 +954,10 @@ class AzureDiskType(AzureResource, BaseVolumeType):
             self.volume_throughput = disk_info.get("maxThroughput")
 
     @staticmethod
-    def _get_ultra_and_prem_v2_sku(builder: GraphBuilder, location: str) -> List[Json]:
-        # Fetch prices for Ultra SSD and Premium SSD V2
-        def collect_prices() -> Json:
-            api_spec = AzureApiSpec(
-                service="compute",
-                version="",
-                path="https://azure.microsoft.com/api/v2/pricing/managed-disks/calculator/",
-                path_parameters=[],
-                query_parameters=[],
-                access_path=None,
-                expect_array=False,
-            )
-            items = builder.client.list(api_spec)[0]
-            return items
-
-        price = collect_prices()
-
-        def set_ondemand_cost(sku: Json) -> None:
-            if sku["type"] == "UltraSSD_LRS" and ultra_disk_pricing_locations.get(location) is not None:
-                try:
-                    sku["ultrassd_iops_price"] = price["offers"]["ultrassd-iops"]["prices"][
-                        ultra_disk_pricing_locations[location]
-                    ]["value"]
-                    sku["ultrassd_throughput_price"] = price["offers"]["ultrassd-throughput"]["prices"][
-                        ultra_disk_pricing_locations[location]
-                    ]["value"]
-                    sku["ultrassd_size_price"] = price["offers"]["ultrassd-stored"]["prices"][
-                        ultra_disk_pricing_locations[location]
-                    ]["value"]
-                except KeyError as e:
-                    log.debug(f"Invalid key occured: {e}")
-            elif sku["type"] == "UltraSSD_LRS" and premium_ssd_v2_pricing_locations.get(location) is not None:
-                try:
-                    sku["premium_v2_size_price"] = price["offers"]["premiumssdv2-capacity"]["prices"][
-                        premium_ssd_v2_pricing_locations[location]
-                    ]["value"]
-                    sku["premium_v2_iops_price"] = price["graduatedOffers"]["premiumssdv2-iops"][
-                        premium_ssd_v2_pricing_locations[location]
-                    ]["prices"][1]["price"]["value"]
-                    sku["premium_v2_throughput_price"] = price["graduatedOffers"]["premiumssdv2-throughput"][
-                        premium_ssd_v2_pricing_locations[location]
-                    ]["prices"][1]["price"]["value"]
-                except KeyError as e:
-                    log.debug(f"Invalid key occured: {e}")
-
+    def _get_ultra_and_prem_v2_sku(location: str) -> List[Json]:
         ultra_ssd_list = []
         for disk_size, attributes in ultra_disk_sku_info.items():
-            # Create an ultra disk object
+            # Create empty ultra disk object
             ulta_ssd_object = {
                 "size": disk_size,
                 "id": "Ultra SSD",
@@ -903,18 +967,14 @@ class AzureDiskType(AzureResource, BaseVolumeType):
                 **attributes,
             }
             ultra_ssd_list.append(ulta_ssd_object)
-        # Create a premium ssd v2 object
+        # Create empty premium ssd v2 object
         premium_ssd_v2_object = {
             "id": "Premium SSD V2",
             "name": "Premium SSD V2",
             "type": "PremiumV2_LRS",
             "location": location,
         }
-        skus = [premium_ssd_v2_object] + ultra_ssd_list
-        for sku in skus:
-            # Set cost to the skus
-            set_ondemand_cost(sku)
-        return skus
+        return [premium_ssd_v2_object] + ultra_ssd_list
 
     @classmethod
     def collect_resources(
@@ -938,7 +998,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
             items = builder.client.list(api_spec, **kwargs)
             sku_items.extend(items)
         if (location := builder.location) and (location_name := location.name):
-            ultra_and_premium_v2_skus = AzureDiskType._get_ultra_and_prem_v2_sku(builder, location_name)
+            ultra_and_premium_v2_skus = AzureDiskType._get_ultra_and_prem_v2_sku(location_name)
             sku_items.extend(ultra_and_premium_v2_skus)
         return cls.collect(sku_items, builder)
 
@@ -1112,9 +1172,25 @@ class AzureDisk(AzureResource, BaseVolume):
 
         update_resource_metrics(volumes, metric_result, metric_normalizers)
 
+    def _get_nearest_size(self, size: int) -> int:
+        ultra_sizes = list(ultra_disk_sku_info.keys())
+        target = size
+
+        return min(ultra_sizes, key=lambda x: abs(x - target))
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if volume_type := self.volume_type:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskType, volume_type=volume_type)
+            if (volume_type == "UltraSSD_LRS") and (size := self.volume_size):
+                ultra_disk_size_type = self._get_nearest_size(size)
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    clazz=AzureDiskType,
+                    volume_type=volume_type,
+                    volume_size=ultra_disk_size_type,
+                )
+            else:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskType, volume_type=volume_type)
         if disk_id := self.id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
@@ -3773,6 +3849,7 @@ resources: List[Type[AzureResource]] = [
     AzureCapacityReservationGroup,
     AzureCloudService,
     AzureDedicatedHostGroup,
+    AzureDiskTypePricing,
     AzureDisk,
     AzureDiskType,
     AzureDiskAccess,
