@@ -617,6 +617,54 @@ storage_sku_info = {
     },
 }
 
+storage_sku_tier_by_size = {
+    "Premium": {
+        4: "P1",
+        8: "P2",
+        16: "P3",
+        32: "P4",
+        64: "P6",
+        128: "P10",
+        256: "P15",
+        512: "P20",
+        1024: "P30",
+        2048: "P40",
+        4096: "P50",
+        8192: "P60",
+        16384: "P70",
+        32768: "P80",
+    },
+    "StandardSSD": {
+        4: "E1",
+        8: "E2",
+        16: "E3",
+        32: "E4",
+        64: "E6",
+        128: "E10",
+        256: "E15",
+        512: "E20",
+        1024: "E30",
+        2048: "E40",
+        4096: "E50",
+        8192: "E60",
+        16384: "E70",
+        32768: "E80",
+    },
+    "Standard": {
+        32: "S4",
+        64: "S6",
+        128: "S10",
+        256: "S15",
+        512: "S20",
+        1024: "S30",
+        2048: "S40",
+        4096: "S50",
+        8192: "S60",
+        16384: "S70",
+        32768: "S80",
+    },
+}
+
 ultra_disk_sku_info = {
     4: {"maxIOPS": 1200, "maxThroughput": 300},
     8: {"maxIOPS": 2400, "maxThroughput": 600},
@@ -692,11 +740,10 @@ ultra_disk_sku_info = {
     65536: {"maxIOPS": 400000, "maxThroughput": 10000},
 }
 
-ultra_disk_pricing_locations = {
+base_locations = {
     "australiacentral": "australia-central",
     "australiaeast": "australia-east",
     "brazilsouth": "brazil-south",
-    "brazilsoutheast": "brazil-southeast",
     "canadacentral": "canada-central",
     "centralindia": "central-india",
     "centralus": "us-central",
@@ -723,48 +770,16 @@ ultra_disk_pricing_locations = {
     "uksouth": "united-kingdom-south",
     "ukwest": "united-kingdom-west",
     "usgov-arizona": "usgov-arizona",
-    "usgov-texas": "usgov-texas",
     "usgov-virginia": "usgov-virginia",
     "westeurope": "europe-west",
     "westus": "us-west",
     "westus2": "us-west-2",
     "westus3": "us-west-3",
 }
-premium_ssd_v2_pricing_locations = {
-    "australiacentral": "australia-central",
-    "australiaeast": "australia-east",
-    "brazilsouth": "brazil-south",
-    "canadacentral": "canada-central",
-    "centralindia": "central-india",
-    "centralus": "us-central",
-    "eastasia": "asia-pacific-east",
-    "eastus": "us-east",
-    "eastus2": "us-east-2",
-    "francecentral": "france-central",
-    "germanywestcentral": "germany-west-central",
-    "italynorth": "italy-north",
-    "japaneast": "japan-east",
-    "koreacentral": "korea-central",
-    "koreasouth": "korea-south",
-    "northcentralus": "us-north-central",
-    "northeurope": "europe-north",
-    "norwayeast": "norway-east",
-    "polandcentral": "poland-central",
-    "qatarcentral": "qatar-central",
-    "southafricanorth": "south-africa-north",
-    "southcentralus": "us-south-central",
-    "southeastasia": "asia-pacific-southeast",
-    "swedencentral": "sweden-central",
-    "switzerlandnorth": "switzerland-north",
-    "uaenorth": "uae-north",
-    "uksouth": "united-kingdom-south",
-    "ukwest": "united-kingdom-west",
-    "usgov-arizona": "usgov-arizona",
-    "usgov-virginia": "usgov-virginia",
-    "westeurope": "europe-west",
-    "westus": "us-west",
-    "westus2": "us-west-2",
-    "westus3": "us-west-3",
+
+ultra_disk_pricing_locations = base_locations | {"brazilsoutheast": "brazil-southeast", "usgov-texas": "usgov-texas"}
+
+premium_ssd_v2_pricing_locations = base_locations | {
     "australiacentral2": "australia-central-2",
     "canadaeast": "canada-east",
     "japanwest": "japan-west",
@@ -857,7 +872,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         "volume_size": S("size"),
         "volume_iops": S("maxIOPS"),
         "volume_throughput": S("maxThroughput"),
-        "location": S("location"),
+        "location": S("armRegionName"),
     }
     full_name: Optional[str] = None
     product_name: Optional[str] = None
@@ -868,9 +883,9 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     volume_throughput: Optional[int] = None
     volume_size: Optional[int] = None
     location: Optional[str] = None
-    iops_price: Optional[int] = None
-    size_price: Optional[int] = None
-    throughput_price: Optional[int] = None
+    iops_price: Optional[float] = None
+    size_price: Optional[float] = None
+    throughput_price: Optional[float] = None
     _is_provider_link: bool = False
 
     def after_collect(self, builder: GraphBuilder, source: Json) -> None:
@@ -903,7 +918,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
                                 # Check if each attribute is not None before using it
                                 if offers.premium_ssd_v2_capacity:
                                     self.size_price = rgetvalue(
-                                        offers.premium_ssd_v2_capacity, f"{location_data}.prices", None
+                                        offers.premium_ssd_v2_capacity, f"{location_data}.value", None
                                     )
                                 if grad_offers.premium_ssd_v2_iops:
                                     self.iops_price = rgetvalue(
@@ -960,19 +975,17 @@ class AzureDiskType(AzureResource, BaseVolumeType):
             # Create empty ultra disk object
             ulta_ssd_object = {
                 "size": disk_size,
-                "id": "Ultra SSD",
-                "name": "Ultra SSD",
+                "skuName": "Ultra SSD",
                 "type": "UltraSSD_LRS",
-                "location": location,
+                "armRegionName": location,
                 **attributes,
             }
             ultra_ssd_list.append(ulta_ssd_object)
         # Create empty premium ssd v2 object
         premium_ssd_v2_object = {
-            "id": "Premium SSD V2",
-            "name": "Premium SSD V2",
+            "skuName": "Premium SSD V2",
             "type": "PremiumV2_LRS",
-            "location": location,
+            "armRegionName": location,
         }
         return [premium_ssd_v2_object] + ultra_ssd_list
 
@@ -1072,6 +1085,8 @@ class AzureDisk(AzureResource, BaseVolume):
         "supports_hibernation": S("properties", "supportsHibernation"),
         "tier": S("properties", "tier"),
         "time_created": S("properties", "timeCreated"),
+        "location": S("location"),
+        "tier_name": S("sku", "tier"),
         "unique_id": S("properties", "uniqueId"),
         "volume_size": S("properties", "diskSizeGB"),
         "volume_type": S("sku", "name"),
@@ -1115,6 +1130,8 @@ class AzureDisk(AzureResource, BaseVolume):
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location"})
+    tier_name: Optional[str] = field(default=None, metadata={"description": "The sku tier."})
 
     @classmethod
     def collect_usage_metrics(
@@ -1172,25 +1189,48 @@ class AzureDisk(AzureResource, BaseVolume):
 
         update_resource_metrics(volumes, metric_result, metric_normalizers)
 
-    def _get_nearest_size(self, size: int) -> int:
-        ultra_sizes = list(ultra_disk_sku_info.keys())
+    def _get_nearest_size(self, size: int, lookup_map: Dict[int, Any]) -> int:
+        list_sizes = list(lookup_map.keys())
         target = size
 
-        return min(ultra_sizes, key=lambda x: abs(x - target))
+        return min(list_sizes, key=lambda x: abs(x - target))
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if volume_type := self.volume_type:
-            if (volume_type == "UltraSSD_LRS") and (size := self.volume_size):
-                ultra_disk_size_type = self._get_nearest_size(size)
+        if (volume_type := self.volume_type) and (location := self.location) and (size := self.volume_size):
+            if volume_type == "UltraSSD_LRS":
+                ultra_disk_size_type = self._get_nearest_size(size, ultra_disk_sku_info)
                 builder.add_edge(
                     self,
                     edge_type=EdgeType.default,
                     clazz=AzureDiskType,
+                    location=location,
                     volume_type=volume_type,
                     volume_size=ultra_disk_size_type,
                 )
+            elif volume_type == "PremiumV2_LRS":
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureDiskType, location=location, volume_type=volume_type
+                )
             else:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskType, volume_type=volume_type)
+                tier_name = self.tier_name
+
+                if volume_type.startswith("StandardSSD"):
+                    tier_map = storage_sku_tier_by_size.get("StandardSSD")
+                elif tier_name:
+                    tier_map = storage_sku_tier_by_size.get(tier_name)
+                else:
+                    return
+
+                if tier_map:
+                    tier = tier_map.get(self._get_nearest_size(size, tier_map))
+                    builder.add_edge(
+                        self,
+                        edge_type=EdgeType.default,
+                        clazz=AzureDiskType,
+                        location=location,
+                        volume_type=volume_type,
+                        tier=tier,
+                    )
         if disk_id := self.id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):

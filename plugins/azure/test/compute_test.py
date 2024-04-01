@@ -48,8 +48,8 @@ def test_disks(builder: GraphBuilder) -> None:
     resource_types: List[Type[AzureResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureDiskAccess, AzureDisk)) == 2
-    assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
+    assert len(builder.edges_of(AzureDiskAccess, AzureDisk)) == 1
+    assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 1
 
 
 def test_disks_resource(builder: GraphBuilder) -> None:
