@@ -9,6 +9,10 @@ T = TypeVar("T")
 
 
 def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
+    """
+    Recursively retrieves the value from a nested class based on the provided attr path.
+    """
+
     def _getattr(obj: Any, attr: str) -> Any:
         return getattr(obj, attr, *args)
 
@@ -16,6 +20,9 @@ def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
 
 
 def rgetvalue(data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
+    """
+    Recursively retrieves the value from a nested dictionary based on the provided key path.
+    """
     keys = key_path.split(".")
     nested_value = data
     for key in keys:

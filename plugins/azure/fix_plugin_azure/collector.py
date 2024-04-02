@@ -156,7 +156,6 @@ class AzureSubscriptionCollector:
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
-            remove_nodes.clear()
 
         def remove_usage_zero_value() -> None:
             for node in self.graph.nodes:
@@ -169,7 +168,6 @@ class AzureSubscriptionCollector:
                     # If the current usage value is 0, add the node to the list of nodes to remove
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
-            remove_nodes.clear()
 
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
@@ -184,3 +182,4 @@ class AzureSubscriptionCollector:
                 continue
             removed.add(node)
             self.graph.remove_node(node)
+        nodes_to_delte.clear()
