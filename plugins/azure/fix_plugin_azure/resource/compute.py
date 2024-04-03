@@ -1140,6 +1140,7 @@ class AzureDisk(AzureResource, BaseVolume):
         ):
             if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
                 return
+
             generic_size = AzureDiskType.create_custom_size(location, volume_type, size, iops, throughput)
             AzureDiskType.collect(generic_size, graph_builder)
 
@@ -1151,6 +1152,8 @@ class AzureDisk(AzureResource, BaseVolume):
                 location=location,
                 volume_type=volume_type,
                 volume_size=size,
+                volume_throughput=throughput,
+                volume_iops=iops,
             )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

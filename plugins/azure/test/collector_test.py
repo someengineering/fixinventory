@@ -9,7 +9,13 @@ from fix_plugin_azure.azure_client import AzureClient
 from fix_plugin_azure.collector import AzureSubscriptionCollector
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
 from fix_plugin_azure.resource.base import AzureResource, AzureSubscription, GraphBuilder
-from fix_plugin_azure.resource.compute import AzureVirtualMachine, AzureVirtualMachineSize, AzureDisk, AzureDiskType
+from fix_plugin_azure.resource.compute import (
+    AzureDiskTypePricing,
+    AzureVirtualMachine,
+    AzureVirtualMachineSize,
+    AzureDisk,
+    AzureDiskType,
+)
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
@@ -40,7 +46,7 @@ def test_collect(
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
     assert len(collector.graph.nodes) == 202
-    assert len(collector.graph.edges) == 276
+    assert len(collector.graph.edges) == 278
 
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
@@ -48,6 +54,8 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
         AzureVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/virtualMachines.json") as f:
         AzureVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
+    with open(os.path.dirname(__file__) + "/files/compute/calculator.json") as f:
+        AzureDiskTypePricing.collect(raw=json.load(f), builder=builder)
 
     collector = collector_with_graph(builder.graph, credentials)
 
@@ -56,6 +64,13 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
     collector.filter_nodes()
 
     assert len(list(collector.graph.search("kind", "azure_virtual_machine_size"))) < len(num_all_virtual_machine_types)
+
+    pricing_info = list(collector.graph.search("kind", "azure_disk_type_pricing"))
+
+    assert len(pricing_info) > 0
+
+    collector.after_collect_filter()
+    assert len(list(collector.graph.search("kind", "azure_disk_type_pricing"))) < len(pricing_info)
 
 
 def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> None:
