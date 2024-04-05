@@ -899,9 +899,9 @@ class AzureDiskType(AzureResource, BaseVolumeType):
             self.volume_throughput = disk_info.get("maxThroughput")
 
     @staticmethod
-    def create_custom_size(
+    def build_custom_disk_size(
         location: str, disk_type: str, disk_size: int, disk_iops: int, disk_throughput: int
-    ) -> List[Json]:
+    ) -> Json:
         if disk_type == "UltraSSD_LRS":
             nearest_ultra_disk_size = AzureDisk._get_nearest_size(disk_size, ultra_disk_sku_info)
             ultra_disk_config = ultra_disk_sku_info.get(nearest_ultra_disk_size, {})
@@ -914,7 +914,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
                 "volume_throughput": disk_throughput,
                 **ultra_disk_config,
             }
-            return [ulta_ssd_object]
+            return ulta_ssd_object
 
         premium_ssd_v2_object = {
             "size": disk_size,
@@ -924,7 +924,31 @@ class AzureDiskType(AzureResource, BaseVolumeType):
             "volume_iops": disk_iops,
             "volume_throughput": disk_throughput,
         }
-        return [premium_ssd_v2_object]
+        return premium_ssd_v2_object
+
+    @staticmethod
+    def create_unique_disk_sizes(collected_disks: List[AzureResourceType], builder: GraphBuilder) -> None:
+        disk_sizes: List[Json] = []
+        seen_hashes = set()  # Set to keep track of unique hashes
+        for disk in collected_disks:
+            if not isinstance(disk, AzureDisk):
+                continue
+            if (
+                (volume_type := disk.volume_type)
+                and (location := disk.location)
+                and (size := disk.volume_size)
+                and (iops := disk.volume_iops)
+                and (throughput := disk.volume_throughput)
+            ):
+                if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
+                    continue
+
+                generic_size = AzureDiskType.build_custom_disk_size(location, volume_type, size, iops, throughput)
+                hash_value = hash(tuple(generic_size.items()))
+                if hash_value not in seen_hashes:
+                    disk_sizes.append(generic_size)
+                    seen_hashes.add(hash_value)
+        AzureDiskType.collect(disk_sizes, builder)
 
     @classmethod
     def collect_resources(
@@ -1068,6 +1092,24 @@ class AzureDisk(AzureResource, BaseVolume):
     tier_name: Optional[str] = field(default=None, metadata={"description": "The sku tier."})
 
     @classmethod
+    def collect_resources(
+        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[AzureResourceType]:
+        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            items = builder.client.list(spec, **kwargs)
+            collected = cls.collect(items, builder)
+            # Create additional custom disk sizes for disks with Ultra SSD or Premium SSD v2 types
+            AzureDiskType.create_unique_disk_sizes(collected, builder)
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+            return collected
+        return []
+
+    @classmethod
     def collect_usage_metrics(
         cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
     ) -> None:
@@ -1130,35 +1172,9 @@ class AzureDisk(AzureResource, BaseVolume):
 
         return min(list_sizes, key=lambda x: abs(x - target))
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (
-            (volume_type := self.volume_type)
-            and (location := self.location)
-            and (size := self.volume_size)
-            and (iops := self.volume_iops)
-            and (throughput := self.volume_throughput)
-        ):
-            if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
-                return
-
-            generic_size = AzureDiskType.create_custom_size(location, volume_type, size, iops, throughput)
-            AzureDiskType.collect(generic_size, graph_builder)
-
-            # Create edge between Ultra(or Premium V2) SSD disk type and disk
-            graph_builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                clazz=AzureDiskType,
-                location=location,
-                volume_type=volume_type,
-                volume_size=size,
-                volume_throughput=throughput,
-                volume_iops=iops,
-            )
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (volume_type := self.volume_type) and (location := self.location) and (size := self.volume_size):
-            # Connect disk types there except Ultra Disk and Premium SSD V2
+            # Connect disk types, excluding "UltraSSD_LRS" and "PremiumV2_LRS"
             if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
                 tier_name = self.tier_name
 
@@ -1178,6 +1194,19 @@ class AzureDisk(AzureResource, BaseVolume):
                         location=location,
                         volume_type=volume_type,
                         tier=tier,
+                    )
+            else:
+                if (iops := self.volume_iops) and (throughput := self.volume_throughput):
+                    # Create edge between Ultra(or Premium V2) SSD disk type and disk
+                    builder.add_edge(
+                        self,
+                        edge_type=EdgeType.default,
+                        clazz=AzureDiskType,
+                        location=location,
+                        volume_type=volume_type,
+                        volume_size=size,
+                        volume_throughput=throughput,
+                        volume_iops=iops,
                     )
         if disk_id := self.id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
