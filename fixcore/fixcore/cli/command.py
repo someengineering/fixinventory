@@ -118,6 +118,8 @@ from fixcore.model.model import (
     TransformKind,
     EmptyPath,
     any_kind,
+    string_kind,
+    double_kind,
 )
 from fixcore.model.resolve_in_graph import NodePath
 from fixcore.model.typed_model import to_json, to_js, from_js
@@ -2441,6 +2443,7 @@ class PropToShow:
     display: str
     path_access: Optional[str] = None
     alternative_path: Optional[List[str]] = None
+    override_kind: Optional[str] = None
 
     def full_path(self) -> str:
         return self.path_access or ".".join(self.path)
@@ -2632,11 +2635,34 @@ class ListCommand(CLICommand, OutputTransformer):
         output_type.add_argument("--json-table", dest="json_table", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
+        is_aggregate: bool = ctx.query is not None and ctx.query.aggregate is not None
 
         def display(name: str) -> str:
             return " ".join(word.capitalize() for word in name.split("_"))
 
         def default_props_to_show(
+            props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
+        ) -> List[PropToShow]:
+            if (query := ctx.query) and (aggregate := query.aggregate) is not None:
+                return default_aggregate_props_to_show(aggregate)
+            else:
+                return default_list_props_to_show(props_setting)
+
+        def default_aggregate_props_to_show(aggregate: Aggregate) -> List[PropToShow]:
+            props = [
+                PropToShow(["group", n], n, display(n), override_kind=string_kind.fqn)
+                for group in aggregate.group_by
+                if (n := group.get_as_name())
+            ]
+            for fn in aggregate.group_func:
+                props.append(
+                    PropToShow(
+                        [fn.get_as_name()], fn.get_as_name(), display(fn.get_as_name()), override_kind=double_kind.fqn
+                    )
+                )
+            return props
+
+        def default_list_props_to_show(
             props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
         ) -> List[PropToShow]:
             default_props, context_props, history_props, live_props = props_setting
@@ -2741,11 +2767,11 @@ class ListCommand(CLICommand, OutputTransformer):
             return create_unique_names(props)
 
         def fmt_json(elem: Json) -> JsonElement:
-            if node := get_node(elem):
+            if is_node(elem) or is_aggregate:
                 result = ""
                 first = True
                 for prop in props_to_show(self.default_list):
-                    value = prop.value(node)
+                    value = prop.value(elem)
                     if value is not None:
                         delim = "" if first else ", "
                         result += f"{delim}{to_str(prop.name, value)}"
@@ -2774,10 +2800,10 @@ class ListCommand(CLICommand, OutputTransformer):
 
             async with in_stream.stream() as s:
                 async for elem in s:
-                    if node := get_node(elem):
+                    if is_node(elem) or is_aggregate:
                         result = []
                         for prop in props:
-                            value = prop.value(node)
+                            value = prop.value(elem)
                             result.append(value)
                         yield to_csv_string(result)
 
@@ -2809,7 +2835,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     {
                         "name": prop.name,
                         "path": "/" + prop.full_path(),
-                        "kind": kind_of(prop.path).fqn,
+                        "kind": prop.override_kind or kind_of(prop.path).fqn,
                         "display": prop.display,
                     }
                     for prop in props
@@ -2882,7 +2908,7 @@ class ListCommand(CLICommand, OutputTransformer):
             # noinspection PyUnresolvedReferences
             markdown_chunks = (
                 in_stream
-                | pipe.filter(is_node)
+                | pipe.filter(lambda x: is_node(x) or is_aggregate)
                 | pipe.map(extract_values)  # type: ignore
                 | pipe.chunks(chunk_size)
                 | pipe.enumerate()

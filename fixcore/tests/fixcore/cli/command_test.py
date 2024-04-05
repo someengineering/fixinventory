@@ -647,6 +647,10 @@ async def test_list_command(cli: CLI) -> None:
     assert src_ctx.count == 10
     assert src_ctx.total_count == 100
 
+    # aggregates are rendered correctly
+    result = await cli.execute_cli_command("search is (foo) | aggregate kind: sum(1) as count | list", list_sink)
+    assert result[0][0] == "kind=foo, count=10"
+
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
