@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Type, Any, Tuple
 
 from attrs import define, field
 
@@ -134,6 +134,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                                 name=record_set.name,
                                 record_type=record_set.record_type,
                                 record_ttl=record_set.record_ttl or 0,
+                                record_set_identifier=record_set.record_set_identifier,
                                 record_data=data,
                                 **rrdata_as_dict(record_set.record_type, data),
                             )
@@ -244,6 +245,10 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
             "delete": [],
         }
     }
+    _record_set_identifier: Optional[str] = field(default=None)
+
+    def _keys(self) -> Tuple[Any, ...]:
+        return tuple(list(super()._keys()) + [self._record_set_identifier])
 
     @classmethod
     def service_name(cls) -> str:
