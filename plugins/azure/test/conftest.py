@@ -23,7 +23,12 @@ from fixlib.types import Json
 
 class StaticFileAzureClient(AzureClient):
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        last = spec.path.rsplit("/", maxsplit=1)[-1]
+        query_start_index = spec.path.find("?")
+        spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
+        splitted_path = spec_path.rsplit("/")
+
+        last = splitted_path[-1] if splitted_path[-1] != "" else splitted_path[-2]
+
         path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
         with open(path) as f:
             js = json.load(f)
@@ -134,20 +139,26 @@ def all_props_set(obj: AzureResourceType, ignore_props: Optional[Set[str]] = Non
 
 
 def roundtrip_check(
-    resource_clazz: Type[AzureResourceType], builder: GraphBuilder, *, all_props: bool = False
+    resource_clazz: Type[AzureResourceType],
+    builder: GraphBuilder,
+    *,
+    all_props: bool = False,
+    check_correct_ser: bool = True,
 ) -> List[AzureResourceType]:
     resources = resource_clazz.collect_resources(builder)
     assert len(resources) > 0
     if all_props:
         all_props_set(resources[0])
-    for resource in resources:
-        # create json representation
-        js_repr = resource.to_json()
-        # make sure that the resource can be json serialized and read back
-        again = resource_clazz.from_json(js_repr)
-        # since we can not compare objects, we use the json representation to see that no information is lost
-        again_js = again.to_json()
-        assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
+    # Check correct json serialization
+    if check_correct_ser:
+        for resource in resources:
+            # create json representation
+            js_repr = resource.to_json()
+            # make sure that the resource can be json serialized and read back
+            again = resource_clazz.from_json(js_repr)
+            # since we can not compare objects, we use the json representation to see that no information is lost
+            again_js = again.to_json()
+            assert js_repr == again_js, f"Left: {js_repr}\nRight: {again_js}"
     return resources
 
 

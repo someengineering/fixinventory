@@ -232,7 +232,7 @@ class AzureResourceManagementClient(AzureClient):
         js: Union[Json, List[Json]] = response.json()
 
         if isinstance(js, dict):
-            if "nextLink" in js:
+            if "nextLink" in js or "NextPageLink" in js:
                 js = self._handle_pagination(js, spec, error_map)
             else:
                 if spec.access_path:
@@ -248,7 +248,7 @@ class AzureResourceManagementClient(AzureClient):
             nextlink_jsons.extend(js[spec.access_path])
         else:
             nextlink_jsons.append(js)
-        while nextlink_url := js.get("nextLink"):
+        while nextlink_url := js.get("nextLink") or js.get("NextPageLink"):
             response = self._make_request(nextlink_url, {}, {})
             if response.status_code != 200:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)

@@ -7,6 +7,8 @@ from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fix_plugin_azure.azure_client import AzureClient
 from fix_plugin_azure.resource.compute import (
     AzureVirtualMachineSize,
+    AzureDiskType,
+    AzureDiskTypePricing,
     resources as compute_resources,
 )
 from fix_plugin_azure.resource.base import (
@@ -113,6 +115,15 @@ class AzureSubscriptionCollector:
             queue.wait_for_submitted_work()
             # filter nodes
             self.filter_nodes()
+
+            # post process nodes
+            for node, data in list(self.graph.nodes(data=True)):
+                if isinstance(node, AzureResource):
+                    node.after_collect(builder, data.get("source", {}))
+
+            # delete unnecessary nodes after all work is completed
+            self.after_collect_filter()
+
             self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
 
@@ -149,7 +160,6 @@ class AzureSubscriptionCollector:
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
-            remove_nodes.clear()
 
         def remove_usage_zero_value() -> None:
             for node in self.graph.nodes:
@@ -162,12 +172,23 @@ class AzureSubscriptionCollector:
                     # If the current usage value is 0, add the node to the list of nodes to remove
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
-            remove_nodes.clear()
 
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
+        rm_nodes(AzureDiskType, AzureLocation)
         remove_usage_zero_value()
+
+    def after_collect_filter(self) -> None:
+        # Filter unnecessary nodes such as AzureDiskTypePricing
+        nodes_to_remove = []
+        node_types = (AzureDiskTypePricing,)
+
+        for node in self.graph.nodes:
+            if not isinstance(node, node_types):
+                continue
+            nodes_to_remove.append(node)
+        self._delete_nodes(nodes_to_remove)
 
     def _delete_nodes(self, nodes_to_delte: Any) -> None:
         removed = set()
@@ -176,3 +197,4 @@ class AzureSubscriptionCollector:
                 continue
             removed.add(node)
             self.graph.remove_node(node)
+        nodes_to_delte.clear()

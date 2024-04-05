@@ -837,12 +837,13 @@ class BaseVolumeType(BaseType):
     kind_display: ClassVar[str] = "Volume Type"
     kind_description: ClassVar[str] = "A volume type."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type", "group": "storage"}
-    volume_type: str = ""
+    volume_type: Optional[str] = None
     ondemand_cost: Optional[float] = None
 
     def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
-        self.volume_type = self.id
+        if self.volume_type is None:
+            self.volume_type = self.id
         if self.ondemand_cost is not None:
             self.ondemand_cost = float(self.ondemand_cost)
 
