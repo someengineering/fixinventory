@@ -168,7 +168,7 @@ async def test_search_source(cli: CLIService) -> None:
         "with(any, --> /metadata!=null) sort /reported.name asc limit 1",
         list_sink,
     )
-    assert result5 == [[{"group": {"kind": "foo"}, "si": 0}]]
+    assert result5 == [["kind=foo, si=0"]]
 
 
 @pytest.mark.asyncio
@@ -646,6 +646,10 @@ async def test_list_command(cli: CLI) -> None:
     src_ctx, gen = await parsed[0].execute()
     assert src_ctx.count == 10
     assert src_ctx.total_count == 100
+
+    # aggregates are rendered correctly
+    result = await cli.execute_cli_command("search is (foo) | aggregate kind: sum(1) as count | list", list_sink)
+    assert result[0][0] == "kind=foo, count=10"
 
 
 @pytest.mark.asyncio
