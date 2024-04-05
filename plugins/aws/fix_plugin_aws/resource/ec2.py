@@ -3927,7 +3927,7 @@ class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
     kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#LaunchTemplateDetails:launchTemplateId={LaunchTemplateId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:launch-template/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default", "$Latest"]}
+        "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default"]}
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LaunchTemplateId"),
