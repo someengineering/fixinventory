@@ -13,7 +13,7 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.graph import Graph
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, bend
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, bend, K
 from fixlib.types import Json
 from fixlib.utils import rrdata_as_dict
 
@@ -267,7 +267,7 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
         }
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Name"),
+        "id": S("Name") + K(":") + S("SetIdentifier"),
         "name": S("Name"),
         "record_set_identifier": S("SetIdentifier"),
         "record_type": S("Type"),
