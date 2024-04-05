@@ -168,7 +168,7 @@ async def test_search_source(cli: CLIService) -> None:
         "with(any, --> /metadata!=null) sort /reported.name asc limit 1",
         list_sink,
     )
-    assert result5 == [[{"group": {"kind": "foo"}, "si": 0}]]
+    assert result5 == [["kind=foo, si=0"]]
 
 
 @pytest.mark.asyncio
