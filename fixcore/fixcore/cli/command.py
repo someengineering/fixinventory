@@ -1489,7 +1489,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
                     query_model, changes, before, after, with_count=count, timeout=timeout
                 )
             elif query.aggregate:
-                context = await db.search_aggregation(query_model)
+                context = await db.search_aggregation(query_model, with_count=count, timeout=timeout)
             elif with_edges:
                 context = await db.search_graph_gen(query_model, with_count=count, timeout=timeout)
             else:

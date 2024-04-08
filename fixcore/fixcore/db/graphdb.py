@@ -203,7 +203,9 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
         pass
 
     @abstractmethod
@@ -781,10 +783,18 @@ class ArangoGraphDB(GraphDB):
                     graph.add_node(item["id"], **item)
             return graph
 
-    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
+    async def search_aggregation(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
         q_string, bind = await self.to_query(query)
         assert query.query.aggregate is not None, "Given query has no aggregation section"
-        return await self.db.aql_cursor(query=q_string, bind_vars=bind)
+        return await self.db.aql_cursor(
+            query=q_string,
+            bind_vars=bind,
+            count=with_count,
+            full_count=with_count,
+            ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
+        )
 
     async def explain(self, query: QueryModel, with_edges: bool = False) -> EstimatedSearchCost:
         return await arango_query.query_cost(self, query, with_edges)
@@ -1779,8 +1789,10 @@ class EventGraphDB(GraphDB):
     ) -> AsyncCursorContext:
         return await self.real.search_graph_gen(query, with_count, timeout)
 
-    async def search_aggregation(self, query: QueryModel) -> AsyncCursorContext:
-        return await self.real.search_aggregation(query)
+    async def search_aggregation(
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+    ) -> AsyncCursorContext:
+        return await self.real.search_aggregation(query, with_count, timeout)
 
     async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         return await self.real.search_graph(query)
