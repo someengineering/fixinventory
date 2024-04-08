@@ -2844,10 +2844,10 @@ class ListCommand(CLICommand, OutputTransformer):
             # data columns
             async with in_stream.stream() as s:
                 async for elem in s:
-                    if node := get_node(elem):
+                    if isinstance(elem, dict) and (is_node(elem) or is_aggregate):
                         yield {
-                            "id": node["id"],
-                            "row": {prop.name: render_prop(prop.value(node)) for prop in props},
+                            "id": None if is_aggregate else elem["id"],  # aggregates have no id
+                            "row": {prop.name: render_prop(prop.value(elem)) for prop in props},
                         }
 
         def markdown_stream(in_stream: JsStream) -> JsGen:
