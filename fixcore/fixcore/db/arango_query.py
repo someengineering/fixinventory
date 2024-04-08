@@ -116,9 +116,7 @@ def to_query(
     query = query_model.query
     start = from_collection or f"`{db.graph_vertex_name()}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
-    last_limit = (
-        f" LIMIT {ll.offset}, {ll.length}" if ((ll := query.current_part.limit) and not query.is_aggregate()) else ""
-    )
+    last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
 
 
@@ -709,8 +707,8 @@ def query_string(
 
         # Skip the limit in case of
         # - with clause: the limit is applied in the with clause
-        # - last part of a non aggregation query: the limit is applied in the outermost for loop
-        filter_limit = p.limit if (p.with_clause is None and (not last_part or query.is_aggregate())) else None
+        # - last part: the limit is applied in the outermost for loop
+        filter_limit = p.limit if (p.with_clause is None and not last_part) else None
         cursor = in_cursor
         part_term = p.term
         if isinstance(p.term, MergeTerm):
@@ -728,7 +726,7 @@ def query_string(
             cursor = filter_statement(cursor, part_term, filter_limit)
 
         # See filter_limit documentation above
-        with_clause_limit = p.limit if (not last_part or query.is_aggregate()) else None
+        with_clause_limit = p.limit if not last_part else None
         cursor = with_clause(cursor, p.with_clause, with_clause_limit) if p.with_clause else cursor
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
