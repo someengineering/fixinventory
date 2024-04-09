@@ -154,6 +154,13 @@ class MetricName(str, Enum):
     WriteLatency = "write_latency"
     FreeStorageSpace = "free_storage_space"
 
+    # serverless
+    Invocations = "invocations"
+    Errors = "errors"
+    Throttles = "throttles"
+    Duration = "duration"
+    ConcurrentExecutions = "concurrent_executions"
+
 
 class MetricUnit(str, Enum):
     def __str__(self) -> str:
@@ -162,6 +169,7 @@ class MetricUnit(str, Enum):
     Count = "count"
     Bytes = "bytes"
     Seconds = "seconds"
+    Milliseconds = "milliseconds"
     Percent = "percent"
     MegabitsPerSecond = "Mbps"
     MegabytesPerSecond = "MBps"
