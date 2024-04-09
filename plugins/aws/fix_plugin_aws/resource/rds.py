@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attr import define, field
@@ -8,6 +8,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
+    calculate_min_max_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization
@@ -583,9 +584,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         }
         queries = []
         delta_since_last_scan = builder.metrics_delta
-
-        # for metrics which are expressed as sum, we want the period to be
-        # 5 minutes or less if the last scan was less than 5 minutes ago
+        period = min(timedelta(minutes=5), delta_since_last_scan)
 
         start = builder.metrics_start
         now = builder.created_at
@@ -613,24 +612,54 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         ref_id=instance_id,
                         stat=stat,
                         unit="Count",
-                        InstanceId=instance_id,
+                        DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "ReadLatency", "WriteLatency"]
+                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
                 ]
             )
-
             queries.extend(
                 [
                     AwsCloudwatchQuery.create(
-                        metric_name="FreeStorageSpace",
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta_since_last_scan,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Seconds",
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["ReadLatency", "WriteLatency"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
                         namespace="AWS/RDS",
                         period=delta_since_last_scan,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Bytes",
-                        InstanceId=instance_id,
+                        DBInstanceIdentifier=instance_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=period,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Bytes/Second",
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
@@ -644,16 +673,19 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "DatabaseConnections": MetricNormalization(
                 metric_name=MetricName.DatabaseConnections,
                 unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadIOPS": MetricNormalization(
                 metric_name=MetricName.DiskRead,
                 unit=MetricUnit.IOPS,
+                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteIOPS": MetricNormalization(
                 metric_name=MetricName.DiskWrite,
                 unit=MetricUnit.IOPS,
+                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
@@ -670,7 +702,37 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "FreeStorageSpace": MetricNormalization(
                 metric_name=MetricName.FreeStorageSpace,
                 unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "FreeableMemory": MetricNormalization(
+                metric_name=MetricName.FreeableMemory,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "SwapUsage": MetricNormalization(
+                metric_name=MetricName.SwapUsage,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "DiskQueueDepth": MetricNormalization(
+                metric_name=MetricName.DiskQueueDepth,
+                unit=MetricUnit.Count,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "NetworkReceiveThroughput": MetricNormalization(
+                metric_name=MetricName.NetworkReceiveThroughput,
+                unit=MetricUnit.BytesPerSecond,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
+            ),
+            "NetworkTransmitThroughput": MetricNormalization(
+                metric_name=MetricName.NetworkTransmitThroughput,
+                unit=MetricUnit.BytesPerSecond,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
         }
 

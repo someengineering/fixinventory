@@ -153,6 +153,11 @@ class MetricName(str, Enum):
     ReadLatency = "read_latency"
     WriteLatency = "write_latency"
     FreeStorageSpace = "free_storage_space"
+    FreeableMemory = "freeable_memory"
+    SwapUsage = "swap_usage"
+    DiskQueueDepth = "disk_queue_depth"
+    NetworkReceiveThroughput = "network_receive_throughput"
+    NetworkTransmitThroughput = "network_transmit_throughput"
 
     # serverless
     Invocations = "invocations"
@@ -171,6 +176,7 @@ class MetricUnit(str, Enum):
     Seconds = "seconds"
     Milliseconds = "milliseconds"
     Percent = "percent"
+    BytesPerSecond = "BytesPs"
     MegabitsPerSecond = "Mbps"
     MegabytesPerSecond = "MBps"
     PacketsPerSecond = "pps"

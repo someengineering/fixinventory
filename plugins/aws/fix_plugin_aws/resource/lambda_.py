@@ -8,7 +8,12 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
-from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchMetricData, AwsCloudwatchQuery, calculate_min_max_avg, update_resource_metrics
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchMetricData,
+    AwsCloudwatchQuery,
+    calculate_min_max_avg,
+    update_resource_metrics,
+)
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import MetricNormalization
@@ -454,7 +459,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 ]
             )
 
-        
         metric_normalizers = {
             "Invokations": MetricNormalization(
                 metric_name=MetricName.Invocations,
@@ -490,7 +494,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
 
         update_resource_metrics(lambdas, cloudwatch_result, metric_normalizers)
-
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
