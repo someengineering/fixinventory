@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from textwrap import dedent
-from typing import Union, List, Tuple, Any, Optional, Dict, Set, Literal, Collection
+from typing import Union, List, Tuple, Any, Optional, Dict, Literal, Collection
 
 from arango.typings import Json
 from attrs import evolve
@@ -42,7 +42,7 @@ from fixcore.query.model import (
     ContextTerm,
     WithUsage,
 )
-from fixcore.util import first, set_value_in_path, exist, utc_str
+from fixcore.util import set_value_in_path, exist, utc_str
 from fixlib.durations import duration_str
 
 log = logging.getLogger(__name__)
@@ -75,9 +75,6 @@ fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fullt
 
 # All resolved ancestors attributes have to be treated explicitly.
 # Queries with /ancestors.kind.xxx have to be treated as merge query parameters.
-ancestor_merges = {
-    f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
-}
 
 array_marker = re.compile(r"\[]|\[\*]")
 array_marker_in_path_regexp = re.compile(r"(?:\[]|\[\*])(?=[.])")
@@ -134,8 +131,6 @@ def query_string(
     # Note: the parts are maintained in reverse order
     query_parts = query.parts[::-1]
     model = query_model.model
-    # combine merge names from the query as well as the default ancestor merge names
-    merge_names: Set[str] = query_model.query.merge_names | ancestor_merges
 
     def prop_name_kind(
         path: str, context_path: Optional[str] = None

@@ -7,8 +7,13 @@ from attr import define
 
 from fixcore.model.graph_access import Section
 from fixcore.model.model import Model, ResolvedPropertyPath
+from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import Query
 from fixcore.util import first
+
+ancestor_merges = {
+    f"ancestors.{p.to_path[1]}" for r in GraphResolver.to_resolve for p in r.resolve if p.to_path[0] == "ancestors"
+}
 
 
 @define
@@ -26,7 +31,9 @@ class QueryModel:
         return False
 
     def prop_kind(self, path: str) -> Tuple[ResolvedPropertyPath, Optional[str]]:  # prop, merge_name
-        merge_name = first(lambda name: path.startswith(name + "."), self.query.merge_names)
+        merge_name = first(lambda name: path.startswith(name + "."), self.query.merge_names) or first(
+            lambda name: path.startswith(name + "."), ancestor_merges
+        )
         # remove merge_name and section part (if existent) from the local_path
         lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
         resolved = self.model.property_by_path(lookup)

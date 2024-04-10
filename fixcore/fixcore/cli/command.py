@@ -2808,10 +2808,8 @@ class ListCommand(CLICommand, OutputTransformer):
                         yield to_csv_string(result)
 
         async def json_table_stream(in_stream: JsStream, model: QueryModel) -> JsGen:
-            def kind_of(path: List[str]) -> Kind:
-                if path[0] in Section.lookup_sections:
-                    return kind_of(path[2:])
-                resolved, _ = model.prop_kind(".".join(path))
+            def kind_of(path: str) -> Kind:
+                resolved, _ = model.prop_kind(path)
                 if isinstance(resolved.kind, TransformKind):
                     return resolved.kind.source_kind if resolved.kind.source_kind else any_kind
                 else:
@@ -2833,7 +2831,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     {
                         "name": prop.name,
                         "path": "/" + prop.full_path(),
-                        "kind": prop.override_kind or kind_of(prop.path).fqn,
+                        "kind": prop.override_kind or kind_of(prop.full_path()).fqn,
                         "display": prop.display,
                     }
                     for prop in props
