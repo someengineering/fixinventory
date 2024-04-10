@@ -374,3 +374,18 @@ def assert_round_trip(parser: Parser, obj: object, after_parsed: Optional[Callab
     parsed = parser.parse(str_rep)
     post = after_parsed(parsed) if after_parsed else parsed
     assert str(post) == str_rep, f"Expected: {str(post)} but got {str_rep}.\nDifference: {DeepDiff(obj, post)}"
+
+
+def test_merge_query() -> None:
+    # /ancestors syntax creates a merge query
+    q = parse_query("is(bla) and /ancestors.foo.reported.name=test").on_section()
+    assert str(q) == 'is("bla") {ancestors.foo: all <-default[1:]- is("foo")} ancestors.foo.reported.name == "test"'
+    # defining an explicit merge overrides the created one
+    q = parse_query('is("bla") {ancestors.foo: all <-default[2:]- is("boo")} ancestors.foo.reported.name == "test"').on_section()  # fmt: skip # noqa
+    assert str(q) == 'is("bla") {ancestors.foo: all <-default[2:]- is("boo")} ancestors.foo.reported.name == "test"'
+    # merge parts are optimized to be defined (and executed) as late as possible
+    q = parse_query(
+        'is(aws_s3_bucket) {account_setting: <-[0:]- is(aws_account) --> is(aws_s3_account_settings)} (account_setting.reported.bucket_public_access_block_configuration.{block_public_acls != true or ignore_public_acls != true or block_public_policy != true or restrict_public_buckets != true} and bucket_public_access_block_configuration.{block_public_acls != true or ignore_public_acls != true or block_public_policy != true or restrict_public_buckets != true}) and ((bucket_acl.grants[*].{permission in [READ, READ_ACP, WRITE, WRITE_ACP, FULL_CONTROL] and grantee.uri = "http://acs.amazonaws.com/groups/global/AllUsers"}) or (bucket_policy.Statement[*].{Effect = Allow and (Principal = "*" or Principal.AWS = "*" or Principal.CanonicalUser = "*") and (Action in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"] or Action[*] in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"])}))'  # noqa
+    ).on_section()
+    # the merge part is moved to the end of the query where it is required
+    assert str(q) == '((is("aws_s3_bucket") and (bucket_acl.grants[*].{(permission in ["READ", "READ_ACP", "WRITE", "WRITE_ACP", "FULL_CONTROL"] and grantee.uri == "http://acs.amazonaws.com/groups/global/AllUsers")} or bucket_policy.Statement[*].{((Effect == "Allow" and ((Principal == "*" or Principal.AWS == "*") or Principal.CanonicalUser == "*")) and (Action in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"] or Action[*] in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"]))})) and bucket_public_access_block_configuration.{(((block_public_acls != true or ignore_public_acls != true) or block_public_policy != true) or restrict_public_buckets != true)}) {account_setting: all <-default[0:]- is("aws_account") -default-> is("aws_s3_account_settings")} account_setting.reported.bucket_public_access_block_configuration.{(((block_public_acls != true or ignore_public_acls != true) or block_public_policy != true) or restrict_public_buckets != true)}'  # fmt: skip # noqa
