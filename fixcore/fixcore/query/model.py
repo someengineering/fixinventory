@@ -729,15 +729,23 @@ class Part:
         :return: the rewritten part with resolved merge parts if ancestor or descendant predicates are found.
         """
 
-        def has_ancestor_descendant(t: Term) -> bool:
-            return t.find_term(lambda trm: isinstance(trm, Predicate) and is_ancestor_descendant(trm.name)) is not None
+        merges = [re.compile(n.name + "\\b") for n in self.term.merge] if isinstance(self.term, MergeTerm) else []
+
+        def is_merge_part(name: str) -> bool:
+            return is_ancestor_descendant(name) or any(m.match(name) for m in merges)
+
+        def has_merge_part(t: Term) -> bool:
+            return (
+                t.find_term(lambda trm: isinstance(trm, (Predicate, ContextTerm)) and is_merge_part(trm.name))
+                is not None
+            )
 
         def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
-            return t.find_terms(lambda t: isinstance(t, Predicate) and is_ancestor_descendant(t.name), in_context_term=False)  # type: ignore # noqa: E501
+            return t.find_terms(lambda t: isinstance(t, (Predicate, ContextTerm)) and is_ancestor_descendant(t.name), in_context_term=False)  # type: ignore # noqa: E501
 
-        if has_ancestor_descendant(self.term):
+        if has_merge_part(self.term):
             # create a filter term that is independent of the merge and execute it before the merge
-            before_merge, after_merge = self.term.split_term_by(has_ancestor_descendant)
+            before_merge, after_merge = self.term.split_term_by(has_merge_part)
             # Create a dict here instead of a set only to ensure ordering (dict remembers order, set is not)'b
             queries = self.merge_queries_for({p.name: 1 for p in ancestor_descendant_predicates(after_merge)})
             return evolve(self, term=MergeTerm(before_merge, queries, after_merge))
