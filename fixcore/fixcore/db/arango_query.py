@@ -141,10 +141,7 @@ def query_string(
         path: str, context_path: Optional[str] = None
     ) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
         local_path = f"{context_path}.{path}" if context_path else path
-        merge_name = first(lambda name: local_path.startswith(name + "."), merge_names)
-        # remove merge_name and section part (if existent) from the local_path
-        lookup = Section.without_section(local_path[len(merge_name) + 1 :] if merge_name else local_path)  # noqa: E203
-        resolved = model.property_by_path(lookup)
+        resolved, merge_name = query_model.prop_kind(local_path)
 
         def synthetic_path(synth: SyntheticProperty) -> str:
             before, after = local_path.rsplit(resolved.prop.name, 1)

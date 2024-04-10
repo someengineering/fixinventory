@@ -2807,17 +2807,15 @@ class ListCommand(CLICommand, OutputTransformer):
                             result.append(value)
                         yield to_csv_string(result)
 
-        async def json_table_stream(in_stream: JsStream, model: Model) -> JsGen:
+        async def json_table_stream(in_stream: JsStream, model: QueryModel) -> JsGen:
             def kind_of(path: List[str]) -> Kind:
                 if path[0] in Section.lookup_sections:
                     return kind_of(path[2:])
-                if path[0] in Section.content:
-                    path = path[1:]
-                kind = model.kind_by_path(path)
-                if isinstance(kind, TransformKind):
-                    return kind.source_kind if kind.source_kind else any_kind
+                resolved, _ = model.prop_kind(".".join(path))
+                if isinstance(resolved.kind, TransformKind):
+                    return resolved.kind.source_kind if resolved.kind.source_kind else any_kind
                 else:
-                    return kind
+                    return resolved.kind
 
             def render_prop(elem: JsonElement) -> JsonElement:
                 # For table output, we want to show a single element: create a string from complex or list element.
@@ -2924,8 +2922,9 @@ class ListCommand(CLICommand, OutputTransformer):
                 return markdown_stream(in_stream)
             elif parsed.json_table:
 
-                async def load_model() -> Model:
-                    return await self.dependencies.model_handler.load_model(ctx.graph_name)
+                async def load_model() -> QueryModel:
+                    model = await self.dependencies.model_handler.load_model(ctx.graph_name)
+                    return QueryModel(ctx.query or Query.empty(), model, ctx.env)
 
                 return stream.call(load_model) | pipe.flatmap(partial(json_table_stream, in_stream))  # type: ignore
             else:
