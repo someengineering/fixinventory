@@ -584,7 +584,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         }
         queries = []
         delta_since_last_scan = builder.metrics_delta
-        period = min(timedelta(minutes=5), delta_since_last_scan)
 
         start = builder.metrics_start
         now = builder.created_at
@@ -653,7 +652,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta_since_last_scan,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Bytes/Second",
@@ -726,13 +725,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 metric_name=MetricName.NetworkReceiveThroughput,
                 unit=MetricUnit.BytesPerSecond,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.total_seconds(), 4),
+                normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkTransmitThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkTransmitThroughput,
                 unit=MetricUnit.BytesPerSecond,
                 compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x / period.total_seconds(), 4),
+                normalize_value=lambda x: round(x, ndigits=4),
             ),
         }
 

@@ -381,9 +381,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         "HealthyHostCount",
                         "UnHealthyHostCount",
                         "EstimatedALBActiveConnectionCount",
-                        "HTTPCode_Backend_2XX_Count",
-                        "HTTPCode_Backend_4XX_Count",
-                        "HTTPCode_Backend_5XX_Count",
+                        "HTTPCode_Backend_2XX",
+                        "HTTPCode_Backend_4XX",
+                        "HTTPCode_Backend_5XX",
                     ]
                 ]
             )
@@ -428,19 +428,19 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
-            "HTTPCode_Backend_2XX_Count": MetricNormalization(
+            "HTTPCode_Backend_2XX": MetricNormalization(
                 metric_name=MetricName.StatusCode2XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
-            "HTTPCode_Backend_4XX_Count": MetricNormalization(
+            "HTTPCode_Backend_4XX": MetricNormalization(
                 metric_name=MetricName.StatusCode4XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
-            "HTTPCode_Backend_5XX_Count": MetricNormalization(
+            "HTTPCode_Backend_5XX": MetricNormalization(
                 metric_name=MetricName.StatusCode5XX,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
