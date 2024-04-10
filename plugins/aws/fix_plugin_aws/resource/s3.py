@@ -1,3 +1,4 @@
+from datetime import timedelta
 import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -7,8 +8,14 @@ from attrs import define
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
-from fix_plugin_aws.utils import tags_as_dict
-from fixlib.baseresources import BaseBucket, PhantomBaseResource, ModelReference
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchMetricData,
+    AwsCloudwatchQuery,
+    calculate_min_max_avg,
+    update_resource_metrics,
+)
+from fix_plugin_aws.utils import MetricNormalization, tags_as_dict
+from fixlib.baseresources import BaseBucket, MetricName, MetricUnit, PhantomBaseResource, ModelReference
 from fixlib.graph import Graph
 from fixlib.json import is_empty, sort_json
 from fixlib.json_bender import Bender, S, bend, Bend, ForallBend
@@ -307,6 +314,86 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             Bucket=self.name,
         )
         return tags_as_dict(tag_list)  # type: ignore
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        s3s = {s3.id: s3 for s3 in builder.nodes(clazz=AwsS3Bucket) if s3.region().id == builder.region.id}
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
+
+        for s3_id, s3 in s3s.items():
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/S3",
+                        period=period,
+                        ref_id=s3_id,
+                        stat="Sum",
+                        unit="Count",
+                        BucketName=s3.name or "",
+                    )
+                    for metric in [
+                        "4xxErrors",
+                        "5xxErrors",
+                    ]
+                ]
+            )
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="NumberOfObjects",
+                    namespace="AWS/S3",
+                    period=delta,
+                    ref_id=s3_id,
+                    stat="Average",
+                    unit="Count",
+                    BucketName=s3.name or "",
+                )
+            )
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="BucketSizeBytes",
+                    namespace="AWS/S3",
+                    period=delta,
+                    ref_id=s3_id,
+                    stat="Average",
+                    unit="Bytes",
+                    BucketName=s3.name or "",
+                )
+            )
+        metric_normalizers = {
+            "BucketSizeBytes": MetricNormalization(
+                metric_name=MetricName.BucketSizeBytes,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "NumberOfObjects": MetricNormalization(
+                metric_name=MetricName.NumberOfObjects,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "4xxErrors": MetricNormalization(
+                metric_name=MetricName.Errors4xx,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "5xxErrors": MetricNormalization(
+                metric_name=MetricName.Errors5xx,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)
