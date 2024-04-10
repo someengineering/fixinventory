@@ -453,6 +453,9 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     for metric in [
                         "RequestCount",
                         "ActiveConnectionCount",
+                        "RejectedConnectionCount",
+                        "IPv6RequestCount",
+                        "IPv6ProcessedBytes",
                         "HTTPCode_Target_2XX_Count",
                         "HTTPCode_Target_4XX_Count",
                         "HTTPCode_Target_5XX_Count",
@@ -526,6 +529,24 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                 unit=MetricUnit.MegabitsPerSecond,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=partial(bytes_to_megabits_per_second, period=period),
+            ),
+            "RejectedConnectionCount": MetricNormalization(
+                metric_name=MetricName.StatusCode5XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
+            ),
+            "IPv6RequestCount": MetricNormalization(
+                metric_name=MetricName.StatusCode5XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
+            ),
+            "IPv6ProcessedBytes": MetricNormalization(
+                metric_name=MetricName.StatusCode5XX,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x / period.total_seconds(), 4),
             ),
         }
 

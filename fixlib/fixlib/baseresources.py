@@ -132,6 +132,8 @@ class MetricName(str, Enum):
     VolumeTotalWriteTime = "volume_total_write_time"
     VolumeIdleTime = "volume_idle_time"
     VolumeQueueLength = "volume_queue_length"
+    NumberOfObjects = "number_of_objects"
+    BucketSizeBytes = "bucket_size_bytes"
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
@@ -147,6 +149,9 @@ class MetricName(str, Enum):
     UnhealthyStateRouting = "unhealthy_state_routing"
     HealthyStateDNS = "healthy_state_dns"
     UnhealthyStateDNS = "unhealthy_state_dns"
+    RejectedConnectionCount = "rejected_connection_count"
+    IPv6RequestCount = "ipv6_request_count"
+    IPv6ProcessedBytes = "ipv6_processed_bytes"
 
     # databases
     DatabaseConnections = "database_connections"

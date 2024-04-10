@@ -1,4 +1,3 @@
-from datetime import timedelta
 import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -322,26 +321,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
         for s3_id, s3 in s3s.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric,
-                        namespace="AWS/S3",
-                        period=period,
-                        ref_id=s3_id,
-                        stat="Sum",
-                        unit="Count",
-                        BucketName=s3.name or "",
-                    )
-                    for metric in [
-                        "4xxErrors",
-                        "5xxErrors",
-                    ]
-                ]
-            )
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
@@ -373,18 +354,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             ),
             "NumberOfObjects": MetricNormalization(
                 metric_name=MetricName.NumberOfObjects,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "4xxErrors": MetricNormalization(
-                metric_name=MetricName.Errors4xx,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "5xxErrors": MetricNormalization(
-                metric_name=MetricName.Errors5xx,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
