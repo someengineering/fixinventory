@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from attrs import define, field, evolve
-from functools import reduce, partial, cached_property
+from functools import reduce, partial, cached_property, lru_cache
 from itertools import chain
 from typing import Mapping, Union, Optional, Any, ClassVar, Dict, List, Tuple, Callable, Set, Iterable
 
@@ -899,6 +899,11 @@ class Query:
     def __attrs_post_init__(self) -> None:
         if self.parts is None or len(self.parts) == 0:
             raise AttributeError(f"Expected non empty parts but got {self.parts}")
+
+    @staticmethod
+    @lru_cache()
+    def empty() -> Query:
+        return Query([Part(AllTerm())])
 
     @staticmethod
     def by(
