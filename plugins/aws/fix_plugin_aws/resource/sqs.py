@@ -5,8 +5,15 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchMetricData,
+    AwsCloudwatchQuery,
+    calculate_min_max_avg,
+    update_resource_metrics,
+)
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fixlib.baseresources import ModelReference
+from fix_plugin_aws.utils import MetricNormalization
+from fixlib.baseresources import MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
 from fixlib.types import Json
@@ -124,6 +131,89 @@ class AwsSqsQueue(AwsResource):
         for queue_url in json:
             if isinstance(queue_url, str):
                 add_instance(queue_url)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        sqs_queues = {sqs.id: sqs for sqs in builder.nodes(clazz=AwsSqsQueue) if sqs.region().id == builder.region.id}
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+
+        for sqs_id, sqs_queue in sqs_queues.items():
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="ApproximateAgeOfOldestMessage",
+                    namespace="AWS/SQS",
+                    period=delta,
+                    ref_id=sqs_id,
+                    stat="Sum",
+                    unit="Seconds",
+                    QueueName=sqs_queue.name or "",
+                )
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/SQS",
+                        period=delta,
+                        ref_id=sqs_id,
+                        stat=stat,
+                        unit="Count",
+                        QueueName=sqs_queue.name or "",
+                    )
+                    for name in [
+                        "ApproximateNumberOfMessagesDelayed",
+                        "ApproximateNumberOfMessagesNotVisible",
+                        "ApproximateNumberOfMessagesVisible",
+                        "NumberOfMessagesReceived",
+                        "NumberOfMessagesSent",
+                    ]
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+        metric_normalizers = {
+            "ApproximateAgeOfOldestMessage": MetricNormalization(
+                metric_name=MetricName.NumberOfMessagesPublished,
+                unit=MetricUnit.Seconds,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ApproximateNumberOfMessagesDelayed": MetricNormalization(
+                metric_name=MetricName.NumberOfNotificationsDelivered,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ApproximateNumberOfMessagesNotVisible": MetricNormalization(
+                metric_name=MetricName.NumberOfNotificationsFailed,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ApproximateNumberOfMessagesVisible": MetricNormalization(
+                metric_name=MetricName.PublishSize,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "NumberOfMessagesReceived": MetricNormalization(
+                metric_name=MetricName.PublishSize,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "NumberOfMessagesSent": MetricNormalization(
+                metric_name=MetricName.PublishSize,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(sqs_queues, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.sqs_kms_master_key_id:
