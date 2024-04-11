@@ -125,6 +125,10 @@ class MetricName(str, Enum):
     NetworkOut = "network_out"
     DiskRead = "disk_read"
     DiskWrite = "disk_write"
+    DiskReadLatency = "disk_read_latency"
+    DiskWriteLatency = "disk_write_latency"
+    DiskReadThroughput = "disk_read_throughput"
+    DiskWriteThroughput = "disk_write_throughput"
 
     # volumes
     VolumeWrite = "volume_write"
@@ -176,6 +180,12 @@ class MetricName(str, Enum):
     NumberOfNotificationsDelivered = "number_of_notifications_delivered"
     NumberOfNotificationsFailed = "number_of_notifications_failed"
     PublishSize = "publish_size"
+    ApproximateAgeOfOldestMessage = "approximate_age_of_oldest_message"
+    ApproximateNumberOfMessagesDelayed = "approximate_number_of_messages_delayed"
+    ApproximateNumberOfMessagesNotVisible = "approximate_number_of_messages_not_visible"
+    ApproximateNumberOfMessagesVisible = "approximate_number_of_messages_visible"
+    NumberOfMessagesReceived = "number_of_messages_received"
+    NumberOfMessagesSent = "number_of_messages_sent"
 
 
 class MetricUnit(str, Enum):
@@ -188,6 +198,7 @@ class MetricUnit(str, Enum):
     Milliseconds = "milliseconds"
     Percent = "percent"
     BytesPerSecond = "BytesPs"
+    CountPerSecond = "CountPs"
     MegabitsPerSecond = "Mbps"
     MegabytesPerSecond = "MBps"
     PacketsPerSecond = "pps"
