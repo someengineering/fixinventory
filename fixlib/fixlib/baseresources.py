@@ -171,6 +171,12 @@ class MetricName(str, Enum):
     Duration = "duration"
     ConcurrentExecutions = "concurrent_executions"
 
+    # messages
+    NumberOfMessagesPublished = "number_of_messages_published"
+    NumberOfNotificationsDelivered = "number_of_notifications_delivered"
+    NumberOfNotificationsFailed = "number_of_notifications_failed"
+    PublishSize = "publish_size"
+
 
 class MetricUnit(str, Enum):
     def __str__(self) -> str:

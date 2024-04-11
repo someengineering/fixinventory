@@ -413,7 +413,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        five_minutes_or_less = min(timedelta(minutes=5), delta)
 
         for lambda_id, lambda_instance in lambdas.items():
             queries.extend(
@@ -421,7 +420,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     AwsCloudwatchQuery.create(
                         metric_name=metric_name,
                         namespace="AWS/Lambda",
-                        period=five_minutes_or_less,
+                        period=delta,
                         ref_id=lambda_id,
                         stat="Sum",
                         unit="Count",
