@@ -559,7 +559,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         log.debug("Extracting AWS profiles from shared credentials file")
         try:
             profiles = boto3.Session().available_profiles
-            log.debug("Discovered the following profiles: %s", profiles)
+            log.debug(f"Discovered the following profiles: {profiles}")
         except Exception:
             msg = "AWS Credentials file could not be parsed."
             core_feedback.error(msg, log)
