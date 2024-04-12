@@ -534,7 +534,7 @@ def set_account_names(accounts: List[AwsAccount], core_feedback: CoreFeedback) -
 
 def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
-    profiles: Sequence[Optional[str]] = []
+    profiles: Sequence[Optional[str]] = [None]
     config: AwsConfig = Config.aws
 
     if config.assume_current and not config.do_not_scrape_current:
@@ -556,7 +556,7 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             )
             core_feedback.error(msg, log)
             raise ValueError(msg)
-    elif not config.account and not config.access_key_id:
+    elif not config.account and not config.access_key_id and not os.environ.get("AWS_ACCESS_KEY_ID"):
         log.debug("Extracting AWS profiles from shared credentials file")
         try:
             profiles = boto3.Session().available_profiles
@@ -564,8 +564,9 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         except Exception:
             msg = "AWS Credentials file could not be parsed."
             core_feedback.error(msg, log)
+
     if len(profiles) == 0:
-        # If we have no profiles, we still try to collect the current account.
+        # If we have no profiles, we still try to let boto3 do its default auth code path.
         profiles = [None]
 
     for profile in profiles:
