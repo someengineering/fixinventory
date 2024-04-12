@@ -62,7 +62,7 @@ google-resumable-media==2.7.0
 googleapis-common-protos==1.63.0
 httplib2==0.22.0
 hypothesis==6.99.11
-idna==3.6
+idna==3.7
 importlib-metadata==7.1.0
 inflect==7.0.0
 iniconfig==2.0.0
