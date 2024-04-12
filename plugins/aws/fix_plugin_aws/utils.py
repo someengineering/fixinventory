@@ -1,6 +1,4 @@
 import uuid
-from configparser import ConfigParser
-from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, TypeVar
 from attrs import frozen
 
