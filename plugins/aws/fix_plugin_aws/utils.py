@@ -21,13 +21,6 @@ metrics_session_exceptions = Counter(
 )
 
 
-def get_aws_profiles_from_file(path: Path) -> List[str]:
-    parser = ConfigParser()
-    parser.read(path)
-    # Use all sections that have an access key id defined
-    return [s for s in parser.sections() if parser.get(s, "aws_access_key_id", fallback=None) is not None]
-
-
 def retry_on_session_error(e: Exception) -> bool:
     if isinstance(e, (ConnectionClosedError, CredentialRetrievalError)):
         metrics_session_exceptions.inc()

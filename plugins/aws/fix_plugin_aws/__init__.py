@@ -34,7 +34,7 @@ from fixlib.utils import log_runtime
 from .collector import AwsAccountCollector
 from .configuration import AwsConfig
 from .resource.base import AwsAccount, AwsResource, get_client
-from .utils import arn_partition_by_region, aws_session, global_region_by_partition, get_aws_profiles_from_file
+from .utils import arn_partition_by_region, aws_session, global_region_by_partition
 
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 
@@ -534,7 +534,7 @@ def set_account_names(accounts: List[AwsAccount], core_feedback: CoreFeedback) -
 
 def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
     accounts = []
-    profiles: Sequence[Optional[str]] = [None]
+    profiles: Sequence[Optional[str]] = []
     config: AwsConfig = Config.aws
 
     if config.assume_current and not config.do_not_scrape_current:
@@ -545,7 +545,6 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
         core_feedback.error(msg, log)
         raise ValueError(msg)
 
-    credentials = Path(os.environ.get("AWS_SHARED_CREDENTIALS_FILE", os.path.expanduser("~/.aws/credentials")))
     if isinstance(config.profiles, list) and len(config.profiles) > 0:
         log.debug("Using specified AWS profiles")
         profiles = config.profiles
@@ -557,14 +556,17 @@ def get_accounts(core_feedback: CoreFeedback) -> List[AwsAccount]:
             )
             core_feedback.error(msg, log)
             raise ValueError(msg)
-    elif not config.account and not config.access_key_id and credentials.is_file():
+    elif not config.account and not config.access_key_id:
         log.debug("Extracting AWS profiles from shared credentials file")
         try:
-            profiles = get_aws_profiles_from_file(credentials)
+            profiles = boto3.Session().available_profiles
             log.debug("Discovered the following profiles: %s", profiles)
         except Exception:
-            msg = "AWS Credentials file found but could not be parsed."
+            msg = "AWS Credentials file could not be parsed."
             core_feedback.error(msg, log)
+    if len(profiles) == 0:
+        # If we have no profiles, we still try to collect the current account.
+        profiles = [None]
 
     for profile in profiles:
         if profile is not None:
