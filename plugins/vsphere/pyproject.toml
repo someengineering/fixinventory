@@ -4,7 +4,7 @@ description = "Fix VSphere Collector Plugin"
 version = "4.0.1"
 authors = [{name="Some Engineering Inc."}]
 license = {file="LICENSE"}
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     # Current project status
     "Development Status :: 4 - Beta",
@@ -14,7 +14,7 @@ classifiers = [
     # License information
     "License :: OSI Approved :: Apache Software License",
     # Supported python versions
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.11",
     # Supported OS's
     "Operating System :: POSIX :: Linux",
     "Operating System :: Unix",

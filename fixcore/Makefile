@@ -59,7 +59,7 @@ lint: ## static code analysis
 	black --line-length 120 --check fixcore tests
 	flake8 fixcore
 	pylint fixcore
-	mypy --python-version 3.9 --strict fixcore tests
+	mypy --python-version 3.11 --strict fixcore tests
 
 test: ## run tests quickly with the default Python
 	pytest

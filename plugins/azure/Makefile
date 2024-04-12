@@ -30,7 +30,7 @@ clean-test: ## remove test and coverage artifacts
 lint: ## static code analysis
 	black --line-length 120 --check fix_plugin_azure test
 	flake8 fix_plugin_azure
-	mypy --python-version 3.9 --strict --install-types --non-interactive fix_plugin_azure test
+	mypy --python-version 3.11 --strict --install-types --non-interactive fix_plugin_azure test
 
 test: ## run tests quickly with the default Python
 	pytest

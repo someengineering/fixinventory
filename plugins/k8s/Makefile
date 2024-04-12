@@ -30,7 +30,7 @@ clean-test: ## remove test and coverage artifacts
 lint: ## static code analysis
 	black --line-length 120 --check fix_plugin_k8s test
 	flake8 fix_plugin_k8s
-	mypy --python-version 3.9 --strict fix_plugin_k8s test
+	mypy --python-version 3.11 --strict fix_plugin_k8s test
 
 test: ## run tests quickly with the default Python
 	pytest
