@@ -59,7 +59,7 @@ lint: ## static code analysis
 	black --line-length 120 --check fixworker test
 	flake8 fixworker
 	#pylint fixworker
-	mypy --python-version 3.9 --strict --install-types --non-interactive fixworker
+	mypy --python-version 3.11 --strict --install-types --non-interactive fixworker
 
 test: ## run tests quickly with the default Python
 	pytest

@@ -30,7 +30,7 @@ clean-test: ## remove test and coverage artifacts
 lint: ## static code analysis
 	black --line-length 120 --check fix_plugin_gcp test
 	flake8 fix_plugin_gcp
-	mypy --install-types --non-interactive --python-version 3.9 --strict fix_plugin_gcp test
+	mypy --install-types --non-interactive --python-version 3.11 --strict fix_plugin_gcp test
 
 test: ## run tests quickly with the default Python
 	pytest
