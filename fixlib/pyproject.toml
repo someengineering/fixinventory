@@ -1,6 +1,6 @@
 [project]
 name = "fixinventorylib"
-version = "4.0.2"
+version = "4.0.3"
 authors = [{ name = "Some Engineering Inc." }]
 description = "Fix Inventory common library."
 license = { text = "AGPLv3" }
