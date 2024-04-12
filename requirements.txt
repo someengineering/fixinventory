@@ -34,7 +34,7 @@ deprecated==1.2.14
 detect-secrets==1.4.0
 fastjsonschema==2.19.1
 fixcompliance==0.4.16
-fixdatalink==2.0.1
+fixdatalink==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.4
 frozendict==2.4.1
@@ -109,7 +109,7 @@ s3transfer==0.10.1
 setuptools==69.2.0
 six==1.16.0
 slack-sdk==3.27.1
-sqlalchemy==2.0.29
+sqlalchemy==1.4.52
 tempora==5.5.1
 tenacity==8.2.3
 toolz==0.12.1

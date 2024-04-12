@@ -36,7 +36,7 @@ detect-secrets==1.4.0
 fastjsonschema==2.19.1
 filelock==3.13.4
 fixcompliance==0.4.16
-fixdatalink[extra]==2.0.1
+fixdatalink[extra]==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.4
 frozendict==2.4.1
@@ -124,7 +124,7 @@ slack-sdk==3.27.1
 snowflake-connector-python==3.8.1
 snowflake-sqlalchemy==1.5.2
 sortedcontainers==2.4.0
-sqlalchemy==2.0.29
+sqlalchemy==1.4.52
 tempora==5.5.1
 tenacity==8.2.3
 tomlkit==0.12.4
