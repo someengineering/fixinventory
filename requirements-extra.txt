@@ -38,7 +38,7 @@ filelock==3.13.4
 fixcompliance==0.4.16
 fixdatalink[extra]==2.0.2
 fixinventoryclient==2.0.1
-fixinventorydata==0.2.4
+fixinventorydata==0.2.5
 frozendict==2.4.1
 frozenlist==1.4.1
 google-api-core==2.18.0

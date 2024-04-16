@@ -791,6 +791,10 @@ class BaseRegion(BaseResource):
     kind_description: ClassVar[str] = "A region."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
 
+    long_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
     def _keys(self) -> Tuple[Any, ...]:
         if self._graph is None:
             raise RuntimeError(f"_keys() called on {self.rtdname} before resource was added to graph")

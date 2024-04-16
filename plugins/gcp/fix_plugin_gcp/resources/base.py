@@ -29,6 +29,7 @@ from fixlib.json import from_json as from_js, value_in_path
 from fixlib.json_bender import bend, Bender, S, Bend, MapDict, F
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
+from fixinventorydata.cloud import regions as cloud_region_data
 
 log = logging.getLogger("fix.plugins.gcp")
 
@@ -523,6 +524,12 @@ class GcpRegion(GcpResource, BaseRegion):
     status: Optional[str] = field(default=None)
     region_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
     region_supports_pzs: Optional[bool] = field(default=None)
+
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
+        self.long_name = cloud_region_data.get("gcp", {}).get(self.id, {}).get("long_name")
+        self.latitude = cloud_region_data.get("gcp", {}).get(self.id, {}).get("latitude")
+        self.longitude = cloud_region_data.get("gcp", {}).get(self.id, {}).get("longitude")
 
     @classmethod
     def fallback_global_region(cls: Type[GcpRegion], project: GcpProject) -> GcpRegion:
