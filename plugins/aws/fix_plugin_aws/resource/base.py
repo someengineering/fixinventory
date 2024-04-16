@@ -38,7 +38,7 @@ from fixlib.lock import RWLock
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixinventorydata.cloud import instances as cloud_instance_data
+from fixinventorydata.cloud import instances as cloud_instance_data, regions as cloud_region_data
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -360,6 +360,12 @@ class AwsRegion(BaseRegion, AwsResource):
         }
     }
     ctime: Optional[datetime] = default_ctime
+
+    def __attrs_post_init__(self) -> None:
+        super().__attrs_post_init__()
+        self.long_name = cloud_region_data.get("aws", {}).get(self.id, {}).get("long_name")
+        self.latitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("latitude")
+        self.longitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("longitude")
 
 
 @define(eq=False, slots=False)
