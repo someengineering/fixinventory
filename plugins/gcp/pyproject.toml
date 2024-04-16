@@ -28,6 +28,7 @@ readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
     "fixinventorylib==4.0.3",
+    "fixinventorydata",
     "google-api-python-client",
     "oauth2client",
     "retrying",
