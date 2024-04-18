@@ -125,10 +125,8 @@ class MetricName(str, Enum):
     NetworkOut = "network_out"
     DiskRead = "disk_read"
     DiskWrite = "disk_write"
-    DiskReadLatency = "disk_read_latency"
-    DiskWriteLatency = "disk_write_latency"
-    DiskReadThroughput = "disk_read_throughput"
-    DiskWriteThroughput = "disk_write_throughput"
+    ReadThroughput = "read_throughput"
+    WriteThroughput = "write_throughput"
 
     # volumes
     VolumeWrite = "volume_write"
@@ -137,11 +135,13 @@ class MetricName(str, Enum):
     VolumeIdleTime = "volume_idle_time"
     VolumeQueueLength = "volume_queue_length"
     NumberOfObjects = "number_of_objects"
-    BucketSizeBytes = "bucket_size_bytes"
+    BucketSizeBytes = "bucket_size"
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
     ActiveConnection = "active_connection"
+    ConnectionAttemptCount = "connection_attempt"  # _count will be added to the end because of the unit
+    ConnectionEstablishedCount = "connection_established"  # _count will be added to the end because of the unit
     StatusCode2XX = "status_code_2xx"
     StatusCode4XX = "status_code_4xx"
     StatusCode5XX = "status_code_5xx"
@@ -153,9 +153,20 @@ class MetricName(str, Enum):
     UnhealthyStateRouting = "unhealthy_state_routing"
     HealthyStateDNS = "healthy_state_dns"
     UnhealthyStateDNS = "unhealthy_state_dns"
-    RejectedConnectionCount = "rejected_connection_count"
-    IPv6RequestCount = "ipv6_request_count"
-    IPv6ProcessedBytes = "ipv6_processed_bytes"
+    RejectedConnectionCount = "rejected_connection"
+    IPv6RequestCount = "ipv6_request"
+    IPv6ProcessedBytes = "ipv6_processed"
+    ErrorPortAllocation = "error_port_allocation"
+    IdleTimeoutCount = "idle_timeout"  # _count will be added to the end because of the unit
+    PacketsDropCount = "packets_drop"  # _count will be added to the end because of the unit
+    PacketsInFromDestination = "packets_in_from_destination"
+    PacketsInFromSource = "packets_in_from_source"
+    PacketsOutToDestination = "packets_out_to_destination"
+    PacketsOutToSource = "packets_out_to_source"
+    BytesInFromDestination = "bytes_in_from_destination"
+    BytesInFromSource = "bytes_in_from_source"
+    BytesOutToDestination = "bytes_out_to_destination"
+    BytesOutToSource = "bytes_out_to_source"
 
     # databases
     DatabaseConnections = "database_connections"

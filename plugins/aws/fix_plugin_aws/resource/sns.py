@@ -116,19 +116,16 @@ class AwsSnsTopic(AwsResource):
                     ]
                 ]
             )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="PublishSize",
-                        namespace="AWS/SNS",
-                        period=delta,
-                        ref_id=sns_id,
-                        stat=stat,
-                        unit="Bytes",
-                        TopicName=sns_topic.name or "",
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="PublishSize",
+                    namespace="AWS/SNS",
+                    period=delta,
+                    ref_id=sns_id,
+                    stat="Sum",
+                    unit="Bytes",
+                    TopicName=sns_topic.name or "",
+                )
             )
         metric_normalizers = {
             "NumberOfMessagesPublished": MetricNormalization(

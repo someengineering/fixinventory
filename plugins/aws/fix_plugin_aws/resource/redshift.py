@@ -619,12 +619,11 @@ class AwsRedshiftCluster(AwsResource):
                         namespace="AWS/Redshift",
                         period=delta,
                         ref_id=redshift_id,
-                        stat=stat,
+                        stat="Sum",
                         unit="Bytes/Second",
                         ClusterIdentifier=redshift_id,
                     )
                     for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
-                    for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
             queries.extend(
@@ -634,7 +633,7 @@ class AwsRedshiftCluster(AwsResource):
                         namespace="AWS/Redshift",
                         period=delta,
                         ref_id=redshift_id,
-                        stat="Average",
+                        stat="Sum",
                         unit="Count/Second",
                         ClusterIdentifier=redshift_id,
                     )
@@ -707,25 +706,23 @@ class AwsRedshiftCluster(AwsResource):
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
-                metric_name=MetricName.DiskReadLatency,
+                metric_name=MetricName.ReadLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteLatency": MetricNormalization(
-                metric_name=MetricName.DiskWriteLatency,
+                metric_name=MetricName.WriteLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadThroughput": MetricNormalization(
-                metric_name=MetricName.DiskReadThroughput,
+                metric_name=MetricName.ReadThroughput,
                 unit=MetricUnit.Bytes,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteThroughput": MetricNormalization(
-                metric_name=MetricName.DiskWriteThroughput,
+                metric_name=MetricName.WriteThroughput,
                 unit=MetricUnit.Bytes,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),

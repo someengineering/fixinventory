@@ -583,7 +583,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             if instance.region().id == builder.region.id
         }
         queries = []
-        delta_since_last_scan = builder.metrics_delta
+        delta = builder.metrics_delta
 
         start = builder.metrics_start
         now = builder.created_at
@@ -593,7 +593,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name="CPUUtilization",
                         namespace="AWS/RDS",
-                        period=delta_since_last_scan,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Percent",
@@ -607,13 +607,12 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta_since_last_scan,
+                        period=delta,
                         ref_id=instance_id,
-                        stat=stat,
+                        stat="Sum",
                         unit="Count",
                         DBInstanceIdentifier=instance_id,
                     )
-                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
                 ]
             )
@@ -622,7 +621,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta_since_last_scan,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Seconds",
@@ -637,13 +636,12 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta_since_last_scan,
+                        period=delta,
                         ref_id=instance_id,
-                        stat=stat,
+                        stat="Sum",
                         unit="Bytes",
                         DBInstanceIdentifier=instance_id,
                     )
-                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
                 ]
             )
@@ -652,14 +650,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta_since_last_scan,
+                        period=delta,
                         ref_id=instance_id,
-                        stat=stat,
+                        stat="Sum",
                         unit="Bytes/Second",
                         DBInstanceIdentifier=instance_id,
                     )
                     for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
-                    for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
 

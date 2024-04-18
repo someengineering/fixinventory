@@ -401,18 +401,16 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="EstimatedProcessedBytes",
-                        namespace="AWS/ELB",
-                        period=period,
-                        ref_id=elb_id,
-                        stat="Sum",
-                        unit="Bytes",
-                        LoadBalancerName=elb.name or "",
-                    )
-                ]
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="EstimatedProcessedBytes",
+                    namespace="AWS/ELB",
+                    period=delta,
+                    ref_id=elb_id,
+                    stat="Sum",
+                    unit="Bytes",
+                    LoadBalancerName=elb.name or "",
+                )
             )
 
         metric_normalizers = {

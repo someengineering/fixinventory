@@ -329,7 +329,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     namespace="AWS/S3",
                     period=delta,
                     ref_id=s3_id,
-                    stat="Average",
+                    stat="Average",  # only one valid statistic
                     unit="Count",
                     BucketName=s3.name or "",
                 )
@@ -340,7 +340,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     namespace="AWS/S3",
                     period=delta,
                     ref_id=s3_id,
-                    stat="Average",
+                    stat="Average",  # only one valid statistic
                     unit="Bytes",
                     BucketName=s3.name or "",
                 )

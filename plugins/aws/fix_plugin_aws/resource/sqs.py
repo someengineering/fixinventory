@@ -159,7 +159,7 @@ class AwsSqsQueue(AwsResource):
                         namespace="AWS/SQS",
                         period=delta,
                         ref_id=sqs_id,
-                        stat=stat,
+                        stat="Sum",
                         unit="Count",
                         QueueName=sqs_queue.name or "",
                     )
@@ -170,41 +170,40 @@ class AwsSqsQueue(AwsResource):
                         "NumberOfMessagesReceived",
                         "NumberOfMessagesSent",
                     ]
-                    for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
         metric_normalizers = {
             "ApproximateAgeOfOldestMessage": MetricNormalization(
-                metric_name=MetricName.NumberOfMessagesPublished,
+                metric_name=MetricName.ApproximateAgeOfOldestMessage,
                 unit=MetricUnit.Seconds,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesDelayed": MetricNormalization(
-                metric_name=MetricName.NumberOfNotificationsDelivered,
+                metric_name=MetricName.ApproximateNumberOfMessagesDelayed,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesNotVisible": MetricNormalization(
-                metric_name=MetricName.NumberOfNotificationsFailed,
+                metric_name=MetricName.ApproximateNumberOfMessagesNotVisible,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesVisible": MetricNormalization(
-                metric_name=MetricName.PublishSize,
+                metric_name=MetricName.ApproximateNumberOfMessagesVisible,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesReceived": MetricNormalization(
-                metric_name=MetricName.PublishSize,
+                metric_name=MetricName.NumberOfMessagesReceived,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesSent": MetricNormalization(
-                metric_name=MetricName.PublishSize,
+                metric_name=MetricName.NumberOfMessagesSent,
                 unit=MetricUnit.Count,
                 compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),

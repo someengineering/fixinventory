@@ -425,7 +425,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         unit="Count",
                         FunctionName=lambda_instance.name or "",
                     )
-                    for metric_name in ["Invokations", "Errors", "Throttles"]
+                    for metric_name in ["Invokations", "Errors", "Throttles", "ConcurrentExecutions"]
                 ]
             )
             queries.extend(
@@ -437,20 +437,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         ref_id=lambda_id,
                         stat=stat,
                         unit="Milliseconds",
-                        FunctionName=lambda_instance.name or "",
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="ConcurrentExecutions",
-                        namespace="AWS/Lambda",
-                        period=delta,
-                        ref_id=lambda_id,
-                        stat=stat,
-                        unit="Count",
                         FunctionName=lambda_instance.name or "",
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
