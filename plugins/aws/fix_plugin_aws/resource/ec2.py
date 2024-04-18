@@ -2838,6 +2838,155 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     nat_state: Optional[str] = field(default=None)
     nat_connectivity_type: Optional[str] = field(default=None)
 
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        nat_gateways = {
+            nat_gateway.id: nat_gateway
+            for nat_gateway in builder.nodes(clazz=AwsEc2NatGateway)
+            if nat_gateway.region().id == builder.region.id
+        }
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+
+        for nat_g_id in nat_gateways:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/NATGateway",
+                        period=delta,
+                        ref_id=nat_g_id,
+                        stat="Sum",
+                        unit="Count",
+                        NatGatewayId=nat_g_id,
+                    )
+                    for metric in [
+                        "ActiveConnectionCount",
+                        "ConnectionAttemptCount",
+                        "ConnectionEstablishedCount",
+                        "ErrorPortAllocation",
+                        "IdleTimeoutCount",
+                        "PacketsDropCount",
+                        "PacketsInFromDestination",
+                        "PacketsInFromSource",
+                        "PacketsOutToDestination",
+                        "PacketsOutToSource",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/NATGateway",
+                        period=delta,
+                        ref_id=nat_g_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        NatGatewayId=nat_g_id,
+                    )
+                    for metric in [
+                        "BytesInFromDestination",
+                        "BytesInFromSource",
+                        "BytesOutToDestination",
+                        "BytesOutToSource",
+                    ]
+                ]
+            )
+
+        metric_normalizers = {
+            "ActiveConnectionCount": MetricNormalization(
+                metric_name=MetricName.ActiveConnection,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ConnectionAttemptCount": MetricNormalization(
+                metric_name=MetricName.ConnectionAttemptCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ConnectionEstablishedCount": MetricNormalization(
+                metric_name=MetricName.ConnectionEstablishedCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "ErrorPortAllocation": MetricNormalization(
+                metric_name=MetricName.ErrorPortAllocation,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "IdleTimeoutCount": MetricNormalization(
+                metric_name=MetricName.IdleTimeoutCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "PacketsDropCount": MetricNormalization(
+                metric_name=MetricName.PacketsDropCount,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "PacketsInFromDestination": MetricNormalization(
+                metric_name=MetricName.PacketsInFromDestination,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "PacketsInFromSource": MetricNormalization(
+                metric_name=MetricName.PacketsInFromSource,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "PacketsOutToDestination": MetricNormalization(
+                metric_name=MetricName.PacketsOutToDestination,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "PacketsOutToSource": MetricNormalization(
+                metric_name=MetricName.PacketsOutToSource,
+                unit=MetricUnit.Count,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "BytesInFromDestination": MetricNormalization(
+                metric_name=MetricName.BytesInFromDestination,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "BytesInFromSource": MetricNormalization(
+                metric_name=MetricName.BytesInFromSource,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "BytesOutToDestination": MetricNormalization(
+                metric_name=MetricName.BytesOutToDestination,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "BytesOutToSource": MetricNormalization(
+                metric_name=MetricName.BytesOutToSource,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(nat_gateways, cloudwatch_result, metric_normalizers)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
         if vpc_id := source.get("VpcId"):
