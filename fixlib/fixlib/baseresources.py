@@ -167,6 +167,10 @@ class MetricName(str, Enum):
     BytesInFromSource = "bytes_in_from_source"
     BytesOutToDestination = "bytes_out_to_destination"
     BytesOutToSource = "bytes_out_to_source"
+    RecordsBytes = "records"  # _bytes will be added to the end because of the unit
+    RecordsIteratorAgeMilliseconds = (
+        "records_iterator_age"  # _milliseconds will be added to the end because of the unit
+    )
 
     # databases
     DatabaseConnections = "database_connections"

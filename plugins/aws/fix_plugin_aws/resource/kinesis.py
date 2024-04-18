@@ -3,13 +3,19 @@ from typing import ClassVar, Dict, Optional, List, Any
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from fix_plugin_aws.resource.cloudwatch import (
+    AwsCloudwatchMetricData,
+    AwsCloudwatchQuery,
+    calculate_min_max_avg,
+    update_resource_metrics,
+)
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import ToDict
+from fix_plugin_aws.utils import MetricNormalization, ToDict
 from typing import Type
 
 service_name = "kinesis"
@@ -159,6 +165,63 @@ class AwsKinesisStream(AwsResource):
                 if stream := AwsKinesisStream.from_api(js, builder):
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
+
+    @classmethod
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        kinesises = {
+            kinesis.id: kinesis
+            for kinesis in builder.nodes(clazz=AwsKinesisStream)
+            if kinesis.region().id == builder.region.id
+        }
+        queries = []
+        delta = builder.metrics_delta
+        start = builder.metrics_start
+        now = builder.created_at
+
+        for kinesis_id, kinesis in kinesises.items():
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="GetRecords.Bytes",
+                    namespace="AWS/Kinesis",
+                    period=delta,
+                    ref_id=kinesis_id,
+                    stat="Sum",
+                    unit="Bytes",
+                    StreamName=kinesis.name or "",
+                )
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="GetRecords.IteratorAgeMilliseconds",
+                        namespace="AWS/Kinesis",
+                        period=delta,
+                        ref_id=kinesis_id,
+                        stat=stat,
+                        unit="Milliseconds",
+                        StreamName=kinesis.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+
+        metric_normalizers = {
+            "GetRecords.Bytes": MetricNormalization(
+                metric_name=MetricName.RecordsBytes,
+                unit=MetricUnit.Bytes,
+                compute_stats=calculate_min_max_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "GetRecords.IteratorAgeMilliseconds": MetricNormalization(
+                metric_name=MetricName.RecordsIteratorAgeMilliseconds,
+                unit=MetricUnit.Milliseconds,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+
+        update_resource_metrics(kinesises, cloudwatch_result, metric_normalizers)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:
