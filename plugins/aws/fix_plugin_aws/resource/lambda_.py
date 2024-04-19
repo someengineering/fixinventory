@@ -1,3 +1,4 @@
+from datetime import timedelta
 import json as json_p
 import logging
 import re
@@ -412,6 +413,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for lambda_id, lambda_instance in lambdas.items():
             queries.extend(
@@ -419,13 +421,13 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     AwsCloudwatchQuery.create(
                         metric_name=metric_name,
                         namespace="AWS/Lambda",
-                        period=delta,
+                        period=period,
                         ref_id=lambda_id,
                         stat="Sum",
                         unit="Count",
                         FunctionName=lambda_instance.name or "",
                     )
-                    for metric_name in ["Invokations", "Errors", "Throttles", "ConcurrentExecutions"]
+                    for metric_name in ["Invocations", "Errors", "Throttles", "ConcurrentExecutions"]
                 ]
             )
             queries.extend(
@@ -433,7 +435,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     AwsCloudwatchQuery.create(
                         metric_name="Duration",
                         namespace="AWS/Lambda",
-                        period=delta,
+                        period=period,
                         ref_id=lambda_id,
                         stat=stat,
                         unit="Milliseconds",

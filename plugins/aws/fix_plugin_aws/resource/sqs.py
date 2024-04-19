@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attrs import define, field
@@ -139,13 +139,14 @@ class AwsSqsQueue(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for sqs_id, sqs_queue in sqs_queues.items():
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="ApproximateAgeOfOldestMessage",
                     namespace="AWS/SQS",
-                    period=delta,
+                    period=period,
                     ref_id=sqs_id,
                     stat="Sum",
                     unit="Seconds",
@@ -157,7 +158,7 @@ class AwsSqsQueue(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/SQS",
-                        period=delta,
+                        period=period,
                         ref_id=sqs_id,
                         stat="Sum",
                         unit="Count",

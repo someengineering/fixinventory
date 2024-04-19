@@ -1,3 +1,4 @@
+from datetime import timedelta
 import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -321,13 +322,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for s3_id, s3 in s3s.items():
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
                     namespace="AWS/S3",
-                    period=delta,
+                    period=period,
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Count",
@@ -338,7 +340,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 AwsCloudwatchQuery.create(
                     metric_name="BucketSizeBytes",
                     namespace="AWS/S3",
-                    period=delta,
+                    period=period,
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Bytes",

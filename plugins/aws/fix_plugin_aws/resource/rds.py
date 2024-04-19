@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attr import define, field
@@ -584,16 +584,17 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         }
         queries = []
         delta = builder.metrics_delta
-
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
+
         for instance_id in rds_instances:
             queries.extend(
                 [
                     AwsCloudwatchQuery.create(
                         metric_name="CPUUtilization",
                         namespace="AWS/RDS",
-                        period=delta,
+                        period=period,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Percent",
@@ -607,7 +608,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta,
+                        period=period,
                         ref_id=instance_id,
                         stat="Sum",
                         unit="Count",
@@ -621,7 +622,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta,
+                        period=period,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Seconds",
@@ -636,7 +637,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta,
+                        period=period,
                         ref_id=instance_id,
                         stat="Sum",
                         unit="Bytes",
@@ -650,7 +651,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=delta,
+                        period=period,
                         ref_id=instance_id,
                         stat="Sum",
                         unit="Bytes/Second",

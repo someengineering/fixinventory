@@ -392,7 +392,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name="Latency",
                         namespace="AWS/ELB",
-                        period=delta,
+                        period=period,
                         ref_id=elb_id,
                         stat=stat,
                         unit="Seconds",
@@ -405,7 +405,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 AwsCloudwatchQuery.create(
                     metric_name="EstimatedProcessedBytes",
                     namespace="AWS/ELB",
-                    period=delta,
+                    period=period,
                     ref_id=elb_id,
                     stat="Sum",
                     unit="Bytes",

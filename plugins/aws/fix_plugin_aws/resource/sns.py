@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -96,6 +97,7 @@ class AwsSnsTopic(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for sns_id, sns_topic in sns_topics.items():
             queries.extend(
@@ -103,7 +105,7 @@ class AwsSnsTopic(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=metric_name,
                         namespace="AWS/SNS",
-                        period=delta,
+                        period=period,
                         ref_id=sns_id,
                         stat="Sum",
                         unit="Count",
@@ -116,16 +118,19 @@ class AwsSnsTopic(AwsResource):
                     ]
                 ]
             )
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="PublishSize",
-                    namespace="AWS/SNS",
-                    period=delta,
-                    ref_id=sns_id,
-                    stat="Sum",
-                    unit="Bytes",
-                    TopicName=sns_topic.name or "",
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="PublishSize",
+                        namespace="AWS/SNS",
+                        period=period,
+                        ref_id=sns_id,
+                        stat=stat,
+                        unit="Bytes",
+                        TopicName=sns_topic.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
             )
         metric_normalizers = {
             "NumberOfMessagesPublished": MetricNormalization(
@@ -149,7 +154,6 @@ class AwsSnsTopic(AwsResource):
             "PublishSize": MetricNormalization(
                 metric_name=MetricName.PublishSize,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

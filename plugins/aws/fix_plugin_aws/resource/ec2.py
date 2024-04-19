@@ -2849,6 +2849,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        five_minutes_or_less = min(timedelta(minutes=5), delta)
 
         for nat_g_id in nat_gateways:
             queries.extend(
@@ -2856,7 +2857,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/NATGateway",
-                        period=delta,
+                        period=five_minutes_or_less,
                         ref_id=nat_g_id,
                         stat="Sum",
                         unit="Count",
@@ -2881,7 +2882,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/NATGateway",
-                        period=delta,
+                        period=five_minutes_or_less,
                         ref_id=nat_g_id,
                         stat="Sum",
                         unit="Bytes",

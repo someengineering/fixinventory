@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar, Dict, Optional, List, Any
 
 from attrs import define, field
@@ -177,13 +178,14 @@ class AwsKinesisStream(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for kinesis_id, kinesis in kinesises.items():
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="GetRecords.Bytes",
                     namespace="AWS/Kinesis",
-                    period=delta,
+                    period=period,
                     ref_id=kinesis_id,
                     stat="Sum",
                     unit="Bytes",
@@ -195,7 +197,7 @@ class AwsKinesisStream(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="GetRecords.IteratorAgeMilliseconds",
                         namespace="AWS/Kinesis",
-                        period=delta,
+                        period=period,
                         ref_id=kinesis_id,
                         stat=stat,
                         unit="Milliseconds",

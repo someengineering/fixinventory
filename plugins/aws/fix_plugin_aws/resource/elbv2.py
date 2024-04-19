@@ -467,7 +467,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name="TargetResponseTime",
                         namespace="AWS/ApplicationELB",
-                        period=delta,
+                        period=period,
                         ref_id=alb_id,
                         stat=stat,
                         unit="Seconds",
@@ -779,7 +779,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="TargetResponseTime",
                         namespace="AWS/ApplicationELB",
-                        period=delta,
+                        period=period,
                         ref_id=tg_id,
                         stat=stat,
                         unit="Seconds",

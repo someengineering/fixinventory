@@ -16,7 +16,7 @@ from fixlib.json_bender import Bender, S, Bend, ForallBend, K
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import MetricNormalization, ToDict
 from typing import Type
-from datetime import datetime
+from datetime import datetime, timedelta
 from fixlib.types import Json
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.iam import AwsIamRole
@@ -585,6 +585,7 @@ class AwsRedshiftCluster(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
+        period = min(timedelta(minutes=5), delta)
 
         for redshift_id in redshifts:
             queries.extend(
@@ -592,7 +593,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="CPUUtilization",
                         namespace="AWS/Redshift",
-                        period=delta,
+                        period=period,
                         ref_id=redshift_id,
                         stat=stat,
                         unit="Percent",
@@ -605,7 +606,7 @@ class AwsRedshiftCluster(AwsResource):
                 AwsCloudwatchQuery.create(
                     metric_name="DatabaseConnections",
                     namespace="AWS/Redshift",
-                    period=delta,
+                    period=period,
                     ref_id=redshift_id,
                     stat="Sum",
                     unit="Count",
@@ -631,7 +632,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=delta,
+                        period=period,
                         ref_id=redshift_id,
                         stat="Sum",
                         unit="Count/Second",
@@ -645,7 +646,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=delta,
+                        period=period,
                         ref_id=redshift_id,
                         stat="Average",
                         unit="Seconds",
@@ -659,7 +660,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=delta,
+                        period=period,
                         ref_id=redshift_id,
                         stat="Average",
                         unit="Bytes",
