@@ -148,6 +148,22 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                 except Exception:
                     log.warning(f"Resourcepool error for cluster {cluster._moId} {cluster.name}")
 
+                # get hosts from a cluster
+                for host in cluster.host:  #
+                    log.debug(f"Found host - {host._moId} - {host.name}")
+                    hostObj = VSphereESXiHost(id=host._moId, name=host.name)
+                    self.graph.add_resource(clusterObj, hostObj)
+                    # get vms for each host and read from the vm list
+                    for vm in host.vm:
+                        if vm._moId in self.instances_dict:
+                            vmObj = self.instances_dict[vm._moId]
+                            log.debug(
+                                f"lookup vm - {vm._moId} - {vmObj.name} and assign to host {host._moId} - {host.name}"
+                            )
+                            self.graph.add_edge(hostObj, vmObj)
+                        else:
+                            log.warning(f"host {host._moId} - {host.name} reports {vm._moId} but instance not found")
+
             for datastore in dc.datastoreFolder.childEntity:
                 if datastore._wsdlName == "Datastore":
                     log.debug(f"Found Datastore - {datastore._moId} - {datastore.name}")
@@ -168,22 +184,6 @@ class VSphereCollectorPlugin(BaseCollectorPlugin):
                             for vm in store.vm:
                                 vmObj = self.instances_dict[vm._moId]
                                 self.graph.add_edge(dsObj, vmObj)
-
-            # get hosts from a cluster
-            for host in cluster.host:  #
-                log.debug(f"Found host - {host._moId} - {host.name}")
-                hostObj = VSphereESXiHost(id=host._moId, name=host.name)
-                self.graph.add_resource(clusterObj, hostObj)
-                # get vms for each host and read from the vm list
-                for vm in host.vm:
-                    if vm._moId in self.instances_dict:
-                        vmObj = self.instances_dict[vm._moId]
-                        log.debug(
-                            f"lookup vm - {vm._moId} - {vmObj.name} and assign to host {host._moId} - {host.name}"
-                        )
-                        self.graph.add_edge(hostObj, vmObj)
-                    else:
-                        log.warning(f"host {host._moId} - {host.name} reports {vm._moId} but instance not found")
 
     @staticmethod
     def add_config(config: Config) -> None:
