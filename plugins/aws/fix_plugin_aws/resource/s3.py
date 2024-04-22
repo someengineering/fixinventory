@@ -12,7 +12,6 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
     calculate_avg,
-    calculate_min_max_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization, tags_as_dict
