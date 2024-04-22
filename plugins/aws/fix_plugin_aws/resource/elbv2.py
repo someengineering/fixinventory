@@ -9,6 +9,7 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance,
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
     bytes_to_megabits_per_second,
@@ -766,11 +767,28 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     )
                     for metric in [
                         "RequestCount",
-                        "HealthyHostCount",
-                        "UnHealthyHostCount",
                         "HTTPCode_Target_2XX_Count",
                         "HTTPCode_Target_4XX_Count",
                         "HTTPCode_Target_5XX_Count",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/ApplicationELB",
+                        period=period,
+                        ref_id=tg_id,
+                        stat=stat,
+                        unit="Count",
+                        LoadBalancer=lb_arn_id,
+                        TargetGroup=tg_arn_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for metric in [
+                        "HealthyHostCount",
+                        "UnHealthyHostCount",
                     ]
                 ]
             )
@@ -821,13 +839,13 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 metric_name=MetricName.HealthyHostCount,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x / period.total_seconds(), 4),
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
             ),
             "UnHealthyHostCount": MetricNormalization(
                 metric_name=MetricName.UnhealthyHostCount,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x / period.total_seconds(), 4),
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
             ),
             "HTTPCode_Target_2XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode2XX,

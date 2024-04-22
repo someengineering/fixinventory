@@ -10,6 +10,7 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
     bytes_to_megabits_per_second,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -378,12 +379,28 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     )
                     for metric in [
                         "RequestCount",
-                        "HealthyHostCount",
-                        "UnHealthyHostCount",
                         "EstimatedALBActiveConnectionCount",
                         "HTTPCode_Backend_2XX",
                         "HTTPCode_Backend_4XX",
                         "HTTPCode_Backend_5XX",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/ELB",
+                        period=period,
+                        ref_id=elb_id,
+                        stat=stat,
+                        unit="Count",
+                        LoadBalancerName=elb.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for metric in [
+                        "HealthyHostCount",
+                        "UnHealthyHostCount",
                     ]
                 ]
             )
@@ -401,16 +418,19 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="EstimatedProcessedBytes",
-                    namespace="AWS/ELB",
-                    period=period,
-                    ref_id=elb_id,
-                    stat="Sum",
-                    unit="Bytes",
-                    LoadBalancerName=elb.name or "",
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="EstimatedProcessedBytes",
+                        namespace="AWS/ELB",
+                        period=period,
+                        ref_id=elb_id,
+                        stat=stat,
+                        unit="Bytes",
+                        LoadBalancerName=elb.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
             )
 
         metric_normalizers = {
@@ -447,22 +467,25 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             "HealthyHostCount": MetricNormalization(
                 metric_name=MetricName.HealthyHostCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "UnHealthyHostCount": MetricNormalization(
                 metric_name=MetricName.UnhealthyHostCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "Latency": MetricNormalization(
-                metric_name=MetricName.Latency, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4)
+                metric_name=MetricName.Latency,
+                unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
+                normalize_value=lambda x: round(x, ndigits=4),
             ),
             "EstimatedProcessedBytes": MetricNormalization(
                 metric_name=MetricName.ProcessedBytes,
                 unit=MetricUnit.MegabitsPerSecond,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=partial(bytes_to_megabits_per_second, period=period),
             ),
         }

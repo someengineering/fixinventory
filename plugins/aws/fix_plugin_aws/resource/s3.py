@@ -11,6 +11,7 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -351,13 +352,13 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             "BucketSizeBytes": MetricNormalization(
                 metric_name=MetricName.BucketSizeBytes,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfObjects": MetricNormalization(
                 metric_name=MetricName.NumberOfObjects,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

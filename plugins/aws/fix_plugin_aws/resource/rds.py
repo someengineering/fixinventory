@@ -8,6 +8,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -610,10 +611,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         namespace="AWS/RDS",
                         period=period,
                         ref_id=instance_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Count",
                         DBInstanceIdentifier=instance_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
                 ]
             )
@@ -639,10 +641,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         namespace="AWS/RDS",
                         period=period,
                         ref_id=instance_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Bytes",
                         DBInstanceIdentifier=instance_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
                 ]
             )
@@ -653,10 +656,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         namespace="AWS/RDS",
                         period=period,
                         ref_id=instance_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Bytes/Second",
                         DBInstanceIdentifier=instance_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
                 ]
             )
@@ -665,53 +669,56 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "CPUUtilization": MetricNormalization(
                 metric_name=MetricName.CpuUtilization,
                 unit=MetricUnit.Percent,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DatabaseConnections": MetricNormalization(
                 metric_name=MetricName.DatabaseConnections,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadIOPS": MetricNormalization(
                 metric_name=MetricName.DiskRead,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteIOPS": MetricNormalization(
                 metric_name=MetricName.DiskWrite,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
                 metric_name=MetricName.ReadLatency,
                 unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
                 # normalize to packets per second
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteLatency": MetricNormalization(
                 metric_name=MetricName.WriteLatency,
                 unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "FreeStorageSpace": MetricNormalization(
                 metric_name=MetricName.FreeStorageSpace,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "FreeableMemory": MetricNormalization(
                 metric_name=MetricName.FreeableMemory,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "SwapUsage": MetricNormalization(
                 metric_name=MetricName.SwapUsage,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DiskQueueDepth": MetricNormalization(
@@ -722,13 +729,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "NetworkReceiveThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkReceiveThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkTransmitThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkTransmitThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

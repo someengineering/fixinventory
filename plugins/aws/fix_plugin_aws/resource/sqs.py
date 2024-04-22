@@ -8,6 +8,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -142,16 +143,19 @@ class AwsSqsQueue(AwsResource):
         period = min(timedelta(minutes=5), delta)
 
         for sqs_id, sqs_queue in sqs_queues.items():
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="ApproximateAgeOfOldestMessage",
-                    namespace="AWS/SQS",
-                    period=period,
-                    ref_id=sqs_id,
-                    stat="Sum",
-                    unit="Seconds",
-                    QueueName=sqs_queue.name or "",
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="ApproximateAgeOfOldestMessage",
+                        namespace="AWS/SQS",
+                        period=period,
+                        ref_id=sqs_id,
+                        stat=stat,
+                        unit="Seconds",
+                        QueueName=sqs_queue.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
             )
             queries.extend(
                 [
@@ -160,10 +164,11 @@ class AwsSqsQueue(AwsResource):
                         namespace="AWS/SQS",
                         period=period,
                         ref_id=sqs_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Count",
                         QueueName=sqs_queue.name or "",
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in [
                         "ApproximateNumberOfMessagesDelayed",
                         "ApproximateNumberOfMessagesNotVisible",
@@ -177,36 +182,37 @@ class AwsSqsQueue(AwsResource):
             "ApproximateAgeOfOldestMessage": MetricNormalization(
                 metric_name=MetricName.ApproximateAgeOfOldestMessage,
                 unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesDelayed": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesDelayed,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesNotVisible": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesNotVisible,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesVisible": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesVisible,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesReceived": MetricNormalization(
                 metric_name=MetricName.NumberOfMessagesReceived,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesSent": MetricNormalization(
                 metric_name=MetricName.NumberOfMessagesSent,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

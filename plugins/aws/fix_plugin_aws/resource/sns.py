@@ -6,6 +6,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -154,6 +155,7 @@ class AwsSnsTopic(AwsResource):
             "PublishSize": MetricNormalization(
                 metric_name=MetricName.PublishSize,
                 unit=MetricUnit.Bytes,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

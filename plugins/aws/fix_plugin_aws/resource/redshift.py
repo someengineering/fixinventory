@@ -6,6 +6,7 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -602,16 +603,19 @@ class AwsRedshiftCluster(AwsResource):
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="DatabaseConnections",
-                    namespace="AWS/Redshift",
-                    period=period,
-                    ref_id=redshift_id,
-                    stat="Sum",
-                    unit="Count",
-                    ClusterIdentifier=redshift_id,
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="DatabaseConnections",
+                        namespace="AWS/Redshift",
+                        period=period,
+                        ref_id=redshift_id,
+                        stat=stat,
+                        unit="Count",
+                        ClusterIdentifier=redshift_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
             )
             queries.extend(
                 [
@@ -620,10 +624,11 @@ class AwsRedshiftCluster(AwsResource):
                         namespace="AWS/Redshift",
                         period=delta,
                         ref_id=redshift_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Bytes/Second",
                         ClusterIdentifier=redshift_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
                 ]
             )
@@ -634,10 +639,11 @@ class AwsRedshiftCluster(AwsResource):
                         namespace="AWS/Redshift",
                         period=period,
                         ref_id=redshift_id,
-                        stat="Sum",
+                        stat=stat,
                         unit="Count/Second",
                         ClusterIdentifier=redshift_id,
                     )
+                    for stat in ["Minimum", "Average", "Maximum"]
                     for name in ["ReadIOPS", "WriteIOPS"]
                 ]
             )
@@ -674,58 +680,61 @@ class AwsRedshiftCluster(AwsResource):
             "CPUUtilization": MetricNormalization(
                 metric_name=MetricName.CpuUtilization,
                 unit=MetricUnit.Percent,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DatabaseConnections": MetricNormalization(
                 metric_name=MetricName.DatabaseConnections,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkReceiveThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkReceiveThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkTransmitThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkTransmitThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadIOPS": MetricNormalization(
                 metric_name=MetricName.DiskRead,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteIOPS": MetricNormalization(
                 metric_name=MetricName.DiskWrite,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
                 metric_name=MetricName.ReadLatency,
                 unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteLatency": MetricNormalization(
                 metric_name=MetricName.WriteLatency,
                 unit=MetricUnit.Seconds,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadThroughput": MetricNormalization(
                 metric_name=MetricName.ReadThroughput,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteThroughput": MetricNormalization(
                 metric_name=MetricName.WriteThroughput,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

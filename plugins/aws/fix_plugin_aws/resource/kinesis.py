@@ -7,6 +7,7 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
+    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -181,16 +182,19 @@ class AwsKinesisStream(AwsResource):
         period = min(timedelta(minutes=5), delta)
 
         for kinesis_id, kinesis in kinesises.items():
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="GetRecords.Bytes",
-                    namespace="AWS/Kinesis",
-                    period=period,
-                    ref_id=kinesis_id,
-                    stat="Sum",
-                    unit="Bytes",
-                    StreamName=kinesis.name or "",
-                )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="GetRecords.Bytes",
+                        namespace="AWS/Kinesis",
+                        period=period,
+                        ref_id=kinesis_id,
+                        stat=stat,
+                        unit="Bytes",
+                        StreamName=kinesis.name or "",
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
             )
             queries.extend(
                 [
@@ -211,12 +215,13 @@ class AwsKinesisStream(AwsResource):
             "GetRecords.Bytes": MetricNormalization(
                 metric_name=MetricName.RecordsBytes,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_min_max_avg,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "GetRecords.IteratorAgeMilliseconds": MetricNormalization(
                 metric_name=MetricName.RecordsIteratorAgeMilliseconds,
                 unit=MetricUnit.Milliseconds,
+                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }
