@@ -62,7 +62,7 @@ class CheckContext:
         if self.severity is None:
             return True
         else:
-            return self.severity.prio() <= severity.prio()
+            return self.severity.prio <= severity.prio
 
     def override_values(self) -> Optional[Json]:
         return self.config.override_values
@@ -241,8 +241,10 @@ class InspectorService(Inspector, Service):
         report_run_id: Optional[str] = None,
     ) -> Dict[str, BenchmarkResult]:
         config = await self.report_config()
-        context = CheckContext(accounts=accounts, severity=severity, only_failed=only_failing, config=config)
         benchmarks = await self.__benchmarks(benchmark_names)
+        clouds = {c for b in benchmarks.values() for c in b.clouds or []}
+        cloud_accounts = accounts or await self.__list_accounts(list(clouds), graph)
+        context = CheckContext(accounts=cloud_accounts, severity=severity, only_failed=only_failing, config=config)
         # collect all checks
         check_ids = {check for b in benchmarks.values() for check in b.nested_checks() if config.check_allowed(check)}
         checks = await self.list_checks(check_ids=list(check_ids), context=context)
@@ -256,9 +258,22 @@ class InspectorService(Inspector, Service):
             model = await self.model_handler.load_model(graph)
             # In case no run_id is provided, we invent a report run id here.
             run_id = report_run_id or uuid_str()
-            await self.db_access.get_graph_db(graph).update_security_section(
-                run_id, self.__benchmarks_to_security_iterator(result), model, accounts
-            )
+            db = self.db_access.get_graph_db(graph)
+            await db.update_security_section(run_id, self.__benchmarks_to_security_iterator(result), model, accounts)
+            # store the security score of an account
+            if account_ids := context.accounts:
+                async with await db.search_list(  # lookup node ids for all given accounts
+                    QueryModel(Query.by("account", P("reported.id").is_in(account_ids)), model)
+                ) as crsr:
+                    async for acc in crsr:
+                        if (node_id := value_in_path(acc, NodePath.node_id)) and (
+                            acc_id := value_in_path(acc, NodePath.reported_id)
+                        ):
+                            bench_score = {br.id: br.score_for(acc_id) for br in result.values()}
+                            account_score = sum(bench_score.values()) / len(bench_score) if bench_score else 100
+                            patch = {"score": account_score, "benchmark": bench_score}
+                            async for _ in db.update_nodes_metadata(model, patch, [node_id]):
+                                pass
         return result
 
     async def perform_checks(
@@ -303,7 +318,7 @@ class InspectorService(Inspector, Service):
         )
 
         if context.accounts is None:
-            context.accounts = await self.__list_accounts(benchmark, graph)
+            context.accounts = await self.__list_accounts(benchmark.clouds, graph)
 
         checks_to_perform = await self.list_checks(check_ids=benchmark.nested_checks(), context=context)
         check_by_id = {c.id: c for c in checks_to_perform}
@@ -449,12 +464,12 @@ class InspectorService(Inspector, Service):
                 resources_by_account[account_id].append(bend(ReportResourceData, resource))
         return resources_by_account
 
-    async def __list_accounts(self, benchmark: Benchmark, graph: GraphName) -> List[str]:
+    async def __list_accounts(self, clouds: Optional[List[str]], graph: GraphName) -> List[str]:
         model = await self.model_handler.load_model(graph)
         gdb = self.db_access.get_graph_db(graph)
         query = Query.by("account")
-        if benchmark.clouds:
-            query = query.combine(Query.by(P.single("ancestors.cloud.reported.id").is_in(benchmark.clouds)))
+        if clouds:
+            query = query.combine(Query.by(P.single("ancestors.cloud.reported.id").is_in(clouds)))
         async with await gdb.search_list(QueryModel(query, model)) as crs:
             ids = [value_in_path(a, NodePath.reported_id) async for a in crs]
             return [aid for aid in ids if aid is not None]

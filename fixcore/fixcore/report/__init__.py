@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from enum import Enum
 from functools import reduce, total_ordering
 from typing import List, Optional, Dict, ClassVar, AsyncIterator, cast, Set, Tuple, Any
@@ -27,6 +28,7 @@ ReportConfigRoot = "report_config"
 
 
 _ReportSeverityPriority: Dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+_ReportSeverityScore: Dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
 
 @total_ordering
@@ -38,12 +40,17 @@ class ReportSeverity(Enum):
     high = "high"
     critical = "critical"
 
+    @property
     def prio(self) -> int:
         return _ReportSeverityPriority[self.value]
 
+    @property
+    def score(self) -> int:
+        return _ReportSeverityScore[self.value]
+
     def __lt__(self, other: Any) -> bool:
         if isinstance(other, ReportSeverity):
-            return self.prio() < other.prio()
+            return self.prio < other.prio
         return NotImplemented
 
     @staticmethod
@@ -358,6 +365,24 @@ class BenchmarkResult(CheckCollectionResult):
 
         visit_check_collection(self)
         return result
+
+    def score_for(self, account: str) -> int:
+        failing: Dict[ReportSeverity, int] = defaultdict(int)
+        available: Dict[ReportSeverity, int] = defaultdict(int)
+
+        def available_failing(check: CheckCollectionResult) -> None:
+            for result in check.checks:
+                available[result.check.severity] += 1
+                failing[result.check.severity] += (
+                    1 if result.number_of_resources_failing_by_account.get(account, 0) else 0
+                )
+            for child in check.children:
+                available_failing(child)
+
+        available_failing(self)  # walk the benchmark hierarchy
+        missing = sum(severity.score * count for severity, count in failing.items())
+        total = sum(severity.score * count for severity, count in available.items())
+        return int((max(0, total - missing) * 100) // total) if total > 0 else 100
 
 
 class Inspector(ABC):

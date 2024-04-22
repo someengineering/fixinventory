@@ -263,7 +263,7 @@ def foo_kinds() -> List[Kind]:
         "base",
         [],
         [
-            Property("identifier", "string", required=True),
+            Property("id", "string", required=True),
             Property("kind", "string", required=True),
             Property("ctime", "datetime"),
         ],
@@ -328,7 +328,7 @@ def person_model() -> Model:
         "Base",
         [],
         [
-            Property("id", "string", required=True, description="Some identifier"),
+            Property("id", "string", required=True, description="Some id"),
             Property("kind", "string", required=True, description="Kind of this node."),
             Property("list", "string[]", description="A list of strings."),
             Property("tags", "dictionary[string, string]", description="Key/value pairs."),
@@ -592,7 +592,7 @@ def benchmark() -> Benchmark:
         framework="test",
         documentation="test",
         version="1.5",
-        clouds=["test"],
+        clouds=["collector"],
         title="test_benchmark",
         description="test_benchmark",
         checks=[],

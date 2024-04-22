@@ -31,9 +31,9 @@ from tests.fixcore.utils import eventually
 class BaseResource(ABC):
     def __init__(
         self,
-        identifier: str,
+        id: str,
     ) -> None:
-        self.identifier = str(identifier)
+        self.id = str(id)
 
     @abstractmethod
     def kind(self) -> str:
@@ -42,7 +42,7 @@ class BaseResource(ABC):
 
 @define
 class Foo(BaseResource):
-    identifier: str
+    id: str
     name: Optional[str] = None
     some_int: int = 0
     some_string: str = "hello"
@@ -61,7 +61,7 @@ class Inner:
 
 @define
 class Bla(BaseResource):
-    identifier: str
+    id: str
     name: Optional[str] = None
     now: date = date.today()
     f: int = 23
@@ -220,7 +220,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 async def load_graph(db: GraphDB, model: Model) -> MultiDiGraph:
-    blas = Query.by(P("identifier") == "sub_root").traverse_out(0, Navigation.Max)  # noqa
+    blas = Query.by(P("id") == "sub_root").traverse_out(0, Navigation.Max)  # noqa
     return await db.search_graph(QueryModel(blas.on_section("reported"), model))
 
 
@@ -399,7 +399,7 @@ async def test_mark_update(filled_graph_db: ArangoGraphDB) -> None:
 
 @mark.asyncio
 async def test_query_list(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    blas = Query.by("foo", P("identifier") == "9").traverse_out().filter("bla", P("f") == 23)  # noqa
+    blas = Query.by("foo", P("id") == "9").traverse_out().filter("bla", P("f") == 23)  # noqa
     async with await filled_graph_db.search_list(QueryModel(blas.on_section("reported"), foo_model)) as gen:
         result = [from_js(x["reported"], Bla) async for x in gen]
         assert len(result) == 10
@@ -441,7 +441,7 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert len(graph.nodes.values()) == 111
 
     # filter data and tag result, and then traverse to the end of the graph in both directions
-    around_me = Query.by("foo", P("identifier") == "9").tag("red").traverse_inout(start=0)  # noqa
+    around_me = Query.by("foo", P("id") == "9").tag("red").traverse_inout(start=0)  # noqa
     graph = await filled_graph_db.search_graph(QueryModel(around_me.on_section("reported"), foo_model))
     assert len({x for x in graph.nodes}) == 12
     assert GraphAccess.root_id(graph) == "sub_root"
@@ -465,14 +465,14 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
         assert len(graph.nodes) == nodes
         assert len(graph.edges) == edges
 
-    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]default->", 11, 20)
-    await assert_result("is(foo) and reported.identifier==9 <-default[0:]delete->", 4, 3)
-    await assert_result("is(foo) and reported.identifier==9 <-default[0:]->", 14, 13)
-    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]->", 11, 10)
-    await assert_result("is(foo) and reported.identifier==9 -default[0:]->", 11, 10)
-    await assert_result("is(foo) and reported.identifier==9 <-delete[0:]-", 11, 10)
-    await assert_result("is(foo) and reported.identifier==9 <-default[0:]-", 4, 3)
-    await assert_result("is(foo) and reported.identifier==9 -delete[0:]->", 1, 0)
+    await assert_result("is(foo) and reported.id==9 <-delete[0:]default->", 11, 20)
+    await assert_result("is(foo) and reported.id==9 <-default[0:]delete->", 4, 3)
+    await assert_result("is(foo) and reported.id==9 <-default[0:]->", 14, 13)
+    await assert_result("is(foo) and reported.id==9 <-delete[0:]->", 11, 10)
+    await assert_result("is(foo) and reported.id==9 -default[0:]->", 11, 10)
+    await assert_result("is(foo) and reported.id==9 <-delete[0:]-", 11, 10)
+    await assert_result("is(foo) and reported.id==9 <-default[0:]-", 4, 3)
+    await assert_result("is(foo) and reported.id==9 -delete[0:]->", 1, 0)
 
 
 @mark.asyncio
@@ -500,12 +500,12 @@ async def test_query_nested(filled_graph_db: ArangoGraphDB, foo_model: Model) ->
 
 @mark.asyncio
 async def test_query_aggregate(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
-    agg_query = parse_query("aggregate(kind: count(identifier) as instances): is(foo)").on_section("reported")
+    agg_query = parse_query("aggregate(kind: count(id) as instances): is(foo)").on_section("reported")
     async with await filled_graph_db.search_aggregation(QueryModel(agg_query, foo_model)) as gen:
         assert [x async for x in gen] == [{"group": {"kind": "foo"}, "instances": 10}]
 
     agg_combined_var_query = parse_query(
-        'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(identifier) as instances): is("foo")'
+        'aggregate("test_{kind}_{some_int}_{does_not_exist}" as kind: count(id) as instances): is("foo")'
     ).on_section("reported")
 
     async with await filled_graph_db.search_aggregation(QueryModel(agg_combined_var_query, foo_model)) as g:
@@ -560,12 +560,12 @@ async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Mode
             return [bla async for bla in cursor]
 
     assert len(await query("is(bla) with(any, <-- is(foo))")) == 100
-    assert len(await query('is(bla) with(any, <-- is(foo) and identifier=~"1")')) == 10
+    assert len(await query('is(bla) with(any, <-- is(foo) and id=~"1")')) == 10
     assert len(await query("is(bla) with(empty, <-- is(foo))")) == 0
     assert len(await query("is(bla) with(any, <-- is(bla))")) == 0
     assert len(await query("is(bla) with(empty, <-- is(bla))")) == 100
-    assert len(await query('is(bla) with(count==1, <-- is(foo) and identifier=~"1")')) == 10
-    assert len(await query('is(bla) with(count==2, <-- is(foo) and identifier=~"1")')) == 0
+    assert len(await query('is(bla) with(count==1, <-- is(foo) and id=~"1")')) == 10
+    assert len(await query('is(bla) with(count==2, <-- is(foo) and id=~"1")')) == 0
     assert len(await query("is(bla) with(any, <-- with(any, <-- is(foo)))")) == 100
 
 
@@ -614,8 +614,8 @@ async def test_insert_node(graph_db: ArangoGraphDB, foo_model: Model) -> None:
     json = await graph_db.create_node(
         foo_model, NodeId("some_new_id"), to_json(Foo("some_new_id", "name")), NodeId("root")
     )
-    assert to_foo(json).identifier == "some_new_id"
-    assert to_foo(await graph_db.get_node(foo_model, NodeId("some_new_id"))).identifier == "some_new_id"
+    assert to_foo(json).id == "some_new_id"
+    assert to_foo(await graph_db.get_node(foo_model, NodeId("some_new_id"))).id == "some_new_id"
 
 
 @mark.asyncio
@@ -626,10 +626,10 @@ async def test_update_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     assert to_foo(js).name == "bla"
     assert to_foo(await filled_graph_db.get_node(foo_model, nid)).name == "bla"
     # replace
-    js = await filled_graph_db.update_node(foo_model, nid, {"kind": "bla", "identifier": "123"}, True, "reported")
+    js = await filled_graph_db.update_node(foo_model, nid, {"kind": "bla", "id": "123"}, True, "reported")
     reported = js["reported"]
     reported.pop("ctime")  # ctime is added by the system automatically. remove it
-    assert reported == {"kind": "bla", "identifier": "123"}
+    assert reported == {"kind": "bla", "id": "123"}
     # also make sure that all resolved ancestor props are changed
     nid = NodeId("sub_root")
     # patch
@@ -798,7 +798,7 @@ async def test_list_possible_values(filled_graph_db: ArangoGraphDB, foo_model: M
         async with await filled_graph_db.list_possible_values(qm, path_or_pred, detail) as cursor:
             return [a async for a in cursor]
 
-    props_of_b = ["ctime", "f", "g", "h", "identifier", "kind", "name", "now"]
+    props_of_b = ["ctime", "f", "g", "h", "id", "kind", "name", "now"]
     assert await pv("is(bla)", "reported.f", "values") == [23]
     assert await pv("is(bla)", "reported.h.inner[*].inner[*].name", "values") == ["in_0_0", "in_0_1"]
     assert await pv("is(bla)", "reported.g[*]", "values") == [0, 1, 2, 3, 4]

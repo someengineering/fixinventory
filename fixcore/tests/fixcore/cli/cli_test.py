@@ -172,14 +172,14 @@ def test_parse_predecessor_successor_ancestor_descendant_args() -> None:
 
 @pytest.mark.asyncio
 async def test_create_query_parts(cli: CLI) -> None:
-    commands = await cli.evaluate_cli_command('search some_int==0 | search identifier=~"9_" | descendants')
+    commands = await cli.evaluate_cli_command('search some_int==0 | search id=~"9_" | descendants')
     sort = "sort reported.kind asc, reported.name asc, reported.id asc"
     assert len(commands) == 1
     assert len(commands[0].commands) == 2  # list command is added automagically
     assert commands[0].commands[0].name == "execute_search"
     assert (
         commands[0].executable_commands[0].arg
-        == f"'(reported.some_int == 0 and reported.identifier =~ \"9_\") {sort} -default[1:]-> all {sort}'"
+        == f"'(reported.some_int == 0 and reported.id =~ \"9_\") {sort} -default[1:]-> all {sort}'"
     )
     commands = await cli.evaluate_cli_command("search some_int==0 | descendants")
     assert "-default[1:]->" in commands[0].executable_commands[0].arg  # type: ignore

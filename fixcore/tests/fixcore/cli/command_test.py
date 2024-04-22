@@ -141,11 +141,9 @@ async def test_descendants(cli: CLI) -> None:
 
 @pytest.mark.asyncio
 async def test_search_source(cli: CLIService) -> None:
-    result = await cli.execute_cli_command('search is("foo") and some_int==0 --> identifier=~"9_"', list_sink)
+    result = await cli.execute_cli_command('search is("foo") and some_int==0 --> id=~"9_"', list_sink)
     assert len(result[0]) == 10
-    await cli.dependencies.template_expander.put_template(
-        Template("test", 'is(foo) and some_int==0 --> identifier=~"{{fid}}"')
-    )
+    await cli.dependencies.template_expander.put_template(Template("test", 'is(foo) and some_int==0 --> id=~"{{fid}}"'))
     result2 = await cli.execute_cli_command('search expand(test, fid="9_")', list_sink)
     assert len(result2[0]) == 10
 
@@ -502,7 +500,7 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
         "properties": {
             "age": "duration",
             "ctime": "datetime",
-            "identifier": "string",
+            "id": "string",
             "kind": "string",
             "name": "string",
             "now_is": "datetime",
@@ -538,12 +536,12 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
 async def test_sort_command(cli: CLI) -> None:
     async def identifiers(query: str) -> List[str]:
         result = await cli.execute_cli_command(query + " | dump", list_sink)
-        return [r["reported"]["identifier"] for r in result[0]]
+        return [r["reported"]["id"] for r in result[0]]
 
-    id_wo = await identifiers("search is(bla) | sort identifier")
-    id_asc = await identifiers("search is(bla) | sort identifier asc")
-    id_desc = await identifiers("search is(bla) | sort identifier desc")
-    id_kind = await identifiers("search is(bla) | sort identifier | sort kind")
+    id_wo = await identifiers("search is(bla) | sort id")
+    id_asc = await identifiers("search is(bla) | sort id asc")
+    id_desc = await identifiers("search is(bla) | sort id desc")
+    id_kind = await identifiers("search is(bla) | sort id | sort kind")
     assert id_wo == id_asc
     assert id_wo == id_kind
     assert id_asc == list(reversed(id_desc))
@@ -553,27 +551,27 @@ async def test_sort_command(cli: CLI) -> None:
 async def test_limit_command(cli: CLI) -> None:
     async def identifiers(query: str) -> List[str]:
         result = await cli.execute_cli_command(query + " | dump", list_sink)
-        return [r["reported"]["identifier"] for r in result[0]]
+        return [r["reported"]["id"] for r in result[0]]
 
-    assert await identifiers("search is(bla) sort identifier | limit 1") == ["0_0"]
-    assert await identifiers("search is(bla) sort identifier | limit 2") == ["0_0", "0_1"]
-    assert await identifiers("search is(bla) sort identifier | limit 2, 2") == ["0_2", "0_3"]
-    assert await identifiers("search is(bla) sort identifier | limit 10, 2") == ["1_0", "1_1"]
-    assert await identifiers("search is(bla) sort identifier | limit 100, 2") == []
+    assert await identifiers("search is(bla) sort id | limit 1") == ["0_0"]
+    assert await identifiers("search is(bla) sort id | limit 2") == ["0_0", "0_1"]
+    assert await identifiers("search is(bla) sort id | limit 2, 2") == ["0_2", "0_3"]
+    assert await identifiers("search is(bla) sort id | limit 10, 2") == ["1_0", "1_1"]
+    assert await identifiers("search is(bla) sort id | limit 100, 2") == []
 
 
 @pytest.mark.asyncio
 async def test_list_command(cli: CLI) -> None:
-    result = await cli.execute_cli_command('search is (foo) and identifier=="4" sort some_int | list', list_sink)
+    result = await cli.execute_cli_command('search is (foo) and id=="4" sort some_int | list', list_sink)
     assert len(result[0]) == 1
-    assert result[0][0].startswith("kind=foo, identifier=4, some_int=0, age=")
+    assert result[0][0].startswith("kind=foo, id=4, some_int=0, age=")
     list_cmd = "list some_int as si, some_string"
-    result = await cli.execute_cli_command(f'search is (foo) and identifier=="4" | {list_cmd}', list_sink)
+    result = await cli.execute_cli_command(f'search is (foo) and id=="4" | {list_cmd}', list_sink)
     assert result[0] == ["si=0, some_string=hello"]
 
     # list is added automatically when no output renderer is defined and has the same behaviour as if it was given
-    result = await cli.execute_cli_command('search is (foo) and identifier=="4" sort some_int', list_sink)
-    assert result[0][0].startswith("kind=foo, identifier=4, some_int=0, age=")
+    result = await cli.execute_cli_command('search is (foo) and id=="4" sort some_int', list_sink)
+    assert result[0][0].startswith("kind=foo, id=4, some_int=0, age=")
 
     # List is using the correct type
     props = dict(id="test", a="a", b=True, c=False, d=None, e=12, f=1.234, reported={})
@@ -964,7 +962,7 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
             "severity": "warning",
             "component": "Fix",
             "custom_details": {
-                "collector": {"sub_root": {"no-region": {"0_0": {"id": None, "name": "yes or no", "kind": "bla"}}}}
+                "collector": {"sub_root": {"no-region": {"0_0": {"id": "0_0", "name": "yes or no", "kind": "bla"}}}}
             },
         },
         "routing_key": "123",
@@ -1435,7 +1433,7 @@ async def test_timeseries(cli: CLI) -> None:
     in_one_min = utc_str(now + timedelta(minutes=1))
     one_min_ago = utc_str(now - timedelta(minutes=1))
     # Create a time series based on all foo entries
-    res = await exec("timeseries snapshot --name test 'search aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)'")  # fmt: skip
+    res = await exec("timeseries snapshot --name test 'search aggregate(reported.some_int, reported.id: sum(1)): is(foo)'")  # fmt: skip
     assert res[0] == "10 entries added to time series test."
     # Get the time series combined with each complete group
     res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min}")
@@ -1446,11 +1444,11 @@ async def test_timeseries(cli: CLI) -> None:
     # Combine over some_int (which has only one) --> only one entry for one timestamp
     res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group some_int")
     assert len(res) == 1
-    # Combine over identifier (which is unique for each entry) --> 10 entries for one timestamp
-    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier")
+    # Combine over id (which is unique for each entry) --> 10 entries for one timestamp
+    res = await exec(f"timeseries get --name test --start {one_min_ago} --end {in_one_min} --group id")
     assert len(res) == 10
-    # Combine over identifier (which is unique for each entry), filter for identifier==2 --> 1 entry for one timestamp
-    res = await exec(f'timeseries get --name test --start {one_min_ago} --end {in_one_min} --group identifier --filter identifier=="2"')  # fmt: skip
+    # Combine over id (which is unique for each entry), filter for id==2 --> 1 entry for one timestamp
+    res = await exec(f'timeseries get --name test --start {one_min_ago} --end {in_one_min} --group id --filter id=="2"')  # fmt: skip
     assert len(res) == 1
 
 
