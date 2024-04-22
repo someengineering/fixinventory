@@ -21,7 +21,7 @@ def test_kinds() -> List[Kind]:
         "base",
         [],
         [
-            Property("identifier", "string", required=True),
+            Property("id", "string", required=True),
             Property("kind", "string", required=True),
         ],
     )

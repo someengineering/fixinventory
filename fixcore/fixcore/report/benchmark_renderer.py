@@ -47,7 +47,7 @@ def render_benchmark_summary(benchmark: CheckCollectionResult, account: str) -> 
     def render_result_list(name: str, icon: str, checks: List[CheckResult]) -> str:
         if checks:
             lr = f"## {name} \n\n"
-            for check in sorted(checks, key=lambda x: -x.check.severity.prio()):
+            for check in sorted(checks, key=lambda x: -x.check.severity.prio):
                 lr += f"- {icon} {check.check.severity.name}: {check.check.title}\n"
             return lr
         else:

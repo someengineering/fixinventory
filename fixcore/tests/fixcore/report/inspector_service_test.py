@@ -74,7 +74,7 @@ async def count_vulnerable(inspector_service: InspectorService) -> int:
         return cursor.count()  # type: ignore
 
 
-async def test_perform_benchmark(inspector_service: InspectorService) -> None:
+async def test_perform_benchmark(inspector_service: InspectorService, foo_model: Model) -> None:
     def assert_result(results: Dict[str, BenchmarkResult]) -> None:
         result = results["test"]
         assert result.children[0].checks[0].number_of_resources_failing == 10
@@ -100,6 +100,13 @@ async def test_perform_benchmark(inspector_service: InspectorService) -> None:
     # loading the result from the db should give the same information
     loaded = await inspector_service.load_benchmarks(graph_name, ["test"])
     assert_result(loaded)
+
+    # a score is maintained on the account node
+    db = inspector_service.db_access.get_graph_db(graph_name)
+    async with await db.search_list(QueryModel(Query.by("account"), foo_model)) as crsr:
+        async for elem in crsr:
+            assert elem["metadata"]["score"] == 0
+            assert elem["metadata"]["benchmark"]["test"] == 0
 
 
 async def test_perform_benchmark_ignored(

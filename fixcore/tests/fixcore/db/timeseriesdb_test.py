@@ -13,7 +13,7 @@ from fixcore.types import Json
 
 async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
     await timeseries_db.wipe()  # clean up
-    qm = QueryModel(parse_query("aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)"), foo_model)
+    qm = QueryModel(parse_query("aggregate(reported.some_int, reported.id: sum(1)): is(foo)"), foo_model)
     # create timeseries at 10 different points in time
     for a in range(10):
         await timeseries_db.add_entries("test", qm, filled_graph_db, at=3600 * a)
@@ -41,19 +41,19 @@ async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model,
     ## check group_by is working
     # some_int is the same for all entries: one every hour: 5 entries
     assert len(await load_ts(name="test", start=begin, end=after5h, group_by=["some_int"])) == 5
-    # identifier is different for each entry: 50 entries
-    assert len(await load_ts(name="test", start=begin, end=after5h, group_by=["identifier"])) == 50
+    # id is different for each entry: 50 entries
+    assert len(await load_ts(name="test", start=begin, end=after5h, group_by=["id"])) == 50
     # do not use any groups: 5 entries
     assert len(await load_ts(name="test", start=begin, end=after5h, group_by=[])) == 5
 
     ## check filter_by is working
     # some_int is the same for all entries: one every hour: 5 entries
-    assert len(await load_ts(name="test", start=begin, end=after5h, filter_by=[(P("identifier").eq("1"))])) == 5
+    assert len(await load_ts(name="test", start=begin, end=after5h, filter_by=[(P("id").eq("1"))])) == 5
 
 
 async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
     await timeseries_db.wipe()  # clean up
-    qm = QueryModel(parse_query("aggregate(reported.some_int, reported.identifier: sum(1)): is(foo)"), foo_model)
+    qm = QueryModel(parse_query("aggregate(reported.some_int, reported.id: sum(1)): is(foo)"), foo_model)
     now = datetime(2023, 12, 1, tzinfo=timezone.utc)
 
     async def create_ts(before_now: timedelta, granularity: timedelta, number_of_entries: int) -> None:

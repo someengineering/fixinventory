@@ -204,9 +204,7 @@ async def test_graph_api(core_client: FixInventoryClient) -> None:
 
     # create a node in the graph
     uid = rnd_str()
-    node = AccessJson(
-        await core_client.create_node("root", uid, {"identifier": uid, "kind": "child", "name": "max"}, g)
-    )
+    node = AccessJson(await core_client.create_node("root", uid, {"id": uid, "kind": "child", "name": "max"}, g))
     assert node.id == uid
     assert node.reported.name == "max"
 

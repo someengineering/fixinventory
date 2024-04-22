@@ -170,7 +170,7 @@ class TreeCase(unittest.TestCase):
         self.assertEqual(self.tree.depth("harry"), 0)
 
         # Try getting Exception
-        node = Node("Test One", "identifier 1")
+        node = Node("Test One", "id 1")
         self.assertRaises(NodeIDAbsentError, self.tree.depth, node)
 
         # Reset the test case
@@ -244,7 +244,7 @@ class TreeCase(unittest.TestCase):
         diane_parent = self.tree.parent("diane")
         self.tree.move_node("diane", "bill")
         self.assertEqual("diane" in self.tree.is_branch("bill"), True)
-        self.tree.move_node("diane", diane_parent.identifier)
+        self.tree.move_node("diane", diane_parent.id)
 
     def test_paste_tree(self):
         new_tree = Tree()
@@ -301,7 +301,7 @@ class TreeCase(unittest.TestCase):
         t1.paste(nid="r", new_tree=t2)
         self.assertEqual(t1.identifier, "t1")
         self.assertEqual(t1.root, "r")
-        self.assertEqual(t1.parent("r2").identifier, "r")
+        self.assertEqual(t1.parent("r2").id, "r")
         self.assertEqual(set(t1._nodes.keys()), {"r", "r2", "a", "a1", "b", "c", "d", "d1"})
 
         # paste under non-existing node
@@ -324,7 +324,7 @@ class TreeCase(unittest.TestCase):
         t1.paste(nid="b", new_tree=t2)
         self.assertEqual(t1.identifier, "t1")
         self.assertEqual(t1.root, "r")
-        self.assertEqual(t1.parent("b").identifier, "r")
+        self.assertEqual(t1.parent("b").id, "r")
         self.assertEqual(set(t1._nodes.keys()), {"r", "a", "a1", "b", "c", "d", "d1", "r2"})
         # paste empty new_tree (under root)
         t1 = self.get_t1()
@@ -364,7 +364,7 @@ class TreeCase(unittest.TestCase):
 
     def test_siblings(self):
         self.assertEqual(len(self.tree.siblings("harry")) == 0, True)
-        self.assertEqual(self.tree.siblings("jane")[0].identifier == "bill", True)
+        self.assertEqual(self.tree.siblings("jane")[0].id == "bill", True)
 
     def test_tree_data(self):
         class Flower(object):
@@ -395,7 +395,7 @@ class TreeCase(unittest.TestCase):
         self.assertEqual(self.tree.level("harry"), 0)
         depth = self.tree.depth()
         self.assertEqual(self.tree.level("diane"), depth)
-        self.assertEqual(self.tree.level("diane", lambda x: x.identifier != "jane"), depth - 1)
+        self.assertEqual(self.tree.level("diane", lambda x: x.id != "jane"), depth - 1)
 
     def test_size(self):
         self.assertEqual(self.tree.size(level=2), 2)
@@ -476,10 +476,10 @@ class TreeCase(unittest.TestCase):
         tree = Tree(identifier="tree 3")
         tree.create_node("Harry", "harry")
         tree.create_node("Jane", "jane", parent="harry")
-        tree.update_node(tree["harry"].identifier, identifier="xyz", tag="XYZ")
+        tree.update_node(tree["harry"].id, identifier="xyz", tag="XYZ")
         self.assertTrue(tree.root == "xyz")
         self.assertTrue(tree["xyz"].tag == "XYZ")
-        self.assertEqual(tree.parent("jane").identifier, "xyz")
+        self.assertEqual(tree.parent("jane").id, "xyz")
 
     def test_subclassing(self):
         class SubNode(Node):

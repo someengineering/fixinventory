@@ -453,7 +453,7 @@ def model_json() -> str:
       { "fqn" :  "test.BaseResource",
         "bases": ["test.Compound", "test.Base"],
         "properties": [
-          { "name": "id", "kind": "string", "description": "The identifier of this resource", "required": true },
+          { "name": "id", "kind": "string", "description": "The id of this resource", "required": true },
           { "name": "name", "kind": "string", "description": "The name of the resource.", "required": true }
         ]
       },
