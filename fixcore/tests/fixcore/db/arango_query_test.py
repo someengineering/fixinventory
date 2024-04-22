@@ -324,7 +324,7 @@ def test_load_time_series() -> None:
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0 INTO group "
         "SORT group_slot "
-        "RETURN {at: group_slot,  v: AVG(group[*].d.v)}"
+        "RETURN {at: group_slot,  v: avg(group[*].d.v)}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
     # no group by defined --> group by all values
@@ -334,7 +334,7 @@ def test_load_time_series() -> None:
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0, complete_group=d.group INTO group "
         "SORT group_slot "
-        "RETURN {at: group_slot, group: complete_group, v: AVG(group[*].d.v)}"
+        "RETURN {at: group_slot, group: complete_group, v: avg(group[*].d.v)}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
     # group by specific group variables
@@ -344,7 +344,7 @@ def test_load_time_series() -> None:
         "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
         "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
         "SORT group_slot "
-        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: AVG(group[*].d.v)}"
+        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: avg(group[*].d.v)}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
     # group by specific group variables and filter by group variables
@@ -357,6 +357,6 @@ def test_load_time_series() -> None:
         "LET m0 = (FLOOR(d.at / @b4) * @b4) + @b5 "
         "COLLECT group_slot=m0, group_a=d.group.a, group_b=d.group.b INTO group "
         "SORT group_slot "
-        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: AVG(group[*].d.v)}"
+        "RETURN {at: group_slot, group: { a: group_a, b: group_b }, v: avg(group[*].d.v)}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 800}

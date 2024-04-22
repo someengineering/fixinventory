@@ -6274,7 +6274,7 @@ class TimeSeriesCommand(CLICommand):
             parser.add_argument("--group", type=str, nargs="*", default=None)
             parser.add_argument("--filter", type=predicate_term.parse, nargs="*", default=None)
             parser.add_argument("--granularity", type=parse_duration_or_int, default=5)
-            parser.add_argument("--aggregation", choices=["avg", "sum", "min", "max"], default=5)
+            parser.add_argument("--aggregation", choices=["avg", "sum", "min", "max"], default="avg")
             p = parser.parse_args(args_parts_unquoted_parser.parse(part))
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             cursor = await self.dependencies.db_access.time_series_db.load_time_series(
