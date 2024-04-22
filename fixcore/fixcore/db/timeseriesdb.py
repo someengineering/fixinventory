@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import timedelta, datetime, timezone
 from functools import partial
 from numbers import Number
-from typing import Optional, List, Set, Union, cast, Callable, Dict, AsyncIterator
+from typing import Optional, List, Set, Union, cast, Callable, Dict, AsyncIterator, Literal
 
 from attr import evolve, define
 from fixcore.core_config import CoreConfig
@@ -115,6 +115,7 @@ class TimeSeriesDB:
         trafo: Optional[Callable[[Json], Json]] = None,
         batch_size: Optional[int] = None,
         timeout: Optional[timedelta] = None,
+        aggregation: Literal["avg", "sum", "min", "max"] = "avg",
     ) -> AsyncCursor:
         """
         Load time series data.
@@ -129,6 +130,7 @@ class TimeSeriesDB:
         :param trafo: Optional transformation function to apply to each result.
         :param batch_size: Optional batch size for the query.
         :param timeout: Timeout for the query to run.
+        :param aggregation: The aggregation function to use.
         :return: A cursor to iterate over the time series data.
         """
         assert start < end, "start must be before end"
@@ -145,7 +147,9 @@ class TimeSeriesDB:
 
         grl = max(grl, timedelta(hours=1))
 
-        qs, bv = arango_query.load_time_series(self.collection_name, name, start, end, grl, group_by, filter_by)
+        qs, bv = arango_query.load_time_series(
+            self.collection_name, name, start, end, grl, aggregation, group_by, filter_by
+        )
 
         def result_trafo(js: Json) -> Json:
             js["at"] = utc_str(datetime.fromtimestamp(js["at"], timezone.utc))
@@ -192,6 +196,7 @@ class TimeSeriesDB:
                             trafo=partial(ts_format, ts.name),
                             batch_size=100_000,  # The values are tiny. Use a large batch size.
                             timeout=timedelta(seconds=60),
+                            aggregation="avg",
                         )
                     ]:
                         log.info(f"Compact {ts.name} bucket {bucket} to {len(ts_data)} entries (last={ts_bucket_last})")
