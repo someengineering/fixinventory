@@ -6242,6 +6242,7 @@ class TimeSeriesCommand(CLICommand):
                 ArgInfo("--group", expects_value=True, can_occur_multiple_times=True, help_text="<group>"),
                 ArgInfo("--filter", expects_value=True, can_occur_multiple_times=True, help_text="<var><op><value>"),
                 ArgInfo("--granularity", expects_value=True, help_text="<duration|integer>"),
+                ArgInfo("--aggregation", expects_value=True, possible_values=["avg", "sum", "min", "max"]),
             ],
             "downsample": [],
         }
@@ -6273,10 +6274,18 @@ class TimeSeriesCommand(CLICommand):
             parser.add_argument("--group", type=str, nargs="*", default=None)
             parser.add_argument("--filter", type=predicate_term.parse, nargs="*", default=None)
             parser.add_argument("--granularity", type=parse_duration_or_int, default=5)
+            parser.add_argument("--aggregation", choices=["avg", "sum", "min", "max"], default="avg")
             p = parser.parse_args(args_parts_unquoted_parser.parse(part))
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             cursor = await self.dependencies.db_access.time_series_db.load_time_series(
-                p.name, p.start, p.end, group_by=p.group, filter_by=p.filter, granularity=p.granularity, timeout=timeout
+                p.name,
+                p.start,
+                p.end,
+                group_by=p.group,
+                filter_by=p.filter,
+                granularity=p.granularity,
+                timeout=timeout,
+                aggregation=p.aggregation,
             )
             return CLISourceContext(cursor.count(), cursor.full_count()), cursor
 

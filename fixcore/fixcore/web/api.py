@@ -772,12 +772,14 @@ class Api(Service):
         start = if_set(body.get("start"), parse_utc, utc() - timedelta(days=7))
         end = if_set(body.get("end"), parse_utc, utc())
         group_by: Optional[Set[str]] = if_set(body.get("group"), set)
+        aggregation: Literal["avg", "sum", "min", "max"] = body.get("aggregation", "avg")
+        assert aggregation in ["avg", "sum", "min", "max"], f"Invalid aggregation {aggregation}"
         filter_by: Optional[List[Predicate]] = if_set(
             body.get("filter"), lambda x: [predicate_term.parse(y) for y in x]  # type: ignore
         )
         granularity: Optional[Union[int, timedelta]] = if_set(body.get("granularity"), parse_duration_or_int)
         cursor = await deps.db_access.time_series_db.load_time_series(
-            name, start, end, group_by=group_by, filter_by=filter_by, granularity=granularity
+            name, start, end, group_by=group_by, filter_by=filter_by, granularity=granularity, aggregation=aggregation
         )
         return await self.stream_response_from_gen(
             request, cursor, count=cursor.count(), total_count=cursor.full_count()

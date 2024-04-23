@@ -875,6 +875,7 @@ def load_time_series(
     start: datetime,
     end: datetime,
     granularity: timedelta,
+    group_aggregation: Literal["avg", "sum", "min", "max"] = "avg",
     group_by: Optional[Collection[str]] = None,
     group_filter: Optional[List[Predicate]] = None,
 ) -> Tuple[str, Json]:
@@ -911,7 +912,7 @@ def load_time_series(
         group = f"group: {{ {', '.join(parts)} }},"
 
     query += f" COLLECT {', '.join(collect)} INTO group"
-    query += f" SORT group_slot RETURN {{at: group_slot, {group} v: AVG(group[*].d.v)}}"
+    query += f" SORT group_slot RETURN {{at: group_slot, {group} v: {group_aggregation}(group[*].d.v)}}"
     return query, ctx.bind_vars
 
 
