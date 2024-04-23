@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attr import define, field
@@ -8,7 +8,6 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
-    calculate_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization
@@ -586,7 +585,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
         for instance_id in rds_instances:
             queries.extend(
@@ -594,7 +592,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name="CPUUtilization",
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Percent",
@@ -608,7 +606,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Count",
@@ -623,7 +621,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Seconds",
@@ -638,7 +636,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Bytes",
@@ -653,7 +651,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/RDS",
-                        period=period,
+                        period=delta,
                         ref_id=instance_id,
                         stat=stat,
                         unit="Bytes/Second",
@@ -668,56 +666,47 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "CPUUtilization": MetricNormalization(
                 metric_name=MetricName.CpuUtilization,
                 unit=MetricUnit.Percent,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DatabaseConnections": MetricNormalization(
                 metric_name=MetricName.DatabaseConnections,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadIOPS": MetricNormalization(
                 metric_name=MetricName.DiskRead,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteIOPS": MetricNormalization(
                 metric_name=MetricName.DiskWrite,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
                 metric_name=MetricName.ReadLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 # normalize to packets per second
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteLatency": MetricNormalization(
                 metric_name=MetricName.WriteLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "FreeStorageSpace": MetricNormalization(
                 metric_name=MetricName.FreeStorageSpace,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "FreeableMemory": MetricNormalization(
                 metric_name=MetricName.FreeableMemory,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "SwapUsage": MetricNormalization(
                 metric_name=MetricName.SwapUsage,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DiskQueueDepth": MetricNormalization(
@@ -728,13 +717,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "NetworkReceiveThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkReceiveThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkTransmitThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkTransmitThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

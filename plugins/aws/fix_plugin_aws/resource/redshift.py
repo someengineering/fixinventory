@@ -6,7 +6,6 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    calculate_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
@@ -16,7 +15,7 @@ from fixlib.json_bender import Bender, S, Bend, ForallBend, K
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import MetricNormalization, ToDict
 from typing import Type
-from datetime import datetime, timedelta
+from datetime import datetime
 from fixlib.types import Json
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.iam import AwsIamRole
@@ -585,7 +584,6 @@ class AwsRedshiftCluster(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
         for redshift_id in redshifts:
             queries.extend(
@@ -593,7 +591,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="CPUUtilization",
                         namespace="AWS/Redshift",
-                        period=period,
+                        period=delta,
                         ref_id=redshift_id,
                         stat=stat,
                         unit="Percent",
@@ -607,7 +605,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="DatabaseConnections",
                         namespace="AWS/Redshift",
-                        period=period,
+                        period=delta,
                         ref_id=redshift_id,
                         stat=stat,
                         unit="Count",
@@ -636,7 +634,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=period,
+                        period=delta,
                         ref_id=redshift_id,
                         stat=stat,
                         unit="Count/Second",
@@ -651,7 +649,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=period,
+                        period=delta,
                         ref_id=redshift_id,
                         stat="Average",
                         unit="Seconds",
@@ -665,7 +663,7 @@ class AwsRedshiftCluster(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/Redshift",
-                        period=period,
+                        period=delta,
                         ref_id=redshift_id,
                         stat="Average",
                         unit="Bytes",
@@ -679,61 +677,51 @@ class AwsRedshiftCluster(AwsResource):
             "CPUUtilization": MetricNormalization(
                 metric_name=MetricName.CpuUtilization,
                 unit=MetricUnit.Percent,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "DatabaseConnections": MetricNormalization(
                 metric_name=MetricName.DatabaseConnections,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkReceiveThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkReceiveThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NetworkTransmitThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkTransmitThroughput,
                 unit=MetricUnit.BytesPerSecond,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadIOPS": MetricNormalization(
                 metric_name=MetricName.DiskRead,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteIOPS": MetricNormalization(
                 metric_name=MetricName.DiskWrite,
                 unit=MetricUnit.IOPS,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadLatency": MetricNormalization(
                 metric_name=MetricName.ReadLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteLatency": MetricNormalization(
                 metric_name=MetricName.WriteLatency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ReadThroughput": MetricNormalization(
                 metric_name=MetricName.ReadThroughput,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "WriteThroughput": MetricNormalization(
                 metric_name=MetricName.WriteThroughput,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

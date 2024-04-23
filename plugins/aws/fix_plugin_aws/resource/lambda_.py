@@ -11,7 +11,6 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -435,7 +434,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 AwsCloudwatchQuery.create(
                     metric_name="ConcurrentExecutions",
                     namespace="AWS/Lambda",
-                    period=period,
+                    period=delta,
                     ref_id=lambda_id,
                     stat="Maximum",
                     unit="Count",
@@ -447,7 +446,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     AwsCloudwatchQuery.create(
                         metric_name="Duration",
                         namespace="AWS/Lambda",
-                        period=period,
+                        period=delta,
                         ref_id=lambda_id,
                         stat=stat,
                         unit="Milliseconds",
@@ -479,13 +478,11 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             "Duration": MetricNormalization(
                 metric_name=MetricName.Duration,
                 unit=MetricUnit.Milliseconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ConcurrentExecutions": MetricNormalization(
                 metric_name=MetricName.ConcurrentExecutions,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

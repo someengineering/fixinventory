@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attrs import define, field
@@ -8,7 +8,6 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    calculate_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
@@ -139,7 +138,6 @@ class AwsSqsQueue(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
         for sqs_id, sqs_queue in sqs_queues.items():
             queries.extend(
@@ -147,7 +145,7 @@ class AwsSqsQueue(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="ApproximateAgeOfOldestMessage",
                         namespace="AWS/SQS",
-                        period=period,
+                        period=delta,
                         ref_id=sqs_id,
                         stat=stat,
                         unit="Seconds",
@@ -161,7 +159,7 @@ class AwsSqsQueue(AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=name,
                         namespace="AWS/SQS",
-                        period=period,
+                        period=delta,
                         ref_id=sqs_id,
                         stat=stat,
                         unit="Count",
@@ -181,37 +179,31 @@ class AwsSqsQueue(AwsResource):
             "ApproximateAgeOfOldestMessage": MetricNormalization(
                 metric_name=MetricName.ApproximateAgeOfOldestMessage,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesDelayed": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesDelayed,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesNotVisible": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesNotVisible,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ApproximateNumberOfMessagesVisible": MetricNormalization(
                 metric_name=MetricName.ApproximateNumberOfMessagesVisible,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesReceived": MetricNormalization(
                 metric_name=MetricName.NumberOfMessagesReceived,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfMessagesSent": MetricNormalization(
                 metric_name=MetricName.NumberOfMessagesSent,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

@@ -1,5 +1,4 @@
 from datetime import timedelta
-from functools import partial
 from typing import ClassVar, Dict, Optional, Type, List, Any
 
 from attrs import define, field
@@ -9,8 +8,6 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
-    bytes_to_megabits_per_second,
-    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
 )
@@ -391,7 +388,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/ELB",
-                        period=period,
+                        period=delta,
                         ref_id=elb_id,
                         stat=stat,
                         unit="Count",
@@ -409,7 +406,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name="Latency",
                         namespace="AWS/ELB",
-                        period=period,
+                        period=delta,
                         ref_id=elb_id,
                         stat=stat,
                         unit="Seconds",
@@ -423,7 +420,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     AwsCloudwatchQuery.create(
                         metric_name="EstimatedProcessedBytes",
                         namespace="AWS/ELB",
-                        period=period,
+                        period=delta,
                         ref_id=elb_id,
                         stat=stat,
                         unit="Bytes",
@@ -467,26 +464,22 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
             "HealthyHostCount": MetricNormalization(
                 metric_name=MetricName.HealthyHostCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "UnHealthyHostCount": MetricNormalization(
                 metric_name=MetricName.UnhealthyHostCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "Latency": MetricNormalization(
                 metric_name=MetricName.Latency,
                 unit=MetricUnit.Seconds,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "EstimatedProcessedBytes": MetricNormalization(
                 metric_name=MetricName.ProcessedBytes,
-                unit=MetricUnit.MegabitsPerSecond,
-                compute_stats=calculate_avg,
-                normalize_value=partial(bytes_to_megabits_per_second, period=period),
+                unit=MetricUnit.BytesPerSecond,
+                normalize_value=lambda x: round(x, ndigits=4),
             ),
         }
 

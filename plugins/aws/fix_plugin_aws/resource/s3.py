@@ -1,4 +1,3 @@
-from datetime import timedelta
 import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -11,7 +10,6 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    calculate_avg,
     update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization, tags_as_dict
@@ -322,14 +320,13 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
         for s3_id, s3 in s3s.items():
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
                     namespace="AWS/S3",
-                    period=period,
+                    period=delta,
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Count",
@@ -340,7 +337,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 AwsCloudwatchQuery.create(
                     metric_name="BucketSizeBytes",
                     namespace="AWS/S3",
-                    period=period,
+                    period=delta,
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Bytes",
@@ -351,13 +348,11 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             "BucketSizeBytes": MetricNormalization(
                 metric_name=MetricName.BucketSizeBytes,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "NumberOfObjects": MetricNormalization(
                 metric_name=MetricName.NumberOfObjects,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

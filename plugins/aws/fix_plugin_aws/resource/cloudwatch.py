@@ -567,9 +567,3 @@ def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[Sta
         (max(values), StatName.max),
         (sum(values) / len(values), StatName.avg),
     ]
-
-
-def calculate_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
-    return [
-        (sum(values) / len(values), None),
-    ]

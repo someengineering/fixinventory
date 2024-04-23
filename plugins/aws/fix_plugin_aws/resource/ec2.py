@@ -8,7 +8,6 @@ import copy
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.aws_client import AwsClient
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from fix_plugin_aws.resource.cloudwatch import (
@@ -16,7 +15,6 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     bytes_to_megabits_per_second,
     bytes_to_megabytes_per_second,
-    calculate_avg,
     calculate_min_max_avg,
     operations_to_iops,
     update_resource_metrics,
@@ -2850,7 +2848,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-        five_minutes_or_less = min(timedelta(minutes=5), delta)
 
         for nat_g_id in nat_gateways:
             queries.extend(
@@ -2858,7 +2855,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/NATGateway",
-                        period=five_minutes_or_less,
+                        period=delta,
                         ref_id=nat_g_id,
                         stat=stat,
                         unit="Count",
@@ -2884,7 +2881,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/NATGateway",
-                        period=five_minutes_or_less,
+                        period=delta,
                         ref_id=nat_g_id,
                         stat=stat,
                         unit="Bytes",
@@ -2904,85 +2901,71 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
             "ActiveConnectionCount": MetricNormalization(
                 metric_name=MetricName.ActiveConnection,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ConnectionAttemptCount": MetricNormalization(
                 metric_name=MetricName.ConnectionAttemptCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ConnectionEstablishedCount": MetricNormalization(
                 metric_name=MetricName.ConnectionEstablishedCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "ErrorPortAllocation": MetricNormalization(
                 metric_name=MetricName.ErrorPortAllocation,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "IdleTimeoutCount": MetricNormalization(
                 metric_name=MetricName.IdleTimeoutCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "PacketsDropCount": MetricNormalization(
                 metric_name=MetricName.PacketsDropCount,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "PacketsInFromDestination": MetricNormalization(
                 metric_name=MetricName.PacketsInFromDestination,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "PacketsInFromSource": MetricNormalization(
                 metric_name=MetricName.PacketsInFromSource,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "PacketsOutToDestination": MetricNormalization(
                 metric_name=MetricName.PacketsOutToDestination,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "PacketsOutToSource": MetricNormalization(
                 metric_name=MetricName.PacketsOutToSource,
                 unit=MetricUnit.Count,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "BytesInFromDestination": MetricNormalization(
                 metric_name=MetricName.BytesInFromDestination,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "BytesInFromSource": MetricNormalization(
                 metric_name=MetricName.BytesInFromSource,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "BytesOutToDestination": MetricNormalization(
                 metric_name=MetricName.BytesOutToDestination,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
             "BytesOutToSource": MetricNormalization(
                 metric_name=MetricName.BytesOutToSource,
                 unit=MetricUnit.Bytes,
-                compute_stats=calculate_avg,
                 normalize_value=lambda x: round(x, ndigits=4),
             ),
         }

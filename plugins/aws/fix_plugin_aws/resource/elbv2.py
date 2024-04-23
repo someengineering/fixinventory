@@ -9,7 +9,6 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance,
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
-    calculate_avg,
     calculate_min_max_avg,
     update_resource_metrics,
     bytes_to_megabits_per_second,
@@ -778,7 +777,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/ApplicationELB",
-                        period=period,
+                        period=delta,
                         ref_id=tg_id,
                         stat=stat,
                         unit="Count",
@@ -797,7 +796,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name="TargetResponseTime",
                         namespace="AWS/ApplicationELB",
-                        period=period,
+                        period=delta,
                         ref_id=tg_id,
                         stat=stat,
                         unit="Seconds",
@@ -812,7 +811,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     AwsCloudwatchQuery.create(
                         metric_name=metric,
                         namespace="AWS/ApplicationELB",
-                        period=period,
+                        period=delta,
                         ref_id=tg_id,
                         stat="Min",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                         unit="Count",
@@ -839,13 +838,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 metric_name=MetricName.HealthyHostCount,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x / period.total_seconds(), 4),
-                compute_stats=calculate_avg,
             ),
             "UnHealthyHostCount": MetricNormalization(
                 metric_name=MetricName.UnhealthyHostCount,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x / period.total_seconds(), 4),
-                compute_stats=calculate_avg,
             ),
             "HTTPCode_Target_2XX_Count": MetricNormalization(
                 metric_name=MetricName.StatusCode2XX,
@@ -872,25 +869,21 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 metric_name=MetricName.HealthyStateRouting,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x, ndigits=4),
-                compute_stats=calculate_min_max_avg,
             ),
             "UnhealthyStateRouting": MetricNormalization(
-                metric_name=MetricName.HealthyStateRouting,
+                metric_name=MetricName.UnhealthyStateRouting,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x, ndigits=4),
-                compute_stats=calculate_min_max_avg,
             ),
             "HealthyStateDNS": MetricNormalization(
                 metric_name=MetricName.HealthyStateDNS,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x, ndigits=4),
-                compute_stats=calculate_min_max_avg,
             ),
             "UnhealthyStateDNS": MetricNormalization(
                 metric_name=MetricName.UnhealthyStateDNS,
                 unit=MetricUnit.Count,
                 normalize_value=lambda x: round(x, ndigits=4),
-                compute_stats=calculate_min_max_avg,
             ),
         }
 
