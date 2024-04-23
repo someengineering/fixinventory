@@ -91,8 +91,12 @@ def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queu
     subscription_collector = AzureSubscriptionCollector(
         config, cloud, subscription, account_config.credentials(), core_feedback, task_data
     )
-    subscription_collector.collect()
-    queue.put((subscription_collector_arg.subscription, subscription_collector.graph))
+    try:
+        subscription_collector.collect()
+        queue.put((subscription_collector_arg.subscription, subscription_collector.graph))
+    except Exception as e:
+        log.exception(f"Error collecting subscription {subscription.subscription_id}: {e}. Give up.")
+        queue.put((subscription_collector_arg.subscription, None))  # signal done
 
 
 def collect_in_process(
