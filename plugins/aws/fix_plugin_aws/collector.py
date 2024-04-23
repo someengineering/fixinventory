@@ -4,7 +4,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from typing import List, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
 
-from fix_plugin_aws.aws_client import AwsClient, ErrorAccumulator
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
     apigateway,
@@ -48,7 +48,7 @@ from fix_plugin_aws.resource import (
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
-from fixlib.core.actions import CoreFeedback
+from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.core.progress import ProgressDone, ProgressTree
 from fixlib.graph import Graph, BySearchCriteria, ByNodeId
 from fixlib.proc import set_thread_name

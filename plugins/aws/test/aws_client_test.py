@@ -2,8 +2,9 @@ from typing import Tuple
 
 from botocore.exceptions import ClientError
 
-from fix_plugin_aws.aws_client import AwsClient, ErrorAccumulator, is_retryable_exception
+from fix_plugin_aws.aws_client import AwsClient, is_retryable_exception
 from fix_plugin_aws.configuration import AwsConfig
+from fixlib.core.actions import ErrorAccumulator
 from test.resources import BotoFileBasedSession, BotoErrorSession
 
 
