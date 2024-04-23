@@ -895,9 +895,19 @@ def load_time_series(
     slotter = int(granularity.total_seconds())
     gran = ctx.add_bind_var(slotter)
     offset = start.timestamp() - ((start.timestamp() // slotter) * slotter)
+    # slot the time by averaging each single group
     query += f" LET {time_slot} = (FLOOR(d.at / @{gran}) * @{gran}) + @{ctx.add_bind_var(offset)}"
+    query += f" COLLECT group_slot={time_slot}, complete_group=d.group"
+    query += " AGGREGATE slot_avg = AVG(d.v)"
+    query += " RETURN {at: group_slot, group: complete_group, v: slot_avg}"
+
+    # short circuit: no additional grouping and aggregation is avg
+    if group_by is None and group_aggregation == "avg":
+        return query, ctx.bind_vars  # already the correct query
+
     # create the groups to collect
-    collect = [f"group_slot={time_slot}"]
+    slotted = ctx.next_crs()
+    collect = ["group_slot=d.at"]
     group = ""
     if group_by is None:
         collect.append("complete_group=d.group")
@@ -911,8 +921,10 @@ def load_time_series(
             parts.append(f"{g}: group_{g}")
         group = f"group: {{ {', '.join(parts)} }},"
 
-    query += f" COLLECT {', '.join(collect)} INTO group"
-    query += f" SORT group_slot RETURN {{at: group_slot, {group} v: {group_aggregation}(group[*].d.v)}}"
+    query = f"LET {slotted} = ( {query} )\n"
+    query += f" FOR d in {slotted} COLLECT {', '.join(collect)}"
+    query += f" AGGREGATE agg_val={group_aggregation}(d.v)"
+    query += f" SORT group_slot RETURN {{at: group_slot,{group} v: agg_val}}"
     return query, ctx.bind_vars
 
 
