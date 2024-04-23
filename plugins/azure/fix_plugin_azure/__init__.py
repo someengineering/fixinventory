@@ -1,7 +1,7 @@
 import logging
 import multiprocessing
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed, ProcessPoolExecutor
 from typing import Optional, Tuple, Any
 
 from attr import evolve
@@ -73,7 +73,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         self.core_feedback.progress(progress)
 
         # Collect all subscriptions
-        with ThreadPoolExecutor(max_workers=config.subscription_pool_size) as executor:
+        with ProcessPoolExecutor(max_workers=config.subscription_pool_size) as executor:
             wait_for = [executor.submit(collect_in_process, sub, self.task_data) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()

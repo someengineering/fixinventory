@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, MutableMapping, Optional, Any, Union, Dict
 
-from attr import define
+from attr import define, field
 from retrying import retry
 from azure.core.exceptions import (
     ClientAuthenticationError,
@@ -56,6 +56,7 @@ class AzureApiSpec:
     query_parameters: List[str] = []
     access_path: Optional[str] = None
     expect_array: bool = False
+    expected_error_codes: List[str] = field(factory=list)
 
 
 class AzureClient(ABC):
@@ -184,6 +185,8 @@ class AzureResourceManagementClient(AzureClient):
             if error := e.error:
                 if error.code == "NoRegisteredProviderFound":
                     return None  # API not available in this region
+                elif error.code in spec.expected_error_codes:
+                    return None
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e
                 code = error.code or "Unknown"

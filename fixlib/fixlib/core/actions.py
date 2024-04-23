@@ -1,6 +1,7 @@
 import threading
 import time
 from contextlib import suppress, AbstractContextManager
+from itertools import islice
 from logging import Logger
 from queue import Queue
 
