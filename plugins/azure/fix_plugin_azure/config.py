@@ -42,6 +42,13 @@ class AzureAccountConfig:
 
         return DefaultAzureCredential()
 
+    def allowed(self, subscription_id: str) -> bool:
+        if self.subscriptions is not None:
+            return subscription_id in self.subscriptions
+        if self.exclude_subscriptions is not None:
+            return subscription_id not in self.exclude_subscriptions
+        return True
+
 
 @define
 class AzureConfig:

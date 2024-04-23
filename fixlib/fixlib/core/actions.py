@@ -18,7 +18,7 @@ from fixlib.event import EventType, remove_event_listener, add_event_listener, E
 from fixlib.args import ArgumentParser
 from fixlib.jwt import encode_jwt_to_headers
 from fixlib.core.ca import TLSData
-from typing import Callable, Dict, Optional, List, Any
+from typing import Callable, Dict, Optional, List, Any, Set
 
 from fixlib.types import Json
 from fixlib.utils import utc_str
@@ -82,6 +82,61 @@ class CoreFeedback:
 
     def child_context(self, *context: str) -> "CoreFeedback":
         return self.with_context(*(self.context + list(context)))
+
+
+@define
+class ErrorSummary:
+    error: str
+    message: str
+    info: bool
+    region: Optional[str] = None
+    service_actions: Dict[str, Set[str]] = field(factory=dict)
+
+
+class ErrorAccumulator:
+    def __init__(self) -> None:
+        self.regional_errors: Dict[Optional[str], Dict[str, ErrorSummary]] = {}
+
+    def add_error(
+        self, as_info: bool, error_kind: str, service: str, action: str, message: str, region: Optional[str] = None
+    ) -> None:
+        if region not in self.regional_errors:
+            self.regional_errors[region] = {}
+        regional_errors = self.regional_errors[region]
+
+        key = f"{error_kind}:{message}:{as_info}"
+        if key not in regional_errors:
+            regional_errors[key] = ErrorSummary(error_kind, message, as_info, region, {service: {action}})
+        else:
+            summary = regional_errors[key]
+            if service not in summary.service_actions:
+                summary.service_actions[service] = {action}
+            else:
+                summary.service_actions[service].add(action)
+
+    def report_region(self, core_feedback: CoreFeedback, region: Optional[str]) -> None:
+        if regional_errors := self.regional_errors.get(region):
+            # reset errors for this region
+            self.regional_errors[region] = {}
+            # add region as context
+            feedback = core_feedback.child_context(region) if region else core_feedback
+            # send to core
+            for err in regional_errors.values():
+                srv_acts = []
+                for aws_service, actions in islice(err.service_actions.items(), 10):
+                    suffix = " and more" if len(actions) > 3 else ""
+                    srv_acts.append(aws_service + ": " + ", ".join(islice(actions, 3)) + suffix)
+                message = f"[{err.error}] {err.message} Services and actions affected: {', '.join(srv_acts)}"
+                if len(err.service_actions) > 10:
+                    message += " and more..."
+                if err.info:
+                    feedback.info(message)
+                else:
+                    feedback.error(message)
+
+    def report_all(self, core_feedback: CoreFeedback) -> None:
+        for region in self.regional_errors.keys():
+            self.report_region(core_feedback, region)
 
 
 class SuppressWithFeedback(AbstractContextManager[None]):

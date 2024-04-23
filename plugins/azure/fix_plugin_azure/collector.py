@@ -26,7 +26,7 @@ from fix_plugin_azure.resource.network import (
 )
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
 from fixlib.baseresources import Cloud, GraphRoot
-from fixlib.core.actions import CoreFeedback
+from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
 from fixlib.json import value_in_path
 from fixlib.threading import ExecutorQueue, GatherFutures
@@ -72,7 +72,13 @@ class AzureSubscriptionCollector:
         ) as executor:
             self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
-            client = AzureClient.create(self.credentials, self.subscription.subscription_id)
+            error_accumulator = ErrorAccumulator()
+            client = AzureClient.create(
+                self.credentials,
+                self.subscription.subscription_id,
+                core_feedback=self.core_feedback,
+                error_accumulator=error_accumulator,
+            )
 
             def get_last_run() -> Optional[datetime]:
                 td = self.task_data
@@ -123,7 +129,8 @@ class AzureSubscriptionCollector:
 
             # delete unnecessary nodes after all work is completed
             self.after_collect_filter()
-
+            # report all accumulated errors
+            error_accumulator.report_all(self.core_feedback)
             self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
 

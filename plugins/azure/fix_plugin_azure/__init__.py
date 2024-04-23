@@ -61,6 +61,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
             )
             for name, ac in account_configs.items()
             for subscription in AzureSubscription.list_subscriptions(ac.credentials())
+            if ac.allowed(subscription.subscription_id)
         }
         args = list(args_by_subscription_id.values())
 

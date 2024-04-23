@@ -21,6 +21,7 @@ from azure.mgmt.resource.resources._serialization import Serializer
 from azure.mgmt.resource.resources.models import GenericResource
 
 from fix_plugin_azure.config import AzureCredentials
+from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -82,9 +83,13 @@ class AzureClient(ABC):
     def __create_management_client(
         credential: AzureCredentials,
         subscription_id: str,
+        core_feedback: Optional[CoreFeedback] = None,
+        error_accumulator: Optional[ErrorAccumulator] = None,
         resource_group: Optional[str] = None,
     ) -> AzureClient:
-        return AzureResourceManagementClient(credential, subscription_id, resource_group)
+        return AzureResourceManagementClient(
+            credential, subscription_id, resource_group, core_feedback, error_accumulator
+        )
 
     create = __create_management_client
 
@@ -95,10 +100,14 @@ class AzureResourceManagementClient(AzureClient):
         credential: AzureCredentials,
         subscription_id: str,
         location: Optional[str] = None,
+        core_feedback: Optional[CoreFeedback] = None,
+        accumulator: Optional[ErrorAccumulator] = None,
     ) -> None:
         self.credential = credential
         self.subscription_id = subscription_id
         self.location = location
+        self.core_feedback = core_feedback
+        self.accumulator = accumulator or ErrorAccumulator()
         self.client = ResourceManagementClient(self.credential, self.subscription_id)
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
@@ -177,8 +186,10 @@ class AzureResourceManagementClient(AzureClient):
                     return None  # API not available in this region
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e
-            log.warning(f"[Azure] Error encountered while requesting resource: {e}")
-            raise e
+                code = error.code or "Unknown"
+                self.accumulator.add_error(False, code, spec.service, spec.path, str(e), self.location)
+            log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}")
+            return None
         except Exception as e:
             log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}", exc_info=e)
             return None
@@ -271,4 +282,4 @@ class AzureResourceManagementClient(AzureClient):
         return response
 
     def for_location(self, location: str) -> AzureClient:
-        return AzureClient.create(self.credential, self.subscription_id, location)
+        return AzureClient.create(self.credential, self.subscription_id, self.core_feedback, self.accumulator, location)

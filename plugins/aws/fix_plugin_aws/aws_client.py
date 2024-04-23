@@ -3,21 +3,18 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from functools import cached_property
-from itertools import islice
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar
+from typing import Any, Callable, List, Optional, TypeVar
 
-from attr import define, field
 from botocore.config import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.model import ServiceModel
-from fix_plugin_aws.configuration import AwsConfig
 from retrying import retry
 
-from fixlib.core.actions import CoreFeedback
+from fix_plugin_aws.configuration import AwsConfig
+from fixlib.core.actions import ErrorAccumulator
 from fixlib.json import value_in_path
 from fixlib.types import Json, JsonElement
 from fixlib.utils import log_runtime, utc_str
-
 from .utils import global_region_by_partition
 
 log = logging.getLogger("fix.plugins.aws")
@@ -47,67 +44,6 @@ def is_retryable_exception(e: Exception) -> bool:
         log.debug("AWS API request limit exceeded or throttling, retrying with exponential backoff")
         return True
     return False
-
-
-@define
-class ErrorSummary:
-    error: str
-    message: str
-    info: bool
-    region: Optional[str] = None
-    service_actions: Dict[str, Set[str]] = field(factory=dict)
-
-
-class ErrorAccumulator:
-    def __init__(self) -> None:
-        self.regional_errors: Dict[Optional[str], Dict[str, ErrorSummary]] = {}
-
-    def add_error(
-        self,
-        as_info: bool,
-        error_kind: str,
-        service: str,
-        action: str,
-        message: str,
-        region: Optional[str],
-    ) -> None:
-        if region not in self.regional_errors:
-            self.regional_errors[region] = {}
-        regional_errors = self.regional_errors[region]
-
-        key = f"{error_kind}:{message}:{as_info}"
-        if key not in regional_errors:
-            regional_errors[key] = ErrorSummary(error_kind, message, as_info, region, {service: {action}})
-        else:
-            summary = regional_errors[key]
-            if service not in summary.service_actions:
-                summary.service_actions[service] = {action}
-            else:
-                summary.service_actions[service].add(action)
-
-    def report_region(self, core_feedback: CoreFeedback, region: Optional[str]) -> None:
-        if regional_errors := self.regional_errors.get(region):
-            # reset errors for this region
-            self.regional_errors[region] = {}
-            # add region as context
-            feedback = core_feedback.child_context(region) if region else core_feedback
-            # send to core
-            for err in regional_errors.values():
-                srv_acts = []
-                for aws_service, actions in islice(err.service_actions.items(), 10):
-                    suffix = " and more" if len(actions) > 3 else ""
-                    srv_acts.append(aws_service + ": " + ", ".join(islice(actions, 3)) + suffix)
-                message = f"[{err.error}] {err.message} Services and actions affected: {', '.join(srv_acts)}"
-                if len(err.service_actions) > 10:
-                    message += " and more..."
-                if err.info:
-                    feedback.info(message)
-                else:
-                    feedback.error(message)
-
-    def report_all(self, core_feedback: CoreFeedback) -> None:
-        for region in self.regional_errors.keys():
-            self.report_region(core_feedback, region)
 
 
 class AwsClient:
