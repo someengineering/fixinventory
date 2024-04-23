@@ -124,9 +124,9 @@ class ErrorAccumulator:
             # send to core
             for err in regional_errors.values():
                 srv_acts = []
-                for aws_service, actions in islice(err.service_actions.items(), 10):
+                for service, actions in islice(err.service_actions.items(), 10):
                     suffix = " and more" if len(actions) > 3 else ""
-                    srv_acts.append(aws_service + ": " + ", ".join(islice(actions, 3)) + suffix)
+                    srv_acts.append(service + ": " + ", ".join(islice(actions, 3)) + suffix)
                 message = f"[{err.error}] {err.message} Services and actions affected: {', '.join(srv_acts)}"
                 if len(err.service_actions) > 10:
                     message += " and more..."
