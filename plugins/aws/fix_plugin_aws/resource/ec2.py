@@ -3439,6 +3439,15 @@ class AwsEc2Image(AwsResource):
     imds_support: Optional[str] = field(default=None, metadata={"description": "If v2.0, it indicates that IMDSv2 is specified in the AMI."})  # fmt: skip
     source_instance_id: Optional[str] = field(default=None, metadata={"description": "The ID of the instance that the AMI was created from if the AMI was created using CreateImage."})  # fmt: skip
 
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="deregister_image",
+            result_name=None,
+            ImageId=self.id,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsEc2LaunchTemplateIamInstanceProfileSpecification:
