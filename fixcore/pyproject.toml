@@ -1,6 +1,6 @@
 [project]
 name = "fixinventorycore"
-version = "4.0.4"
+version = "4.0.5"
 authors = [{name="Some Engineering Inc."}]
 description = "Keeps all the things."
 license = { text="AGPLv3" }

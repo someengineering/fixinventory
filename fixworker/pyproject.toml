@@ -1,6 +1,6 @@
 [project]
 name = "fixinventoryworker"
-version = "4.0.4"
+version = "4.0.5"
 authors = [{ name = "Some Engineering Inc." }]
 description = "Runs collector plugins and sends the result to fixcore."
 license = { text="AGPLv3" }
@@ -9,7 +9,7 @@ classifiers = ["Programming Language :: Python :: 3"]
 readme = { file = "README.md", content-type = "text/markdown" }
 
 dependencies = [
-    "fixinventorylib==4.0.4",
+    "fixinventorylib==4.0.5",
     "tenacity",
     "CherryPy",
 ]
