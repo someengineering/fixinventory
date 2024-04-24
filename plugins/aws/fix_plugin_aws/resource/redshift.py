@@ -1,6 +1,7 @@
-from typing import ClassVar, Dict, Optional, List, Any
+from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attrs import define, field
+from datetime import datetime
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
@@ -9,16 +10,14 @@ from fix_plugin_aws.resource.cloudwatch import (
     update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
+from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
+from fix_plugin_aws.resource.iam import AwsIamRole
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.utils import MetricNormalization, ToDict
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
-from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from typing import Type
-from datetime import datetime
 from fixlib.types import Json
-from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
-from fix_plugin_aws.resource.iam import AwsIamRole
 
 service_name = "redshift"
 

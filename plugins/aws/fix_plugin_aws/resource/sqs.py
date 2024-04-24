@@ -149,7 +149,7 @@ class AwsSqsQueue(AwsResource):
                         ref_id=sqs_id,
                         stat=stat,
                         unit="Seconds",
-                        QueueName=sqs_queue.name or "",
+                        QueueName=sqs_queue.name or sqs_queue.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
@@ -163,7 +163,7 @@ class AwsSqsQueue(AwsResource):
                         ref_id=sqs_id,
                         stat=stat,
                         unit="Count",
-                        QueueName=sqs_queue.name or "",
+                        QueueName=sqs_queue.name or sqs_queue.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                     for name in [

@@ -109,7 +109,7 @@ class AwsSnsTopic(AwsResource):
                         ref_id=sns_id,
                         stat="Sum",
                         unit="Count",
-                        TopicName=sns_topic.name or "",
+                        TopicName=sns_topic.name or sns_topic.safe_name,
                     )
                     for metric_name in [
                         "NumberOfMessagesPublished",
@@ -127,7 +127,7 @@ class AwsSnsTopic(AwsResource):
                         ref_id=sns_id,
                         stat=stat,
                         unit="Bytes",
-                        TopicName=sns_topic.name or "",
+                        TopicName=sns_topic.name or sns_topic.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]

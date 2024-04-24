@@ -330,7 +330,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Count",
-                    BucketName=s3.name or "",
+                    BucketName=s3.name or s3.safe_name,
                 )
             )
             queries.append(
@@ -341,7 +341,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     ref_id=s3_id,
                     stat="Average",  # only one valid statistic
                     unit="Bytes",
-                    BucketName=s3.name or "",
+                    BucketName=s3.name or s3.safe_name,
                 )
             )
         metric_normalizers = {

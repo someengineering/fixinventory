@@ -425,7 +425,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         ref_id=lambda_id,
                         stat="Sum",
                         unit="Count",
-                        FunctionName=lambda_instance.name or "",
+                        FunctionName=lambda_instance.name or lambda_instance.safe_name,
                     )
                     for metric_name in ["Invocations", "Errors", "Throttles"]
                 ]
@@ -438,7 +438,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     ref_id=lambda_id,
                     stat="Maximum",
                     unit="Count",
-                    FunctionName=lambda_instance.name or "",
+                    FunctionName=lambda_instance.name or lambda_instance.safe_name,
                 )
             )
             queries.extend(
@@ -450,7 +450,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         ref_id=lambda_id,
                         stat=stat,
                         unit="Milliseconds",
-                        FunctionName=lambda_instance.name or "",
+                        FunctionName=lambda_instance.name or lambda_instance.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]

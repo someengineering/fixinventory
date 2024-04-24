@@ -11,12 +11,12 @@ from fix_plugin_aws.resource.cloudwatch import (
     calculate_min_max_avg,
     update_resource_metrics,
 )
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict, MetricNormalization
 from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
-from fix_plugin_aws.aws_client import AwsClient
 
 service_name = "elb"
 
@@ -372,7 +372,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         ref_id=elb_id,
                         stat="Sum",
                         unit="Count",
-                        LoadBalancerName=elb.name or "",
+                        LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for metric in [
                         "RequestCount",
@@ -392,7 +392,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         ref_id=elb_id,
                         stat=stat,
                         unit="Count",
-                        LoadBalancerName=elb.name or "",
+                        LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                     for metric in [
@@ -410,7 +410,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         ref_id=elb_id,
                         stat=stat,
                         unit="Seconds",
-                        LoadBalancerName=elb.name or "",
+                        LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
@@ -424,7 +424,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         ref_id=elb_id,
                         stat=stat,
                         unit="Bytes",
-                        LoadBalancerName=elb.name or "",
+                        LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]

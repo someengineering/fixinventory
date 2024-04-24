@@ -13,12 +13,12 @@ from fix_plugin_aws.resource.cloudwatch import (
     update_resource_metrics,
     bytes_to_megabits_per_second,
 )
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict, MetricNormalization
 from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
-from fix_plugin_aws.aws_client import AwsClient
 
 
 service_name = "elbv2"

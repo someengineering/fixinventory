@@ -9,12 +9,12 @@ from fix_plugin_aws.resource.cloudwatch import (
     update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
+from fix_plugin_aws.aws_client import AwsClient
+from fix_plugin_aws.utils import MetricNormalization, ToDict
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
-from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
 from typing import Type
 
 service_name = "kinesis"
@@ -187,7 +187,7 @@ class AwsKinesisStream(AwsResource):
                         ref_id=kinesis_id,
                         stat=stat,
                         unit="Bytes",
-                        StreamName=kinesis.name or "",
+                        StreamName=kinesis.name or kinesis.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
@@ -201,7 +201,7 @@ class AwsKinesisStream(AwsResource):
                         ref_id=kinesis_id,
                         stat=stat,
                         unit="Milliseconds",
-                        StreamName=kinesis.name or "",
+                        StreamName=kinesis.name or kinesis.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
