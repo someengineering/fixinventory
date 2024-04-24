@@ -763,7 +763,7 @@ class BaseInstanceType(BaseType):
 
 
 @define(eq=False, slots=False)
-class BaseCloud(BaseResource):
+class BaseCloud(PhantomBaseResource):
     kind: ClassVar[str] = "base_cloud"
     kind_display: ClassVar[str] = "Cloud"
     kind_description: ClassVar[str] = "A cloud."
@@ -785,7 +785,7 @@ class BaseAccount(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseRegion(BaseResource):
+class BaseRegion(PhantomBaseResource):
     kind: ClassVar[str] = "region"
     kind_display: ClassVar[str] = "Region"
     kind_description: ClassVar[str] = "A region."
@@ -805,7 +805,7 @@ class BaseRegion(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseZone(BaseResource):
+class BaseZone(PhantomBaseResource):
     kind: ClassVar[str] = "zone"
     kind_display: ClassVar[str] = "Zone"
     kind_description: ClassVar[str] = "A zone."
