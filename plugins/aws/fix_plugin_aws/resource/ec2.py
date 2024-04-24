@@ -720,7 +720,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_volume",
+            action="delete-volume",
             result_name=None,
             VolumeId=self.id,
         )
@@ -3442,7 +3442,7 @@ class AwsEc2Image(AwsResource):
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="deregister_image",
+            action="deregister-image",
             result_name=None,
             ImageId=self.id,
         )
