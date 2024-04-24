@@ -74,6 +74,7 @@ class AzureSubscriptionCollector:
             queue = ExecutorQueue(executor, "azure_collector")
             error_accumulator = ErrorAccumulator()
             client = AzureClient.create(
+                self.config,
                 self.credentials,
                 self.subscription.subscription_id,
                 core_feedback=self.core_feedback,

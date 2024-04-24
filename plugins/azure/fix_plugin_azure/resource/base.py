@@ -32,7 +32,7 @@ def get_client(subscription_id: str) -> AzureClient:
         credential = account.credentials()
     else:
         credential = DefaultAzureCredential()
-    return AzureClient.create(credential=credential, subscription_id=subscription_id)
+    return AzureClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
 
 
 T = TypeVar("T")
@@ -155,15 +155,20 @@ class AzureResource(BaseResource):
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
-            # TODO: add error handling
-            items = builder.client.list(spec, **kwargs)
-            collected = cls.collect(items, builder)
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder, collected)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
-            return collected
+            try:
+                items = builder.client.list(spec, **kwargs)
+                collected = cls.collect(items, builder)
+                if builder.config.collect_usage_metrics:
+                    try:
+                        cls.collect_usage_metrics(builder, collected)
+                    except Exception as e:
+                        log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+                return collected
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+
         return []
 
     @classmethod
@@ -406,8 +411,8 @@ class AzureSubscription(AzureResource, BaseAccount):
     account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
 
     @classmethod
-    def list_subscriptions(cls, credentials: AzureCredentials) -> List[AzureSubscription]:
-        client = AzureClient.create(credentials, "global")
+    def list_subscriptions(cls, config: AzureConfig, credentials: AzureCredentials) -> List[AzureSubscription]:
+        client = AzureClient.create(config, credentials, "global")
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 

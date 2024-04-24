@@ -20,7 +20,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.resource.resources._serialization import Serializer
 from azure.mgmt.resource.resources.models import GenericResource
 
-from fix_plugin_azure.config import AzureCredentials
+from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.types import Json
 
@@ -82,6 +82,7 @@ class AzureClient(ABC):
 
     @staticmethod
     def __create_management_client(
+        config: AzureConfig,
         credential: AzureCredentials,
         subscription_id: str,
         core_feedback: Optional[CoreFeedback] = None,
@@ -89,7 +90,7 @@ class AzureClient(ABC):
         resource_group: Optional[str] = None,
     ) -> AzureClient:
         return AzureResourceManagementClient(
-            credential, subscription_id, resource_group, core_feedback, error_accumulator
+            config, credential, subscription_id, resource_group, core_feedback, error_accumulator
         )
 
     create = __create_management_client
@@ -98,12 +99,14 @@ class AzureClient(ABC):
 class AzureResourceManagementClient(AzureClient):
     def __init__(
         self,
+        config: AzureConfig,
         credential: AzureCredentials,
         subscription_id: str,
         location: Optional[str] = None,
         core_feedback: Optional[CoreFeedback] = None,
         accumulator: Optional[ErrorAccumulator] = None,
     ) -> None:
+        self.config = config
         self.credential = credential
         self.subscription_id = subscription_id
         self.location = location
@@ -121,10 +124,16 @@ class AzureResourceManagementClient(AzureClient):
         try:
             self.client.resources.begin_delete_by_id(resource_id=resource_id, api_version="2021-04-01")
         except HttpResponseError as e:
-            if e.error and e.error.code == "ResourceNotFoundError":
-                return False  # Resource not found to delete
-            else:
-                raise e
+            if error := e.error:
+                error_code = error.code or "Unknown"
+                if error_code == "ResourceNotFoundError":
+                    return False  # Resource not found to delete
+                else:
+                    msg = f"An Azure API error occurred during the deletion of a resource: {e}"
+                    self.accumulator.add_error(False, error_code, "Resource deletion", "service_resource", msg)
+                    if self.config.discard_account_on_resource_error:
+                        raise
+                    return False
 
         return True
 
@@ -160,12 +169,20 @@ class AzureResourceManagementClient(AzureClient):
             self.client.resources.begin_create_or_update_by_id(resource_id, "2021-04-01", updated_resource)
 
         except HttpResponseError as e:
-            if e.error and e.error.code == "ResourceNotFoundError":
-                return False  # Resource not found
-            elif e.error and e.error.code == "ResourceExistsError":
-                return False  # Tag for update/delete does not exist
-            else:
-                raise e
+            if error := e.error:
+                error_code = error.code or "Unknown"
+                if error_code == "ResourceNotFoundError":
+                    return False  # Resource not found
+                elif error_code == "ResourceExistsError":
+                    return False  # Tag for update/delete does not exist
+                else:
+                    msg = f"An Azure API error occurred during the updating or deletion tag of a resource: {e}"
+                    self.accumulator.add_error(
+                        False, error_code, "Resource updating or deletion", "service_resource", msg
+                    )
+                    if self.config.discard_account_on_resource_error:
+                        raise
+                    return False
 
         return True
 
@@ -179,7 +196,10 @@ class AzureResourceManagementClient(AzureClient):
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
-            log.error(f"[Azure] Call to Azure API is not authorized!: {e}")
+            log.warning(f"[Azure] Call to Azure API is not authorized!: {e}")
+            if (error := e.error) and (error_code := error.code):
+                msg = "Call to Azure API is not authorized!"
+                self.accumulator.add_error(False, error_code, spec.service, spec.path, msg, self.location)
             return None
         except HttpResponseError as e:
             if error := e.error:
@@ -195,6 +215,8 @@ class AzureResourceManagementClient(AzureClient):
             return None
         except Exception as e:
             log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}", exc_info=e)
+            if self.config.discard_account_on_resource_error:
+                raise
             return None
 
     # noinspection PyProtectedMember
@@ -285,4 +307,6 @@ class AzureResourceManagementClient(AzureClient):
         return response
 
     def for_location(self, location: str) -> AzureClient:
-        return AzureClient.create(self.credential, self.subscription_id, self.core_feedback, self.accumulator, location)
+        return AzureClient.create(
+            self.config, self.credential, self.subscription_id, self.core_feedback, self.accumulator, location
+        )

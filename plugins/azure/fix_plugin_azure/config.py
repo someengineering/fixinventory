@@ -68,6 +68,14 @@ class AzureConfig:
         metadata={"description": "Configure accounts to collect subscriptions. You can define multiple accounts here."},
     )
 
+    discard_account_on_resource_error: bool = field(
+        default=False,
+        metadata={
+            "description": "Fail the whole account if collecting a resource fails. "
+            "If false, the error is logged and the resource is skipped."
+        },
+    )
+
     collect_usage_metrics: Optional[bool] = field(
         default=True,
         metadata={"description": "Collect resource usage metrics via Azure Metric, enabled by default"},
