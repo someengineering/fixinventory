@@ -712,7 +712,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             "DiskQueueDepth": MetricNormalization(
                 metric_name=MetricName.DiskQueueDepth,
                 unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
+                normalize_value=lambda x: round(x, ndigits=6),
             ),
             "NetworkReceiveThroughput": MetricNormalization(
                 metric_name=MetricName.NetworkReceiveThroughput,
