@@ -3,9 +3,10 @@ from typing import cast, Any
 from types import SimpleNamespace
 
 from fixlib.graph import Graph
-from test.resources import round_trip_for
 
-from fix_plugin_aws.aws_client import AwsClient
+from test.resources import round_trip_for
+from test import aws_config, builder, no_feedback  # noqa: F401
+
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchAlarm,
     AwsCloudwatchMetricData,
@@ -13,12 +14,13 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchLogGroup,
     AwsCloudwatchMetricFilter,
 )
-from test import aws_client, aws_config  # noqa: F401
+from fix_plugin_aws.resource.base import GraphBuilder
+from fix_plugin_aws.aws_client import AwsClient
 
 
 def test_alarms() -> None:
-    first, builder = round_trip_for(AwsCloudwatchAlarm)
-    assert len(builder.resources_of(AwsCloudwatchAlarm)) == 2
+    first, aws_builder = round_trip_for(AwsCloudwatchAlarm)
+    assert len(aws_builder.resources_of(AwsCloudwatchAlarm)) == 2
     assert len(first.tags) == 1
 
 
@@ -27,19 +29,19 @@ def test_log_groups() -> None:
 
 
 def test_metrics_filter() -> None:
-    first, builder = round_trip_for(AwsCloudwatchMetricFilter)
+    first, aws_builder = round_trip_for(AwsCloudwatchMetricFilter)
     # test connection to log group
-    AwsCloudwatchLogGroup.collect_resources(builder)
-    first.connect_in_graph(builder, builder.graph.nodes(data=True)[first]["source"])
-    assert len(builder.edges_of(AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter)) == 1
+    AwsCloudwatchLogGroup.collect_resources(aws_builder)
+    first.connect_in_graph(aws_builder, aws_builder.graph.nodes(data=True)[first]["source"])
+    assert len(aws_builder.edges_of(AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter)) == 1
 
 
-def test_metric(aws_client: AwsClient) -> None:
+def test_metric(builder: GraphBuilder) -> None:
     now = datetime(2020, 3, 1, tzinfo=timezone.utc)
     earlier = now - timedelta(days=60)
     read = AwsCloudwatchQuery.create("VolumeReadOps", "AWS/EBS", timedelta(hours=1), "vol-123", VolumeId="vol-123")
     write = AwsCloudwatchQuery.create("VolumeWriteOps", "AWS/EBS", timedelta(hours=1), "vol-123", VolumeId="vol-123")
-    result = AwsCloudwatchMetricData.query_for(aws_client, [read, write], earlier, now)
+    result = AwsCloudwatchMetricData.query_for(builder, [read, write], earlier, now)
     assert result[read].first_non_zero() == (datetime(2020, 1, 18, 17, 40, tzinfo=timezone.utc), 15.0)
     assert result[write].first_non_zero() == (datetime(2020, 1, 18, 18, 40, tzinfo=timezone.utc), 12861.0)
 
