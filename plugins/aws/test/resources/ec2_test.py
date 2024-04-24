@@ -59,7 +59,7 @@ def test_delete_volumes() -> None:
     volume, _ = round_trip_for(AwsEc2Volume)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_volume"
+        assert kwargs["action"] == "delete-volume"
         assert kwargs["VolumeId"] == volume.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
