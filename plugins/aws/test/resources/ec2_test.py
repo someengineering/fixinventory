@@ -59,11 +59,22 @@ def test_delete_volumes() -> None:
     volume, _ = round_trip_for(AwsEc2Volume)
 
     def validate_delete_args(**kwargs: Any) -> None:
-        assert kwargs["action"] == "delete_volume"
+        assert kwargs["action"] == "delete-volume"
         assert kwargs["VolumeId"] == volume.id
 
     client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
     volume.delete_resource(client, Graph())
+
+
+def test_deregister_image() -> None:
+    image, _ = round_trip_for(AwsEc2Image)
+
+    def validate_delete_args(**kwargs: Any) -> None:
+        assert kwargs["action"] == "deregister-image"
+        assert kwargs["ImageId"] == image.id
+
+    client = cast(AwsClient, SimpleNamespace(call=validate_delete_args))
+    image.delete_resource(client, Graph())
 
 
 def test_snapshots() -> None:

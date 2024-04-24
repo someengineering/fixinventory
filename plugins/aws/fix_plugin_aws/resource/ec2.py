@@ -720,7 +720,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
-            action="delete_volume",
+            action="delete-volume",
             result_name=None,
             VolumeId=self.id,
         )
@@ -3438,6 +3438,23 @@ class AwsEc2Image(AwsResource):
     deprecation_time: Optional[str] = field(default=None, metadata={"description": "The date and time to deprecate the AMI, in UTC, in the following format: YYYY-MM-DDTHH:MM:SSZ."})  # fmt: skip
     imds_support: Optional[str] = field(default=None, metadata={"description": "If v2.0, it indicates that IMDSv2 is specified in the AMI."})  # fmt: skip
     source_instance_id: Optional[str] = field(default=None, metadata={"description": "The ID of the instance that the AMI was created from if the AMI was created using CreateImage."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="deregister-image",
+            result_name=None,
+            ImageId=self.id,
+        )
+        return True
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if self.block_device_mappings is None:
+            return
+        for bdm in self.block_device_mappings:
+            if bdm.ebs and bdm.ebs.snapshot_id:
+                builder.add_edge(self, EdgeType.default, reverse=False, clazz=AwsEc2Snapshot, id=bdm.ebs.snapshot_id)
 
 
 @define(eq=False, slots=False)
