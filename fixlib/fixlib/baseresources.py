@@ -125,6 +125,8 @@ class MetricName(str, Enum):
     NetworkOut = "network_out"
     DiskRead = "disk_read"
     DiskWrite = "disk_write"
+    ReadThroughput = "read_throughput"
+    WriteThroughput = "write_throughput"
 
     # volumes
     VolumeWrite = "volume_write"
@@ -132,10 +134,14 @@ class MetricName(str, Enum):
     VolumeTotalWriteTime = "volume_total_write_time"
     VolumeIdleTime = "volume_idle_time"
     VolumeQueueLength = "volume_queue_length"
+    NumberOfObjects = "number_of_objects"
+    BucketSizeBytes = "bucket_size"
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
     ActiveConnection = "active_connection"
+    ConnectionAttemptCount = "connection_attempt"  # _count will be added to the end because of the unit
+    ConnectionEstablishedCount = "connection_established"  # _count will be added to the end because of the unit
     StatusCode2XX = "status_code_2xx"
     StatusCode4XX = "status_code_4xx"
     StatusCode5XX = "status_code_5xx"
@@ -147,12 +153,54 @@ class MetricName(str, Enum):
     UnhealthyStateRouting = "unhealthy_state_routing"
     HealthyStateDNS = "healthy_state_dns"
     UnhealthyStateDNS = "unhealthy_state_dns"
+    RejectedConnectionCount = "rejected_connection"
+    IPv6RequestCount = "ipv6_request"
+    IPv6ProcessedBytes = "ipv6_processed"
+    ErrorPortAllocation = "error_port_allocation"
+    IdleTimeoutCount = "idle_timeout"  # _count will be added to the end because of the unit
+    PacketsDropCount = "packets_drop"  # _count will be added to the end because of the unit
+    PacketsInFromDestination = "packets_in_from_destination"
+    PacketsInFromSource = "packets_in_from_source"
+    PacketsOutToDestination = "packets_out_to_destination"
+    PacketsOutToSource = "packets_out_to_source"
+    BytesInFromDestination = "bytes_in_from_destination"
+    BytesInFromSource = "bytes_in_from_source"
+    BytesOutToDestination = "bytes_out_to_destination"
+    BytesOutToSource = "bytes_out_to_source"
+    RecordsBytes = "records"  # _bytes will be added to the end because of the unit
+    RecordsIteratorAgeMilliseconds = (
+        "records_iterator_age"  # _milliseconds will be added to the end because of the unit
+    )
 
     # databases
     DatabaseConnections = "database_connections"
     ReadLatency = "read_latency"
     WriteLatency = "write_latency"
     FreeStorageSpace = "free_storage_space"
+    FreeableMemory = "freeable_memory"
+    SwapUsage = "swap_usage"
+    DiskQueueDepth = "disk_queue_depth"
+    NetworkReceiveThroughput = "network_receive_throughput"
+    NetworkTransmitThroughput = "network_transmit_throughput"
+
+    # serverless
+    Invocations = "invocations"
+    Errors = "errors"
+    Throttles = "throttles"
+    Duration = "duration"
+    ConcurrentExecutions = "concurrent_executions"
+
+    # messages
+    NumberOfMessagesPublished = "number_of_messages_published"
+    NumberOfNotificationsDelivered = "number_of_notifications_delivered"
+    NumberOfNotificationsFailed = "number_of_notifications_failed"
+    PublishSize = "publish_size"
+    ApproximateAgeOfOldestMessage = "approximate_age_of_oldest_message"
+    ApproximateNumberOfMessagesDelayed = "approximate_number_of_messages_delayed"
+    ApproximateNumberOfMessagesNotVisible = "approximate_number_of_messages_not_visible"
+    ApproximateNumberOfMessagesVisible = "approximate_number_of_messages_visible"
+    NumberOfMessagesReceived = "number_of_messages_received"
+    NumberOfMessagesSent = "number_of_messages_sent"
 
 
 class MetricUnit(str, Enum):
@@ -162,7 +210,10 @@ class MetricUnit(str, Enum):
     Count = "count"
     Bytes = "bytes"
     Seconds = "seconds"
+    Milliseconds = "milliseconds"
     Percent = "percent"
+    BytesPerSecond = "BytesPs"
+    CountPerSecond = "CountPs"
     MegabitsPerSecond = "Mbps"
     MegabytesPerSecond = "MBps"
     PacketsPerSecond = "pps"
