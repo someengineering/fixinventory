@@ -3448,6 +3448,14 @@ class AwsEc2Image(AwsResource):
         )
         return True
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        super().connect_in_graph(builder, source)
+        if self.block_device_mappings is None:
+            return
+        for bdm in self.block_device_mappings:
+            if bdm.ebs and bdm.ebs.snapshot_id:
+                builder.add_edge(self, EdgeType.default, reverse=False, clazz=AwsEc2Snapshot, id=bdm.ebs.snapshot_id)
+
 
 @define(eq=False, slots=False)
 class AwsEc2LaunchTemplateIamInstanceProfileSpecification:
