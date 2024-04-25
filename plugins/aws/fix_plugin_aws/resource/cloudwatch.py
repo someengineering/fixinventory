@@ -1,6 +1,8 @@
+import logging
 import re
 from datetime import datetime, timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
+from concurrent.futures import as_completed
 
 from attr import define, field
 
@@ -15,6 +17,7 @@ from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFrom
 from fixlib.types import Json
 from fixlib.utils import chunks
 
+log = logging.getLogger("fix.plugins.aws")
 service_name = "cloudwatch"
 
 # Cloudwatch Alarm: Namespace -> Dimension Name -> (Kind, Property)
@@ -494,7 +497,7 @@ class AwsCloudwatchMetricData:
 
     @staticmethod
     def query_for(
-        client: AwsClient,
+        builder: GraphBuilder,
         queries: List[AwsCloudwatchQuery],
         start_time: datetime,
         end_time: datetime,
@@ -502,23 +505,48 @@ class AwsCloudwatchMetricData:
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
         lookup = {q.metric_id: q for q in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
+        futures = []
         # the api only allows for up to 500 metrics at once
         for chunk in chunks(queries, 499):
-            part = client.list(
+            future = builder.submit_work(
                 service_name,
-                "get-metric-data",
-                "MetricDataResults",
+                AwsCloudwatchMetricData._query_for_single,
+                builder.client,
                 MetricDataQueries=[a.to_json() for a in chunk],
                 StartTime=start_time,
                 EndTime=end_time,
                 ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
             )
+            futures.append(future)
+
+        # Retrieve results from submitted queries and populate the result dictionary
+        for future in as_completed(futures):
+            try:
+                metric_query_result = future.result()
+                for metric, metric_id in metric_query_result:
+                    if metric is not None and metric_id is not None:
+                        result[lookup[metric_id]] = metric
+            except Exception as e:
+                log.error(f"An error occurred while processing a metric query: {e}")
+                raise e
+
+        return result
+
+    @staticmethod
+    def _query_for_single(
+        client: AwsClient,
+        **kwargs: Any,
+    ) -> "List[Tuple[AwsCloudwatchMetricData, str]]":
+        query_result = []
+        try:
+            part = client.list(service_name, "get-metric-data", "MetricDataResults", **kwargs)
             for single in part:
                 metric = from_json(bend(AwsCloudwatchMetricData.mapping, single), AwsCloudwatchMetricData)
                 if metric.id:
-                    result[lookup[metric.id]] = metric
-
-        return result
+                    query_result.append((metric, metric.id))
+            return query_result
+        except Exception as e:
+            raise e
 
 
 resources: List[Type[AwsResource]] = [AwsCloudwatchAlarm, AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter]

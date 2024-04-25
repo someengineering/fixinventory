@@ -357,7 +357,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
 
