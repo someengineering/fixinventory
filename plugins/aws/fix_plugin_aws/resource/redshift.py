@@ -725,7 +725,7 @@ class AwsRedshiftCluster(AwsResource):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(redshifts, cloudwatch_result, metric_normalizers)
 

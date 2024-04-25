@@ -550,7 +550,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(albs, cloudwatch_result, metric_normalizers)
 
@@ -887,7 +887,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(target_groups, cloudwatch_result, metric_normalizers)
 

@@ -574,7 +574,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     queries.append(AwsCloudwatchQuery.create("VolumeReadOps", "AWS/EBS", delta, vid, VolumeId=vid))
                     queries.append(AwsCloudwatchQuery.create("VolumeWriteOps", "AWS/EBS", delta, vid, VolumeId=vid))
 
-            for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+            for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
                     at, value = non_zero
                     if vol := lookup.get(query.ref_id):
@@ -701,7 +701,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
             "VolumeQueueLength": MetricNormalization(metric_name=MetricName.VolumeQueueLength, unit=MetricUnit.Count),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(volumes, cloudwatch_result, metric_normalizers)
 
@@ -1556,7 +1556,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(instances, cloudwatch_result, metric_normalizers)
 
@@ -2970,7 +2970,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(nat_gateways, cloudwatch_result, metric_normalizers)
 

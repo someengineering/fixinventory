@@ -511,7 +511,7 @@ class AwsCloudwatchMetricData:
             future = builder.submit_work(
                 service_name,
                 AwsCloudwatchMetricData._query_for_single,
-                builder,
+                builder.client,
                 MetricDataQueries=[a.to_json() for a in chunk],
                 StartTime=start_time,
                 EndTime=end_time,
@@ -534,12 +534,12 @@ class AwsCloudwatchMetricData:
 
     @staticmethod
     def _query_for_single(
-        builder: GraphBuilder,
+        client: AwsClient,
         **kwargs,
     ) -> "List[Tuple[AwsCloudwatchMetricData, str]]":
         query_result = []
         try:
-            part = builder.client.list(service_name, "get-metric-data", "MetricDataResults", **kwargs)
+            part = client.list(service_name, "get-metric-data", "MetricDataResults", **kwargs)
             for single in part:
                 metric = from_json(bend(AwsCloudwatchMetricData.mapping, single), AwsCloudwatchMetricData)
                 if metric.id:

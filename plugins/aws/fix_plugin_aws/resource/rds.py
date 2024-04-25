@@ -510,7 +510,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     AwsCloudwatchQuery.create("DatabaseConnections", "AWS/RDS", delta, vid, DBInstanceIdentifier=vid)
                 )
 
-            for query, metric in AwsCloudwatchMetricData.query_for(builder.client, queries, start, now).items():
+            for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
                     at, value = non_zero
                     rds = lookup[query.ref_id]
@@ -726,7 +726,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder.client, queries, start, now)
+        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
 
         update_resource_metrics(rds_instances, cloudwatch_result, metric_normalizers)
 
