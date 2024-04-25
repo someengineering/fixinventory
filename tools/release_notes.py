@@ -52,12 +52,15 @@ def parse_commit(row: list[str]) -> Commit:
     brackets = re.findall("\\[([^]]+)]", msg)
     if len(brackets) == 2:
         component, group = brackets
-        if rewrite_group.get(component, component) in group_names:
+        if rewrite_group.get(group, group) not in group_names and rewrite_group.get(component, component) in group_names:
             group, component = brackets
     elif len(brackets) == 1:
-        component, group = brackets[0], "feat"
+        if rewrite_group.get(brackets[0], brackets[0]) in group_names:
+            component, group = "", brackets[0]
+        else:
+            component, group = brackets[0], "feat"
     else:
-        component, group = "fix", "feat"
+        component, group = "", "fix"
 
     msg_pr = re.fullmatch("(?:\\[[^]]+]\\s*){0,2}(.*)(\\(#(\\d+)\\))?", msg)
     if len(msg_pr.groups()) == 2:
@@ -68,8 +71,8 @@ def parse_commit(row: list[str]) -> Commit:
     return Commit(
         commit_hash,
         author,
-        rewrite_component.get(component, component),
-        rewrite_group.get(group, group),
+        re.sub("^(?:fix)?(?:inventory)?", "", rewrite_component.get(component, component)),
+        rewrite_group.get(group, group) if 'readme' not in message.lower() else 'docs',
         message,
         pr,
         time,
@@ -93,9 +96,10 @@ def show_log(from_tag: str, to_tag: str):
         print(f"\n### {group_names.get(group, group)}\n")
         for commit in commits:
             print(
-                f"- [`{commit.commit_hash}`](https://github.com/someengineering/fix/commit/{commit.commit_hash}) "
-                f'<span class="badge badge--secondary">{commit.component}</span> {commit.message}'
-                f"{f' ([#{commit.pr}](https://github.com/someengineering/fix/pull/{commit.pr}))' if commit.pr else ''}"
+                f"- [`{commit.commit_hash}`](https://github.com/someengineering/fixinventory/commit/{commit.commit_hash}) "
+                f"{f'<span class={chr(34)}badge badge--secondary{chr(34)}>{commit.component}</span> ' if commit.component else ''}"
+                f'{commit.message}'
+                f"{f' ([#{commit.pr}](https://github.com/someengineering/fixinventory/pull/{commit.pr}))' if commit.pr else ''}"
             )
 
     print("\n{/* truncate */}")
