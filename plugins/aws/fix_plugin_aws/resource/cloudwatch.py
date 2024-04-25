@@ -535,7 +535,7 @@ class AwsCloudwatchMetricData:
     @staticmethod
     def _query_for_single(
         client: AwsClient,
-        **kwargs,
+        **kwargs: Any,
     ) -> "List[Tuple[AwsCloudwatchMetricData, str]]":
         query_result = []
         try:

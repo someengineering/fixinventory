@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from fixlib.graph import Graph
 
 from test.resources import round_trip_for
-from test import aws_config, builder, no_feedback  # noqa: F401
+from test import aws_config, builder, no_feedback, aws_client  # noqa: F401
 
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchAlarm,
