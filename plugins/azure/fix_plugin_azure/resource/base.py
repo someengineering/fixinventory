@@ -337,6 +337,20 @@ class AzureResourceGroup(AzureResource):
 
 
 @define(eq=False, slots=False)
+class AzureBaseUsage:
+    kind: ClassVar[str] = "azure_usage"
+    _expected_error_codes: ClassVar[List[str]] = ["SubscriptionHasNoUsages"]
+
+
+@define(eq=False, slots=False)
+class AzureUsageName:
+    kind: ClassVar[str] = "azure_usage_name"
+    mapping: ClassVar[Dict[str, Bender]] = {"localized_value": S("localizedValue"), "value": S("value")}
+    localized_value: Optional[str] = field(default=None, metadata={'description': 'Gets a localized string describing the resource name.'})  # fmt: skip
+    value: Optional[str] = field(default=None, metadata={"description": "Gets a string describing the resource name."})
+
+
+@define(eq=False, slots=False)
 class AzureExtendedLocation:
     kind: ClassVar[str] = "azure_extended_location"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}

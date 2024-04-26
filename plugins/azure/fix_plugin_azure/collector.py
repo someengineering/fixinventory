@@ -21,9 +21,10 @@ from fix_plugin_azure.resource.base import (
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
-    AzureUsage,
+    AzureNetworkUsage,
     resources as network_resources,
 )
+from fix_plugin_azure.resource.storage import AzureStorageUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
 from fixlib.baseresources import Cloud, GraphRoot
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -42,7 +43,9 @@ def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_
     return cp.issubset(params) and (not includes_all or params.issubset(cp))
 
 
-all_resources: List[Type[AzureResource]] = base_resources + compute_resources + network_resources + aks_resources
+all_resources: List[Type[AzureResource]] = (
+    base_resources + compute_resources + network_resources + aks_resources + storage_resources
+)
 global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
 regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
 
@@ -171,10 +174,9 @@ class AzureSubscriptionCollector:
 
         def remove_usage_zero_value() -> None:
             for node in self.graph.nodes:
-                if not isinstance(node, AzureUsage):
+                if not isinstance(node, (AzureNetworkUsage, AzureStorageUsage)):
                     continue
-                # Azure Usage is only for network resources
-                # And Azure Usage just keep info about how many network resources on account exists
+                # Azure Usage just keep info about how many kind of resources on account exists
                 # Check if the current usage value of the Azure Usage node is 0
                 if node.current_value == 0:
                     # If the current usage value is 0, add the node to the list of nodes to remove
@@ -185,6 +187,7 @@ class AzureSubscriptionCollector:
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureLocation)
+        rm_nodes(AzureStorageSku, AzureLocation)
         remove_usage_zero_value()
 
     def after_collect_filter(self) -> None:

@@ -4,7 +4,9 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import (
+    AzureBaseUsage,
     AzureResource,
+    AzureUsageName,
     GraphBuilder,
     AzureSubResource,
     AzureSku,
@@ -4683,16 +4685,8 @@ class AzureSecurityPartnerProvider(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureUsageName:
-    kind: ClassVar[str] = "azure_usage_name"
-    mapping: ClassVar[Dict[str, Bender]] = {"localized_value": S("localizedValue"), "value": S("value")}
-    localized_value: Optional[str] = field(default=None, metadata={'description': 'A localized string describing the resource name.'})  # fmt: skip
-    value: Optional[str] = field(default=None, metadata={"description": "A string describing the resource name."})
-
-
-@define(eq=False, slots=False)
-class AzureUsage(AzureResource, BaseNetworkQuota):
-    kind: ClassVar[str] = "azure_usage"
+class AzureNetworkUsage(AzureResource, AzureBaseUsage, BaseNetworkQuota):
+    kind: ClassVar[str] = "azure_network_usage"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
         version="2023-05-01",
@@ -4701,7 +4695,7 @@ class AzureUsage(AzureResource, BaseNetworkQuota):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=["SubscriptionHasNoUsages"],
+        expected_error_codes=AzureBaseUsage._expected_error_codes,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4714,9 +4708,7 @@ class AzureUsage(AzureResource, BaseNetworkQuota):
         "quota_type": S("unit"),
         "quota": S("limit"),
     }
-    usage_name: Optional[AzureUsageName] = field(
-        default=None, metadata={"description": "The name of the type of usage."}
-    )
+    usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
@@ -5877,7 +5869,7 @@ resources: List[Type[AzureResource]] = [
     AzurePublicIPPrefix,
     AzureRouteFilter,
     AzureSecurityPartnerProvider,
-    AzureUsage,
+    AzureNetworkUsage,
     AzureVirtualHub,
     AzureVirtualNetwork,
     AzureVirtualNetworkTap,
