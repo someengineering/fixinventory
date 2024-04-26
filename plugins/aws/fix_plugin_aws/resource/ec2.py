@@ -21,6 +21,7 @@ from fix_plugin_aws.resource.cloudwatch import (
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
+from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.utils import ToDict, TagsValue, MetricNormalization
 from fixlib.baseresources import (
     BaseInstance,
@@ -1253,7 +1254,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
-            "default": ["aws_vpc", "aws_subnet", "aws_ec2_image"],
+            "default": ["aws_vpc", "aws_subnet", "aws_ec2_image", "aws_iam_instance_profile"],
             "delete": ["aws_ec2_keypair", "aws_vpc", "aws_subnet"],
         },
         "successors": {"default": ["aws_ec2_keypair"]},
@@ -1579,6 +1580,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.add_edge(self, reverse=True, clazz=AwsEc2Image, id=image_id)
         if lt_id := self.tags.get("aws:ec2launchtemplate:id"):
             builder.add_edge(self, reverse=True, clazz=AwsEc2LaunchTemplate, id=lt_id)
+        if iam_profile := self.instance_iam_instance_profile:
+            builder.add_edge(self, reverse=True, clazz=AwsIamInstanceProfile, arn=iam_profile.arn)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:
