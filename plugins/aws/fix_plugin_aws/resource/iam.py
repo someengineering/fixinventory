@@ -7,7 +7,6 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
-from fix_plugin_aws.resource.ec2 import AwsEc2IamInstanceProfile
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import (
     BaseCertificate,
@@ -148,7 +147,7 @@ class AwsIamRole(AwsResource):
         # connect to instance profiles for this role
         for profile in bend(S("InstanceProfileList", default=[]), source):
             builder.dependant_node(
-                self, clazz=AwsEc2IamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"]
+                self, clazz=AwsIamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"]
             )
         # connect to attached policies for this role
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
