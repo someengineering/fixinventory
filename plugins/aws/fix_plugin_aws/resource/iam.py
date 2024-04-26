@@ -146,9 +146,7 @@ class AwsIamRole(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # connect to instance profiles for this role
         for profile in bend(S("InstanceProfileList", default=[]), source):
-            builder.dependant_node(
-                self, clazz=AwsIamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"]
-            )
+            builder.dependant_node(self, clazz=AwsIamInstanceProfile, delete_same_as_default=True, arn=profile["Arn"])
         # connect to attached policies for this role
         for profile in bend(S("AttachedManagedPolicies", default=[]), source):
             builder.dependant_node(self, clazz=AwsIamPolicy, delete_same_as_default=True, arn=profile["PolicyArn"])
