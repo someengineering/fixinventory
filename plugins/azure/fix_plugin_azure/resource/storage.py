@@ -5,7 +5,7 @@ from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, AzureUsageName, GraphBuilder
 
 from fixlib.baseresources import EdgeType, ModelReference
-from fixlib.json_bender import Bender, S, K, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 

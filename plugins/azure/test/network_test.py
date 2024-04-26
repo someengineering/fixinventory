@@ -207,7 +207,7 @@ def test_security_partner_provider(builder: GraphBuilder) -> None:
 
 
 def test_usage(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureUsage, builder)
+    collected = roundtrip_check(AzureNetworkUsage, builder)
     assert len(collected) == 25
 
 
