@@ -1,6 +1,6 @@
 [project]
 name = "fixinventorymetrics"
-version = "4.0.5"
+version = "4.0.6"
 authors = [{name="Some Engineering Inc."}]
 description = "Exports Fix Inventory metrics in Prometheus format."
 license = { text="AGPLv3" }
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "fixinventorylib==4.0.5"
+    "fixinventorylib==4.0.6"
 ]
 
 [pyproject.optional-dependencies]
