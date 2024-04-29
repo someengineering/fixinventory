@@ -1014,6 +1014,7 @@ class Api(Service):
         section = section_of(request)
         graph = deps.db_access.get_graph_db(graph_id)
         patch = await self.json_from_request(request)
+        force = request.query.get("force", "false").lower() == "true"
         md = await deps.model_handler.load_model(graph_id)
         node: Optional[Json] = None
         if section == Section.metadata:
@@ -1023,7 +1024,7 @@ class Api(Service):
             async for n in graph.update_nodes_desired(md, patch, [node_id]):
                 node = n
         else:
-            node = await graph.update_node(md, node_id, patch, False, section)
+            node = await graph.update_node(md, node_id, patch, False, section, force)
         if node is None:
             return web.HTTPNotFound(text=f"No such node with id {node_id} in graph {graph_id}")
         return await single_result(request, node)

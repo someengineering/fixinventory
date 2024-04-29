@@ -100,7 +100,13 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def update_node(
-        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self,
+        model: Model,
+        node_id: NodeId,
+        patch_or_replace: Json,
+        replace: bool,
+        section: Optional[str],
+        force: bool = False,
     ) -> Json:
         pass
 
@@ -335,9 +341,15 @@ class ArangoGraphDB(GraphDB):
         return updated_edges, deleted_edges
 
     async def update_node(
-        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self,
+        model: Model,
+        node_id: NodeId,
+        patch_or_replace: Json,
+        replace: bool,
+        section: Optional[str],
+        force: bool = False,
     ) -> Json:
-        return await self.update_node_with(self.db, model, node_id, patch_or_replace, replace, section)
+        return await self.update_node_with(self.db, model, node_id, patch_or_replace, replace, section, force)
 
     async def update_node_with(
         self,
@@ -347,6 +359,7 @@ class ArangoGraphDB(GraphDB):
         patch_or_replace: Json,
         replace: bool,
         section: Optional[str],
+        force: bool = False,
     ) -> Json:
         log.info(f"Update node with node_id={node_id}, section={section}, replace={replace}, update={patch_or_replace}")
         node = await self.by_id_with(db, node_id)
@@ -400,7 +413,7 @@ class ArangoGraphDB(GraphDB):
             for prop in ra.resolved_props():
                 if value_in_path(node, prop.extract_path) != (nv := value_in_path(update, prop.extract_path)):
                     set_value_in_path(nv, prop.to_path, changes)
-            if changes:
+            if changes or force:
                 await update_resolved_property(rid, changes, False)
                 await update_resolved_property(rid, changes, True)
 
@@ -1649,7 +1662,13 @@ class EventGraphDB(GraphDB):
         return updated, deleted
 
     async def update_node(
-        self, model: Model, node_id: NodeId, patch_or_replace: Json, replace: bool, section: Optional[str]
+        self,
+        model: Model,
+        node_id: NodeId,
+        patch_or_replace: Json,
+        replace: bool,
+        section: Optional[str],
+        force: bool = False,
     ) -> Json:
         result = await self.real.update_node(model, node_id, patch_or_replace, replace, section)
         await self.event_sender.core_event(CoreEvent.NodeUpdated, {"graph": self.graph_name, "section": section})
