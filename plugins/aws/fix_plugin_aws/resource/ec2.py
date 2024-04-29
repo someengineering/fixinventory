@@ -696,9 +696,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 normalize_value=partial(operations_to_iops, period=five_minutes_or_less),
             ),
             "VolumeTotalWriteTime": MetricNormalization(
-                metric_name=MetricName.VolumeTotalWriteTime, unit=MetricUnit.Seconds
+                metric_name=MetricName.VolumeTotalWriteTime,
+                unit=MetricUnit.Seconds,
+                compute_stats=calculate_min_max_avg,
             ),
-            "VolumeIdleTime": MetricNormalization(metric_name=MetricName.VolumeIdleTime, unit=MetricUnit.Seconds),
+            "VolumeIdleTime": MetricNormalization(
+                metric_name=MetricName.VolumeIdleTime, unit=MetricUnit.Seconds, compute_stats=calculate_min_max_avg
+            ),
             "VolumeQueueLength": MetricNormalization(metric_name=MetricName.VolumeQueueLength, unit=MetricUnit.Count),
         }
 

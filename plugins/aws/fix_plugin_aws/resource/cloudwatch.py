@@ -527,7 +527,7 @@ class AwsCloudwatchMetricData:
                     if metric is not None and metric_id is not None:
                         result[lookup[metric_id]] = metric
             except Exception as e:
-                log.error(f"An error occurred while processing a metric query: {e}")
+                log.warning(f"An error occurred while processing a metric query: {e}")
                 raise e
 
         return result
@@ -570,11 +570,15 @@ def update_resource_metrics(
             continue
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
-            name = normalizer.metric_name + "_" + normalizer.unit
-            value = normalizer.normalize_value(metric_value)
-            stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
+            try:
+                name = normalizer.metric_name + "_" + normalizer.unit
+                value = normalizer.normalize_value(metric_value)
+                stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
 
-            resource._resource_usage[name][stat_name] = value
+                resource._resource_usage[name][stat_name] = value
+            except KeyError as e:
+                log.warning(f"An error occured while setting metric values: {e}")
+                raise
 
 
 def bytes_to_megabits_per_second(bytes: float, period: timedelta) -> float:

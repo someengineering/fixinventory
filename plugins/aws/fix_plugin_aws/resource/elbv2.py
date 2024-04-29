@@ -813,7 +813,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         namespace="AWS/ApplicationELB",
                         period=delta,
                         ref_id=tg_id,
-                        stat="Min",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
+                        stat="Minimum",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                         unit="Count",
                         LoadBalancer=lb_arn_id,
                         TargetGroup=tg_arn_id,
