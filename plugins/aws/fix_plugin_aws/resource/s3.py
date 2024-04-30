@@ -350,8 +350,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }:
             s3s = {
                 s3_bucket.id: s3_bucket
-                for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
-                if s3_bucket.bucket_location == region
+                for s3_bucket in builder.nodes(clazz=AwsS3Bucket, bucket_location=region)
             }
             queries = []
             delta = timedelta(days=1)
