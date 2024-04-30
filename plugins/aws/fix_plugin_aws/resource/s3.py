@@ -293,10 +293,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 )
                 # AWS returns None if the bucket is in us-east-1
                 if raw_location is None:
-                    raw_location = "us-east-1"
+                    bucket_location = "us-east-1"
                 else:
-                    raw_location = str(raw_location)
-                bck.bucket_location = raw_location
+                    bucket_location = str(raw_location)
+                bck.bucket_location = bucket_location
 
         for js in json:
             if bucket := cls.from_api(js, builder):
