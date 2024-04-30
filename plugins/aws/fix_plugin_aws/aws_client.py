@@ -8,7 +8,6 @@ from typing import Any, Callable, List, Optional, TypeVar
 from botocore.config import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from botocore.model import ServiceModel
-from retrying import retry
 
 from fix_plugin_aws.configuration import AwsConfig
 from fixlib.core.actions import ErrorAccumulator
@@ -37,13 +36,6 @@ RetryableErrors = ThrottlingErrors | {
 AuthErrors = {"AuthorizationError", "AuthFailure", "AuthFailureException"}
 SessionErrors = {"UnrecognizedClientException", "InvalidClientTokenId"}
 T = TypeVar("T")
-
-
-def is_retryable_exception(e: Exception) -> bool:
-    if isinstance(e, ClientError) and e.response["Error"]["Code"] in RetryableErrors:
-        log.debug("AWS API request limit exceeded or throttling, retrying with exponential backoff")
-        return True
-    return False
 
 
 class AwsClient:
@@ -132,8 +124,8 @@ class AwsClient:
             arg_info += " with args " + ", ".join([f"{key}={value}" for key, value in kwargs.items()])
         log.debug(f"[Aws] calling service={aws_service} action={action}{arg_info}")
         py_action = action.replace("-", "_")
-        # adaptive mode allows automated client-side throttling
-        config = Config(retries={"max_attempts": max_attempts, "mode": "adaptive"})
+        # standard mode: make requests with a backoff strategy
+        config = Config(retries={"max_attempts": max_attempts, "mode": "standard"})
         client = self.config.sessions().client(
             aws_account=self.account_id,
             aws_role=self.role,
@@ -170,13 +162,7 @@ class AwsClient:
         finally:
             client.close()
 
-    @retry(  # type: ignore
-        stop_max_attempt_number=10,  # 10 attempts: 1000 max 60000: max wait time is 5 minutes
-        wait_exponential_multiplier=1000,
-        wait_exponential_max=60000,
-        retry_on_exception=is_retryable_exception,
-    )
-    def get_with_retry(
+    def _handle_get(
         self,
         aws_service: str,
         action: str,
@@ -185,8 +171,8 @@ class AwsClient:
         **kwargs: Any,
     ) -> JsonElement:
         try:
-            # 5 attempts is the default
-            return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
+            # 10 attempts
+            return self.call_single(aws_service, action, result_name, max_attempts=10, **kwargs)
         except ClientError as e:
             self.__handle_client_error(e, aws_service, action, expected_errors)  # might reraise the exception
             return None
@@ -227,7 +213,7 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[Any]:
-        res = self.get_with_retry(aws_service, action, result_name, expected_errors, **kwargs)
+        res = self._handle_get(aws_service, action, result_name, expected_errors, **kwargs)
         if res is None:
             return []
         elif isinstance(res, list):
@@ -243,7 +229,7 @@ class AwsClient:
         expected_errors: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Optional[Json]:
-        return self.get_with_retry(aws_service, action, result_name, expected_errors, **kwargs)  # type: ignore
+        return self._handle_get(aws_service, action, result_name, expected_errors, **kwargs)  # type: ignore
 
     def for_region(self, region: str) -> AwsClient:
         return AwsClient(
