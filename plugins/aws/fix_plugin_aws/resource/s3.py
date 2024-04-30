@@ -185,6 +185,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     bucket_public_access_block_configuration: Optional[AwsS3PublicAccessBlockConfiguration] = field(default=None)
     bucket_acl: Optional[AwsS3BucketAcl] = field(default=None)
     bucket_logging: Optional[AwsS3Logging] = field(default=None)
+    bucket_location: Optional[str] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -199,6 +200,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             ),
             AwsApiSpec(service_name, "get-bucket-acl"),
             AwsApiSpec(service_name, "get-bucket-logging"),
+            AwsApiSpec(service_name, "get-bucket-location"),
         ]
 
     @classmethod
@@ -280,6 +282,20 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     if not is_empty(mapped):
                         bck.bucket_logging = parse_json(mapped, AwsS3Logging, builder)
 
+        def add_bucket_location(bck: AwsS3Bucket) -> None:
+            with builder.suppress(f"{service_name}.get-bucket-location"):
+                raw_location = builder.client.get(
+                    service_name,
+                    "get-bucket-location",
+                    "LocationConstraint",
+                    Bucket=bck.name,
+                    expected_errors=["NoSuchBucket"],
+                )
+                # AWS returns None if the bucket is in us-east-1
+                if raw_location is None:
+                    raw_location = "us-east-1"
+                bck.bucket_location = raw_location
+
         for js in json:
             if bucket := cls.from_api(js, builder):
                 bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
@@ -291,6 +307,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 builder.submit_work(service_name, add_public_access, bucket)
                 builder.submit_work(service_name, add_acls, bucket)
                 builder.submit_work(service_name, add_bucket_logging, bucket)
+                builder.submit_work(service_name, add_bucket_location, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
