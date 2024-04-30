@@ -343,7 +343,11 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        for region in {s3_bucket.bucket_location for s3_bucket in builder.nodes(clazz=AwsS3Bucket)}:
+        for region in {
+            s3_bucket.bucket_location
+            for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
+            if s3_bucket.bucket_location is not None
+        }:
             s3s = {
                 s3_bucket.id: s3_bucket
                 for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
