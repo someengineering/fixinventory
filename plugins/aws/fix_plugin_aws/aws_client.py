@@ -185,8 +185,8 @@ class AwsClient:
         **kwargs: Any,
     ) -> JsonElement:
         try:
-            # turn off boto retry and rely on our retry handler
-            return self.call_single(aws_service, action, result_name, max_attempts=0, **kwargs)
+            # 5 attempts is the default
+            return self.call_single(aws_service, action, result_name, max_attempts=5, **kwargs)
         except ClientError as e:
             self.__handle_client_error(e, aws_service, action, expected_errors)  # might reraise the exception
             return None
