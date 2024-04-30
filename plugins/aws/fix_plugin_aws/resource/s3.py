@@ -5,9 +5,10 @@ from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 from attr import field
 from attrs import define
 from datetime import timedelta
+from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
@@ -298,18 +299,25 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     bucket_location = str(raw_location)
                 bck.bucket_location = bucket_location
 
+        bucket_location_futures = []
+        buckets = []
         for js in json:
             if bucket := cls.from_api(js, builder):
+                buckets.append(bucket)
                 bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
                 builder.add_node(bucket, js)
-                builder.submit_work(service_name, add_tags, bucket)
-                builder.submit_work(service_name, add_bucket_encryption, bucket)
-                builder.submit_work(service_name, add_bucket_policy, bucket)
-                builder.submit_work(service_name, add_bucket_versioning, bucket)
-                builder.submit_work(service_name, add_public_access, bucket)
-                builder.submit_work(service_name, add_acls, bucket)
-                builder.submit_work(service_name, add_bucket_logging, bucket)
-                builder.submit_work(service_name, add_bucket_location, bucket)
+                bucket_location_futures.append(builder.submit_work(service_name, add_bucket_location, bucket))
+        for bucket in buckets:
+            builder.submit_work(service_name, add_tags, bucket)
+            builder.submit_work(service_name, add_bucket_encryption, bucket)
+            builder.submit_work(service_name, add_bucket_policy, bucket)
+            builder.submit_work(service_name, add_bucket_versioning, bucket)
+            builder.submit_work(service_name, add_public_access, bucket)
+            builder.submit_work(service_name, add_acls, bucket)
+            builder.submit_work(service_name, add_bucket_logging, bucket)
+
+        # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
+        futures_wait(bucket_location_futures)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -335,52 +343,58 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        s3s = {s3.id: s3 for s3 in builder.nodes(clazz=AwsS3Bucket) if s3.region().id == builder.region.id}
-        queries = []
-        delta = timedelta(days=1)
-        now = builder.created_at
-        start = now - timedelta(days=2)
+        for region in {
+            s3_bucket.bucket_location
+            for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
+            if s3_bucket.bucket_location is not None
+        }:
+            s3s = {s3_bucket.id: s3_bucket for s3_bucket in builder.nodes(clazz=AwsS3Bucket, bucket_location=region)}
+            queries = []
+            delta = timedelta(days=1)
+            now = builder.created_at
+            start = now - timedelta(days=2)
 
-        for s3_id, s3 in s3s.items():
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="NumberOfObjects",
-                    namespace="AWS/S3",
-                    period=delta,
-                    ref_id=s3_id,
-                    stat="Average",
-                    unit="Count",
-                    BucketName=s3.name or s3.safe_name,
-                    StorageType="AllStorageTypes",
+            for s3_id, s3 in s3s.items():
+                queries.append(
+                    AwsCloudwatchQuery.create(
+                        metric_name="NumberOfObjects",
+                        namespace="AWS/S3",
+                        period=delta,
+                        ref_id=s3_id,
+                        stat="Average",
+                        unit="Count",
+                        BucketName=s3.name or s3.safe_name,
+                        StorageType="AllStorageTypes",
+                    )
                 )
-            )
-            queries.append(
-                AwsCloudwatchQuery.create(
-                    metric_name="BucketSizeBytes",
-                    namespace="AWS/S3",
-                    period=delta,
-                    ref_id=s3_id,
-                    stat="Average",
-                    unit="Bytes",
-                    BucketName=s3.name or s3.safe_name,
-                    StorageType="StandardStorage",
+                queries.append(
+                    AwsCloudwatchQuery.create(
+                        metric_name="BucketSizeBytes",
+                        namespace="AWS/S3",
+                        period=delta,
+                        ref_id=s3_id,
+                        stat="Average",
+                        unit="Bytes",
+                        BucketName=s3.name or s3.safe_name,
+                        StorageType="StandardStorage",
+                    )
                 )
-            )
-        metric_normalizers = {
-            "BucketSizeBytes": MetricNormalization(
-                metric_name=MetricName.BucketSizeBytes,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "NumberOfObjects": MetricNormalization(
-                metric_name=MetricName.NumberOfObjects,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
+            metric_normalizers = {
+                "BucketSizeBytes": MetricNormalization(
+                    metric_name=MetricName.BucketSizeBytes,
+                    unit=MetricUnit.Bytes,
+                    normalize_value=lambda x: round(x, ndigits=4),
+                ),
+                "NumberOfObjects": MetricNormalization(
+                    metric_name=MetricName.NumberOfObjects,
+                    unit=MetricUnit.Count,
+                    normalize_value=lambda x: round(x, ndigits=4),
+                ),
+            }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-        update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
+            region_builder = builder.for_region(AwsRegion(id=region, name=region))
+            cloudwatch_result = AwsCloudwatchMetricData.query_for(region_builder, queries, start, now)
+            update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)
