@@ -1,5 +1,6 @@
+import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Type, Any, cast
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -19,6 +20,7 @@ from fixlib.types import Json
 from fixlib.utils import chunks
 from fix_plugin_aws.utils import TagsValue, ToDict
 
+log = logging.getLogger("fix.plugins.aws")
 service_name = "ecs"
 
 
@@ -1075,7 +1077,9 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         " Container Service (ECS), providing information such as the Docker image,"
         " CPU, memory, network configuration, and other parameters."
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-task-definitions", "taskDefinitionArns")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        service_name, "list-task-definitions", "taskDefinitionArns", {"sort": "desc"}
+    )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
     }
@@ -1141,7 +1145,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        for task_def_arn in json:
+        def collect_task_definition(task_def_arn: str) -> None:
             response = builder.client.get(
                 service_name,
                 "describe-task-definition",
@@ -1154,7 +1158,17 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 tags = response["tags"]
                 task_definition["tags"] = tags
                 if task_definition_instance := cls.from_api(task_definition, builder):
-                    builder.add_node(task_definition_instance, task_def_arn)
+                    builder.add_node(task_definition_instance)
+
+        last_task_def_arn = ""
+        for arn in cast(List[str], json):
+            # Skip task definition with same arn but older version
+            no_version = arn.rsplit(":", 1)[0]
+            if no_version == last_task_def_arn:
+                log.info(f"Skipping task definition {arn} as it is an older version of {last_task_def_arn}")
+                continue
+            last_task_def_arn = no_version
+            builder.submit_work(service_name, collect_task_definition, arn)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
