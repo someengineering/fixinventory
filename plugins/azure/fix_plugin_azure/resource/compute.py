@@ -42,6 +42,7 @@ from fixlib.baseresources import (
 )
 
 log = logging.getLogger("fix.plugins.azure")
+service_name = "azure_compute"
 
 
 @define(eq=False, slots=False)
@@ -3087,7 +3088,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
-        graph_builder.submit_work("azure_virtual_machine", collect_instance_status)
+        graph_builder.submit_work(service_name, collect_instance_status)
 
     @classmethod
     def collect_usage_metrics(
@@ -3770,7 +3771,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
                     self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
                 )
 
-        graph_builder.submit_work("azure_vm_scale_set", collect_vmss_instances)
+        graph_builder.submit_work(service_name, collect_vmss_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (

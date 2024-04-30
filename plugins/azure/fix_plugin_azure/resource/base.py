@@ -22,6 +22,7 @@ from fixlib.types import Json
 from fixlib.config import current_config
 
 log = logging.getLogger("fix.plugins.azure")
+service_name = "azure_base"
 
 
 def get_client(subscription_id: str) -> AzureClient:
@@ -50,6 +51,9 @@ class AzureResource(BaseResource):
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
 
+    def resource_group(self) -> Optional[str]:
+        return self.extract_part("resourceGroupName")
+
     def extract_part(self, part: str) -> Optional[str]:
         """
         Extracts a specific part from a resource ID.
@@ -74,6 +78,12 @@ class AzureResource(BaseResource):
             if "subscriptions" not in id_parts:
                 return None
             if index := id_parts.index("subscriptions"):
+                return id_parts[index + 1]
+            return None
+        elif part == "resourceGroupName":
+            if "resourceGroups" not in id_parts:
+                return None
+            if index := id_parts.index("resourceGroups"):
                 return id_parts[index + 1]
             return None
         else:
@@ -328,7 +338,7 @@ class AzureResourceGroup(AzureResource):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
-        graph_builder.submit_work("azure_resource_group", collect_resources_in_group)
+        graph_builder.submit_work(service_name, collect_resources_in_group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
@@ -337,17 +347,28 @@ class AzureResourceGroup(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureBaseUsage:
-    kind: ClassVar[str] = "azure_usage"
-    _expected_error_codes: ClassVar[List[str]] = ["SubscriptionHasNoUsages"]
-
-
-@define(eq=False, slots=False)
 class AzureUsageName:
     kind: ClassVar[str] = "azure_usage_name"
     mapping: ClassVar[Dict[str, Bender]] = {"localized_value": S("localizedValue"), "value": S("value")}
     localized_value: Optional[str] = field(default=None, metadata={'description': 'Gets a localized string describing the resource name.'})  # fmt: skip
     value: Optional[str] = field(default=None, metadata={"description": "Gets a string describing the resource name."})
+
+
+@define(eq=False, slots=False)
+class AzureBaseUsage:
+    kind: ClassVar[str] = "azure_usage"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("name", "value"),
+        "usage_name": S("name") >> Bend(AzureUsageName.mapping),
+        "current_value": S("currentValue"),
+        "limit": S("limit"),
+        "unit": S("unit"),
+    }
+    usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
+    current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
+    limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
+    unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
+    _expected_error_codes: ClassVar[List[str]] = ["SubscriptionHasNoUsages"]
 
 
 @define(eq=False, slots=False)

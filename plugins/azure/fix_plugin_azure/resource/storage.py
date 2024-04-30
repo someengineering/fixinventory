@@ -2,20 +2,173 @@ from datetime import datetime
 from typing import Any, ClassVar, Optional, Dict, List, Type
 from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
-from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, AzureUsageName, GraphBuilder
+from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, GraphBuilder
 
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
+service_name = "azure_storage"
+
 
 @define(eq=False, slots=False)
-class AzureProxyResource:
-    kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'})  # fmt: skip
+class AzureUpdateHistoryProperty:
+    kind: ClassVar[str] = "azure_update_history_property"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allow_protected_append_writes": S("allowProtectedAppendWrites"),
+        "allow_protected_append_writes_all": S("allowProtectedAppendWritesAll"),
+        "immutability_period_since_creation_in_days": S("immutabilityPeriodSinceCreationInDays"),
+        "object_identifier": S("objectIdentifier"),
+        "tenant_id": S("tenantId"),
+        "timestamp": S("timestamp"),
+        "update": S("update"),
+        "upn": S("upn"),
+    }
+    allow_protected_append_writes: Optional[bool] = field(default=None, metadata={'description': 'This property can only be changed for unlocked time-based retention policies. When enabled, new blocks can be written to an append blob while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted. This property cannot be changed with ExtendImmutabilityPolicy API.'})  # fmt: skip
+    allow_protected_append_writes_all: Optional[bool] = field(default=None, metadata={'description': 'This property can only be changed for unlocked time-based retention policies. When enabled, new blocks can be written to both Append and Bock Blobs while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted. This property cannot be changed with ExtendImmutabilityPolicy API. The allowProtectedAppendWrites and allowProtectedAppendWritesAll properties are mutually exclusive.'})  # fmt: skip
+    immutability_period_since_creation_in_days: Optional[int] = field(default=None, metadata={'description': 'The immutability period for the blobs in the container since the policy creation, in days.'})  # fmt: skip
+    object_identifier: Optional[str] = field(default=None, metadata={'description': 'Returns the Object ID of the user who updated the ImmutabilityPolicy.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'Returns the Tenant ID that issued the token for the user who updated the ImmutabilityPolicy.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the ImmutabilityPolicy was updated.'})  # fmt: skip
+    update: Optional[str] = field(default=None, metadata={'description': 'The ImmutabilityPolicy update type of a blob container, possible values include: put, lock and extend.'})  # fmt: skip
+    upn: Optional[str] = field(default=None, metadata={'description': 'Returns the User Principal Name of the user who updated the ImmutabilityPolicy.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureImmutabilityPolicyProperties:
+    kind: ClassVar[str] = "azure_immutability_policy_properties"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allow_protected_append_writes": S("properties", "allowProtectedAppendWrites"),
+        "allow_protected_append_writes_all": S("properties", "allowProtectedAppendWritesAll"),
+        "etag": S("etag"),
+        "immutability_period_since_creation_in_days": S("properties", "immutabilityPeriodSinceCreationInDays"),
+        "state": S("properties", "state"),
+        "update_history": S("updateHistory") >> ForallBend(AzureUpdateHistoryProperty.mapping),
+    }
+    allow_protected_append_writes: Optional[bool] = field(default=None, metadata={'description': 'This property can only be changed for unlocked time-based retention policies. When enabled, new blocks can be written to an append blob while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted. This property cannot be changed with ExtendImmutabilityPolicy API.'})  # fmt: skip
+    allow_protected_append_writes_all: Optional[bool] = field(default=None, metadata={'description': 'This property can only be changed for unlocked time-based retention policies. When enabled, new blocks can be written to both Append and Bock Blobs while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted. This property cannot be changed with ExtendImmutabilityPolicy API. The allowProtectedAppendWrites and allowProtectedAppendWritesAll properties are mutually exclusive.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={"description": "ImmutabilityPolicy Etag."})
+    immutability_period_since_creation_in_days: Optional[int] = field(default=None, metadata={'description': 'The immutability period for the blobs in the container since the policy creation, in days.'})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={'description': 'The ImmutabilityPolicy state of a blob container, possible values include: Locked and Unlocked.'})  # fmt: skip
+    update_history: Optional[List[AzureUpdateHistoryProperty]] = field(default=None, metadata={'description': 'The ImmutabilityPolicy update history of the blob container.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureTagProperty:
+    kind: ClassVar[str] = "azure_tag_property"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "object_identifier": S("objectIdentifier"),
+        "tag": S("tag"),
+        "tenant_id": S("tenantId"),
+        "timestamp": S("timestamp"),
+        "upn": S("upn"),
+    }
+    object_identifier: Optional[str] = field(default=None, metadata={'description': 'Returns the Object ID of the user who added the tag.'})  # fmt: skip
+    tag: Optional[str] = field(default=None, metadata={"description": "The tag value."})
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'Returns the Tenant ID that issued the token for the user who added the tag.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the tag was added.'})  # fmt: skip
+    upn: Optional[str] = field(default=None, metadata={'description': 'Returns the User Principal Name of the user who added the tag.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureProtectedAppendWritesHistory:
+    kind: ClassVar[str] = "azure_protected_append_writes_history"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "allow_protected_append_writes_all": S("allowProtectedAppendWritesAll"),
+        "timestamp": S("timestamp"),
+    }
+    allow_protected_append_writes_all: Optional[bool] = field(default=None, metadata={'description': 'When enabled, new blocks can be written to both Append and Bock Blobs while maintaining legal hold protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the tag was added.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureLegalHoldProperties:
+    kind: ClassVar[str] = "azure_legal_hold_properties"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "has_legal_hold": S("hasLegalHold"),
+        "protected_append_writes_history": S("protectedAppendWritesHistory")
+        >> Bend(AzureProtectedAppendWritesHistory.mapping),
+        "tags": S("tags") >> ForallBend(AzureTagProperty.mapping),
+    }
+    has_legal_hold: Optional[bool] = field(default=None, metadata={'description': 'The hasLegalHold public property is set to true by SRP if there are at least one existing tag. The hasLegalHold public property is set to false by SRP if all existing legal hold tags are cleared out. There can be a maximum of 1000 blob containers with hasLegalHold=true for a given account.'})  # fmt: skip
+    protected_append_writes_history: Optional[AzureProtectedAppendWritesHistory] = field(default=None, metadata={'description': 'Protected append writes history setting for the blob container with Legal holds.'})  # fmt: skip
+    tags: Optional[List[AzureTagProperty]] = field(default=None, metadata={'description': 'The list of LegalHold tags of a blob container.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureImmutableStorageWithVersioning:
+    kind: ClassVar[str] = "azure_immutable_storage_with_versioning"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("enabled"),
+        "migration_state": S("migrationState"),
+        "time_stamp": S("timeStamp"),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={'description': 'This is an immutable property, when set to true it enables object level immutability at the container level.'})  # fmt: skip
+    migration_state: Optional[str] = field(default=None, metadata={'description': 'This property denotes the container level immutability to object level immutability migration state.'})  # fmt: skip
+    time_stamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the object level immutability was enabled.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureBlobContainer(AzureResource):
+    kind: ClassVar[str] = "azure_blob_container"
+    # api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    #     service="storage",
+    #     version="2023-01-01",
+    #     path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{accountName}/blobServices/default/containers/{containerName}",
+    #     path_parameters=["resourceGroupName", "accountName", "containerName", "subscriptionId"],
+    #     query_parameters=["api-version"],
+    #     access_path=None,
+    #     expect_array=False,
+    # )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "etag": S("etag"),
+        "name": S("name"),
+        "mtime": S("properties", "lastModifiedTime"),
+        "default_encryption_scope": S("properties", "defaultEncryptionScope"),
+        "deleted": S("properties", "deleted"),
+        "deleted_time": S("properties", "deletedTime"),
+        "deny_encryption_scope_override": S("properties", "denyEncryptionScopeOverride"),
+        "enable_nfs_v3_all_squash": S("properties", "enableNfsV3AllSquash"),
+        "enable_nfs_v3_root_squash": S("properties", "enableNfsV3RootSquash"),
+        "has_immutability_policy": S("properties", "hasImmutabilityPolicy"),
+        "has_legal_hold": S("properties", "hasLegalHold"),
+        "immutability_policy": S("properties", "immutabilityPolicy") >> Bend(AzureImmutabilityPolicyProperties.mapping),
+        "blob_immutable_storage_with_versioning": S("properties", "immutableStorageWithVersioning")
+        >> Bend(AzureImmutableStorageWithVersioning.mapping),
+        "last_modified_time": S("properties", "lastModifiedTime"),
+        "lease_duration": S("properties", "leaseDuration"),
+        "lease_state": S("properties", "leaseState"),
+        "lease_status": S("properties", "leaseStatus"),
+        "legal_hold": S("properties", "legalHold") >> Bend(AzureLegalHoldProperties.mapping),
+        "blob_metadata": S("properties", "metadata"),
+        "public_access": S("properties", "publicAccess"),
+        "remaining_retention_days": S("properties", "remainingRetentionDays"),
+        "version": S("properties", "version"),
+    }
+    etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
     name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
+    deleted: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the blob container was deleted.'})  # fmt: skip
+    deleted_time: Optional[datetime] = field(default=None, metadata={"description": "Blob container deletion time."})
+    deny_encryption_scope_override: Optional[bool] = field(default=None, metadata={'description': 'Block override of encryption scope from the container default.'})  # fmt: skip
+    enable_nfs_v3_all_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 all squash on blob container.'})  # fmt: skip
+    enable_nfs_v3_root_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 root squash on blob container.'})  # fmt: skip
+    has_immutability_policy: Optional[bool] = field(default=None, metadata={'description': 'The hasImmutabilityPolicy public property is set to true by SRP if ImmutabilityPolicy has been created for this container. The hasImmutabilityPolicy public property is set to false by SRP if ImmutabilityPolicy has not been created for this container.'})  # fmt: skip
+    has_legal_hold: Optional[bool] = field(default=None, metadata={'description': 'The hasLegalHold public property is set to true by SRP if there are at least one existing tag. The hasLegalHold public property is set to false by SRP if all existing legal hold tags are cleared out. There can be a maximum of 1000 blob containers with hasLegalHold=true for a given account.'})  # fmt: skip
+    immutability_policy: Optional[AzureImmutabilityPolicyProperties] = field(default=None, metadata={'description': 'The properties of an ImmutabilityPolicy of a blob container.'})  # fmt: skip
+    blob_immutable_storage_with_versioning: Optional[AzureImmutableStorageWithVersioning] = field(default=None, metadata={'description': 'Object level immutability properties of the container.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the container was last modified.'})  # fmt: skip
+    lease_duration: Optional[str] = field(default=None, metadata={'description': 'Specifies whether the lease on a container is of infinite or fixed duration, only when the container is leased.'})  # fmt: skip
+    lease_state: Optional[str] = field(default=None, metadata={"description": "Lease state of the container."})
+    lease_status: Optional[str] = field(default=None, metadata={"description": "The lease status of the container."})
+    legal_hold: Optional[AzureLegalHoldProperties] = field(default=None, metadata={'description': 'The LegalHold property of a blob container.'})  # fmt: skip
+    blob_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair to associate with the container as metadata.'})  # fmt: skip
+    public_access: Optional[str] = field(default=None, metadata={'description': 'Specifies whether data in the container may be accessed publicly and the level of access.'})  # fmt: skip
+    remaining_retention_days: Optional[int] = field(default=None, metadata={'description': 'Remaining retention days for soft deleted blob container.'})  # fmt: skip
+    version: Optional[str] = field(default=None, metadata={'description': 'The version of the deleted blob container.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -30,10 +183,11 @@ class AzureDeletedAccount(AzureResource):
         access_path="value",
         expect_array=True,
     )
-    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+    mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "type": S("type"),
         "ctime": S("creationTime"),
         "atime": S("deletionTime"),
         "creation_time": S("properties", "creationTime"),
@@ -41,6 +195,7 @@ class AzureDeletedAccount(AzureResource):
         "restore_reference": S("properties", "restoreReference"),
         "storage_account_resource_id": S("properties", "storageAccountResourceId"),
     }
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of the deleted account.'})  # fmt: skip
     deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'Deletion time of the deleted account.'})  # fmt: skip
@@ -160,23 +315,6 @@ class AzureStorageSku(AzureResource):
             for location in locations:
                 # Dynamically setting a property for each location
                 setattr(self, f"_{location}_location", location)
-
-
-@define(eq=False, slots=False)
-class AzureTrackedResource:
-    kind: ClassVar[str] = "azure_tracked_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "location": S("location"),
-        "name": S("name"),
-        "tags": S("tags"),
-        "type": S("type"),
-    }
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'})  # fmt: skip
-    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -603,10 +741,11 @@ class AzureStorageAccount(AzureResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["azure_storage_sku"]},
     }
-    mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
+    mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "location": S("location"),
         "ctime": S("properties", "creationTime"),
         "access_tier": S("properties", "accessTier"),
         "account_migration_in_progress": S("properties", "accountMigrationInProgress"),
@@ -663,6 +802,7 @@ class AzureStorageAccount(AzureResource):
     storage_sku_tier: Optional[str] = field(
         default=None, metadata={"description": "The SKU tier. This is based on the SKU name."}
     )
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
     access_tier: Optional[str] = field(default=None, metadata={'description': 'Required for storage accounts where kind = BlobStorage. The access tier is used for billing. The Premium access tier is the default value for premium block blobs storage account type and it cannot be changed for the premium block blobs storage account type.'})  # fmt: skip
@@ -714,6 +854,28 @@ class AzureStorageAccount(AzureResource):
     storage_account_sku_conversion_status: Optional[AzureStorageAccountSkuConversionStatus] = field(default=None, metadata={'description': 'This defines the sku conversion status object for asynchronous sku conversions.'})  # fmt: skip
     supports_https_traffic_only: Optional[bool] = field(default=None, metadata={'description': 'Allows https traffic only to storage service if sets to true.'})  # fmt: skip
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_blobs() -> None:
+            if (
+                (sub_id := self.resource_subscription_id())
+                and (rg := self.resource_group())
+                and (account_name := self.name)
+            ):
+                path = f"/subscriptions/{sub_id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{account_name}/blobServices/default/containers"
+                api_spec = AzureApiSpec(
+                    service="storage",
+                    version="2023-01-01",
+                    path=path,
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                AzureBlobContainer.collect(items, graph_builder)
+
+        graph_builder.submit_work(service_name, collect_blobs)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
             (sku := self.azure_sku)
@@ -749,19 +911,15 @@ class AzureStorageUsage(AzureResource, AzureBaseUsage):
         expect_array=True,
         expected_error_codes=AzureBaseUsage._expected_error_codes,
     )
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),
-        "tags": S("tags", default={}),
-        "name": S("name", "value"),
-        "usage_name": S("name") >> Bend(AzureUsageName.mapping),
-        "current_value": S("currentValue"),
-        "limit": S("limit"),
-        "unit": S("unit"),
     }
-    usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
-    current_value: Optional[int] = field(default=None, metadata={'description': 'Gets the current count of the allocated resources in the subscription.'})  # fmt: skip
-    limit: Optional[int] = field(default=None, metadata={'description': 'Gets the maximum count of the resources that can be allocated in the subscription.'})  # fmt: skip
-    unit: Optional[str] = field(default=None, metadata={"description": "Gets the unit of measurement."})
 
 
-resources: List[Type[AzureResource]] = [AzureDeletedAccount, AzureStorageSku, AzureStorageAccount, AzureStorageUsage]
+resources: List[Type[AzureResource]] = [
+    AzureBlobContainer,
+    AzureDeletedAccount,
+    AzureStorageSku,
+    AzureStorageAccount,
+    AzureStorageUsage,
+]

@@ -18,6 +18,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.utils import utc_str
 
 log = logging.getLogger("fix.plugins.azure")
+service_name = "azure_metric"
 
 
 @define(eq=False, slots=False)
@@ -239,7 +240,7 @@ class AzureMetricData:
         futures = []
         for query in queries:
             future = builder.submit_work(
-                "azure_metric",
+                service_name,
                 AzureMetricData._query_for_single,
                 builder,
                 query,
@@ -256,7 +257,7 @@ class AzureMetricData:
                 if metric is not None and metric_id is not None:
                     result[lookup[metric_id]] = metric
             except Exception as e:
-                log.error(f"An error occurred while processing a metric query: {e}")
+                log.warning(f"An error occurred while processing a metric query: {e}")
                 raise e
 
         return result

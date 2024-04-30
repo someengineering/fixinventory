@@ -6,7 +6,6 @@ from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzureResource,
-    AzureUsageName,
     GraphBuilder,
     AzureSubResource,
     AzureSku,
@@ -29,6 +28,8 @@ from fixlib.baseresources import (
 )
 from fixlib.json_bender import Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
 from fixlib.types import Json
+
+service_name = "azure_network"
 
 
 @define(eq=False, slots=False)
@@ -4697,21 +4698,9 @@ class AzureNetworkUsage(AzureResource, AzureBaseUsage, BaseNetworkQuota):
         expect_array=True,
         expected_error_codes=AzureBaseUsage._expected_error_codes,
     )
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name", "value"),
-        "usage_name": S("name") >> Bend(AzureUsageName.mapping),
-        "current_value": S("currentValue"),
-        "limit": S("limit"),
-        "unit": S("unit"),
-        "quota_type": S("unit"),
-        "quota": S("limit"),
     }
-    usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
-    current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
-    limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
-    unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
 
 
 @define(eq=False, slots=False)
@@ -5023,7 +5012,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
             items = graph_builder.client.list(api_spec)
             AzureSubnet.collect(items, graph_builder)
 
-        graph_builder.submit_work("azure_virtual_network", collect_subnets)
+        graph_builder.submit_work(service_name, collect_subnets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnets := self._subnet_ids:
