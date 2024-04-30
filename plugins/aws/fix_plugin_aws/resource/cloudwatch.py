@@ -507,6 +507,7 @@ class AwsCloudwatchMetricData:
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []
         # the api only allows for up to 500 metrics at once
+
         for chunk in chunks(queries, 499):
             future = builder.submit_work(
                 service_name,

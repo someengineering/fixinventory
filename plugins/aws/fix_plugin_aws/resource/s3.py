@@ -4,6 +4,7 @@ from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
 from attr import field
 from attrs import define
+from datetime import timedelta
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
@@ -317,9 +318,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         s3s = {s3.id: s3 for s3 in builder.nodes(clazz=AwsS3Bucket) if s3.region().id == builder.region.id}
         queries = []
-        delta = builder.metrics_delta
-        start = builder.metrics_start
+        delta = timedelta(days=1)
         now = builder.created_at
+        start = now - timedelta(days=2)
 
         for s3_id, s3 in s3s.items():
             queries.append(
@@ -328,9 +329,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     namespace="AWS/S3",
                     period=delta,
                     ref_id=s3_id,
-                    stat="Average",  # only one valid statistic
+                    stat="Average",
                     unit="Count",
                     BucketName=s3.name or s3.safe_name,
+                    StorageType="AllStorageTypes",
                 )
             )
             queries.append(
@@ -339,9 +341,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     namespace="AWS/S3",
                     period=delta,
                     ref_id=s3_id,
-                    stat="Average",  # only one valid statistic
+                    stat="Average",
                     unit="Bytes",
                     BucketName=s3.name or s3.safe_name,
+                    StorageType="StandardStorage",
                 )
             )
         metric_normalizers = {
@@ -358,7 +361,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }
 
         cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
         update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
