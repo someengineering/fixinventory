@@ -131,7 +131,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_instance(key: Dict[str, str]) -> None:
             key_metadata = builder.client.get(
                 service_name, "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"]
@@ -176,6 +176,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         for js in js_list:
             builder.submit_work(service_name, add_instance, js)
+        return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

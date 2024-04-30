@@ -202,10 +202,10 @@ class AwsResource(BaseResource, ABC):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                cls.collect(items, builder)
+                collected = cls.collect(items, builder)
                 if builder.config.collect_usage_metrics:
                     try:
-                        cls.collect_usage_metrics(builder)
+                        cls.collect_usage_metrics(builder, collected)
                     except Exception as e:
                         log.warning(
                             f"Failed to collect usage metrics for {cls.__name__} in region {builder.region.id}: {e}"
@@ -220,20 +220,26 @@ class AwsResource(BaseResource, ABC):
                 raise
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
+        instances = []
         for js in json:
             if instance := cls.from_api(js, builder):
                 # post process
                 instance.post_process(builder, js)
                 builder.add_node(instance, js)
+                instances.append(instance)
+
+        return instances
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
         # Default behavior: do nothing
         pass
 

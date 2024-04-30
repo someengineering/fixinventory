@@ -1999,7 +1999,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         instances = []
         for cluster_arn in json:
             cluster = builder.client.list(
@@ -2081,6 +2081,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             for name in instance.cluster_capacity_providers:
                 if provider := providers.get(name):
                     builder.add_edge(instance, edge_type=EdgeType.default, node=provider)
+        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable

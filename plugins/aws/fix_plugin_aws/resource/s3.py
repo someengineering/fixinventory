@@ -206,7 +206,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        buckets = []
+
         def add_tags(bucket: AwsS3Bucket) -> None:
             tags = bucket._get_tags(builder.client)
             if tags:
@@ -304,6 +306,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         buckets = []
         for js in json:
             if bucket := cls.from_api(js, builder):
+                buckets.append(bucket)
                 buckets.append(bucket)
                 bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
                 builder.add_node(bucket, js)

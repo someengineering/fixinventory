@@ -145,7 +145,9 @@ class AwsKinesisStream(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        streams: List[AwsResource] = []
+
         def add_tags(stream: AwsKinesisStream) -> None:
             tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
             if tags:
@@ -162,16 +164,16 @@ class AwsKinesisStream(AwsResource):
             if len(stream_descriptions) == 1:
                 js = stream_descriptions[0]
                 if stream := AwsKinesisStream.from_api(js, builder):
+                    streams.append(stream)
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
+        return list(streams)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        kinesises = {
-            kinesis.id: kinesis
-            for kinesis in builder.nodes(clazz=AwsKinesisStream)
-            if kinesis.region().id == builder.region.id
-        }
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        kinesises = {kinesis.id: kinesis for kinesis in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

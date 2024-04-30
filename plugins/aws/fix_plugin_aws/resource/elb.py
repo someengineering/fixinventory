@@ -323,7 +323,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances = []
+
         def fetch_attributes(elb: AwsElb) -> None:
             if attributes := builder.client.get(
                 service_name,
@@ -349,13 +351,17 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
 
         for js in json:
             if instance := cls.from_api(js, builder):
+                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, fetch_attributes, instance)
+        return instances
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        elbs = {elb.id: elb for elb in builder.nodes(clazz=AwsElb) if elb.region().id == builder.region.id}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        elbs = {elb.id: elb for elb in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

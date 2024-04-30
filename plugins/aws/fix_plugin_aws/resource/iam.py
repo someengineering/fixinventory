@@ -689,7 +689,7 @@ class AwsIamUser(AwsResource, BaseUser):
         super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
 
     @classmethod
-    def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         # retrieve the created report
         report = CredentialReportLine.user_lines(builder)
 
@@ -747,6 +747,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
         if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
             builder.submit_work(service_name, add_virtual_mfa_devices)
+        return []
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):

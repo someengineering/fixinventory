@@ -458,11 +458,13 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        clusters = []
         for name in cast(List[str], json):
             cluster_json = builder.client.get(service_name, "describe-cluster", "cluster", name=name)
             if cluster_json is not None:
                 if cluster := AwsEksCluster.from_api(cluster_json, builder):
+                    clusters.append(cluster)
                     builder.add_node(cluster, cluster_json)
                     for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
                         ng_json = builder.client.get(
@@ -470,6 +472,7 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
                         )
                         if ng_json is not None and (ng := AwsEksNodegroup.from_api(ng_json, builder)):
                             builder.add_node(ng, ng_json)
+        return list(clusters)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(

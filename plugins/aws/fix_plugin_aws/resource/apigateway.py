@@ -513,7 +513,8 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances = []
         for js in json:
             if api_instance := cls.from_api(js, builder):
                 api_instance.set_arn(
@@ -521,6 +522,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                     account="",
                     resource=f"/restapis/{api_instance.id}",
                 )
+                instances.append(api_instance)
                 builder.add_node(api_instance, js)
                 for deployment in builder.client.list(
                     service_name, "get-deployments", "items", restApiId=api_instance.id
@@ -564,6 +566,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                                     resource_instance.resource_methods[method] = gm
                         builder.add_node(resource_instance, resource)
                         builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
+        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:

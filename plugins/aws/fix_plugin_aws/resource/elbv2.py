@@ -409,9 +409,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        lbs = []
         for js in json:
             if lb := AwsAlb.from_api(js, builder):
+                lbs.append(lb)
                 tags = builder.client.list(
                     service_name,
                     "describe-tags",
@@ -428,10 +430,13 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     if listener := parse_json(mapped, AwsAlbListener, builder):
                         lb.alb_listener.append(listener)
                 builder.add_node(lb, js)
+        return list(lbs)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        albs = {alb.id: alb for alb in builder.nodes(clazz=AwsAlb) if alb.region().id == builder.region.id}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        albs = {alb.id: alb for alb in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -722,9 +727,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        tgs = []
         for js in json:
             if tg := AwsAlbTargetGroup.from_api(js, builder):
+                tgs.append(tg)
                 tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
                 if tags:
                     tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
@@ -735,13 +742,14 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
                         tg.alb_target_health.append(tgh)
                 builder.add_node(tg, js)
+        return list(tgs)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
         target_groups = {
-            tg.id: tg
-            for tg in builder.nodes(clazz=AwsAlbTargetGroup)
-            if tg.region().id == builder.region.id and tg.alb_lb_arns
+            tg.id: tg for tg in collected_resources if isinstance(tg, AwsAlbTargetGroup) and tg.alb_lb_arns
         }
         queries = []
         delta = builder.metrics_delta
