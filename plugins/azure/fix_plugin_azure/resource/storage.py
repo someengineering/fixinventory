@@ -111,15 +111,6 @@ class AzureImmutableStorageWithVersioning:
 @define(eq=False, slots=False)
 class AzureBlobContainer(AzureResource):
     kind: ClassVar[str] = "azure_blob_container"
-    # api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-    #     service="storage",
-    #     version="2023-01-01",
-    #     path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{accountName}/blobServices/default/containers/{containerName}",
-    #     path_parameters=["resourceGroupName", "accountName", "containerName", "subscriptionId"],
-    #     query_parameters=["api-version"],
-    #     access_path=None,
-    #     expect_array=False,
-    # )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -201,6 +192,84 @@ class AzureDeletedAccount(AzureResource):
     deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'Deletion time of the deleted account.'})  # fmt: skip
     restore_reference: Optional[str] = field(default=None, metadata={'description': 'Can be used to attempt recovering this deleted account via PutStorageAccount API.'})  # fmt: skip
     storage_account_resource_id: Optional[str] = field(default=None, metadata={'description': 'Full resource id of the original storage account.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureAccessPolicy:
+    kind: ClassVar[str] = "azure_access_policy"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "expiry_time": S("expiryTime"),
+        "permission": S("permission"),
+        "start_time": S("startTime"),
+    }
+    expiry_time: Optional[datetime] = field(default=None, metadata={"description": "Expiry time of the access policy"})
+    permission: Optional[str] = field(default=None, metadata={"description": "List of abbreviated permissions."})
+    start_time: Optional[datetime] = field(default=None, metadata={"description": "Start time of the access policy"})
+
+
+@define(eq=False, slots=False)
+class AzureSignedIdentifier:
+    kind: ClassVar[str] = "azure_signed_identifier"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "access_policy": S("accessPolicy") >> Bend(AzureAccessPolicy.mapping),
+        "id": S("id"),
+    }
+    access_policy: Optional[AzureAccessPolicy] = field(default=None, metadata={"description": ""})
+    id: Optional[str] = field(default=None, metadata={'description': 'An unique identifier of the stored access policy.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureFileShare(AzureResource):
+    kind: ClassVar[str] = "azure_file_share"
+    # api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(service='storage', version='2023-01-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{accountName}/fileServices/default/shares', path_parameters=['resourceGroupName', 'accountName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "mtime": S("properties", "lastModifiedTime"),
+        "atime": S("properties", "deletedTime"),
+        "type": S("type"),
+        "etag": S("etag"),
+        "access_tier": S("properties", "accessTier"),
+        "access_tier_change_time": S("properties", "accessTierChangeTime"),
+        "access_tier_status": S("properties", "accessTierStatus"),
+        "deleted": S("properties", "deleted"),
+        "deleted_time": S("properties", "deletedTime"),
+        "enabled_protocols": S("properties", "enabledProtocols"),
+        "last_modified_time": S("properties", "lastModifiedTime"),
+        "lease_duration": S("properties", "leaseDuration"),
+        "lease_state": S("properties", "leaseState"),
+        "lease_status": S("properties", "leaseStatus"),
+        "file_share_metadata": S("properties", "metadata"),
+        "remaining_retention_days": S("properties", "remainingRetentionDays"),
+        "root_squash": S("properties", "rootSquash"),
+        "share_quota": S("properties", "shareQuota"),
+        "share_usage_bytes": S("properties", "shareUsageBytes"),
+        "signed_identifiers": S("properties", "signedIdentifiers") >> ForallBend(AzureSignedIdentifier.mapping),
+        "snapshot_time": S("properties", "snapshotTime"),
+        "version": S("properties", "version"),
+    }
+    etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    access_tier: Optional[str] = field(default=None, metadata={'description': 'Access tier for specific share. GpV2 account can choose between TransactionOptimized (default), Hot, and Cool. FileStorage account can choose Premium.'})  # fmt: skip
+    access_tier_change_time: Optional[datetime] = field(default=None, metadata={'description': 'Indicates the last modification time for share access tier.'})  # fmt: skip
+    access_tier_status: Optional[str] = field(default=None, metadata={'description': 'Indicates if there is a pending transition for access tier.'})  # fmt: skip
+    deleted: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the share was deleted."})
+    deleted_time: Optional[datetime] = field(default=None, metadata={'description': 'The deleted time if the share was deleted.'})  # fmt: skip
+    enabled_protocols: Optional[str] = field(default=None, metadata={'description': 'The authentication protocol that is used for the file share. Can only be specified when creating a share.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the share was last modified.'})  # fmt: skip
+    lease_duration: Optional[str] = field(default=None, metadata={'description': 'Specifies whether the lease on a share is of infinite or fixed duration, only when the share is leased.'})  # fmt: skip
+    lease_state: Optional[str] = field(default=None, metadata={"description": "Lease state of the share."})
+    lease_status: Optional[str] = field(default=None, metadata={"description": "The lease status of the share."})
+    file_share_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair to associate with the share as metadata.'})  # fmt: skip
+    remaining_retention_days: Optional[int] = field(default=None, metadata={'description': 'Remaining retention days for share that was soft deleted.'})  # fmt: skip
+    root_squash: Optional[str] = field(default=None, metadata={'description': 'The property is for NFS share only. The default is NoRootSquash.'})  # fmt: skip
+    share_quota: Optional[int] = field(default=None, metadata={'description': 'The maximum size of the share, in gigabytes. Must be greater than 0, and less than or equal to 5TB (5120). For Large File Shares, the maximum size is 102400.'})  # fmt: skip
+    share_usage_bytes: Optional[int] = field(default=None, metadata={'description': 'The approximate size of the data stored on the share. Note that this value may not include all recently created or recently resized files.'})  # fmt: skip
+    signed_identifiers: Optional[List[AzureSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the share.'})  # fmt: skip
+    snapshot_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of share snapshot returned in the response of list shares with expand param snapshots .'})  # fmt: skip
+    version: Optional[str] = field(default=None, metadata={"description": "The version of the share."})
 
 
 @define(eq=False, slots=False)
@@ -308,13 +377,7 @@ class AzureStorageSku(AzureResource):
     resource_type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource, usually it is storageAccounts .'})  # fmt: skip
     sku_restrictions: Optional[List[AzureRestriction]] = field(default=None, metadata={'description': 'The restrictions because of which SKU cannot be used. This is empty if there are no restrictions.'})  # fmt: skip
     tier: Optional[str] = field(default=None, metadata={"description": "The SKU tier. This is based on the SKU name."})
-
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        # Encapsulating each location from the list for future connection to the storage account
-        if locations := self.locations:
-            for location in locations:
-                # Dynamically setting a property for each location
-                setattr(self, f"_{location}_location", location)
+    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -854,47 +917,72 @@ class AzureStorageAccount(AzureResource):
     storage_account_sku_conversion_status: Optional[AzureStorageAccountSkuConversionStatus] = field(default=None, metadata={'description': 'This defines the sku conversion status object for asynchronous sku conversions.'})  # fmt: skip
     supports_https_traffic_only: Optional[bool] = field(default=None, metadata={'description': 'Allows https traffic only to storage service if sets to true.'})  # fmt: skip
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_blobs() -> None:
-            if (
-                (sub_id := self.resource_subscription_id())
-                and (rg := self.resource_group())
-                and (account_name := self.name)
-            ):
-                path = f"/subscriptions/{sub_id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{account_name}/blobServices/default/containers"
-                api_spec = AzureApiSpec(
-                    service="storage",
-                    version="2023-01-01",
-                    path=path,
-                    path_parameters=[],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-                AzureBlobContainer.collect(items, graph_builder)
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        sub_id: str,
+        rg: str,
+        account_name: str,
+        service_type: str,
+        resource_type: str,
+        class_instance: AzureResource,
+    ) -> None:
+        path = f"/subscriptions/{sub_id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{account_name}/{service_type}/default/{resource_type}"
+        api_spec = AzureApiSpec(
+            service="storage",
+            version="2023-01-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items = graph_builder.client.list(api_spec)
+        class_instance.collect(items, graph_builder)
 
-        graph_builder.submit_work(service_name, collect_blobs)
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if (
+            (sub_id := self.resource_subscription_id())
+            and (rg := self.resource_group())
+            and (account_name := self.name)
+        ):
+            graph_builder.submit_work(
+                service_name,
+                self._collect_items,
+                graph_builder,
+                sub_id,
+                rg,
+                account_name,
+                "fileServices",
+                "shares",
+                AzureFileShare,
+            )
+            graph_builder.submit_work(
+                service_name,
+                self._collect_items,
+                graph_builder,
+                sub_id,
+                rg,
+                account_name,
+                "blobServices",
+                "containers",
+                AzureBlobContainer,
+            )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if (
-            (sku := self.azure_sku)
-            and (sku_name := sku.name)
-            and (sku_tier := sku.tier)
-            and (location := self.location)
-        ):
-            maybe_sku_location = f"_{location}_location"
-            property_dict: Dict[str, Any] = {
-                maybe_sku_location: location,
-                "name": sku_name,
-                "tier": sku_tier,
-                "clazz": AzureStorageSku,
-            }
+        def sku_filter(sku: AzureStorageSku) -> bool:
+            if (location := self.location) and (sku_locations := sku.locations) and (location in sku_locations):
+                return True
+            return False
 
+        if (sku := self.azure_sku) and (sku_name := sku.name) and (sku_tier := sku.tier):
             builder.add_edge(
                 self,
                 edge_type=EdgeType.default,
-                **property_dict,
+                filter_fn=sku_filter,
+                name=sku_name,
+                tier=sku_tier,
+                clazz=AzureStorageSku,
             )
 
 
@@ -914,10 +1002,10 @@ class AzureStorageUsage(AzureResource, AzureBaseUsage):
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),
     }
+    _is_provider_link: bool = False
 
 
 resources: List[Type[AzureResource]] = [
-    AzureBlobContainer,
     AzureDeletedAccount,
     AzureStorageSku,
     AzureStorageAccount,
