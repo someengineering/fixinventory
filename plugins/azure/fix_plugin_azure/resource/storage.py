@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, ClassVar, Optional, Dict, List, Type
+from typing import ClassVar, Optional, Dict, List, Type
 from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, GraphBuilder
@@ -139,7 +139,6 @@ class AzureBlobContainer(AzureResource):
         "version": S("properties", "version"),
     }
     etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
     deleted: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the blob container was deleted.'})  # fmt: skip
@@ -186,7 +185,6 @@ class AzureDeletedAccount(AzureResource):
         "restore_reference": S("properties", "restoreReference"),
         "storage_account_resource_id": S("properties", "storageAccountResourceId"),
     }
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of the deleted account.'})  # fmt: skip
     deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'Deletion time of the deleted account.'})  # fmt: skip
@@ -221,7 +219,6 @@ class AzureSignedIdentifier:
 @define(eq=False, slots=False)
 class AzureFileShare(AzureResource):
     kind: ClassVar[str] = "azure_file_share"
-    # api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(service='storage', version='2023-01-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{accountName}/fileServices/default/shares', path_parameters=['resourceGroupName', 'accountName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -245,12 +242,11 @@ class AzureFileShare(AzureResource):
         "root_squash": S("properties", "rootSquash"),
         "share_quota": S("properties", "shareQuota"),
         "share_usage_bytes": S("properties", "shareUsageBytes"),
-        "signed_identifiers": S("properties", "signedIdentifiers") >> ForallBend(AzureSignedIdentifier.mapping),
+        "file_signed_identifiers": S("properties", "signedIdentifiers") >> ForallBend(AzureSignedIdentifier.mapping),
         "snapshot_time": S("properties", "snapshotTime"),
         "version": S("properties", "version"),
     }
     etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     access_tier: Optional[str] = field(default=None, metadata={'description': 'Access tier for specific share. GpV2 account can choose between TransactionOptimized (default), Hot, and Cool. FileStorage account can choose Premium.'})  # fmt: skip
     access_tier_change_time: Optional[datetime] = field(default=None, metadata={'description': 'Indicates the last modification time for share access tier.'})  # fmt: skip
@@ -267,9 +263,23 @@ class AzureFileShare(AzureResource):
     root_squash: Optional[str] = field(default=None, metadata={'description': 'The property is for NFS share only. The default is NoRootSquash.'})  # fmt: skip
     share_quota: Optional[int] = field(default=None, metadata={'description': 'The maximum size of the share, in gigabytes. Must be greater than 0, and less than or equal to 5TB (5120). For Large File Shares, the maximum size is 102400.'})  # fmt: skip
     share_usage_bytes: Optional[int] = field(default=None, metadata={'description': 'The approximate size of the data stored on the share. Note that this value may not include all recently created or recently resized files.'})  # fmt: skip
-    signed_identifiers: Optional[List[AzureSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the share.'})  # fmt: skip
+    file_signed_identifiers: Optional[List[AzureSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the share.'})  # fmt: skip
     snapshot_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of share snapshot returned in the response of list shares with expand param snapshots .'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the share."})
+
+
+@define(eq=False, slots=False)
+class AzureQueue(AzureResource):
+    kind: ClassVar[str] = "azure_queue"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "approximate_message_count": S("properties", "approximateMessageCount"),
+        "queue_metadata": S("properties", "metadata"),
+    }
+    approximate_message_count: Optional[int] = field(default=None, metadata={'description': 'Integer indicating an approximate number of messages in the queue. This number is not lower than the actual number of messages in the queue, but could be higher.'})  # fmt: skip
+    queue_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair that represents queue metadata.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -865,7 +875,6 @@ class AzureStorageAccount(AzureResource):
     storage_sku_tier: Optional[str] = field(
         default=None, metadata={"description": "The SKU tier. This is based on the SKU name."}
     )
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
     access_tier: Optional[str] = field(default=None, metadata={'description': 'Required for storage accounts where kind = BlobStorage. The access tier is used for billing. The Premium access tier is the default value for premium block blobs storage account type and it cannot be changed for the premium block blobs storage account type.'})  # fmt: skip
@@ -968,6 +977,28 @@ class AzureStorageAccount(AzureResource):
                 "containers",
                 AzureBlobContainer,
             )
+            graph_builder.submit_work(
+                service_name,
+                self._collect_items,
+                graph_builder,
+                sub_id,
+                rg,
+                account_name,
+                "queueServices",
+                "queues",
+                AzureQueue,
+            )
+            graph_builder.submit_work(
+                service_name,
+                self._collect_items,
+                graph_builder,
+                sub_id,
+                rg,
+                account_name,
+                "tableServices",
+                "tables",
+                AzureTable,
+            )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         def sku_filter(sku: AzureStorageSku) -> bool:
@@ -1003,6 +1034,45 @@ class AzureStorageUsage(AzureResource, AzureBaseUsage):
         "id": S("name", "value"),
     }
     _is_provider_link: bool = False
+
+
+@define(eq=False, slots=False)
+class AzureTableAccessPolicy:
+    kind: ClassVar[str] = "azure_table_access_policy"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "expiry_time": S("expiryTime"),
+        "permission": S("permission"),
+        "start_time": S("startTime"),
+    }
+    expiry_time: Optional[datetime] = field(default=None, metadata={"description": "Expiry time of the access policy"})
+    permission: Optional[str] = field(default=None, metadata={'description': 'Required. List of abbreviated permissions. Supported permission values include r , a , u , d '})  # fmt: skip
+    start_time: Optional[datetime] = field(default=None, metadata={"description": "Start time of the access policy"})
+
+
+@define(eq=False, slots=False)
+class AzureTableSignedIdentifier:
+    kind: ClassVar[str] = "azure_table_signed_identifier"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "access_policy": S("accessPolicy") >> Bend(AzureTableAccessPolicy.mapping),
+        "id": S("id"),
+    }
+    access_policy: Optional[AzureTableAccessPolicy] = field(default=None, metadata={'description': 'Table Access Policy Properties Object.'})  # fmt: skip
+    id: Optional[str] = field(default=None, metadata={'description': 'unique-64-character-value of the stored access policy.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureTable(AzureResource):
+    kind: ClassVar[str] = "azure_table"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "table_signed_identifiers": S("properties", "signedIdentifiers")
+        >> ForallBend(AzureTableSignedIdentifier.mapping),
+        "table_name": S("properties", "tableName"),
+    }
+    table_signed_identifiers: Optional[List[AzureTableSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the table.'})  # fmt: skip
+    table_name: Optional[str] = field(default=None, metadata={"description": "Table name under the specified account"})
 
 
 resources: List[Type[AzureResource]] = [
