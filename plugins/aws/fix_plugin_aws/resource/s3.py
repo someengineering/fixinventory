@@ -9,7 +9,7 @@ from datetime import timedelta
 from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
@@ -207,8 +207,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        buckets = []
-
         def add_tags(bucket: AwsS3Bucket) -> None:
             tags = bucket._get_tags(builder.client)
             if tags:
@@ -307,7 +305,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         for js in json:
             if bucket := cls.from_api(js, builder):
                 buckets.append(bucket)
-                buckets.append(bucket)
                 bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
                 builder.add_node(bucket, js)
                 bucket_location_futures.append(builder.submit_work(service_name, add_bucket_location, bucket))
@@ -322,6 +319,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
         futures_wait(bucket_location_futures)
+        return buckets
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

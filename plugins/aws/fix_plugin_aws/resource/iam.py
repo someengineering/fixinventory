@@ -697,6 +697,7 @@ class AwsIamUser(AwsResource, BaseUser):
         if root_user := report.get("<root_account>"):
             root_user.add_root_user(builder)
 
+        iam_users = []
         for json in json_list:
             for js in json.get("GroupDetailList", []):
                 if gd := AwsIamGroup.from_api(js, builder):
@@ -712,6 +713,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
             for js in json.get("UserDetailList", []):
                 if user := AwsIamUser.from_api(js, builder):
+                    iam_users.append(user)
                     builder.add_node(user, js)
                     line = report.get(user.name or user.id)
                     line_keys: List[AwsIamAccessKey] = []
@@ -747,7 +749,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
         if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
             builder.submit_work(service_name, add_virtual_mfa_devices)
-        return []
+        return list(iam_users)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):

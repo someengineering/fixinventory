@@ -176,6 +176,7 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
 
         for js in js_list:
             builder.submit_work(service_name, add_instance, js)
+        # returned resources are not important
         return []
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
