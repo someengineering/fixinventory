@@ -812,7 +812,9 @@ class AzureStorageAccount(AzureResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_storage_sku"]},
+        "successors": {
+            "default": ["azure_storage_sku", "azure_file_share", "azure_blob_container", "azure_queue", "azure_table"]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -929,14 +931,12 @@ class AzureStorageAccount(AzureResource):
     def _collect_items(
         self,
         graph_builder: GraphBuilder,
-        sub_id: str,
-        rg: str,
-        account_name: str,
+        account_id: str,
         service_type: str,
         resource_type: str,
         class_instance: AzureResource,
     ) -> None:
-        path = f"/subscriptions/{sub_id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{account_name}/{service_type}/default/{resource_type}"
+        path = f"{account_id}/{service_type}/default/{resource_type}"
         api_spec = AzureApiSpec(
             service="storage",
             version="2023-01-01",
@@ -947,21 +947,22 @@ class AzureStorageAccount(AzureResource):
             expect_array=True,
         )
         items = graph_builder.client.list(api_spec)
-        class_instance.collect(items, graph_builder)
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                id=clazz.id,
+                clazz=class_instance,
+            )
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (
-            (sub_id := self.resource_subscription_id())
-            and (rg := self.resource_group())
-            and (account_name := self.name)
-        ):
+        if account_id := self.id:
             graph_builder.submit_work(
                 service_name,
                 self._collect_items,
                 graph_builder,
-                sub_id,
-                rg,
-                account_name,
+                account_id,
                 "fileServices",
                 "shares",
                 AzureFileShare,
@@ -970,9 +971,7 @@ class AzureStorageAccount(AzureResource):
                 service_name,
                 self._collect_items,
                 graph_builder,
-                sub_id,
-                rg,
-                account_name,
+                account_id,
                 "blobServices",
                 "containers",
                 AzureBlobContainer,
@@ -981,9 +980,7 @@ class AzureStorageAccount(AzureResource):
                 service_name,
                 self._collect_items,
                 graph_builder,
-                sub_id,
-                rg,
-                account_name,
+                account_id,
                 "queueServices",
                 "queues",
                 AzureQueue,
@@ -992,9 +989,7 @@ class AzureStorageAccount(AzureResource):
                 service_name,
                 self._collect_items,
                 graph_builder,
-                sub_id,
-                rg,
-                account_name,
+                account_id,
                 "tableServices",
                 "tables",
                 AzureTable,

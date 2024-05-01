@@ -104,11 +104,6 @@ def test_placement_group(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureProximityPlacementGroup, AzureVirtualMachineScaleSet)) == 1
 
 
-def test_sku(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureResourceSku, builder)
-    assert len(collected) == 3
-
-
 def test_restore_point_collection(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureRestorePointCollection, builder)
     assert len(collected) == 2

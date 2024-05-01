@@ -51,9 +51,6 @@ class AzureResource(BaseResource):
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
 
-    def resource_group(self) -> Optional[str]:
-        return self.extract_part("resourceGroupName")
-
     def extract_part(self, part: str) -> Optional[str]:
         """
         Extracts a specific part from a resource ID.
@@ -78,12 +75,6 @@ class AzureResource(BaseResource):
             if "subscriptions" not in id_parts:
                 return None
             if index := id_parts.index("subscriptions"):
-                return id_parts[index + 1]
-            return None
-        elif part == "resourceGroupName":
-            if "resourceGroups" not in id_parts:
-                return None
-            if index := id_parts.index("resourceGroups"):
                 return id_parts[index + 1]
             return None
         else:
@@ -364,6 +355,7 @@ class AzureBaseUsage:
         "limit": S("limit"),
         "unit": S("unit"),
     }
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
