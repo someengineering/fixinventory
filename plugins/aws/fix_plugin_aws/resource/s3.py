@@ -9,7 +9,7 @@ from datetime import timedelta
 from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     AwsCloudwatchQuery,

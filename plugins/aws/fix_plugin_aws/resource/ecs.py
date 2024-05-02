@@ -2,6 +2,7 @@ import logging
 from concurrent.futures import wait as futures_wait
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any, cast
+from concurrent.futures import wait as futures_wait
 
 from attrs import define, field
 
@@ -1147,8 +1148,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def collect_task_definition(task_def_arn: str) -> None:
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        def collect_task_definition(task_def_arn: str) -> Optional[AwsEcsTaskDefinition]:
             response = builder.client.get(
                 service_name,
                 "describe-task-definition",
@@ -1174,9 +1175,10 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 log.info(f"Skipping task definition {arn} as it is an older version of {last_task_def_arn}")
                 continue
             last_task_def_arn = no_version
-            builder.submit_work(service_name, collect_task_definition, arn)
-        # returned resources are not important
-        return []
+            futures.append(builder.submit_work(service_name, collect_task_definition, arn))
+        futures_wait(futures)  # only continue, when all task definitions are collected
+        instances = [future.result() for future in futures if future.result() is not None]
+        return list(instances)  # type: ignore
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
