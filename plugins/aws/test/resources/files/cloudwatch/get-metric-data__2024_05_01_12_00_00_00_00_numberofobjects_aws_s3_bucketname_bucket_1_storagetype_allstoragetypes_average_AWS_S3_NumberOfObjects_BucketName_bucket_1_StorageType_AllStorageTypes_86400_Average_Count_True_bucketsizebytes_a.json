@@ -1,0 +1,26 @@
+{
+    "MetricDataResults": [
+        {
+            "Id": "bucketsizebytes_aws_s3_bucketname_bucket_1_storagetype_standardstorage_average",
+            "Label": "BucketSizeBytes",
+            "Timestamps": [ "2024-04-30T12:50:00+00:00" ],
+            "Values": [ 1 ],
+            "StatusCode": "Complete"
+        },
+        {
+            "Id": "bucketsizebytes_aws_s3_bucketname_bucket_1_storagetype_intelligenttieringstorage_average",
+            "Label": "BucketSizeBytes",
+            "Timestamps": [ "2024-04-30T12:50:00+00:00" ],
+            "Values": [ 2 ],
+            "StatusCode": "Complete"
+        },
+        {
+            "Id": "bucketsizebytes_aws_s3_bucketname_bucket_1_storagetype_standardiastorage_average",
+            "Label": "BucketSizeBytes",
+            "Timestamps": [ "2024-04-30T12:50:00+00:00" ],
+            "Values": [ 3 ],
+            "StatusCode": "Complete"
+        }
+    ],
+    "Messages": []
+}
