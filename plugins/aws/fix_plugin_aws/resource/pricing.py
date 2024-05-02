@@ -19,6 +19,7 @@ EBS_TO_PRICING_NAMES = {
     "gp2": "General Purpose",
     "gp3": "General Purpose",
     "io1": "Provisioned IOPS",
+    "io2": "Provisioned IOPS",
     "st1": "Throughput Optimized HDD",
     "sc1": "Cold HDD",
 }
