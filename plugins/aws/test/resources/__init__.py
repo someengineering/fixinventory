@@ -2,6 +2,7 @@ import json
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone, timedelta
 from queue import Queue
 from typing import Type, Any, Callable, Set, Tuple, Optional
 
@@ -139,7 +140,18 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
         region = AwsRegion(id=region_name, name=region_name)
         feedback = CoreFeedback("test", "test", "collect", Queue())
         account = AwsAccount(id="test", mfa_devices=12, mfa_devices_in_use=12)
-        builder = GraphBuilder(Graph(), Cloud(id="test"), account, region, client, queue, feedback)
+        now = datetime(2024, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+        builder = GraphBuilder(
+            Graph(),
+            Cloud(id="test"),
+            account,
+            region,
+            client,
+            queue,
+            feedback,
+            last_run_started_at=now - timedelta(hours=1),
+        )
+        builder.created_at = now
         cls.collect_resources(builder)
         builder.executor.wait_for_submitted_work()
         return builder
