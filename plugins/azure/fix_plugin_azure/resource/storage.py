@@ -4,7 +4,7 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, GraphBuilder
 
-from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.baseresources import BaseQueue, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -269,7 +269,7 @@ class AzureFileShare(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureQueue(AzureResource):
+class AzureQueue(AzureResource, BaseQueue):
     kind: ClassVar[str] = "azure_queue"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
