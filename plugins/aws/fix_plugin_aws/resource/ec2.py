@@ -572,8 +572,16 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 elif volume.volume_status == VolumeStatus.AVAILABLE:
                     vid = volume.id
                     lookup[vid] = volume
-                    queries.append(AwsCloudwatchQuery.create("VolumeReadOps", "AWS/EBS", delta, vid, VolumeId=vid))
-                    queries.append(AwsCloudwatchQuery.create("VolumeWriteOps", "AWS/EBS", delta, vid, VolumeId=vid))
+                    queries.append(
+                        AwsCloudwatchQuery.create(
+                            metric_name="VolumeReadOps", namespace="AWS/EBS", period=delta, ref_id=vid, VolumeId=vid
+                        )
+                    )
+                    queries.append(
+                        AwsCloudwatchQuery.create(
+                            metric_name="VolumeWriteOps", namespace="AWS/EBS", period=delta, ref_id=vid, VolumeId=vid
+                        )
+                    )
 
             for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
