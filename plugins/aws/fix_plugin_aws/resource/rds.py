@@ -507,7 +507,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 vid = rds.id
                 lookup[vid] = rds
                 queries.append(
-                    AwsCloudwatchQuery.create("DatabaseConnections", "AWS/RDS", delta, vid, DBInstanceIdentifier=vid)
+                    AwsCloudwatchQuery.create(
+                        metric_name="DatabaseConnections",
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=vid,
+                        DBInstanceIdentifier=vid,
+                    )
                 )
 
             for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
