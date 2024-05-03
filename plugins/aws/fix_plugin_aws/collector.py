@@ -144,6 +144,7 @@ class AwsAccountCollector:
         regions: List[str],
         core_feedback: CoreFeedback,
         task_data: Json,
+        max_resources_per_account: Optional[int] = None,
     ) -> None:
         self.config = config
         self.cloud = cloud
@@ -153,7 +154,7 @@ class AwsAccountCollector:
             id=global_region_by_partition(account.partition), tags={}, name="global", account=account
         )
         self.regions = [AwsRegion(id=region, tags={}, account=account) for region in regions]
-        self.graph = Graph(root=self.account)
+        self.graph = Graph(root=self.account, max_nodes=max_resources_per_account)
         self.error_accumulator = ErrorAccumulator()
         self.client = AwsClient(
             config,

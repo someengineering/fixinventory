@@ -15,7 +15,7 @@ from fixlib.config import Config
 from fixlib.core import fixcore
 from fixlib.core.actions import CoreActions
 from fixlib.core.ca import TLSData
-from fixlib.graph import Graph, GraphMergeKind
+from fixlib.graph import Graph, GraphMergeKind, MaxNodesExceeded
 from fixlib.logger import log
 from fixlib.types import Json
 
@@ -206,6 +206,7 @@ class BaseCollectorPlugin(BasePlugin):
         graph_queue: Optional[Queue[Optional[Graph]]] = None,
         graph_merge_kind: GraphMergeKind = GraphMergeKind.cloud,
         task_data: Optional[Json] = None,
+        max_resources_per_account: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.name = str(self.cloud)
@@ -215,6 +216,7 @@ class BaseCollectorPlugin(BasePlugin):
         self.graph_merge_kind: GraphMergeKind = graph_merge_kind
         self.graph = self.new_graph()
         self.task_data = task_data
+        self.max_resources_per_account = max_resources_per_account
 
     @abstractmethod
     def collect(self) -> None:
@@ -260,10 +262,14 @@ class BaseCollectorPlugin(BasePlugin):
         if not isinstance(graph, Graph):
             log.error(f"Expected Graph, got {type(graph)}")
             return
+        assert isinstance(graph.root, BaseResource)
+        kdname = graph.root.kdname
+        if self.max_resources_per_account and len(graph.nodes) > self.max_resources_per_account:
+            raise MaxNodesExceeded(
+                f"Graph of {kdname} has exceeds maximum number of resources ({self.max_resources_per_account})"
+            )
 
         if self.graph_merge_kind == GraphMergeKind.account:
-            assert isinstance(graph.root, BaseResource)
-            kdname = graph.root.kdname
             cloud_graph = self.new_graph()
             cloud_graph.merge(graph, skip_deferred_edges=True)
             log.debug(f"Sending graph of {kdname} to queue")

@@ -9,7 +9,7 @@ from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.baseresources import Cloud
 from fixlib.config import Config, RunningConfig
 from fixlib.core.actions import CoreFeedback
-from fixlib.graph import Graph
+from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.logger import log, setup_logger
 from .collector import GcpProjectCollector
 from .config import GcpConfig
@@ -73,7 +73,14 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         with pool_executor(**pool_args) as executor:
             # noinspection PyTypeChecker
             wait_for = [
-                executor.submit(collect_method, project_id, feedback, cloud, **collect_args)
+                executor.submit(
+                    collect_method,
+                    project_id,
+                    feedback,
+                    cloud,
+                    max_resources_per_account=self.max_resources_per_account,
+                    **collect_args,
+                )
                 for project_id in credentials.keys()
             ]
             for future in futures.as_completed(wait_for):
@@ -81,7 +88,10 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(project_graph, Graph):
                     log.error(f"Skipping invalid project_graph {type(project_graph)}")
                     continue
-                self.send_account_graph(project_graph)
+                try:
+                    self.send_account_graph(project_graph)
+                except MaxNodesExceeded as e:
+                    feedback.error(f"Max resources exceeded: {e}", log)
                 del project_graph
 
     @staticmethod
@@ -92,6 +102,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         args: Optional[Namespace] = None,
         running_config: Optional[RunningConfig] = None,
         credentials: Optional[Dict[str, Any]] = None,
+        max_resources_per_account: Optional[int] = None,
     ) -> Optional[Graph]:
         """Collects an individual project.
 
@@ -120,8 +131,12 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         try:
             core_feedback.progress_done(project_id, 0, 1)
-            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback)
-            gpc.collect()
+            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback, max_resources_per_account)
+            try:
+                gpc.collect()
+            except MaxNodesExceeded as ex:
+                core_feedback.error(f"Ignore account {project.dname}. Reason: {ex}", log)
+                return None
             core_feedback.progress_done(project_id, 1, 1)
         except Exception as ex:
             core_feedback.with_context("gcp", project_id).error(f"Failed to collect project: {ex}", log)

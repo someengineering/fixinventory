@@ -89,12 +89,19 @@ metrics_graph2pajek = Summary("fix_graph2pajek_seconds", "Time it took the graph
 EdgeKey = namedtuple("EdgeKey", ["src", "dst", "edge_type"])
 
 
+class MaxNodesExceeded(ValueError):
+    pass
+
+
 class Graph(networkx.MultiDiGraph):  # type: ignore
     """A directed Graph"""
 
-    def __init__(self, *args: Any, root: Optional[BaseResource] = None, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, root: Optional[BaseResource] = None, max_nodes: Optional[int] = None, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.root = None
+        self.max_nodes = max_nodes
         self._log_edge_creation = True
         if isinstance(root, BaseResource):
             self.root = root
@@ -152,6 +159,8 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
         self.add_edge(src=parent, dst=node_for_adding, edge_type=edge_type)
 
     def add_node(self, node_for_adding: BaseResource, **attr: Any) -> None:
+        if self.max_nodes is not None and len(self.nodes()) >= self.max_nodes:
+            raise MaxNodesExceeded(f"Graph has reached maximum number of nodes ({self.max_nodes})")
         super().add_node(node_for_adding, **attr)
         if isinstance(node_for_adding, BaseResource):
             # We hand a reference to ourselves to the added BaseResource

@@ -98,7 +98,9 @@ class CollectRun:
 
     def collect(self) -> None:
         assert self.graph_queue, "No GraphQueue - CollectRun started?"
-        self.__collect_all(self.collectors, self.config.fixworker.graph_merge_kind)
+        self.__collect_all(
+            self.collectors, self.config.fixworker.graph_merge_kind, self.config.fixworker.max_resources_per_account
+        )
         while self.futures_to_wait_for or not self.graph_queue.empty():
             for future in futures.as_completed(self.futures_to_wait_for.copy()):
                 self.futures_to_wait_for.remove(future)
@@ -154,7 +156,12 @@ class CollectRun:
             # mark work as done
             import_graph.set_result(True)
 
-    def __collect_all(self, collectors: List[Type[BaseCollectorPlugin]], merge_kind: GraphMergeKind) -> None:
+    def __collect_all(
+        self,
+        collectors: List[Type[BaseCollectorPlugin]],
+        merge_kind: GraphMergeKind,
+        max_resources_per_account: Optional[int] = None,
+    ) -> None:
         assert self.graph_queue, "No GraphQueue - CollectRun started?"
         assert self.pool_executor, "No Executor - CollectRun started?"
         for collector in collectors:
@@ -168,6 +175,7 @@ class CollectRun:
                     task_data=self.task_data,
                     args=ArgumentParser.args,
                     running_config=self.config.running_config,
+                    max_resources_per_account=max_resources_per_account,
                 )
             )
 
@@ -210,10 +218,14 @@ def collect_plugin_graph(
     task_data: Json,
     args: Optional[Namespace] = None,
     running_config: Optional[RunningConfig] = None,
+    max_resources_per_account: Optional[int] = None,
 ) -> bool:
     try:
         collector: BaseCollectorPlugin = collector_plugin(
-            graph_queue=graph_queue, graph_merge_kind=graph_merge_kind, task_data=task_data
+            graph_queue=graph_queue,
+            graph_merge_kind=graph_merge_kind,
+            task_data=task_data,
+            max_resources_per_account=max_resources_per_account,
         )
         core_feedback.progress_done(collector.cloud, 0, 1)
         if core_feedback and hasattr(collector, "core_feedback"):

@@ -14,9 +14,8 @@ from fixlib.baseresources import Cloud
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback
 from fixlib.core.progress import ProgressTree, ProgressDone
-from fixlib.graph import Graph
+from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.proc import collector_initializer
-from fixlib.types import Json
 
 log = logging.getLogger("fix.plugin.azure")
 
@@ -74,22 +73,25 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 
         # Collect all subscriptions
         with ProcessPoolExecutor(max_workers=config.subscription_pool_size) as executor:
-            wait_for = [executor.submit(collect_in_process, sub, self.task_data) for sub in args]
+            wait_for = [executor.submit(collect_in_process, sub, self.max_resources_per_account) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()
                 progress.add_progress(ProgressDone(subscription.subscription_id, 1, 1, path=[cloud.id]))
                 if not isinstance(graph, Graph):
                     log.debug(f"Skipping subscription graph of invalid type {type(graph)}")
                     continue
-                self.send_account_graph(graph)
+                try:
+                    self.send_account_graph(graph)
+                except MaxNodesExceeded as e:
+                    self.core_feedback.error(f"Max resources exceeded: {e}", log)
                 del graph
 
 
-def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue) -> None:  # type: ignore
+def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queue: multiprocessing.Queue, max_resources_per_account: Optional[int] = None) -> None:  # type: ignore
     collector_initializer()
     config, cloud, subscription, account_config, core_feedback, task_data = subscription_collector_arg
     subscription_collector = AzureSubscriptionCollector(
-        config, cloud, subscription, account_config.credentials(), core_feedback, task_data
+        config, cloud, subscription, account_config.credentials(), core_feedback, task_data, max_resources_per_account
     )
     try:
         subscription_collector.collect()
@@ -100,12 +102,18 @@ def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queu
 
 
 def collect_in_process(
-    subscription_collector_arg: AzureSubscriptionArg, task_data: Optional[Json]
+    subscription_collector_arg: AzureSubscriptionArg,
+    max_resources_per_account: Optional[int] = None,
 ) -> Tuple[AzureSubscription, Graph]:
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
     process = ctx.Process(
-        target=collect_account_proxy, kwargs={"subscription_collector_arg": subscription_collector_arg, "queue": queue}
+        target=collect_account_proxy,
+        kwargs={
+            "subscription_collector_arg": subscription_collector_arg,
+            "queue": queue,
+            "max_resources_per_account": max_resources_per_account,
+        },
     )
     process.start()
     result = queue.get()

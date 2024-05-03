@@ -177,10 +177,17 @@ class DigitalOceanTeamCollector:
     all DigitalOcean resources
     """
 
-    def __init__(self, team: DigitalOceanTeam, client: StreamingWrapper, last_run_started_at: datetime) -> None:
+    def __init__(
+        self,
+        team: DigitalOceanTeam,
+        client: StreamingWrapper,
+        last_run_started_at: datetime,
+        max_resources_per_account: Optional[int] = None,
+    ) -> None:
         self.client = client
         self.team = team
         self.last_run_started_at = last_run_started_at
+        self.max_resources_per_account = max_resources_per_account
 
         # Mandatory collectors are always collected regardless of whether
         # they were included by --do-collect or excluded by --do-no-collect
@@ -225,7 +232,7 @@ class DigitalOceanTeamCollector:
         """
         log.info("Collecting DigitalOcean resources for team %s", self.team.id)
 
-        self.graph = Graph(root=self.team)
+        self.graph = Graph(root=self.team, max_nodes=self.max_resources_per_account)
         collectors = set(self.collector_set)
 
         log.debug((f"Running the following collectors in {self.team.rtdname}:" f" {', '.join(collectors)}"))
