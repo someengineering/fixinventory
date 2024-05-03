@@ -74,6 +74,7 @@ def test_collect_and_send() -> None:
                     "debug_dump_json": False,
                     "graph_merge_kind": GraphMergeKind.cloud,
                     "graph_sender_pool_size": 5,
+                    "max_resources_per_account": None,
                     "timeout": 10800,
                     "tempdir": None,
                 },
