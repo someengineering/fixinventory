@@ -97,7 +97,7 @@ PlantUmlAttrs = (
 
 
 class ModelHandlerDB(ModelHandler, Service):
-    def __init__(self, db_access: DbAccess, plantuml_server: str = "https://plantuml.fix.org"):
+    def __init__(self, db_access: DbAccess, plantuml_server: str = "https://plantuml.fix.security"):
         super().__init__()
         self.db_access = db_access
         self.plantuml_server = plantuml_server
