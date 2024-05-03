@@ -12,7 +12,7 @@ from fix_plugin_aws.resource.cloudwatch import (
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import MetricNormalization
-from fixlib.baseresources import BaseQueue, MetricName, MetricUnit, ModelReference
+from fixlib.baseresources import MetricName, MetricUnit, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
 from fixlib.types import Json
@@ -39,7 +39,7 @@ class AwsSqsRedrivePolicy:
 
 
 @define(eq=False, slots=False)
-class AwsSqsQueue(AwsResource, BaseQueue):
+class AwsSqsQueue(AwsResource):
     kind: ClassVar[str] = "aws_sqs_queue"
     kind_display: ClassVar[str] = "AWS SQS Queue"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/v3/home?region={region}#/queues/{QueueUrl}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip

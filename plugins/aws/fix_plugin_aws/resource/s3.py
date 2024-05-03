@@ -1,5 +1,5 @@
-import logging
 from collections import defaultdict
+import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
@@ -344,7 +344,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: list[AwsResource]
+    ) -> None:
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -355,10 +357,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }
         for region in {
             s3_bucket.bucket_location
-            for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
-            if s3_bucket.bucket_location is not None
+            for s3_bucket in collected_resources
+            if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location is not None
         }:
-            s3s = {s3_bucket.id: s3_bucket for s3_bucket in builder.nodes(clazz=AwsS3Bucket, bucket_location=region)}
+            s3s = {
+                s3_bucket.id: s3_bucket
+                for s3_bucket in collected_resources
+                if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location == region
+            }
             queries = []
             delta = timedelta(days=1)
             now = builder.created_at
