@@ -418,6 +418,7 @@ class AwsCloudwatchQuery:
     metric_id: str
     stat: str = "Sum"
     unit: str = "Count"
+    fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
 
     def to_json(self) -> Json:
         return {
@@ -437,6 +438,7 @@ class AwsCloudwatchQuery:
 
     @staticmethod
     def create(
+        *,
         metric_name: str,
         namespace: str,
         period: timedelta,
@@ -444,6 +446,7 @@ class AwsCloudwatchQuery:
         metric_id: Optional[str] = None,
         stat: str = "Sum",
         unit: str = "Count",
+        fix_metric_name: Optional[str] = None,
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
@@ -458,6 +461,7 @@ class AwsCloudwatchQuery:
             metric_id=rid,
             stat=stat,
             unit=unit,
+            fix_metric_name=fix_metric_name,
         )
 
 
@@ -571,7 +575,8 @@ def update_resource_metrics(
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             try:
-                name = normalizer.metric_name + "_" + normalizer.unit
+                metric_name = query.fix_metric_name or normalizer.metric_name
+                name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
                 stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
 

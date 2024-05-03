@@ -1,11 +1,12 @@
 import logging
+from concurrent.futures import wait as futures_wait
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any, cast
 
 from attrs import define, field
+
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
-
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.elb import AwsElb
@@ -13,12 +14,12 @@ from fix_plugin_aws.resource.elbv2 import AwsAlbTargetGroup
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
+from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend
 from fixlib.types import Json
 from fixlib.utils import chunks
-from fix_plugin_aws.utils import TagsValue, ToDict
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "ecs"
@@ -1144,8 +1145,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def collect_task_definition(task_def_arn: str) -> None:
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
+        def collect_task_definition(task_def_arn: str) -> Optional[AwsEcsTaskDefinition]:
             response = builder.client.get(
                 service_name,
                 "describe-task-definition",
@@ -1159,8 +1160,11 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 task_definition["tags"] = tags
                 if task_definition_instance := cls.from_api(task_definition, builder):
                     builder.add_node(task_definition_instance)
+                    return task_definition_instance
+            return None
 
         last_task_def_arn = ""
+        futures = []
         for arn in cast(List[str], json):
             # Skip task definition with same arn but older version
             no_version = arn.rsplit(":", 1)[0]
@@ -1168,7 +1172,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
                 log.info(f"Skipping task definition {arn} as it is an older version of {last_task_def_arn}")
                 continue
             last_task_def_arn = no_version
-            builder.submit_work(service_name, collect_task_definition, arn)
+            futures.append(builder.submit_work(service_name, collect_task_definition, arn))
+        futures_wait(futures)  # only continue, when all task definitions are collected
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:

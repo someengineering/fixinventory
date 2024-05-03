@@ -643,6 +643,7 @@ def query_string(
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
                 + traversal_filter(clause, l0crsr, 1)
                 + collect_filter(clause, 1)
+                + (sort("l0_l0_res", p.sort) if p.sort else "")
                 + limited
                 + "RETURN l0_l0_res) "
             )
