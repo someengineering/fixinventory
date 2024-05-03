@@ -13,7 +13,7 @@ from fixlib.config import Config
 from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.core.actions import CoreFeedback
 from fixlib.logger import log
-from fixlib.graph import Graph
+from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.baseresources import BaseResource
 from fixlib.json import value_in_path
 import time
@@ -103,7 +103,13 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
             )
             team_graph = self.collect_team(client, self.core_feedback.with_context("digitalocean"), last_run_started_at)
             if team_graph:
-                self.send_account_graph(team_graph)
+                try:
+                    self.send_account_graph(team_graph)
+                except MaxNodesExceeded as e:
+                    if self.core_feedback:
+                        self.core_feedback.error(f"Max resources exceeded: {e}", log)
+                    else:
+                        log.error(f"Max resources exceeded: {e}")
 
     def collect_team(self, client: StreamingWrapper, feedback: CoreFeedback, last_run: datetime) -> Optional[Graph]:
         """Collects an individual team."""
@@ -113,8 +119,14 @@ class DigitalOceanCollectorPlugin(BaseCollectorPlugin):
         try:
             feedback.progress_done(team_id, 0, 1)
             team_feedback = feedback.with_context("digitalocean", client.get_team_id())
-            dopc = DigitalOceanTeamCollector(team, client.with_feedback(team_feedback), last_run)
-            dopc.collect()
+            dopc = DigitalOceanTeamCollector(
+                team, client.with_feedback(team_feedback), last_run, self.max_resources_per_account
+            )
+            try:
+                dopc.collect()
+            except MaxNodesExceeded as ex:
+                feedback.error(f"Ignore account {team.dname}. Reason: {ex}", log)
+                return None
             feedback.progress_done(team_id, 1, 1)
         except Exception:
             log.exception(f"An unhandled error occurred while collecting team {team_id}")
