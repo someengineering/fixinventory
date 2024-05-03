@@ -104,6 +104,7 @@ paths:
             enum:
               - svg
               - png
+              - puml
             default: svg
           required: false
         - name: show

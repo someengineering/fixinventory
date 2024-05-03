@@ -805,8 +805,8 @@ def migrate_core_config(config: Json) -> Json:
         set_value_in_path(web_port, "api.https_port", adapted)
         del_value_in_path(adapted, "api.web_port")
 
-    if value_in_path(cfg, "runtime.plantuml_server") == "http://plantuml.fix.org:8080":
-        set_value_in_path("https://plantuml.fix.org", "runtime.plantuml_server", adapted)
+    if value_in_path(cfg, "runtime.plantuml_server") == "http://plantuml.resoto.org:8080":
+        set_value_in_path("https://plantuml.resoto.org", "runtime.plantuml_server", adapted)
 
     return {FixCoreRoot: adapted}
 
