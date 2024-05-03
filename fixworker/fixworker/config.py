@@ -68,6 +68,9 @@ class FixWorkerConfig:
     )
     debug_dump_json: bool = field(default=False, metadata={"description": "Dump the generated JSON data to disk"})
     tempdir: Optional[str] = field(default=None, metadata={"description": "Directory to create temporary files in"})
+    max_resources_per_account: Optional[int] = field(
+        default=None, metadata={"description": "Maximum number of resources per account"}
+    )
     cleanup: bool = field(default=False, metadata={"description": "Enable cleanup of resources"})
     cleanup_pool_size: int = field(
         factory=lambda: num_default_threads() * 2,
