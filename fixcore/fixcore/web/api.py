@@ -917,7 +917,7 @@ class Api(Service):
         dependency = set(request.query["dependency"].split(",")) if "dependency" in request.query else None
         with_predecessors = request.query.get("with_predecessors", "false") != "false"
         with_successors = request.query.get("with_successors", "false") != "false"
-        with_properties = request.query.get("with_properties", "true") != "false"
+        with_properties = request.query.get("with_properties", "true")  # bool or string
         aggregate_roots = request.query.get("aggregate_roots", "true") != "false"
         link_classes = request.query.get("link_classes", "false") != "false"
         sort_props = request.query.get("sort_props", "true") != "false"

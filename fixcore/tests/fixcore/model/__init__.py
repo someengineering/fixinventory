@@ -1,4 +1,4 @@
-from typing import Optional, List, Set, Any
+from typing import Optional, List, Set, Any, Union
 
 from fixcore.model.model import Model, Kind
 from fixcore.model.model_handler import ModelHandler
@@ -26,7 +26,7 @@ class ModelHandlerStatic(ModelHandler):
         dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
-        with_properties: bool = True,
+        with_properties: Union[str, bool] = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
         sort_props: bool = True,

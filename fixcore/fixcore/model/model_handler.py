@@ -4,7 +4,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from functools import reduce, lru_cache
-from typing import Optional, List, Set, Callable, Dict, Iterator
+from typing import Optional, List, Set, Callable, Dict, Iterator, Union
 
 from plantuml import PlantUML
 
@@ -41,7 +41,7 @@ class ModelHandler(ABC):
         dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
-        with_properties: bool = True,
+        with_properties: Union[str, bool] = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
         sort_props: bool = True,
@@ -125,7 +125,7 @@ class ModelHandlerDB(ModelHandler, Service):
         dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
-        with_properties: bool = True,
+        with_properties: Union[str, bool] = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
         sort_props: bool = True,
@@ -137,6 +137,10 @@ class ModelHandlerDB(ModelHandler, Service):
         show = [re.compile(s) for s in show_packages] if show_packages else None
         hide = [re.compile(s) for s in hide_packages] if hide_packages else None
         visited_complex: Set[str] = set()
+        with_props_v = re.compile(with_properties) if isinstance(with_properties, str) else with_properties
+
+        def with_props(name: str) -> bool:
+            return bool(with_props_v.fullmatch(name) if isinstance(with_props_v, re.Pattern) else with_props_v)
 
         def not_hidden(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
@@ -159,7 +163,7 @@ class ModelHandlerDB(ModelHandler, Service):
                 return (sth[p.name].simple_kind.runtime_kind if p.name in sth else p.kind) if p.synthetic else p.kind
 
             cpx_props = sorted(cpx.properties, key=lambda p: p.name) if sort_props else cpx.properties
-            props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx_props]) if with_properties else ""
+            props = "\n".join([f"**{p.name}**: {kind_name(p)}" for p in cpx_props]) if with_props(cpx.fqn) else ""
             link = f" [[#{cpx.fqn}]]" if link_classes else ""
             return f"class {cpx.fqn}{link} {{\n{props}\n}}"
 
@@ -219,7 +223,7 @@ class ModelHandlerDB(ModelHandler, Service):
                     edges += f"{to} <|--- {fr}\n"
                 elif data["type"] == "successor" and data["edge_type"] in allowed_edge_types:
                     edges += f"{fr} -[#1A83AF]-> {to}\n"
-                elif data["type"] == "property" and with_properties:
+                elif data["type"] == "property" and with_props(fr) and with_props(to):
                     edges += f"{fr} --> {to}\n"
 
         puml = f"@startuml\n{PlantUmlAttrs}\n{nodes}\n{edges}\n@enduml"
