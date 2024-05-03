@@ -26,7 +26,7 @@ from fixlib.config import Config, RunningConfig
 from fixlib.core.actions import CoreFeedback
 from fixlib.core.custom_command import execute_command_on_resource
 from fixlib.core.progress import ProgressDone, ProgressTree
-from fixlib.graph import Graph
+from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.logger import log, setup_logger
 from fixlib.types import JsonElement, Json
 from fixlib.utils import log_runtime
@@ -124,6 +124,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                     self.core_feedback.with_context(self.root.id, account.dname),
                     self.root,
                     self.task_data or {},
+                    self.max_resources_per_account,
                 )
                 for account in accounts
             ]
@@ -132,7 +133,13 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 if not isinstance(account_graph, Graph):
                     log.debug(f"Skipping account graph of invalid type {type(account_graph)}")
                     continue
-                self.send_account_graph(account_graph)
+                try:
+                    self.send_account_graph(account_graph)
+                except MaxNodesExceeded as e:
+                    if self.core_feedback:
+                        self.core_feedback.error(f"Max resources exceeded: {e}", log)
+                    else:
+                        log.error(f"Max resources exceeded: {e}")
                 del account_graph
 
         # collect done, purge all session caches
@@ -667,6 +674,7 @@ def collect_account(
     feedback: CoreFeedback,
     cloud: Cloud,
     task_data: Json,
+    max_resources_per_account: Optional[int] = None,
 ) -> Optional[Graph]:
     collector_name = f"aws_{account.id}"
     fixlib.proc.set_thread_name(collector_name)
@@ -684,7 +692,7 @@ def collect_account(
 
     log.debug(f"Starting new collect process for account {account.dname}")
 
-    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback, task_data)
+    aac = AwsAccountCollector(Config.aws, cloud, account, regions, feedback, task_data, max_resources_per_account)
     try:
         aac.collect()
     except botocore.exceptions.ClientError as e:
@@ -692,6 +700,9 @@ def collect_account(
             f"Ignore account {account.dname}. Reason: An AWS {e.response['Error']['Code']} error occurred.", log
         )
         metrics_unhandled_account_exceptions.labels(account=account.dname).inc()
+        return None
+    except MaxNodesExceeded as ex:
+        feedback.error(f"Ignore account {account.dname}. Reason: {ex}", log)
         return None
     except Exception as ex:
         feedback.error(f"Ignore account {account.dname}. Reason: unhandled error occurred: {ex}", log)
