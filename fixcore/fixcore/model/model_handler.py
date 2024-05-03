@@ -41,7 +41,7 @@ class ModelHandler(ABC):
         dependency_edges: Optional[Set[EdgeType]] = None,
         with_predecessors: bool = False,
         with_successors: bool = False,
-        with_properties: bool = True,
+        with_properties: Union[str, bool] = True,
         link_classes: bool = False,
         only_aggregate_roots: bool = True,
         sort_props: bool = True,
