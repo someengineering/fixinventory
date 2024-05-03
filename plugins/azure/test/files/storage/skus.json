@@ -1,0 +1,124 @@
+{
+    "value": [
+        {
+            "resourceType": "storageAccounts",
+            "name": "Standard_LRS",
+            "tier": "Standard",
+            "kind": "Storage",
+            "locations": [
+                "eastus"
+            ],
+            "capabilities": [
+                {
+                    "name": "supportsfileencryption",
+                    "value": "true"
+                },
+                {
+                    "name": "supportshoeboxcapacitymetrics",
+                    "value": "true"
+                },
+                {
+                    "name": "supportsnetworkacls",
+                    "value": "false"
+                }
+            ],
+            "restrictions": []
+        },
+        {
+            "resourceType": "storageAccounts",
+            "name": "Standard_ZRS",
+            "tier": "Standard",
+            "kind": "Storage",
+            "locations": [
+                "eastus"
+            ],
+            "capabilities": [
+                {
+                    "name": "supportsfileencryption",
+                    "value": "true"
+                },
+                {
+                    "name": "supportshoeboxcapacitymetrics",
+                    "value": "true"
+                },
+                {
+                    "name": "supportsnetworkacls",
+                    "value": "false"
+                }
+            ],
+            "restrictions": []
+        },
+        {
+            "resourceType": "storageAccounts",
+            "name": "Standard_GRS",
+            "tier": "Standard",
+            "kind": "Storage",
+            "locations": [
+                "eastus"
+            ],
+            "capabilities": [
+                {
+                    "name": "supportsfileencryption",
+                    "value": "true"
+                },
+                {
+                    "name": "supportshoeboxcapacitymetrics",
+                    "value": "true"
+                },
+                {
+                    "name": "supportsnetworkacls",
+                    "value": "false"
+                }
+            ],
+            "restrictions": []
+        },
+        {
+            "resourceType": "storageAccounts",
+            "name": "Standard_RAGRS",
+            "tier": "Standard",
+            "kind": "Storage",
+            "locations": [
+                "eastus"
+            ],
+            "capabilities": [
+                {
+                    "name": "supportsfileencryption",
+                    "value": "true"
+                },
+                {
+                    "name": "supportshoeboxcapacitymetrics",
+                    "value": "true"
+                },
+                {
+                    "name": "supportsnetworkacls",
+                    "value": "false"
+                }
+            ],
+            "restrictions": []
+        },
+        {
+            "resourceType": "storageAccounts",
+            "name": "Premium_LRS",
+            "tier": "Premium",
+            "kind": "Storage",
+            "locations": [
+                "eastus"
+            ],
+            "capabilities": [
+                {
+                    "name": "supportsfileencryption",
+                    "value": "false"
+                },
+                {
+                    "name": "supportshoeboxcapacitymetrics",
+                    "value": "true"
+                },
+                {
+                    "name": "supportsnetworkacls",
+                    "value": "false"
+                }
+            ],
+            "restrictions": []
+        }
+    ]
+}

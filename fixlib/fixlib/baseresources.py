@@ -988,6 +988,14 @@ class BaseBucket(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseQueue(BaseResource):
+    kind: ClassVar[str] = "queue"
+    kind_display: ClassVar[str] = "Storage Queue"
+    kind_description: ClassVar[str] = "A storage queue."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
+
+
+@define(eq=False, slots=False)
 class BaseServerlessFunction(BaseResource):
     kind: ClassVar[str] = "serverless_function"
     kind_display: ClassVar[str] = "Serverless Function"
