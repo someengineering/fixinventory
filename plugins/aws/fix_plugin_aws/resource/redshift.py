@@ -555,7 +555,7 @@ class AwsRedshiftCluster(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        clusters = []
+        clusters: List[AwsResource] = []
 
         def fetch_logging_status(rc: AwsRedshiftCluster) -> None:
             with builder.suppress("redshift.describe-logging-status"):

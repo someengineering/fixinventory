@@ -728,7 +728,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        tgs = []
+        tgs: List[AwsResource] = []
         for js in json:
             if tg := AwsAlbTargetGroup.from_api(js, builder):
                 tgs.append(tg)
@@ -742,7 +742,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
                         tg.alb_target_health.append(tgh)
                 builder.add_node(tg, js)
-        return list(tgs)
+        return tgs
 
     @classmethod
     def collect_usage_metrics(

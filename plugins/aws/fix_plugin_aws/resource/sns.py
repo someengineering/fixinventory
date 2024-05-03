@@ -74,7 +74,7 @@ class AwsSnsTopic(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        topics = []
+        topics: List[AwsResource] = []
 
         def add_tags(topic: AwsSnsTopic) -> None:
             tags = builder.client.list(
@@ -254,7 +254,7 @@ class AwsSnsSubscription(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        subscriptions = []
+        subscriptions: List[AwsResource] = []
         for entry in json:
             subscription = builder.client.get(
                 service_name,
@@ -371,7 +371,7 @@ class AwsSnsPlatformApplication(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
+        instances: List[AwsResource] = []
         for entry in json:
             app_arn = entry["PlatformApplicationArn"]
             app = builder.client.get(
@@ -396,6 +396,7 @@ class AwsSnsPlatformApplication(AwsResource):
                         attributes = endpoint["Attributes"]
                         attributes["Arn"] = endpoint["EndpointArn"]
                         if endpoint_instance := AwsSnsEndpoint.from_api(attributes, builder):
+                            instances.append(endpoint_instance)
                             builder.add_node(endpoint_instance, attributes)
                             builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
         return instances

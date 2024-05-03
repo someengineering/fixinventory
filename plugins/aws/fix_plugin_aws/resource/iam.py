@@ -697,23 +697,26 @@ class AwsIamUser(AwsResource, BaseUser):
         if root_user := report.get("<root_account>"):
             root_user.add_root_user(builder)
 
-        iam_users = []
+        iam_items: List[AwsResource] = []
         for json in json_list:
             for js in json.get("GroupDetailList", []):
                 if gd := AwsIamGroup.from_api(js, builder):
+                    iam_items.append(gd)
                     builder.add_node(gd, js)
 
             for js in json.get("RoleDetailList", []):
                 if rd := AwsIamRole.from_api(js, builder):
+                    iam_items.append(rd)
                     builder.add_node(rd, js)
 
             for js in json.get("Policies", []):
                 if p := AwsIamPolicy.from_api(js, builder):
+                    iam_items.append(p)
                     builder.add_node(p, js)
 
             for js in json.get("UserDetailList", []):
                 if user := AwsIamUser.from_api(js, builder):
-                    iam_users.append(user)
+                    iam_items.append(user)
                     builder.add_node(user, js)
                     line = report.get(user.name or user.id)
                     line_keys: List[AwsIamAccessKey] = []
@@ -730,6 +733,7 @@ class AwsIamUser(AwsResource, BaseUser):
                         builder.client.list(service_name, "list-access-keys", "AccessKeyMetadata", UserName=user.name)
                     ):
                         if key := AwsIamAccessKey.from_api(ak, builder):
+                            iam_items.append(key)
                             if line and idx < len(line_keys):
                                 lk = line_keys[idx]
                                 key.access_key_last_used = lk.access_key_last_used
@@ -749,7 +753,7 @@ class AwsIamUser(AwsResource, BaseUser):
 
         if builder.account.mfa_devices is not None and builder.account.mfa_devices > 0:
             builder.submit_work(service_name, add_virtual_mfa_devices)
-        return list(iam_users)
+        return iam_items
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for p in bend(S("AttachedManagedPolicies", default=[]), source):

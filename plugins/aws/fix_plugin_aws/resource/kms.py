@@ -183,8 +183,8 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             future = builder.submit_work(service_name, add_instance, js)
             futures.append(future)
         futures_wait(futures)
-        instances = [future.result() for future in futures if future.result() is not None]
-        return list(instances)  # type: ignore
+        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
+        return instances
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

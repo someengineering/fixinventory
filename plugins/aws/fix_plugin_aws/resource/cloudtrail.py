@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, Type, List, Any
+from concurrent.futures import wait as futures_wait
 
 from attr import define, field as attrs_field, field
 
@@ -196,12 +197,9 @@ class AwsCloudTrail(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-
-        def collect_trail(trail_arn: str) -> None:
+        def collect_trail(trail_arn: str) -> Optional[AwsCloudTrail]:
             if trail_raw := builder.client.get(service_name, "get-trail", "Trail", Name=trail_arn):
                 if instance := AwsCloudTrail.from_api(trail_raw, builder):
-                    instances.append(instance)
                     builder.add_node(instance, js)
                     collect_status(instance)
                     collect_tags(instance)
@@ -209,6 +207,8 @@ class AwsCloudTrail(AwsResource):
                         collect_event_selectors(instance)
                     if instance.trail_has_insight_selectors:
                         collect_insight_selectors(instance)
+                    return instance
+            return None
 
         def collect_event_selectors(trail: AwsCloudTrail) -> None:
             if esj := builder.client.get(service_name, "get-event-selectors", TrailName=trail.arn):
@@ -244,17 +244,21 @@ class AwsCloudTrail(AwsResource):
             ):
                 trail.tags = bend(S("TagsList", default=[]) >> ToDict(), tr)
 
+        futures = []
         for js in json:
             arn = js["TrailARN"]
             # list trails will return multi account trails in all regions
             if js["HomeRegion"] == builder.region.name and builder.account.id in arn:
                 # only collect trails in the current account and current region
-                builder.submit_work(service_name, collect_trail, arn)
+                future = builder.submit_work(service_name, collect_trail, arn)
+                futures.append(future)
             else:
                 # add a deferred edge to the trails in another account or region
                 builder.add_deferred_edge(
                     builder.region, EdgeType.default, f'is(aws_cloud_trail) and reported.arn=="{arn}"'
                 )
+        futures_wait(futures)  # only continue, when all task definitions are collected
+        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
         return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:

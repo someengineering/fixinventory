@@ -225,6 +225,7 @@ class AwsResource(BaseResource, ABC):
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
+        # - return a list of resources
         # In case additional work needs to be done, override this method.
         instances = []
         for js in json:
@@ -233,7 +234,6 @@ class AwsResource(BaseResource, ABC):
                 instance.post_process(builder, js)
                 builder.add_node(instance, js)
                 instances.append(instance)
-
         return instances
 
     @classmethod

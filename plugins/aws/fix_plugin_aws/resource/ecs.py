@@ -1,11 +1,9 @@
 import logging
-from concurrent.futures import wait as futures_wait
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any, cast
 from concurrent.futures import wait as futures_wait
 
 from attrs import define, field
-
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from fix_plugin_aws.utils import TagsValue, ToDict
@@ -17,7 +15,6 @@ from fix_plugin_aws.resource.elbv2 import AwsAlbTargetGroup
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend
@@ -1177,8 +1174,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             last_task_def_arn = no_version
             futures.append(builder.submit_work(service_name, collect_task_definition, arn))
         futures_wait(futures)  # only continue, when all task definitions are collected
-        instances = [future.result() for future in futures if future.result() is not None]
-        return list(instances)  # type: ignore
+        instances = [result for future in futures if (result := future.result()) is not None]
+        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
@@ -2005,7 +2002,9 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
+        clustre_instances = []
+
+        resource_instances: List[AwsResource] = []
         for cluster_arn in json:
             cluster = builder.client.list(
                 service_name,
@@ -2016,7 +2015,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             )
             if cluster_instance := AwsEcsCluster.from_api(cluster[0], builder):
                 builder.add_node(cluster_instance, cluster_arn)
-                instances.append(cluster_instance)
+                clustre_instances.append(cluster_instance)
 
                 container_arns = builder.client.list(
                     service_name, "list-container-instances", "containerInstanceArns", cluster=cluster_arn
@@ -2033,6 +2032,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     for container in containers:
                         if container_instance := AwsEcsContainerInstance.from_api(container, builder):
                             container_instance.cluster_link = cluster_instance.arn
+                            resource_instances.append(container_instance)
                             builder.add_node(container_instance, container)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=container_instance)
 
@@ -2048,6 +2048,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     )
                     for service in services:
                         if service_instance := AwsEcsService.from_api(service, builder):
+                            resource_instances.append(service_instance)
                             builder.add_node(service_instance, service)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=service_instance)
 
@@ -2063,11 +2064,12 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     )
                     for task in tasks:
                         if task_instance := AwsEcsTask.from_api(task, builder):
+                            resource_instances.append(task_instance)
                             builder.add_node(task_instance, task)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
 
         # once all clusters are collected, collect capacity providers
-        provider_names = {name for instance in instances for name in instance.cluster_capacity_providers}
+        provider_names = {name for instance in clustre_instances for name in instance.cluster_capacity_providers}
         providers: Dict[str, AwsEcsCapacityProvider] = {}
         for chunk in chunks(list(provider_names), 100):
             for provider in builder.client.list(
@@ -2082,11 +2084,12 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     providers[provider_instance.safe_name] = provider_instance
 
         # connect clusters to providers
-        for instance in instances:
+        for instance in clustre_instances:
             for name in instance.cluster_capacity_providers:
                 if provider := providers.get(name):
                     builder.add_edge(instance, edge_type=EdgeType.default, node=provider)
-        return list(instances)
+        resource_instances.extend(clustre_instances)
+        return resource_instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable

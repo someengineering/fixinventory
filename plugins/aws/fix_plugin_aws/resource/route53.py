@@ -117,10 +117,10 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                         res[0], AwsRoute53LoggingConfig, builder, AwsRoute53LoggingConfig.mapping
                     )
 
-        zones: List[AwsResource] = []
+        instances: List[AwsResource] = []
         for js in json:
             if zone := AwsRoute53Zone.from_api(js, builder):
-                zones.append(zone)
+                instances.append(zone)
                 builder.add_node(zone, js)
                 builder.submit_work(service_name, add_tags, zone)
                 builder.submit_work(service_name, fetch_logging_configuration, zone)
@@ -128,6 +128,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
                 ):
                     if record_set := AwsRoute53ResourceRecordSet.from_api(rs_js, builder):
+                        instances.append(record_set)
                         builder.add_node(record_set, rs_js)
                         builder.add_edge(zone, EdgeType.default, node=record_set)
                         for data in record_set.record_values:
@@ -143,7 +144,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                             builder.add_node(record, js)
                             builder.add_edge(record_set, EdgeType.default, node=record)
                             builder.add_edge(record_set, EdgeType.delete, node=record)
-        return zones
+        return instances
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

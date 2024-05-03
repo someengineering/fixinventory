@@ -167,7 +167,7 @@ class AwsKinesisStream(AwsResource):
                     streams.append(stream)
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
-        return list(streams)
+        return streams
 
     @classmethod
     def collect_usage_metrics(
