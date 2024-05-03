@@ -59,13 +59,14 @@ class AzureSubscriptionCollector:
         credentials: AzureCredentials,
         core_feedback: CoreFeedback,
         task_data: Optional[Json] = None,
+        max_resources_per_account: Optional[int] = None,
     ):
         self.config = config
         self.cloud = cloud
         self.subscription = subscription
         self.credentials = credentials
         self.core_feedback = core_feedback
-        self.graph = Graph(root=subscription)
+        self.graph = Graph(root=subscription, max_nodes=max_resources_per_account)
         self.task_data = task_data
 
     def collect(self) -> None:
