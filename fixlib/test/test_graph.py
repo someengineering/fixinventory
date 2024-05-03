@@ -1,7 +1,7 @@
 from platform import python_implementation
 
 import pytest
-from fixlib.graph import Graph, GraphExportIterator, EdgeKey
+from fixlib.graph import Graph, GraphExportIterator, EdgeKey, MaxNodesExceeded
 from fixlib.baseresources import BaseResource, EdgeType, GraphRoot
 import fixlib.logger as logger
 from attrs import define
@@ -128,3 +128,14 @@ def test_find_cycles():
         EdgeKey(edge_type=EdgeType.default, src=n1, dst=n2),
         EdgeKey(edge_type=EdgeType.default, src=n2, dst=n1),
     ]
+
+
+def test_graph_max_nodes():
+    g = Graph(max_nodes=5)
+
+    for i in range(5):
+        g.add_node(SomeTestResource(id=f"node{i}", tags={}))
+    assert len(g.nodes) == 5
+
+    with pytest.raises(MaxNodesExceeded):
+        g.add_node(SomeTestResource(id="node6", tags={}))
