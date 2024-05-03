@@ -16,7 +16,6 @@ from fixlib.core.actions import CoreFeedback
 from fixlib.core.progress import ProgressTree, ProgressDone
 from fixlib.graph import Graph
 from fixlib.proc import collector_initializer
-from fixlib.types import Json
 
 log = logging.getLogger("fix.plugin.azure")
 
@@ -74,7 +73,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 
         # Collect all subscriptions
         with ProcessPoolExecutor(max_workers=config.subscription_pool_size) as executor:
-            wait_for = [executor.submit(collect_in_process, sub, self.task_data) for sub in args]
+            wait_for = [executor.submit(collect_in_process, sub) for sub in args]
             for future in as_completed(wait_for):
                 subscription, graph = future.result()
                 progress.add_progress(ProgressDone(subscription.subscription_id, 1, 1, path=[cloud.id]))
@@ -99,9 +98,7 @@ def collect_account_proxy(subscription_collector_arg: AzureSubscriptionArg, queu
         queue.put((subscription_collector_arg.subscription, None))  # signal done
 
 
-def collect_in_process(
-    subscription_collector_arg: AzureSubscriptionArg, task_data: Optional[Json]
-) -> Tuple[AzureSubscription, Graph]:
+def collect_in_process(subscription_collector_arg: AzureSubscriptionArg) -> Tuple[AzureSubscription, Graph]:
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
     process = ctx.Process(
