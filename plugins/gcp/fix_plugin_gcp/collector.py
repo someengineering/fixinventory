@@ -34,12 +34,19 @@ def called_mutator_apis() -> List[GcpApiSpec]:
 
 
 class GcpProjectCollector:
-    def __init__(self, config: GcpConfig, cloud: Cloud, project: GcpProject, core_feedback: CoreFeedback) -> None:
+    def __init__(
+        self,
+        config: GcpConfig,
+        cloud: Cloud,
+        project: GcpProject,
+        core_feedback: CoreFeedback,
+        max_resources_per_account: Optional[int] = None,
+    ) -> None:
         self.config = config
         self.cloud = cloud
         self.project = project
         self.core_feedback = core_feedback
-        self.graph = Graph(root=self.project)
+        self.graph = Graph(root=self.project, max_nodes=max_resources_per_account)
         self.credentials = Credentials.get(self.project.id)
 
     def collect(self) -> None:
