@@ -541,7 +541,7 @@ class RuntimeConfig(ConfigObject):
     debug: bool = field(default=False, metadata={"description": "Enable debug logging and exception tracing."})
     log_level: str = field(default="info", metadata={"description": "Log level (default: info)"})
     plantuml_server: str = field(
-        default="https://plantuml.fix.org",
+        default="https://plantuml.fix.security",
         metadata={"description": "PlantUML server URI for UML image rendering."},
     )
     start_collect_on_subscriber_connect: bool = field(
@@ -806,7 +806,7 @@ def migrate_core_config(config: Json) -> Json:
         del_value_in_path(adapted, "api.web_port")
 
     if value_in_path(cfg, "runtime.plantuml_server") == "http://plantuml.resoto.org:8080":
-        set_value_in_path("https://plantuml.resoto.org", "runtime.plantuml_server", adapted)
+        set_value_in_path("https://plantuml.fix.security", "runtime.plantuml_server", adapted)
 
     return {FixCoreRoot: adapted}
 
