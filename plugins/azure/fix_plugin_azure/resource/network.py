@@ -5858,6 +5858,7 @@ resources: List[Type[AzureResource]] = [
     AzurePublicIPPrefix,
     AzureRouteFilter,
     AzureSecurityPartnerProvider,
+    AzureSubnet,
     AzureNetworkUsage,
     AzureVirtualHub,
     AzureVirtualNetwork,

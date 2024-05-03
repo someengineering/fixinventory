@@ -4,7 +4,7 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
 from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, GraphBuilder
 
-from fixlib.baseresources import BaseQueue, EdgeType, ModelReference
+from fixlib.baseresources import BaseBucket, BaseNetworkShare, BaseQueue, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -109,7 +109,7 @@ class AzureImmutableStorageWithVersioning:
 
 
 @define(eq=False, slots=False)
-class AzureBlobContainer(AzureResource):
+class AzureBlobContainer(AzureResource, BaseBucket):
     kind: ClassVar[str] = "azure_blob_container"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -217,7 +217,7 @@ class AzureSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureFileShare(AzureResource):
+class AzureFileShare(AzureResource, BaseNetworkShare):
     kind: ClassVar[str] = "azure_file_share"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1073,6 +1073,10 @@ class AzureTable(AzureResource):
 resources: List[Type[AzureResource]] = [
     AzureDeletedAccount,
     AzureStorageSku,
+    AzureFileShare,
+    AzureQueue,
+    AzureBlobContainer,
+    AzureTable,
     AzureStorageAccount,
     AzureStorageUsage,
 ]
