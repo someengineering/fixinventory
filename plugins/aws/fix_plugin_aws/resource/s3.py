@@ -1,5 +1,5 @@
-import logging
 from collections import defaultdict
+import logging
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
@@ -206,7 +206,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_tags(bucket: AwsS3Bucket) -> None:
             tags = bucket._get_tags(builder.client)
             if tags:
@@ -319,6 +319,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
         futures_wait(bucket_location_futures)
+        return buckets
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -343,7 +344,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: list[AwsResource]
+    ) -> None:
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -354,10 +357,14 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }
         for region in {
             s3_bucket.bucket_location
-            for s3_bucket in builder.nodes(clazz=AwsS3Bucket)
-            if s3_bucket.bucket_location is not None
+            for s3_bucket in collected_resources
+            if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location is not None
         }:
-            s3s = {s3_bucket.id: s3_bucket for s3_bucket in builder.nodes(clazz=AwsS3Bucket, bucket_location=region)}
+            s3s = {
+                s3_bucket.id: s3_bucket
+                for s3_bucket in collected_resources
+                if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location == region
+            }
             queries = []
             delta = timedelta(days=1)
             now = builder.created_at

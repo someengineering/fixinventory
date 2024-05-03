@@ -513,7 +513,8 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances: List[AwsResource] = []
         for js in json:
             if api_instance := cls.from_api(js, builder):
                 api_instance.set_arn(
@@ -521,6 +522,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                     account="",
                     resource=f"/restapis/{api_instance.id}",
                 )
+                instances.append(api_instance)
                 builder.add_node(api_instance, js)
                 for deployment in builder.client.list(
                     service_name, "get-deployments", "items", restApiId=api_instance.id
@@ -532,6 +534,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                             resource=f"/restapis/{api_instance.id}/deployments/{deploy_instance.id}",
                         )
                         deploy_instance.api_link = api_instance.id
+                        instances.append(deploy_instance)
                         builder.add_node(deploy_instance, deployment)
                         builder.add_edge(api_instance, EdgeType.default, node=deploy_instance)
                         for stage in builder.client.list(
@@ -544,6 +547,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                             stage["syntheticId"] = f'{api_instance.id}_{stage["stageName"]}'  # create unique id
                             if stage_instance := AwsApiGatewayStage.from_api(stage, builder):
                                 stage_instance.api_link = api_instance.id
+                                instances.append(stage_instance)
                                 builder.add_node(stage_instance, stage)
                                 # reference kinds for this edge are maintained in AwsApiGatewayDeployment.reference_kinds # noqa: E501
                                 builder.add_edge(deploy_instance, EdgeType.default, node=stage_instance)
@@ -552,11 +556,13 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                 ):
                     if auth_instance := AwsApiGatewayAuthorizer.from_api(authorizer, builder):
                         auth_instance.api_link = api_instance.id
+                        instances.append(auth_instance)
                         builder.add_node(auth_instance, authorizer)
                         builder.add_edge(api_instance, EdgeType.default, node=auth_instance)
                 for resource in builder.client.list(service_name, "get-resources", "items", restApiId=api_instance.id):
                     if resource_instance := AwsApiGatewayResource.from_api(resource, builder):
                         resource_instance.api_link = api_instance.id
+                        instances.append(resource_instance)
                         if resource_instance.resource_methods:
                             for method in resource_instance.resource_methods:
                                 mapped = bend(AwsApiGatewayMethod.mapping, resource["resourceMethods"][method])
@@ -564,6 +570,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
                                     resource_instance.resource_methods[method] = gm
                         builder.add_node(resource_instance, resource)
                         builder.add_edge(api_instance, EdgeType.default, node=resource_instance)
+        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.api_endpoint_configuration:

@@ -242,7 +242,9 @@ class AwsCognitoUserPool(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances: List[AwsResource] = []
+
         def add_tags(pool: AwsCognitoUserPool) -> None:
             tags = builder.client.get(service_name, "list-tags-for-resource", "Tags", ResourceArn=pool.arn)
             if tags:
@@ -251,18 +253,22 @@ class AwsCognitoUserPool(AwsResource):
         for pool in json:
             if pool_instance := cls.from_api(pool, builder):
                 pool_instance.set_arn(builder=builder, resource=f"userpool/{pool_instance.id}")
+                instances.append(pool_instance)
                 builder.add_node(pool_instance, pool)
                 builder.submit_work(service_name, add_tags, pool_instance)
                 for user in builder.client.list(service_name, "list-users", "Users", UserPoolId=pool_instance.id):
                     if user_instance := AwsCognitoUser.from_api(user, builder):
                         user_instance.pool_name = pool_instance.name
                         user_instance._pool_id = pool_instance.id
+                        instances.append(user_instance)
                         builder.add_node(user_instance, user)
                         builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=user_instance)
                 for group in builder.client.list(service_name, "list-groups", "Groups", UserPoolId=pool_instance.id):
                     if group_instance := AwsCognitoGroup.from_api(group, builder):
+                        instances.append(group_instance)
                         builder.add_node(group_instance, group)
                         builder.add_edge(from_node=pool_instance, edge_type=EdgeType.default, node=group_instance)
+        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.lambda_config:

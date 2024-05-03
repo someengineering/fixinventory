@@ -110,7 +110,9 @@ class AwsSqsQueue(AwsResource, BaseQueue):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances: List[AwsResource] = []
+
         def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.get(
                 service_name, "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
@@ -119,6 +121,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
                 if instance := cls.from_api(queue_attributes, builder):
+                    instances.append(instance)
                     builder.add_node(instance, queue_attributes)
                     builder.submit_work(service_name, add_tags, instance)
 
@@ -130,10 +133,13 @@ class AwsSqsQueue(AwsResource, BaseQueue):
         for queue_url in json:
             if isinstance(queue_url, str):
                 add_instance(queue_url)
+        return instances
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        sqs_queues = {sqs.id: sqs for sqs in builder.nodes(clazz=AwsSqsQueue) if sqs.region().id == builder.region.id}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        sqs_queues = {sqs.id: sqs for sqs in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

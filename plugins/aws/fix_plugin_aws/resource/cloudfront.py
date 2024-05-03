@@ -23,7 +23,9 @@ service_name = "cloudfront"
 
 class CloudFrontResource:
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:  # type: ignore
+        instances = []
+
         def add_tags(res: AwsResource) -> None:
             tags = builder.client.get(
                 service_name, "list-tags-for-resource", "Tags", Resource=res.arn, expected_errors=["InvalidArgument"]
@@ -33,9 +35,11 @@ class CloudFrontResource:
 
         for js in json:
             if instance := cls.from_api(js, builder):
+                instances.append(instance)
                 if instance.arn:
                     builder.submit_work(service_name, add_tags, instance)
                 builder.add_node(instance, js)
+        return instances
 
     @staticmethod
     def delete_cloudfront_resource(client: AwsClient, resource: str, rid: str) -> bool:
@@ -642,11 +646,6 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
                 aws_service=service_name, action="list-distributions", result_name="DistributionList.Items"
             ):
                 builder.submit_work(service_name, fetch_distribution, item["Id"])
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
         except Boto3Error as e:
             msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
             builder.core_feedback.error(msg, log)

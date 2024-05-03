@@ -489,7 +489,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         def add_tags(rds: AwsRdsInstance) -> None:
             tags = builder.client.list(service_name, "list-tags-for-resource", "TagList", ResourceName=rds.arn)
             if tags:
@@ -537,6 +537,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
+        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for group in self.rds_vpc_security_groups:
@@ -581,12 +582,10 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        rds_instances = {
-            instance.id: instance
-            for instance in builder.nodes(clazz=AwsRdsInstance)
-            if instance.region().id == builder.region.id
-        }
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        rds_instances = {instance.id: instance for instance in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

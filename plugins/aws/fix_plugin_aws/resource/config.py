@@ -84,9 +84,11 @@ class AwsConfigRecorder(AwsResource):
     recorder_status: Optional[AwsConfigRecorderStatus] = field(default=None, metadata=dict(ignore_history=True))
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         # get all statuses
         statuses: Dict[str, AwsConfigRecorderStatus] = {}
+
+        instances: List[AwsResource] = []
         for r in builder.client.list(
             service_name, "describe-configuration-recorder-status", "ConfigurationRecordersStatus"
         ):
@@ -95,10 +97,12 @@ class AwsConfigRecorder(AwsResource):
 
         for js in json:
             if instance := AwsConfigRecorder.from_api(js, builder):
+                instances.append(instance)
                 if status := statuses.get(instance.id):
                     instance.recorder_status = status
                     instance.mtime = status.last_status_change_time
                 builder.add_node(instance, js)
+        return instances
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(service_name, "delete-configuration-recorder", self.name)

@@ -338,7 +338,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances = []
+
         def add_tags(function: AwsLambdaFunction) -> None:
             tags = builder.client.get(
                 service_name, "list-tags", "Tags", Resource=function.arn, expected_errors=["ResourceNotFoundException"]
@@ -397,18 +399,18 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
         for js in json:
             if instance := cls.from_api(js, builder):
+                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, get_policy, instance)
                 builder.submit_work(service_name, get_url_config, instance)
+        return instances
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        lambdas = {
-            function.id: function
-            for function in builder.nodes(clazz=AwsLambdaFunction)
-            if function.region().id == builder.region.id
-        }
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        lambdas = {function.id: function for function in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

@@ -73,7 +73,9 @@ class AwsSnsTopic(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        topics: List[AwsResource] = []
+
         def add_tags(topic: AwsSnsTopic) -> None:
             tags = builder.client.list(
                 service_name, "list-tags-for-resource", result_name="Tags", ResourceArn=topic.arn
@@ -87,12 +89,16 @@ class AwsSnsTopic(AwsResource):
             )
             if topic:
                 if topic_instance := cls.from_api(topic, builder):
+                    topics.append(topic_instance)
                     builder.add_node(topic_instance, topic)
                     builder.submit_work(service_name, add_tags, topic_instance)
+        return topics
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        sns_topics = {sns.id: sns for sns in builder.nodes(clazz=AwsSnsTopic) if sns.region().id == builder.region.id}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        sns_topics = {sns.id: sns for sns in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -247,7 +253,8 @@ class AwsSnsSubscription(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        subscriptions: List[AwsResource] = []
         for entry in json:
             subscription = builder.client.get(
                 service_name,
@@ -258,7 +265,9 @@ class AwsSnsSubscription(AwsResource):
             )
             if subscription:
                 if subscription_instance := cls.from_api(subscription, builder):
+                    subscriptions.append(subscription_instance)
                     builder.add_node(subscription_instance, subscription)
+        return subscriptions
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.subscription_topic_arn:
@@ -361,7 +370,8 @@ class AwsSnsPlatformApplication(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances: List[AwsResource] = []
         for entry in json:
             app_arn = entry["PlatformApplicationArn"]
             app = builder.client.get(
@@ -373,6 +383,7 @@ class AwsSnsPlatformApplication(AwsResource):
             if app:
                 app["Arn"] = app_arn
                 if app_instance := cls.from_api(app, builder):
+                    instances.append(app_instance)
                     builder.add_node(app_instance, app)
 
                     endpoints = builder.client.list(
@@ -385,8 +396,10 @@ class AwsSnsPlatformApplication(AwsResource):
                         attributes = endpoint["Attributes"]
                         attributes["Arn"] = endpoint["EndpointArn"]
                         if endpoint_instance := AwsSnsEndpoint.from_api(attributes, builder):
+                            instances.append(endpoint_instance)
                             builder.add_node(endpoint_instance, attributes)
                             builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
+        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for topic in [

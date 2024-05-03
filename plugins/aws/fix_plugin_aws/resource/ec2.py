@@ -459,15 +459,18 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instance_types: List[AwsResource] = []
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
+                instance_types.append(it)
                 # only store this information in the builder, not directly in the graph
                 # reason: pricing is region-specific - this is enriched in the builder on demand
                 # Only "used" instance type will be stored in the graph
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
                 builder.global_instance_types[it.safe_name] = it
+        return instance_types
 
 
 # endregion
@@ -555,7 +558,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     volume_throughput: Optional[int] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
@@ -606,14 +609,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 if vt := builder.volume_type(instance.volume_type):
                     builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
+        return list(volumes)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        volumes = {
-            volume.id: volume
-            for volume in builder.nodes(clazz=AwsEc2Volume)
-            if volume.region().id == builder.region.id and volume
-        }
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        volumes = {volume.id: volume for volume in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -1398,7 +1400,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_user_data: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+        instances = []
+
         def fetch_user_data(instance: AwsEc2Instance) -> None:
             if (
                 result := builder.client.get(
@@ -1416,15 +1420,19 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
+                instances.append(instance)
                 builder.submit_work(service_name, fetch_user_data, instance)
                 builder.add_node(instance, instance_in)
+        return list(instances)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
         instances = {
             instance.id: instance
-            for instance in builder.nodes(clazz=AwsEc2Instance)
-            if instance.region().id == builder.region.id and instance.instance_status == InstanceStatus.RUNNING
+            for instance in collected_resources
+            if isinstance(instance, AwsEc2Instance) and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
         delta_since_last_scan = builder.metrics_delta
@@ -2853,12 +2861,10 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     nat_connectivity_type: Optional[str] = field(default=None)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        nat_gateways = {
-            nat_gateway.id: nat_gateway
-            for nat_gateway in builder.nodes(clazz=AwsEc2NatGateway)
-            if nat_gateway.region().id == builder.region.id
-        }
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
+    ) -> None:
+        nat_gateways = {nat_gateway.id: nat_gateway for nat_gateway in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
