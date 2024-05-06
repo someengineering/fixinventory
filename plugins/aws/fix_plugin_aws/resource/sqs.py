@@ -143,7 +143,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        sqs_queues = {sqs.id: sqs for sqs in collected_resources}
+        sqs_queues = {sqs.id: sqs for sqs in collected_resources if isinstance(sqs, AwsSqsQueue)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

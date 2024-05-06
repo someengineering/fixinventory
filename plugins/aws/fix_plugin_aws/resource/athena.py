@@ -255,8 +255,6 @@ class AwsAthenaDataCatalog(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        catalogs: List[AwsResource] = []
-
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
             result = builder.client.get(
                 aws_service=service_name,
@@ -268,7 +266,6 @@ class AwsAthenaDataCatalog(AwsResource):
                 return None
             if catalog := AwsAthenaDataCatalog.from_api(result, builder):
                 catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
-                catalogs.append(catalog)
                 builder.add_node(catalog, result)
                 builder.submit_work(service_name, add_tags, catalog)
                 return catalog

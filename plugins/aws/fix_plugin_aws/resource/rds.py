@@ -537,7 +537,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
-        return instances
+        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for group in self.rds_vpc_security_groups:
@@ -585,7 +585,9 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        rds_instances = {instance.id: instance for instance in collected_resources}
+        rds_instances = {
+            instance.id: instance for instance in collected_resources if isinstance(instance, AwsRdsInstance)
+        }
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
