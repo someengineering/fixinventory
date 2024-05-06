@@ -537,7 +537,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
-        return list(instances)
+        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for group in self.rds_vpc_security_groups:
