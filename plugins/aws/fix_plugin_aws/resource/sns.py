@@ -100,7 +100,7 @@ class AwsSnsTopic(AwsResource):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        sns_topics = {sns.id: sns for sns in collected_resources}
+        sns_topics = {sns.id: sns for sns in collected_resources if isinstance(sns, AwsSnsTopic)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

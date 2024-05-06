@@ -1,7 +1,6 @@
 from datetime import timedelta
 from functools import partial
 from typing import ClassVar, Dict, Optional, Type, List, Any
-from concurrent.futures import wait as futures_wait
 
 from attrs import define, field
 
@@ -443,7 +442,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        albs = {alb.id: alb for alb in collected_resources}
+        albs = {alb.id: alb for alb in collected_resources if isinstance(alb, AwsAlb)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

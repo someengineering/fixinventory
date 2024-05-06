@@ -406,7 +406,6 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
                 if instance := cls.from_api(table_description, builder):
-                    instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
                     return instance

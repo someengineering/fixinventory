@@ -179,7 +179,7 @@ class AwsKinesisStream(AwsResource):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        kinesises = {kinesis.id: kinesis for kinesis in collected_resources}
+        kinesises = {kinesis.id: kinesis for kinesis in collected_resources if isinstance(kinesis, AwsKinesisStream)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
