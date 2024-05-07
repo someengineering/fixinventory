@@ -890,7 +890,7 @@ def load_time_series(
         parts = []
         for f in group_filter:
             bv = ctx.add_bind_var(f.value)
-            parts.append(f"d.group.{f.name}{f.op}@{bv}")
+            parts.append(f"d.group.{f.name} {f.op} @{bv}")
         query += f" FILTER {' AND '.join(parts)}"
     time_slot = ctx.next_crs()
     slotter = int(granularity.total_seconds())

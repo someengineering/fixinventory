@@ -358,7 +358,7 @@ def test_load_time_series() -> None:
         "ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"], group_filter=[P("a").eq("a")]
     )
     assert (
-        q == "LET m1 = ( FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 FILTER d.group.a==@b3 "
+        q == "LET m1 = ( FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 FILTER d.group.a == @b3 "
         "LET m0 = (FLOOR(d.at / @b4) * @b4) + @b5 "
         "COLLECT group_slot=m0, complete_group=d.group "
         "AGGREGATE slot_avg = AVG(d.v) RETURN {at: group_slot, group: complete_group, v: slot_avg} )\n "
