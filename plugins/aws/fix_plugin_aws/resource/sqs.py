@@ -135,7 +135,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
             if isinstance(queue_url, str):
                 future = builder.submit_work(service_name, add_instance, queue_url)
                 futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         instances: List[AwsResource] = [result for future in futures if (result := future.result())]
         return instances
 

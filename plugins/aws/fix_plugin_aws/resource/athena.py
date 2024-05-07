@@ -168,7 +168,7 @@ class AwsAthenaWorkGroup(AwsResource):
             if (name := js.get("Name")) is not None and isinstance(name, str):
                 future = builder.submit_work(service_name, fetch_workgroup, name)
                 futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         workgroups: List[AwsResource] = [result for future in futures if (result := future.result())]
         return workgroups
 
@@ -287,7 +287,7 @@ class AwsAthenaDataCatalog(AwsResource):
             if (name := js.get("CatalogName")) is not None and isinstance(name, str) and name != "AwsDataCatalog":
                 future = builder.submit_work(service_name, fetch_data_catalog, name)
                 futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         catalogs: List[AwsResource] = [result for future in futures if (result := future.result())]
         return catalogs
 

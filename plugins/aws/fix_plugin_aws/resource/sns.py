@@ -274,7 +274,7 @@ class AwsSnsSubscription(AwsResource):
         for entry in json:
             future = builder.submit_work(service_name, add_instance, entry)
             futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         subscriptions: List[AwsResource] = [result for future in futures if (result := future.result())]
         return subscriptions
 

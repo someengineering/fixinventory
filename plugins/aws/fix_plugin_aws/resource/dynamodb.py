@@ -421,7 +421,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             if isinstance(js, str):
                 future = builder.submit_work(service_name, add_instance, js)
                 futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         instances: List[AwsResource] = [result for future in futures if (result := future.result())]
         return instances
 
@@ -516,7 +516,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
         for js in json:
             future = builder.submit_work(service_name, add_instance, js)
             futures.append(future)
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         instances: List[AwsResource] = [result for future in futures if (result := future.result())]
         return instances
 
