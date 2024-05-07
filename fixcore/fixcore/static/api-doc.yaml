@@ -2632,7 +2632,13 @@ paths:
       tags:
         - report
       parameters:
-        - name: benchmark
+        - name: providers
+          in: query
+          description: "Comma separated list of cloud provides. All if not defined."
+          schema:
+            type: string
+          example: "aws"
+        - name: benchmarks
           in: query
           description: "Comma separated list of benchmarks. All if not defined."
           schema:

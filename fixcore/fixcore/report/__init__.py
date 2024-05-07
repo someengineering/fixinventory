@@ -393,7 +393,9 @@ class Inspector(ABC):
     """
 
     @abstractmethod
-    async def list_benchmarks(self) -> List[Benchmark]:
+    async def list_benchmarks(
+        self, *, provider_ids: Optional[List[str]] = None, benchmark_ids: Optional[List[str]] = None
+    ) -> List[Benchmark]:
         pass
 
     @abstractmethod

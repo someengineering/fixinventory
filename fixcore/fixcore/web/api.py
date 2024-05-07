@@ -709,7 +709,10 @@ class Api(Service):
         return HTTPNoContent()
 
     async def benchmarks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
-        benchmark_filter = [b.strip() for b in request.query.get("benchmarks", "").split(",") if b.strip()]
+        benchmarks = request.query.get("benchmarks")
+        providers = request.query.get("providers")
+        benchmark_ids = [b.strip() for b in benchmarks.split(",") if b.strip()] if benchmarks else None
+        provider_ids = [p.strip() for p in providers.split(",") if p.strip()] if providers else None
         short = request.query.get("short", "false").lower() == "true"
         ids_only = request.query.get("ids_only", "false").lower() == "true"
         with_checks = request.query.get("with_checks", "false").lower() == "true"
@@ -729,12 +732,11 @@ class Api(Service):
                 bj["report_checks"] = [to_js_check(lookup[c]) for c in b.nested_checks()]
             return bj
 
-        benchmarks = [
+        benchmark_results = [
             to_js_benchmark(b)
-            for b in await deps.inspector.list_benchmarks()
-            if (b.id in benchmark_filter or not benchmark_filter)
+            for b in await deps.inspector.list_benchmarks(provider_ids=provider_ids, benchmark_ids=benchmark_ids)
         ]
-        return await single_result(request, benchmarks)
+        return await single_result(request, benchmark_results)
 
     async def get_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         if result := await deps.inspector.benchmark(request.match_info["benchmark"]):
