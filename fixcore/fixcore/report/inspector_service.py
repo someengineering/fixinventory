@@ -121,10 +121,19 @@ class InspectorService(Inspector, Service):
             log.warning(f"Can not load report config: {e}")
         return ReportConfig()  # safe default
 
-    async def list_benchmarks(self) -> List[Benchmark]:
-        result = {b.id: b for b in benchmarks_from_file().values()}
+    async def list_benchmarks(
+        self, *, provider_ids: Optional[List[str]] = None, benchmark_ids: Optional[List[str]] = None
+    ) -> List[Benchmark]:
+
+        def filter_benchmark(benchmark: Benchmark) -> bool:
+            in_p = provider_ids is None or benchmark.clouds is None or any(p in benchmark.clouds for p in provider_ids)
+            in_b = benchmark_ids is None or benchmark.id in benchmark_ids
+            return in_p and in_b
+
+        result = {b.id: b for b in benchmarks_from_file().values() if filter_benchmark(b)}
         async for b in self.benchmark_db.all():
-            result[b.id] = b
+            if filter_benchmark(b):
+                result[b.id] = b
         return list(result.values())
 
     async def benchmark(self, bid: str) -> Optional[Benchmark]:
