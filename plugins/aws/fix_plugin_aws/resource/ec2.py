@@ -615,7 +615,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        volumes = {volume.id: volume for volume in collected_resources}
+        volumes = {volume.id: volume for volume in collected_resources if isinstance(volume, AwsEc2Volume)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -2864,7 +2864,11 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        nat_gateways = {nat_gateway.id: nat_gateway for nat_gateway in collected_resources}
+        nat_gateways = {
+            nat_gateway.id: nat_gateway
+            for nat_gateway in collected_resources
+            if isinstance(nat_gateway, AwsEc2NatGateway)
+        }
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

@@ -1,5 +1,6 @@
 from typing import ClassVar, Dict, Optional, List, Any
 from typing import Type
+from concurrent.futures import wait as futures_wait
 
 from attrs import define
 
@@ -134,8 +135,6 @@ class AwsAthenaWorkGroup(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        workgroups: List[AwsResource] = []
-
         def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
             result = builder.client.get(
                 aws_service=service_name, action="get-work-group", result_name="WorkGroup", WorkGroup=name
@@ -148,7 +147,6 @@ class AwsAthenaWorkGroup(AwsResource):
                     builder=builder,
                     resource=f"workgroup/{workgroup.name}",
                 )
-                workgroups.append(workgroup)
                 builder.add_node(workgroup, result)
                 builder.submit_work(service_name, add_tags, workgroup)
                 return workgroup
@@ -165,9 +163,13 @@ class AwsAthenaWorkGroup(AwsResource):
             if tags:
                 data_catalog.tags = bend(ToDict(), tags)
 
+        futures = []
         for js in json:
             if (name := js.get("Name")) is not None and isinstance(name, str):
-                fetch_workgroup(name)
+                future = builder.submit_work(service_name, fetch_workgroup, name)
+                futures.append(future)
+        futures_wait(futures)
+        workgroups: List[AwsResource] = [result for future in futures if (result := future.result())]
         return workgroups
 
     # noinspection PyUnboundLocalVariable
@@ -253,8 +255,6 @@ class AwsAthenaDataCatalog(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        catalogs: List[AwsResource] = []
-
         def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
             result = builder.client.get(
                 aws_service=service_name,
@@ -266,7 +266,6 @@ class AwsAthenaDataCatalog(AwsResource):
                 return None
             if catalog := AwsAthenaDataCatalog.from_api(result, builder):
                 catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
-                catalogs.append(catalog)
                 builder.add_node(catalog, result)
                 builder.submit_work(service_name, add_tags, catalog)
                 return catalog
@@ -282,10 +281,14 @@ class AwsAthenaDataCatalog(AwsResource):
             if tags:
                 data_catalog.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
+        futures = []
         for js in json:
             # we filter out the default data catalog as it is not possible to do much with it
             if (name := js.get("CatalogName")) is not None and isinstance(name, str) and name != "AwsDataCatalog":
-                fetch_data_catalog(name)
+                future = builder.submit_work(service_name, fetch_data_catalog, name)
+                futures.append(future)
+        futures_wait(futures)
+        catalogs: List[AwsResource] = [result for future in futures if (result := future.result())]
         return catalogs
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
