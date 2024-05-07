@@ -257,7 +257,7 @@ class AwsCloudTrail(AwsResource):
                 builder.add_deferred_edge(
                     builder.region, EdgeType.default, f'is(aws_cloud_trail) and reported.arn=="{arn}"'
                 )
-        futures_wait(futures)  # only continue, when all task definitions are collected
+        futures_wait(futures)
         instances: List[AwsResource] = [result for future in futures if (result := future.result())]
         return instances
 
