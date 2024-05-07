@@ -7,6 +7,7 @@ from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
+from fix_plugin_aws.resource.elbv2 import AwsAlb
 from fix_plugin_aws.resource.iam import AwsIamServerCertificate
 from fix_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
 from fixlib.baseresources import EdgeType
@@ -39,10 +40,9 @@ def test_vpc_quotas() -> None:
     expect_quotas(builder, 3)
 
 
-# def test_alb_quotas() -> None:
-#     _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-#     AwsAlb.collect_resources(builder)
-#     expect_quotas(builder, 2)
+def test_alb_quotas() -> None:
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type", collect_also=[AwsAlb])
+    expect_quotas(builder, 2)
 
 
 def test_iam_server_certificate_quotas() -> None:

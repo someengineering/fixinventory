@@ -4,7 +4,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from queue import Queue
-from typing import Type, Any, Callable, Set, Tuple, Optional
+from typing import Type, Any, Callable, Set, Tuple, Optional, List, Union
 
 from attrs import fields
 from boto3 import Session
@@ -130,7 +130,9 @@ def all_props_set(obj: AwsResourceType, ignore_props: Set[str]) -> None:
                 raise Exception(f"Prop >{prop}< is not set: {obj}")
 
 
-def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -> GraphBuilder:
+def build_graph(
+    clazz: Union[Type[AwsResource], List[Type[AwsResource]]], region_name: Optional[str] = None
+) -> GraphBuilder:
     with ThreadPoolExecutor(max_workers=1) as executor:
         config = AwsConfig()
         config.sessions().session_class_factory = BotoFileBasedSession
@@ -152,7 +154,8 @@ def build_graph(cls: Type[AwsResourceType], region_name: Optional[str] = None) -
             last_run_started_at=now - timedelta(hours=1),
         )
         builder.created_at = now
-        cls.collect_resources(builder)
+        for cls in clazz if isinstance(clazz, list) else [clazz]:
+            cls.collect_resources(builder)
         builder.executor.wait_for_submitted_work()
         return builder
 
@@ -168,8 +171,10 @@ def round_trip_for(
     cls: Type[AwsResourceType],
     *ignore_props: str,
     region_name: Optional[str] = None,
+    collect_also: Optional[List[Type[AwsResource]]] = None,
 ) -> Tuple[AwsResourceType, GraphBuilder]:
-    builder = build_graph(cls, region_name=region_name)
+    to_collect = [cls] + collect_also if collect_also else [cls]
+    builder = build_graph(to_collect, region_name=region_name)
     assert len(builder.graph.nodes) > 0
     for node, data in builder.graph.nodes(data=True):
         node.connect_in_graph(builder, data.get("source", {}))
