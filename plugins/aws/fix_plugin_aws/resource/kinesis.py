@@ -1,5 +1,5 @@
 from typing import ClassVar, Dict, Optional, List, Any
-from concurrent.futures import wait as futures_wait
+
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
@@ -146,7 +146,14 @@ class AwsKinesisStream(AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(stream_name: str) -> Optional[AwsKinesisStream]:
+        streams: List[AwsResource] = []
+
+        def add_tags(stream: AwsKinesisStream) -> None:
+            tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
+            if tags:
+                stream.tags = bend(ToDict(), tags)
+
+        for stream_name in json:
             # this call is paginated and will return a list
             stream_descriptions = builder.client.list(
                 aws_service=service_name,
@@ -157,29 +164,16 @@ class AwsKinesisStream(AwsResource):
             if len(stream_descriptions) == 1:
                 js = stream_descriptions[0]
                 if stream := AwsKinesisStream.from_api(js, builder):
+                    streams.append(stream)
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
-                    return stream
-            return None
-
-        def add_tags(stream: AwsKinesisStream) -> None:
-            tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
-            if tags:
-                stream.tags = bend(ToDict(), tags)
-
-        futures = []
-        for stream_name in json:
-            future = builder.submit_work(service_name, add_instance, stream_name)
-            futures.append(future)
-        futures_wait(futures)
-        streams: List[AwsResource] = [result for future in futures if (result := future.result())]
         return streams
 
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        kinesises = {kinesis.id: kinesis for kinesis in collected_resources if isinstance(kinesis, AwsKinesisStream)}
+        kinesises = {kinesis.id: kinesis for kinesis in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start

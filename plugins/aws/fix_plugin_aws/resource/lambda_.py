@@ -410,7 +410,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        lambdas = {function.id: function for function in collected_resources if isinstance(function, AwsLambdaFunction)}
+        lambdas = {function.id: function for function in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
