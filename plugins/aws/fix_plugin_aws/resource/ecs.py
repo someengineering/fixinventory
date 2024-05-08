@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any, cast
+from typing import ClassVar, Dict, Optional, List, Type, Any, cast
 from concurrent.futures import wait as futures_wait
 
 from attrs import define, field
@@ -1174,8 +1174,8 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             last_task_def_arn = no_version
             futures.append(builder.submit_work(service_name, collect_task_definition, arn))
         futures_wait(futures)  # only continue, when all task definitions are collected
-        instances: List[AwsResource] = [result for future in futures if (result := future.result()) is not None]
-        return instances
+        instances = [result for future in futures if (result := future.result()) is not None]
+        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for role in [self.task_role_arn, self.execution_role_arn]:
@@ -2002,9 +2002,10 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(cluster_arn: Json) -> List[AwsResource]:
-            resource_instances: List[AwsResource] = []
+        clustre_instances = []
 
+        resource_instances: List[AwsResource] = []
+        for cluster_arn in json:
             cluster = builder.client.list(
                 service_name,
                 "describe-clusters",
@@ -2014,7 +2015,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
             )
             if cluster_instance := AwsEcsCluster.from_api(cluster[0], builder):
                 builder.add_node(cluster_instance, cluster_arn)
-                resource_instances.append(cluster_instance)
+                clustre_instances.append(cluster_instance)
 
                 container_arns = builder.client.list(
                     service_name, "list-container-instances", "containerInstanceArns", cluster=cluster_arn
@@ -2066,25 +2067,11 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                             resource_instances.append(task_instance)
                             builder.add_node(task_instance, task)
                             builder.add_edge(cluster_instance, edge_type=EdgeType.default, node=task_instance)
-            return resource_instances
 
-        futures = []
-        for cluster_arn in json:
-            future = builder.submit_work(service_name, add_instance, cluster_arn)
-            futures.append(future)
-        futures_wait(futures)
-        eks_instances: List[AwsResource] = [result for future in futures for result in future.result()]
-        cluster_instances: List[AwsEcsCluster] = [
-            resource for resource in eks_instances if isinstance(resource, AwsEcsCluster)
-        ]
-        provider_names = {name for instance in cluster_instances for name in instance.cluster_capacity_providers}
-
-        def collect_providers(
-            chunk: List[str],
-        ) -> Tuple[Dict[str, AwsEcsCapacityProvider], List[AwsEcsCapacityProvider]]:
-            # once all clusters are collected, collect capacity providers
-            provider_instances = []
-            providers: Dict[str, AwsEcsCapacityProvider] = {}
+        # once all clusters are collected, collect capacity providers
+        provider_names = {name for instance in clustre_instances for name in instance.cluster_capacity_providers}
+        providers: Dict[str, AwsEcsCapacityProvider] = {}
+        for chunk in chunks(list(provider_names), 100):
             for provider in builder.client.list(
                 service_name,
                 "describe-capacity-providers",
@@ -2093,28 +2080,16 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                 include=["TAGS"],
             ):
                 if provider_instance := AwsEcsCapacityProvider.from_api(provider, builder):
-                    providers[provider_instance.safe_name] = provider_instance
                     builder.add_node(provider_instance, provider)
-                    provider_instances.append(provider_instance)
-            return providers, provider_instances
+                    providers[provider_instance.safe_name] = provider_instance
 
-        provider_futures = []
-        for chunk in chunks(list(provider_names), 100):
-            provider_future = builder.submit_work(service_name, collect_providers, chunk)
-            provider_futures.append(provider_future)
-        futures_wait(provider_futures)
-        provider_items: List[Tuple[Dict[str, AwsEcsCapacityProvider], List[AwsEcsCapacityProvider]]] = [
-            f_result for p_future in provider_futures if (f_result := p_future.result())
-        ]
-        providers = {}
-        for provider_item in provider_items:
-            providers.update(provider_item[0])
         # connect clusters to providers
-        for instance in cluster_instances:
+        for instance in clustre_instances:
             for name in instance.cluster_capacity_providers:
                 if provider := providers.get(name):
                     builder.add_edge(instance, edge_type=EdgeType.default, node=provider)
-        return eks_instances + [item for item_result in provider_items for item in item_result[1]]
+        resource_instances.extend(clustre_instances)
+        return resource_instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to CloudWatchLogs LogGroup when applicable

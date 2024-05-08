@@ -410,39 +410,33 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(lb: AwsAlb) -> None:
-            for listener in builder.client.list(
-                service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
-            ):
-                mapped = bend(AwsAlbListener.mapping, listener)
-                if listener := parse_json(mapped, AwsAlbListener, builder):
-                    lb.alb_listener.append(listener)
-
-        def add_tags(load_balancer: AwsAlb) -> None:
-            tags = builder.client.list(
-                service_name,
-                "describe-tags",
-                "TagDescriptions",
-                ResourceArns=[load_balancer.arn],
-                expected_errors=["LoadBalancerNotFound"],
-            )
-            if tags:
-                load_balancer.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
-
-        lbs: List[AwsResource] = []
+        lbs = []
         for js in json:
             if lb := AwsAlb.from_api(js, builder):
                 lbs.append(lb)
+                tags = builder.client.list(
+                    service_name,
+                    "describe-tags",
+                    "TagDescriptions",
+                    ResourceArns=[lb.arn],
+                    expected_errors=["LoadBalancerNotFound"],
+                )
+                if tags:
+                    lb.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                for listener in builder.client.list(
+                    service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
+                ):
+                    mapped = bend(AwsAlbListener.mapping, listener)
+                    if listener := parse_json(mapped, AwsAlbListener, builder):
+                        lb.alb_listener.append(listener)
                 builder.add_node(lb, js)
-                builder.submit_work(service_name, add_tags, lb)
-                builder.submit_work(service_name, add_instance, lb)
-        return lbs
+        return list(lbs)
 
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
     ) -> None:
-        albs = {alb.id: alb for alb in collected_resources if isinstance(alb, AwsAlb)}
+        albs = {alb.id: alb for alb in collected_resources}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -734,26 +728,20 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(tg: AwsAlbTargetGroup) -> None:
-            for health in builder.client.list(
-                service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
-            ):
-                mapped = bend(AwsAlbTargetHealthDescription.mapping, health)
-                if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
-                    tg.alb_target_health.append(tgh)
-
-        def add_tags(tg: AwsAlbTargetGroup) -> None:
-            tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
-            if tags:
-                tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
-
         tgs: List[AwsResource] = []
         for js in json:
             if tg := AwsAlbTargetGroup.from_api(js, builder):
                 tgs.append(tg)
+                tags = builder.client.list(service_name, "describe-tags", "TagDescriptions", ResourceArns=[tg.arn])
+                if tags:
+                    tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
+                for health in builder.client.list(
+                    service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
+                ):
+                    mapped = bend(AwsAlbTargetHealthDescription.mapping, health)
+                    if tgh := parse_json(mapped, AwsAlbTargetHealthDescription, builder):
+                        tg.alb_target_health.append(tgh)
                 builder.add_node(tg, js)
-                builder.submit_work(service_name, add_tags, tg)
-                builder.submit_work(service_name, add_instance, tg)
         return tgs
 
     @classmethod

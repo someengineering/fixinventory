@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
-from concurrent.futures import Future, wait as futures_wait
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
@@ -402,27 +401,24 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(table: str) -> Optional[AwsResource]:
+        instances = []
+
+        def add_instance(table: str) -> None:
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
                 if instance := cls.from_api(table_description, builder):
+                    instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
-                    return instance
-            return None
 
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
             if tags:
                 table.tags = bend(ToDict(), tags)
 
-        futures: List[Future[Optional[AwsResource]]] = []
         for js in json:
             if isinstance(js, str):
-                future = builder.submit_work(service_name, add_instance, js)
-                futures.append(future)
-        futures_wait(futures)
-        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
+                add_instance(js)
         return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -493,7 +489,9 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(table: Dict[str, str]) -> Optional[AwsResource]:
+        instances = []
+
+        def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.get(
                 service_name,
                 "describe-global-table",
@@ -502,22 +500,17 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
             )
             if table_description:
                 if instance := cls.from_api(table_description, builder):
+                    instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
-                    return instance
-            return None
 
         def add_tags(table: AwsDynamoDbGlobalTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
             if tags:
                 table.tags = bend(ToDict(), tags)
 
-        futures = []
         for js in json:
-            future = builder.submit_work(service_name, add_instance, js)
-            futures.append(future)
-        futures_wait(futures)
-        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
+            add_instance(js)
         return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
