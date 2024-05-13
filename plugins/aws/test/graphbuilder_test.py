@@ -12,14 +12,14 @@ def test_instance_type(builder: GraphBuilder) -> None:
     instance_type = "m4.large"
     builder.global_instance_types[instance_type] = AwsEc2InstanceType(id=instance_type)
     m4l: AwsEc2InstanceType = builder.instance_type(builder.region, instance_type)  # type: ignore
-    assert m4l == builder.instance_type(builder.region, instance_type)  # type: ignore
+    assert m4l == builder.instance_type(builder.region, instance_type)
     assert m4l.ondemand_cost == value_in_path(
         cloud_instance_data, ["aws", instance_type, "pricing", builder.region.id, "linux", "ondemand"]
     )
     eu_builder = builder.for_region(AwsRegion(id="eu-central-1"))
     m4l_eu: AwsEc2InstanceType = eu_builder.instance_type(eu_builder.region, instance_type)  # type: ignore
     assert m4l != m4l_eu
-    assert m4l_eu == eu_builder.instance_type(eu_builder.region, instance_type)  # type: ignore
+    assert m4l_eu == eu_builder.instance_type(eu_builder.region, instance_type)
     assert m4l_eu.ondemand_cost == value_in_path(
         cloud_instance_data, ["aws", instance_type, "pricing", eu_builder.region.id, "linux", "ondemand"]
     )
