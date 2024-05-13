@@ -291,21 +291,19 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
     @metrics_graph_search.time()
     def search(self, attr: str, value: Any, regex_search: bool = False) -> Iterator[BaseResource]:
         """Search for graph nodes by their attribute value"""
-        if value is None:
-            log.debug(f"Not searching graph for nodes with attribute values {attr}: {value}")
-            return ()
-        log.debug((f"Searching graph for nodes with attribute values {attr}: {value}" f" (regex: {regex_search})"))
-        for node in self.nodes():
-            node_attr = getattr(node, attr, None)
-            if (
-                node_attr is not None
-                and not callable(node_attr)
-                and (
-                    (regex_search is False and node_attr == value)
-                    or (regex_search is True and re.search(value, str(node_attr)))
-                )
-            ):
-                yield node
+        if value is not None:
+            log.debug(f"Searching graph for nodes with attribute values {attr}: {value}" f" (regex: {regex_search})")
+            for node in self.nodes():
+                node_attr = getattr(node, attr, None)
+                if (
+                    node_attr is not None
+                    and not callable(node_attr)
+                    and (
+                        (regex_search is False and node_attr == value)
+                        or (regex_search is True and re.search(value, str(node_attr)))
+                    )
+                ):
+                    yield node
 
     @metrics_graph_searchre.time()
     def searchre(self, attr: str, regex: str) -> Iterator[BaseResource]:

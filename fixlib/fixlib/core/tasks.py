@@ -8,7 +8,7 @@ from typing import Callable, Dict, Optional, List, Any
 from urllib.parse import urlunsplit, urlsplit
 
 from attrs import define, field
-from websocket import WebSocketApp, WebSocket  # type: ignore
+from websocket import WebSocketApp, WebSocket
 
 from fixlib.args import ArgumentParser
 from fixlib.baseresources import BaseResource

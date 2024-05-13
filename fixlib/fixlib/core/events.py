@@ -3,7 +3,7 @@ import time
 import json
 from urllib.parse import urlencode
 
-from websocket import WebSocketApp, WebSocket  # type: ignore
+from websocket import WebSocketApp, WebSocket
 
 from fixlib.logger import log
 from fixlib.event import EventType, remove_event_listener, add_event_listener, Event
