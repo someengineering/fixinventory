@@ -5,7 +5,7 @@ from itertools import islice
 from logging import Logger
 from queue import Queue
 
-from websocket import WebSocketApp, WebSocket  # type: ignore
+from websocket import WebSocketApp, WebSocket
 import requests
 import json
 from concurrent.futures import ThreadPoolExecutor
