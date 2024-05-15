@@ -2639,7 +2639,7 @@ class ListCommand(CLICommand, OutputTransformer):
         is_aggregate: bool = ctx.query is not None and ctx.query.aggregate is not None
 
         def display(name: str) -> str:
-            return " -> ".join(
+            return " \u279E ".join(
                 " ".join((word[0].upper() + word[1:]).strip("`") for word in part.replace("_", " ").split(" ") if word)
                 for part in PropertyPath.from_string(name).path
                 if part is not None and part not in Section.content
