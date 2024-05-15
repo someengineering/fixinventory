@@ -55,8 +55,16 @@ from dateutil import parser as date_parser
 from detect_secrets.core import scan, plugins
 from detect_secrets.core.potential_secret import PotentialSecret
 from detect_secrets.settings import configure_settings_from_baseline, default_settings
-from parsy import Parser, string, ParseError
 from fixclient.models import Model as RCModel, Kind as RCKind
+from fixdatalink import EngineConfig
+from fixdatalink.batch_stream import BatchStream
+from fixdatalink.collect_plugins import update_sql
+from parsy import Parser, string, ParseError
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
 from fixcore import version
 from fixcore.async_extensions import run_async
 from fixcore.cli import (
@@ -170,9 +178,6 @@ from fixcore.web.content_renderer import (
     respond_cytoscape,
 )
 from fixcore.worker_task_queue import WorkerTask, WorkerTaskName
-from fixdatalink import EngineConfig
-from fixdatalink.batch_stream import BatchStream
-from fixdatalink.collect_plugins import update_sql
 from fixlib.core import CLIEnvelope
 from fixlib.durations import parse_duration
 from fixlib.parse_util import (
@@ -188,10 +193,6 @@ from fixlib.parse_util import (
 )
 from fixlib.utils import safe_members_in_tarfile, get_local_tzinfo
 from fixlib.x509 import write_cert_to_file, write_key_to_file
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
 
 if TYPE_CHECKING:
     from fixcore.dependencies import TenantDependencies
@@ -2638,7 +2639,11 @@ class ListCommand(CLICommand, OutputTransformer):
         is_aggregate: bool = ctx.query is not None and ctx.query.aggregate is not None
 
         def display(name: str) -> str:
-            return " ".join(word.capitalize() for word in name.split("_"))
+            return " -> ".join(
+                " ".join((word[0].upper() + word[1:]).strip("`") for word in part.replace("_", " ").split(" ") if word)
+                for part in PropertyPath.from_string(name).path
+                if part is not None and part not in Section.content
+            )
 
         def default_props_to_show(
             props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
@@ -2725,7 +2730,7 @@ class ListCommand(CLICommand, OutputTransformer):
             for prop, as_name in list_arg_parse.parse(props_arg):
                 path = adjust_path(prop)
                 as_name = path[-1] if prop == as_name or as_name is None else as_name
-                props.append(PropToShow(path, as_name, display(as_name), prop))
+                props.append(PropToShow(path, as_name, display(prop), prop))
             return props
 
         def create_unique_names(all_props: List[PropToShow]) -> List[PropToShow]:

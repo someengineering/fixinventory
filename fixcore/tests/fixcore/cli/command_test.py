@@ -611,7 +611,7 @@ async def test_list_command(cli: CLI) -> None:
                 {"display": "Name", "kind": "string", "name": "name", "path": "/name"},
                 {"display": "Some Int", "kind": "int32", "name": "some_int", "path": "/some_int"},
                 {
-                    "display": "Foo․bla․bar.test.rest.best.",
+                    "display": "Tags -> foo․bla․bar.test.rest.best.",
                     "kind": "string",
                     "name": "foo․bla․bar.test.rest.best.",
                     "path": "/tags.`foo․bla․bar.test.rest.best.`",
@@ -648,6 +648,37 @@ async def test_list_command(cli: CLI) -> None:
     # aggregates are rendered correctly
     result = await cli.execute_cli_command("search is (foo) | aggregate kind: sum(1) as count | list", list_sink)
     assert result[0][0] == "kind=foo, count=10"
+
+    # properties to display are rendered correctly
+    result = await cli.execute_cli_command(
+        'search all {account_setting: <-- } account_setting.reported.bucket_public_access_block_configuration.{block_public_acls != true or ignore_public_acls != true or block_public_policy != true or restrict_public_buckets != true} and bucket_public_access_block_configuration.{block_public_acls != true or ignore_public_acls != true or block_public_policy != true or restrict_public_buckets != true} and (bucket_acl.grants[*].{permission in ["READ","READ_ACP","WRITE","WRITE_ACP","FULL_CONTROL"] and grantee.uri = "http://acs.amazonaws.com/groups/global/AllUsers"} or bucket_policy.Statement[*].{Effect = "Allow" and (Principal = "*" or Principal.AWS = "*" or Principal.CanonicalUser = "*") and (Action in ["s3:GetObject","s3:PutObject","s3:Get*","s3:Put*","s3:*","*"] or Action[*] in ["s3:GetObject","s3:PutObject","s3:Get*","s3:Put*","s3:*","*"])}) | list --json-table',  # noqa
+        list_sink,
+    )
+    assert [a["display"] for a in result[0][0]["columns"]] == [
+        "Kind",
+        "Id",
+        "Name",
+        "Bucket Acl -> Grants[] -> Permission",
+        "Bucket Acl -> Grants[] -> Grantee -> Uri",
+        "Bucket Policy -> Statement[] -> Effect",
+        "Bucket Policy -> Statement[] -> Principal",
+        "Bucket Policy -> Statement[] -> Principal -> AWS",
+        "Bucket Policy -> Statement[] -> Principal -> CanonicalUser",
+        "Bucket Policy -> Statement[] -> Action",
+        "Bucket Policy -> Statement[] -> Action[]",
+        "Bucket Public Access Block Configuration -> Block Public Acls",
+        "Bucket Public Access Block Configuration -> Ignore Public Acls",
+        "Bucket Public Access Block Configuration -> Block Public Policy",
+        "Bucket Public Access Block Configuration -> Restrict Public Buckets",
+        "Account Setting -> Bucket Public Access Block Configuration -> Block Public Acls",
+        "Account Setting -> Bucket Public Access Block Configuration -> Ignore Public Acls",
+        "Account Setting -> Bucket Public Access Block Configuration -> Block Public Policy",
+        "Account Setting -> Bucket Public Access Block Configuration -> Restrict Public Buckets",
+        "Age",
+        "Cloud",
+        "Account",
+        "Region / Zone",
+    ]
 
 
 @pytest.mark.asyncio
