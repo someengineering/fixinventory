@@ -23,9 +23,7 @@ service_name = "cloudfront"
 
 class CloudFrontResource:
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:  # type: ignore
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:  # type: ignore
         def add_tags(res: AwsResource) -> None:
             tags = builder.client.get(
                 service_name, "list-tags-for-resource", "Tags", Resource=res.arn, expected_errors=["InvalidArgument"]
@@ -35,11 +33,9 @@ class CloudFrontResource:
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 if instance.arn:
                     builder.submit_work(service_name, add_tags, instance)
                 builder.add_node(instance, js)
-        return instances
 
     @staticmethod
     def delete_cloudfront_resource(client: AwsClient, resource: str, rid: str) -> bool:

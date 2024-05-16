@@ -323,9 +323,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_attributes(elb: AwsElb) -> None:
             if attributes := builder.client.get(
                 service_name,
@@ -351,11 +349,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, fetch_attributes, instance)
-        return instances
 
     @classmethod
     def collect_usage_metrics(

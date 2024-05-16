@@ -206,7 +206,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(bucket: AwsS3Bucket) -> None:
             tags = bucket._get_tags(builder.client)
             if tags:
@@ -304,8 +304,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         buckets = []
         for js in json:
             if bucket := cls.from_api(js, builder):
-                buckets.append(bucket)
                 bucket.set_arn(builder=builder, region="", account="", resource=bucket.safe_name)
+                buckets.append(bucket)
                 builder.add_node(bucket, js)
                 bucket_location_futures.append(builder.submit_work(service_name, add_bucket_location, bucket))
         for bucket in buckets:
@@ -319,7 +319,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
         futures_wait(bucket_location_futures)
-        return buckets
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

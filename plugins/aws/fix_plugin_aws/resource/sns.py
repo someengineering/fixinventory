@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
-from concurrent.futures import wait as futures_wait
+
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -75,9 +75,7 @@ class AwsSnsTopic(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        topics: List[AwsResource] = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(topic: AwsSnsTopic) -> None:
             tags = builder.client.list(
                 service_name, "list-tags-for-resource", result_name="Tags", ResourceArn=topic.arn
@@ -91,10 +89,8 @@ class AwsSnsTopic(AwsResource):
             )
             if topic:
                 if topic_instance := cls.from_api(topic, builder):
-                    topics.append(topic_instance)
                     builder.add_node(topic_instance, topic)
                     builder.submit_work(service_name, add_tags, topic_instance)
-        return topics
 
     @classmethod
     def collect_usage_metrics(
@@ -255,8 +251,8 @@ class AwsSnsSubscription(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(entry: Json) -> Optional[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(entry: Json) -> None:
             subscription = builder.client.get(
                 service_name,
                 "get-subscription-attributes",
@@ -267,16 +263,9 @@ class AwsSnsSubscription(AwsResource):
             if subscription:
                 if subscription_instance := cls.from_api(subscription, builder):
                     builder.add_node(subscription_instance, subscription)
-                    return subscription_instance
-            return None
 
-        futures = []
         for entry in json:
-            future = builder.submit_work(service_name, add_instance, entry)
-            futures.append(future)
-        futures_wait(futures)
-        subscriptions: List[AwsResource] = [result for future in futures if (result := future.result())]
-        return subscriptions
+            builder.submit_work(service_name, add_instance, entry)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.subscription_topic_arn:
@@ -379,9 +368,8 @@ class AwsSnsPlatformApplication(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(entry: Json) -> List[AwsResource]:
-            instances = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(entry: Json) -> None:
             app_arn = entry["PlatformApplicationArn"]
             app = builder.client.get(
                 service_name,
@@ -392,7 +380,6 @@ class AwsSnsPlatformApplication(AwsResource):
             if app:
                 app["Arn"] = app_arn
                 if app_instance := cls.from_api(app, builder):
-                    instances.append(app_instance)
                     builder.add_node(app_instance, app)
 
                     endpoints = builder.client.list(
@@ -405,18 +392,11 @@ class AwsSnsPlatformApplication(AwsResource):
                         attributes = endpoint["Attributes"]
                         attributes["Arn"] = endpoint["EndpointArn"]
                         if endpoint_instance := AwsSnsEndpoint.from_api(attributes, builder):
-                            instances.append(endpoint_instance)
                             builder.add_node(endpoint_instance, attributes)
                             builder.add_edge(app_instance, edge_type=EdgeType.default, node=endpoint_instance)
-            return instances
 
-        futures = []
         for entry in json:
-            future = builder.submit_work(service_name, add_instance, entry)
-            futures.append(future)
-        futures_wait(futures)
-        sns_instances: List[AwsResource] = [result for future in futures for result in future.result()]
-        return sns_instances
+            builder.submit_work(service_name, add_instance, entry)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for topic in [

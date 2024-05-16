@@ -409,7 +409,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(lb: AwsAlb) -> None:
             for listener in builder.client.list(
                 service_name, "describe-listeners", "Listeners", LoadBalancerArn=lb.arn
@@ -429,14 +429,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
             if tags:
                 load_balancer.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
-        lbs: List[AwsResource] = []
         for js in json:
             if lb := AwsAlb.from_api(js, builder):
-                lbs.append(lb)
                 builder.add_node(lb, js)
                 builder.submit_work(service_name, add_tags, lb)
                 builder.submit_work(service_name, add_instance, lb)
-        return lbs
 
     @classmethod
     def collect_usage_metrics(
@@ -733,7 +730,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(tg: AwsAlbTargetGroup) -> None:
             for health in builder.client.list(
                 service_name, "describe-target-health", "TargetHealthDescriptions", TargetGroupArn=tg.arn
@@ -747,14 +744,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
             if tags:
                 tg.tags = bend(S("Tags", default=[]) >> ToDict(), tags[0])
 
-        tgs: List[AwsResource] = []
         for js in json:
             if tg := AwsAlbTargetGroup.from_api(js, builder):
-                tgs.append(tg)
                 builder.add_node(tg, js)
                 builder.submit_work(service_name, add_tags, tg)
                 builder.submit_work(service_name, add_instance, tg)
-        return tgs
 
     @classmethod
     def collect_usage_metrics(

@@ -489,7 +489,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(rds: AwsRdsInstance) -> None:
             tags = builder.client.list(service_name, "list-tags-for-resource", "TagList", ResourceName=rds.arn)
             if tags:
@@ -537,7 +537,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
         update_atime_mtime()
-        return list(instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for group in self.rds_vpc_security_groups:

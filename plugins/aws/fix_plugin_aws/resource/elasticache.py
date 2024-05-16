@@ -348,9 +348,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheCacheCluster) -> None:
             tags = builder.client.list(
                 resource.api_spec.service, "list-tags-for-resource", "TagList", ResourceName=resource.arn
@@ -360,10 +358,8 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
-        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # TODO add edge to outpost when applicable
@@ -583,9 +579,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(cls.api_spec.service, "list-tags-for-resource")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(resource: AwsElastiCacheReplicationGroup) -> None:
             tags = builder.client.list(
                 resource.api_spec.service, "list-tags-for-resource", "TagList", ResourceName=resource.arn
@@ -595,10 +589,8 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
-        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for cluster_name in self.replication_group_member_clusters:

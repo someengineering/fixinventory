@@ -459,18 +459,15 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instance_types: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
-                instance_types.append(it)
                 # only store this information in the builder, not directly in the graph
                 # reason: pricing is region-specific - this is enriched in the builder on demand
                 # Only "used" instance type will be stored in the graph
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
                 builder.global_instance_types[it.safe_name] = it
-        return instance_types
 
 
 # endregion
@@ -558,7 +555,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     volume_throughput: Optional[int] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         volumes: List[AwsEc2Volume] = []
 
         def update_atime_mtime() -> None:
@@ -1400,9 +1397,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_user_data: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_user_data(instance: AwsEc2Instance) -> None:
             if (
                 result := builder.client.get(
@@ -1420,10 +1415,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             for instance_in in reservation["Instances"]:
                 mapped = bend(cls.mapping, instance_in)
                 instance = AwsEc2Instance.from_json(mapped)
-                instances.append(instance)
                 builder.submit_work(service_name, fetch_user_data, instance)
                 builder.add_node(instance, instance_in)
-        return list(instances)
 
     @classmethod
     def collect_usage_metrics(

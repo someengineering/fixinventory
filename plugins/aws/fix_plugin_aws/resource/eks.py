@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, cast, Any
-from concurrent.futures import wait as futures_wait
+
 
 from attrs import define, field
 
@@ -459,30 +459,21 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(name: str) -> List[AwsResource]:
-            instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(name: str) -> None:
             cluster_json = builder.client.get(service_name, "describe-cluster", "cluster", name=name)
             if cluster_json is not None:
                 if cluster := AwsEksCluster.from_api(cluster_json, builder):
-                    instances.append(cluster)
                     builder.add_node(cluster, cluster_json)
                     for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
                         ng_json = builder.client.get(
                             service_name, "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
                         )
                         if ng_json is not None and (ng := AwsEksNodegroup.from_api(ng_json, builder)):
-                            instances.append(ng)
                             builder.add_node(ng, ng_json)
-            return instances
 
-        futures = []
         for name in cast(List[str], json):
-            future = builder.submit_work(service_name, add_instance, name)
-            futures.append(future)
-        futures_wait(futures)
-        eks_instances: List[AwsResource] = [result for future in futures for result in future.result()]
-        return eks_instances
+            builder.submit_work(service_name, add_instance, name)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(

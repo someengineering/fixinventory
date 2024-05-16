@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
-from concurrent.futures import Future, wait as futures_wait
+
 
 from attrs import define, field
 
@@ -111,8 +111,8 @@ class AwsSqsQueue(AwsResource, BaseQueue):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(queue_url: str) -> Optional[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.get(
                 service_name, "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
             )
@@ -122,22 +122,15 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                 if instance := cls.from_api(queue_attributes, builder):
                     builder.add_node(instance, queue_attributes)
                     builder.submit_work(service_name, add_tags, instance)
-                    return instance
-            return None
 
         def add_tags(queue: AwsSqsQueue) -> None:
             tags = builder.client.get(service_name, "list-queue-tags", result_name="Tags", QueueUrl=queue.sqs_queue_url)
             if tags:
                 queue.tags = tags
 
-        futures: List[Future[Optional[AwsResource]]] = []
         for queue_url in json:
             if isinstance(queue_url, str):
-                future = builder.submit_work(service_name, add_instance, queue_url)
-                futures.append(future)
-        futures_wait(futures)
-        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
-        return instances
+                builder.submit_work(service_name, add_instance, queue_url)
 
     @classmethod
     def collect_usage_metrics(

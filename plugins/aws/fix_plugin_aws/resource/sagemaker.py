@@ -138,7 +138,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for notebook in json:
             notebook_description = builder.client.get(
@@ -793,7 +793,7 @@ class AwsSagemakerAlgorithm(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-algorithm")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for algorithm in json:
             algorithm_description = builder.client.get(
@@ -926,7 +926,7 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-model"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for model in json:
             if model_description := builder.client.get(
@@ -1045,7 +1045,7 @@ class AwsSagemakerApp(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-app")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for app in json:
             # Don't collect Apps that are deleted
@@ -1421,7 +1421,7 @@ class AwsSagemakerDomain(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-domain")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for domain in json:
             domain_description = builder.client.get(
@@ -1684,7 +1684,7 @@ class AwsSagemakerTrial(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-trial")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for trial in json:
             trial_description = builder.client.get(
@@ -2290,7 +2290,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-endpoint"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for endpoint in json:
             if endpoint_description := builder.client.get(
@@ -2373,7 +2373,7 @@ class AwsSagemakerImage(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-image")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for image in json:
             image_description = builder.client.get(service_name, "describe-image", None, ImageName=image["ImageName"])
@@ -2473,7 +2473,7 @@ class AwsSagemakerArtifact(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-artifact")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for artifact in json:
             if artifact_description := builder.client.get(
@@ -2599,7 +2599,7 @@ class AwsSagemakerPipeline(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-pipeline")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for pipeline in json:
             if pipeline_description := builder.client.get(
@@ -2730,7 +2730,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for workteam in json:
             if workteam_instance := AwsSagemakerWorkteam.from_api(workteam, builder):
@@ -3163,7 +3163,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-auto-ml-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -3355,7 +3355,7 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-compilation-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -3848,7 +3848,7 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -4294,7 +4294,7 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-inference-recommendations-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             if job_description := builder.client.get(
@@ -4648,7 +4648,7 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-labeling-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -5052,7 +5052,7 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-processing-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -5500,7 +5500,7 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-training-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             job_description = builder.client.get(
@@ -5702,7 +5702,7 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-transform-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances: List[AwsResource] = []
         for job in json:
             if job_description := builder.client.get(

@@ -220,21 +220,18 @@ class AwsResource(BaseResource, ABC):
                 raise
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # - return a list of resources
         # In case additional work needs to be done, override this method.
-        instances = []
         for js in json:
             if instance := cls.from_api(js, builder):
                 # post process
                 instance.post_process(builder, js)
                 builder.add_node(instance, js)
-                instances.append(instance)
-        return instances
 
     @classmethod
     def collect_usage_metrics(

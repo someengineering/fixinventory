@@ -554,9 +554,7 @@ class AwsRedshiftCluster(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-logging-status")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        clusters: List[AwsResource] = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_logging_status(rc: AwsRedshiftCluster) -> None:
             with builder.suppress("redshift.describe-logging-status"):
                 if raw := builder.client.get(
@@ -570,11 +568,9 @@ class AwsRedshiftCluster(AwsResource):
 
         for js in json:
             if cluster := cls.from_api(js, builder):
-                clusters.append(cluster)
                 cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
                 builder.add_node(cluster, js)
                 builder.submit_work(service_name, fetch_logging_status, cluster)
-        return clusters
 
     @classmethod
     def collect_usage_metrics(

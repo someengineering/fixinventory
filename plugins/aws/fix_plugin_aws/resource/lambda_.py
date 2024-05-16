@@ -338,7 +338,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         instances = []
 
         def add_tags(function: AwsLambdaFunction) -> None:
