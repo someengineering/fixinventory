@@ -1,6 +1,5 @@
 from datetime import datetime
 from attrs import define, field
-from concurrent.futures import wait as futures_wait
 from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from fix_plugin_aws.aws_client import AwsClient

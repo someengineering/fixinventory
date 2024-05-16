@@ -219,11 +219,17 @@ class AwsAccountCollector:
                 self.collect_resources(regional_resources, global_builder.for_region(region))
             shared_queue.wait_for_submitted_work()
 
-            # collect usage metrics
-            self.collect_usage_metrics(all_resources, global_builder)
-            # wait for all futures to finish
-            shared_queue.wait_for_submitted_work()
-
+            if global_builder.config.collect_usage_metrics:
+                try:
+                    log.info(f"[Aws:{self.account.id}] Collect usage metrics.")
+                    # collect usage metrics
+                    self.collect_usage_metrics(all_resources, global_builder)
+                    # wait for all futures to finish
+                    shared_queue.wait_for_submitted_work()
+                except Exception as e:
+                    log.warning(
+                        f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
+                    )
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):

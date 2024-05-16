@@ -436,9 +436,9 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         albs: Dict[str, AwsResource] = {alb.id: alb for alb in builder.nodes(clazz=cls) if isinstance(alb, AwsAlb)}
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
@@ -755,11 +755,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         target_groups: Dict[str, AwsResource] = {
             tg.id: tg for tg in builder.nodes(clazz=cls) if isinstance(tg, AwsAlbTargetGroup) and tg.alb_lb_arns
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
@@ -827,6 +827,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
 
         for tg_id, tg in target_groups.items():
             tg_arn_id = (tg.arn or "").split(":")[-1]
+            if not isinstance(tg, AwsAlbTargetGroup):
+                continue
             lb_arn_id = "/".join(tg.alb_lb_arns[0].split("/")[-3:])
             queries.extend(
                 [

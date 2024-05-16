@@ -559,7 +559,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 
         def update_atime_mtime() -> None:
             delta = builder.config.atime_mtime_granularity()
-            queries = []
+            queries: List[AwsCloudwatchQuery] = []
             now = utc()
             start = now - builder.config.atime_mtime_period()
             lookup: Dict[str, AwsEc2Volume] = {}
@@ -609,11 +609,11 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         volumes: Dict[str, AwsResource] = {
             volume.id: volume for volume in builder.nodes(clazz=cls) if isinstance(volume, AwsEc2Volume)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
@@ -1427,13 +1427,13 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         instances: Dict[str, AwsResource] = {
             instance.id: instance
             for instance in builder.nodes(clazz=cls)
             if isinstance(instance, AwsEc2Instance) and instance.instance_status == InstanceStatus.RUNNING
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta_since_last_scan = builder.metrics_delta
         # for metrics which are expressed as sum, we want the period to be
         # 5 minutes or less if the last scan was less than 5 minutes ago
@@ -2871,13 +2871,13 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         nat_gateways: Dict[str, AwsResource] = {
             nat_gateway.id: nat_gateway
             for nat_gateway in builder.nodes(clazz=cls)
             if isinstance(nat_gateway, AwsEc2NatGateway)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at

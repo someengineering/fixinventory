@@ -53,7 +53,7 @@ def test_metric(builder: GraphBuilder) -> None:
         ref_id="vol-123",
         VolumeId="vol-123",
     )
-    result = AwsCloudwatchMetricData.query_for(builder, [read, write], earlier, now)
+    result = AwsCloudwatchMetricData.query_for_single(builder, [read, write], earlier, now)
     assert result[read].first_non_zero() == (datetime(2020, 1, 18, 17, 40, tzinfo=timezone.utc), 15.0)
     assert result[write].first_non_zero() == (datetime(2020, 1, 18, 18, 40, tzinfo=timezone.utc), 12861.0)
 

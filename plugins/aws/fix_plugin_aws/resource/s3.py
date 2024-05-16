@@ -366,7 +366,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             ),
         }
 
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
 
         s3s_map: Dict[str, AwsResource] = {}
         for region in {

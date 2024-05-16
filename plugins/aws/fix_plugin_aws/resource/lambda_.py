@@ -403,11 +403,11 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         lambdas: Dict[str, AwsResource] = {
             function.id: function for function in builder.nodes(clazz=cls) if isinstance(function, AwsLambdaFunction)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at

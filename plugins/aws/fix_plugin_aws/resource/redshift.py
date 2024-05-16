@@ -573,11 +573,11 @@ class AwsRedshiftCluster(AwsResource):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         redshifts: Dict[str, AwsResource] = {
             redshift.id: redshift for redshift in builder.nodes(clazz=cls) if isinstance(redshift, AwsRedshiftCluster)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at

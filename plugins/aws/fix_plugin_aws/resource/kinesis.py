@@ -169,11 +169,11 @@ class AwsKinesisStream(AwsResource):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         kinesises: Dict[str, AwsResource] = {
             kinesis.id: kinesis for kinesis in builder.nodes(clazz=cls) if isinstance(kinesis, AwsKinesisStream)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at

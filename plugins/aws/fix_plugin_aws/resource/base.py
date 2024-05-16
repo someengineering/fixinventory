@@ -203,13 +203,6 @@ class AwsResource(BaseResource, ABC):
                     **kwargs,
                 )
                 cls.collect(items, builder)
-                if builder.config.collect_usage_metrics:
-                    try:
-                        cls.collect_usage_metrics(builder)
-                    except Exception as e:
-                        log.warning(
-                            f"Failed to collect usage metrics for {cls.__name__} in region {builder.region.id}: {e}"
-                        )
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)

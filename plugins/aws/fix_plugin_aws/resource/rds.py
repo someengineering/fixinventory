@@ -498,7 +498,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
 
         def update_atime_mtime() -> None:
             delta = builder.config.atime_mtime_granularity()
-            queries = []
+            queries: List[AwsCloudwatchQuery] = []
             now = utc()
             start = now - builder.config.atime_mtime_period()
             lookup: Dict[str, AwsRdsInstance] = {}
@@ -582,11 +582,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         rds_instances: Dict[str, AwsResource] = {
             instance.id: instance for instance in builder.nodes(clazz=cls) if isinstance(instance, AwsRdsInstance)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at

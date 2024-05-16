@@ -516,6 +516,19 @@ class AwsCloudwatchMetricData:
         end_time: datetime,
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        """
+        Queries for a single block of CloudWatch metric data.
+
+        Args:
+            builder: An instance of the GraphBuilder.
+            queries: List of metric data queries.
+            start_time: Start time for the queries.
+            end_time: End time for the queries.
+            scan_desc: Specifies whether to scan by TimestampDescending or TimestampAscending.
+
+        Returns:
+            Dictionary mapping metric data to their corresponding IDs.
+        """
         lookup = {q.metric_id: q for q in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []
@@ -523,7 +536,7 @@ class AwsCloudwatchMetricData:
         for chunk in chunks(queries, 499):
             future = builder.submit_work(
                 service_name,
-                AwsCloudwatchMetricData._query_for_single,
+                AwsCloudwatchMetricData._query_for_single_chunk,
                 builder.client,
                 MetricDataQueries=[a.to_json() for a in chunk],
                 StartTime=start_time,
@@ -545,25 +558,35 @@ class AwsCloudwatchMetricData:
 
     @staticmethod
     def query_for_multiple(
-        # builder: GraphBuilder,
         queries: List[Tuple[datetime, datetime, GraphBuilder, AwsCloudwatchQuery]],
-        # start_time: datetime,
-        # end_time: datetime,
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        """
+        Queries for a multiple blocks of CloudWatch metric data.
+
+        Args:
+            builder: An instance of the GraphBuilder.
+            queries: List of metric data queries.
+            start_time: Start time for the queries.
+            end_time: End time for the queries.
+            scan_desc: Specifies whether to scan by TimestampDescending or TimestampAscending.
+
+        Returns:
+            Dictionary mapping metric data to their corresponding IDs.
+        """
         lookup = {q[3].metric_id: q[3] for q in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = [
-            q[2].submit_work(
+            builder.submit_work(
                 service_name,
-                AwsCloudwatchMetricData._query_for_single,
-                q[2].client,
-                MetricDataQueries=[a[3].to_json() for a in queries],
-                StartTime=q[0],
-                EndTime=q[1],
+                AwsCloudwatchMetricData._query_for_single_chunk,
+                builder.client,
+                MetricDataQueries=[query[3].to_json() for query in queries],
+                StartTime=start,
+                EndTime=now,
                 ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
             )
-            for q in queries
+            for start, now, builder, query in queries
         ]
 
         # Retrieve results from submitted queries and populate the result dictionary
@@ -580,10 +603,23 @@ class AwsCloudwatchMetricData:
         return result
 
     @staticmethod
-    def _query_for_single(
+    def _query_for_single_chunk(
         client: AwsClient,
         **kwargs: Any,
     ) -> "List[Tuple[AwsCloudwatchMetricData, str]]":
+        """
+        Queries for a chunk of CloudWatch metric data.
+
+        Args:
+            client: An instance of the AWS client.
+            MetricDataQueries: List of metric data queries.
+            StartTime: Start time for the queries.
+            EndTime: End time for the queries.
+            ScanBy: Specifies whether to scan by TimestampDescending or TimestampAscending.
+
+        Returns:
+            List of tuples containing the metric data and their corresponding IDs.
+        """
         query_result = []
         try:
             part = client.list(service_name, "get-metric-data", "MetricDataResults", **kwargs)

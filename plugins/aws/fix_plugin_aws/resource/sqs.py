@@ -133,11 +133,11 @@ class AwsSqsQueue(AwsResource, BaseQueue):
     @classmethod
     def collect_usage_metrics(
         cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
         sqs_queues: Dict[str, AwsResource] = {
             sqs.id: sqs for sqs in builder.nodes(clazz=cls) if isinstance(sqs, AwsSqsQueue)
         }
-        queries = []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
