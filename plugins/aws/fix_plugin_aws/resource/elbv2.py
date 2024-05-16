@@ -1,6 +1,6 @@
 from datetime import timedelta
 from functools import partial
-from typing import ClassVar, Dict, Optional, Type, List, Any
+from typing import ClassVar, Dict, Optional, Tuple, Type, List, Any
 
 from attrs import define, field
 
@@ -434,8 +434,10 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                 builder.submit_work(service_name, add_instance, lb)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        albs = {alb.id: alb for alb in builder.nodes(clazz=cls) if isinstance(alb, AwsAlb)}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        albs: Dict[str, AwsResource] = {alb.id: alb for alb in builder.nodes(clazz=cls) if isinstance(alb, AwsAlb)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -515,7 +517,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_id,
                     )
                     for metric in [
@@ -541,7 +542,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -558,12 +558,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_id,
                     )
                 ]
             )
-        return queries
+        return queries, albs, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):
@@ -754,8 +753,10 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 builder.submit_work(service_name, add_instance, tg)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        target_groups = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        target_groups: Dict[str, AwsResource] = {
             tg.id: tg for tg in builder.nodes(clazz=cls) if isinstance(tg, AwsAlbTargetGroup) and tg.alb_lb_arns
         }
         queries = []
@@ -838,7 +839,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_arn_id,
                         TargetGroup=tg_arn_id,
                     )
@@ -861,7 +861,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_arn_id,
                         TargetGroup=tg_arn_id,
                     )
@@ -883,7 +882,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_arn_id,
                         TargetGroup=tg_arn_id,
                     )
@@ -901,7 +899,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancer=lb_arn_id,
                         TargetGroup=tg_arn_id,
                     )
@@ -914,7 +911,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 ]
             )
 
-        return queries
+        return queries, target_groups, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_id := source.get("VpcId"):

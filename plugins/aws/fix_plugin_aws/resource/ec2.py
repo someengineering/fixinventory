@@ -3,7 +3,7 @@ from functools import partial
 import logging
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 import copy
 
 from attrs import define, field
@@ -582,7 +582,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                         )
                     )
 
-            for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
+            for query, metric in AwsCloudwatchMetricData.query_for_single(builder, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
                     at, value = non_zero
                     if vol := lookup.get(query.ref_id):
@@ -607,8 +607,12 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         update_atime_mtime()
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        volumes = {volume.id: volume for volume in builder.nodes(clazz=cls) if isinstance(volume, AwsEc2Volume)}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        volumes: Dict[str, AwsResource] = {
+            volume.id: volume for volume in builder.nodes(clazz=cls) if isinstance(volume, AwsEc2Volume)
+        }
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -663,7 +667,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         VolumeId=volume_id,
                     )
                     for metric_name in ["VolumeWriteBytes", "VolumeReadBytes"]
@@ -680,7 +683,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         VolumeId=volume_id,
                     )
                     for metric_name in ["VolumeWriteOps", "VolumeReadOps"]
@@ -697,7 +699,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         VolumeId=volume_id,
                     )
                     for metric_name in ["VolumeTotalWriteTime", "VolumeIdleTime"]
@@ -714,14 +715,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         VolumeId=volume_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
 
-        return queries
+        return queries, volumes, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1425,8 +1425,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 builder.add_node(instance, instance_in)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        instances = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        instances: Dict[str, AwsResource] = {
             instance.id: instance
             for instance in builder.nodes(clazz=cls)
             if isinstance(instance, AwsEc2Instance) and instance.instance_status == InstanceStatus.RUNNING
@@ -1512,7 +1514,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         unit="Percent",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         InstanceId=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -1529,7 +1530,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         InstanceId=instance_id,
                     )
                     for name in ["NetworkIn", "NetworkOut"]
@@ -1547,7 +1547,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         InstanceId=instance_id,
                     )
                     for name in ["NetworkPacketsIn", "NetworkPacketsOut"]
@@ -1565,7 +1564,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         InstanceId=instance_id,
                     )
                     for name in ["DiskReadOps", "DiskWriteOps"]
@@ -1583,14 +1581,13 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         InstanceId=instance_id,
                     )
                     for name in ["DiskReadBytes", "DiskWriteBytes"]
                 ]
             )
 
-        return queries
+        return queries, instances, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -2872,8 +2869,10 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     nat_connectivity_type: Optional[str] = field(default=None)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        nat_gateways = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        nat_gateways: Dict[str, AwsResource] = {
             nat_gateway.id: nat_gateway
             for nat_gateway in builder.nodes(clazz=cls)
             if isinstance(nat_gateway, AwsEc2NatGateway)
@@ -2968,7 +2967,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         NatGatewayId=nat_g_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -2997,7 +2995,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         NatGatewayId=nat_g_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -3010,7 +3007,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                 ]
             )
 
-        return queries
+        return queries, nat_gateways, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

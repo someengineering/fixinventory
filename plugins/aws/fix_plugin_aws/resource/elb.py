@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import ClassVar, Dict, Optional, Type, List, Any
+from typing import ClassVar, Dict, Optional, Tuple, Type, List, Any
 
 from attrs import define, field
 
@@ -352,8 +352,10 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 builder.submit_work(service_name, fetch_attributes, instance)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        elbs = {elb.id: elb for elb in builder.nodes(clazz=cls) if isinstance(elb, AwsElb)}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        elbs: Dict[str, AwsResource] = {elb.id: elb for elb in builder.nodes(clazz=cls) if isinstance(elb, AwsElb)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -425,7 +427,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for metric in [
@@ -448,7 +449,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -469,7 +469,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -486,14 +485,13 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         LoadBalancerName=elb.name or elb.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
 
-        return queries
+        return queries, elbs, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

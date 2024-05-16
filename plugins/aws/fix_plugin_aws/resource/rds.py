@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 
 from attr import define, field
 
@@ -515,7 +515,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     )
                 )
 
-            for query, metric in AwsCloudwatchMetricData.query_for(builder, queries, start, now).items():
+            for query, metric in AwsCloudwatchMetricData.query_for_single(builder, queries, start, now).items():
                 if non_zero := metric.first_non_zero():
                     at, value = non_zero
                     rds = lookup[query.ref_id]
@@ -580,8 +580,10 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        rds_instances = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        rds_instances: Dict[str, AwsResource] = {
             instance.id: instance for instance in builder.nodes(clazz=cls) if isinstance(instance, AwsRdsInstance)
         }
         queries = []
@@ -665,7 +667,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         unit="Percent",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -682,7 +683,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -700,7 +700,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -718,7 +717,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -736,7 +734,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         unit="Bytes/Second",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         DBInstanceIdentifier=instance_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -744,7 +741,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 ]
             )
 
-        return queries
+        return queries, rds_instances, metric_normalizers
 
 
 @define(eq=False, slots=False)

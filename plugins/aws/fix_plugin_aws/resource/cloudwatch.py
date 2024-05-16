@@ -421,7 +421,7 @@ class AwsCloudwatchQuery:
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
     start: Optional[datetime] = None
     now: Optional[datetime] = None
-    metric_normalization: Optional[Dict[str, Any]] = None
+    regional_builder: Optional[GraphBuilder] = None
 
     def to_json(self) -> Json:
         return {
@@ -452,7 +452,7 @@ class AwsCloudwatchQuery:
         fix_metric_name: Optional[str] = None,
         start: Optional[datetime] = None,
         now: Optional[datetime] = None,
-        metric_normalization: Optional[Dict[str, Any]] = None,
+        regional_builder: Optional[GraphBuilder] = None,
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
@@ -470,7 +470,7 @@ class AwsCloudwatchQuery:
             fix_metric_name=fix_metric_name,
             start=start,
             now=now,
-            metric_normalization=metric_normalization,
+            regional_builder=regional_builder,
         )
 
 
@@ -509,7 +509,7 @@ class AwsCloudwatchMetricData:
         return [AwsApiSpec(service_name, "get-metric-data")]
 
     @staticmethod
-    def query_for(
+    def query_for_single(
         builder: GraphBuilder,
         queries: List[AwsCloudwatchQuery],
         start_time: datetime,
@@ -531,6 +531,40 @@ class AwsCloudwatchMetricData:
                 ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
             )
             futures.append(future)
+        # Retrieve results from submitted queries and populate the result dictionary
+        for future in as_completed(futures):
+            try:
+                metric_query_result = future.result()
+                for metric, metric_id in metric_query_result:
+                    if metric is not None and metric_id is not None:
+                        result[lookup[metric_id]] = metric
+            except Exception as e:
+                log.warning(f"An error occurred while processing a metric query: {e}")
+                raise e
+        return result
+
+    @staticmethod
+    def query_for_multiple(
+        # builder: GraphBuilder,
+        queries: List[Tuple[datetime, datetime, GraphBuilder, AwsCloudwatchQuery]],
+        # start_time: datetime,
+        # end_time: datetime,
+        scan_desc: bool = True,
+    ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        lookup = {q[3].metric_id: q[3] for q in queries}
+        result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
+        futures = [
+            q[2].submit_work(
+                service_name,
+                AwsCloudwatchMetricData._query_for_single,
+                q[2].client,
+                MetricDataQueries=[a[3].to_json() for a in queries],
+                StartTime=q[0],
+                EndTime=q[1],
+                ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
+            )
+            for q in queries
+        ]
 
         # Retrieve results from submitted queries and populate the result dictionary
         for future in as_completed(futures):

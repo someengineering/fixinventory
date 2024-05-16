@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 
 
 from attrs import define, field
@@ -131,8 +131,12 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                 builder.submit_work(service_name, add_instance, queue_url)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        sqs_queues = {sqs.id: sqs for sqs in builder.nodes(clazz=cls) if isinstance(sqs, AwsSqsQueue)}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        sqs_queues: Dict[str, AwsResource] = {
+            sqs.id: sqs for sqs in builder.nodes(clazz=cls) if isinstance(sqs, AwsSqsQueue)
+        }
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -183,7 +187,6 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         QueueName=sqs_queue.name or sqs_queue.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -200,7 +203,6 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         QueueName=sqs_queue.name or sqs_queue.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -213,7 +215,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     ]
                 ]
             )
-        return queries
+        return queries, sqs_queues, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.sqs_kms_master_key_id:

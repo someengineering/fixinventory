@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Any, Type
+from typing import ClassVar, Dict, Optional, List, Any, Tuple, Type
 
 from attrs import define, field
 from datetime import datetime
@@ -571,8 +571,10 @@ class AwsRedshiftCluster(AwsResource):
                 builder.submit_work(service_name, fetch_logging_status, cluster)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        redshifts = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        redshifts: Dict[str, AwsResource] = {
             redshift.id: redshift for redshift in builder.nodes(clazz=cls) if isinstance(redshift, AwsRedshiftCluster)
         }
         queries = []
@@ -645,7 +647,6 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Percent",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -662,7 +663,6 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -679,7 +679,6 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Bytes/Second",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -697,7 +696,6 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Count/Second",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -715,7 +713,6 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Seconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for name in ["ReadLatency", "WriteLatency"]
@@ -732,13 +729,12 @@ class AwsRedshiftCluster(AwsResource):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         ClusterIdentifier=redshift_id,
                     )
                     for name in ["ReadThroughput", "WriteThroughput"]
                 ]
             )
-        return queries
+        return queries, redshifts, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:

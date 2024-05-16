@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 from attrs import define, field
 
 
@@ -91,8 +91,12 @@ class AwsSnsTopic(AwsResource):
                     builder.submit_work(service_name, add_tags, topic_instance)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        sns_topics = {sns.id: sns for sns in builder.nodes(clazz=cls) if isinstance(sns, AwsSnsTopic)}
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        sns_topics: Dict[str, AwsResource] = {
+            sns.id: sns for sns in builder.nodes(clazz=cls) if isinstance(sns, AwsSnsTopic)
+        }
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -137,7 +141,6 @@ class AwsSnsTopic(AwsResource):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         TopicName=sns_topic.name or sns_topic.safe_name,
                     )
                     for metric_name in [
@@ -158,14 +161,13 @@ class AwsSnsTopic(AwsResource):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         TopicName=sns_topic.name or sns_topic.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
 
-        return queries
+        return queries, sns_topics, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.topic_kms_master_key_id:

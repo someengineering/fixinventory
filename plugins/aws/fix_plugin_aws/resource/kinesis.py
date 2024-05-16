@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Any
+from typing import ClassVar, Dict, Optional, List, Any, Tuple
 
 from attrs import define, field
 
@@ -167,8 +167,10 @@ class AwsKinesisStream(AwsResource):
             builder.submit_work(service_name, add_instance, stream_name)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        kinesises = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        kinesises: Dict[str, AwsResource] = {
             kinesis.id: kinesis for kinesis in builder.nodes(clazz=cls) if isinstance(kinesis, AwsKinesisStream)
         }
         queries = []
@@ -201,7 +203,6 @@ class AwsKinesisStream(AwsResource):
                         unit="Bytes",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         StreamName=kinesis.name or kinesis.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
@@ -218,13 +219,12 @@ class AwsKinesisStream(AwsResource):
                         unit="Milliseconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         StreamName=kinesis.name or kinesis.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
-        return queries
+        return queries, kinesises, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

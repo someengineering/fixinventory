@@ -1,7 +1,7 @@
 import logging
 from attrs import define
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Type, Optional, ClassVar, Union
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List, Tuple, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -55,6 +55,7 @@ from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from fixlib.json import value_in_path
+from fixlib.utils import chunks
 
 from .utils import global_region_by_partition
 
@@ -218,6 +219,11 @@ class AwsAccountCollector:
                 self.collect_resources(regional_resources, global_builder.for_region(region))
             shared_queue.wait_for_submitted_work()
 
+            # collect usage metrics
+            self.collect_usage_metrics(all_resources, global_builder)
+            # wait for all futures to finish
+            shared_queue.wait_for_submitted_work()
+
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
@@ -275,6 +281,25 @@ class AwsAccountCollector:
         when_done = GatherFutures.all(region_futures)
         when_done.add_done_callback(work_done)
         return when_done
+
+    def collect_usage_metrics(self, resources: List[Type[AwsResource]], builder: GraphBuilder) -> None:
+        futures: List[Future[Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]]] = [
+            builder.submit_work("cloudwatch", resource.collect_usage_metrics, builder) for resource in resources
+        ]
+        usage_metric_data = [future.result() for future in as_completed(futures)]
+        for data in usage_metric_data:
+            queries: List[cloudwatch.AwsCloudwatchQuery] = data[0]
+            resource_map = data[1]
+            normalizer = data[2]
+
+            query_with_data = [
+                (query.start, query.now, query.regional_builder or builder, query)
+                for query in queries
+                if query.start and query.now
+            ]
+            for query_chunck in chunks(query_with_data, 499):
+                cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(query_chunck)
+                cloudwatch.update_resource_metrics(resource_map, cloudwatch_result, normalizer)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

@@ -2,7 +2,7 @@ from datetime import timedelta
 import json as json_p
 import logging
 import re
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -401,8 +401,10 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 builder.submit_work(service_name, get_url_config, instance)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        lambdas = {
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:
+        lambdas: Dict[str, AwsResource] = {
             function.id: function for function in builder.nodes(clazz=cls) if isinstance(function, AwsLambdaFunction)
         }
         queries = []
@@ -455,7 +457,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         unit="Count",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         FunctionName=lambda_instance.name or lambda_instance.safe_name,
                     )
                     for metric_name in ["Invocations", "Errors", "Throttles", "ConcurrentExecutions"]
@@ -472,13 +473,12 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                         unit="Milliseconds",
                         start=start,
                         now=now,
-                        metric_normalization=metric_normalizers,
                         FunctionName=lambda_instance.name or lambda_instance.safe_name,
                     )
                     for stat in ["Minimum", "Average", "Maximum"]
                 ]
             )
-        return queries
+        return queries, lambdas, metric_normalizers
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):
