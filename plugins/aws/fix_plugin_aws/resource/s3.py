@@ -343,9 +343,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: list[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",

@@ -93,9 +93,7 @@ class AwsSnsTopic(AwsResource):
                     builder.submit_work(service_name, add_tags, topic_instance)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         sns_topics = {sns.id: sns for sns in collected_resources if isinstance(sns, AwsSnsTopic)}
         queries = []
         delta = builder.metrics_delta

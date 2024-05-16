@@ -573,9 +573,7 @@ class AwsRedshiftCluster(AwsResource):
                 builder.submit_work(service_name, fetch_logging_status, cluster)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         redshifts = {
             redshift.id: redshift for redshift in collected_resources if isinstance(redshift, AwsRedshiftCluster)
         }

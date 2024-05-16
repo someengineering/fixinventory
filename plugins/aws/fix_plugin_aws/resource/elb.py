@@ -354,9 +354,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 builder.submit_work(service_name, fetch_attributes, instance)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         elbs = {elb.id: elb for elb in collected_resources if isinstance(elb, AwsElb)}
         queries = []
         delta = builder.metrics_delta

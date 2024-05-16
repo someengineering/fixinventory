@@ -169,9 +169,7 @@ class AwsKinesisStream(AwsResource):
             builder.submit_work(service_name, add_instance, stream_name)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         kinesises = {kinesis.id: kinesis for kinesis in collected_resources if isinstance(kinesis, AwsKinesisStream)}
         queries = []
         delta = builder.metrics_delta

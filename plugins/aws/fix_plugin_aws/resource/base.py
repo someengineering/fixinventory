@@ -202,10 +202,10 @@ class AwsResource(BaseResource, ABC):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                collected = cls.collect(items, builder)
+                cls.collect(items, builder)
                 if builder.config.collect_usage_metrics:
                     try:
-                        cls.collect_usage_metrics(builder, collected)
+                        cls.collect_usage_metrics(builder)
                     except Exception as e:
                         log.warning(
                             f"Failed to collect usage metrics for {cls.__name__} in region {builder.region.id}: {e}"
@@ -234,9 +234,7 @@ class AwsResource(BaseResource, ABC):
                 builder.add_node(instance, js)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         # Default behavior: do nothing
         pass
 
