@@ -139,10 +139,7 @@ class AwsAthenaWorkGroup(AwsResource):
             result = builder.client.get(
                 aws_service=service_name, action="get-work-group", result_name="WorkGroup", WorkGroup=name
             )
-            if result is None:
-                return None
-
-            if workgroup := AwsAthenaWorkGroup.from_api(result, builder):
+            if result and (workgroup := AwsAthenaWorkGroup.from_api(result, builder)):
                 workgroup.set_arn(
                     builder=builder,
                     resource=f"workgroup/{workgroup.name}",
@@ -254,9 +251,7 @@ class AwsAthenaDataCatalog(AwsResource):
                 result_name="DataCatalog",
                 Name=data_catalog_name,
             )
-            if result is None:
-                return None
-            if catalog := AwsAthenaDataCatalog.from_api(result, builder):
+            if result and (catalog := AwsAthenaDataCatalog.from_api(result, builder)):
                 catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
                 builder.add_node(catalog, result)
                 builder.submit_work(service_name, add_tags, catalog)
