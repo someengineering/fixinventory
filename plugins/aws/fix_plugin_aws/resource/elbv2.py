@@ -437,7 +437,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        albs = {alb.id: alb for alb in collected_resources if isinstance(alb, AwsAlb)}
+        albs = {alb.id: alb for alb in builder.nodes(clazz=cls) if isinstance(alb, AwsAlb)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -751,7 +751,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         target_groups = {
-            tg.id: tg for tg in collected_resources if isinstance(tg, AwsAlbTargetGroup) and tg.alb_lb_arns
+            tg.id: tg for tg in builder.nodes(clazz=cls) if isinstance(tg, AwsAlbTargetGroup) and tg.alb_lb_arns
         }
         queries = []
         delta = builder.metrics_delta

@@ -354,12 +354,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }
         for region in {
             s3_bucket.bucket_location
-            for s3_bucket in collected_resources
+            for s3_bucket in builder.nodes(clazz=cls)
             if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location is not None
         }:
             s3s = {
                 s3_bucket.id: s3_bucket
-                for s3_bucket in collected_resources
+                for s3_bucket in builder.nodes(clazz=cls)
                 if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location == region
             }
             queries = []

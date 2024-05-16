@@ -575,7 +575,7 @@ class AwsRedshiftCluster(AwsResource):
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         redshifts = {
-            redshift.id: redshift for redshift in collected_resources if isinstance(redshift, AwsRedshiftCluster)
+            redshift.id: redshift for redshift in builder.nodes(clazz=cls) if isinstance(redshift, AwsRedshiftCluster)
         }
         queries = []
         delta = builder.metrics_delta

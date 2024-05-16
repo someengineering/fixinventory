@@ -583,7 +583,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         rds_instances = {
-            instance.id: instance for instance in collected_resources if isinstance(instance, AwsRdsInstance)
+            instance.id: instance for instance in builder.nodes(clazz=cls) if isinstance(instance, AwsRdsInstance)
         }
         queries = []
         delta = builder.metrics_delta

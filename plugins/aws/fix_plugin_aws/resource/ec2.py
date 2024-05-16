@@ -606,11 +606,10 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 if vt := builder.volume_type(instance.volume_type):
                     builder.add_edge(vt, EdgeType.default, node=instance)
         update_atime_mtime()
-        return list(volumes)
 
     @classmethod
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        volumes = {volume.id: volume for volume in collected_resources if isinstance(volume, AwsEc2Volume)}
+        volumes = {volume.id: volume for volume in builder.nodes(clazz=cls) if isinstance(volume, AwsEc2Volume)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
@@ -1420,7 +1419,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         instances = {
             instance.id: instance
-            for instance in collected_resources
+            for instance in builder.nodes(clazz=cls)
             if isinstance(instance, AwsEc2Instance) and instance.instance_status == InstanceStatus.RUNNING
         }
         queries = []
@@ -2853,7 +2852,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         nat_gateways = {
             nat_gateway.id: nat_gateway
-            for nat_gateway in collected_resources
+            for nat_gateway in builder.nodes(clazz=cls)
             if isinstance(nat_gateway, AwsEc2NatGateway)
         }
         queries = []
