@@ -17,7 +17,6 @@ from fix_plugin_aws.resource.cloudwatch import (
     bytes_to_megabytes_per_second,
     calculate_min_max_avg,
     operations_to_iops,
-    update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
@@ -608,71 +607,13 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         update_atime_mtime()
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         volumes = {volume.id: volume for volume in builder.nodes(clazz=cls) if isinstance(volume, AwsEc2Volume)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
         five_minutes_or_less = min(timedelta(minutes=5), delta)
-
-        for volume_id in volumes:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric_name,
-                        namespace="AWS/EBS",
-                        period=five_minutes_or_less,
-                        ref_id=volume_id,
-                        stat="Sum",
-                        unit="Bytes",
-                        VolumeId=volume_id,
-                    )
-                    for metric_name in ["VolumeWriteBytes", "VolumeReadBytes"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric_name,
-                        namespace="AWS/EBS",
-                        period=five_minutes_or_less,
-                        ref_id=volume_id,
-                        stat="Sum",
-                        unit="Count",
-                        VolumeId=volume_id,
-                    )
-                    for metric_name in ["VolumeWriteOps", "VolumeReadOps"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric_name,
-                        namespace="AWS/EBS",
-                        period=delta,
-                        ref_id=volume_id,
-                        stat="Sum",
-                        unit="Seconds",
-                        VolumeId=volume_id,
-                    )
-                    for metric_name in ["VolumeTotalWriteTime", "VolumeIdleTime"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="VolumeQueueLength",
-                        namespace="AWS/EBS",
-                        period=delta,
-                        ref_id=volume_id,
-                        stat=stat,
-                        unit="Count",
-                        VolumeId=volume_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
 
         metric_normalizers = {
             "VolumeWriteBytes": MetricNormalization(
@@ -710,9 +651,77 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
             "VolumeQueueLength": MetricNormalization(metric_name=MetricName.VolumeQueueLength, unit=MetricUnit.Count),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
+        for volume_id in volumes:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=five_minutes_or_less,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeWriteBytes", "VolumeReadBytes"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=five_minutes_or_less,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeWriteOps", "VolumeReadOps"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat="Sum",
+                        unit="Seconds",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        VolumeId=volume_id,
+                    )
+                    for metric_name in ["VolumeTotalWriteTime", "VolumeIdleTime"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="VolumeQueueLength",
+                        namespace="AWS/EBS",
+                        period=delta,
+                        ref_id=volume_id,
+                        stat=stat,
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        VolumeId=volume_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
 
-        update_resource_metrics(volumes, cloudwatch_result, metric_normalizers)
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1416,7 +1425,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 builder.add_node(instance, instance_in)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         instances = {
             instance.id: instance
             for instance in builder.nodes(clazz=cls)
@@ -1430,80 +1439,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
         start = builder.metrics_start
         now = builder.created_at
-        for instance_id in instances:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/EC2",
-                        period=delta_since_last_scan,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Percent",
-                        InstanceId=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/EC2",
-                        period=period,
-                        ref_id=instance_id,
-                        stat="Sum",
-                        unit="Bytes",
-                        InstanceId=instance_id,
-                    )
-                    for name in ["NetworkIn", "NetworkOut"]
-                ]
-            )
-
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/EC2",
-                        period=period,
-                        ref_id=instance_id,
-                        stat="Sum",
-                        unit="Count",
-                        InstanceId=instance_id,
-                    )
-                    for name in ["NetworkPacketsIn", "NetworkPacketsOut"]
-                ]
-            )
-
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/EC2",
-                        period=period,
-                        ref_id=instance_id,
-                        stat="Sum",
-                        unit="Count",
-                        InstanceId=instance_id,
-                    )
-                    for name in ["DiskReadOps", "DiskWriteOps"]
-                ]
-            )
-
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/EC2",
-                        period=period,
-                        ref_id=instance_id,
-                        stat="Sum",
-                        unit="Bytes",
-                        InstanceId=instance_id,
-                    )
-                    for name in ["DiskReadBytes", "DiskWriteBytes"]
-                ]
-            )
 
         metric_normalizers = {
             "CPUUtilization": MetricNormalization(
@@ -1565,9 +1500,97 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
+        for instance_id in instances:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/EC2",
+                        period=delta_since_last_scan,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Percent",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        InstanceId=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=period,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        InstanceId=instance_id,
+                    )
+                    for name in ["NetworkIn", "NetworkOut"]
+                ]
+            )
 
-        update_resource_metrics(instances, cloudwatch_result, metric_normalizers)
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=period,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        InstanceId=instance_id,
+                    )
+                    for name in ["NetworkPacketsIn", "NetworkPacketsOut"]
+                ]
+            )
+
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=period,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadOps", "DiskWriteOps"]
+                ]
+            )
+
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/EC2",
+                        period=period,
+                        ref_id=instance_id,
+                        stat="Sum",
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        InstanceId=instance_id,
+                    )
+                    for name in ["DiskReadBytes", "DiskWriteBytes"]
+                ]
+            )
+
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -2849,7 +2872,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     nat_connectivity_type: Optional[str] = field(default=None)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         nat_gateways = {
             nat_gateway.id: nat_gateway
             for nat_gateway in builder.nodes(clazz=cls)
@@ -2859,54 +2882,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-
-        for nat_g_id in nat_gateways:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric,
-                        namespace="AWS/NATGateway",
-                        period=delta,
-                        ref_id=nat_g_id,
-                        stat=stat,
-                        unit="Count",
-                        NatGatewayId=nat_g_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for metric in [
-                        "ActiveConnectionCount",
-                        "ConnectionAttemptCount",
-                        "ConnectionEstablishedCount",
-                        "ErrorPortAllocation",
-                        "IdleTimeoutCount",
-                        "PacketsDropCount",
-                        "PacketsInFromDestination",
-                        "PacketsInFromSource",
-                        "PacketsOutToDestination",
-                        "PacketsOutToSource",
-                    ]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric,
-                        namespace="AWS/NATGateway",
-                        period=delta,
-                        ref_id=nat_g_id,
-                        stat=stat,
-                        unit="Bytes",
-                        NatGatewayId=nat_g_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for metric in [
-                        "BytesInFromDestination",
-                        "BytesInFromSource",
-                        "BytesOutToDestination",
-                        "BytesOutToSource",
-                    ]
-                ]
-            )
 
         metric_normalizers = {
             "ActiveConnectionCount": MetricNormalization(
@@ -2981,9 +2956,61 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
+        for nat_g_id in nat_gateways:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/NATGateway",
+                        period=delta,
+                        ref_id=nat_g_id,
+                        stat=stat,
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        NatGatewayId=nat_g_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for metric in [
+                        "ActiveConnectionCount",
+                        "ConnectionAttemptCount",
+                        "ConnectionEstablishedCount",
+                        "ErrorPortAllocation",
+                        "IdleTimeoutCount",
+                        "PacketsDropCount",
+                        "PacketsInFromDestination",
+                        "PacketsInFromSource",
+                        "PacketsOutToDestination",
+                        "PacketsOutToSource",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric,
+                        namespace="AWS/NATGateway",
+                        period=delta,
+                        ref_id=nat_g_id,
+                        stat=stat,
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        NatGatewayId=nat_g_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for metric in [
+                        "BytesInFromDestination",
+                        "BytesInFromSource",
+                        "BytesOutToDestination",
+                        "BytesOutToSource",
+                    ]
+                ]
+            )
 
-        update_resource_metrics(nat_gateways, cloudwatch_result, metric_normalizers)
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

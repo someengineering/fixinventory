@@ -9,11 +9,9 @@ from datetime import timedelta
 from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization, tags_as_dict
 from fixlib.baseresources import BaseBucket, MetricName, MetricUnit, PhantomBaseResource, ModelReference
@@ -343,7 +341,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -352,6 +350,21 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             "GlacierStorage": "glacier_storage",
             "DeepArchiveStorage": "deep_archive_storage",
         }
+
+        metric_normalizers = {
+            "BucketSizeBytes": MetricNormalization(
+                metric_name=MetricName.BucketSizeBytes,
+                unit=MetricUnit.Bytes,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+            "NumberOfObjects": MetricNormalization(
+                metric_name=MetricName.NumberOfObjects,
+                unit=MetricUnit.Count,
+                normalize_value=lambda x: round(x, ndigits=4),
+            ),
+        }
+
+        queries = []
         for region in {
             s3_bucket.bucket_location
             for s3_bucket in builder.nodes(clazz=cls)
@@ -362,7 +375,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 for s3_bucket in builder.nodes(clazz=cls)
                 if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location == region
             }
-            queries = []
             delta = timedelta(days=1)
             now = builder.created_at
             start = now - timedelta(days=2)
@@ -376,6 +388,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         ref_id=s3_id,
                         stat="Average",
                         unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
                         BucketName=s3.name or s3.safe_name,
                         StorageType="AllStorageTypes",
                     )
@@ -390,26 +405,15 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                             stat="Average",
                             unit="Bytes",
                             fix_metric_name=f"{storage_type_name}_bucket_size",
+                            start=start,
+                            now=now,
+                            metric_normalization=metric_normalizers,
                             BucketName=s3.name or s3.safe_name,
                             StorageType=storage_type,
                         )
                     )
-            metric_normalizers = {
-                "BucketSizeBytes": MetricNormalization(
-                    metric_name=MetricName.BucketSizeBytes,
-                    unit=MetricUnit.Bytes,
-                    normalize_value=lambda x: round(x, ndigits=4),
-                ),
-                "NumberOfObjects": MetricNormalization(
-                    metric_name=MetricName.NumberOfObjects,
-                    unit=MetricUnit.Count,
-                    normalize_value=lambda x: round(x, ndigits=4),
-                ),
-            }
 
-            region_builder = builder.for_region(AwsRegion(id=region, name=region))
-            cloudwatch_result = AwsCloudwatchMetricData.query_for(region_builder, queries, start, now)
-            update_resource_metrics(s3s, cloudwatch_result, metric_normalizers)
+            # region_builder = builder.for_region(AwsRegion(id=region, name=region))
             # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
             for s3 in s3s.values():
                 bucket_size: Dict[str, float] = defaultdict(float)
@@ -419,6 +423,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                             bucket_size[name] += value
                 if bucket_size:
                     s3._resource_usage["bucket_size_bytes"] = dict(bucket_size)
+        return queries
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)

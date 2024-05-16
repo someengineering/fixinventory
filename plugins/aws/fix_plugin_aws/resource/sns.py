@@ -6,10 +6,8 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
     calculate_min_max_avg,
-    update_resource_metrics,
 )
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
@@ -93,7 +91,7 @@ class AwsSnsTopic(AwsResource):
                     builder.submit_work(service_name, add_tags, topic_instance)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         sns_topics = {sns.id: sns for sns in builder.nodes(clazz=cls) if isinstance(sns, AwsSnsTopic)}
         queries = []
         delta = builder.metrics_delta
@@ -101,39 +99,6 @@ class AwsSnsTopic(AwsResource):
         now = builder.created_at
         period = min(timedelta(minutes=5), delta)
 
-        for sns_id, sns_topic in sns_topics.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric_name,
-                        namespace="AWS/SNS",
-                        period=period,
-                        ref_id=sns_id,
-                        stat="Sum",
-                        unit="Count",
-                        TopicName=sns_topic.name or sns_topic.safe_name,
-                    )
-                    for metric_name in [
-                        "NumberOfMessagesPublished",
-                        "NumberOfNotificationsDelivered",
-                        "NumberOfNotificationsFailed",
-                    ]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="PublishSize",
-                        namespace="AWS/SNS",
-                        period=delta,
-                        ref_id=sns_id,
-                        stat=stat,
-                        unit="Bytes",
-                        TopicName=sns_topic.name or sns_topic.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
         metric_normalizers = {
             "NumberOfMessagesPublished": MetricNormalization(
                 metric_name=MetricName.NumberOfMessagesPublished,
@@ -160,9 +125,47 @@ class AwsSnsTopic(AwsResource):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
+        for sns_id, sns_topic in sns_topics.items():
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=metric_name,
+                        namespace="AWS/SNS",
+                        period=period,
+                        ref_id=sns_id,
+                        stat="Sum",
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        TopicName=sns_topic.name or sns_topic.safe_name,
+                    )
+                    for metric_name in [
+                        "NumberOfMessagesPublished",
+                        "NumberOfNotificationsDelivered",
+                        "NumberOfNotificationsFailed",
+                    ]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="PublishSize",
+                        namespace="AWS/SNS",
+                        period=delta,
+                        ref_id=sns_id,
+                        stat=stat,
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        TopicName=sns_topic.name or sns_topic.safe_name,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
 
-        update_resource_metrics(sns_topics, cloudwatch_result, metric_normalizers)
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.topic_kms_master_key_id:

@@ -8,7 +8,6 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
-    update_resource_metrics,
 )
 from fix_plugin_aws.utils import MetricNormalization
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
@@ -581,7 +580,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         rds_instances = {
             instance.id: instance for instance in builder.nodes(clazz=cls) if isinstance(instance, AwsRdsInstance)
         }
@@ -589,82 +588,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-
-        for instance_id in rds_instances:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Percent",
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Count",
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Seconds",
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["ReadLatency", "WriteLatency"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Bytes",
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Bytes/Second",
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
-                ]
-            )
 
         metric_normalizers = {
             "CPUUtilization": MetricNormalization(
@@ -730,9 +653,98 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
+        for instance_id in rds_instances:
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="CPUUtilization",
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Percent",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Seconds",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["ReadLatency", "WriteLatency"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/RDS",
+                        period=delta,
+                        ref_id=instance_id,
+                        stat=stat,
+                        unit="Bytes/Second",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        DBInstanceIdentifier=instance_id,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
+                ]
+            )
 
-        update_resource_metrics(rds_instances, cloudwatch_result, metric_normalizers)
+        return queries
 
 
 @define(eq=False, slots=False)

@@ -419,6 +419,9 @@ class AwsCloudwatchQuery:
     stat: str = "Sum"
     unit: str = "Count"
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
+    start: Optional[datetime] = None
+    now: Optional[datetime] = None
+    metric_normalization: Optional[Dict[str, Any]] = None
 
     def to_json(self) -> Json:
         return {
@@ -447,6 +450,9 @@ class AwsCloudwatchQuery:
         stat: str = "Sum",
         unit: str = "Count",
         fix_metric_name: Optional[str] = None,
+        start: Optional[datetime] = None,
+        now: Optional[datetime] = None,
+        metric_normalization: Optional[Dict[str, Any]] = None,
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
@@ -462,6 +468,9 @@ class AwsCloudwatchQuery:
             stat=stat,
             unit=unit,
             fix_metric_name=fix_metric_name,
+            start=start,
+            now=now,
+            metric_normalization=metric_normalization,
         )
 
 

@@ -234,9 +234,9 @@ class AwsResource(BaseResource, ABC):
                 builder.add_node(instance, js)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List:  # type: ignore
         # Default behavior: do nothing
-        pass
+        return []
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

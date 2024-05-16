@@ -1996,8 +1996,8 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_instance(cluster_arn: Json) -> List[AwsResource]:
-            cluster_instances: List[AwsResource] = []
+        def add_instance(cluster_arn: Json) -> List[AwsEcsCluster]:
+            cluster_instances: List[AwsEcsCluster] = []
 
             cluster = builder.client.list(
                 service_name,

@@ -7,9 +7,7 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import MetricNormalization
@@ -133,49 +131,13 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                 builder.submit_work(service_name, add_instance, queue_url)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         sqs_queues = {sqs.id: sqs for sqs in builder.nodes(clazz=cls) if isinstance(sqs, AwsSqsQueue)}
         queries = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
 
-        for sqs_id, sqs_queue in sqs_queues.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="ApproximateAgeOfOldestMessage",
-                        namespace="AWS/SQS",
-                        period=delta,
-                        ref_id=sqs_id,
-                        stat=stat,
-                        unit="Seconds",
-                        QueueName=sqs_queue.name or sqs_queue.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/SQS",
-                        period=delta,
-                        ref_id=sqs_id,
-                        stat=stat,
-                        unit="Count",
-                        QueueName=sqs_queue.name or sqs_queue.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in [
-                        "ApproximateNumberOfMessagesDelayed",
-                        "ApproximateNumberOfMessagesNotVisible",
-                        "ApproximateNumberOfMessagesVisible",
-                        "NumberOfMessagesReceived",
-                        "NumberOfMessagesSent",
-                    ]
-                ]
-            )
         metric_normalizers = {
             "ApproximateAgeOfOldestMessage": MetricNormalization(
                 metric_name=MetricName.ApproximateAgeOfOldestMessage,
@@ -209,9 +171,49 @@ class AwsSqsQueue(AwsResource, BaseQueue):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(sqs_queues, cloudwatch_result, metric_normalizers)
+        for sqs_id, sqs_queue in sqs_queues.items():
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="ApproximateAgeOfOldestMessage",
+                        namespace="AWS/SQS",
+                        period=delta,
+                        ref_id=sqs_id,
+                        stat=stat,
+                        unit="Seconds",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        QueueName=sqs_queue.name or sqs_queue.safe_name,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name=name,
+                        namespace="AWS/SQS",
+                        period=delta,
+                        ref_id=sqs_id,
+                        stat=stat,
+                        unit="Count",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        QueueName=sqs_queue.name or sqs_queue.safe_name,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                    for name in [
+                        "ApproximateNumberOfMessagesDelayed",
+                        "ApproximateNumberOfMessagesNotVisible",
+                        "ApproximateNumberOfMessagesVisible",
+                        "NumberOfMessagesReceived",
+                        "NumberOfMessagesSent",
+                    ]
+                ]
+            )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.sqs_kms_master_key_id:

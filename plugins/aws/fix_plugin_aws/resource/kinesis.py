@@ -4,9 +4,7 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
     AwsCloudwatchQuery,
-    update_resource_metrics,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
@@ -169,7 +167,7 @@ class AwsKinesisStream(AwsResource):
             builder.submit_work(service_name, add_instance, stream_name)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         kinesises = {
             kinesis.id: kinesis for kinesis in builder.nodes(clazz=cls) if isinstance(kinesis, AwsKinesisStream)
         }
@@ -177,36 +175,6 @@ class AwsKinesisStream(AwsResource):
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
-
-        for kinesis_id, kinesis in kinesises.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.Bytes",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Bytes",
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.IteratorAgeMilliseconds",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Milliseconds",
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
 
         metric_normalizers = {
             "GetRecords.Bytes": MetricNormalization(
@@ -221,9 +189,42 @@ class AwsKinesisStream(AwsResource):
             ),
         }
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(kinesises, cloudwatch_result, metric_normalizers)
+        for kinesis_id, kinesis in kinesises.items():
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="GetRecords.Bytes",
+                        namespace="AWS/Kinesis",
+                        period=delta,
+                        ref_id=kinesis_id,
+                        stat=stat,
+                        unit="Bytes",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        StreamName=kinesis.name or kinesis.safe_name,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+            queries.extend(
+                [
+                    AwsCloudwatchQuery.create(
+                        metric_name="GetRecords.IteratorAgeMilliseconds",
+                        namespace="AWS/Kinesis",
+                        period=delta,
+                        ref_id=kinesis_id,
+                        stat=stat,
+                        unit="Milliseconds",
+                        start=start,
+                        now=now,
+                        metric_normalization=metric_normalizers,
+                        StreamName=kinesis.name or kinesis.safe_name,
+                    )
+                    for stat in ["Minimum", "Average", "Maximum"]
+                ]
+            )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

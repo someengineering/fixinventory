@@ -244,7 +244,7 @@ class AwsGlacierVault(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], source: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], source: List[Json], builder: GraphBuilder) -> None:
         def add_instance(vault: Json) -> None:
             if vault_instance := cls.from_api(vault, builder):
                 builder.add_node(vault_instance, vault)
