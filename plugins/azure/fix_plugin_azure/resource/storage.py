@@ -1080,11 +1080,11 @@ class AzureStorageAccount(AzureResource):
         )
         items = graph_builder.client.list(api_spec)
         collected = class_instance.collect(items, graph_builder)
-        if graph_builder.config.collect_usage_metrics:
-            try:
-                class_instance.collect_usage_metrics(graph_builder, collected)
-            except Exception as e:
-                log.warning(f"Failed to collect usage metrics for {class_instance.safe_name}: {e}")
+        # if graph_builder.config.collect_usage_metrics:
+        #     try:
+        #         class_instance.collect_usage_metrics(graph_builder, collected)
+        #     except Exception as e:
+        #         log.warning(f"Failed to collect usage metrics for {class_instance.safe_name}: {e}")
         for clazz in collected:
             graph_builder.add_edge(
                 self,

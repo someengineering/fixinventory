@@ -32,7 +32,7 @@ def get_client(subscription_id: str) -> AzureClient:
     if azure_config.accounts and (account := azure_config.accounts.get(subscription_id)):
         credential = account.credentials()
     else:
-        credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential(process_timeout=300)
     return AzureClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
 
 
