@@ -1,5 +1,5 @@
 from datetime import datetime
-from concurrent.futures import as_completed
+from concurrent.futures import as_completed, wait
 import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
@@ -250,16 +250,19 @@ class AzureMetricData:
             )
             futures.append(future)
 
-        # Retrieve results from submitted queries and populate the result dictionary
-        for future in as_completed(futures):
-            try:
-                metric, metric_id = future.result()
-                if metric is not None and metric_id is not None:
-                    result[lookup[metric_id]] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-                raise e
-
+        try:
+            # Retrieve results from submitted queries and populate the result dictionary
+            for future in as_completed(futures, 30):
+                try:
+                    metric, metric_id = future.result()
+                    if metric is not None and metric_id is not None:
+                        result[lookup[metric_id]] = metric
+                except Exception as e:
+                    log.warning(f"An error occurred while processing a metric query: {e}")
+                    raise e
+        except TimeoutError as e:
+            log.warning(f"Metrics fetching data is failed: {e}")
+            return {}
         return result
 
     @staticmethod
