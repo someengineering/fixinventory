@@ -1,5 +1,5 @@
 from datetime import datetime
-from concurrent.futures import as_completed, wait
+from concurrent.futures import as_completed
 import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
