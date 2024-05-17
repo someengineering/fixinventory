@@ -136,6 +136,15 @@ class MetricName(str, Enum):
     VolumeQueueLength = "volume_queue_length"
     NumberOfObjects = "number_of_objects"
     BucketSizeBytes = "bucket_size"
+    UsedCapacity = "used_capacity"
+    BlobCount = "blob"  # _count will be added to the end because of the unit
+    BlobCapacity = "blob_capacity"
+    QueueCount = "blob"  # _count will be added to the end because of the unit
+    QueueCapacity = "blob_capacity"
+    FileCount = "blob"  # _count will be added to the end because of the unit
+    FileCapacity = "blob_capacity"
+    TableCount = "blob"  # _count will be added to the end because of the unit
+    TableCapacity = "blob_capacity"
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit

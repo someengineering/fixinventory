@@ -1,13 +1,25 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Optional, Dict, List, Type
 from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
-from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, GraphBuilder
+from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, AzureResourceType, GraphBuilder
+from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
+from fix_plugin_azure.utils import MetricNormalization
 
-from fixlib.baseresources import BaseBucket, BaseNetworkShare, BaseQueue, EdgeType, ModelReference
+from fixlib.baseresources import (
+    BaseBucket,
+    BaseNetworkShare,
+    BaseQueue,
+    EdgeType,
+    MetricName,
+    MetricUnit,
+    ModelReference,
+)
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
+log = logging.getLogger("fix.plugins.azure")
 service_name = "azure_storage"
 
 
@@ -160,6 +172,46 @@ class AzureBlobContainer(AzureResource, BaseBucket):
     remaining_retention_days: Optional[int] = field(default=None, metadata={'description': 'Remaining retention days for soft deleted blob container.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={'description': 'The version of the deleted blob container.'})  # fmt: skip
 
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        blob_containers = {blob_container.id: blob_container for blob_container in collected_resources}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for container_id in blob_containers:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="BlobCapacity",
+                    metric_namespace="microsoft.storage/storageaccounts/blobservices",
+                    instance_id=container_id,
+                    aggregation=("average",),
+                    ref_id=container_id,
+                    unit="Bytes",
+                )
+            )
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="BlobCount",
+                    metric_namespace="microsoft.storage/storageaccounts/blobservices",
+                    instance_id=container_id,
+                    aggregation=("average",),
+                    ref_id=container_id,
+                    unit="Count",
+                )
+            )
+
+        metric_normalizers = {
+            "BlobCapacity": MetricNormalization(metric_name=MetricName.BlobCapacity, unit=MetricUnit.Bytes),
+            "BlobCount": MetricNormalization(metric_name=MetricName.BlobCount, unit=MetricUnit.Count),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(blob_containers, metric_result, metric_normalizers)
+
 
 @define(eq=False, slots=False)
 class AzureDeletedAccount(AzureResource):
@@ -267,6 +319,46 @@ class AzureFileShare(AzureResource, BaseNetworkShare):
     snapshot_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of share snapshot returned in the response of list shares with expand param snapshots .'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the share."})
 
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        storage_files = {storage_file.id: storage_file for storage_file in collected_resources}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for file_id in storage_files:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="FileCapacity",
+                    metric_namespace="microsoft.storage/storageaccounts/fileservices",
+                    instance_id=file_id,
+                    aggregation=("average",),
+                    ref_id=file_id,
+                    unit="Bytes",
+                )
+            )
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="FileCount",
+                    metric_namespace="microsoft.storage/storageaccounts/fileservices",
+                    instance_id=file_id,
+                    aggregation=("average",),
+                    ref_id=file_id,
+                    unit="Count",
+                )
+            )
+
+        metric_normalizers = {
+            "FileCapacity": MetricNormalization(metric_name=MetricName.FileCapacity, unit=MetricUnit.Bytes),
+            "FileCount": MetricNormalization(metric_name=MetricName.FileCount, unit=MetricUnit.Count),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(storage_files, metric_result, metric_normalizers)
+
 
 @define(eq=False, slots=False)
 class AzureQueue(AzureResource, BaseQueue):
@@ -280,6 +372,46 @@ class AzureQueue(AzureResource, BaseQueue):
     }
     approximate_message_count: Optional[int] = field(default=None, metadata={'description': 'Integer indicating an approximate number of messages in the queue. This number is not lower than the actual number of messages in the queue, but could be higher.'})  # fmt: skip
     queue_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair that represents queue metadata.'})  # fmt: skip
+
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        queues = {queue.id: queue for queue in collected_resources}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for queue_id in queues:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="QueueCapacity",
+                    metric_namespace="microsoft.storage/storageaccounts/queueservices",
+                    instance_id=queue_id,
+                    aggregation=("average",),
+                    ref_id=queue_id,
+                    unit="Bytes",
+                )
+            )
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="QueueCount",
+                    metric_namespace="microsoft.storage/storageaccounts/queueservices",
+                    instance_id=queue_id,
+                    aggregation=("average",),
+                    ref_id=queue_id,
+                    unit="Count",
+                )
+            )
+
+        metric_normalizers = {
+            "QueueCapacity": MetricNormalization(metric_name=MetricName.QueueCapacity, unit=MetricUnit.Bytes),
+            "QueueCount": MetricNormalization(metric_name=MetricName.QueueCount, unit=MetricUnit.Count),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(queues, metric_result, metric_normalizers)
 
 
 @define(eq=False, slots=False)
@@ -948,6 +1080,11 @@ class AzureStorageAccount(AzureResource):
         )
         items = graph_builder.client.list(api_spec)
         collected = class_instance.collect(items, graph_builder)
+        if graph_builder.config.collect_usage_metrics:
+            try:
+                class_instance.collect_usage_metrics(graph_builder, collected)
+            except Exception as e:
+                log.warning(f"Failed to collect usage metrics for {class_instance.safe_name}: {e}")
         for clazz in collected:
             graph_builder.add_edge(
                 self,
@@ -1011,6 +1148,35 @@ class AzureStorageAccount(AzureResource):
                 clazz=AzureStorageSku,
             )
 
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        accounts = {storage_acc.id: storage_acc for storage_acc in collected_resources}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for account_id in accounts:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="UsedCapacity",
+                    metric_namespace="microsoft.storage/storageaccounts",
+                    instance_id=account_id,
+                    aggregation=("average",),
+                    ref_id=account_id,
+                    unit="Bytes",
+                )
+            )
+
+        metric_normalizers = {
+            "UsedCapacity": MetricNormalization(metric_name=MetricName.UsedCapacity, unit=MetricUnit.Bytes)
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(accounts, metric_result, metric_normalizers)
+
 
 @define(eq=False, slots=False)
 class AzureStorageUsage(AzureResource, AzureBaseUsage):
@@ -1068,6 +1234,46 @@ class AzureTable(AzureResource):
     }
     table_signed_identifiers: Optional[List[AzureTableSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the table.'})  # fmt: skip
     table_name: Optional[str] = field(default=None, metadata={"description": "Table name under the specified account"})
+
+    @classmethod
+    def collect_usage_metrics(
+        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+    ) -> None:
+        tables = {table.id: table for table in collected_resources}
+        queries = []
+        start = builder.metrics_start
+        now = builder.created_at
+        delta = builder.metrics_delta
+        for table_id in tables:
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="TableCapacity",
+                    metric_namespace="microsoft.storage/storageaccounts/tableservices",
+                    instance_id=table_id,
+                    aggregation=("average",),
+                    ref_id=table_id,
+                    unit="Bytes",
+                )
+            )
+            queries.append(
+                AzureMetricQuery.create(
+                    metric_name="TableCount",
+                    metric_namespace="microsoft.storage/storageaccounts/tableservices",
+                    instance_id=table_id,
+                    aggregation=("average",),
+                    ref_id=table_id,
+                    unit="Count",
+                )
+            )
+
+        metric_normalizers = {
+            "QueueCapacity": MetricNormalization(metric_name=MetricName.QueueCapacity, unit=MetricUnit.Bytes),
+            "QueueCount": MetricNormalization(metric_name=MetricName.QueueCount, unit=MetricUnit.Count),
+        }
+
+        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
+
+        update_resource_metrics(tables, metric_result, metric_normalizers)
 
 
 resources: List[Type[AzureResource]] = [
