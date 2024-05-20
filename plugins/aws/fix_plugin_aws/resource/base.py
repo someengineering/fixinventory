@@ -18,7 +18,7 @@ from boto3.exceptions import Boto3Error
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice
-from fix_plugin_aws.utils import arn_partition
+from fix_plugin_aws.utils import arn_partition, MetricNormalization
 from fixlib.utils import utc
 from fixlib.baseresources import (
     BaseAccount,
@@ -227,7 +227,7 @@ class AwsResource(BaseResource, ABC):
                 builder.add_node(instance, js)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> Tuple[List, Dict[str, AwsResource], Dict[str, Any]]:  # type: ignore
+    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> Tuple[List, Dict[str, AwsResource], Dict[str, MetricNormalization]]:  # type: ignore
         # Default behavior: do nothing
         return [], {}, {}
 

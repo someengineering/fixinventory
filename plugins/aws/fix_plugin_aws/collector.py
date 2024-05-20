@@ -56,7 +56,7 @@ from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from fixlib.json import value_in_path
 
-from .utils import global_region_by_partition
+from .utils import global_region_by_partition, MetricNormalization
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -305,22 +305,27 @@ class AwsAccountCollector:
 
     def _collect_metrics_data(
         self,
-        metrics: List[Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]],
+        metrics: List[
+            Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, MetricNormalization]]
+        ],
         builder: GraphBuilder,
     ) -> None:
         all_queries_with_data = []
-        for queries, _, _ in metrics:
+        normalizer_map: Dict[str, MetricNormalization] = {}
+        global_resource_map: Dict[str, AwsResource] = {}
+        for queries, resource_map, normalizer in metrics:
             queries_with_data = [
                 (query.start, query.now, query.regional_builder or builder, query)
                 for query in queries
                 if query.start and query.now
             ]
+            normalizer_map.update(normalizer)
+            global_resource_map.update(resource_map)
             all_queries_with_data.extend(queries_with_data)
 
         if all_queries_with_data:
             cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
-            for _, resource_map, normalizer in metrics:
-                cloudwatch.update_resource_metrics(resource_map, cloudwatch_result, normalizer)
+            cloudwatch.update_resource_metrics(global_resource_map, cloudwatch_result, normalizer_map)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
