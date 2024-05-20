@@ -291,13 +291,16 @@ class AwsAccountCollector:
         globl_metrics_data_list: List[
             Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]
         ] = []
+        temp_len = 0
         for resource in resources:
             metrics_data = resource.collect_usage_metrics(builder)
-            if (len(metrics_data[0]) + len(globl_metrics_data_list)) >= 500:
+            if (len(metrics_data[0]) + temp_len) >= 500:
                 builder.submit_work("cloudwatch", self._collect_metrics_data, globl_metrics_data_list, builder)
+                temp_len = 0
                 globl_metrics_data_list.clear()
                 globl_metrics_data_list.append(metrics_data)
             else:
+                temp_len += len(metrics_data[0])
                 globl_metrics_data_list.append(metrics_data)
 
     def _collect_metrics_data(
