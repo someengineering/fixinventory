@@ -298,10 +298,11 @@ class AwsAccountCollector:
                 builder.submit_work("cloudwatch", self._collect_metrics_data, globl_metrics_data_list, builder)
                 temp_len = 0
                 globl_metrics_data_list.clear()
-                globl_metrics_data_list.append(metrics_data)
-            else:
-                temp_len += len(metrics_data[0])
-                globl_metrics_data_list.append(metrics_data)
+            temp_len += len(metrics_data[0])
+            globl_metrics_data_list.append(metrics_data)
+
+        if temp_len != 0:
+            builder.submit_work("cloudwatch", self._collect_metrics_data, globl_metrics_data_list, builder)
 
     def _collect_metrics_data(
         self,
