@@ -308,18 +308,19 @@ class AwsAccountCollector:
         metrics: List[Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]],
         builder: GraphBuilder,
     ) -> None:
-        for data in metrics:
-            queries: List[cloudwatch.AwsCloudwatchQuery] = data[0]
-            resource_map = data[1]
-            normalizer = data[2]
-
-            query_with_data = [
+        all_queries_with_data = []
+        for queries, _, _ in metrics:
+            queries_with_data = [
                 (query.start, query.now, query.regional_builder or builder, query)
                 for query in queries
                 if query.start and query.now
             ]
-            cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(query_with_data)
-            cloudwatch.update_resource_metrics(resource_map, cloudwatch_result, normalizer)
+            all_queries_with_data.extend(queries_with_data)
+
+        if all_queries_with_data:
+            cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
+            for _, resource_map, normalizer in metrics:
+                cloudwatch.update_resource_metrics(resource_map, cloudwatch_result, normalizer)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
