@@ -1,7 +1,7 @@
 import logging
 from attrs import define
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Dict, List, Tuple, Type, Optional, ClassVar, Union
+from typing import Dict, List, Tuple, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -288,21 +288,21 @@ class AwsAccountCollector:
         return when_done
 
     def collect_usage_metrics(self, resources: List[Type[AwsResource]], builder: GraphBuilder) -> None:
-        globl_metrics_data_list: List[
-            Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]
+        global_metrics_data_list: List[
+            Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, MetricNormalization]]
         ] = []
         temp_len = 0
         for resource in resources:
             metrics_data = resource.collect_usage_metrics(builder)
             if (len(metrics_data[0]) + temp_len) >= 500:
-                builder.submit_work("cloudwatch", self._collect_metrics_data, globl_metrics_data_list, builder)
+                builder.submit_work("cloudwatch", self._collect_metrics_data, global_metrics_data_list, builder)
                 temp_len = 0
-                globl_metrics_data_list.clear()
+                global_metrics_data_list.clear()
             temp_len += len(metrics_data[0])
-            globl_metrics_data_list.append(metrics_data)
+            global_metrics_data_list.append(metrics_data)
 
         if temp_len != 0:
-            builder.submit_work("cloudwatch", self._collect_metrics_data, globl_metrics_data_list, builder)
+            builder.submit_work("cloudwatch", self._collect_metrics_data, global_metrics_data_list, builder)
 
     def _collect_metrics_data(
         self,
@@ -312,21 +312,21 @@ class AwsAccountCollector:
         builder: GraphBuilder,
     ) -> None:
         all_queries_with_data = []
-        normalizer_map: Dict[str, MetricNormalization] = {}
+        global_normalizer_map: Dict[str, MetricNormalization] = {}
         global_resource_map: Dict[str, AwsResource] = {}
-        for queries, resource_map, normalizer in metrics:
+        for queries, resource_map, normalizer_map in metrics:
             queries_with_data = [
                 (query.start, query.now, query.regional_builder or builder, query)
                 for query in queries
                 if query.start and query.now
             ]
-            normalizer_map.update(normalizer)
+            global_normalizer_map.update(normalizer_map)
             global_resource_map.update(resource_map)
             all_queries_with_data.extend(queries_with_data)
 
         if all_queries_with_data:
             cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
-            cloudwatch.update_resource_metrics(global_resource_map, cloudwatch_result, normalizer_map)
+            cloudwatch.update_resource_metrics(global_resource_map, cloudwatch_result, global_normalizer_map)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

@@ -227,7 +227,9 @@ class AwsResource(BaseResource, ABC):
                 builder.add_node(instance, js)
 
     @classmethod
-    def collect_usage_metrics(cls: Type[AwsResource], builder: GraphBuilder) -> Tuple[List, Dict[str, AwsResource], Dict[str, MetricNormalization]]:  # type: ignore
+    def collect_usage_metrics(
+        cls: Type[AwsResource], builder: GraphBuilder
+    ) -> Tuple[List, Dict[str, AwsResource], Dict[str, MetricNormalization]]:  # type: ignore
         # Default behavior: do nothing
         return [], {}, {}
 
