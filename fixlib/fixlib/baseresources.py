@@ -139,12 +139,12 @@ class MetricName(str, Enum):
     UsedCapacity = "used_capacity"
     BlobCount = "blob"  # _count will be added to the end because of the unit
     BlobCapacity = "blob_capacity"
-    QueueCount = "blob"  # _count will be added to the end because of the unit
-    QueueCapacity = "blob_capacity"
-    FileCount = "blob"  # _count will be added to the end because of the unit
-    FileCapacity = "blob_capacity"
-    TableCount = "blob"  # _count will be added to the end because of the unit
-    TableCapacity = "blob_capacity"
+    QueueCount = "queue"  # _count will be added to the end because of the unit
+    QueueCapacity = "queue_capacity"
+    FileCount = "file"  # _count will be added to the end because of the unit
+    FileCapacity = "file_capacity"
+    TableCount = "table"  # _count will be added to the end because of the unit
+    TableCapacity = "table_capacity"
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit

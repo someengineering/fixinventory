@@ -546,8 +546,7 @@ class GraphBuilder:
             start = now - delta
 
         self.metrics_start = start
-        # Converting the total seconds in 'delta' to minutes for further compute interval
-        self.metrics_delta = delta.total_seconds() / 60
+        self.metrics_delta = delta
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

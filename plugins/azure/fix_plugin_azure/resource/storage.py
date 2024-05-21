@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import ClassVar, Optional, Dict, List, Type
 from attr import define, field
@@ -1032,6 +1032,10 @@ class AzureStorageAccount(AzureResource):
         start = builder.metrics_start
         now = builder.created_at
         delta = builder.metrics_delta
+        # Minimum interval and time range for storage metrics is 1H
+        if delta.total_seconds() < 3600:
+            delta = timedelta(hours=1)
+            start = now - delta
         for account_id in accounts:
             blob_instance_id = account_id + "/blobServices/default"
             file_instance_id = account_id + "/fileServices/default"
@@ -1130,8 +1134,8 @@ class AzureStorageAccount(AzureResource):
 
         metric_normalizers = {
             "UsedCapacity": MetricNormalization(metric_name=MetricName.UsedCapacity, unit=MetricUnit.Bytes),
-            "TableCapacity": MetricNormalization(metric_name=MetricName.QueueCapacity, unit=MetricUnit.Bytes),
-            "TableCount": MetricNormalization(metric_name=MetricName.QueueCount, unit=MetricUnit.Count),
+            "TableCapacity": MetricNormalization(metric_name=MetricName.TableCapacity, unit=MetricUnit.Bytes),
+            "TableCount": MetricNormalization(metric_name=MetricName.TableCount, unit=MetricUnit.Count),
             "QueueCapacity": MetricNormalization(metric_name=MetricName.QueueCapacity, unit=MetricUnit.Bytes),
             "QueueCount": MetricNormalization(metric_name=MetricName.QueueCount, unit=MetricUnit.Count),
             "FileCapacity": MetricNormalization(metric_name=MetricName.FileCapacity, unit=MetricUnit.Bytes),

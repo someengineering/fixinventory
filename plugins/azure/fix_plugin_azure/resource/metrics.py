@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import as_completed
 import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
@@ -173,7 +173,8 @@ class AzureMetricData:
             self.metric_id = self.full_metric_values_data[0].id
 
     @staticmethod
-    def compute_interval(period: float) -> str:
+    def compute_interval(delta: timedelta) -> str:
+        period = delta.total_seconds() / 60
         intervals = {
             5: "1M",
             15: "5M",
@@ -194,7 +195,7 @@ class AzureMetricData:
         queries: List[AzureMetricQuery],
         start_time: datetime,
         end_time: datetime,
-        period: float,
+        delta: timedelta,
     ) -> "Dict[AzureMetricQuery, AzureMetricData]":
         """
         A static method to query Azure metrics for multiple queries simultaneously.
@@ -204,7 +205,7 @@ class AzureMetricData:
             queries (List[AzureMetricQuery]): A list of AzureMetricQuery objects representing the metrics to query.
             start_time (datetime): The start time for the metrics query.
             end_time (datetime): The end time for the metrics query.
-            period (float): The period over which to aggregate the metrics.
+            delta (timedelta): The delta over which to aggregate the metrics.
 
         Returns:
             Dict[AzureMetricQuery, AzureMetricData]: A dictionary mapping each query to its corresponding metric data.
@@ -234,7 +235,7 @@ class AzureMetricData:
         )
         # Define the timespan and interval for the query
         timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"
-        interval = AzureMetricData.compute_interval(period)
+        interval = AzureMetricData.compute_interval(delta)
 
         # Submit queries for each AzureMetricQuery
         futures = []
@@ -250,19 +251,15 @@ class AzureMetricData:
             )
             futures.append(future)
 
-        try:
-            # Retrieve results from submitted queries and populate the result dictionary
-            for future in as_completed(futures, 30):
-                try:
-                    metric, metric_id = future.result()
-                    if metric is not None and metric_id is not None:
-                        result[lookup[metric_id]] = metric
-                except Exception as e:
-                    log.warning(f"An error occurred while processing a metric query: {e}")
-                    raise e
-        except TimeoutError as e:
-            log.warning(f"Metrics fetching data is failed: {e}")
-            return {}
+        # Retrieve results from submitted queries and populate the result dictionary
+        for future in as_completed(futures):
+            try:
+                metric, metric_id = future.result()
+                if metric is not None and metric_id is not None:
+                    result[lookup[metric_id]] = metric
+            except Exception as e:
+                log.warning(f"An error occurred while processing a metric query: {e}")
+                raise e
         return result
 
     @staticmethod
