@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
@@ -10,6 +11,7 @@ from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
 service = "azure_container_service"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -150,8 +152,8 @@ class AzureFleet(AzureResource):
 
             try:
                 self.cluster_resource_id = item["properties"]["clusterResourceId"]
-            except KeyError:
-                pass
+            except KeyError as e:
+                log.warning(f"An error occured while setting cluster_resource_id: {e}")
 
         graph_builder.submit_work(service, collect_fleets)
 
