@@ -101,7 +101,7 @@ pycparser==2.22
 pygithub==2.3.0
 pygments==2.18.0
 pyjwt[crypto]==2.8.0
-pymysql==1.1.0
+pymysql==1.1.1
 pynacl==1.5.0
 pyopenssl==24.1.0
 pyparsing==3.1.2
