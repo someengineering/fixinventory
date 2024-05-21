@@ -32,6 +32,9 @@ def get_client(subscription_id: str) -> AzureClient:
     if azure_config.accounts and (account := azure_config.accounts.get(subscription_id)):
         credential = account.credentials()
     else:
+        # Increase the process timeout to ensure proper handling of credentials
+        # in environments with a high number of parallel futures. This helps to avoid timeouts
+        # during the credential acquisition process.
         credential = DefaultAzureCredential(process_timeout=300)
     return AzureClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
 
