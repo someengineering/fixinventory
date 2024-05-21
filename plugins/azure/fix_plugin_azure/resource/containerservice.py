@@ -9,6 +9,8 @@ from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
+service = "azure_container_service"
+
 
 @define(eq=False, slots=False)
 class AzureTrackedResource:
@@ -132,23 +134,26 @@ class AzureFleet(AzureResource):
     cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "Reference to the cluster ID"})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        api_spec = AzureApiSpec(
-            service="containerservice",
-            version="2023-10-15",
-            path=f"{self.id}/members",
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-        )
-        items: List[Json] = graph_builder.client.list(api_spec)
+        def collect_fleets() -> None:
+            api_spec = AzureApiSpec(
+                service="containerservice",
+                version="2023-10-15",
+                path=f"{self.id}/members",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items: List[Json] = graph_builder.client.list(api_spec)
 
-        item: Json = next(iter(items), {})
+            item: Json = next(iter(items), {})
 
-        try:
-            self.cluster_resource_id = item["properties"]["clusterResourceId"]
-        except KeyError:
-            pass
+            try:
+                self.cluster_resource_id = item["properties"]["clusterResourceId"]
+            except KeyError:
+                pass
+
+        graph_builder.submit_work(service, collect_fleets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_id := self.cluster_resource_id:
