@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Any, Tuple
+from typing import ClassVar, Dict, Optional, List, Any
 
 from attrs import define, field
 
@@ -88,6 +88,22 @@ class AwsKinesisEnhancedMetrics:
     shard_level_metrics: List[str] = field(factory=list)
 
 
+class RecordsBytesNormalization(MetricNormalization):
+    def __init__(self):
+        super().__init__(
+            metric_name=MetricName.RecordsBytes, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
+        )
+
+
+class RecordsIteratorAgeNormalization(MetricNormalization):
+    def __init__(self):
+        super().__init__(
+            metric_name=MetricName.RecordsIteratorAgeMilliseconds,
+            unit=MetricUnit.Milliseconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
 @define(eq=False, slots=False)
 class AwsKinesisStream(AwsResource):
     kind: ClassVar[str] = "aws_kinesis_stream"
@@ -166,65 +182,47 @@ class AwsKinesisStream(AwsResource):
         for stream_name in json:
             builder.submit_work(service_name, add_instance, stream_name)
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
-        kinesises: Dict[str, AwsResource] = {
-            kinesis.id: kinesis for kinesis in builder.nodes(clazz=cls) if isinstance(kinesis, AwsKinesisStream)
-        }
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
 
-        metric_normalizers = {
-            "GetRecords.Bytes": MetricNormalization(
-                metric_name=MetricName.RecordsBytes,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "GetRecords.IteratorAgeMilliseconds": MetricNormalization(
-                metric_name=MetricName.RecordsIteratorAgeMilliseconds,
-                unit=MetricUnit.Milliseconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
-
-        for kinesis_id, kinesis in kinesises.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.Bytes",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Bytes",
-                        start=start,
-                        now=now,
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.IteratorAgeMilliseconds",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Milliseconds",
-                        start=start,
-                        now=now,
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-        return queries, kinesises, metric_normalizers
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="GetRecords.Bytes",
+                    namespace="AWS/Kinesis",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=RecordsIteratorAgeNormalization(),
+                    stat=stat,
+                    unit="Bytes",
+                    start=start,
+                    now=now,
+                    StreamName=self.name or self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="GetRecords.IteratorAgeMilliseconds",
+                    namespace="AWS/Kinesis",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=RecordsIteratorAgeNormalization(),
+                    stat=stat,
+                    unit="Milliseconds",
+                    start=start,
+                    now=now,
+                    StreamName=self.name or self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

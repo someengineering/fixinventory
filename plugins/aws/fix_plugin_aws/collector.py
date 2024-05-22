@@ -55,6 +55,7 @@ from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from fixlib.json import value_in_path
+from fixlib.utils import chunks
 
 from .utils import global_region_by_partition, MetricNormalization
 
@@ -222,7 +223,7 @@ class AwsAccountCollector:
                 try:
                     log.info(f"[Aws:{self.account.id}] Collect usage metrics.")
                     # collect usage metrics
-                    self.collect_usage_metrics(all_resources, global_builder)
+                    self.collect_usage_metrics(global_builder)
                     # wait for all futures to finish
                     shared_queue.wait_for_submitted_work()
                 except Exception as e:
@@ -287,22 +288,17 @@ class AwsAccountCollector:
         when_done.add_done_callback(work_done)
         return when_done
 
-    def collect_usage_metrics(self, resources: List[Type[AwsResource]], builder: GraphBuilder) -> None:
-        global_metrics_data_list: List[
-            Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, MetricNormalization]]
-        ] = []
-        temp_len = 0
-        for resource in resources:
-            metrics_data = resource.collect_usage_metrics(builder)
-            if (len(metrics_data[0]) + temp_len) >= 500:
-                builder.submit_work("cloudwatch", self._collect_metrics_data, global_metrics_data_list, builder)
-                temp_len = 0
-                global_metrics_data_list.clear()
-            temp_len += len(metrics_data[0])
-            global_metrics_data_list.append(metrics_data)
-
-        if temp_len != 0:
-            builder.submit_work("cloudwatch", self._collect_metrics_data, global_metrics_data_list, builder)
+    def collect_usage_metrics(self, builder: GraphBuilder) -> None:
+        metrics_queries: List[cloudwatch.AwsCloudwatchQuery] = []
+        lookup = {}
+        for resource in builder.graph.nodes:
+            if not isinstance(resource, AwsResource):
+                continue
+            lookup[resource.id] = resource
+            queries = resource.collect_usage_metrics(builder)
+            metrics_queries.extend(queries)
+        for queries in chunks(metrics_queries, 499):
+            builder.submit_work("cloudwatch", self._collect_metrics_data, queries, builder)
 
     def _collect_metrics_data(
         self,

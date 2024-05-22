@@ -416,6 +416,7 @@ class AwsCloudwatchQuery:
     period: timedelta
     ref_id: str
     metric_id: str
+    metric_normalization: MetricNormalization
     stat: str = "Sum"
     unit: str = "Count"
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
@@ -446,6 +447,7 @@ class AwsCloudwatchQuery:
         namespace: str,
         period: timedelta,
         ref_id: str,
+        metric_normalization: MetricNormalization,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
         unit: str = "Count",
@@ -471,6 +473,7 @@ class AwsCloudwatchQuery:
             start=start,
             now=now,
             regional_builder=regional_builder,
+            metric_normalization=metric_normalization,
         )
 
 
@@ -648,7 +651,7 @@ def update_resource_metrics(
             continue
         if len(metric.metric_values) == 0:
             continue
-        normalizer = metric_normalizers.get(query.metric_name)
+        normalizer = query.metric_normalization
         if not normalizer:
             continue
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
+from typing import ClassVar, Dict, List, Optional, Type, Any
 
 from attr import define, field
 
@@ -322,6 +322,49 @@ class AwsRdsDBRole:
     status: Optional[str] = field(default=None)
 
 
+class NetworkThroughputNormalization(MetricNormalization):
+    def __init__(self, name: MetricName):
+        super().__init__(
+            metric_name=name, unit=MetricUnit.BytesPerSecond, normalize_value=lambda x: round(x, ndigits=4)
+        )
+
+
+class CPUUtilizationNormalization(MetricNormalization):
+    def __init__(self):
+        super().__init__(
+            metric_name=MetricName.CpuUtilization,
+            unit=MetricUnit.Percent,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
+class DatabaseConnectionsNormalization(MetricNormalization):
+    def __init__(self):
+        super().__init__(
+            metric_name=MetricName.DatabaseConnections,
+            unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
+class CountMetricNormalization(MetricNormalization):
+    def __init__(self, name: MetricName):
+        if name in ["ReadIOPS", "WriteIOPS"]:
+            super().__init__(metric_name=name, unit=MetricUnit.IOPS, normalize_value=lambda x: round(x, ndigits=4))
+        else:
+            super().__init__(metric_name=name, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4))
+
+
+class LatencyNormalization(MetricNormalization):
+    def __init__(self, name: MetricName):
+        super().__init__(metric_name=name, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4))
+
+
+class StorageSpaceNormalization(MetricNormalization):
+    def __init__(self, name: MetricName):
+        super().__init__(metric_name=name, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4))
+
+
 @define(eq=False, slots=False)
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
@@ -511,6 +554,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         namespace="AWS/RDS",
                         period=delta,
                         ref_id=vid,
+                        metric_normalization=DatabaseConnectionsNormalization(),
                         DBInstanceIdentifier=vid,
                     )
                 )
@@ -579,169 +623,118 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-db-instance")]
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, Any]]:
-        rds_instances: Dict[str, AwsResource] = {
-            instance.id: instance for instance in builder.nodes(clazz=cls) if isinstance(instance, AwsRdsInstance)
-        }
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         start = builder.metrics_start
         now = builder.created_at
 
-        metric_normalizers = {
-            "CPUUtilization": MetricNormalization(
-                metric_name=MetricName.CpuUtilization,
-                unit=MetricUnit.Percent,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "DatabaseConnections": MetricNormalization(
-                metric_name=MetricName.DatabaseConnections,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ReadIOPS": MetricNormalization(
-                metric_name=MetricName.DiskRead,
-                unit=MetricUnit.IOPS,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "WriteIOPS": MetricNormalization(
-                metric_name=MetricName.DiskWrite,
-                unit=MetricUnit.IOPS,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ReadLatency": MetricNormalization(
-                metric_name=MetricName.ReadLatency,
-                unit=MetricUnit.Seconds,
-                # normalize to packets per second
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "WriteLatency": MetricNormalization(
-                metric_name=MetricName.WriteLatency,
-                unit=MetricUnit.Seconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "FreeStorageSpace": MetricNormalization(
-                metric_name=MetricName.FreeStorageSpace,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "FreeableMemory": MetricNormalization(
-                metric_name=MetricName.FreeableMemory,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "SwapUsage": MetricNormalization(
-                metric_name=MetricName.SwapUsage,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "DiskQueueDepth": MetricNormalization(
-                metric_name=MetricName.DiskQueueDepth,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=6),
-            ),
-            "NetworkReceiveThroughput": MetricNormalization(
-                metric_name=MetricName.NetworkReceiveThroughput,
-                unit=MetricUnit.BytesPerSecond,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "NetworkTransmitThroughput": MetricNormalization(
-                metric_name=MetricName.NetworkTransmitThroughput,
-                unit=MetricUnit.BytesPerSecond,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="CPUUtilization",
+                    namespace="AWS/RDS",
+                    period=delta,
+                    ref_id=self.id,
+                    stat=stat,
+                    unit="Percent",
+                    metric_normalization=CPUUtilizationNormalization(),
+                    start=start,
+                    now=now,
+                    DBInstanceIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/RDS",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=CountMetricNormalization(metric_name),
+                    stat=stat,
+                    unit="Count",
+                    start=start,
+                    now=now,
+                    DBInstanceIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("DatabaseConnections", MetricName.DatabaseConnections),
+                    ("ReadIOPS", MetricName.DiskRead),
+                    ("WriteIOPS", MetricName.DiskWrite),
+                    ("DiskQueueDepth", MetricName.DiskQueueDepth),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/RDS",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=LatencyNormalization(metric_name),
+                    stat=stat,
+                    unit="Seconds",
+                    start=start,
+                    now=now,
+                    DBInstanceIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("ReadLatency", MetricName.ReadLatency),
+                    ("WriteLatency", MetricName.WriteLatency),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/RDS",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=StorageSpaceNormalization(metric_name),
+                    stat=stat,
+                    unit="Bytes",
+                    start=start,
+                    now=now,
+                    DBInstanceIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("FreeableMemory", MetricName.FreeableMemory),
+                    ("FreeStorageSpace", MetricName.FreeStorageSpace),
+                    ("SwapUsage", MetricName.SwapUsage),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/RDS",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=NetworkThroughputNormalization(metric_name),
+                    stat=stat,
+                    unit="Bytes/Second",
+                    start=start,
+                    now=now,
+                    DBInstanceIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("NetworkReceiveThroughput", MetricName.NetworkReceiveThroughput),
+                    ("NetworkTransmitThroughput", MetricName.NetworkTransmitThroughput),
+                ]
+            ]
+        )
 
-        for instance_id in rds_instances:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Percent",
-                        start=start,
-                        now=now,
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Count",
-                        start=start,
-                        now=now,
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["DatabaseConnections", "ReadIOPS", "WriteIOPS", "DiskQueueDepth"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Seconds",
-                        start=start,
-                        now=now,
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["ReadLatency", "WriteLatency"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Bytes",
-                        start=start,
-                        now=now,
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["FreeableMemory", "FreeStorageSpace", "SwapUsage"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/RDS",
-                        period=delta,
-                        ref_id=instance_id,
-                        stat=stat,
-                        unit="Bytes/Second",
-                        start=start,
-                        now=now,
-                        DBInstanceIdentifier=instance_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
-                ]
-            )
-
-        return queries, rds_instances, metric_normalizers
+        return queries
 
 
 @define(eq=False, slots=False)

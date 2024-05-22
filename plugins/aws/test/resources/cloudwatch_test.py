@@ -2,6 +2,9 @@ from datetime import timedelta, datetime, timezone
 from typing import cast, Any
 from types import SimpleNamespace
 
+from fix_plugin_aws.utils import MetricNormalization
+
+from fixlib.baseresources import MetricName, MetricUnit
 from fixlib.graph import Graph
 
 from test.resources import round_trip_for
@@ -43,6 +46,7 @@ def test_metric(builder: GraphBuilder) -> None:
         metric_name="VolumeReadOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
+        metric_normalization=MetricNormalization(metric_name=MetricName.VolumeRead, unit=MetricUnit.IOPS),
         ref_id="vol-123",
         VolumeId="vol-123",
     )
@@ -50,6 +54,7 @@ def test_metric(builder: GraphBuilder) -> None:
         metric_name="VolumeWriteOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
+        metric_normalization=MetricNormalization(metric_name=MetricName.VolumeWrite, unit=MetricUnit.IOPS),
         ref_id="vol-123",
         VolumeId="vol-123",
     )
