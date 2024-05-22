@@ -943,6 +943,7 @@ class ArangoGraphDB(GraphDB):
             read=[temp_name, self.usage_db.collection_name],
             write=[self.edge_collection(a) for a in EdgeTypes.all]
             + [self.vertex_name, self.in_progress, self.node_history],
+            timeout=3600,  # wait for the transaction lock and execution
         )
         log.info(f"Move temp->proper data: change_id={change_id} done.")
 
