@@ -1,7 +1,7 @@
 import logging
 from attrs import define
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Dict, List, Tuple, Type, Optional, ClassVar, Union
+from typing import Dict, List, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -57,7 +57,7 @@ from fixlib.types import Json
 from fixlib.json import value_in_path
 from fixlib.utils import chunks
 
-from .utils import global_region_by_partition, MetricNormalization
+from .utils import global_region_by_partition
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -298,31 +298,22 @@ class AwsAccountCollector:
             queries = resource.collect_usage_metrics(builder)
             metrics_queries.extend(queries)
         for queries in chunks(metrics_queries, 499):
-            builder.submit_work("cloudwatch", self._collect_metrics_data, queries, builder)
+            builder.submit_work("cloudwatch", self._collect_metrics_data, queries, lookup, builder)
 
     def _collect_metrics_data(
         self,
-        metrics: List[
-            Tuple[List[cloudwatch.AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, MetricNormalization]]
-        ],
+        metrics: List[cloudwatch.AwsCloudwatchQuery],
+        lookup_map: Dict[str, AwsResource],
         builder: GraphBuilder,
     ) -> None:
         all_queries_with_data = []
-        global_normalizer_map: Dict[str, MetricNormalization] = {}
-        global_resource_map: Dict[str, AwsResource] = {}
-        for queries, resource_map, normalizer_map in metrics:
-            queries_with_data = [
-                (query.start, query.now, query.regional_builder or builder, query)
-                for query in queries
-                if query.start and query.now
-            ]
-            global_normalizer_map.update(normalizer_map)
-            global_resource_map.update(resource_map)
-            all_queries_with_data.extend(queries_with_data)
+        for query in metrics:
+            if query.now and query.start:
+                all_queries_with_data.append((query.start, query.now, query.regional_builder or builder, query))
 
         if all_queries_with_data:
             cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
-            cloudwatch.update_resource_metrics(global_resource_map, cloudwatch_result, global_normalizer_map)
+            cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

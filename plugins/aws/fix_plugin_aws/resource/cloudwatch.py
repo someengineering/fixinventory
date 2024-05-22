@@ -416,9 +416,9 @@ class AwsCloudwatchQuery:
     period: timedelta
     ref_id: str
     metric_id: str
-    metric_normalization: MetricNormalization
     stat: str = "Sum"
     unit: str = "Count"
+    metric_normalization: Optional[MetricNormalization] = None
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
     start: Optional[datetime] = None
     now: Optional[datetime] = None
@@ -447,7 +447,7 @@ class AwsCloudwatchQuery:
         namespace: str,
         period: timedelta,
         ref_id: str,
-        metric_normalization: MetricNormalization,
+        metric_normalization: Optional[MetricNormalization] = None,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
         unit: str = "Count",
@@ -643,7 +643,6 @@ V = TypeVar("V", bound=BaseResource)
 def update_resource_metrics(
     resources_map: Dict[str, V],
     cloudwatch_result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData],
-    metric_normalizers: Dict[str, MetricNormalization],
 ) -> None:
     for query, metric in cloudwatch_result.items():
         resource = resources_map.get(query.ref_id)

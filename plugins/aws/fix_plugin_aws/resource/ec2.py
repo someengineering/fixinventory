@@ -509,13 +509,7 @@ VolumeStatusMapping = {
 
 
 class VolumeBytesNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
-        """
-        Normalizes Volume metrics to MBps.
-
-        :param period: The period over which to normalize the data.
-        :param metric_name: The specific metric name (e.g., VolumeWrite, VolumeRead).
-        """
+    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
         super().__init__(
             metric_name=metric_name,
             unit=MetricUnit.MegabytesPerSecond,
@@ -525,13 +519,7 @@ class VolumeBytesNormalization(MetricNormalization):
 
 
 class VolumeOpsNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
-        """
-        Normalizes Volume operations metrics to IOPS.
-
-        :param period: The period over which to normalize the data.
-        :param metric_name: The specific metric name (e.g., VolumeWrite, VolumeRead).
-        """
+    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
         super().__init__(
             metric_name=metric_name,
             unit=MetricUnit.IOPS,
@@ -541,20 +529,12 @@ class VolumeOpsNormalization(MetricNormalization):
 
 
 class VolumeTimeNormalization(MetricNormalization):
-    def __init__(self, metric_name: MetricName):
-        """
-        Normalizes Volume time metrics to seconds.
-
-        :param metric_name: The specific metric name (e.g., VolumeTotalWriteTime, VolumeIdleTime).
-        """
+    def __init__(self, metric_name: MetricName) -> None:
         super().__init__(metric_name=metric_name, unit=MetricUnit.Seconds, compute_stats=calculate_min_max_avg)
 
 
 class VolumeQueueLengthNormalization(MetricNormalization):
-    def __init__(self):
-        """
-        Normalizes Volume queue length metrics to count.
-        """
+    def __init__(self) -> None:
         super().__init__(metric_name=MetricName.VolumeQueueLength, unit=MetricUnit.Count)
 
 
@@ -627,9 +607,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                             namespace="AWS/EBS",
                             period=delta,
                             ref_id=vid,
-                            metric_normalization=MetricNormalization(
-                                metric_name=MetricName.VolumeRead, unit=MetricUnit.IOPS
-                            ),
                             VolumeId=vid,
                         )
                     )
@@ -639,9 +616,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                             namespace="AWS/EBS",
                             period=delta,
                             ref_id=vid,
-                            metric_normalization=MetricNormalization(
-                                metric_name=MetricName.VolumeWrite, unit=MetricUnit.IOPS
-                            ),
                             VolumeId=vid,
                         )
                     )
@@ -1295,7 +1269,7 @@ InstanceStatusMapping = {
 
 # Define specific normalizers
 class CPUUtilizationNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.CpuUtilization,
             unit=MetricUnit.Percent,
@@ -1304,7 +1278,7 @@ class CPUUtilizationNormalization(MetricNormalization):
 
 
 class NetworkNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
+    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
         super().__init__(
             metric_name=metric_name,
             unit=MetricUnit.MegabitsPerSecond,

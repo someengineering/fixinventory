@@ -347,7 +347,7 @@ class AwsAlbListener:
 
 
 class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName, period: timedelta):
+    def __init__(self, name: MetricName, period: timedelta) -> None:
         super().__init__(
             metric_name=name,
             unit=MetricUnit.Count,
@@ -357,7 +357,7 @@ class CountNormalization(MetricNormalization):
 
 
 class TargetResponseTimeNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.TargetResponseTime,
             unit=MetricUnit.Seconds,
@@ -366,7 +366,7 @@ class TargetResponseTimeNormalization(MetricNormalization):
 
 
 class ProcessedBytesNormalization(MetricNormalization):
-    def __init__(self, name: MetricName, period: timedelta):
+    def __init__(self, name: MetricName, period: timedelta) -> None:
         super().__init__(
             metric_name=name,
             unit=MetricUnit.MegabitsPerSecond,

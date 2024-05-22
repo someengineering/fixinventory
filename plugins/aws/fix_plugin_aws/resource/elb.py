@@ -250,7 +250,7 @@ class AwsElbLoadBalancerAttributes:
 
 
 class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(
             metric_name=name,
             unit=MetricUnit.Count,
@@ -260,7 +260,7 @@ class CountNormalization(MetricNormalization):
 
 
 class HostCountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(
             metric_name=name,
             unit=MetricUnit.Count,
@@ -269,14 +269,14 @@ class HostCountNormalization(MetricNormalization):
 
 
 class LatencyNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.Latency, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4)
         )
 
 
 class ProcessedBytesNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.ProcessedBytes,
             unit=MetricUnit.BytesPerSecond,

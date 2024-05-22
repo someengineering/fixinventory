@@ -89,14 +89,14 @@ class AwsKinesisEnhancedMetrics:
 
 
 class RecordsBytesNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.RecordsBytes, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
         )
 
 
 class RecordsIteratorAgeNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.RecordsIteratorAgeMilliseconds,
             unit=MetricUnit.Milliseconds,

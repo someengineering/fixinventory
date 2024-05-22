@@ -38,7 +38,7 @@ class AwsSqsRedrivePolicy:
 
 
 class MessageAgeNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.ApproximateAgeOfOldestMessage,
             unit=MetricUnit.Bytes,
@@ -47,7 +47,7 @@ class MessageAgeNormalization(MetricNormalization):
 
 
 class NumberOfMessages(MetricNormalization):
-    def __init__(self, metric_name: MetricName):
+    def __init__(self, metric_name: MetricName) -> None:
         super().__init__(metric_name=metric_name, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4))
 
 

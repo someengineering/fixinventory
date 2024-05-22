@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
 from json import loads as json_loads
-from typing import ClassVar, Dict, List, Tuple, Type, Optional, cast, Any
+from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
 from attr import field
 from attrs import define
@@ -163,6 +163,20 @@ class AwsS3Logging:
     target_bucket: Optional[str] = field(default=None)
     target_grants: Optional[List[AwsS3TargetGrant]] = field(default=None)
     target_prefix: Optional[str] = field(default=None)
+
+
+class BucketSizeBytesNormalization(MetricNormalization):
+    def __init__(self) -> None:
+        super().__init__(
+            metric_name=MetricName.BucketSizeBytes, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
+        )
+
+
+class NumberOfObjectsNormalization(MetricNormalization):
+    def __init__(self) -> None:
+        super().__init__(
+            metric_name=MetricName.NumberOfObjects, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4)
+        )
 
 
 @define(eq=False, slots=False)
@@ -340,10 +354,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         )
         return tags_as_dict(tag_list)  # type: ignore
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder
-    ) -> Tuple[List[AwsCloudwatchQuery], Dict[str, AwsResource], Dict[str, MetricNormalization]]:
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -353,83 +364,58 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             "DeepArchiveStorage": "deep_archive_storage",
         }
 
-        metric_normalizers = {
-            "BucketSizeBytes": MetricNormalization(
-                metric_name=MetricName.BucketSizeBytes,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "NumberOfObjects": MetricNormalization(
-                metric_name=MetricName.NumberOfObjects,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
+        delta = timedelta(days=1)
+        now = builder.created_at
+        start = now - timedelta(days=2)
 
         queries: List[AwsCloudwatchQuery] = []
-
-        s3s_map: Dict[str, AwsResource] = {}
-        for region in {
-            s3_bucket.bucket_location
-            for s3_bucket in builder.nodes(clazz=cls)
-            if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location is not None
-        }:
-            s3s = {
-                s3_bucket.id: s3_bucket
-                for s3_bucket in builder.nodes(clazz=cls)
-                if isinstance(s3_bucket, AwsS3Bucket) and s3_bucket.bucket_location == region
-            }
-            s3s_map.update(s3s)
-            delta = timedelta(days=1)
-            now = builder.created_at
-            start = now - timedelta(days=2)
-
+        if region := self.bucket_location:
             region_builder = builder.for_region(AwsRegion(id=region, name=region))
 
-            for s3_id, s3 in s3s.items():
+            queries.append(
+                AwsCloudwatchQuery.create(
+                    metric_name="NumberOfObjects",
+                    namespace="AWS/S3",
+                    period=delta,
+                    ref_id=self.id,
+                    metric_normalization=NumberOfObjectsNormalization(),
+                    stat="Average",
+                    unit="Count",
+                    start=start,
+                    now=now,
+                    regional_builder=region_builder,
+                    BucketName=self.name or self.safe_name,
+                    StorageType="AllStorageTypes",
+                )
+            )
+            for storage_type, storage_type_name in storage_types.items():
                 queries.append(
                     AwsCloudwatchQuery.create(
-                        metric_name="NumberOfObjects",
+                        metric_name="BucketSizeBytes",
                         namespace="AWS/S3",
                         period=delta,
-                        ref_id=s3_id,
+                        ref_id=self.id,
+                        metric_normalization=BucketSizeBytesNormalization(),
                         stat="Average",
-                        unit="Count",
+                        unit="Bytes",
+                        fix_metric_name=f"{storage_type_name}_bucket_size",
                         start=start,
                         now=now,
                         regional_builder=region_builder,
-                        BucketName=s3.name or s3.safe_name,
-                        StorageType="AllStorageTypes",
+                        BucketName=self.name or self.safe_name,
+                        StorageType=storage_type,
                     )
                 )
-                for storage_type, storage_type_name in storage_types.items():
-                    queries.append(
-                        AwsCloudwatchQuery.create(
-                            metric_name="BucketSizeBytes",
-                            namespace="AWS/S3",
-                            period=delta,
-                            ref_id=s3_id,
-                            stat="Average",
-                            unit="Bytes",
-                            fix_metric_name=f"{storage_type_name}_bucket_size",
-                            start=start,
-                            now=now,
-                            regional_builder=region_builder,
-                            BucketName=s3.name or s3.safe_name,
-                            StorageType=storage_type,
-                        )
-                    )
 
             # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
-            for s3 in s3s.values():
-                bucket_size: Dict[str, float] = defaultdict(float)
-                for metric_name, metric_values in s3._resource_usage.items():
-                    if metric_name.endswith("_bucket_size_bytes"):
-                        for name, value in metric_values.items():
-                            bucket_size[name] += value
-                if bucket_size:
-                    s3._resource_usage["bucket_size_bytes"] = dict(bucket_size)
-        return queries, s3s_map, metric_normalizers
+            bucket_size: Dict[str, float] = defaultdict(float)
+            for metric_name, metric_values in self._resource_usage.items():
+                if metric_name.endswith("_bucket_size_bytes"):
+                    for name, value in metric_values.items():
+                        bucket_size[name] += value
+            if bucket_size:
+                self._resource_usage["bucket_size_bytes"] = dict(bucket_size)
+        return queries
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)

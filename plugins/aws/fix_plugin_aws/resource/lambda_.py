@@ -235,7 +235,7 @@ class AwsLambdaFunctionUrlConfig:
 
 
 class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(
             metric_name=name,
             unit=MetricUnit.Count,
@@ -245,7 +245,7 @@ class CountNormalization(MetricNormalization):
 
 
 class DurationNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.Duration, unit=MetricUnit.Milliseconds, normalize_value=lambda x: round(x, ndigits=4)
         )

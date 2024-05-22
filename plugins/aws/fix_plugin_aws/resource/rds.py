@@ -323,14 +323,14 @@ class AwsRdsDBRole:
 
 
 class NetworkThroughputNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(
             metric_name=name, unit=MetricUnit.BytesPerSecond, normalize_value=lambda x: round(x, ndigits=4)
         )
 
 
 class CPUUtilizationNormalization(MetricNormalization):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             metric_name=MetricName.CpuUtilization,
             unit=MetricUnit.Percent,
@@ -338,17 +338,8 @@ class CPUUtilizationNormalization(MetricNormalization):
         )
 
 
-class DatabaseConnectionsNormalization(MetricNormalization):
-    def __init__(self):
-        super().__init__(
-            metric_name=MetricName.DatabaseConnections,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
 class CountMetricNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         if name in ["ReadIOPS", "WriteIOPS"]:
             super().__init__(metric_name=name, unit=MetricUnit.IOPS, normalize_value=lambda x: round(x, ndigits=4))
         else:
@@ -356,12 +347,12 @@ class CountMetricNormalization(MetricNormalization):
 
 
 class LatencyNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(metric_name=name, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4))
 
 
 class StorageSpaceNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
+    def __init__(self, name: MetricName) -> None:
         super().__init__(metric_name=name, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4))
 
 
@@ -554,7 +545,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                         namespace="AWS/RDS",
                         period=delta,
                         ref_id=vid,
-                        metric_normalization=DatabaseConnectionsNormalization(),
                         DBInstanceIdentifier=vid,
                     )
                 )
