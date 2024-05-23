@@ -172,6 +172,7 @@ types-setuptools==69.5.0.20240522
 types-tzlocal==5.1.0.1
 types-urllib3==1.26.25.14
 typing-extensions==4.11.0
+types_six==1.16.21.20240513
 typish==1.9.3
 tzdata==2024.1
 tzlocal==5.2
