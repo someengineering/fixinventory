@@ -1,8 +1,9 @@
 import logging
-from attrs import define
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Dict, List, Type, Optional, ClassVar, Union
 from datetime import datetime, timezone
+from typing import Dict, List, Type, Optional, ClassVar, Union, Tuple
+
+from attrs import define
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
@@ -46,17 +47,14 @@ from fix_plugin_aws.resource import (
     waf,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
-
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.core.progress import ProgressDone, ProgressTree
 from fixlib.graph import Graph, BySearchCriteria, ByNodeId
+from fixlib.json import value_in_path
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
-from fixlib.json import value_in_path
-from fixlib.utils import chunks
-
 from .utils import global_region_by_partition
 
 log = logging.getLogger("fix.plugins.aws")
@@ -289,18 +287,26 @@ class AwsAccountCollector:
         return when_done
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
-        metrics_queries: List[cloudwatch.AwsCloudwatchQuery] = []
-        lookup = {}
+        def fetch_batch(query_with_resources: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]]) -> None:
+            lookup = {}
+            qr = []
+            for query, rs in query_with_resources:
+                lookup[rs.id] = rs
+                qr.append(query)
+            builder.submit_work("cloudwatch", self._collect_metrics_data, qr, lookup, builder)
+
+        metrics_queries: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]] = []
         for resource in builder.graph.nodes:
             if not isinstance(resource, AwsResource):
                 continue
-            queries = resource.collect_usage_metrics(builder)
+            queries = [(a, resource) for a in resource.collect_usage_metrics(builder)]
             if not queries:
                 continue
-            lookup[resource.id] = resource
             metrics_queries.extend(queries)
-        for queries in chunks(metrics_queries, 499):
-            builder.submit_work("cloudwatch", self._collect_metrics_data, queries, lookup, builder)
+            while len(metrics_queries) > 499:
+                batch, metrics_queries = metrics_queries[:499], metrics_queries[499:]
+                fetch_batch(batch)
+        fetch_batch(metrics_queries)
 
     def _collect_metrics_data(
         self,
