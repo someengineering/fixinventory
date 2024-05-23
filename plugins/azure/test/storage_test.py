@@ -4,7 +4,7 @@ from fix_plugin_azure.resource.storage import *
 
 
 def test_deleted_account(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDeletedAccount, builder)
+    collected = roundtrip_check(AzureStorageAccountDeleted, builder)
     assert len(collected) == 2
 
 

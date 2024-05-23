@@ -174,8 +174,8 @@ class AzureBlobContainer(AzureResource, BaseBucket):
 
 
 @define(eq=False, slots=False)
-class AzureDeletedAccount(AzureResource):
-    kind: ClassVar[str] = "azure_deleted_account"
+class AzureStorageAccountDeleted(AzureResource):
+    kind: ClassVar[str] = "azure_storage_account_deleted"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="storage",
         version="2023-01-01",
@@ -1150,8 +1150,8 @@ class AzureStorageAccount(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureStorageUsage(AzureResource, AzureBaseUsage):
-    kind: ClassVar[str] = "azure_storage_usage"
+class AzureStorageAccountUsage(AzureResource, AzureBaseUsage):
+    kind: ClassVar[str] = "azure_storage_account_usage"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="storage",
         version="2023-01-01",
@@ -1208,12 +1208,12 @@ class AzureTable(AzureResource):
 
 
 resources: List[Type[AzureResource]] = [
-    AzureDeletedAccount,
+    AzureStorageAccountDeleted,
     AzureStorageSku,
     AzureFileShare,
     AzureQueue,
     AzureBlobContainer,
     AzureTable,
     AzureStorageAccount,
-    AzureStorageUsage,
+    AzureStorageAccountUsage,
 ]

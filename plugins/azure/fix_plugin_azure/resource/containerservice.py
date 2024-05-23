@@ -994,8 +994,8 @@ class AzureOSOptionProperty:
 
 
 @define(eq=False, slots=False)
-class AzureKubernetesSnapshot(AzureResource):
-    kind: ClassVar[str] = "azure_kubernetes_snapshot"
+class AzureManagedClusterSnapshot(AzureResource):
+    kind: ClassVar[str] = "azure_managed_cluster_snapshot"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="containerservice",
         version="2023-08-01",
@@ -1037,4 +1037,4 @@ class AzureKubernetesSnapshot(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
 
 
-resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureKubernetesSnapshot]
+resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]

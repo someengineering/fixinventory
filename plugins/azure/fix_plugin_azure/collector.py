@@ -24,7 +24,7 @@ from fix_plugin_azure.resource.network import (
     AzureNetworkUsage,
     resources as network_resources,
 )
-from fix_plugin_azure.resource.storage import AzureStorageUsage, AzureStorageSku, resources as storage_resources
+from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
 from fixlib.baseresources import Cloud, GraphRoot
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -175,7 +175,7 @@ class AzureSubscriptionCollector:
 
         def remove_usage_zero_value() -> None:
             for node in self.graph.nodes:
-                if not isinstance(node, (AzureNetworkUsage, AzureStorageUsage)):
+                if not isinstance(node, (AzureNetworkUsage, AzureStorageAccountUsage)):
                     continue
                 # Azure Usage just keep info about how many kind of resources on account exists
                 # Check if the current usage value of the Azure Usage node is 0
