@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import re
 from datetime import datetime, timedelta
@@ -577,20 +578,30 @@ class AwsCloudwatchMetricData:
         Returns:
             Dictionary mapping metric data to their corresponding IDs.
         """
-        lookup = {q[3].metric_id: q[3] for q in queries}
+        lookup = {query.metric_id: query for _, _, _, query in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
-        futures = [
-            builder.submit_work(
-                service_name,
-                AwsCloudwatchMetricData._query_for_single_chunk,
-                builder.client,
-                MetricDataQueries=[query[3].to_json() for query in queries],
-                StartTime=start,
-                EndTime=now,
-                ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
+        queries_by_time_and_builder: defaultdict[Tuple[datetime, datetime, GraphBuilder], List[AwsCloudwatchQuery]] = (
+            defaultdict(list)
+        )
+        futures = []
+
+        # Group queries by their (start, now, builder) values
+        for start, now, builder, query in queries:
+            queries_by_time_and_builder[(start, now, builder)].append(query)
+
+        # Process each group of queries with the same (start, now, builder) values
+        for (start, now, builder), grouped_queries in queries_by_time_and_builder.items():
+            futures.append(
+                builder.submit_work(
+                    service_name,
+                    AwsCloudwatchMetricData._query_for_single_chunk,
+                    builder.client,
+                    MetricDataQueries=[query.to_json() for query in grouped_queries],
+                    StartTime=start,
+                    EndTime=now,
+                    ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
+                )
             )
-            for start, now, builder, query in queries
-        ]
 
         # Retrieve results from submitted queries and populate the result dictionary
         for future in as_completed(futures):
@@ -598,7 +609,9 @@ class AwsCloudwatchMetricData:
                 metric_query_result = future.result()
                 for metric, metric_id in metric_query_result:
                     if metric is not None and metric_id is not None:
-                        result[lookup[metric_id]] = metric
+                        query_result = lookup.get(metric_id)
+                        if query_result:
+                            result[query_result] = metric
             except Exception as e:
                 log.warning(f"An error occurred while processing a metric query: {e}")
                 raise e
@@ -659,9 +672,9 @@ def update_resource_metrics(
                 metric_name = query.fix_metric_name or normalizer.metric_name
                 name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
-                stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
-
-                resource._resource_usage[name][stat_name] = value
+                stat_name = maybe_stat_name or normalizer.get_stat_value(query.stat)
+                if stat_name:
+                    resource._resource_usage[name][str(stat_name)] = value
             except KeyError as e:
                 log.warning(f"An error occured while setting metric values: {e}")
                 raise

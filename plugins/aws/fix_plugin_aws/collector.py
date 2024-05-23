@@ -294,8 +294,10 @@ class AwsAccountCollector:
         for resource in builder.graph.nodes:
             if not isinstance(resource, AwsResource):
                 continue
-            lookup[resource.id] = resource
             queries = resource.collect_usage_metrics(builder)
+            if not queries:
+                continue
+            lookup[resource.id] = resource
             metrics_queries.extend(queries)
         for queries in chunks(metrics_queries, 499):
             builder.submit_work("cloudwatch", self._collect_metrics_data, queries, lookup, builder)
@@ -310,7 +312,6 @@ class AwsAccountCollector:
         for query in metrics:
             if query.now and query.start:
                 all_queries_with_data.append((query.start, query.now, query.regional_builder or builder, query))
-
         if all_queries_with_data:
             cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
             cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)

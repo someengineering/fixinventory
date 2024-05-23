@@ -195,12 +195,28 @@ def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
 class MetricNormalization:
     metric_name: MetricName
     unit: MetricUnit
-    stat_map: Dict[str, StatName] = {
-        "Minimum": StatName.min,
-        "Average": StatName.avg,
-        "Maximum": StatName.max,
-    }
+    # Use Tuple instead of Dict for stat_map because it should be immutable
+    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
+        ("Minimum", StatName.min),
+        ("Average", StatName.avg),
+        ("Maximum", StatName.max),
+    )
     normalize_value: Callable[[float], float] = identity
     # function to derive stats from a list of values
     # the default is to take the first value and use the default stat name
     compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first
+
+    def get_stat_value(self, key: str) -> Optional[StatName]:
+        """
+        Get the value from stat_map based on the given key.
+
+        Args:
+            key: The key to search for in the stat_map.
+
+        Returns:
+            The corresponding value from stat_map.
+        """
+        for stat_key, value in self.stat_map:
+            if stat_key == key:
+                return value
+        return None

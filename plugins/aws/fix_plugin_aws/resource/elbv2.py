@@ -739,6 +739,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         period = min(timedelta(minutes=5), delta)
 
         tg_arn_id = (self.arn or "").split(":")[-1]
+        if not self.alb_lb_arns:
+            return []
         lb_arn_id = "/".join(self.alb_lb_arns[0].split("/")[-3:])
         queries.extend(
             [

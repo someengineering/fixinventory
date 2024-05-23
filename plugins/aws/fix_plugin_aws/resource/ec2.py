@@ -1492,6 +1492,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         start = builder.metrics_start
         now = builder.created_at
 
+        if self.instance_status != InstanceStatus.RUNNING:
+            return []
+
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
