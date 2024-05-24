@@ -2097,7 +2097,7 @@ class AzureRestorePointCollection(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSnapshotSku:
+class AzureSnapshotSku:
     kind: ClassVar[str] = "azure_snapshot_sku"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
     name: Optional[str] = field(default=None, metadata={"description": "The sku name."})
@@ -2154,7 +2154,7 @@ class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
         "public_network_access": S("properties", "publicNetworkAccess"),
         "purchase_plan": S("properties", "purchasePlan") >> Bend(AzurePurchasePlan.mapping),
         "snapshot_security_profile": S("properties", "securityProfile") >> Bend(AzureDiskSecurityProfile.mapping),
-        "snapshot_sku": S("sku") >> Bend(AzureVirtualMachineSnapshotSku.mapping),
+        "snapshot_sku": S("sku") >> Bend(AzureSnapshotSku.mapping),
         "supported_capabilities": S("properties", "supportedCapabilities") >> Bend(AzureSupportedCapabilities.mapping),
         "supports_hibernation": S("properties", "supportsHibernation"),
         "time_created": S("properties", "timeCreated"),
@@ -2186,7 +2186,7 @@ class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Policy for controlling export on the disk.'})  # fmt: skip
     purchase_plan: Optional[AzurePurchasePlan] = field(default=None, metadata={'description': 'Used for establishing the purchase context of any 3rd party artifact through marketplace.'})  # fmt: skip
     snapshot_security_profile: Optional[AzureDiskSecurityProfile] = field(default=None, metadata={'description': 'Contains the security related information for the resource.'})  # fmt: skip
-    snapshot_sku: Optional[AzureVirtualMachineSnapshotSku] = field(default=None, metadata={'description': 'The snapshots sku name. Can be standard_lrs, premium_lrs, or standard_zrs. This is an optional parameter for incremental snapshot and the default behavior is the sku will be set to the same sku as the previous snapshot.'})  # fmt: skip
+    snapshot_sku: Optional[AzureSnapshotSku] = field(default=None, metadata={'description': 'The snapshots sku name. Can be standard_lrs, premium_lrs, or standard_zrs. This is an optional parameter for incremental snapshot and the default behavior is the sku will be set to the same sku as the previous snapshot.'})  # fmt: skip
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a snapshot supports hibernation.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the snapshot was created.'})  # fmt: skip
