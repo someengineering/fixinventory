@@ -19,6 +19,21 @@ from fixlib.json import from_json as _from_json, to_json as _to_json
 from fixlib.logger import log
 from fixlib.types import Json
 from fixlib.utils import make_valid_timestamp, utc_str
+from fixlib.basecategories import (
+    BaseCategory,
+    Compute,
+    Storage,
+    Database,
+    Security,
+    Networking,
+    Iam,
+    Management,
+    Monitoring,
+    Analytics,
+    Ai,
+    DevOps,
+)
+
 
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",
@@ -242,7 +257,7 @@ MetricNameWithUnit = str
 
 
 @define(eq=False, slots=False, kw_only=True)
-class BaseResource(ABC):
+class BaseResource(BaseCategory, ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
     BaseResources have an id, name and tags. The id is a unique id used to search for
@@ -884,7 +899,7 @@ class InstanceStatus(Enum):
 
 
 @define(eq=False, slots=False)
-class BaseInstance(BaseResource):
+class BaseInstance(BaseResource, Compute):
     kind: ClassVar[str] = "instance"
     kind_display: ClassVar[str] = "Instance"
     kind_description: ClassVar[str] = "An instance."
@@ -923,7 +938,7 @@ class VolumeStatus(Enum):
 
 
 @define(eq=False, slots=False)
-class BaseNetworkShare(BaseResource, ABC):
+class BaseNetworkShare(BaseResource, Storage):
     kind: ClassVar[str] = "network_share"
     kind_display: ClassVar[str] = "Network Share"
     kind_description: ClassVar[str] = "A network share."
@@ -937,7 +952,7 @@ class BaseNetworkShare(BaseResource, ABC):
 
 
 @define(eq=False, slots=False)
-class BaseVolume(BaseResource):
+class BaseVolume(BaseResource, Storage):
     kind: ClassVar[str] = "volume"
     kind_display: ClassVar[str] = "Volume"
     kind_description: ClassVar[str] = "A volume."
@@ -952,7 +967,7 @@ class BaseVolume(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseSnapshot(BaseResource):
+class BaseSnapshot(BaseResource, Storage):
     kind: ClassVar[str] = "snapshot"
     kind_display: ClassVar[str] = "Snapshot"
     kind_description: ClassVar[str] = "A snapshot."
@@ -989,7 +1004,7 @@ class GraphRoot(PhantomBaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseBucket(BaseResource):
+class BaseBucket(BaseResource, Storage):
     kind: ClassVar[str] = "bucket"
     kind_display: ClassVar[str] = "Storage Bucket"
     kind_description: ClassVar[str] = "A storage bucket."
@@ -997,7 +1012,7 @@ class BaseBucket(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseQueue(BaseResource):
+class BaseQueue(BaseResource, Storage):
     kind: ClassVar[str] = "queue"
     kind_display: ClassVar[str] = "Storage Queue"
     kind_description: ClassVar[str] = "A storage queue."
@@ -1005,7 +1020,7 @@ class BaseQueue(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseServerlessFunction(BaseResource):
+class BaseServerlessFunction(BaseResource, Compute):
     kind: ClassVar[str] = "serverless_function"
     kind_display: ClassVar[str] = "Serverless Function"
     kind_description: ClassVar[str] = "A serverless function."
@@ -1013,7 +1028,7 @@ class BaseServerlessFunction(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseKeyPair(BaseResource):
+class BaseKeyPair(BaseResource, Iam):
     kind: ClassVar[str] = "keypair"
     kind_display: ClassVar[str] = "Key Pair"
     kind_description: ClassVar[str] = "A key pair."
@@ -1030,7 +1045,7 @@ class BaseBucketQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseNetwork(BaseResource):
+class BaseNetwork(BaseResource, Networking):
     kind: ClassVar[str] = "network"
     kind_display: ClassVar[str] = "Network"
     kind_description: ClassVar[str] = "A network."
@@ -1046,7 +1061,7 @@ class BaseNetworkQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseFirewall(BaseResource):
+class BaseFirewall(BaseResource, Networking, Security):
     kind: ClassVar[str] = "firewall"
     kind_display: ClassVar[str] = "Firewall"
     kind_description: ClassVar[str] = "A firewall."
@@ -1054,7 +1069,7 @@ class BaseFirewall(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseDatabase(BaseResource):
+class BaseDatabase(BaseResource, Compute, Database):
     kind: ClassVar[str] = "database"
     kind_display: ClassVar[str] = "Database"
     kind_description: ClassVar[str] = "A database."
@@ -1071,7 +1086,7 @@ class BaseDatabase(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseLoadBalancer(BaseResource):
+class BaseLoadBalancer(BaseResource, Networking):
     kind: ClassVar[str] = "load_balancer"
     kind_display: ClassVar[str] = "Load Balancer"
     kind_description: ClassVar[str] = "A load balancer."
@@ -1090,7 +1105,7 @@ class BaseLoadBalancerQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseSubnet(BaseResource):
+class BaseSubnet(BaseResource, Networking):
     kind: ClassVar[str] = "subnet"
     kind_display: ClassVar[str] = "Subnet"
     kind_description: ClassVar[str] = "A subnet."
@@ -1098,7 +1113,7 @@ class BaseSubnet(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseGateway(BaseResource):
+class BaseGateway(BaseResource, Networking):
     kind: ClassVar[str] = "gateway"
     kind_display: ClassVar[str] = "Gateway"
     kind_description: ClassVar[str] = "A gateway."
@@ -1106,7 +1121,7 @@ class BaseGateway(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseTunnel(BaseResource):
+class BaseTunnel(BaseResource, Networking):
     kind: ClassVar[str] = "tunnel"
     kind_display: ClassVar[str] = "Networking Tunnel"
     kind_description: ClassVar[str] = "A networking tunnel."
@@ -1122,7 +1137,7 @@ class BaseGatewayQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseSecurityGroup(BaseResource):
+class BaseSecurityGroup(BaseResource, Networking, Security):
     kind: ClassVar[str] = "security_group"
     kind_display: ClassVar[str] = "Security Group"
     kind_description: ClassVar[str] = "A security group."
@@ -1130,7 +1145,7 @@ class BaseSecurityGroup(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseRoutingTable(BaseResource):
+class BaseRoutingTable(BaseResource, Networking):
     kind: ClassVar[str] = "routing_table"
     kind_display: ClassVar[str] = "Routing Table"
     kind_description: ClassVar[str] = "A routing table."
@@ -1138,7 +1153,7 @@ class BaseRoutingTable(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseNetworkAcl(BaseResource):
+class BaseNetworkAcl(BaseResource, Networking, Security):
     kind: ClassVar[str] = "network_acl"
     kind_display: ClassVar[str] = "Network ACL"
     kind_description: ClassVar[str] = "A network access control list."
@@ -1146,7 +1161,7 @@ class BaseNetworkAcl(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BasePeeringConnection(BaseResource):
+class BasePeeringConnection(BaseResource, Networking):
     kind: ClassVar[str] = "peering_connection"
     kind_display: ClassVar[str] = "Peering Connection"
     kind_description: ClassVar[str] = "A peering connection."
@@ -1154,7 +1169,7 @@ class BasePeeringConnection(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseEndpoint(BaseResource):
+class BaseEndpoint(BaseResource, Networking):
     kind: ClassVar[str] = "endpoint"
     kind_display: ClassVar[str] = "Endpoint"
     kind_description: ClassVar[str] = "An endpoint."
@@ -1162,7 +1177,7 @@ class BaseEndpoint(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseNetworkInterface(BaseResource):
+class BaseNetworkInterface(BaseResource, Networking):
     kind: ClassVar[str] = "network_interface"
     kind_display: ClassVar[str] = "Network Interface"
     kind_description: ClassVar[str] = "A network interface."
@@ -1177,7 +1192,7 @@ class BaseNetworkInterface(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseUser(BaseResource):
+class BaseUser(BaseResource, Iam):
     kind: ClassVar[str] = "user"
     kind_display: ClassVar[str] = "User"
     kind_description: ClassVar[str] = "A user."
@@ -1185,7 +1200,7 @@ class BaseUser(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseGroup(BaseResource):
+class BaseGroup(BaseResource, Iam):
     kind: ClassVar[str] = "group"
     kind_display: ClassVar[str] = "Group"
     kind_description: ClassVar[str] = "A group."
@@ -1193,7 +1208,7 @@ class BaseGroup(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BasePolicy(BaseResource):
+class BasePolicy(BaseResource, Iam):
     kind: ClassVar[str] = "policy"
     kind_display: ClassVar[str] = "Policy"
     kind_description: ClassVar[str] = "A policy."
@@ -1201,7 +1216,7 @@ class BasePolicy(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseRole(BaseResource):
+class BaseRole(BaseResource, Iam):
     kind: ClassVar[str] = "role"
     kind_display: ClassVar[str] = "Role"
     kind_description: ClassVar[str] = "A role."
@@ -1209,7 +1224,7 @@ class BaseRole(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseInstanceProfile(BaseResource):
+class BaseInstanceProfile(BaseResource, Compute):
     kind: ClassVar[str] = "instance_profile"
     kind_display: ClassVar[str] = "Instance Profile"
     kind_description: ClassVar[str] = "An instance profile."
@@ -1217,7 +1232,7 @@ class BaseInstanceProfile(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseAccessKey(BaseResource):
+class BaseAccessKey(BaseResource, Iam, Security):
     kind: ClassVar[str] = "access_key"
     kind_display: ClassVar[str] = "Access Key"
     kind_description: ClassVar[str] = "An access key."
@@ -1226,7 +1241,7 @@ class BaseAccessKey(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseCertificate(BaseResource):
+class BaseCertificate(BaseResource, Security):
     kind: ClassVar[str] = "certificate"
     kind_display: ClassVar[str] = "Certificate"
     kind_description: ClassVar[str] = "A certificate."
@@ -1245,7 +1260,7 @@ class BaseCertificateQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseStack(BaseResource):
+class BaseStack(BaseResource, Management, DevOps):
     kind: ClassVar[str] = "stack"
     kind_display: ClassVar[str] = "Stack"
     kind_description: ClassVar[str] = "A stack."
@@ -1256,7 +1271,7 @@ class BaseStack(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseAutoScalingGroup(BaseResource):
+class BaseAutoScalingGroup(BaseResource, Compute, Management):
     kind: ClassVar[str] = "autoscaling_group"
     kind_display: ClassVar[str] = "Auto Scaling Group"
     kind_description: ClassVar[str] = "An auto scaling group."
@@ -1266,7 +1281,7 @@ class BaseAutoScalingGroup(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseIPAddress(BaseResource):
+class BaseIPAddress(BaseResource, Networking):
     kind: ClassVar[str] = "ip_address"
     kind_display: ClassVar[str] = "IP Address"
     kind_description: ClassVar[str] = "An IP address."
@@ -1276,7 +1291,7 @@ class BaseIPAddress(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseHealthCheck(BaseResource):
+class BaseHealthCheck(BaseResource, Monitoring):
     kind: ClassVar[str] = "health_check"
     kind_display: ClassVar[str] = "Health Check"
     kind_description: ClassVar[str] = "A health check."
@@ -1289,7 +1304,7 @@ class BaseHealthCheck(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseDNSZone(BaseResource):
+class BaseDNSZone(BaseResource, Networking):
     kind: ClassVar[str] = "dns_zone"
     kind_display: ClassVar[str] = "DNS Zone"
     kind_description: ClassVar[str] = "A DNS zone."
@@ -1297,7 +1312,7 @@ class BaseDNSZone(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseDNSRecordSet(BaseResource):
+class BaseDNSRecordSet(BaseResource, Networking):
     kind: ClassVar[str] = "dns_record_set"
     kind_display: ClassVar[str] = "DNS Record Set"
     kind_description: ClassVar[str] = "A DNS record set."
@@ -1334,7 +1349,7 @@ class BaseDNSRecordSet(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseDNSRecord(BaseResource):
+class BaseDNSRecord(BaseResource, Networking):
     kind: ClassVar[str] = "dns_record"
     kind_display: ClassVar[str] = "DNS Record"
     kind_description: ClassVar[str] = "A DNS record."
@@ -1385,7 +1400,7 @@ class BaseDNSRecord(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseOrganizationalRoot(BaseResource):
+class BaseOrganizationalRoot(BaseResource, Management):
     kind: ClassVar[str] = "organizational_root"
     kind_display: ClassVar[str] = "Organizational Root"
     kind_description: ClassVar[str] = "An Organizational Root."
@@ -1393,7 +1408,7 @@ class BaseOrganizationalRoot(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseOrganizationalUnit(BaseResource):
+class BaseOrganizationalUnit(BaseResource, Management):
     kind: ClassVar[str] = "organizational_unit"
     kind_display: ClassVar[str] = "Organizational Unit"
     kind_description: ClassVar[str] = "An Organizational Unit."
@@ -1401,7 +1416,7 @@ class BaseOrganizationalUnit(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseManagedKubernetesClusterProvider(BaseResource):
+class BaseManagedKubernetesClusterProvider(BaseResource, Compute):
     kind: ClassVar[str] = "managed_kubernetes_cluster_provider"
     kind_display: ClassVar[str] = "Managed Kubernetes Cluster Provider"
     kind_description: ClassVar[str] = "A managed kubernetes cluster provider."
