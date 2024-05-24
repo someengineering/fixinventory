@@ -6,11 +6,8 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import NormalizerFactory
 from fixlib.baseresources import BaseQueue, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
@@ -144,7 +141,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.ApproximateAgeOfOldestMessage,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -162,7 +159,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,

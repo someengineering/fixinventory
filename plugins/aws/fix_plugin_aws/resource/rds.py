@@ -5,11 +5,7 @@ from attr import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-    AwsCloudwatchMetricData,
-)
-from fix_plugin_aws.utils import NormalizerFactory
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
@@ -595,7 +591,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     stat=stat,
                     unit="Percent",
                     metric_normalizer_name=MetricName.CpuUtilization,
-                    metric_normalization=NormalizerFactory().percent,
+                    metric_normalization=normalizer_factory.percent,
                     start=start,
                     now=now,
                     DBInstanceIdentifier=self.id,
@@ -611,7 +607,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -635,7 +631,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -657,7 +653,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,
@@ -680,7 +676,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().bytes_per_second,
+                    metric_normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
                     start=start,

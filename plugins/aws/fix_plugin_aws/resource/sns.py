@@ -5,12 +5,10 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import EdgeType, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, bend, ParseJson, Sorted
@@ -104,7 +102,7 @@ class AwsSnsTopic(AwsResource):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count_sum,
+                    metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -126,7 +124,7 @@ class AwsSnsTopic(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.PublishSize,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

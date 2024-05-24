@@ -6,12 +6,9 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-    bytes_to_megabits_per_second,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, bytes_to_megabits_per_second, normalizer_factory
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
@@ -448,7 +445,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
+                    metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -474,7 +471,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.TargetResponseTime,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -492,9 +489,9 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(
+                    metric_normalization=normalizer_factory.bytes_sum(
                         partial(bytes_to_megabits_per_second, period=period)
-                    ).bytes_sum,
+                    ),
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -716,7 +713,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
+                    metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -740,7 +737,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -763,7 +760,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.TargetResponseTime,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -782,7 +779,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat="Minimum",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                     unit="Count",
                     start=start,

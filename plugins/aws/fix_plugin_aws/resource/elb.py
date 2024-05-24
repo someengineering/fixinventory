@@ -5,11 +5,9 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
@@ -365,7 +363,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count_sum,
+                    metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -389,7 +387,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -411,7 +409,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.Latency,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -429,7 +427,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.ProcessedBytes,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

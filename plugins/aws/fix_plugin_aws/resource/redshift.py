@@ -4,14 +4,12 @@ from attrs import define, field
 from datetime import datetime
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
@@ -584,7 +582,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.CpuUtilization,
-                    metric_normalization=NormalizerFactory().percent,
+                    metric_normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
                     start=start,
@@ -602,7 +600,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.DatabaseConnections,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -620,7 +618,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().bytes_per_second,
+                    metric_normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
                     start=start,
@@ -642,7 +640,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().iops,
+                    metric_normalization=normalizer_factory.iops,
                     stat=stat,
                     unit="Count/Second",
                     start=start,
@@ -664,7 +662,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().seconds,
+                    metric_normalization=normalizer_factory.seconds,
                     stat="Average",
                     unit="Seconds",
                     start=start,
@@ -685,7 +683,7 @@ class AwsRedshiftCluster(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat="Average",
                     unit="Bytes",
                     start=start,

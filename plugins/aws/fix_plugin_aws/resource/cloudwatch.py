@@ -1,17 +1,18 @@
 from collections import defaultdict
+from functools import cached_property, lru_cache
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
+from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
 from concurrent.futures import as_completed
 
-from attr import define, field
+from attr import define, field, frozen
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import MetricName, ModelReference, BaseResource
+from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
 from fixlib.graph import Graph
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -20,6 +21,49 @@ from fixlib.utils import chunks
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "cloudwatch"
+
+T = TypeVar("T")
+
+
+def identity(x: T) -> T:
+    return x
+
+
+# by default, take the first value, and don't include a stat name
+# so the default metric stat is used
+def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
+    return [(x[0], None)]
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    # Use Tuple instead of Dict for stat_map because it should be immutable
+    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
+        ("Minimum", StatName.min),
+        ("Average", StatName.avg),
+        ("Maximum", StatName.max),
+    )
+    normalize_value: Callable[[float], float] = identity
+    # function to derive stats from a list of values
+    # the default is to take the first value and use the default stat name
+    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first
+
+    def get_stat_value(self, key: str) -> Optional[StatName]:
+        """
+        Get the value from stat_map based on the given key.
+
+        Args:
+            key: The key to search for in the stat_map.
+
+        Returns:
+            The corresponding value from stat_map.
+        """
+        for stat_key, value in self.stat_map:
+            if stat_key == key:
+                return value
+        return None
+
 
 # Cloudwatch Alarm: Namespace -> Dimension Name -> (Kind, Property)
 CloudwatchAlarmReferences: Dict[str, Dict[str, Tuple[str, str]]] = {
@@ -695,3 +739,97 @@ def bytes_to_megabytes_per_second(bytes: float, period: timedelta) -> float:
 
 def operations_to_iops(ops: float, period: timedelta) -> float:
     return round(ops / period.total_seconds(), 4)
+
+
+class NormalizerFactory:
+    @cached_property
+    def count(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache()
+    def count_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def bytes(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache()
+    def bytes_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def bytes_per_second(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.BytesPerSecond,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def iops(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache()
+    def iops_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def seconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def seconds_sum(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def milliseconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Milliseconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def percent(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Percent,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
+def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
+    return [
+        (min(values), StatName.min),
+        (max(values), StatName.max),
+        (sum(values) / len(values), StatName.avg),
+    ]
+
+
+normalizer_factory = NormalizerFactory()

@@ -16,11 +16,12 @@ from fix_plugin_aws.resource.cloudwatch import (
     bytes_to_megabits_per_second,
     bytes_to_megabytes_per_second,
     operations_to_iops,
+    normalizer_factory,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
-from fix_plugin_aws.utils import ToDict, TagsValue, NormalizerFactory
+from fix_plugin_aws.utils import ToDict, TagsValue
 from fixlib.baseresources import (
     BaseInstance,
     EdgeType,
@@ -627,9 +628,9 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(
+                    metric_normalization=normalizer_factory.bytes_sum(
                         partial(bytes_to_megabytes_per_second, period=period)
-                    ).bytes_sum,
+                    ),
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -650,7 +651,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(partial(operations_to_iops, period=period)).iops_sum,
+                    metric_normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -671,7 +672,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().seconds_sum,
+                    metric_normalization=normalizer_factory.seconds_sum,
                     stat="Sum",
                     unit="Seconds",
                     start=start,
@@ -693,7 +694,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     ref_id=self.id,
                     stat=stat,
                     metric_normalizer_name=MetricName.VolumeQueueLength,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     unit="Count",
                     start=start,
                     now=now,
@@ -1427,7 +1428,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     period=delta_since_last_scan,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.CpuUtilization,
-                    metric_normalization=NormalizerFactory().percent,
+                    metric_normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
                     start=start,
@@ -1445,9 +1446,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(
+                    metric_normalization=normalizer_factory.bytes_sum(
                         partial(bytes_to_megabits_per_second, period=period)
-                    ).bytes_sum,
+                    ),
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -1466,7 +1467,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
+                    metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -1488,7 +1489,7 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(partial(operations_to_iops, period=period)).iops_sum,
+                    metric_normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -1510,9 +1511,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory(
+                    metric_normalization=normalizer_factory.bytes_sum(
                         partial(bytes_to_megabytes_per_second, period=period)
-                    ).bytes_sum,
+                    ),
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -2821,7 +2822,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -2851,7 +2852,7 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

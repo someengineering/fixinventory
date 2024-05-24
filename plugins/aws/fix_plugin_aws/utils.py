@@ -1,14 +1,12 @@
-from functools import cached_property
 import uuid
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, TypeVar
-from attrs import frozen
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from boto3.session import Session as BotoSession
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 from prometheus_client import Counter
 from retrying import retry
 
-from fixlib.baseresources import BaseRegion, BaseResource, MetricUnit, StatName
+from fixlib.baseresources import BaseRegion, BaseResource
 from fixlib.config import Config
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender
@@ -177,141 +175,3 @@ class TagsValue(Bender):
             if k.get("Key") == self.name:
                 return k.get("Value", "")  # type: ignore
         return None
-
-
-T = TypeVar("T")
-
-
-def identity(x: T) -> T:
-    return x
-
-
-# by default, take the first value, and don't include a stat name
-# so the default metric stat is used
-def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
-    return [(x[0], None)]
-
-
-@frozen(kw_only=True)
-class MetricNormalization:
-    # metric_name: MetricName
-    unit: MetricUnit
-    # Use Tuple instead of Dict for stat_map because it should be immutable
-    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
-        ("Minimum", StatName.min),
-        ("Average", StatName.avg),
-        ("Maximum", StatName.max),
-    )
-    normalize_value: Callable[[float], float] = identity
-    # function to derive stats from a list of values
-    # the default is to take the first value and use the default stat name
-    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first
-
-    def get_stat_value(self, key: str) -> Optional[StatName]:
-        """
-        Get the value from stat_map based on the given key.
-
-        Args:
-            key: The key to search for in the stat_map.
-
-        Returns:
-            The corresponding value from stat_map.
-        """
-        for stat_key, value in self.stat_map:
-            if stat_key == key:
-                return value
-        return None
-
-
-class NormalizerFactory:
-    def __init__(self, value_normalizer: Optional[Callable[[float], float]] = None) -> None:
-        self.normalize_value = value_normalizer
-
-    @cached_property
-    def count(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @property
-    def count_sum(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Count,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=self.normalize_value or (lambda x: round(x, ndigits=4)),
-        )
-
-    @cached_property
-    def bytes(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Bytes,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @property
-    def bytes_sum(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Bytes,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=self.normalize_value or (lambda x: round(x, ndigits=4)),
-        )
-
-    @cached_property
-    def bytes_per_second(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.BytesPerSecond,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @cached_property
-    def iops(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.IOPS,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @property
-    def iops_sum(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.IOPS,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=self.normalize_value or (lambda x: round(x, ndigits=4)),
-        )
-
-    @cached_property
-    def seconds(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Seconds,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @cached_property
-    def seconds_sum(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Seconds,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @cached_property
-    def milliseconds(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Milliseconds,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @cached_property
-    def percent(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Percent,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
-    return [
-        (min(values), StatName.min),
-        (max(values), StatName.max),
-        (sum(values) / len(values), StatName.avg),
-    ]

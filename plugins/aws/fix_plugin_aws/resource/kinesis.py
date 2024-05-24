@@ -3,12 +3,10 @@ from typing import ClassVar, Dict, Optional, List, Any
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
@@ -180,7 +178,7 @@ class AwsKinesisStream(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.RecordsBytes,
-                    metric_normalization=NormalizerFactory().bytes,
+                    metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,
@@ -198,7 +196,7 @@ class AwsKinesisStream(AwsResource):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.RecordsIteratorAgeMilliseconds,
-                    metric_normalization=NormalizerFactory().milliseconds,
+                    metric_normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",
                     start=start,

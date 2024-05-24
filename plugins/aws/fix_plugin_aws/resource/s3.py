@@ -10,10 +10,8 @@ from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
-from fix_plugin_aws.utils import NormalizerFactory, tags_as_dict
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
+from fix_plugin_aws.utils import tags_as_dict
 from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference
 from fixlib.graph import Graph
 from fixlib.json import is_empty, sort_json
@@ -365,7 +363,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.NumberOfObjects,
-                    metric_normalization=NormalizerFactory().count,
+                    metric_normalization=normalizer_factory.count,
                     stat="Average",
                     unit="Count",
                     start=start,
@@ -383,7 +381,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         period=delta,
                         ref_id=self.id,
                         metric_normalizer_name=MetricName.BucketSizeBytes,
-                        metric_normalization=NormalizerFactory().bytes,
+                        metric_normalization=normalizer_factory.bytes,
                         stat="Average",
                         unit="Bytes",
                         fix_metric_name=f"{storage_type_name}_bucket_size",

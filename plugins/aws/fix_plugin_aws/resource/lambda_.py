@@ -8,12 +8,9 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import NormalizerFactory
 from fixlib.baseresources import (
     BaseServerlessFunction,
     MetricName,
@@ -413,7 +410,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     period=period,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=NormalizerFactory().count_sum,
+                    metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -436,7 +433,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.Duration,
-                    metric_normalization=NormalizerFactory().milliseconds,
+                    metric_normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",
                     start=start,
