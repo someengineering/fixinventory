@@ -2205,7 +2205,7 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     vpc_ipv6_cidr_block_association_set: List[AwsEc2VpcIpv6CidrBlockAssociation] = field(factory=list)
     vpc_cidr_block_association_set: List[AwsEc2VpcCidrBlockAssociation] = field(factory=list)
     vpc_is_default: Optional[bool] = field(default=None)
-    # will be set to true when a network interface is connected. See
+    # will be set to true when a network interface is connected. See AwsEc2NetworkInterface.connect_in_graph
     vpc_in_use: Optional[bool] = field(default=False)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
