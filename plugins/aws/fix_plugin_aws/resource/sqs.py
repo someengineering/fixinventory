@@ -10,8 +10,8 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import MetricNormalization
-from fixlib.baseresources import BaseQueue, MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory
+from fixlib.baseresources import BaseQueue, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
 from fixlib.types import Json
@@ -35,20 +35,6 @@ class AwsSqsRedrivePolicy:
     }
     dead_letter_target_arn: Optional[str] = None
     max_receive_count: Optional[int] = None
-
-
-class MessageAgeNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.ApproximateAgeOfOldestMessage,
-            unit=MetricUnit.Bytes,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class NumberOfMessages(MetricNormalization):
-    def __init__(self, metric_name: MetricName) -> None:
-        super().__init__(metric_name=metric_name, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4))
 
 
 @define(eq=False, slots=False)
@@ -157,7 +143,8 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     namespace="AWS/SQS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=MessageAgeNormalization(),
+                    metric_normalizer_name=MetricName.ApproximateAgeOfOldestMessage,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -174,7 +161,8 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     namespace="AWS/SQS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NumberOfMessages(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,

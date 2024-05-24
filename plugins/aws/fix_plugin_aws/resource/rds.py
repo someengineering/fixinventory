@@ -9,12 +9,12 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
     AwsCloudwatchMetricData,
 )
-from fix_plugin_aws.utils import MetricNormalization
+from fix_plugin_aws.utils import NormalizerFactory
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, TagsValue
-from fixlib.baseresources import BaseDatabase, MetricName, MetricUnit, ModelReference, BaseSnapshot
+from fixlib.baseresources import BaseDatabase, MetricName, ModelReference, BaseSnapshot
 from fixlib.graph import Graph
 from fixlib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
 from fixlib.types import Json
@@ -322,40 +322,6 @@ class AwsRdsDBRole:
     status: Optional[str] = field(default=None)
 
 
-class NetworkThroughputNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(
-            metric_name=name, unit=MetricUnit.BytesPerSecond, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class CPUUtilizationNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.CpuUtilization,
-            unit=MetricUnit.Percent,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class CountMetricNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        if name in ["ReadIOPS", "WriteIOPS"]:
-            super().__init__(metric_name=name, unit=MetricUnit.IOPS, normalize_value=lambda x: round(x, ndigits=4))
-        else:
-            super().__init__(metric_name=name, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4))
-
-
-class LatencyNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(metric_name=name, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4))
-
-
-class StorageSpaceNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(metric_name=name, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4))
-
-
 @define(eq=False, slots=False)
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
@@ -628,7 +594,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     ref_id=self.id,
                     stat=stat,
                     unit="Percent",
-                    metric_normalization=CPUUtilizationNormalization(),
+                    metric_normalizer_name=MetricName.CpuUtilization,
+                    metric_normalization=NormalizerFactory().percent,
                     start=start,
                     now=now,
                     DBInstanceIdentifier=self.id,
@@ -643,7 +610,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=CountMetricNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -666,7 +634,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=LatencyNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -687,7 +656,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=StorageSpaceNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,
@@ -709,7 +679,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NetworkThroughputNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
                     start=start,

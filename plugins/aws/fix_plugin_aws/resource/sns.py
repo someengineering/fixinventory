@@ -7,34 +7,16 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
-    calculate_min_max_avg,
 )
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from fixlib.baseresources import EdgeType, MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fixlib.baseresources import EdgeType, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, bend, ParseJson, Sorted
 from fixlib.types import Json
 
 service_name = "sns"
-
-
-class PublishSize(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.PublishSize, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class NumberOf(MetricNormalization):
-    def __init__(self, metric_name: MetricName) -> None:
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.Count,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
 
 
 @define(eq=False, slots=False)
@@ -121,7 +103,8 @@ class AwsSnsTopic(AwsResource):
                     namespace="AWS/SNS",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=NumberOf(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -142,7 +125,8 @@ class AwsSnsTopic(AwsResource):
                     namespace="AWS/SNS",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=PublishSize(),
+                    metric_normalizer_name=MetricName.PublishSize,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

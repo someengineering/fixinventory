@@ -299,7 +299,7 @@ class AwsAccountCollector:
         for resource in builder.graph.nodes:
             if not isinstance(resource, AwsResource):
                 continue
-            queries = [(a, resource) for a in resource.collect_usage_metrics(builder)]
+            queries = [(query, resource) for query in resource.collect_usage_metrics(builder)]
             if not queries:
                 continue
             metrics_queries.extend(queries)

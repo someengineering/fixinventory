@@ -11,8 +11,8 @@ from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from fixlib.baseresources import MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
 from fixlib.types import Json
@@ -414,46 +414,6 @@ class AwsRedshiftLoggingStatus:
     log_exports: Optional[List[str]] = field(factory=list, metadata={"description": "The collection of exported log types. Possible values are connectionlog, useractivitylog, and userlog."})  # fmt: skip
 
 
-class CPUUtilizationNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.CpuUtilization,
-            unit=MetricUnit.Percent,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class DatabaseConnectionsNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.DatabaseConnections,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class NetworkThroughputNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(
-            metric_name=name, unit=MetricUnit.BytesPerSecond, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class DiskIOPSNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(metric_name=name, unit=MetricUnit.IOPS, normalize_value=lambda x: round(x, ndigits=4))
-
-
-class LatencyNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(metric_name=name, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4))
-
-
-class ThroughputNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(metric_name=name, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4))
-
-
 @define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
@@ -623,7 +583,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=CPUUtilizationNormalization(),
+                    metric_normalizer_name=MetricName.CpuUtilization,
+                    metric_normalization=NormalizerFactory().percent,
                     stat=stat,
                     unit="Percent",
                     start=start,
@@ -640,7 +601,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=DatabaseConnectionsNormalization(),
+                    metric_normalizer_name=MetricName.DatabaseConnections,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -657,7 +619,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NetworkThroughputNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
                     start=start,
@@ -678,7 +641,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=DiskIOPSNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().iops,
                     stat=stat,
                     unit="Count/Second",
                     start=start,
@@ -699,7 +663,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=LatencyNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat="Average",
                     unit="Seconds",
                     start=start,
@@ -719,7 +684,8 @@ class AwsRedshiftCluster(AwsResource):
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=ThroughputNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat="Average",
                     unit="Bytes",
                     start=start,

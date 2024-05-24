@@ -8,8 +8,8 @@ from fix_plugin_aws.resource.cloudwatch import (
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from fixlib.baseresources import MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
@@ -86,22 +86,6 @@ class AwsKinesisEnhancedMetrics:
     )
     mapping: ClassVar[Dict[str, Bender]] = {"shard_level_metrics": S("ShardLevelMetrics", default=[])}
     shard_level_metrics: List[str] = field(factory=list)
-
-
-class RecordsBytesNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.RecordsBytes, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class RecordsIteratorAgeNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.RecordsIteratorAgeMilliseconds,
-            unit=MetricUnit.Milliseconds,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
 
 
 @define(eq=False, slots=False)
@@ -195,7 +179,8 @@ class AwsKinesisStream(AwsResource):
                     namespace="AWS/Kinesis",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=RecordsIteratorAgeNormalization(),
+                    metric_normalizer_name=MetricName.RecordsBytes,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,
@@ -212,7 +197,8 @@ class AwsKinesisStream(AwsResource):
                     namespace="AWS/Kinesis",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=RecordsIteratorAgeNormalization(),
+                    metric_normalizer_name=MetricName.RecordsIteratorAgeMilliseconds,
+                    metric_normalization=NormalizerFactory().milliseconds,
                     stat=stat,
                     unit="Milliseconds",
                     start=start,

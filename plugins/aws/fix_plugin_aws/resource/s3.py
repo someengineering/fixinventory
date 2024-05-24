@@ -13,8 +13,8 @@ from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, Gra
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
 )
-from fix_plugin_aws.utils import MetricNormalization, tags_as_dict
-from fixlib.baseresources import BaseBucket, MetricName, MetricUnit, PhantomBaseResource, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, tags_as_dict
+from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference
 from fixlib.graph import Graph
 from fixlib.json import is_empty, sort_json
 from fixlib.json_bender import Bender, S, bend, Bend, ForallBend
@@ -163,20 +163,6 @@ class AwsS3Logging:
     target_bucket: Optional[str] = field(default=None)
     target_grants: Optional[List[AwsS3TargetGrant]] = field(default=None)
     target_prefix: Optional[str] = field(default=None)
-
-
-class BucketSizeBytesNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.BucketSizeBytes, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class NumberOfObjectsNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.NumberOfObjects, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4)
-        )
 
 
 @define(eq=False, slots=False)
@@ -378,7 +364,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     namespace="AWS/S3",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NumberOfObjectsNormalization(),
+                    metric_normalizer_name=MetricName.NumberOfObjects,
+                    metric_normalization=NormalizerFactory().count,
                     stat="Average",
                     unit="Count",
                     start=start,
@@ -395,7 +382,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         namespace="AWS/S3",
                         period=delta,
                         ref_id=self.id,
-                        metric_normalization=BucketSizeBytesNormalization(),
+                        metric_normalizer_name=MetricName.BucketSizeBytes,
+                        metric_normalization=NormalizerFactory().bytes,
                         stat="Average",
                         unit="Bytes",
                         fix_metric_name=f"{storage_type_name}_bucket_size",

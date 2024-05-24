@@ -11,7 +11,7 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import ModelReference, BaseResource, StatName
+from fixlib.baseresources import MetricName, ModelReference, BaseResource
 from fixlib.graph import Graph
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -419,6 +419,7 @@ class AwsCloudwatchQuery:
     metric_id: str
     stat: str = "Sum"
     unit: str = "Count"
+    metric_normalizer_name: Optional[MetricName] = None
     metric_normalization: Optional[MetricNormalization] = None
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
     start: Optional[datetime] = None
@@ -448,6 +449,7 @@ class AwsCloudwatchQuery:
         namespace: str,
         period: timedelta,
         ref_id: str,
+        metric_normalizer_name: Optional[MetricName] = None,
         metric_normalization: Optional[MetricNormalization] = None,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
@@ -467,6 +469,7 @@ class AwsCloudwatchQuery:
             period=period,
             dimensions=tuple(dimensions.items()),
             ref_id=ref_id,
+            metric_normalizer_name=metric_normalizer_name,
             metric_id=rid,
             stat=stat,
             unit=unit,
@@ -669,7 +672,9 @@ def update_resource_metrics(
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             try:
-                metric_name = query.fix_metric_name or normalizer.metric_name
+                metric_name = query.fix_metric_name or query.metric_normalizer_name
+                if not metric_name:
+                    continue
                 name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
                 stat_name = maybe_stat_name or normalizer.get_stat_value(query.stat)
@@ -690,11 +695,3 @@ def bytes_to_megabytes_per_second(bytes: float, period: timedelta) -> float:
 
 def operations_to_iops(ops: float, period: timedelta) -> float:
     return round(ops / period.total_seconds(), 4)
-
-
-def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
-    return [
-        (min(values), StatName.min),
-        (max(values), StatName.max),
-        (sum(values) / len(values), StatName.avg),
-    ]

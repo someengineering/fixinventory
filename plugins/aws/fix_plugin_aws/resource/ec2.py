@@ -15,20 +15,18 @@ from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchMetricData,
     bytes_to_megabits_per_second,
     bytes_to_megabytes_per_second,
-    calculate_min_max_avg,
     operations_to_iops,
 )
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
-from fix_plugin_aws.utils import ToDict, TagsValue, MetricNormalization
+from fix_plugin_aws.utils import ToDict, TagsValue, NormalizerFactory
 from fixlib.baseresources import (
     BaseInstance,
     EdgeType,
     BaseVolume,
     BaseInstanceType,
     MetricName,
-    MetricUnit,
     VolumeStatus,
     InstanceStatus,
     BaseIPAddress,
@@ -508,36 +506,6 @@ VolumeStatusMapping = {
 }
 
 
-class VolumeBytesNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.MegabytesPerSecond,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=partial(bytes_to_megabytes_per_second, period=period),
-        )
-
-
-class VolumeOpsNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.IOPS,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=partial(operations_to_iops, period=period),
-        )
-
-
-class VolumeTimeNormalization(MetricNormalization):
-    def __init__(self, metric_name: MetricName) -> None:
-        super().__init__(metric_name=metric_name, unit=MetricUnit.Seconds, compute_stats=calculate_min_max_avg)
-
-
-class VolumeQueueLengthNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(metric_name=MetricName.VolumeQueueLength, unit=MetricUnit.Count)
-
-
 @define(eq=False, slots=False)
 class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
@@ -658,7 +626,10 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=VolumeBytesNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(
+                        partial(bytes_to_megabytes_per_second, period=period)
+                    ).bytes_sum,
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -678,7 +649,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=VolumeBytesNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(partial(operations_to_iops, period=period)).iops_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -698,7 +670,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=VolumeBytesNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().seconds_sum,
                     stat="Sum",
                     unit="Seconds",
                     start=start,
@@ -719,7 +692,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     period=delta,
                     ref_id=self.id,
                     stat=stat,
-                    metric_normalization=VolumeQueueLengthNormalization(),
+                    metric_normalizer_name=MetricName.VolumeQueueLength,
+                    metric_normalization=NormalizerFactory().count,
                     unit="Count",
                     start=start,
                     now=now,
@@ -1267,56 +1241,6 @@ InstanceStatusMapping = {
 }
 
 
-# Define specific normalizers
-class CPUUtilizationNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.CpuUtilization,
-            unit=MetricUnit.Percent,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class NetworkNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName) -> None:
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.MegabitsPerSecond,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=partial(bytes_to_megabits_per_second, period=period),
-        )
-
-
-class NetworkPacketsNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.PacketsPerSecond,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=lambda x: round(x / period.total_seconds(), 4),
-        )
-
-
-class DiskOpsNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.IOPS,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=partial(operations_to_iops, period=period),
-        )
-
-
-class DiskBytesNormalization(MetricNormalization):
-    def __init__(self, period: timedelta, metric_name: MetricName):
-        super().__init__(
-            metric_name=metric_name,
-            unit=MetricUnit.MegabytesPerSecond,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=partial(bytes_to_megabytes_per_second, period=period),
-        )
-
-
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
@@ -1502,7 +1426,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     namespace="AWS/EC2",
                     period=delta_since_last_scan,
                     ref_id=self.id,
-                    metric_normalization=CPUUtilizationNormalization(),
+                    metric_normalizer_name=MetricName.CpuUtilization,
+                    metric_normalization=NormalizerFactory().percent,
                     stat=stat,
                     unit="Percent",
                     start=start,
@@ -1519,7 +1444,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=NetworkNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(
+                        partial(bytes_to_megabits_per_second, period=period)
+                    ).bytes_sum,
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -1537,7 +1465,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=NetworkPacketsNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -1558,7 +1487,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=DiskOpsNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(partial(operations_to_iops, period=period)).iops_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -1579,7 +1509,10 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=DiskBytesNormalization(period, metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(
+                        partial(bytes_to_megabytes_per_second, period=period)
+                    ).bytes_sum,
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -2836,26 +2769,6 @@ class AwsEc2ProvisionedBandwidth:
     status: Optional[str] = field(default=None)
 
 
-class NatGatewayCountNormalization(MetricNormalization):
-    def __init__(self, metric_name: MetricName):
-        """
-        Normalizes count metrics to a count with four decimal precision.
-
-        :param metric_name: The specific metric name.
-        """
-        super().__init__(metric_name=metric_name, unit=MetricUnit.Count, normalize_value=lambda x: round(x, ndigits=4))
-
-
-class NatGatewayBytesNormalization(MetricNormalization):
-    def __init__(self, metric_name: MetricName):
-        """
-        Normalizes byte metrics to bytes with four decimal precision.
-
-        :param metric_name: The specific metric name.
-        """
-        super().__init__(metric_name=metric_name, unit=MetricUnit.Bytes, normalize_value=lambda x: round(x, ndigits=4))
-
-
 @define(eq=False, slots=False)
 class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
@@ -2907,7 +2820,8 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     namespace="AWS/NATGateway",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NatGatewayCountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -2936,7 +2850,8 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     namespace="AWS/NATGateway",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=NatGatewayBytesNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

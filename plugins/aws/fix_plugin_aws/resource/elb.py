@@ -7,11 +7,10 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, 
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
-    calculate_min_max_avg,
 )
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -249,41 +248,6 @@ class AwsElbLoadBalancerAttributes:
     additional_attributes: Optional[List[AwsElbAdditionalAttribute]] = field(factory=list, metadata={"description": "Any additional attributes."})  # fmt: skip
 
 
-class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-            compute_stats=calculate_min_max_avg,
-        )
-
-
-class HostCountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class LatencyNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.Latency, unit=MetricUnit.Seconds, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
-class ProcessedBytesNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.ProcessedBytes,
-            unit=MetricUnit.BytesPerSecond,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
 @define(eq=False, slots=False)
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
@@ -400,7 +364,8 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ELB",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=CountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -423,7 +388,8 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=HostCountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -444,7 +410,8 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=LatencyNormalization(),
+                    metric_normalizer_name=MetricName.Latency,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -461,7 +428,8 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=ProcessedBytesNormalization(),
+                    metric_normalizer_name=MetricName.ProcessedBytes,
+                    metric_normalization=NormalizerFactory().bytes,
                     stat=stat,
                     unit="Bytes",
                     start=start,

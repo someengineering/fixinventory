@@ -8,12 +8,11 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, 
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance, AwsEc2SecurityGroup
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
-    calculate_min_max_avg,
     bytes_to_megabits_per_second,
 )
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import NormalizerFactory, ToDict
+from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -346,35 +345,6 @@ class AwsAlbListener:
     alpn_policy: List[str] = field(factory=list)
 
 
-class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName, period: timedelta) -> None:
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x / period.total_seconds(), 4),
-            compute_stats=calculate_min_max_avg,
-        )
-
-
-class TargetResponseTimeNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.TargetResponseTime,
-            unit=MetricUnit.Seconds,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
-class ProcessedBytesNormalization(MetricNormalization):
-    def __init__(self, name: MetricName, period: timedelta) -> None:
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.MegabitsPerSecond,
-            normalize_value=partial(bytes_to_megabits_per_second, period=period),
-            compute_stats=calculate_min_max_avg,
-        )
-
-
 @define(eq=False, slots=False)
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
@@ -477,7 +447,8 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=CountNormalization(metric_name, period),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -502,7 +473,8 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=TargetResponseTimeNormalization(),
+                    metric_normalizer_name=MetricName.TargetResponseTime,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -519,7 +491,10 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=ProcessedBytesNormalization(metric_name, period),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(
+                        partial(bytes_to_megabits_per_second, period=period)
+                    ).bytes_sum,
                     stat="Sum",
                     unit="Bytes",
                     start=start,
@@ -631,15 +606,6 @@ class AwsAlbTargetHealthDescription:
     target_health: Optional[AwsAlbTargetHealth] = field(default=None)
 
 
-class HostOrStateCountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName):
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-
 @define(eq=False, slots=False)
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
@@ -749,7 +715,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=CountNormalization(metric_name, period),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory(lambda x: round(x / period.total_seconds(), 4)).count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -772,7 +739,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=HostOrStateCountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat=stat,
                     unit="Count",
                     start=start,
@@ -794,7 +762,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=TargetResponseTimeNormalization(),
+                    metric_normalizer_name=MetricName.TargetResponseTime,
+                    metric_normalization=NormalizerFactory().seconds,
                     stat=stat,
                     unit="Seconds",
                     start=start,
@@ -812,7 +781,8 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=HostOrStateCountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count,
                     stat="Minimum",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                     unit="Count",
                     start=start,

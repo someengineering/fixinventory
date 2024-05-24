@@ -10,15 +10,13 @@ from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatew
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
-    calculate_min_max_avg,
 )
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import MetricNormalization
+from fix_plugin_aws.utils import NormalizerFactory
 from fixlib.baseresources import (
     BaseServerlessFunction,
     MetricName,
-    MetricUnit,
     ModelReference,
 )
 from fixlib.graph import Graph
@@ -234,23 +232,6 @@ class AwsLambdaFunctionUrlConfig:
     last_modified_time: Optional[str] = field(default=None)
 
 
-class CountNormalization(MetricNormalization):
-    def __init__(self, name: MetricName) -> None:
-        super().__init__(
-            metric_name=name,
-            unit=MetricUnit.Count,
-            normalize_value=lambda x: round(x, ndigits=4),
-            compute_stats=calculate_min_max_avg,
-        )
-
-
-class DurationNormalization(MetricNormalization):
-    def __init__(self) -> None:
-        super().__init__(
-            metric_name=MetricName.Duration, unit=MetricUnit.Milliseconds, normalize_value=lambda x: round(x, ndigits=4)
-        )
-
-
 @define(eq=False, slots=False)
 class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
@@ -431,7 +412,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     namespace="AWS/Lambda",
                     period=period,
                     ref_id=self.id,
-                    metric_normalization=CountNormalization(metric_name),
+                    metric_normalizer_name=metric_name,
+                    metric_normalization=NormalizerFactory().count_sum,
                     stat="Sum",
                     unit="Count",
                     start=start,
@@ -453,7 +435,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     namespace="AWS/Lambda",
                     period=delta,
                     ref_id=self.id,
-                    metric_normalization=DurationNormalization(),
+                    metric_normalizer_name=MetricName.Duration,
+                    metric_normalization=NormalizerFactory().milliseconds,
                     stat=stat,
                     unit="Milliseconds",
                     start=start,
