@@ -286,7 +286,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
 
         def add_bucket_location(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-bucket-location"):
-                raw_location = builder.client.get(
+                raw_region = builder.client.get(
                     service_name,
                     "get-bucket-location",
                     "LocationConstraint",
@@ -294,11 +294,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     expected_errors=["NoSuchBucket"],
                 )
                 # AWS returns None if the bucket is in us-east-1
-                if raw_location is None:
-                    bucket_location = "us-east-1"
-                else:
-                    bucket_location = str(raw_location)
-                bck.bucket_location = bucket_location
+                region_name = "us-east-1" if raw_region is None else str(raw_region)
+                bck.bucket_location = region_name
+                builder.add_edge(bck, reverse=True, clazz=AwsRegion, name=region_name)
 
         bucket_location_futures = []
         buckets = []
