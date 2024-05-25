@@ -339,7 +339,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        # Avoid `aws-controltower` dismension value
+        # Filter out metrics with the 'aws-controltower' dimension value
         if "aws-controltower" in self.safe_name:
             return []
         storage_types = {

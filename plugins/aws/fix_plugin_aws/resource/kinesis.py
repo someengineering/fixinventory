@@ -165,7 +165,7 @@ class AwsKinesisStream(AwsResource):
             builder.submit_work(service_name, add_instance, stream_name)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
-        # Avoid `aws-controltower` dismension value
+        # Filter out metrics with the 'aws-controltower' dimension value
         if "aws-controltower" in self.safe_name:
             return []
         queries: List[AwsCloudwatchQuery] = []
