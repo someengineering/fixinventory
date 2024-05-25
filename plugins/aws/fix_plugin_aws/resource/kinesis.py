@@ -167,8 +167,6 @@ class AwsKinesisStream(AwsResource):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
         queries.extend(
             [
@@ -181,8 +179,6 @@ class AwsKinesisStream(AwsResource):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     StreamName=self.name or self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -199,8 +195,6 @@ class AwsKinesisStream(AwsResource):
                     metric_normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",
-                    start=start,
-                    now=now,
                     StreamName=self.name or self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]

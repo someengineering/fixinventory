@@ -578,8 +578,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
         queries.extend(
             [
@@ -592,8 +590,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     unit="Percent",
                     metric_normalizer_name=MetricName.CpuUtilization,
                     metric_normalization=normalizer_factory.percent,
-                    start=start,
-                    now=now,
                     DBInstanceIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -607,11 +603,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=metric_name,
-                    metric_normalization=normalizer_factory.count,
+                    metric_normalization=(
+                        normalizer_factory.iops if name in ["ReadIOPS", "WriteIOPS"] else normalizer_factory.count
+                    ),
                     stat=stat,
                     unit="Count",
-                    start=start,
-                    now=now,
                     DBInstanceIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -634,8 +630,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     DBInstanceIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -656,8 +650,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     DBInstanceIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -679,8 +671,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                     metric_normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
-                    start=start,
-                    now=now,
                     DBInstanceIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]

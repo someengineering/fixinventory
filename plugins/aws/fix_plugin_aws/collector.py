@@ -315,9 +315,13 @@ class AwsAccountCollector:
         builder: GraphBuilder,
     ) -> None:
         all_queries_with_data = []
+        now = builder.created_at
+        start = builder.metrics_start
         for query in metrics:
-            if query.now and query.start:
-                all_queries_with_data.append((query.start, query.now, query.regional_builder or builder, query))
+            if query.regional_builder:
+                all_queries_with_data.append((query.regional_builder.metrics_start, now, query.regional_builder, query))
+            else:
+                all_queries_with_data.append((start, now, builder, query))
         if all_queries_with_data:
             cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
             cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)

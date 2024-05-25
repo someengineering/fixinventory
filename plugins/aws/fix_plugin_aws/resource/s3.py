@@ -355,6 +355,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         queries: List[AwsCloudwatchQuery] = []
         if region := self.bucket_location:
             region_builder = builder.for_region(AwsRegion(id=region, name=region))
+            region_builder.metrics_start = start
 
             queries.append(
                 AwsCloudwatchQuery.create(
@@ -366,8 +367,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     metric_normalization=normalizer_factory.count,
                     stat="Average",
                     unit="Count",
-                    start=start,
-                    now=now,
                     regional_builder=region_builder,
                     BucketName=self.name or self.safe_name,
                     StorageType="AllStorageTypes",
@@ -385,8 +384,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         stat="Average",
                         unit="Bytes",
                         fix_metric_name=f"{storage_type_name}_bucket_size",
-                        start=start,
-                        now=now,
                         regional_builder=region_builder,
                         BucketName=self.name or self.safe_name,
                         StorageType=storage_type,

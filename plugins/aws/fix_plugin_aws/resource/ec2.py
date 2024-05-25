@@ -616,8 +616,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
+
         period = min(timedelta(minutes=5), delta)
 
         queries.extend(
@@ -633,8 +632,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     ),
                     stat="Sum",
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     VolumeId=self.id,
                 )
                 for name, metric_name in [
@@ -654,8 +651,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     metric_normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     VolumeId=self.id,
                 )
                 for name, metric_name in [
@@ -675,8 +670,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     metric_normalization=normalizer_factory.seconds_sum,
                     stat="Sum",
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     VolumeId=self.id,
                 )
                 for name, metric_name in [
@@ -696,8 +689,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     metric_normalizer_name=MetricName.VolumeQueueLength,
                     metric_normalization=normalizer_factory.count,
                     unit="Count",
-                    start=start,
-                    now=now,
                     VolumeId=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -1414,9 +1405,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         # 5 minutes or less if the last scan was less than 5 minutes ago
         period = min(timedelta(minutes=5), delta_since_last_scan)
 
-        start = builder.metrics_start
-        now = builder.created_at
-
         if self.instance_status != InstanceStatus.RUNNING:
             return []
 
@@ -1431,8 +1419,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     metric_normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
-                    start=start,
-                    now=now,
                     InstanceId=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -1451,8 +1437,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     ),
                     stat="Sum",
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     InstanceId=self.id,
                 )
                 for name, metric_name in [("NetworkIn", MetricName.NetworkIn), ("NetworkOut", MetricName.NetworkOut)]
@@ -1470,8 +1454,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     InstanceId=self.id,
                 )
                 for name, metric_name in [
@@ -1492,8 +1474,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     metric_normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     InstanceId=self.id,
                 )
                 for name, metric_name in [
@@ -1516,8 +1496,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                     ),
                     stat="Sum",
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     InstanceId=self.id,
                 )
                 for name, metric_name in [
@@ -2811,8 +2789,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
         queries.extend(
             [
@@ -2825,8 +2801,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    start=start,
-                    now=now,
                     NatGatewayId=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -2855,8 +2829,6 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     NatGatewayId=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]

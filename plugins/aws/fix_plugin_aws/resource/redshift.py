@@ -571,8 +571,6 @@ class AwsRedshiftCluster(AwsResource):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
         queries.extend(
             [
@@ -585,8 +583,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -603,8 +599,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -621,8 +615,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -643,8 +635,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.iops,
                     stat=stat,
                     unit="Count/Second",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -665,8 +655,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.seconds,
                     stat="Average",
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for name, metric_name in [
@@ -686,8 +674,6 @@ class AwsRedshiftCluster(AwsResource):
                     metric_normalization=normalizer_factory.bytes,
                     stat="Average",
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     ClusterIdentifier=self.id,
                 )
                 for name, metric_name in [

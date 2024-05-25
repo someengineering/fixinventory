@@ -351,8 +351,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
+
         period = min(timedelta(minutes=5), delta)
 
         queries.extend(
@@ -366,8 +365,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancerName=self.name or self.safe_name,
                 )
                 for name, metric_name in [
@@ -390,8 +387,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancerName=self.name or self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -412,8 +407,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     LoadBalancerName=self.name or self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -430,8 +423,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     LoadBalancerName=self.name or self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]

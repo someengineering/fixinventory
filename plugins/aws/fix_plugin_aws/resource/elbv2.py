@@ -432,8 +432,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
+
         period = min(timedelta(minutes=5), delta)
 
         lb_id = "/".join((self.arn or "").split("/")[-3:])
@@ -448,8 +447,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_id,
                 )
                 for name, metric_name in [
@@ -474,8 +471,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_id,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
@@ -494,8 +489,6 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                     ),
                     stat="Sum",
                     unit="Bytes",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_id,
                 )
                 for name, metric_name in [
@@ -697,8 +690,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
+
         period = min(timedelta(minutes=5), delta)
 
         tg_arn_id = (self.arn or "").split(":")[-1]
@@ -716,8 +708,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     metric_normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_arn_id,
                     TargetGroup=tg_arn_id,
                 )
@@ -740,8 +730,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_arn_id,
                     TargetGroup=tg_arn_id,
                 )
@@ -763,8 +751,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_arn_id,
                     TargetGroup=tg_arn_id,
                 )
@@ -782,8 +768,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                     metric_normalization=normalizer_factory.count,
                     stat="Minimum",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                     unit="Count",
-                    start=start,
-                    now=now,
                     LoadBalancer=lb_arn_id,
                     TargetGroup=tg_arn_id,
                 )
