@@ -70,6 +70,7 @@ test = [
     "types-pytz",
     "types-requests",
     "types-setuptools",
+    "types-six",
     "types-tzlocal",
     "wheel",
 ]

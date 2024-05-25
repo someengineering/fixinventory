@@ -40,7 +40,7 @@ class AzureAccountConfig:
                 client_secret=cs.client_secret,
             )
 
-        return DefaultAzureCredential()
+        return DefaultAzureCredential(process_timeout=300)
 
     def allowed(self, subscription_id: str) -> bool:
         if self.subscriptions is not None:

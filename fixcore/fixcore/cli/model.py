@@ -738,7 +738,7 @@ class ParsedCommandLine:
                 flow = await flow_action.flow(flow)
             return context, flow
         else:
-            return CLISourceContext(count=0), stream.empty()  # type: ignore
+            return CLISourceContext(count=0), stream.empty()
 
 
 class CLI(ABC):

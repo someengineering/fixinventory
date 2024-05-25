@@ -196,9 +196,9 @@ class AzureResourceManagementClient(AzureClient):
         try:
             return self._call(spec, **kwargs)
         except ClientAuthenticationError as e:
-            log.warning(f"[Azure] Call to Azure API is not authorized!: {e}")
+            log.warning(f"[Azure] Invoke Azure CLI is failed!: {e}. Api spec: {spec}")
             if (error := e.error) and (error_code := error.code):
-                msg = "Call to Azure API is not authorized!"
+                msg = "Invoke Azure CLI is failed!"
                 self.accumulator.add_error(False, error_code, spec.service, spec.path, msg, self.location)
             return None
         except HttpResponseError as e:

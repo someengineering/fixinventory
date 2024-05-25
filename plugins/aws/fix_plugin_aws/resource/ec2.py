@@ -2010,8 +2010,9 @@ class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
-        if vpc_id := source.get("VpcId"):
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Vpc, id=vpc_id)
+        if (vpc_id := source.get("VpcId")) and (vpc := builder.node(AwsEc2Vpc, id=vpc_id)):
+            vpc.vpc_in_use = True  # this VPC has at least one Network Interface and is considered in use
+            builder.dependant_node(self, reverse=True, delete_same_as_default=True, node=vpc)
         if subnet_id := source.get("SubnetId"):
             builder.add_edge(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
         if self.nic_attachment and (iid := self.nic_attachment.instance_id):
@@ -2129,6 +2130,8 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     vpc_ipv6_cidr_block_association_set: List[AwsEc2VpcIpv6CidrBlockAssociation] = field(factory=list)
     vpc_cidr_block_association_set: List[AwsEc2VpcCidrBlockAssociation] = field(factory=list)
     vpc_is_default: Optional[bool] = field(default=None)
+    # will be set to true when a network interface is connected. See AwsEc2NetworkInterface.connect_in_graph
+    vpc_in_use: Optional[bool] = field(default=False)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.vpc_is_default:

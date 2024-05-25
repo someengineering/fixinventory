@@ -180,17 +180,17 @@ def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
 
 
 def test_snapshot(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureSnapshot, builder)
+    collected = roundtrip_check(AzureVirtualMachineSnapshot, builder)
     assert len(collected) == 2
 
     resource_type: List[Type[AzureResource]] = [AzureDisk]
     connect_resources(builder, resource_type)
 
-    assert len(builder.edges_of(AzureDisk, AzureSnapshot)) == 1
+    assert len(builder.edges_of(AzureDisk, AzureVirtualMachineSnapshot)) == 1
 
 
 def test_snapshot_resources(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureSnapshot, builder)[1]
+    collected = roundtrip_check(AzureVirtualMachineSnapshot, builder)[1]
     assert collected.snapshot_status == "None"
     assert (
         collected.volume_id

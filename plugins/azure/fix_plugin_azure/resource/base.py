@@ -32,7 +32,10 @@ def get_client(subscription_id: str) -> AzureClient:
     if azure_config.accounts and (account := azure_config.accounts.get(subscription_id)):
         credential = account.credentials()
     else:
-        credential = DefaultAzureCredential()
+        # Increase the process timeout to ensure proper handling of credentials
+        # in environments with a high number of parallel futures. This helps to avoid timeouts
+        # during the credential acquisition process.
+        credential = DefaultAzureCredential(process_timeout=300)
     return AzureClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
 
 
@@ -525,7 +528,13 @@ class GraphBuilder:
 
         if last_run_started_at:
             now = utc()
-            start = last_run_started_at
+
+            # limit the metrics to the last hour
+            if now - last_run_started_at > timedelta(hours=2):
+                start = now - timedelta(hours=2)
+            else:
+                start = last_run_started_at
+
             delta = now - start
 
             min_delta = max(delta, timedelta(seconds=60))
@@ -540,8 +549,7 @@ class GraphBuilder:
             start = now - delta
 
         self.metrics_start = start
-        # Converting the total seconds in 'delta' to minutes for further compute interval
-        self.metrics_delta = delta.total_seconds() / 60
+        self.metrics_delta = delta
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """

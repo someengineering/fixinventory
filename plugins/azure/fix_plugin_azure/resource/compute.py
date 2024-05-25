@@ -2113,8 +2113,8 @@ class AzureCopyCompletionError:
 
 
 @define(eq=False, slots=False)
-class AzureSnapshot(AzureResource, BaseSnapshot):
-    kind: ClassVar[str] = "azure_snapshot"
+class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
+    kind: ClassVar[str] = "azure_virtual_machine_snapshot"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",
         version="2023-01-02",
@@ -3741,7 +3741,7 @@ resources: List[Type[AzureResource]] = [
     AzureImage,
     AzureProximityPlacementGroup,
     AzureRestorePointCollection,
-    AzureSnapshot,
+    AzureVirtualMachineSnapshot,
     AzureSshPublicKeyResource,
     AzureVirtualMachine,
     AzureVirtualMachineScaleSet,

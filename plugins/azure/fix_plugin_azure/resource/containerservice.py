@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
@@ -8,6 +9,9 @@ from fix_plugin_azure.resource.base import AzureResource, AzureSystemData, Graph
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
+
+service = "azure_container_service"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -132,23 +136,26 @@ class AzureFleet(AzureResource):
     cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "Reference to the cluster ID"})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        api_spec = AzureApiSpec(
-            service="containerservice",
-            version="2023-10-15",
-            path=f"{self.id}/members",
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-        )
-        items: List[Json] = graph_builder.client.list(api_spec)
+        def collect_fleets() -> None:
+            api_spec = AzureApiSpec(
+                service="containerservice",
+                version="2023-10-15",
+                path=f"{self.id}/members",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items: List[Json] = graph_builder.client.list(api_spec)
 
-        item: Json = next(iter(items), {})
+            item: Json = next(iter(items), {})
 
-        try:
-            self.cluster_resource_id = item["properties"]["clusterResourceId"]
-        except KeyError:
-            pass
+            try:
+                self.cluster_resource_id = item["properties"]["clusterResourceId"]
+            except KeyError as e:
+                log.warning(f"An error occured while setting cluster_resource_id: {e}")
+
+        graph_builder.submit_work(service, collect_fleets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_id := self.cluster_resource_id:
@@ -987,8 +994,8 @@ class AzureOSOptionProperty:
 
 
 @define(eq=False, slots=False)
-class AzureKubernetesSnapshot(AzureResource):
-    kind: ClassVar[str] = "azure_kubernetes_snapshot"
+class AzureManagedClusterSnapshot(AzureResource):
+    kind: ClassVar[str] = "azure_managed_cluster_snapshot"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="containerservice",
         version="2023-08-01",
@@ -1030,4 +1037,4 @@ class AzureKubernetesSnapshot(AzureResource):
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
 
 
-resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureKubernetesSnapshot]
+resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]
