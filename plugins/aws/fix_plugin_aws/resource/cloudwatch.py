@@ -619,7 +619,7 @@ class AwsCloudwatchMetricData:
         Returns:
             Dictionary mapping metric data to their corresponding IDs.
         """
-        lookup = {query.metric_id: query for _, _, _, query in queries}
+        lookup = {query.metric_id: query for _, _, _, query in queries if "aws_controltower" not in query.metric_id}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         queries_by_time_and_builder: defaultdict[Tuple[datetime, datetime, GraphBuilder], List[AwsCloudwatchQuery]] = (
             defaultdict(list)
@@ -628,6 +628,9 @@ class AwsCloudwatchMetricData:
 
         # Group queries by their (start, now, builder) values
         for start, now, builder, query in queries:
+            # Avoid `controltower` metric name
+            if "aws_controltower" in query.metric_id:
+                continue
             queries_by_time_and_builder[(start, now, builder)].append(query)
 
         # Process each group of queries with the same (start, now, builder) values
