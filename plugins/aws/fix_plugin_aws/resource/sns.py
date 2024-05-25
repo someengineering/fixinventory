@@ -88,6 +88,9 @@ class AwsSnsTopic(AwsResource):
                     builder.submit_work(service_name, add_tags, topic_instance)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
@@ -104,7 +107,7 @@ class AwsSnsTopic(AwsResource):
                     metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
-                    TopicName=self.name or self.safe_name,
+                    TopicName=self.safe_name,
                 )
                 for name, metric_name in [
                     ("NumberOfMessagesPublished", MetricName.NumberOfMessagesPublished),
@@ -124,7 +127,7 @@ class AwsSnsTopic(AwsResource):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    TopicName=self.name or self.safe_name,
+                    TopicName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]

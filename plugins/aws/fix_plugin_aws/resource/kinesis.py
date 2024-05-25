@@ -165,6 +165,9 @@ class AwsKinesisStream(AwsResource):
             builder.submit_work(service_name, add_instance, stream_name)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
@@ -179,7 +182,7 @@ class AwsKinesisStream(AwsResource):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    StreamName=self.name or self.safe_name,
+                    StreamName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]
@@ -195,7 +198,7 @@ class AwsKinesisStream(AwsResource):
                     metric_normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",
-                    StreamName=self.name or self.safe_name,
+                    StreamName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]

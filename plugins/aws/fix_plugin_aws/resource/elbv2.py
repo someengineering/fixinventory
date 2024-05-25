@@ -688,14 +688,14 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
                 builder.submit_work(service_name, add_instance, tg)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        if not self.alb_lb_arns:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
         period = min(timedelta(minutes=5), delta)
 
         tg_arn_id = (self.arn or "").split(":")[-1]
-        if not self.alb_lb_arns:
-            return []
         lb_arn_id = "/".join(self.alb_lb_arns[0].split("/")[-3:])
         queries.extend(
             [

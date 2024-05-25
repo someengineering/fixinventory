@@ -128,6 +128,9 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                 builder.submit_work(service_name, add_instance, queue_url)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
@@ -142,7 +145,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    QueueName=self.name or self.safe_name,
+                    QueueName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]
@@ -158,7 +161,7 @@ class AwsSqsQueue(AwsResource, BaseQueue):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    QueueName=self.name or self.safe_name,
+                    QueueName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
                 for name, metric_name in [

@@ -349,6 +349,9 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                 builder.submit_work(service_name, fetch_attributes, instance)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
@@ -365,7 +368,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
-                    LoadBalancerName=self.name or self.safe_name,
+                    LoadBalancerName=self.safe_name,
                 )
                 for name, metric_name in [
                     ("RequestCount", MetricName.RequestCount),
@@ -387,7 +390,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
-                    LoadBalancerName=self.name or self.safe_name,
+                    LoadBalancerName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
                 for name, metric_name in [
@@ -407,7 +410,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
-                    LoadBalancerName=self.name or self.safe_name,
+                    LoadBalancerName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]
@@ -423,7 +426,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
                     metric_normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
-                    LoadBalancerName=self.name or self.safe_name,
+                    LoadBalancerName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]

@@ -1399,14 +1399,13 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 builder.add_node(instance, instance_in)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        if self.instance_status != InstanceStatus.RUNNING:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta_since_last_scan = builder.metrics_delta
         # for metrics which are expressed as sum, we want the period to be
         # 5 minutes or less if the last scan was less than 5 minutes ago
         period = min(timedelta(minutes=5), delta_since_last_scan)
-
-        if self.instance_status != InstanceStatus.RUNNING:
-            return []
 
         queries.extend(
             [

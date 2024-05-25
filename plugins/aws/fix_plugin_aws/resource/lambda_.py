@@ -396,6 +396,9 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 builder.submit_work(service_name, get_url_config, instance)
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
         period = min(timedelta(minutes=5), delta)
@@ -411,7 +414,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     metric_normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
-                    FunctionName=self.name or self.safe_name,
+                    FunctionName=self.safe_name,
                 )
                 for name, metric_name in [
                     ("Invocations", MetricName.Invocations),
@@ -432,7 +435,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                     metric_normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",
-                    FunctionName=self.name or self.safe_name,
+                    FunctionName=self.safe_name,
                 )
                 for stat in ["Minimum", "Average", "Maximum"]
             ]

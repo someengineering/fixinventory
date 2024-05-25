@@ -619,7 +619,7 @@ class AwsCloudwatchMetricData:
         Returns:
             Dictionary mapping metric data to their corresponding IDs.
         """
-        lookup = {query.metric_id: query for _, _, _, query in queries if "aws_controltower" not in query.metric_id}
+        lookup = {query.metric_id: query for _, _, _, query in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         queries_by_time_and_builder: defaultdict[Tuple[datetime, datetime, GraphBuilder], List[AwsCloudwatchQuery]] = (
             defaultdict(list)
@@ -628,9 +628,6 @@ class AwsCloudwatchMetricData:
 
         # Group queries by their (start, now, builder) values
         for start, now, builder, query in queries:
-            # Avoid `controltower` metric name
-            if "aws_controltower" in query.metric_id:
-                continue
             queries_by_time_and_builder[(start, now, builder)].append(query)
 
         # Process each group of queries with the same (start, now, builder) values
@@ -746,7 +743,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache()
+    @lru_cache(None)
     def count_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Count,
@@ -761,7 +758,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache()
+    @lru_cache(None)
     def bytes_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Bytes,
@@ -783,7 +780,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache()
+    @lru_cache(None)
     def iops_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.IOPS,

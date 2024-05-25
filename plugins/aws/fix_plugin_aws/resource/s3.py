@@ -339,6 +339,9 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         return tags_as_dict(tag_list)  # type: ignore
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Avoid `aws-controltower` dismension value
+        if "aws-controltower" in self.safe_name:
+            return []
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -368,7 +371,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                     stat="Average",
                     unit="Count",
                     regional_builder=region_builder,
-                    BucketName=self.name or self.safe_name,
+                    BucketName=self.safe_name,
                     StorageType="AllStorageTypes",
                 )
             )
@@ -385,7 +388,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         unit="Bytes",
                         fix_metric_name=f"{storage_type_name}_bucket_size",
                         regional_builder=region_builder,
-                        BucketName=self.name or self.safe_name,
+                        BucketName=self.safe_name,
                         StorageType=storage_type,
                     )
                 )
