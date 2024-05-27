@@ -383,12 +383,16 @@ class AwsRegion(BaseRegion, AwsResource):
 
     def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
         count = 0
+        # A region with less than 10 real resources is considered not in use.
+        # AWS is creating a couple of resources in every region automatically.
+        # The number 10 is chosen by looking into different empty regions.
+        empty_region = 10
         for succ in builder.graph.descendants(self):
             if not isinstance(succ, PhantomBaseResource):
                 count += 1
-                if count > 10:
+                if count > empty_region:
                     break
-        self.region_in_use = count > 10
+        self.region_in_use = count > empty_region
 
 
 @define(eq=False, slots=False)
