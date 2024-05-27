@@ -355,7 +355,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
-        period = min(timedelta(minutes=5), delta)
+        period = timedelta(minutes=5)
 
         queries.extend(
             [

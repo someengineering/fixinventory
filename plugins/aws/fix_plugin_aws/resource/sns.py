@@ -93,9 +93,8 @@ class AwsSnsTopic(AwsResource):
             return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-
-        period = min(timedelta(minutes=5), delta)
-
+        # SNS metrics are available at a 1-minute interval
+        period = timedelta(minutes=1)
         queries.extend(
             [
                 AwsCloudwatchQuery.create(

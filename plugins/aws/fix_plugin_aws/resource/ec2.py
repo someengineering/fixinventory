@@ -617,7 +617,7 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
-        period = min(timedelta(minutes=5), delta)
+        period = timedelta(minutes=5)
 
         queries.extend(
             [
@@ -1403,9 +1403,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             return []
         queries: List[AwsCloudwatchQuery] = []
         delta_since_last_scan = builder.metrics_delta
-        # for metrics which are expressed as sum, we want the period to be
-        # 5 minutes or less if the last scan was less than 5 minutes ago
-        period = min(timedelta(minutes=5), delta_since_last_scan)
+        # for metrics which are expressed as sum, we want the period to be 5 minutes
+        period = timedelta(minutes=5)
 
         queries.extend(
             [

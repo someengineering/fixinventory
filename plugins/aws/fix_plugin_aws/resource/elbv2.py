@@ -433,7 +433,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
-        period = min(timedelta(minutes=5), delta)
+        period = timedelta(minutes=1)
 
         lb_id = "/".join((self.arn or "").split("/")[-3:])
         queries.extend(
@@ -465,7 +465,7 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
                 AwsCloudwatchQuery.create(
                     metric_name="TargetResponseTime",
                     namespace="AWS/ApplicationELB",
-                    period=period,
+                    period=delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.TargetResponseTime,
                     metric_normalization=normalizer_factory.seconds,
@@ -693,7 +693,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
 
-        period = min(timedelta(minutes=5), delta)
+        period = timedelta(minutes=1)
 
         tg_arn_id = (self.arn or "").split(":")[-1]
         lb_arn_id = "/".join(self.alb_lb_arns[0].split("/")[-3:])

@@ -401,7 +401,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
             return []
         queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        period = min(timedelta(minutes=5), delta)
+        # Lambda metrics support a 1-minute interval
+        period = timedelta(minutes=1)
 
         queries.extend(
             [

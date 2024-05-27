@@ -644,18 +644,21 @@ class AwsCloudwatchMetricData:
                 )
             )
 
-        # Retrieve results from submitted queries and populate the result dictionary
-        for future in as_completed(futures):
-            try:
-                metric_query_result = future.result()
-                for metric, metric_id in metric_query_result:
-                    if metric is not None and metric_id is not None:
-                        query_result = lookup.get(metric_id)
-                        if query_result:
-                            result[query_result] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-                raise e
+        try:
+            # Retrieve results from submitted queries with a timeout limit
+            for future in as_completed(futures, 60):
+                try:
+                    metric_query_result = future.result()
+                    for metric, metric_id in metric_query_result:
+                        if metric is not None and metric_id is not None:
+                            query_result = lookup.get(metric_id)
+                            if query_result:
+                                result[query_result] = metric
+                except Exception as e:
+                    log.warning(f"An error occurred while processing a metric query: {e}")
+                    raise e
+        except TimeoutError as e:
+            log.warning(f"An error ocurred while waiting futures: {e}")
 
         return result
 
