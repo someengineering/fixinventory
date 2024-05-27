@@ -29,8 +29,6 @@ from fixlib.basecategories import (
     Iam,
     Management,
     Monitoring,
-    Analytics,
-    Ai,
     DevOps,
 )
 
