@@ -124,6 +124,7 @@ class GcpAddress(GcpResource, BaseIPAddress):
         "subnetwork": S("subnetwork"),
         "users": S("users", default=[]),
         "ip_address": S("address", default=""),
+        "ip_address_family": S("ip_version"),
     }
     address: Optional[str] = field(default=None)
     address_type: Optional[str] = field(default=None)
@@ -912,6 +913,7 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
         "subsetting": S("subsetting", "policy"),
         "timeout_sec": S("timeoutSec"),
         "lb_type": S("loadBalancingScheme"),
+        "backends": S("backends", default=[]) >> ForallBend(S("group")),
     }
     affinity_cookie_ttl_sec: Optional[int] = field(default=None)
     backend_service_backends: Optional[List[GcpBackend]] = field(default=None)
