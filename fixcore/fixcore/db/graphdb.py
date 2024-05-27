@@ -1299,16 +1299,18 @@ class ArangoGraphDB(GraphDB):
             # old update node index: remove if still exists
             if "update_nodes_ref_id" in node_idxes:
                 nodes.delete_index("update_nodes_ref_id")
+            if "update_nodes" in node_idxes:
+                log.info(f"Remove index update_nodes on {nodes.name}")
+                nodes.delete_index("update_nodes")
 
             # this index will hold all the necessary data to query for an update (index only query)
-            if "update_nodes" not in node_idxes:
-                log.info(f"Add index update_nodes on {nodes.name}")
+            if "update_replace_nodes" not in node_idxes:
+                log.info(f"Add index update_replace_nodes on {nodes.name}")
                 nodes.add_persistent_index(
-                    # if _key was defined as first property, the optimizer would use it in case
-                    # a simple id() query would be executed.
-                    ["refs.cloud_id", "refs.account_id", "refs.region_id", "hash", "hist_hash", "created", "_key"],
+                    ["refs.account_id", "refs.cloud_id"],
+                    storedValues=["_key", "hash", "hist_hash", "created"],
                     sparse=False,
-                    name="update_nodes",
+                    name="update_replace_nodes",
                 )
 
             if "kinds_id_name_ctime" not in node_idxes:
@@ -1352,13 +1354,19 @@ class ArangoGraphDB(GraphDB):
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
+            # delete old index
+            if "update_edges_ref_id" in edge_idxes:
+                log.info(f"Remove index update_edges_ref_id on {edges.name}")
+                edges.delete_index("update_edges_ref_id")
+
             # this index will hold all the necessary data to query for an update (index only query)
-            if "update_edges_ref_id" not in edge_idxes:
-                log.info(f"Add index update_edges_ref_id on {edges.name}")
+            if "update_edges_replace_nodes" not in edge_idxes:
+                log.info(f"Add index update_edges_replace_nodes on {edges.name}")
                 edges.add_persistent_index(
-                    ["_key", "_from", "_to", "refs.cloud_id", "refs.account_id", "refs.region_id"],
+                    ["refs.account_id", "refs.cloud_id"],
+                    storedValues=["_key", "_from", "_to"],
                     sparse=False,
-                    name="update_edges_ref_id",
+                    name="update_edges_replace_nodes",
                 )
             outer_edge_ts_index_name = "outer_edge_timestamp_index"
             if outer_edge_ts_index_name not in edge_idxes:
