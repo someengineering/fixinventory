@@ -121,7 +121,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
         "FOR pre1 IN APPEND(TO_ARRAY(pre0.inner), {_internal: true})  "
         "FOR pre2 IN APPEND(TO_ARRAY(m0.reported.parents), {_internal: true}) "
         "FILTER ((@b0 IN m0.kinds) and ((pre0.name == @b1) and (pre1.name == @b2))) and (pre2.some_int == @b3) AND "
-        "(pre0._internal!=true AND pre1._internal!=true AND pre2._internal!=true) "
+        "((pre0._internal!=true AND pre1._internal!=true and pre2._internal!=true)) "
         "RETURN DISTINCT m0) "
         "FOR m1 in nested_distinct0  RETURN m1) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])'
@@ -140,7 +140,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
         "FOR pre2 IN APPEND(TO_ARRAY(m0.reported.parents), {_internal: true}) "
         "FILTER ((@b0 IN m0.kinds) and (NOT ((pre0.name == @b1) and (NOT (pre1.name == @b2))))) and "
         "(NOT (pre2.some_int == @b3)) AND "
-        "(pre0._internal!=true AND pre1._internal!=true AND pre2._internal!=true) "
+        "((pre0._internal!=true AND pre1._internal!=true and pre2._internal!=true)) "
         "RETURN DISTINCT m0) "
         "FOR m1 in nested_distinct0  RETURN m1) "
         'FOR result in filter0 RETURN UNSET(result, ["flat"])'
