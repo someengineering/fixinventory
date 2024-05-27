@@ -7,7 +7,7 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import BaseDatabase, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
 from fixlib.types import Json
 
@@ -638,7 +638,7 @@ class GcpSqlSettings:
 
 
 @define(eq=False, slots=False)
-class GcpSqlDatabaseInstance(GcpResource):
+class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_sql_database_instance"
     kind_display: ClassVar[str] = "GCP SQL Database Instance"
     kind_description: ClassVar[str] = (
@@ -700,6 +700,10 @@ class GcpSqlDatabaseInstance(GcpResource):
         "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
         "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
+        "db_type": S("backendType"),
+        "db_status": S("state"),
+        "db_version": S("databaseVersion"),
+        "volume_size": S("currentDiskSize"),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
     backend_type: Optional[str] = field(default=None)
@@ -713,7 +717,6 @@ class GcpSqlDatabaseInstance(GcpResource):
     etag: Optional[str] = field(default=None)
     failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
     gce_zone: Optional[str] = field(default=None)
-    instance_type: Optional[str] = field(default=None)
     instance_ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
     ipv6_address: Optional[str] = field(default=None)
     maintenance_version: Optional[str] = field(default=None)

@@ -5,7 +5,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import BaseAccount, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
@@ -15,7 +15,7 @@ from fixlib.types import Json
 
 
 @define(eq=False, slots=False)
-class GcpBillingAccount(GcpResource):
+class GcpBillingAccount(GcpResource, BaseAccount):
     kind: ClassVar[str] = "gcp_billing_account"
     kind_display: ClassVar[str] = "GCP Billing Account"
     kind_description: ClassVar[str] = (

@@ -5,6 +5,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
+from fixlib.baseresources import BaseBucket
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
@@ -335,7 +336,7 @@ class GcpObject(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpBucket(GcpResource):
+class GcpBucket(GcpResource, BaseBucket):
     kind: ClassVar[str] = "gcp_bucket"
     kind_display: ClassVar[str] = "GCP Bucket"
     kind_description: ClassVar[str] = (
