@@ -123,7 +123,7 @@ class GcpAddress(GcpResource, BaseIPAddress):
         "status": S("status"),
         "subnetwork": S("subnetwork"),
         "users": S("users", default=[]),
-        "ip_address": S("address"),
+        "ip_address": S("address", default=""),
     }
     address: Optional[str] = field(default=None)
     address_type: Optional[str] = field(default=None)
@@ -346,8 +346,8 @@ class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
         "autoscaler_status": S("status"),
         "autoscaler_status_details": S("statusDetails", default=[]) >> ForallBend(GcpAutoscalerStatusDetails.mapping),
         "autoscaler_target": S("target"),
-        "min_size": S("autoscalingPolicy", "minNumReplicas"),
-        "max_size": S("autoscalingPolicy" "maxNumReplicas"),
+        "min_size": S("autoscalingPolicy", "minNumReplicas", default=-1),
+        "max_size": S("autoscalingPolicy" "maxNumReplicas", default=-1),
     }
     autoscaler_autoscaling_policy: Optional[GcpAutoscalingPolicy] = field(default=None)
     autoscaler_recommended_size: Optional[int] = field(default=None)
@@ -2250,7 +2250,7 @@ class GcpHealthCheck(GcpResource, BaseHealthCheck):
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "check_interval_sec": S("checkIntervalSec"),
         "grpc_health_check": S("grpcHealthCheck", default={}) >> Bend(GcpGRPCHealthCheck.mapping),
-        "healthy_threshold": S("healthyThreshold"),
+        "healthy_threshold": S("healthyThreshold", default=-1),
         "http2_health_check": S("http2HealthCheck", default={}) >> Bend(GcpHTTP2HealthCheck.mapping),
         "http_health_check": S("httpHealthCheck", default={}) >> Bend(GcpHTTPHealthCheckSpec.mapping),
         "https_health_check": S("httpsHealthCheck", default={}) >> Bend(GcpHTTPSHealthCheckSpec.mapping),
@@ -2259,9 +2259,9 @@ class GcpHealthCheck(GcpResource, BaseHealthCheck):
         "tcp_health_check": S("tcpHealthCheck", default={}) >> Bend(GcpTCPHealthCheck.mapping),
         "timeout_sec": S("timeoutSec"),
         "type": S("type"),
-        "unhealthy_threshold": S("unhealthyThreshold"),
-        "timeout": S("timeoutSec"),
-        "check_interval": S("checkIntervalSec"),
+        "unhealthy_threshold": S("unhealthyThreshold", default=-1),
+        "timeout": S("timeoutSec", default=-1),
+        "check_interval": S("checkIntervalSec", default=-1),
     }
     check_interval_sec: Optional[int] = field(default=None)
     grpc_health_check: Optional[GcpGRPCHealthCheck] = field(default=None)
@@ -7046,7 +7046,7 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
         "snapshot_storage_bytes_status": S("storageBytesStatus"),
         "snapshot_storage_locations": S("storageLocations", default=[]),
         "volume_id": S("sourceDiskId"),
-        "volume_size": S("diskSizeGb"),
+        "volume_size": S("diskSizeGb", default=0),
     }
     snapshot_architecture: Optional[str] = field(default=None)
     snapshot_auto_created: Optional[bool] = field(default=None)
@@ -7583,7 +7583,7 @@ class GcpVpnTunnel(GcpResource, BaseTunnel):
             builder.add_edge(self, link=self.router)
 
 
-resources = [
+resources: List[Type[GcpResource]] = [
     GcpAcceleratorType,
     GcpAddress,
     GcpAutoscaler,
