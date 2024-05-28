@@ -11,7 +11,7 @@ from fix_plugin_aws.collector import (
     called_collect_apis,
     called_mutator_apis,
 )
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fixlib.core.model_export import dataclasses_to_fixcore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
@@ -36,6 +36,9 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
     assert count_kind(AwsResource) == 225
     assert len(account_collector.graph.edges) == 515
     assert len(account_collector.graph.deferred_edges) == 2
+    for node in account_collector.graph.nodes:
+        if isinstance(node, AwsRegion):
+            assert node.region_in_use
 
 
 def test_dependencies() -> None:

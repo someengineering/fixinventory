@@ -248,6 +248,11 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
+            # final hook when the graph is complete
+            for node, data in list(self.graph.nodes(data=True)):
+                if isinstance(node, AwsResource):
+                    node.complete_graph(global_builder, data.get("source", {}))
+
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
             self.core_feedback.progress_done(self.account.dname, 1, 1, context=[self.cloud.id])

@@ -54,6 +54,7 @@ from fixcore.util import (
 
 log = logging.getLogger(__name__)
 
+MigrateAlways = False
 CurrentDatabaseVersion = 2
 
 
@@ -116,7 +117,8 @@ class DbAccess(Service):
             system_data = SystemData(uuid_str(), utc(), CurrentDatabaseVersion)
         git_hash = current_git_hash()
         if (
-            system_data.db_version != CurrentDatabaseVersion
+            MigrateAlways
+            or system_data.db_version != CurrentDatabaseVersion
             or system_data.version is None
             or git_hash is None
             or git_hash != system_data.version

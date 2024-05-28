@@ -410,7 +410,9 @@ def query_string(
             pre_right, right, post_right = term(cursor, ab_term.right, context_path)
             pre = pre_left + " " + pre_right if pre_left and pre_right else pre_left if pre_left else pre_right
             post = (
-                post_left + " AND " + post_right if post_left and post_right else post_left if post_left else post_right
+                f"({post_left} {ab_term.op} {post_right})"
+                if post_left and post_right
+                else post_left if post_left else post_right
             )
             return pre, f"({left}) {ab_term.op} ({right})", post
         else:
