@@ -511,6 +511,13 @@ models: Dict[str, List[AwsFixModel]] = {
         # AwsFixModel(
         #     "list-global-tables", "GlobalTables", "GlobalTableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"
         # ),
+        AwsFixModel(
+            "describe-continuous-backups",
+            "ContinuousBackups",
+            "ContinuousBackupsDescription",
+            prefix="DynamoDb",
+            prop_prefix="dynamodb_",
+        ),
     ],
     "ec2": [
         # AwsFixModel("describe-hosts", "Hosts", "Host", prefix="Ec2", prop_prefix="host_")
@@ -936,7 +943,7 @@ models: Dict[str, List[AwsFixModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("ssm", "list-resource-compliance-summaries"), indent=2))
+    print(json.dumps(create_test_response("dynamodb", "describe-continuous-backups"), indent=2))
 
     """print the class models"""
     # print(default_imports())
