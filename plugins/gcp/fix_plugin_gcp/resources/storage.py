@@ -466,4 +466,4 @@ class GcpBucket(GcpResource, BaseBucket):
         return self.update_tag(key, None)
 
 
-resources = [GcpBucket]
+resources: List[type[GcpBucket]] = [GcpBucket]
