@@ -913,7 +913,6 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
         "subsetting": S("subsetting", "policy"),
         "timeout_sec": S("timeoutSec"),
         "lb_type": S("loadBalancingScheme"),
-        "backends": S("backends", default=[]) >> ForallBend(S("group")),
     }
     affinity_cookie_ttl_sec: Optional[int] = field(default=None)
     backend_service_backends: Optional[List[GcpBackend]] = field(default=None)
@@ -947,6 +946,26 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
     session_affinity: Optional[str] = field(default=None)
     subsetting: Optional[str] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if backends := self.backend_service_backends:
+            for backend in backends:
+                if group := backend.group:
+                    api_spec = GcpApiSpec(
+                        service="compute",
+                        version="v1",
+                        accessors=["backendServices"],
+                        action="listInstances",
+                        request_parameter={"project": "{project}"},
+                        request_parameter_in={"project", ""},
+                        response_path="items",
+                    )
+                    group_url = f"{group}/listInstances"
+                    items = graph_builder.client.list(api_spec, group_url)
+                    for item in items:
+                        if vm_id := item.get("instance"):
+                            self.backends.append(vm_id)
+
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
