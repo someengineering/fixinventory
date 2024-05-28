@@ -319,7 +319,7 @@ class AwsAccountCollector:
                     )
                     cloudwatch.update_resource_metrics(lookup_map, result)
                 except Exception as e:
-                    log.warning(f"Error occured in region {region}: {e}")
+                    log.warning(f"Error occurred in region {region}: {e}")
 
             builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
         for resource in post_collect_resources:

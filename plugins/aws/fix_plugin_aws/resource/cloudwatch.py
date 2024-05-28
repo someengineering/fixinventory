@@ -640,7 +640,7 @@ class AwsCloudwatchMetricData:
                     log.warning(f"An error occurred while processing a metric query: {e}")
                     raise e
         except TimeoutError as e:
-            log.warning(f"An error ocurred while waiting futures: {e}")
+            log.warning(f"An error occurred while waiting futures: {e}")
 
         return result
 
