@@ -11,7 +11,7 @@ from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type
 
 from math import ceil
 
-from attr import evolve
+from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
@@ -28,6 +28,7 @@ from fixlib.baseresources import (
     Cloud,
     EdgeType,
     ModelReference,
+    PhantomBaseResource,
 )
 from fixlib.config import Config, current_config
 from fixlib.core.actions import CoreFeedback, SuppressWithFeedback
@@ -257,11 +258,15 @@ class AwsResource(BaseResource, ABC):
         return []
 
     def post_process(self, builder: GraphBuilder, source: Json) -> None:
-        # Default behavior: do nothing
+        # Hook method: called after the resource has been created and added to the graph.
         pass
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # Default behavior: add resource to the namespace
+        # Hook method: called when all resources are collected.
+        pass
+
+    def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # Hook that is called when all resources have been collected and connected.
         pass
 
     def __str__(self) -> str:
@@ -368,12 +373,26 @@ class AwsRegion(BaseRegion, AwsResource):
         }
     }
     ctime: Optional[datetime] = default_ctime
+    region_in_use: Optional[bool] = field(default=None, metadata={"description": "Indicates if the region is in use."})
 
     def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
         self.long_name = cloud_region_data.get("aws", {}).get(self.id, {}).get("long_name")
         self.latitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("latitude")
         self.longitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("longitude")
+
+    def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
+        count = 0
+        # A region with less than 10 real resources is considered not in use.
+        # AWS is creating a couple of resources in every region automatically.
+        # The number 10 is chosen by looking into different empty regions.
+        empty_region = 10
+        for succ in builder.graph.descendants(self):
+            if not isinstance(succ, PhantomBaseResource):
+                count += 1
+                if count > empty_region:
+                    break
+        self.region_in_use = count > empty_region
 
 
 @define(eq=False, slots=False)
