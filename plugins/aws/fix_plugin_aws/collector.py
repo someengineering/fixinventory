@@ -312,16 +312,14 @@ class AwsAccountCollector:
             def collect_and_set_metrics(
                 start: timedelta, region: AwsRegion, queries: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]]
             ) -> None:
-                cloudwatch_result = {}
                 start_at = builder.created_at - start
                 try:
                     result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(
                         builder.for_region(region), start_at, builder.created_at, queries
                     )
+                    cloudwatch.update_resource_metrics(lookup_map, result)
                 except Exception as e:
                     log.warning(f"Error occured in region {region}: {e}")
-                cloudwatch_result.update(result)
-                cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)
 
             builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
         for resource in post_collect_resources:
