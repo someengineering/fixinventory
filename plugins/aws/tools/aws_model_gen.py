@@ -936,7 +936,7 @@ models: Dict[str, List[AwsFixModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("ssm", "list-resource-compliance-summaries"), indent=2))
+    print(json.dumps(create_test_response("dynamodb", "describe-continuous-backups"), indent=2))
 
     """print the class models"""
     # print(default_imports())

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
@@ -329,6 +329,30 @@ class AwsDynamoDbArchivalSummary:
 
 
 @define(eq=False, slots=False)
+class AwsDynamoDbPointInTimeRecovery:
+    kind: ClassVar[str] = "aws_dynamo_db_point_in_time_recovery"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("PointInTimeRecoveryStatus"),
+        "earliest_restorable_date_time": S("EarliestRestorableDateTime"),
+        "latest_restorable_date_time": S("LatestRestorableDateTime"),
+    }
+    status: Optional[str] = field(default=None, metadata={"description": "The current state of point in time recovery:    ENABLED - Point in time recovery is enabled.    DISABLED - Point in time recovery is disabled."})  # fmt: skip
+    earliest_restorable_date_time: Optional[datetime] = field(default=None, metadata={"description": "Specifies the earliest point in time you can restore your table to. You can restore your table to any point in time during the last 35 days."})  # fmt: skip
+    latest_restorable_date_time: Optional[datetime] = field(default=None, metadata={"description": "LatestRestorableDateTime is typically 5 minutes before the current time."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsDynamoDbContinuousBackup:
+    kind: ClassVar[str] = "aws_dynamo_db_continuous_backup"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "status": S("ContinuousBackupsStatus"),
+        "point_in_time_recovery": S("PointInTimeRecoveryDescription") >> Bend(AwsDynamoDbPointInTimeRecovery.mapping),
+    }
+    status: Optional[str] = field(default=None, metadata={"description": "ContinuousBackupsStatus can be one of the following states: ENABLED, DISABLED"})  # fmt: skip
+    point_in_time_recovery: Optional[AwsDynamoDbPointInTimeRecovery] = field(default=None, metadata={"description": "The description of the point in time recovery settings applied to the table."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_table"
     kind_display: ClassVar[str] = "AWS DynamoDB Table"
@@ -390,6 +414,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_sse_description: Optional[AwsDynamoDbSSEDescription] = field(default=None)
     dynamodb_archival_summary: Optional[AwsDynamoDbArchivalSummary] = field(default=None)
     dynamodb_table_class_summary: Optional[AwsDynamoDbTableClassSummary] = field(default=None)
+    dynamodb_continuous_backup: Optional[AwsDynamoDbContinuousBackup] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -397,11 +422,20 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "describe-table"),
             AwsApiSpec(service_name, "list-tags-of-resource"),
+            AwsApiSpec(service_name, "describe-continuous-backups"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
         instances = []
+
+        def add_backup_description(table: AwsDynamoDbTable) -> None:
+            if continuous_backup := builder.client.get(
+                service_name, "describe-continuous-backups", "ContinuousBackupsDescription", TableName=table.name
+            ):
+                table.dynamodb_continuous_backup = parse_json(
+                    continuous_backup, AwsDynamoDbContinuousBackup, builder, AwsDynamoDbContinuousBackup.mapping
+                )
 
         def add_instance(table: str) -> None:
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
@@ -410,6 +444,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
                     instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
+                    builder.submit_work(service_name, add_backup_description, instance)
 
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
