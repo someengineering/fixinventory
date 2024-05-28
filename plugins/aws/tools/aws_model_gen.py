@@ -511,13 +511,6 @@ models: Dict[str, List[AwsFixModel]] = {
         # AwsFixModel(
         #     "list-global-tables", "GlobalTables", "GlobalTableDescription", prefix="DynamoDb", prop_prefix="dynamodb_"
         # ),
-        AwsFixModel(
-            "describe-continuous-backups",
-            "ContinuousBackups",
-            "ContinuousBackupsDescription",
-            prefix="DynamoDb",
-            prop_prefix="dynamodb_",
-        ),
     ],
     "ec2": [
         # AwsFixModel("describe-hosts", "Hosts", "Host", prefix="Ec2", prop_prefix="host_")
