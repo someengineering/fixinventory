@@ -428,7 +428,6 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        instances = []
 
         def add_backup_description(table: AwsDynamoDbTable) -> None:
             if continuous_backup := builder.client.get(
