@@ -12,6 +12,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, 
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
+from fixlib.durations import duration_str
 from fixlib.graph import Graph
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -611,7 +612,7 @@ class AwsCloudwatchMetricData:
         queries: List[Tuple[AwsCloudwatchQuery, AwsResource]],
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
-        log.info(f"[{builder.region.safe_name}:{start}:{until-start}] Query for {len(queries)} metrics.")
+        log.info(f"[{builder.region.safe_name}|{start}|{duration_str(until-start)}] Query for {len(queries)} metrics.")
         lookup = {query.metric_id: query for query, _ in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []
