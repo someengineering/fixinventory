@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -9,17 +10,17 @@ class BaseCategory:
     def __str__(self) -> str:
         return self.name
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Any) -> bool:
         if isinstance(other, BaseCategory):
             return str(self) < str(other)
         return False
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, BaseCategory):
             return str(self) == str(other)
         return False
 
-    def __gt__(self, other) -> bool:
+    def __gt__(self, other: Any) -> bool:
         if isinstance(other, BaseCategory):
             return str(self) > str(other)
         return False
