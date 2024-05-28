@@ -9,15 +9,20 @@ class BaseCategory:
     def __str__(self) -> str:
         return self.name
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if isinstance(other, BaseCategory):
-            return self.name < other.name
-        return NotImplemented
+            return str(self) < str(other)
+        return False
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, BaseCategory):
-            return self.name == other.name
-        return NotImplemented
+            return str(self) == str(other)
+        return False
+
+    def __gt__(self, other) -> bool:
+        if isinstance(other, BaseCategory):
+            return str(self) > str(other)
+        return False
 
 
 @dataclass(frozen=True)
