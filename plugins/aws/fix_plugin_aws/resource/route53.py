@@ -1,5 +1,6 @@
 from typing import ClassVar, Dict, Optional, List, Type, Any, Tuple
 
+
 from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -96,7 +97,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(zone: AwsRoute53Zone) -> None:
             tags = builder.client.get(
                 service_name,
@@ -117,10 +118,8 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                         res[0], AwsRoute53LoggingConfig, builder, AwsRoute53LoggingConfig.mapping
                     )
 
-        instances: List[AwsResource] = []
-        for js in json:
+        def add_instance(js: Json) -> None:
             if zone := AwsRoute53Zone.from_api(js, builder):
-                instances.append(zone)
                 builder.add_node(zone, js)
                 builder.submit_work(service_name, add_tags, zone)
                 builder.submit_work(service_name, fetch_logging_configuration, zone)
@@ -128,7 +127,6 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                     service_name, "list-resource-record-sets", "ResourceRecordSets", HostedZoneId=zone.id
                 ):
                     if record_set := AwsRoute53ResourceRecordSet.from_api(rs_js, builder):
-                        instances.append(record_set)
                         builder.add_node(record_set, rs_js)
                         builder.add_edge(zone, EdgeType.default, node=record_set)
                         for data in record_set.record_values:
@@ -144,7 +142,9 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
                             builder.add_node(record, js)
                             builder.add_edge(record_set, EdgeType.default, node=record)
                             builder.add_edge(record_set, EdgeType.delete, node=record)
-        return instances
+
+        for js in json:
+            builder.submit_work(service_name, add_instance, js)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

@@ -1,13 +1,12 @@
 import uuid
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, TypeVar
-from attrs import frozen
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from boto3.session import Session as BotoSession
 from botocore.exceptions import ConnectionClosedError, CredentialRetrievalError
 from prometheus_client import Counter
 from retrying import retry
 
-from fixlib.baseresources import BaseRegion, BaseResource, MetricName, MetricUnit, StatName
+from fixlib.baseresources import BaseRegion, BaseResource
 from fixlib.config import Config
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender
@@ -176,31 +175,3 @@ class TagsValue(Bender):
             if k.get("Key") == self.name:
                 return k.get("Value", "")  # type: ignore
         return None
-
-
-T = TypeVar("T")
-
-
-def identity(x: T) -> T:
-    return x
-
-
-# by default, take the first value, and don't include a stat name
-# so the default metric stat is used
-def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
-    return [(x[0], None)]
-
-
-@frozen(kw_only=True)
-class MetricNormalization:
-    metric_name: MetricName
-    unit: MetricUnit
-    stat_map: Dict[str, StatName] = {
-        "Minimum": StatName.min,
-        "Average": StatName.avg,
-        "Maximum": StatName.max,
-    }
-    normalize_value: Callable[[float], float] = identity
-    # function to derive stats from a list of values
-    # the default is to take the first value and use the default stat name
-    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first

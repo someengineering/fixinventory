@@ -203,14 +203,7 @@ class AwsResource(BaseResource, ABC):
                     expected_errors=spec.expected_errors,
                     **kwargs,
                 )
-                collected = cls.collect(items, builder)
-                if builder.config.collect_usage_metrics:
-                    try:
-                        cls.collect_usage_metrics(builder, collected)
-                    except Exception as e:
-                        log.warning(
-                            f"Failed to collect usage metrics for {cls.__name__} in region {builder.region.id}: {e}"
-                        )
+                cls.collect(items, builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -221,28 +214,22 @@ class AwsResource(BaseResource, ABC):
                 raise
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # - return a list of resources
         # In case additional work needs to be done, override this method.
-        instances = []
         for js in json:
             if instance := cls.from_api(js, builder):
                 # post process
                 instance.post_process(builder, js)
                 builder.add_node(instance, js)
-                instances.append(instance)
-        return instances
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List:  # type: ignore
         # Default behavior: do nothing
-        pass
+        return []
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -413,6 +400,7 @@ class GraphBuilder:
         cloud: Cloud,
         account: AwsAccount,
         region: AwsRegion,
+        all_regions: Dict[str, AwsRegion],
         client: AwsClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
@@ -425,6 +413,7 @@ class GraphBuilder:
         self.cloud = cloud
         self.account = account
         self.region = region
+        self.all_regions = all_regions
         self.client = client
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
@@ -434,6 +423,7 @@ class GraphBuilder:
         self.graph_edges_access = graph_edges_access or RWLock()
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
+        self.__builder_cache = {region.safe_name: self}
 
         if last_run_started_at:
             now = utc()
@@ -633,11 +623,14 @@ class GraphBuilder:
         return vt
 
     def for_region(self, region: AwsRegion) -> GraphBuilder:
-        return GraphBuilder(
+        if cached := self.__builder_cache.get(region.safe_name):
+            return cached
+        builder = GraphBuilder(
             self.graph,
             self.cloud,
             self.account,
             region,
+            self.all_regions,
             self.client.for_region(region.safe_name),
             self.executor,
             self.core_feedback,
@@ -646,3 +639,5 @@ class GraphBuilder:
             self.graph_edges_access,
             self.last_run_started_at,
         )
+        self.__builder_cache[region.safe_name] = builder
+        return builder

@@ -148,16 +148,18 @@ class MetricName(str, Enum):
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
-    ActiveConnection = "active_connection"
+    ActiveConnectionCount = "active_connection"  # _count will be added to the end because of the unit
+    ALBActiveConnectionCount = "alb_active_connection"  # _count will be added to the end because of the unit
     ConnectionAttemptCount = "connection_attempt"  # _count will be added to the end because of the unit
     ConnectionEstablishedCount = "connection_established"  # _count will be added to the end because of the unit
     StatusCode2XX = "status_code_2xx"
     StatusCode4XX = "status_code_4xx"
     StatusCode5XX = "status_code_5xx"
     Latency = "latency"
+    TargetResponseTime = "target_response_time"
     ProcessedBytes = "processed"  # _bytes will be added to the end because of the unit
     HealthyHostCount = "healthy_host"  # _count will be added to the end because of the unit
-    UnhealthyHostCount = "unhealthy_host"  # _count will be added to the end because of the unit
+    UnHealthyHostCount = "unhealthy_host"  # _count will be added to the end because of the unit
     HealthyStateRouting = "healthy_state_routing"
     UnhealthyStateRouting = "unhealthy_state_routing"
     HealthyStateDNS = "healthy_state_dns"

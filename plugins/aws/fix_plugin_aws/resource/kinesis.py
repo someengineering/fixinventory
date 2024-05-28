@@ -3,15 +3,11 @@ from typing import ClassVar, Dict, Optional, List, Any
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
-    AwsCloudwatchQuery,
-    update_resource_metrics,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from fixlib.baseresources import MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
@@ -145,15 +141,8 @@ class AwsKinesisStream(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        streams: List[AwsResource] = []
-
-        def add_tags(stream: AwsKinesisStream) -> None:
-            tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
-            if tags:
-                stream.tags = bend(ToDict(), tags)
-
-        for stream_name in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(stream_name: str) -> None:
             # this call is paginated and will return a list
             stream_descriptions = builder.client.list(
                 aws_service=service_name,
@@ -164,67 +153,57 @@ class AwsKinesisStream(AwsResource):
             if len(stream_descriptions) == 1:
                 js = stream_descriptions[0]
                 if stream := AwsKinesisStream.from_api(js, builder):
-                    streams.append(stream)
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
-        return streams
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
-        kinesises = {kinesis.id: kinesis for kinesis in collected_resources}
-        queries = []
+        def add_tags(stream: AwsKinesisStream) -> None:
+            tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)
+            if tags:
+                stream.tags = bend(ToDict(), tags)
+
+        for stream_name in json:
+            builder.submit_work(service_name, add_instance, stream_name)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Filter out metrics with the 'aws-controltower' dimension value
+        if "aws-controltower" in self.safe_name:
+            return []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
-        for kinesis_id, kinesis in kinesises.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.Bytes",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Bytes",
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="GetRecords.IteratorAgeMilliseconds",
-                        namespace="AWS/Kinesis",
-                        period=delta,
-                        ref_id=kinesis_id,
-                        stat=stat,
-                        unit="Milliseconds",
-                        StreamName=kinesis.name or kinesis.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-
-        metric_normalizers = {
-            "GetRecords.Bytes": MetricNormalization(
-                metric_name=MetricName.RecordsBytes,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "GetRecords.IteratorAgeMilliseconds": MetricNormalization(
-                metric_name=MetricName.RecordsIteratorAgeMilliseconds,
-                unit=MetricUnit.Milliseconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
-
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(kinesises, cloudwatch_result, metric_normalizers)
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="GetRecords.Bytes",
+                    namespace="AWS/Kinesis",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.RecordsBytes,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    unit="Bytes",
+                    StreamName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="GetRecords.IteratorAgeMilliseconds",
+                    namespace="AWS/Kinesis",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.RecordsIteratorAgeMilliseconds,
+                    normalization=normalizer_factory.milliseconds,
+                    stat=stat,
+                    unit="Milliseconds",
+                    StreamName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.kinesis_key_id:

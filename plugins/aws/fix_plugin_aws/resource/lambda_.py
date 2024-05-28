@@ -8,19 +8,12 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
-    AwsCloudwatchQuery,
-    calculate_min_max_avg,
-    update_resource_metrics,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import MetricNormalization
 from fixlib.baseresources import (
     BaseServerlessFunction,
     MetricName,
-    MetricUnit,
     ModelReference,
 )
 from fixlib.graph import Graph
@@ -338,9 +331,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(function: AwsLambdaFunction) -> None:
             tags = builder.client.get(
                 service_name, "list-tags", "Tags", Resource=function.arn, expected_errors=["ResourceNotFoundException"]
@@ -399,89 +390,58 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, get_policy, instance)
                 builder.submit_work(service_name, get_url_config, instance)
-        return instances
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
-        lambdas = {function.id: function for function in collected_resources}
-        queries = []
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Filter out metrics with the 'aws-controltower' dimension value
+        if "aws-controltower" in self.safe_name:
+            return []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
+        # Lambda metrics support a 1-minute interval
+        period = timedelta(minutes=1)
 
-        for lambda_id, lambda_instance in lambdas.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric_name,
-                        namespace="AWS/Lambda",
-                        period=period,
-                        ref_id=lambda_id,
-                        stat="Sum",
-                        unit="Count",
-                        FunctionName=lambda_instance.name or lambda_instance.safe_name,
-                    )
-                    for metric_name in ["Invocations", "Errors", "Throttles", "ConcurrentExecutions"]
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/Lambda",
+                    period=period,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.count_sum(),
+                    stat="Sum",
+                    unit="Count",
+                    FunctionName=self.safe_name,
+                )
+                for name, metric_name in [
+                    ("Invocations", MetricName.Invocations),
+                    ("Errors", MetricName.Errors),
+                    ("Throttles", MetricName.Throttles),
+                    ("ConcurrentExecutions", MetricName.ConcurrentExecutions),
                 ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="Duration",
-                        namespace="AWS/Lambda",
-                        period=delta,
-                        ref_id=lambda_id,
-                        stat=stat,
-                        unit="Milliseconds",
-                        FunctionName=lambda_instance.name or lambda_instance.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-
-        metric_normalizers = {
-            "Invocations": MetricNormalization(
-                metric_name=MetricName.Invocations,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "Errors": MetricNormalization(
-                metric_name=MetricName.Errors,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "Throttles": MetricNormalization(
-                metric_name=MetricName.Throttles,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "Duration": MetricNormalization(
-                metric_name=MetricName.Duration,
-                unit=MetricUnit.Milliseconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ConcurrentExecutions": MetricNormalization(
-                metric_name=MetricName.ConcurrentExecutions,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
-
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(lambdas, cloudwatch_result, metric_normalizers)
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="Duration",
+                    namespace="AWS/Lambda",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.Duration,
+                    normalization=normalizer_factory.milliseconds,
+                    stat=stat,
+                    unit="Milliseconds",
+                    FunctionName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if vpc_config := source.get("VpcConfig"):

@@ -41,8 +41,7 @@ def test_vpc_quotas() -> None:
 
 
 def test_alb_quotas() -> None:
-    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    AwsAlb.collect_resources(builder)
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type", collect_also=[AwsAlb])
     expect_quotas(builder, 2)
 
 

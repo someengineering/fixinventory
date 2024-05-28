@@ -1,6 +1,7 @@
 from datetime import datetime
 from attrs import define, field
 from typing import ClassVar, Dict, List, Optional, Type, Any
+
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.athena import AwsAthenaDataCatalog, AwsAthenaWorkGroup
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
@@ -138,19 +139,21 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for notebook in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(notebook: Json) -> Optional[AwsSagemakerNotebook]:
             notebook_description = builder.client.get(
                 service_name, "describe-notebook-instance", None, NotebookInstanceName=notebook["NotebookInstanceName"]
             )
             if notebook_description and (
                 notebook_instance := AwsSagemakerNotebook.from_api(notebook_description, builder)
             ):
-                instances.append(notebook_instance)
                 builder.add_node(notebook_instance, notebook_description)
                 builder.submit_work(service_name, SagemakerTaggable.add_tags, notebook_instance, builder)
-        return instances
+                return notebook_instance
+            return None
+
+        for notebook in json:
+            builder.submit_work(service_name, add_instance, notebook)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnet := value_in_path(source, "SubnetId"):
@@ -793,17 +796,20 @@ class AwsSagemakerAlgorithm(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-algorithm")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for algorithm in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_algorithm(algorithm: Json) -> Optional[AwsSagemakerAlgorithm]:
             algorithm_description = builder.client.get(
                 service_name, "describe-algorithm", None, AlgorithmName=algorithm["AlgorithmName"]
             )
-            if algorithm_description:
-                if algorithm_instance := AwsSagemakerAlgorithm.from_api(algorithm_description, builder):
-                    instances.append(algorithm_instance)
-                    builder.add_node(algorithm_instance, algorithm_description)
-        return instances
+            if algorithm_description and (
+                algorithm_instance := AwsSagemakerAlgorithm.from_api(algorithm_description, builder)
+            ):
+                builder.add_node(algorithm_instance, algorithm_description)
+                return algorithm_instance
+            return None
+
+        for algorithm in json:
+            builder.submit_work(service_name, get_algorithm, algorithm)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if validation_role := value_in_path(source, ["ValidationSpecification", "ValidationRole"]):
@@ -926,17 +932,17 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-model"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_model(model: Json) -> Optional[AwsSagemakerModel]:
+            model_description = builder.client.get(service_name, "describe-model", None, ModelName=model["ModelName"])
+            if model_description and (model_instance := AwsSagemakerModel.from_api(model_description, builder)):
+                builder.add_node(model_instance, model_description)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, model_instance, builder)
+                return model_instance
+            return None
+
         for model in json:
-            if model_description := builder.client.get(
-                service_name, "describe-model", None, ModelName=model["ModelName"]
-            ):
-                if model_instance := AwsSagemakerModel.from_api(model_description, builder):
-                    instances.append(model_instance)
-                    builder.add_node(model_instance, model_description)
-                    builder.submit_work(service_name, SagemakerTaggable.add_tags, model_instance, builder)
-        return instances
+            builder.submit_work(service_name, get_model, model)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         model_data_buckets = [container.model_data_url for container in self.model_containers]
@@ -1045,13 +1051,13 @@ class AwsSagemakerApp(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-app")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for app in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_app(app: Json) -> Optional[AwsSagemakerApp]:
             # Don't collect Apps that are deleted
             if app.get("AppStatus") == "Deleted":
-                continue
-            elif app["UserProfileName"]:
+                return None
+
+            if app["UserProfileName"]:
                 app_description = builder.client.get(
                     service_name,
                     "describe-app",
@@ -1073,11 +1079,14 @@ class AwsSagemakerApp(AwsResource):
                 )
             else:
                 app_description = None
-            if app_description:
-                if app_instance := AwsSagemakerApp.from_api(app_description, builder):
-                    instances.append(app_instance)
-                    builder.add_node(app_instance, app_description)
-        return instances
+
+            if app_description and (app_instance := AwsSagemakerApp.from_api(app_description, builder)):
+                builder.add_node(app_instance, app_description)
+                return app_instance
+            return None
+
+        for app in json:
+            builder.submit_work(service_name, get_app, app)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if domain := self.app_domain_id:
@@ -1421,20 +1430,16 @@ class AwsSagemakerDomain(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-domain")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_domain(domain: Json) -> Optional[AwsSagemakerDomain]:
+            domain_description = builder.client.get(service_name, "describe-domain", None, DomainId=domain["DomainId"])
+            if domain_description and (domain_instance := AwsSagemakerDomain.from_api(domain_description, builder)):
+                builder.add_node(domain_instance, domain_description)
+                return domain_instance
+            return None
+
         for domain in json:
-            domain_description = builder.client.get(
-                service_name,
-                "describe-domain",
-                None,
-                DomainId=domain["DomainId"],
-            )
-            if domain_description:
-                if domain_instance := AwsSagemakerDomain.from_api(domain_description, builder):
-                    instances.append(domain_instance)
-                    builder.add_node(domain_instance, domain_description)
-        return instances
+            builder.submit_work(service_name, get_domain, domain)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dus := self.domain_default_user_settings:
@@ -1684,20 +1689,16 @@ class AwsSagemakerTrial(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-trial")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_trial(trial: Json) -> Optional[AwsSagemakerTrial]:
+            trial_description = builder.client.get(service_name, "describe-trial", None, TrialName=trial["TrialName"])
+            if trial_description and (trial_instance := AwsSagemakerTrial.from_api(trial_description, builder)):
+                builder.add_node(trial_instance, trial_description)
+                return trial_instance
+            return None
+
         for trial in json:
-            trial_description = builder.client.get(
-                service_name,
-                "describe-trial",
-                None,
-                TrialName=trial["TrialName"],
-            )
-            if trial_description:
-                if trial_instance := AwsSagemakerTrial.from_api(trial_description, builder):
-                    instances.append(trial_instance)
-                    builder.add_node(trial_instance, trial_description)
-        return instances
+            builder.submit_work(service_name, get_trial, trial)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.trial_experiment_name:
@@ -2290,17 +2291,21 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-endpoint"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for endpoint in json:
-            if endpoint_description := builder.client.get(
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_endpoint(endpoint: Json) -> Optional[AwsSagemakerEndpoint]:
+            endpoint_description = builder.client.get(
                 service_name, "describe-endpoint", None, EndpointName=endpoint["EndpointName"]
+            )
+            if endpoint_description and (
+                endpoint_instance := AwsSagemakerEndpoint.from_api(endpoint_description, builder)
             ):
-                if endpoint_instance := AwsSagemakerEndpoint.from_api(endpoint_description, builder):
-                    instances.append(endpoint_instance)
-                    builder.add_node(endpoint_instance, endpoint_description)
-                    builder.submit_work(service_name, SagemakerTaggable.add_tags, endpoint_instance, builder)
-        return instances
+                builder.add_node(endpoint_instance, endpoint_description)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, endpoint_instance, builder)
+                return endpoint_instance
+            return None
+
+        for endpoint in json:
+            builder.submit_work(service_name, get_endpoint, endpoint)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if dcc := self.endpoint_data_capture_config:
@@ -2373,15 +2378,16 @@ class AwsSagemakerImage(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-image")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for image in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_image(image: Json) -> Optional[AwsSagemakerImage]:
             image_description = builder.client.get(service_name, "describe-image", None, ImageName=image["ImageName"])
-            if image_description:
-                if image_instance := AwsSagemakerImage.from_api(image_description, builder):
-                    instances.append(image_instance)
-                    builder.add_node(image_instance, image_description)
-        return instances
+            if image_description and (image_instance := AwsSagemakerImage.from_api(image_description, builder)):
+                builder.add_node(image_instance, image_description)
+                return image_instance
+            return None
+
+        for image in json:
+            builder.submit_work(service_name, get_image, image)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role := value_in_path(source, "RoleArn"):
@@ -2473,16 +2479,20 @@ class AwsSagemakerArtifact(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-artifact")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for artifact in json:
-            if artifact_description := builder.client.get(
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_artifact(artifact: Json) -> Optional[AwsSagemakerArtifact]:
+            artifact_description = builder.client.get(
                 service_name, "describe-artifact", None, ArtifactArn=artifact["ArtifactArn"]
+            )
+            if artifact_description and (
+                artifact_instance := AwsSagemakerArtifact.from_api(artifact_description, builder)
             ):
-                if artifact_instance := AwsSagemakerArtifact.from_api(artifact_description, builder):
-                    instances.append(artifact_instance)
-                    builder.add_node(artifact_instance, artifact_description)
-        return instances
+                builder.add_node(artifact_instance, artifact_description)
+                return artifact_instance
+            return None
+
+        for artifact in json:
+            builder.submit_work(service_name, get_artifact, artifact)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if c := self.artifact_created_by:
@@ -2599,16 +2609,20 @@ class AwsSagemakerPipeline(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-pipeline")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for pipeline in json:
-            if pipeline_description := builder.client.get(
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_pipeline(pipeline: Json) -> Optional[AwsSagemakerPipeline]:
+            pipeline_description = builder.client.get(
                 service_name, "describe-pipeline", None, PipelineName=pipeline["PipelineName"]
+            )
+            if pipeline_description and (
+                pipeline_instance := AwsSagemakerPipeline.from_api(pipeline_description, builder)
             ):
-                if pipeline_instance := AwsSagemakerPipeline.from_api(pipeline_description, builder):
-                    instances.append(pipeline_instance)
-                    builder.add_node(pipeline_instance, pipeline_description)
-        return instances
+                builder.add_node(pipeline_instance, pipeline_description)
+                return pipeline_instance
+            return None
+
+        for pipeline in json:
+            builder.submit_work(service_name, get_pipeline, pipeline)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := value_in_path(source, "RoleArn"):
@@ -2730,14 +2744,16 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for workteam in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_workteam(workteam: Json) -> Optional[AwsSagemakerWorkteam]:
             if workteam_instance := AwsSagemakerWorkteam.from_api(workteam, builder):
-                instances.append(workteam_instance)
                 builder.add_node(workteam_instance, workteam)
                 builder.submit_work(service_name, SagemakerTaggable.add_tags, workteam_instance, builder)
-        return instances
+                return workteam_instance
+            return None
+
+        for workteam in json:
+            builder.submit_work(service_name, get_workteam, workteam)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for member in self.workteam_member_definitions:
@@ -3163,17 +3179,18 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-auto-ml-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerAutoMLJob]:
             job_description = builder.client.get(
                 service_name, "describe-auto-ml-job", None, AutoMLJobName=job["AutoMLJobName"]
             )
-            if job_description:
-                if job_instance := AwsSagemakerAutoMLJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-        return instances
+            if job_description and (job_instance := AwsSagemakerAutoMLJob.from_api(job_description, builder)):
+                builder.add_node(job_instance, job_description)
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for config in self.auto_ml_job_input_data_config:
@@ -3355,17 +3372,18 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-compilation-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerCompilationJob]:
             job_description = builder.client.get(
                 service_name, "describe-compilation-job", None, CompilationJobName=job["CompilationJobName"]
             )
-            if job_description:
-                if job_instance := AwsSagemakerCompilationJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-        return instances
+            if job_description and (job_instance := AwsSagemakerCompilationJob.from_api(job_description, builder)):
+                builder.add_node(job_instance, job_description)
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.compilation_job_model_artifacts:
@@ -3389,140 +3407,6 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
                 )
             for subnet in vpc.subnets:
                 builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsEc2Subnet, id=subnet)
-
-
-@define(eq=False, slots=False)
-class AwsSagemakerEdgeOutputConfig:
-    kind: ClassVar[str] = "aws_sagemaker_edge_output_config"
-    kind_display: ClassVar[str] = "AWS SageMaker Edge Output Configuration"
-    kind_description: ClassVar[str] = (
-        "The AWS SageMaker Edge Output Configuration pertains to how models are deployed and managed on edge"
-        " devices using Amazon SageMaker Edge Manager. It specifies where the model artifacts and other Edge"
-        " Manager outputs will be stored, typically in an S3 bucket, and how they will be encrypted, using an"
-        " optional AWS KMS key."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "s3_output_location": S("S3OutputLocation"),
-        "kms_key_id": S("KmsKeyId"),
-        "preset_deployment_type": S("PresetDeploymentType"),
-        "preset_deployment_config": S("PresetDeploymentConfig"),
-    }
-    s3_output_location: Optional[str] = field(default=None)
-    kms_key_id: Optional[str] = field(default=None)
-    preset_deployment_type: Optional[str] = field(default=None)
-    preset_deployment_config: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsSagemakerEdgePresetDeploymentOutput:
-    kind: ClassVar[str] = "aws_sagemaker_edge_preset_deployment_output"
-    kind_display: ClassVar[str] = "AWS SageMaker Edge Preset Deployment Output"
-    kind_description: ClassVar[str] = (
-        "The output of a deployment of an edge preset in Amazon SageMaker. It"
-        " represents the processed data and predictions generated by a machine"
-        " learning model that has been deployed to edge devices."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "type": S("Type"),
-        "artifact": S("Artifact"),
-        "status": S("Status"),
-        "status_message": S("StatusMessage"),
-    }
-    type: Optional[str] = field(default=None)
-    artifact: Optional[str] = field(default=None)
-    status: Optional[str] = field(default=None)
-    status_message: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsSagemakerEdgePackagingJob(AwsSagemakerJob):
-    kind: ClassVar[str] = "aws_sagemaker_edge_packaging_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Edge Packaging Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:edge-packaging-job/{name}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
-        "SageMaker Edge Packaging Jobs allow users to package machine learning models"
-        " and dependencies for deployment on edge devices using AWS SageMaker Edge"
-        " Manager."
-    )
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {
-            "default": ["aws_iam_role", "aws_sagemaker_model"],
-            "delete": ["aws_kms_key", "aws_iam_role"],
-        },
-        "successors": {
-            "default": [
-                "aws_s3_bucket",
-                "aws_kms_key",
-            ],
-        },
-    }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        service_name,
-        "list-edge-packaging-jobs",
-        "EdgePackagingJobSummaries",
-        expected_errors=["UnknownOperationException"],
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("EdgePackagingJobName"),
-        "name": S("EdgePackagingJobName"),
-        "ctime": S("CreationTime"),
-        "mtime": S("LastModifiedTime"),
-        "arn": S("EdgePackagingJobArn"),
-        "edge_packaging_job_compilation_job_name": S("CompilationJobName"),
-        "edge_packaging_job_model_version": S("ModelVersion"),
-        "edge_packaging_job_output_config": S("OutputConfig") >> Bend(AwsSagemakerEdgeOutputConfig.mapping),
-        "edge_packaging_job_resource_key": S("ResourceKey"),
-        "edge_packaging_job_status": S("EdgePackagingJobStatus"),
-        "edge_packaging_job_status_message": S("EdgePackagingJobStatusMessage"),
-        "edge_packaging_job_model_artifact": S("ModelArtifact"),
-        "edge_packaging_job_model_signature": S("ModelSignature"),
-        "edge_packaging_job_preset_deployment_output": S("PresetDeploymentOutput")
-        >> Bend(AwsSagemakerEdgePresetDeploymentOutput.mapping),
-    }
-    edge_packaging_job_compilation_job_name: Optional[str] = field(default=None)
-    edge_packaging_job_model_version: Optional[str] = field(default=None)
-    edge_packaging_job_output_config: Optional[AwsSagemakerEdgeOutputConfig] = field(default=None)
-    edge_packaging_job_resource_key: Optional[str] = field(default=None)
-    edge_packaging_job_status: Optional[str] = field(default=None)
-    edge_packaging_job_status_message: Optional[str] = field(default=None)
-    edge_packaging_job_model_artifact: Optional[str] = field(default=None)
-    edge_packaging_job_model_signature: Optional[str] = field(default=None)
-    edge_packaging_job_preset_deployment_output: Optional[AwsSagemakerEdgePresetDeploymentOutput] = field(default=None)
-
-    @classmethod
-    def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, AwsApiSpec(service_name, "describe-edge-packaging-job")]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
-            job_description = builder.client.get(
-                service_name, "describe-edge-packaging-job", None, EdgePackagingJobName=job["EdgePackagingJobName"]
-            )
-            if job_description and (job_instance := AwsSagemakerEdgePackagingJob.from_api(job_description, builder)):
-                instances.append(job_instance)
-                builder.add_node(job_instance, job_description)
-        return instances
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if model_name := value_in_path(source, "ModelName"):
-            builder.add_edge(self, reverse=True, clazz=AwsSagemakerModel, name=model_name)
-        if role_arn := value_in_path(source, "RoleArn"):
-            builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=role_arn)
-        if oc := self.edge_packaging_job_output_config:
-            if oc.s3_output_location:
-                builder.add_edge(self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(oc.s3_output_location))
-            if oc.kms_key_id:
-                builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(oc.kms_key_id))
-        if self.edge_packaging_job_resource_key:
-            builder.dependant_node(
-                self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(self.edge_packaging_job_resource_key)
-            )
-        if self.edge_packaging_job_model_artifact:
-            builder.add_edge(
-                self, clazz=AwsS3Bucket, name=AwsS3Bucket.name_from_path(self.edge_packaging_job_model_artifact)
-            )
 
 
 @define(eq=False, slots=False)
@@ -3982,21 +3866,24 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerHyperParameterTuningJob]:
             job_description = builder.client.get(
                 service_name,
                 "describe-hyper-parameter-tuning-job",
                 None,
                 HyperParameterTuningJobName=job["HyperParameterTuningJobName"],
             )
-            if job_description:
-                if job_instance := AwsSagemakerHyperParameterTuningJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
-        return instances
+            if job_description and (
+                job_instance := AwsSagemakerHyperParameterTuningJob.from_api(job_description, builder)
+            ):
+                builder.add_node(job_instance, job_description)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         job_definitions = []
@@ -4428,19 +4315,20 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-inference-recommendations-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
-            if job_description := builder.client.get(
-                service_name,
-                "describe-inference-recommendations-job",
-                None,
-                JobName=job["JobName"],
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerInferenceRecommendationsJob]:
+            job_description = builder.client.get(
+                service_name, "describe-inference-recommendations-job", None, JobName=job["JobName"]
+            )
+            if job_description and (
+                job_instance := AwsSagemakerInferenceRecommendationsJob.from_api(job_description, builder)
             ):
-                if job_instance := AwsSagemakerInferenceRecommendationsJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-        return instances
+                builder.add_node(job_instance, job_description)
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := value_in_path(source, "RoleArn"):
@@ -4782,19 +4670,18 @@ class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-labeling-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerLabelingJob]:
             job_description = builder.client.get(
-                service_name,
-                "describe-labeling-job",
-                None,
-                LabelingJobName=job["LabelingJobName"],
+                service_name, "describe-labeling-job", None, LabelingJobName=job["LabelingJobName"]
             )
             if job_description and (job_instance := AwsSagemakerLabelingJob.from_api(job_description, builder)):
-                instances.append(job_instance)
                 builder.add_node(job_instance, job_description)
-        return instances
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if ic := self.labeling_job_input_config:
@@ -5186,19 +5073,18 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-processing-job")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerProcessingJob]:
             job_description = builder.client.get(
-                service_name,
-                "describe-processing-job",
-                None,
-                ProcessingJobName=job["ProcessingJobName"],
+                service_name, "describe-processing-job", None, ProcessingJobName=job["ProcessingJobName"]
             )
             if job_description and (job_instance := AwsSagemakerProcessingJob.from_api(job_description, builder)):
-                instances.append(job_instance)
                 builder.add_node(job_instance, job_description)
-        return instances
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for input in self.processing_job_processing_inputs:
@@ -5634,21 +5520,19 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-training-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for job in json:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerTrainingJob]:
             job_description = builder.client.get(
-                service_name,
-                "describe-training-job",
-                None,
-                TrainingJobName=job["TrainingJobName"],
+                service_name, "describe-training-job", None, TrainingJobName=job["TrainingJobName"]
             )
-            if job_description:
-                if job_instance := AwsSagemakerTrainingJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
-        return instances
+            if job_description and (job_instance := AwsSagemakerTrainingJob.from_api(job_description, builder)):
+                builder.add_node(job_instance, job_description)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+                return job_instance
+            return None
+
+        for job in json:
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.training_job_labeling_job_arn:
@@ -5836,20 +5720,19 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-transform-job"), AwsApiSpec(service_name, "list-tags")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def get_job(job: Json) -> Optional[AwsSagemakerTransformJob]:
+            job_description = builder.client.get(
+                service_name, "describe-transform-job", None, TransformJobName=job["TransformJobName"]
+            )
+            if job_description and (job_instance := AwsSagemakerTransformJob.from_api(job_description, builder)):
+                builder.add_node(job_instance, job_description)
+                builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
+                return job_instance
+            return None
+
         for job in json:
-            if job_description := builder.client.get(
-                service_name,
-                "describe-transform-job",
-                None,
-                TransformJobName=job["TransformJobName"],
-            ):
-                if job_instance := AwsSagemakerTransformJob.from_api(job_description, builder):
-                    instances.append(job_instance)
-                    builder.add_node(job_instance, job_description)
-                    builder.submit_work(service_name, SagemakerTaggable.add_tags, job_instance, builder)
-        return instances
+            builder.submit_work(service_name, get_job, job)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.transform_job_model_name:
@@ -5898,7 +5781,6 @@ resources: List[Type[AwsResource]] = [
     AwsSagemakerWorkteam,
     AwsSagemakerAutoMLJob,
     AwsSagemakerCompilationJob,
-    AwsSagemakerEdgePackagingJob,
     AwsSagemakerHyperParameterTuningJob,
     AwsSagemakerInferenceRecommendationsJob,
     AwsSagemakerLabelingJob,

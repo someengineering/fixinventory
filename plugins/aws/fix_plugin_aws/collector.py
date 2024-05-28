@@ -1,8 +1,10 @@
+from collections import defaultdict
 import logging
-from attrs import define
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Type, Optional, ClassVar, Union
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import List, Type, Optional, ClassVar, Union, cast
+
+from attrs import define
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
@@ -46,16 +48,14 @@ from fix_plugin_aws.resource import (
     waf,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
-
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.core.progress import ProgressDone, ProgressTree
 from fixlib.graph import Graph, BySearchCriteria, ByNodeId
+from fixlib.json import value_in_path
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
-from fixlib.json import value_in_path
-
 from .utils import global_region_by_partition
 
 log = logging.getLogger("fix.plugins.aws")
@@ -193,6 +193,7 @@ class AwsAccountCollector:
                 self.cloud,
                 self.account,
                 self.global_region,
+                {r.id: r for r in self.regions},
                 self.client,
                 shared_queue,
                 self.core_feedback,
@@ -216,6 +217,16 @@ class AwsAccountCollector:
             log.info(f"[Aws:{self.account.id}] Collect regional resources.")
             for region in self.regions:
                 self.collect_resources(regional_resources, global_builder.for_region(region))
+            shared_queue.wait_for_submitted_work()
+
+            if global_builder.config.collect_usage_metrics:
+                try:
+                    log.info(f"[Aws:{self.account.id}] Collect usage metrics.")
+                    self.collect_usage_metrics(global_builder)
+                except Exception as e:
+                    log.warning(
+                        f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
+                    )
             shared_queue.wait_for_submitted_work()
 
             # connect nodes
@@ -280,6 +291,40 @@ class AwsAccountCollector:
         when_done = GatherFutures.all(region_futures)
         when_done.add_done_callback(work_done)
         return when_done
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> None:
+        metrics_queries = defaultdict(list)
+        two_hours = timedelta(hours=2)
+        thirty_minutes = timedelta(minutes=30)
+        lookup_map = {}
+        for resource in builder.graph.nodes:
+            if not isinstance(resource, AwsResource):
+                continue
+            # region can be overridden in the query: s3 is global, but need to be queried per region
+            if region := cast(AwsRegion, resource.region()):
+                lookup_map[resource.id] = resource
+                resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
+                for query in resource_queries:
+                    query_region = query.region or region
+                    start = query.start_delta or builder.metrics_delta
+                    if query.period and query.period < thirty_minutes:
+                        start = min(start, two_hours)
+                    metrics_queries[(query_region, start)].append(query)
+        for (region, start), queries in metrics_queries.items():
+
+            def collect_and_set_metrics(
+                start: timedelta, region: AwsRegion, queries: List[cloudwatch.AwsCloudwatchQuery]
+            ) -> None:
+                start_at = builder.created_at - start
+                try:
+                    result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(
+                        builder.for_region(region), start_at, builder.created_at, queries
+                    )
+                    cloudwatch.update_resource_metrics(lookup_map, result)
+                except Exception as e:
+                    log.warning(f"Error occurred in region {region}: {e}")
+
+            builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
