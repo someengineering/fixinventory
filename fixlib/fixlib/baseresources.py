@@ -19,18 +19,7 @@ from fixlib.json import from_json as _from_json, to_json as _to_json
 from fixlib.logger import log
 from fixlib.types import Json
 from fixlib.utils import make_valid_timestamp, utc_str
-from fixlib.basecategories import (
-    BaseCategory,
-    Compute,
-    Storage,
-    Database,
-    Security,
-    Networking,
-    Iam,
-    Management,
-    Monitoring,
-    DevOps,
-)
+from fixlib.basecategories import Category
 
 
 metrics_resource_pre_cleanup_exceptions = Counter(
@@ -255,7 +244,7 @@ MetricNameWithUnit = str
 
 
 @define(eq=False, slots=False, kw_only=True)
-class BaseResource(BaseCategory, ABC):
+class BaseResource(ABC):
     """A BaseResource is any node we're connecting to the Graph()
 
     BaseResources have an id, name and tags. The id is a unique id used to search for
@@ -296,6 +285,7 @@ class BaseResource(BaseCategory, ABC):
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
     _resource_usage: Dict[MetricNameWithUnit, Dict[str, float]] = field(factory=lambda: defaultdict(dict))
     _metadata: Dict[str, Any] = field(factory=dict)  # values will be exported in the metadata section of the node
+    _categories: ClassVar[List[str]] = []
 
     ctime: Optional[datetime] = field(
         default=None,
@@ -732,6 +722,23 @@ class BaseResource(BaseCategory, ABC):
     def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
 
+    @classmethod
+    def get_all_categories(cls: Type["BaseResource"]) -> List[Category]:
+        def gather_categories(class_type: Type["BaseResource"]) -> List[Category]:
+            merged = []
+            for base in class_type.__bases__:
+                if issubclass(base, BaseResource):
+                    merged.extend(gather_categories(base))
+            if hasattr(class_type, "_categories"):
+                merged.extend(class_type._categories)
+            return merged
+
+        return list(set(gather_categories(cls)))
+
+    @property
+    def categories(self) -> List[str]:
+        return [str(category.value) for category in self.get_all_categories()]
+
 
 BaseResource.ctime = property(BaseResource._ctime_getter, BaseResource._ctime_setter)  # type: ignore
 BaseResource.mtime = property(BaseResource._mtime_getter, BaseResource._mtime_setter)  # type: ignore
@@ -897,11 +904,12 @@ class InstanceStatus(Enum):
 
 
 @define(eq=False, slots=False)
-class BaseInstance(BaseResource, Compute):
+class BaseInstance(BaseResource):
     kind: ClassVar[str] = "instance"
     kind_display: ClassVar[str] = "Instance"
     kind_description: ClassVar[str] = "An instance."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.compute]
     instance_cores: float = 0.0
     instance_memory: float = 0.0
     instance_type: Optional[str] = ""
@@ -936,11 +944,12 @@ class VolumeStatus(Enum):
 
 
 @define(eq=False, slots=False)
-class BaseNetworkShare(BaseResource, Storage):
+class BaseNetworkShare(BaseResource):
     kind: ClassVar[str] = "network_share"
     kind_display: ClassVar[str] = "Network Share"
     kind_description: ClassVar[str] = "A network share."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
+    _categories: ClassVar[List[Category]] = [Category.storage]
     share_size: int = 0
     share_type: str = ""
     share_status: Optional[str] = None
@@ -950,11 +959,12 @@ class BaseNetworkShare(BaseResource, Storage):
 
 
 @define(eq=False, slots=False)
-class BaseVolume(BaseResource, Storage):
+class BaseVolume(BaseResource):
     kind: ClassVar[str] = "volume"
     kind_display: ClassVar[str] = "Volume"
     kind_description: ClassVar[str] = "A volume."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "volume", "group": "storage"}
+    _categories: ClassVar[List[Category]] = [Category.storage]
     volume_size: int = 0
     volume_type: str = ""
     volume_status: Optional[VolumeStatus] = None
@@ -965,11 +975,12 @@ class BaseVolume(BaseResource, Storage):
 
 
 @define(eq=False, slots=False)
-class BaseSnapshot(BaseResource, Storage):
+class BaseSnapshot(BaseResource):
     kind: ClassVar[str] = "snapshot"
     kind_display: ClassVar[str] = "Snapshot"
     kind_description: ClassVar[str] = "A snapshot."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
+    _categories: ClassVar[List[Category]] = [Category.storage]
     snapshot_status: str = ""
     description: Optional[str] = None
     volume_id: Optional[str] = None
@@ -1002,36 +1013,40 @@ class GraphRoot(PhantomBaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseBucket(BaseResource, Storage):
+class BaseBucket(BaseResource):
     kind: ClassVar[str] = "bucket"
     kind_display: ClassVar[str] = "Storage Bucket"
     kind_description: ClassVar[str] = "A storage bucket."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
+    _categories: ClassVar[List[Category]] = [Category.storage]
 
 
 @define(eq=False, slots=False)
-class BaseQueue(BaseResource, Storage):
+class BaseQueue(BaseResource):
     kind: ClassVar[str] = "queue"
     kind_display: ClassVar[str] = "Storage Queue"
     kind_description: ClassVar[str] = "A storage queue."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
+    _categories: ClassVar[List[Category]] = [Category.storage]
 
 
 @define(eq=False, slots=False)
-class BaseServerlessFunction(BaseResource, Compute):
+class BaseServerlessFunction(BaseResource):
     kind: ClassVar[str] = "serverless_function"
     kind_display: ClassVar[str] = "Serverless Function"
     kind_description: ClassVar[str] = "A serverless function."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.compute]
 
 
 @define(eq=False, slots=False)
-class BaseKeyPair(BaseResource, Iam):
+class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
     kind_display: ClassVar[str] = "Key Pair"
     kind_description: ClassVar[str] = "A key pair."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "keypair", "group": "access_control"}
     fingerprint: str = ""
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
@@ -1043,11 +1058,12 @@ class BaseBucketQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseNetwork(BaseResource, Networking):
+class BaseNetwork(BaseResource):
     kind: ClassVar[str] = "network"
     kind_display: ClassVar[str] = "Network"
     kind_description: ClassVar[str] = "A network."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
@@ -1059,19 +1075,21 @@ class BaseNetworkQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseFirewall(BaseResource, Networking, Security):
+class BaseFirewall(BaseResource):
     kind: ClassVar[str] = "firewall"
     kind_display: ClassVar[str] = "Firewall"
     kind_description: ClassVar[str] = "A firewall."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
 @define(eq=False, slots=False)
-class BaseDatabase(BaseResource, Compute, Database):
+class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
     kind_display: ClassVar[str] = "Database"
     kind_description: ClassVar[str] = "A database."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _categories: ClassVar[List[Category]] = [Category.compute, Category.database]
     db_type: str = ""
     db_status: str = ""
     db_endpoint: Optional[str] = ""
@@ -1084,11 +1102,12 @@ class BaseDatabase(BaseResource, Compute, Database):
 
 
 @define(eq=False, slots=False)
-class BaseLoadBalancer(BaseResource, Networking):
+class BaseLoadBalancer(BaseResource):
     kind: ClassVar[str] = "load_balancer"
     kind_display: ClassVar[str] = "Load Balancer"
     kind_description: ClassVar[str] = "A load balancer."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
     lb_type: str = ""
     public_ip_address: Optional[str] = None
     backends: List[str] = field(factory=list)
@@ -1103,27 +1122,30 @@ class BaseLoadBalancerQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseSubnet(BaseResource, Networking):
+class BaseSubnet(BaseResource):
     kind: ClassVar[str] = "subnet"
     kind_display: ClassVar[str] = "Subnet"
     kind_description: ClassVar[str] = "A subnet."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseGateway(BaseResource, Networking):
+class BaseGateway(BaseResource):
     kind: ClassVar[str] = "gateway"
     kind_display: ClassVar[str] = "Gateway"
     kind_description: ClassVar[str] = "A gateway."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseTunnel(BaseResource, Networking):
+class BaseTunnel(BaseResource):
     kind: ClassVar[str] = "tunnel"
     kind_display: ClassVar[str] = "Networking Tunnel"
     kind_description: ClassVar[str] = "A networking tunnel."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "tunnel", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
@@ -1135,51 +1157,57 @@ class BaseGatewayQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseSecurityGroup(BaseResource, Networking, Security):
+class BaseSecurityGroup(BaseResource):
     kind: ClassVar[str] = "security_group"
     kind_display: ClassVar[str] = "Security Group"
     kind_description: ClassVar[str] = "A security group."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
 @define(eq=False, slots=False)
-class BaseRoutingTable(BaseResource, Networking):
+class BaseRoutingTable(BaseResource):
     kind: ClassVar[str] = "routing_table"
     kind_display: ClassVar[str] = "Routing Table"
     kind_description: ClassVar[str] = "A routing table."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseNetworkAcl(BaseResource, Networking, Security):
+class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
     kind_display: ClassVar[str] = "Network ACL"
     kind_description: ClassVar[str] = "A network access control list."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "acl", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
 @define(eq=False, slots=False)
-class BasePeeringConnection(BaseResource, Networking):
+class BasePeeringConnection(BaseResource):
     kind: ClassVar[str] = "peering_connection"
     kind_display: ClassVar[str] = "Peering Connection"
     kind_description: ClassVar[str] = "A peering connection."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "connection", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseEndpoint(BaseResource, Networking):
+class BaseEndpoint(BaseResource):
     kind: ClassVar[str] = "endpoint"
     kind_display: ClassVar[str] = "Endpoint"
     kind_description: ClassVar[str] = "An endpoint."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseNetworkInterface(BaseResource, Networking):
+class BaseNetworkInterface(BaseResource):
     kind: ClassVar[str] = "network_interface"
     kind_display: ClassVar[str] = "Network Interface"
     kind_description: ClassVar[str] = "A network interface."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network_interface", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
     network_interface_status: str = ""
     network_interface_type: str = ""
     mac: str = ""
@@ -1190,60 +1218,67 @@ class BaseNetworkInterface(BaseResource, Networking):
 
 
 @define(eq=False, slots=False)
-class BaseUser(BaseResource, Iam):
+class BaseUser(BaseResource):
     kind: ClassVar[str] = "user"
     kind_display: ClassVar[str] = "User"
     kind_description: ClassVar[str] = "A user."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
-class BaseGroup(BaseResource, Iam):
+class BaseGroup(BaseResource):
     kind: ClassVar[str] = "group"
     kind_display: ClassVar[str] = "Group"
     kind_description: ClassVar[str] = "A group."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
-class BasePolicy(BaseResource, Iam):
+class BasePolicy(BaseResource):
     kind: ClassVar[str] = "policy"
     kind_display: ClassVar[str] = "Policy"
     kind_description: ClassVar[str] = "A policy."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
-class BaseRole(BaseResource, Iam):
+class BaseRole(BaseResource):
     kind: ClassVar[str] = "role"
     kind_display: ClassVar[str] = "Role"
     kind_description: ClassVar[str] = "A role."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
-class BaseInstanceProfile(BaseResource, Compute):
+class BaseInstanceProfile(BaseResource):
     kind: ClassVar[str] = "instance_profile"
     kind_display: ClassVar[str] = "Instance Profile"
     kind_description: ClassVar[str] = "An instance profile."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "instance_profile", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)
-class BaseAccessKey(BaseResource, Iam, Security):
+class BaseAccessKey(BaseResource):
     kind: ClassVar[str] = "access_key"
     kind_display: ClassVar[str] = "Access Key"
     kind_description: ClassVar[str] = "An access key."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     access_key_status: str = ""
+    _categories: ClassVar[List[Category]] = [Category.iam, Category.security]
 
 
 @define(eq=False, slots=False)
-class BaseCertificate(BaseResource, Security):
+class BaseCertificate(BaseResource):
     kind: ClassVar[str] = "certificate"
     kind_display: ClassVar[str] = "Certificate"
     kind_description: ClassVar[str] = "A certificate."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam, Category.security]
     expires: Optional[datetime] = None
     dns_names: Optional[List[str]] = None
     sha1_fingerprint: Optional[str] = None
@@ -1258,7 +1293,7 @@ class BaseCertificateQuota(BaseQuota):
 
 
 @define(eq=False, slots=False)
-class BaseStack(BaseResource, Management, DevOps):
+class BaseStack(BaseResource):
     kind: ClassVar[str] = "stack"
     kind_display: ClassVar[str] = "Stack"
     kind_description: ClassVar[str] = "A stack."
@@ -1266,34 +1301,38 @@ class BaseStack(BaseResource, Management, DevOps):
     stack_status: str = ""
     stack_status_reason: str = ""
     stack_parameters: Dict[str, str] = field(factory=dict)
+    _categories: ClassVar[List[Category]] = [Category.devops, Category.management]
 
 
 @define(eq=False, slots=False)
-class BaseAutoScalingGroup(BaseResource, Compute, Management):
+class BaseAutoScalingGroup(BaseResource):
     kind: ClassVar[str] = "autoscaling_group"
     kind_display: ClassVar[str] = "Auto Scaling Group"
     kind_description: ClassVar[str] = "An auto scaling group."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "autoscaling_group", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.compute, Category.management]
     min_size: int = -1
     max_size: int = -1
 
 
 @define(eq=False, slots=False)
-class BaseIPAddress(BaseResource, Networking):
+class BaseIPAddress(BaseResource):
     kind: ClassVar[str] = "ip_address"
     kind_display: ClassVar[str] = "IP Address"
     kind_description: ClassVar[str] = "An IP address."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network_address", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
     ip_address: str = ""
     ip_address_family: str = ""
 
 
 @define(eq=False, slots=False)
-class BaseHealthCheck(BaseResource, Monitoring):
+class BaseHealthCheck(BaseResource):
     kind: ClassVar[str] = "health_check"
     kind_display: ClassVar[str] = "Health Check"
     kind_description: ClassVar[str] = "A health check."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "health_check", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.monitoring]
     check_interval: int = -1
     healthy_threshold: int = -1
     unhealthy_threshold: int = -1
@@ -1302,19 +1341,21 @@ class BaseHealthCheck(BaseResource, Monitoring):
 
 
 @define(eq=False, slots=False)
-class BaseDNSZone(BaseResource, Networking):
+class BaseDNSZone(BaseResource):
     kind: ClassVar[str] = "dns_zone"
     kind_display: ClassVar[str] = "DNS Zone"
     kind_description: ClassVar[str] = "A DNS zone."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.dns, Category.networking]
 
 
 @define(eq=False, slots=False)
-class BaseDNSRecordSet(BaseResource, Networking):
+class BaseDNSRecordSet(BaseResource):
     kind: ClassVar[str] = "dns_record_set"
     kind_display: ClassVar[str] = "DNS Record Set"
     kind_description: ClassVar[str] = "A DNS record set."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.dns]
 
     record_ttl: Optional[int] = None
     record_type: str = ""
@@ -1347,11 +1388,12 @@ class BaseDNSRecordSet(BaseResource, Networking):
 
 
 @define(eq=False, slots=False)
-class BaseDNSRecord(BaseResource, Networking):
+class BaseDNSRecord(BaseResource):
     kind: ClassVar[str] = "dns_record"
     kind_display: ClassVar[str] = "DNS Record"
     kind_description: ClassVar[str] = "A DNS record."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.dns]
 
     record_ttl: int = -1
     record_type: str = ""
@@ -1398,27 +1440,30 @@ class BaseDNSRecord(BaseResource, Networking):
 
 
 @define(eq=False, slots=False)
-class BaseOrganizationalRoot(BaseResource, Management):
+class BaseOrganizationalRoot(BaseResource):
     kind: ClassVar[str] = "organizational_root"
     kind_display: ClassVar[str] = "Organizational Root"
     kind_description: ClassVar[str] = "An Organizational Root."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
+    _categories: ClassVar[List[Category]] = [Category.management]
 
 
 @define(eq=False, slots=False)
-class BaseOrganizationalUnit(BaseResource, Management):
+class BaseOrganizationalUnit(BaseResource):
     kind: ClassVar[str] = "organizational_unit"
     kind_display: ClassVar[str] = "Organizational Unit"
     kind_description: ClassVar[str] = "An Organizational Unit."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
+    _categories: ClassVar[List[Category]] = [Category.management]
 
 
 @define(eq=False, slots=False)
-class BaseManagedKubernetesClusterProvider(BaseResource, Compute):
+class BaseManagedKubernetesClusterProvider(BaseResource):
     kind: ClassVar[str] = "managed_kubernetes_cluster_provider"
     kind_display: ClassVar[str] = "Managed Kubernetes Cluster Provider"
     kind_description: ClassVar[str] = "A managed kubernetes cluster provider."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.compute, Category.management]
     version: Optional[str] = field(default=None, metadata={"description": "The kubernetes version"})
     endpoint: Optional[str] = field(default=None, metadata={"description": "The kubernetes API endpoint"})
 

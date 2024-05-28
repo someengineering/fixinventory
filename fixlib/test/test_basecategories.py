@@ -1,64 +1,87 @@
-from attrs import define
-from typing import ClassVar, List
-from fixlib.basecategories import (
-    BaseCategory,
-    Compute,
-    Storage,
-    Database,
-    Security,
-    Networking,
-    Iam,
-    Management,
-    Monitoring,
-    Analytics,
-    Ai,
-    DevOps,
+from fixlib.basecategories import Category
+from fixlib.baseresources import (
+    BaseResource,
+    BaseInstance,
+    BaseVolume,
+    BaseNetwork,
+    BaseDatabase,
+    BaseFirewall,
+    BaseLoadBalancer,
+    BaseUser,
+    BaseGroup,
+    BasePolicy,
+    BaseRole,
+    BaseKeyPair,
+    BaseSnapshot,
+    BaseHealthCheck,
+    BaseDNSZone,
+    BaseDNSRecordSet,
+    BaseAutoScalingGroup,
 )
 
 
 def test_base_category_empty():
-    class EmptyCategory(BaseCategory):
+    class EmptyCategory(BaseResource):
         pass
 
     assert EmptyCategory.get_all_categories() == []
-    assert EmptyCategory().categories == []
+    assert EmptyCategory(id="empty").categories == []
 
 
 def test_single_category():
-    assert Compute.get_all_categories() == ["compute"]
-    assert Compute().categories == ["compute"]
+    assert BaseInstance.get_all_categories() == [Category.compute]
+    assert BaseInstance(id="instance").categories == ["compute"]
 
-    assert Storage.get_all_categories() == ["storage"]
-    assert Storage().categories == ["storage"]
+    assert BaseVolume.get_all_categories() == [Category.storage]
+    assert BaseVolume(id="volume").categories == ["storage"]
 
 
 def test_multiple_categories():
-    @define(eq=False, slots=False)
-    class CustomCategory(Compute, Storage):
-        _categories: ClassVar[List[str]] = ["custom"]
+    class CustomResource(BaseInstance, BaseVolume):
+        _categories = [Category.management]
 
-    expected_categories = ["compute", "storage", "custom"]
-    assert set(CustomCategory.get_all_categories()) == set(expected_categories)
-    assert set(CustomCategory().categories) == set(expected_categories)
+    expected_categories = [Category.compute, Category.storage, Category.management]
+    expected_categories_str = [str(category.value) for category in expected_categories]
+    assert set(CustomResource.get_all_categories()) == set(expected_categories)
+    assert sorted(CustomResource(id="custom_resource").categories) == sorted(expected_categories_str)
 
 
 def test_deeply_nested_categories():
-    @define(eq=False, slots=False)
-    class CustomCategory1(Compute):
-        _categories: ClassVar[List[str]] = ["custom1"]
+    class CustomResource1(BaseInstance):
+        _categories = [Category.monitoring]
 
-    @define(eq=False, slots=False)
-    class CustomCategory2(CustomCategory1, Storage):
-        _categories: ClassVar[List[str]] = ["custom2"]
+    class CustomResource2(CustomResource1, BaseVolume):
+        _categories = [Category.security]
 
-    expected_categories = ["compute", "custom1", "storage", "custom2"]
-    assert set(CustomCategory2.get_all_categories()) == set(expected_categories)
-    assert set(CustomCategory2().categories) == set(expected_categories)
+    expected_categories = [Category.compute, Category.monitoring, Category.storage, Category.security]
+    expected_categories_str = [str(category.value) for category in expected_categories]
+    assert set(CustomResource2.get_all_categories()) == set(expected_categories)
+    assert sorted(CustomResource2(id="custom_resource2").categories) == sorted(expected_categories_str)
 
 
 def test_all_categories():
-    classes = [Compute, Storage, Database, Security, Networking, Iam, Management, Monitoring, Analytics, Ai, DevOps]
+    expected_categories = {
+        BaseInstance: [Category.compute],
+        BaseVolume: [Category.storage],
+        BaseNetwork: [Category.networking],
+        BaseDatabase: [Category.compute, Category.database],
+        BaseFirewall: [Category.networking, Category.security],
+        BaseLoadBalancer: [Category.networking],
+        BaseUser: [Category.iam],
+        BaseGroup: [Category.iam],
+        BasePolicy: [Category.iam],
+        BaseRole: [Category.iam],
+        BaseKeyPair: [Category.iam],
+        BaseSnapshot: [Category.storage],
+        BaseHealthCheck: [Category.monitoring],
+        BaseDNSZone: [Category.dns, Category.networking],
+        BaseDNSRecordSet: [Category.dns],
+        BaseAutoScalingGroup: [Category.compute, Category.management],
+    }
 
-    for cls in classes:
-        assert cls.get_all_categories() == cls._categories
-        assert cls().categories == cls._categories
+    for resource_class, expected_categories_list in expected_categories.items():
+        expected_categories_str = [str(category.value) for category in expected_categories_list]
+        assert set(resource_class.get_all_categories()) == set(expected_categories_list)
+        assert sorted(resource_class(id=f"{resource_class.__name__.lower()}").categories) == sorted(
+            expected_categories_str
+        )

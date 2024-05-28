@@ -1,81 +1,107 @@
-from abc import ABC
-from attrs import define
-from typing import ClassVar, List, Type
+from dataclasses import dataclass
+from enum import Enum
 
 
-@define(eq=False, slots=False)
-class BaseCategory(ABC):
-    kind: ClassVar[str] = "category"
-    _categories: ClassVar[List[str]] = []
+@dataclass(frozen=True)
+class BaseCategory:
+    name: str = "category"
 
-    @classmethod
-    def get_all_categories(cls: Type["BaseCategory"]) -> List[str]:
-        def gather_categories(class_type: Type["BaseCategory"]) -> List[str]:
-            merged = []
-            for base in class_type.__bases__:
-                if issubclass(base, BaseCategory):
-                    merged.extend(gather_categories(base))
-            if hasattr(class_type, "_categories"):
-                merged.extend(class_type._categories)
-            return merged
+    def __str__(self) -> str:
+        return self.name
 
-        return list(set(gather_categories(cls)))
+    def __lt__(self, other):
+        if isinstance(other, BaseCategory):
+            return self.name < other.name
+        return NotImplemented
 
-    @property
-    def categories(self) -> List[str]:
-        return self.get_all_categories()
+    def __eq__(self, other):
+        if isinstance(other, BaseCategory):
+            return self.name == other.name
+        return NotImplemented
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Compute(BaseCategory):
-    _categories: ClassVar[List[str]] = ["compute"]
+    name: str = "compute"
+    description: str = "Compute"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Storage(BaseCategory):
-    _categories: ClassVar[List[str]] = ["storage"]
+    name: str = "storage"
+    description: str = "Storage"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Database(BaseCategory):
-    _categories: ClassVar[List[str]] = ["database"]
+    name: str = "database"
+    description: str = "Database"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Security(BaseCategory):
-    _categories: ClassVar[List[str]] = ["security"]
+    name: str = "security"
+    description: str = "Security"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Networking(BaseCategory):
-    _categories: ClassVar[List[str]] = ["networking"]
+    name: str = "networking"
+    description: str = "Networking"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Iam(BaseCategory):
-    _categories: ClassVar[List[str]] = ["iam"]
+    name: str = "iam"
+    description: str = "Identity & Access Management"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Management(BaseCategory):
-    _categories: ClassVar[List[str]] = ["management"]
+    name: str = "management"
+    description: str = "Management Tools"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Monitoring(BaseCategory):
-    _categories: ClassVar[List[str]] = ["monitoring"]
+    name: str = "monitoring"
+    description: str = "Monitoring & Logging"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Analytics(BaseCategory):
-    _categories: ClassVar[List[str]] = ["analytics"]
+    name: str = "analytics"
+    description: str = "Analytics & BI"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class Ai(BaseCategory):
-    _categories: ClassVar[List[str]] = ["ai"]
+    name: str = "ai"
+    description: str = "AI & Machine Learning"
 
 
-@define(eq=False, slots=False)
+@dataclass(frozen=True)
 class DevOps(BaseCategory):
-    _categories: ClassVar[List[str]] = ["devops"]
+    name: str = "devops"
+    description: str = "DevOps and Development"
+
+
+@dataclass(frozen=True)
+class Dns(BaseCategory):
+    name: str = "dns"
+    description: str = "DNS"
+
+
+class Category(Enum):
+    compute = Compute()
+    storage = Storage()
+    database = Database()
+    security = Security()
+    networking = Networking()
+    iam = Iam()
+    management = Management()
+    monitoring = Monitoring()
+    analytics = Analytics()
+    ai = Ai()
+    devops = DevOps()
+    dns = Dns()
