@@ -345,12 +345,12 @@ class AwsDynamoDbPointInTimeRecoveryDescription:
 class AwsDynamoDbContinuousBackup:
     kind: ClassVar[str] = "aws_dynamo_db_continuous_backup"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "dynamodb_continuous_backups_status": S("ContinuousBackupsStatus"),
-        "dynamodb_point_in_time_recovery_description": S("PointInTimeRecoveryDescription")
+        "continuous_backups_status": S("ContinuousBackupsStatus"),
+        "point_in_time_recovery_description": S("PointInTimeRecoveryDescription")
         >> Bend(AwsDynamoDbPointInTimeRecoveryDescription.mapping),
     }
-    dynamodb_continuous_backups_status: Optional[str] = field(default=None, metadata={"description": "ContinuousBackupsStatus can be one of the following states: ENABLED, DISABLED"})  # fmt: skip
-    dynamodb_point_in_time_recovery_description: Optional[AwsDynamoDbPointInTimeRecoveryDescription] = field(default=None, metadata={"description": "The description of the point in time recovery settings applied to the table."})  # fmt: skip
+    continuous_backups_status: Optional[str] = field(default=None, metadata={"description": "ContinuousBackupsStatus can be one of the following states: ENABLED, DISABLED"})  # fmt: skip
+    point_in_time_recovery_description: Optional[AwsDynamoDbPointInTimeRecoveryDescription] = field(default=None, metadata={"description": "The description of the point in time recovery settings applied to the table."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
