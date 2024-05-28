@@ -9,7 +9,7 @@ from concurrent.futures import as_completed
 from attr import define, field, frozen
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
@@ -466,7 +466,8 @@ class AwsCloudwatchQuery:
     metric_normalizer_name: Optional[MetricName] = None
     metric_normalization: Optional[MetricNormalization] = None
     fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
-    regional_builder: Optional[GraphBuilder] = None
+    region: Optional[AwsRegion] = None
+    start_delta: Optional[timedelta] = None
 
     def to_json(self) -> Json:
         return {
@@ -497,7 +498,8 @@ class AwsCloudwatchQuery:
         stat: str = "Sum",
         unit: str = "Count",
         fix_metric_name: Optional[str] = None,
-        regional_builder: Optional[GraphBuilder] = None,
+        region: Optional[AwsRegion] = None,
+        start_delta: Optional[timedelta] = None,
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
@@ -514,8 +516,9 @@ class AwsCloudwatchQuery:
             stat=stat,
             unit=unit,
             fix_metric_name=fix_metric_name,
-            regional_builder=regional_builder,
+            region=region,
             metric_normalization=metric_normalization,
+            start_delta=start_delta,
         )
 
 
@@ -603,33 +606,16 @@ class AwsCloudwatchMetricData:
 
     @staticmethod
     def query_for_multiple(
-        queries: List[Tuple[datetime, datetime, GraphBuilder, AwsCloudwatchQuery]],
+        builder: GraphBuilder,
+        start: datetime,
+        until: datetime,
+        queries: List[Tuple[AwsCloudwatchQuery, AwsResource]],
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
-        """
-        Queries for a multiple blocks of CloudWatch metric data.
-
-        Args:
-            builder: An instance of the GraphBuilder.
-            queries: List of metric data queries.
-            start_time: Start time for the queries.
-            end_time: End time for the queries.
-            scan_desc: Specifies whether to scan by TimestampDescending or TimestampAscending.
-
-        Returns:
-            Dictionary mapping metric data to their corresponding IDs.
-        """
-        lookup = {query.metric_id: query for _, _, _, query in queries}
+        lookup = {query.metric_id: query for query, _ in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
-        queries_by_time_and_builder: defaultdict[Tuple[datetime, datetime, GraphBuilder], List[AwsCloudwatchQuery]] = (
-            defaultdict(list)
-        )
-        futures = []
 
-        # Group queries by their (start, now, builder) values
-        for start, now, builder, query in queries:
-            queries_by_time_and_builder[(start, now, builder)].append(query)
-
+        # TODO split the list into chunks of 500
         # Process each group of queries with the same (start, now, builder) values
         for (start, now, builder), grouped_queries in queries_by_time_and_builder.items():
             futures.append(

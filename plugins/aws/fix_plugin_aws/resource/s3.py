@@ -352,25 +352,22 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         }
 
         delta = timedelta(days=1)
-        now = builder.created_at
-        start = now - timedelta(days=2)
+        start_delta = timedelta(days=2)
 
         queries: List[AwsCloudwatchQuery] = []
         if region := self.bucket_location:
-            region_builder = builder.for_region(AwsRegion(id=region, name=region))
-            region_builder.metrics_start = start
-
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
                     namespace="AWS/S3",
                     period=delta,
+                    start_delta=start_delta,
                     ref_id=self.id,
                     metric_normalizer_name=MetricName.NumberOfObjects,
                     metric_normalization=normalizer_factory.count,
                     stat="Average",
                     unit="Count",
-                    regional_builder=region_builder,
+                    region=region,
                     BucketName=self.safe_name,
                     StorageType="AllStorageTypes",
                 )
@@ -381,19 +378,21 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         metric_name="BucketSizeBytes",
                         namespace="AWS/S3",
                         period=delta,
+                        start_delta=start_delta,
                         ref_id=self.id,
                         metric_normalizer_name=MetricName.BucketSizeBytes,
                         metric_normalization=normalizer_factory.bytes,
                         stat="Average",
                         unit="Bytes",
                         fix_metric_name=f"{storage_type_name}_bucket_size",
-                        regional_builder=region_builder,
+                        region=region,
                         BucketName=self.safe_name,
                         StorageType=storage_type,
                     )
                 )
 
             # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
+            # TODO: move to global collector
             bucket_size: Dict[str, float] = defaultdict(float)
             for metric_name, metric_values in self._resource_usage.items():
                 if metric_name.endswith("_bucket_size_bytes"):

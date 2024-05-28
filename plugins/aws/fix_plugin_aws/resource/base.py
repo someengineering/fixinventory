@@ -402,6 +402,7 @@ class GraphBuilder:
         self.graph_edges_access = graph_edges_access or RWLock()
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
+        self.builder_cache = {region.id: self}
 
         if last_run_started_at:
             now = utc()
@@ -601,7 +602,9 @@ class GraphBuilder:
         return vt
 
     def for_region(self, region: AwsRegion) -> GraphBuilder:
-        return GraphBuilder(
+        if cached := self.builder_cache.get(region.id):
+            return cached
+        builder = GraphBuilder(
             self.graph,
             self.cloud,
             self.account,
@@ -614,3 +617,5 @@ class GraphBuilder:
             self.graph_edges_access,
             self.last_run_started_at,
         )
+        self.builder_cache[region.id] = builder
+        return builder
