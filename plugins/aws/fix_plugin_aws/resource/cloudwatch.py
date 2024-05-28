@@ -746,7 +746,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache(None)
+    @lru_cache(maxsize=128)
     def count_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Count,
@@ -761,7 +761,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache(None)
+    @lru_cache(maxsize=128)
     def bytes_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Bytes,
@@ -783,7 +783,7 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @lru_cache(None)
+    @lru_cache(maxsize=128)
     def iops_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.IOPS,
