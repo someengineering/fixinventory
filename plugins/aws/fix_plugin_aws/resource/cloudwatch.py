@@ -455,19 +455,18 @@ class AwsCloudwatchMetricFilter(AwsResource):
 
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
-    metric_name: str
-    namespace: str
-    dimensions: Tuple[Tuple[str, str], ...]
-    period: timedelta
+    name: MetricName  # final name of the metric
+    metric_name: str  # name of the metric in cloudwatch
+    namespace: str  # namespace of the metric in cloudwatch
+    dimensions: Tuple[Tuple[str, str], ...]  # dimensions of the metric in cloudwatch
+    period: timedelta  # period of the metric in cloudwatch
     ref_id: str
     metric_id: str
     stat: str = "Sum"
     unit: str = "Count"
-    metric_normalizer_name: Optional[MetricName] = None
-    metric_normalization: Optional[MetricNormalization] = None
-    fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
-    region: Optional[AwsRegion] = None
-    start_delta: Optional[timedelta] = None
+    normalization: Optional[MetricNormalization] = None
+    region: Optional[AwsRegion] = None  # only define if the region of metric and resource is different (e.g. s3 bucket)
+    start_delta: Optional[timedelta] = None  # usually the delta is last_run until now. override if needed
 
     def to_json(self) -> Json:
         return {
@@ -492,12 +491,11 @@ class AwsCloudwatchQuery:
         namespace: str,
         period: timedelta,
         ref_id: str,
-        metric_normalizer_name: Optional[MetricName] = None,
-        metric_normalization: Optional[MetricNormalization] = None,
+        name: MetricName,
+        normalization: Optional[MetricNormalization] = None,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
         unit: str = "Count",
-        fix_metric_name: Optional[str] = None,
         region: Optional[AwsRegion] = None,
         start_delta: Optional[timedelta] = None,
         **dimensions: str,
@@ -506,18 +504,17 @@ class AwsCloudwatchQuery:
         rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}-{stat}".lower())
         # noinspection PyTypeChecker
         return AwsCloudwatchQuery(
+            name=name,
             metric_name=metric_name,
             namespace=namespace,
             period=period,
             dimensions=tuple(dimensions.items()),
             ref_id=ref_id,
-            metric_normalizer_name=metric_normalizer_name,
             metric_id=rid,
             stat=stat,
             unit=unit,
-            fix_metric_name=fix_metric_name,
             region=region,
-            metric_normalization=metric_normalization,
+            normalization=normalization,
             start_delta=start_delta,
         )
 
@@ -691,13 +688,13 @@ def update_resource_metrics(
             continue
         if len(metric.metric_values) == 0:
             continue
-        normalizer = query.metric_normalization
+        normalizer = query.normalization
         if not normalizer:
             continue
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             try:
-                metric_name = query.fix_metric_name or query.metric_normalizer_name
+                metric_name = query.name
                 if not metric_name:
                     continue
                 name = metric_name + "_" + normalizer.unit

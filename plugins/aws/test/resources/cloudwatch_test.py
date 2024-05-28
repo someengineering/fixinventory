@@ -2,6 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import cast, Any
 from types import SimpleNamespace
 
+from fixlib.baseresources import MetricName
 from fixlib.graph import Graph
 
 from test.resources import round_trip_for
@@ -40,6 +41,7 @@ def test_metric(builder: GraphBuilder) -> None:
     now = datetime(2020, 3, 1, tzinfo=timezone.utc)
     earlier = now - timedelta(days=60)
     read = AwsCloudwatchQuery.create(
+        name=MetricName.VolumeRead,
         metric_name="VolumeReadOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
@@ -47,6 +49,7 @@ def test_metric(builder: GraphBuilder) -> None:
         VolumeId="vol-123",
     )
     write = AwsCloudwatchQuery.create(
+        name=MetricName.VolumeWrite,
         metric_name="VolumeWriteOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
