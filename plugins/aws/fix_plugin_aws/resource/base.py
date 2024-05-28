@@ -130,6 +130,10 @@ class AwsResource(BaseResource, ABC):
             return tuple(list(super()._keys()) + [self.arn])
         return super()._keys()
 
+    def post_query_collect(self) -> None:
+        # Default behavior: do nothing
+        pass
+
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return False
 
@@ -602,8 +606,9 @@ class GraphBuilder:
         return vt
 
     def for_region(self, region: AwsRegion) -> GraphBuilder:
-        if cached := self.builder_cache.get(region.id):
-            return cached
+        # TODO: fix caching builder for pricing
+        # if cached := self.builder_cache.get(region.id):
+        #     return cached
         builder = GraphBuilder(
             self.graph,
             self.cloud,
@@ -617,5 +622,5 @@ class GraphBuilder:
             self.graph_edges_access,
             self.last_run_started_at,
         )
-        self.builder_cache[region.id] = builder
+        # self.builder_cache[region.id] = builder
         return builder

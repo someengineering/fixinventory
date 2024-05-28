@@ -1,7 +1,8 @@
+from collections import defaultdict
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
-from datetime import datetime, timezone
-from typing import Dict, List, Type, Optional, ClassVar, Union, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import List, Type, Optional, ClassVar, Union, cast
 
 from attrs import define
 
@@ -287,44 +288,33 @@ class AwsAccountCollector:
         return when_done
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
-        def fetch_batch(query_with_resources: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]]) -> None:
-            lookup = {}
-            qr = []
-            for query, rs in query_with_resources:
-                lookup[rs.id] = rs
-                qr.append(query)
-            builder.submit_work("cloudwatch", self._collect_metrics_data, qr, lookup, builder)
-
-        metrics_queries: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]] = []
+        metrics_queries = defaultdict(list)
+        two_hours = timedelta(hours=2)
+        cloudwatch_result = {}
+        lookup_map = {}
         for resource in builder.graph.nodes:
             if not isinstance(resource, AwsResource):
                 continue
-            queries = [(query, resource) for query in resource.collect_usage_metrics(builder)]
-            if not queries:
-                continue
-            metrics_queries.extend(queries)
-            while len(metrics_queries) > 499:
-                batch, metrics_queries = metrics_queries[:499], metrics_queries[499:]
-                fetch_batch(batch)
-        fetch_batch(metrics_queries)
-
-    def _collect_metrics_data(
-        self,
-        metrics: List[cloudwatch.AwsCloudwatchQuery],
-        lookup_map: Dict[str, AwsResource],
-        builder: GraphBuilder,
-    ) -> None:
-        all_queries_with_data = []
-        now = builder.created_at
-        start = builder.metrics_start
-        for query in metrics:
-            if query.regional_builder:
-                all_queries_with_data.append((query.regional_builder.metrics_start, now, query.regional_builder, query))
-            else:
-                all_queries_with_data.append((start, now, builder, query))
-        if all_queries_with_data:
-            cloudwatch_result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(all_queries_with_data)
-            cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)
+            # region can be overridden in the query: s3 is global, but need to be queried per region
+            if region := cast(AwsRegion, resource.region()):
+                lookup_map[resource.id] = resource
+                resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
+                for query in resource_queries:
+                    query_region = query.region or region
+                    start = query.start_delta or builder.metrics_delta
+                    if query.period and query.period.total_seconds() < 1800:
+                        start = min(start, two_hours)
+                    metrics_queries[(query_region, start)].append((query, resource))
+        for (region, start), queries in metrics_queries.items():
+            start_at = builder.created_at - start
+            try:
+                result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(
+                    builder.for_region(region), start_at, builder.created_at, queries
+                )
+            except Exception as e:
+                log.warning(f"Error occured: {e}")
+            cloudwatch_result.update(result)
+        cloudwatch.update_resource_metrics(lookup_map, cloudwatch_result)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

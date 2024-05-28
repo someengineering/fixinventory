@@ -1,4 +1,3 @@
-from collections import defaultdict
 from functools import cached_property, lru_cache
 import logging
 import re
@@ -614,22 +613,19 @@ class AwsCloudwatchMetricData:
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
         lookup = {query.metric_id: query for query, _ in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
-
-        # TODO split the list into chunks of 500
-        # Process each group of queries with the same (start, now, builder) values
-        for (start, now, builder), grouped_queries in queries_by_time_and_builder.items():
+        futures = []
+        for chunk_queries in chunks(queries, 499):
             futures.append(
                 builder.submit_work(
                     service_name,
                     AwsCloudwatchMetricData._query_for_single_chunk,
                     builder.client,
-                    MetricDataQueries=[query.to_json() for query in grouped_queries],
+                    MetricDataQueries=[query.to_json() for query, _ in chunk_queries],
                     StartTime=start,
-                    EndTime=now,
+                    EndTime=until,
                     ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
                 )
             )
-
         try:
             # Retrieve results from submitted queries with a timeout limit
             for future in as_completed(futures, 60):

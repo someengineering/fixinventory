@@ -355,7 +355,8 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         start_delta = timedelta(days=2)
 
         queries: List[AwsCloudwatchQuery] = []
-        if region := self.bucket_location:
+        if bucket_region := self.bucket_location:
+            region = AwsRegion(id=bucket_region, name=bucket_region)
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
@@ -390,17 +391,17 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                         StorageType=storage_type,
                     )
                 )
-
-            # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
-            # TODO: move to global collector
-            bucket_size: Dict[str, float] = defaultdict(float)
-            for metric_name, metric_values in self._resource_usage.items():
-                if metric_name.endswith("_bucket_size_bytes"):
-                    for name, value in metric_values.items():
-                        bucket_size[name] += value
-            if bucket_size:
-                self._resource_usage["bucket_size_bytes"] = dict(bucket_size)
         return queries
+
+    def post_query_collect(self) -> None:
+        # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
+        bucket_size: Dict[str, float] = defaultdict(float)
+        for metric_name, metric_values in self._resource_usage.items():
+            if metric_name.endswith("_bucket_size_bytes"):
+                for name, value in metric_values.items():
+                    bucket_size[name] += value
+        if bucket_size:
+            self._resource_usage["bucket_size_bytes"] = dict(bucket_size)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)
