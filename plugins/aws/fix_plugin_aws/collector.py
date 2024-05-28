@@ -2,7 +2,7 @@ from collections import defaultdict
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple, Type, Optional, ClassVar, Union, cast
+from typing import List, Type, Optional, ClassVar, Union, cast
 
 from attrs import define
 
@@ -309,11 +309,11 @@ class AwsAccountCollector:
                     start = query.start_delta or builder.metrics_delta
                     if query.period and query.period < thirty_minutes:
                         start = min(start, two_hours)
-                    metrics_queries[(query_region, start)].append((query, resource))
+                    metrics_queries[(query_region, start)].append(query)
         for (region, start), queries in metrics_queries.items():
 
             def collect_and_set_metrics(
-                start: timedelta, region: AwsRegion, queries: List[Tuple[cloudwatch.AwsCloudwatchQuery, AwsResource]]
+                start: timedelta, region: AwsRegion, queries: List[cloudwatch.AwsCloudwatchQuery]
             ) -> None:
                 start_at = builder.created_at - start
                 try:

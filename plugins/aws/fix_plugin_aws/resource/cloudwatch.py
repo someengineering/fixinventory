@@ -606,11 +606,11 @@ class AwsCloudwatchMetricData:
         builder: GraphBuilder,
         start: datetime,
         until: datetime,
-        queries: List[Tuple[AwsCloudwatchQuery, AwsResource]],
+        queries: List[AwsCloudwatchQuery],
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
         log.info(f"[{builder.region.safe_name}|{start}|{duration_str(until-start)}] Query for {len(queries)} metrics.")
-        lookup = {query.metric_id: query for query, _ in queries}
+        lookup = {query.metric_id: query for query in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []
         for chunk_queries in chunks(queries, 499):
@@ -619,7 +619,7 @@ class AwsCloudwatchMetricData:
                     service_name,
                     AwsCloudwatchMetricData._query_for_single_chunk,
                     builder.client,
-                    MetricDataQueries=[query.to_json() for query, _ in chunk_queries],
+                    MetricDataQueries=[query.to_json() for query in chunk_queries],
                     StartTime=start,
                     EndTime=until,
                     ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
