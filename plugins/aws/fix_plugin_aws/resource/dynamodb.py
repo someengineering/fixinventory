@@ -329,14 +329,14 @@ class AwsDynamoDbArchivalSummary:
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbPointInTimeRecoveryDescription:
-    kind: ClassVar[str] = "aws_dynamo_db_point_in_time_recovery_description"
+class AwsDynamoDbPointInTimeRecovery:
+    kind: ClassVar[str] = "aws_dynamo_db_point_in_time_recovery"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "point_in_time_recovery_status": S("PointInTimeRecoveryStatus"),
+        "status": S("PointInTimeRecoveryStatus"),
         "earliest_restorable_date_time": S("EarliestRestorableDateTime"),
         "latest_restorable_date_time": S("LatestRestorableDateTime"),
     }
-    point_in_time_recovery_status: Optional[str] = field(default=None, metadata={"description": "The current state of point in time recovery:    ENABLED - Point in time recovery is enabled.    DISABLED - Point in time recovery is disabled."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "The current state of point in time recovery:    ENABLED - Point in time recovery is enabled.    DISABLED - Point in time recovery is disabled."})  # fmt: skip
     earliest_restorable_date_time: Optional[datetime] = field(default=None, metadata={"description": "Specifies the earliest point in time you can restore your table to. You can restore your table to any point in time during the last 35 days."})  # fmt: skip
     latest_restorable_date_time: Optional[datetime] = field(default=None, metadata={"description": "LatestRestorableDateTime is typically 5 minutes before the current time."})  # fmt: skip
 
@@ -345,12 +345,11 @@ class AwsDynamoDbPointInTimeRecoveryDescription:
 class AwsDynamoDbContinuousBackup:
     kind: ClassVar[str] = "aws_dynamo_db_continuous_backup"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "continuous_backups_status": S("ContinuousBackupsStatus"),
-        "point_in_time_recovery_description": S("PointInTimeRecoveryDescription")
-        >> Bend(AwsDynamoDbPointInTimeRecoveryDescription.mapping),
+        "status": S("ContinuousBackupsStatus"),
+        "point_in_time_recovery": S("PointInTimeRecoveryDescription") >> Bend(AwsDynamoDbPointInTimeRecovery.mapping),
     }
-    continuous_backups_status: Optional[str] = field(default=None, metadata={"description": "ContinuousBackupsStatus can be one of the following states: ENABLED, DISABLED"})  # fmt: skip
-    point_in_time_recovery_description: Optional[AwsDynamoDbPointInTimeRecoveryDescription] = field(default=None, metadata={"description": "The description of the point in time recovery settings applied to the table."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "ContinuousBackupsStatus can be one of the following states: ENABLED, DISABLED"})  # fmt: skip
+    point_in_time_recovery: Optional[AwsDynamoDbPointInTimeRecovery] = field(default=None, metadata={"description": "The description of the point in time recovery settings applied to the table."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
