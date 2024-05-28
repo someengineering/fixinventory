@@ -130,7 +130,7 @@ class AwsResource(BaseResource, ABC):
             return tuple(list(super()._keys()) + [self.arn])
         return super()._keys()
 
-    def post_query_collect(self) -> None:
+    def post_metrics_collect(self) -> None:
         # Default behavior: do nothing
         pass
 

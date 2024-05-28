@@ -393,7 +393,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 )
         return queries
 
-    def post_query_collect(self) -> None:
+    def post_metrics_collect(self) -> None:
         # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
         bucket_size: Dict[str, float] = defaultdict(float)
         for metric_name, metric_values in self._resource_usage.items():
