@@ -148,6 +148,7 @@ def build_graph(
             Cloud(id="test"),
             account,
             region,
+            {region_name: region},
             client,
             queue,
             feedback,

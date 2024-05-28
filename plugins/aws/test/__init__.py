@@ -31,8 +31,16 @@ def aws_client(aws_config: AwsConfig) -> AwsClient:
 def builder(aws_client: AwsClient, no_feedback: CoreFeedback) -> Iterator[GraphBuilder]:
     with ThreadPoolExecutor(1) as executor:
         queue = ExecutorQueue(executor, "dummy", lambda _: 1)
+        regions = [AwsRegion(id="us-east-1"), AwsRegion(id="eu-central-1")]
         yield GraphBuilder(
-            Graph(), Cloud(id="aws"), AwsAccount(id="test"), AwsRegion(id="us-east-1"), aws_client, queue, no_feedback
+            Graph(),
+            Cloud(id="aws"),
+            AwsAccount(id="test"),
+            regions[0],
+            {r.id: r for r in regions},
+            aws_client,
+            queue,
+            no_feedback,
         )
 
 

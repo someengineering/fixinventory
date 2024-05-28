@@ -611,6 +611,7 @@ class AwsCloudwatchMetricData:
         queries: List[Tuple[AwsCloudwatchQuery, AwsResource]],
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        log.info(f"[{builder.region.safe_name}:{start}:{until-start}] Query for {len(queries)} metrics.")
         lookup = {query.metric_id: query for query, _ in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []

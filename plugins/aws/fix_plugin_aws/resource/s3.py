@@ -1,15 +1,15 @@
-from collections import defaultdict
 import logging
+from collections import defaultdict
+from concurrent.futures import wait as futures_wait
+from datetime import timedelta
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
 
 from attr import field
 from attrs import define
-from datetime import timedelta
-from concurrent.futures import wait as futures_wait
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsRegion, AwsResource, AwsApiSpec, GraphBuilder, parse_json
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.utils import tags_as_dict
 from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference
@@ -355,8 +355,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         start_delta = timedelta(days=2)
 
         queries: List[AwsCloudwatchQuery] = []
-        if bucket_region := self.bucket_location:
-            region = AwsRegion(id=bucket_region, name=bucket_region)
+        if (bucket_region := self.bucket_location) and (region := builder.all_regions.get(bucket_region)):
             queries.append(
                 AwsCloudwatchQuery.create(
                     metric_name="NumberOfObjects",
@@ -393,7 +392,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
                 )
         return queries
 
-    def post_metrics_collect(self) -> None:
+    def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
         bucket_size: Dict[str, float] = defaultdict(float)
         for metric_name, metric_values in self._resource_usage.items():

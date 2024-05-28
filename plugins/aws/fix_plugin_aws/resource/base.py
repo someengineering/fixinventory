@@ -131,10 +131,6 @@ class AwsResource(BaseResource, ABC):
             return tuple(list(super()._keys()) + [self.arn])
         return super()._keys()
 
-    def post_metrics_collect(self) -> None:
-        # Default behavior: do nothing
-        pass
-
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return False
 
@@ -404,6 +400,7 @@ class GraphBuilder:
         cloud: Cloud,
         account: AwsAccount,
         region: AwsRegion,
+        all_regions: Dict[str, AwsRegion],
         client: AwsClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
@@ -416,6 +413,7 @@ class GraphBuilder:
         self.cloud = cloud
         self.account = account
         self.region = region
+        self.all_regions = all_regions
         self.client = client
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
@@ -633,6 +631,7 @@ class GraphBuilder:
             self.cloud,
             self.account,
             region,
+            self.all_regions,
             self.client.for_region(region.safe_name),
             self.executor,
             self.core_feedback,

@@ -193,6 +193,7 @@ class AwsAccountCollector:
                 self.cloud,
                 self.account,
                 self.global_region,
+                {r.id: r for r in self.regions},
                 self.client,
                 shared_queue,
                 self.core_feedback,
@@ -295,8 +296,8 @@ class AwsAccountCollector:
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
         metrics_queries = defaultdict(list)
         two_hours = timedelta(hours=2)
+        thirty_minutes = timedelta(minutes=30)
         lookup_map = {}
-        post_collect_resources: List[AwsResource] = []
         for resource in builder.graph.nodes:
             if not isinstance(resource, AwsResource):
                 continue
@@ -304,12 +305,10 @@ class AwsAccountCollector:
             if region := cast(AwsRegion, resource.region()):
                 lookup_map[resource.id] = resource
                 resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
-                if resource_queries:
-                    post_collect_resources.append(resource)
                 for query in resource_queries:
                     query_region = query.region or region
                     start = query.start_delta or builder.metrics_delta
-                    if query.period and query.period.total_seconds() < 1800:
+                    if query.period and query.period < thirty_minutes:
                         start = min(start, two_hours)
                     metrics_queries[(query_region, start)].append((query, resource))
         for (region, start), queries in metrics_queries.items():
@@ -327,8 +326,6 @@ class AwsAccountCollector:
                     log.warning(f"Error occurred in region {region}: {e}")
 
             builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
-        for resource in post_collect_resources:
-            resource.post_metrics_collect()
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
