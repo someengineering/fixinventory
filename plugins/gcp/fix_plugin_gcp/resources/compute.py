@@ -967,9 +967,9 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                             request_parameter_in={"project", "zone", "instanceGroup"},
                             response_path="items",
                         )
-                        path_data = urlparse(group).path
-                        zone = path_data.split("/")[5]
-                        instance_group = path_data.split("/")[7]
+                        path_data = urlparse(group).path.split("/")
+                        zone = path_data[5]
+                        instance_group = path_data[7]
 
                         items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
                         for item in items:
@@ -977,6 +977,13 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                                 self.backends.append(vm_id)
 
                     graph_builder.submit_work(fetch_instances, group)
+        if self_link := self.link:
+            forwarding_rules = graph_builder.nodes(clazz=GcpForwardingRule)
+            for rule in forwarding_rules:
+                if (backend_service_url := rule.backend_service) and (backend_service_url == self_link):
+                    if public_ip := rule.ip_address:
+                        self.public_ip_address = public_ip
+                        break
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
