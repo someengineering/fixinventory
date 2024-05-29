@@ -968,13 +968,16 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                             response_path="items",
                         )
                         path_data = urlparse(group).path.split("/")
-                        zone = path_data[5]
-                        instance_group = path_data[7]
+                        try:
+                            zone = path_data[5]
+                            instance_group = path_data[7]
 
-                        items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
-                        for item in items:
-                            if vm_id := item.get("instance"):
-                                self.backends.append(vm_id)
+                            items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
+                            for item in items:
+                                if vm_id := item.get("instance"):
+                                    self.backends.append(vm_id)
+                        except Exception as e:
+                            log.warning(f"An error occured while setting backends property: {e}")
 
                     graph_builder.submit_work(fetch_instances, group)
         if self_link := self.link:
@@ -7107,6 +7110,10 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
     snapshot_storage_bytes: Optional[str] = field(default=None)
     snapshot_storage_bytes_status: Optional[str] = field(default=None)
     snapshot_storage_locations: Optional[List[str]] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if self.snapshot_snapshot_encryption_key is not None:
+            self.encrypted = True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.snapshot_source_disk:
