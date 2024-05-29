@@ -746,8 +746,12 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         classes: List[Type[GcpResource]] = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser, GcpSqlOperation]
         for cls in classes:
             if spec := cls.api_spec:
-                items = graph_builder.client.list(spec, instance=self.name, project=self.project)
-                cls.collect(items, graph_builder)
+
+                def collect_sql_resources(spec: GcpApiSpec, clazz: Type[GcpResource]) -> None:
+                    items = graph_builder.client.list(spec, instance=self.name, project=self.project)
+                    clazz.collect(items, graph_builder)
+
+                graph_builder.submit_work(collect_sql_resources, spec, cls)
 
     @classmethod
     def called_collect_apis(cls) -> List[GcpApiSpec]:
