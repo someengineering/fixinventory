@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from urllib.parse import urlparse
 
 from attr import define, field
 
@@ -951,21 +952,31 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
         if backends := self.backend_service_backends:
             for backend in backends:
                 if group := backend.group:
-                    api_spec = GcpApiSpec(
-                        service="compute",
-                        version="v1",
-                        accessors=["backendServices"],
-                        action="listInstances",
-                        request_parameter={"project": "{project}"},
-                        request_parameter_in={"project", ""},
-                        response_path="items",
-                    )
-                    group_url = f"{group}/listInstances"
-                    items = graph_builder.client.list(api_spec, group_url)
-                    for item in items:
-                        if vm_id := item.get("instance"):
-                            self.backends.append(vm_id)
 
+                    def fetch_instances(group: str) -> None:
+                        api_spec = GcpApiSpec(
+                            service="compute",
+                            version="v1",
+                            accessors=["instanceGroups"],
+                            action="listInstances",
+                            request_parameter={
+                                "project": "{project}",
+                                "zone": "{zone}",
+                                "instanceGroup": "{instanceGroup}",
+                            },
+                            request_parameter_in={"project", "zone", "instanceGroup"},
+                            response_path="items",
+                        )
+                        path_data = urlparse(group).path
+                        zone = path_data.split("/")[5]
+                        instance_group = path_data.split("/")[7]
+
+                        items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
+                        for item in items:
+                            if vm_id := item.get("instance"):
+                                self.backends.append(vm_id)
+
+                    graph_builder.submit_work(fetch_instances, group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
