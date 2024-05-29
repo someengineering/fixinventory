@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, cast, Any
 
+
 from attrs import define, field
 
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.resource.iam import AwsIamRole
+from fix_plugin_aws.aws_client import AwsClient
 from fixlib.baseresources import ModelReference, BaseManagedKubernetesClusterProvider
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
-from fix_plugin_aws.aws_client import AwsClient
 
 service_name = "eks"
 
@@ -458,22 +459,21 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
-        for name in cast(List[str], json):
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(name: str) -> None:
             cluster_json = builder.client.get(service_name, "describe-cluster", "cluster", name=name)
             if cluster_json is not None:
                 if cluster := AwsEksCluster.from_api(cluster_json, builder):
-                    instances.append(cluster)
                     builder.add_node(cluster, cluster_json)
                     for ng_name in builder.client.list(service_name, "list-nodegroups", "nodegroups", clusterName=name):
                         ng_json = builder.client.get(
                             service_name, "describe-nodegroup", "nodegroup", clusterName=name, nodegroupName=ng_name
                         )
                         if ng_json is not None and (ng := AwsEksNodegroup.from_api(ng_json, builder)):
-                            instances.append(ng)
                             builder.add_node(ng, ng_json)
-        return instances
+
+        for name in cast(List[str], json):
+            builder.submit_work(service_name, add_instance, name)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         builder.dependant_node(

@@ -1,16 +1,18 @@
+from functools import cached_property, lru_cache
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
+from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
 from concurrent.futures import as_completed
 
-from attr import define, field
+from attr import define, field, frozen
 
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
+from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import ModelReference, BaseResource, StatName
+from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
+from fixlib.durations import duration_str
 from fixlib.graph import Graph
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
@@ -19,6 +21,49 @@ from fixlib.utils import chunks
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "cloudwatch"
+
+T = TypeVar("T")
+
+
+def identity(x: T) -> T:
+    return x
+
+
+# by default, take the first value, and don't include a stat name
+# so the default metric stat is used
+def take_first(x: List[T]) -> List[Tuple[T, Optional[StatName]]]:
+    return [(x[0], None)]
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    # Use Tuple instead of Dict for stat_map because it should be immutable
+    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
+        ("Minimum", StatName.min),
+        ("Average", StatName.avg),
+        ("Maximum", StatName.max),
+    )
+    normalize_value: Callable[[float], float] = identity
+    # function to derive stats from a list of values
+    # the default is to take the first value and use the default stat name
+    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = take_first
+
+    def get_stat_value(self, key: str) -> Optional[StatName]:
+        """
+        Get the value from stat_map based on the given key.
+
+        Args:
+            key: The key to search for in the stat_map.
+
+        Returns:
+            The corresponding value from stat_map.
+        """
+        for stat_key, value in self.stat_map:
+            if stat_key == key:
+                return value
+        return None
+
 
 # Cloudwatch Alarm: Namespace -> Dimension Name -> (Kind, Property)
 CloudwatchAlarmReferences: Dict[str, Dict[str, Tuple[str, str]]] = {
@@ -255,19 +300,16 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     cloudwatch_threshold_metric_id: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(alarm: AwsCloudwatchAlarm) -> None:
             tags = builder.client.list(service_name, "list-tags-for-resource", "Tags", ResourceARN=alarm.arn)
             if tags:
                 alarm.tags = bend(ToDict(), tags)
 
-        instances = []
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
-        return instances
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -413,15 +455,18 @@ class AwsCloudwatchMetricFilter(AwsResource):
 
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
-    metric_name: str
-    namespace: str
-    dimensions: Tuple[Tuple[str, str], ...]
-    period: timedelta
+    name: MetricName  # final name of the metric
+    metric_name: str  # name of the metric in cloudwatch
+    namespace: str  # namespace of the metric in cloudwatch
+    dimensions: Tuple[Tuple[str, str], ...]  # dimensions of the metric in cloudwatch
+    period: timedelta  # period of the metric in cloudwatch
     ref_id: str
     metric_id: str
     stat: str = "Sum"
     unit: str = "Count"
-    fix_metric_name: Optional[str] = None  # Override the default metric name. The name is taken AS IS.
+    normalization: Optional[MetricNormalization] = None
+    region: Optional[AwsRegion] = None  # only define if the region of metric and resource is different (e.g. s3 bucket)
+    start_delta: Optional[timedelta] = None  # usually the delta is last_run until now. override if needed
 
     def to_json(self) -> Json:
         return {
@@ -446,16 +491,20 @@ class AwsCloudwatchQuery:
         namespace: str,
         period: timedelta,
         ref_id: str,
+        name: MetricName,
+        normalization: Optional[MetricNormalization] = None,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
         unit: str = "Count",
-        fix_metric_name: Optional[str] = None,
+        region: Optional[AwsRegion] = None,
+        start_delta: Optional[timedelta] = None,
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
         rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}-{stat}".lower())
         # noinspection PyTypeChecker
         return AwsCloudwatchQuery(
+            name=name,
             metric_name=metric_name,
             namespace=namespace,
             period=period,
@@ -464,7 +513,9 @@ class AwsCloudwatchQuery:
             metric_id=rid,
             stat=stat,
             unit=unit,
-            fix_metric_name=fix_metric_name,
+            region=region,
+            normalization=normalization,
+            start_delta=start_delta,
         )
 
 
@@ -503,13 +554,26 @@ class AwsCloudwatchMetricData:
         return [AwsApiSpec(service_name, "get-metric-data")]
 
     @staticmethod
-    def query_for(
+    def query_for_single(
         builder: GraphBuilder,
         queries: List[AwsCloudwatchQuery],
         start_time: datetime,
         end_time: datetime,
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        """
+        Queries for a single block of CloudWatch metric data.
+
+        Args:
+            builder: An instance of the GraphBuilder.
+            queries: List of metric data queries.
+            start_time: Start time for the queries.
+            end_time: End time for the queries.
+            scan_desc: Specifies whether to scan by TimestampDescending or TimestampAscending.
+
+        Returns:
+            Dictionary mapping metric data to their corresponding IDs.
+        """
         lookup = {q.metric_id: q for q in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []
@@ -517,7 +581,7 @@ class AwsCloudwatchMetricData:
         for chunk in chunks(queries, 499):
             future = builder.submit_work(
                 service_name,
-                AwsCloudwatchMetricData._query_for_single,
+                AwsCloudwatchMetricData._query_for_single_chunk,
                 builder.client,
                 MetricDataQueries=[a.to_json() for a in chunk],
                 StartTime=start_time,
@@ -525,7 +589,6 @@ class AwsCloudwatchMetricData:
                 ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
             )
             futures.append(future)
-
         # Retrieve results from submitted queries and populate the result dictionary
         for future in as_completed(futures):
             try:
@@ -536,14 +599,68 @@ class AwsCloudwatchMetricData:
             except Exception as e:
                 log.warning(f"An error occurred while processing a metric query: {e}")
                 raise e
+        return result
+
+    @staticmethod
+    def query_for_multiple(
+        builder: GraphBuilder,
+        start: datetime,
+        until: datetime,
+        queries: List[AwsCloudwatchQuery],
+        scan_desc: bool = True,
+    ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
+        log.info(f"[{builder.region.safe_name}|{start}|{duration_str(until-start)}] Query for {len(queries)} metrics.")
+        lookup = {query.metric_id: query for query in queries}
+        result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
+        futures = []
+        for chunk_queries in chunks(queries, 499):
+            futures.append(
+                builder.submit_work(
+                    service_name,
+                    AwsCloudwatchMetricData._query_for_single_chunk,
+                    builder.client,
+                    MetricDataQueries=[query.to_json() for query in chunk_queries],
+                    StartTime=start,
+                    EndTime=until,
+                    ScanBy="TimestampDescending" if scan_desc else "TimestampAscending",
+                )
+            )
+        try:
+            # Retrieve results from submitted queries with a timeout limit
+            for future in as_completed(futures, 60):
+                try:
+                    metric_query_result = future.result()
+                    for metric, metric_id in metric_query_result:
+                        if metric is not None and metric_id is not None:
+                            query_result = lookup.get(metric_id)
+                            if query_result:
+                                result[query_result] = metric
+                except Exception as e:
+                    log.warning(f"An error occurred while processing a metric query: {e}")
+                    raise e
+        except TimeoutError as e:
+            log.warning(f"An error occurred while waiting futures: {e}")
 
         return result
 
     @staticmethod
-    def _query_for_single(
+    def _query_for_single_chunk(
         client: AwsClient,
         **kwargs: Any,
     ) -> "List[Tuple[AwsCloudwatchMetricData, str]]":
+        """
+        Queries for a chunk of CloudWatch metric data.
+
+        Args:
+            client: An instance of the AWS client.
+            MetricDataQueries: List of metric data queries.
+            StartTime: Start time for the queries.
+            EndTime: End time for the queries.
+            ScanBy: Specifies whether to scan by TimestampDescending or TimestampAscending.
+
+        Returns:
+            List of tuples containing the metric data and their corresponding IDs.
+        """
         query_result = []
         try:
             part = client.list(service_name, "get-metric-data", "MetricDataResults", **kwargs)
@@ -564,7 +681,6 @@ V = TypeVar("V", bound=BaseResource)
 def update_resource_metrics(
     resources_map: Dict[str, V],
     cloudwatch_result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData],
-    metric_normalizers: Dict[str, MetricNormalization],
 ) -> None:
     for query, metric in cloudwatch_result.items():
         resource = resources_map.get(query.ref_id)
@@ -572,18 +688,20 @@ def update_resource_metrics(
             continue
         if len(metric.metric_values) == 0:
             continue
-        normalizer = metric_normalizers.get(query.metric_name)
+        normalizer = query.normalization
         if not normalizer:
             continue
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             try:
-                metric_name = query.fix_metric_name or normalizer.metric_name
+                metric_name = query.name
+                if not metric_name:
+                    continue
                 name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
-                stat_name = str(maybe_stat_name or normalizer.stat_map[query.stat])
-
-                resource._resource_usage[name][stat_name] = value
+                stat_name = maybe_stat_name or normalizer.get_stat_value(query.stat)
+                if stat_name:
+                    resource._resource_usage[name][str(stat_name)] = value
             except KeyError as e:
                 log.warning(f"An error occured while setting metric values: {e}")
                 raise
@@ -601,9 +719,95 @@ def operations_to_iops(ops: float, period: timedelta) -> float:
     return round(ops / period.total_seconds(), 4)
 
 
+class NormalizerFactory:
+    @cached_property
+    def count(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache(maxsize=128)
+    def count_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def bytes(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache(maxsize=128)
+    def bytes_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def bytes_per_second(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.BytesPerSecond,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def iops(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @lru_cache(maxsize=128)
+    def iops_sum(self, value_normalizer: Optional[Callable[[float], float]] = None) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=value_normalizer or (lambda x: round(x, ndigits=4)),
+        )
+
+    @cached_property
+    def seconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def seconds_sum(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            compute_stats=calculate_min_max_avg,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def milliseconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Milliseconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def percent(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Percent,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
 def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
     return [
         (min(values), StatName.min),
         (max(values), StatName.max),
         (sum(values) / len(values), StatName.avg),
     ]
+
+
+normalizer_factory = NormalizerFactory()

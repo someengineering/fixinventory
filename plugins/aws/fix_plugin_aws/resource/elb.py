@@ -5,15 +5,10 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc, AwsEc2Instance
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchQuery,
-    AwsCloudwatchMetricData,
-    calculate_min_max_avg,
-    update_resource_metrics,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import ToDict, MetricNormalization
-from fixlib.baseresources import BaseLoadBalancer, MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -323,9 +318,7 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_attributes(elb: AwsElb) -> None:
             if attributes := builder.client.get(
                 service_name,
@@ -351,147 +344,95 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
 
         for js in json:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(service_name, fetch_attributes, instance)
-        return instances
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
-        elbs = {elb.id: elb for elb in collected_resources}
-        queries = []
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        # Filter out metrics with the 'aws-controltower' dimension value
+        if "aws-controltower" in self.safe_name:
+            return []
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
-        period = min(timedelta(minutes=5), delta)
 
-        for elb_id, elb in elbs.items():
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric,
-                        namespace="AWS/ELB",
-                        period=period,
-                        ref_id=elb_id,
-                        stat="Sum",
-                        unit="Count",
-                        LoadBalancerName=elb.name or elb.safe_name,
-                    )
-                    for metric in [
-                        "RequestCount",
-                        "EstimatedALBActiveConnectionCount",
-                        "HTTPCode_Backend_2XX",
-                        "HTTPCode_Backend_4XX",
-                        "HTTPCode_Backend_5XX",
-                    ]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=metric,
-                        namespace="AWS/ELB",
-                        period=delta,
-                        ref_id=elb_id,
-                        stat=stat,
-                        unit="Count",
-                        LoadBalancerName=elb.name or elb.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for metric in [
-                        "HealthyHostCount",
-                        "UnHealthyHostCount",
-                    ]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="Latency",
-                        namespace="AWS/ELB",
-                        period=delta,
-                        ref_id=elb_id,
-                        stat=stat,
-                        unit="Seconds",
-                        LoadBalancerName=elb.name or elb.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="EstimatedProcessedBytes",
-                        namespace="AWS/ELB",
-                        period=delta,
-                        ref_id=elb_id,
-                        stat=stat,
-                        unit="Bytes",
-                        LoadBalancerName=elb.name or elb.safe_name,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                ]
-            )
+        period = timedelta(minutes=5)
 
-        metric_normalizers = {
-            "RequestCount": MetricNormalization(
-                metric_name=MetricName.RequestCount,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "EstimatedALBActiveConnectionCount": MetricNormalization(
-                metric_name=MetricName.ActiveConnection,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "HTTPCode_Backend_2XX": MetricNormalization(
-                metric_name=MetricName.StatusCode2XX,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "HTTPCode_Backend_4XX": MetricNormalization(
-                metric_name=MetricName.StatusCode4XX,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "HTTPCode_Backend_5XX": MetricNormalization(
-                metric_name=MetricName.StatusCode5XX,
-                unit=MetricUnit.Count,
-                compute_stats=calculate_min_max_avg,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "HealthyHostCount": MetricNormalization(
-                metric_name=MetricName.HealthyHostCount,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "UnHealthyHostCount": MetricNormalization(
-                metric_name=MetricName.UnhealthyHostCount,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "Latency": MetricNormalization(
-                metric_name=MetricName.Latency,
-                unit=MetricUnit.Seconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "EstimatedProcessedBytes": MetricNormalization(
-                metric_name=MetricName.ProcessedBytes,
-                unit=MetricUnit.BytesPerSecond,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/ELB",
+                    period=period,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.count_sum(),
+                    stat="Sum",
+                    unit="Count",
+                    LoadBalancerName=self.safe_name,
+                )
+                for name, metric_name in [
+                    ("RequestCount", MetricName.RequestCount),
+                    ("EstimatedALBActiveConnectionCount", MetricName.ALBActiveConnectionCount),
+                    ("HTTPCode_Backend_2XX", MetricName.StatusCode2XX),
+                    ("HTTPCode_Backend_4XX", MetricName.StatusCode4XX),
+                    ("HTTPCode_Backend_5XX", MetricName.StatusCode5XX),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/ELB",
+                    period=delta,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    unit="Count",
+                    LoadBalancerName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("HealthyHostCount", MetricName.HealthyHostCount),
+                    ("UnHealthyHostCount", MetricName.UnHealthyHostCount),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="Latency",
+                    namespace="AWS/ELB",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.Latency,
+                    normalization=normalizer_factory.seconds,
+                    stat=stat,
+                    unit="Seconds",
+                    LoadBalancerName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="EstimatedProcessedBytes",
+                    namespace="AWS/ELB",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.ProcessedBytes,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    unit="Bytes",
+                    LoadBalancerName=self.safe_name,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
 
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(elbs, cloudwatch_result, metric_normalizers)
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

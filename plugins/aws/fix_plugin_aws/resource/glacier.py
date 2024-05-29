@@ -244,8 +244,16 @@ class AwsGlacierVault(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], source: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances: List[AwsResource] = []
+    def collect(cls: Type[AwsResource], source: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(vault: Json) -> None:
+            if vault_instance := cls.from_api(vault, builder):
+                builder.add_node(vault_instance, vault)
+                builder.submit_work(service_name, add_tags, vault_instance)
+                builder.submit_work(service_name, access_policy, vault_instance)
+                for job in builder.client.list(service_name, "list-jobs", "JobList", vaultName=vault_instance.name):
+                    if job_instance := AwsGlacierJob.from_api(job, builder):
+                        builder.add_node(job_instance, job)
+                        builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
 
         def add_tags(vault: AwsGlacierVault) -> None:
             tags = builder.client.get(service_name, "list-tags-for-vault", "Tags", vaultName=vault.name)
@@ -264,17 +272,7 @@ class AwsGlacierVault(AwsResource):
                 vault.glacier_access_policy = sort_json(json.loads(policy_string), sort_list=True)
 
         for vault in source:
-            if vault_instance := cls.from_api(vault, builder):
-                instances.append(vault_instance)
-                builder.add_node(vault_instance, vault)
-                builder.submit_work(service_name, add_tags, vault_instance)
-                builder.submit_work(service_name, access_policy, vault_instance)
-                for job in builder.client.list(service_name, "list-jobs", "JobList", vaultName=vault_instance.name):
-                    if job_instance := AwsGlacierJob.from_api(job, builder):
-                        instances.append(job_instance)
-                        builder.add_node(job_instance, job)
-                        builder.add_edge(vault_instance, EdgeType.default, node=job_instance)
-        return instances
+            builder.submit_work(service_name, add_instance, vault)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

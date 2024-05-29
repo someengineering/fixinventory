@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
-from concurrent.futures import Future, wait as futures_wait
+
 
 from attrs import define, field
 
@@ -283,14 +283,10 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
     @classmethod
-    def collect(cls, json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        stack_items: List[AwsResource] = []
-
-        def stack_set_instances(ss: AwsCloudFormationStackSet) -> List[AwsCloudFormationStackInstanceSummary]:
-            instances = []
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
+        def stack_set_instances(ss: AwsCloudFormationStackSet) -> None:
             for sij in builder.client.list(service_name, "list-stack-instances", "Summaries", StackSetName=ss.name):
                 if sii := AwsCloudFormationStackInstanceSummary.from_api(sij, builder):
-                    instances.append(sii)
                     builder.add_node(sii, sij)
                     builder.add_edge(ss, node=sii)
                     builder.graph.add_deferred_edge(
@@ -299,18 +295,11 @@ class AwsCloudFormationStackSet(AwsResource):
                             f'is(aws_cloudformation_stack) and reported.id="{sii.stack_instance_stack_id}"'
                         ),
                     )
-            return instances
 
-        futures: List[Future[List[AwsCloudFormationStackInstanceSummary]]] = []
         for js in json:
             if stack_set := cls.from_api(js, builder):
-                stack_items.append(stack_set)
                 builder.add_node(stack_set, js)
-                future = builder.submit_work(service_name, stack_set_instances, stack_set)
-                futures.append(future)
-        futures_wait(futures)
-        stack_instances: List[AwsResource] = [result for future in futures for result in future.result()]
-        return stack_items + stack_instances
+                builder.submit_work(service_name, stack_set_instances, stack_set)
 
     def _modify_tag(self, client: AwsClient, key: str, value: Optional[str], mode: Literal["update", "delete"]) -> bool:
         tags = dict(self.tags)

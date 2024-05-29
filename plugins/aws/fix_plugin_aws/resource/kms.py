@@ -1,7 +1,7 @@
 import json
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
-from concurrent.futures import Future, wait as futures_wait
+
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
@@ -133,8 +133,8 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def add_instance(key: Dict[str, str]) -> Optional[AwsKmsKey]:
+    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> None:
+        def add_instance(key: Dict[str, str]) -> None:
             key_metadata = builder.client.get(
                 service_name, "describe-key", result_name="KeyMetadata", KeyId=key["KeyId"]
             )
@@ -145,8 +145,6 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
                     builder.submit_work(service_name, fetch_key_policy, instance)
                     if instance.kms_key_manager == "CUSTOMER" and instance.access_key_status == "Enabled":
                         builder.submit_work(service_name, add_rotation_status, instance)
-                return instance
-            return None
 
         def fetch_key_policy(key: AwsKmsKey) -> None:
             with builder.suppress(f"{service_name}.get-key-policy"):
@@ -178,13 +176,8 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
             if tags:
                 key.tags = bend(ToDict(key="TagKey", value="TagValue"), tags)
 
-        futures: List[Future[Optional[AwsKmsKey]]] = []
         for js in js_list:
-            future = builder.submit_work(service_name, add_instance, js)
-            futures.append(future)
-        futures_wait(futures)
-        instances: List[AwsResource] = [result for future in futures if (result := future.result())]
-        return instances
+            builder.submit_work(service_name, add_instance, js)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

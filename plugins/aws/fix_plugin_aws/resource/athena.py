@@ -1,6 +1,7 @@
 from typing import ClassVar, Dict, Optional, List, Any
 from typing import Type
 
+
 from attrs import define
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -133,27 +134,18 @@ class AwsAthenaWorkGroup(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        workgroups: List[AwsResource] = []
-
-        def fetch_workgroup(name: str) -> Optional[AwsAthenaWorkGroup]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def fetch_workgroup(name: str) -> None:
             result = builder.client.get(
                 aws_service=service_name, action="get-work-group", result_name="WorkGroup", WorkGroup=name
             )
-            if result is None:
-                return None
-
-            if workgroup := AwsAthenaWorkGroup.from_api(result, builder):
+            if result and (workgroup := AwsAthenaWorkGroup.from_api(result, builder)):
                 workgroup.set_arn(
                     builder=builder,
                     resource=f"workgroup/{workgroup.name}",
                 )
-                workgroups.append(workgroup)
                 builder.add_node(workgroup, result)
                 builder.submit_work(service_name, add_tags, workgroup)
-                return workgroup
-            else:
-                return None
 
         def add_tags(data_catalog: AwsAthenaWorkGroup) -> None:
             tags = builder.client.list(
@@ -167,8 +159,7 @@ class AwsAthenaWorkGroup(AwsResource):
 
         for js in json:
             if (name := js.get("Name")) is not None and isinstance(name, str):
-                fetch_workgroup(name)
-        return workgroups
+                builder.submit_work(service_name, fetch_workgroup, name)
 
     # noinspection PyUnboundLocalVariable
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -252,25 +243,18 @@ class AwsAthenaDataCatalog(AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        catalogs: List[AwsResource] = []
-
-        def fetch_data_catalog(data_catalog_name: str) -> Optional[AwsAthenaDataCatalog]:
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def fetch_data_catalog(data_catalog_name: str) -> None:
             result = builder.client.get(
                 aws_service=service_name,
                 action="get-data-catalog",
                 result_name="DataCatalog",
                 Name=data_catalog_name,
             )
-            if result is None:
-                return None
-            if catalog := AwsAthenaDataCatalog.from_api(result, builder):
+            if result and (catalog := AwsAthenaDataCatalog.from_api(result, builder)):
                 catalog.set_arn(builder=builder, resource=f"datacatalog/{catalog.name}")
-                catalogs.append(catalog)
                 builder.add_node(catalog, result)
                 builder.submit_work(service_name, add_tags, catalog)
-                return catalog
-            return None
 
         def add_tags(data_catalog: AwsAthenaDataCatalog) -> None:
             tags = builder.client.list(
@@ -285,8 +269,7 @@ class AwsAthenaDataCatalog(AwsResource):
         for js in json:
             # we filter out the default data catalog as it is not possible to do much with it
             if (name := js.get("CatalogName")) is not None and isinstance(name, str) and name != "AwsDataCatalog":
-                fetch_data_catalog(name)
-        return catalogs
+                builder.submit_work(service_name, fetch_data_catalog, name)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

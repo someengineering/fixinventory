@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
+
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
@@ -426,8 +427,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
 
         def add_backup_description(table: AwsDynamoDbTable) -> None:
             if continuous_backup := builder.client.get(
@@ -441,7 +441,6 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             table_description = builder.client.get(service_name, "describe-table", "Table", TableName=table)
             if table_description is not None:
                 if instance := cls.from_api(table_description, builder):
-                    instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
                     builder.submit_work(service_name, add_backup_description, instance)
@@ -453,8 +452,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
         for js in json:
             if isinstance(js, str):
-                add_instance(js)
-        return instances
+                builder.submit_work(service_name, add_instance, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_latest_stream_arn:
@@ -523,9 +521,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        instances = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.get(
                 service_name,
@@ -535,7 +531,6 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
             )
             if table_description:
                 if instance := cls.from_api(table_description, builder):
-                    instances.append(instance)
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
 
@@ -545,8 +540,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                 table.tags = bend(ToDict(), tags)
 
         for js in json:
-            add_instance(js)
-        return instances
+            builder.submit_work(service_name, add_instance, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.dynamodb_replication_group is not []:

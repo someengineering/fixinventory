@@ -1,6 +1,6 @@
 import json
 from typing import Optional, ClassVar, Dict, List, Type, Any
-from concurrent.futures import wait as futures_wait
+
 
 import math
 from attr import field, define
@@ -132,17 +132,14 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        def collect_mount_points(fs: AwsEfsFileSystem) -> List[AwsEfsMountTarget]:
-            mount_targets = []
+    def collect(cls: Type[AwsResource], js_list: List[Json], builder: GraphBuilder) -> None:
+        def collect_mount_points(fs: AwsEfsFileSystem) -> None:
             for mt_raw in builder.client.list(
                 service_name, "describe-mount-targets", "MountTargets", FileSystemId=fs.id
             ):
                 if mt := AwsEfsMountTarget.from_api(mt_raw, builder):
                     builder.add_node(mt, mt_raw)
                     builder.add_edge(fs, node=mt)
-                    mount_targets.append(mt)
-            return mount_targets
 
         def fetch_file_system_policy(fs: AwsEfsFileSystem) -> None:
             with builder.suppress("describe-file-system-policy"):
@@ -154,17 +151,11 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                 ):
                     fs.file_system_policy = sort_json(json.loads(policy["Policy"]), sort_list=True)
 
-        instances: List[AwsResource] = []
-        futures = []
         for js in js_list:
             if instance := cls.from_api(js, builder):
-                instances.append(instance)
                 builder.add_node(instance, js)
-                futures.append(builder.submit_work(service_name, collect_mount_points, instance))
+                builder.submit_work(service_name, collect_mount_points, instance)
                 builder.submit_work(service_name, fetch_file_system_policy, instance)
-        futures_wait(futures)
-        mount_items: List[AwsResource] = [result for future in futures for result in future.result()]
-        return instances + mount_items
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):

@@ -4,17 +4,13 @@ from attrs import define, field
 from datetime import datetime
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
-from fix_plugin_aws.resource.cloudwatch import (
-    AwsCloudwatchMetricData,
-    AwsCloudwatchQuery,
-    update_resource_metrics,
-)
+from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Subnet
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.utils import MetricNormalization, ToDict
-from fixlib.baseresources import MetricName, MetricUnit, ModelReference
+from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
 from fixlib.types import Json
@@ -554,9 +550,7 @@ class AwsRedshiftCluster(AwsResource):
         return [cls.api_spec, AwsApiSpec(service_name, "describe-logging-status")]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> List[AwsResource]:
-        clusters: List[AwsResource] = []
-
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def fetch_logging_status(rc: AwsRedshiftCluster) -> None:
             with builder.suppress("redshift.describe-logging-status"):
                 if raw := builder.client.get(
@@ -570,166 +564,125 @@ class AwsRedshiftCluster(AwsResource):
 
         for js in json:
             if cluster := cls.from_api(js, builder):
-                clusters.append(cluster)
                 cluster.set_arn(builder=builder, resource=f"cluster:{cluster.id}")
                 builder.add_node(cluster, js)
                 builder.submit_work(service_name, fetch_logging_status, cluster)
-        return clusters
 
-    @classmethod
-    def collect_usage_metrics(
-        cls: Type[AwsResource], builder: GraphBuilder, collected_resources: List[AwsResource]
-    ) -> None:
-        redshifts = {redshift.id: redshift for redshift in collected_resources}
-        queries = []
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        queries: List[AwsCloudwatchQuery] = []
         delta = builder.metrics_delta
-        start = builder.metrics_start
-        now = builder.created_at
 
-        for redshift_id in redshifts:
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="CPUUtilization",
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat=stat,
-                        unit="Percent",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="CPUUtilization",
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.CpuUtilization,
+                    normalization=normalizer_factory.percent,
+                    stat=stat,
+                    unit="Percent",
+                    ClusterIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name="DatabaseConnections",
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=MetricName.DatabaseConnections,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    unit="Count",
+                    ClusterIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.bytes_per_second,
+                    stat=stat,
+                    unit="Bytes/Second",
+                    ClusterIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("NetworkReceiveThroughput", MetricName.NetworkReceiveThroughput),
+                    ("NetworkTransmitThroughput", MetricName.NetworkTransmitThroughput),
                 ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name="DatabaseConnections",
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat=stat,
-                        unit="Count",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.iops,
+                    stat=stat,
+                    unit="Count/Second",
+                    ClusterIdentifier=self.id,
+                )
+                for stat in ["Minimum", "Average", "Maximum"]
+                for name, metric_name in [
+                    ("ReadIOPS", MetricName.DiskRead),
+                    ("WriteIOPS", MetricName.DiskWrite),
                 ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat=stat,
-                        unit="Bytes/Second",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["NetworkReceiveThroughput", "NetworkTransmitThroughput"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.seconds,
+                    stat="Average",
+                    unit="Seconds",
+                    ClusterIdentifier=self.id,
+                )
+                for name, metric_name in [
+                    ("ReadLatency", MetricName.ReadLatency),
+                    ("WriteLatency", MetricName.WriteLatency),
                 ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat=stat,
-                        unit="Count/Second",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for stat in ["Minimum", "Average", "Maximum"]
-                    for name in ["ReadIOPS", "WriteIOPS"]
+            ]
+        )
+        queries.extend(
+            [
+                AwsCloudwatchQuery.create(
+                    metric_name=name,
+                    namespace="AWS/Redshift",
+                    period=delta,
+                    ref_id=self.id,
+                    name=metric_name,
+                    normalization=normalizer_factory.bytes,
+                    stat="Average",
+                    unit="Bytes",
+                    ClusterIdentifier=self.id,
+                )
+                for name, metric_name in [
+                    ("ReadThroughput", MetricName.ReadThroughput),
+                    ("WriteThroughput", MetricName.WriteThroughput),
                 ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat="Average",
-                        unit="Seconds",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for name in ["ReadLatency", "WriteLatency"]
-                ]
-            )
-            queries.extend(
-                [
-                    AwsCloudwatchQuery.create(
-                        metric_name=name,
-                        namespace="AWS/Redshift",
-                        period=delta,
-                        ref_id=redshift_id,
-                        stat="Average",
-                        unit="Bytes",
-                        ClusterIdentifier=redshift_id,
-                    )
-                    for name in ["ReadThroughput", "WriteThroughput"]
-                ]
-            )
-
-        metric_normalizers = {
-            "CPUUtilization": MetricNormalization(
-                metric_name=MetricName.CpuUtilization,
-                unit=MetricUnit.Percent,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "DatabaseConnections": MetricNormalization(
-                metric_name=MetricName.DatabaseConnections,
-                unit=MetricUnit.Count,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "NetworkReceiveThroughput": MetricNormalization(
-                metric_name=MetricName.NetworkReceiveThroughput,
-                unit=MetricUnit.BytesPerSecond,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "NetworkTransmitThroughput": MetricNormalization(
-                metric_name=MetricName.NetworkTransmitThroughput,
-                unit=MetricUnit.BytesPerSecond,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ReadIOPS": MetricNormalization(
-                metric_name=MetricName.DiskRead,
-                unit=MetricUnit.IOPS,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "WriteIOPS": MetricNormalization(
-                metric_name=MetricName.DiskWrite,
-                unit=MetricUnit.IOPS,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ReadLatency": MetricNormalization(
-                metric_name=MetricName.ReadLatency,
-                unit=MetricUnit.Seconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "WriteLatency": MetricNormalization(
-                metric_name=MetricName.WriteLatency,
-                unit=MetricUnit.Seconds,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "ReadThroughput": MetricNormalization(
-                metric_name=MetricName.ReadThroughput,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-            "WriteThroughput": MetricNormalization(
-                metric_name=MetricName.WriteThroughput,
-                unit=MetricUnit.Bytes,
-                normalize_value=lambda x: round(x, ndigits=4),
-            ),
-        }
-
-        cloudwatch_result = AwsCloudwatchMetricData.query_for(builder, queries, start, now)
-
-        update_resource_metrics(redshifts, cloudwatch_result, metric_normalizers)
+            ]
+        )
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.redshift_vpc_id:
