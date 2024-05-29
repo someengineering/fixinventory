@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError as GoogleApiClientHttpError
 from retrying import retry
 from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
+from fixlib import threading
 import fixlib.logger
 from fixlib.baseresources import BaseResource
 from fixlib.config import Config
@@ -34,11 +35,15 @@ def retry_on_error(e):
 class MemoryCache(GoogleApiClientCache):
     _cache = {}
 
+    _lock = threading.Lock()  # Define a lock for thread safety
+
     def get(self, url):
-        return MemoryCache._cache.get(url)
+        with MemoryCache._lock:  # Acquire the lock before accessing the cache
+            return MemoryCache._cache.get(url)
 
     def set(self, url, content):
-        MemoryCache._cache[url] = content
+        with MemoryCache._lock:  # Acquire the lock before modifying the cache
+            MemoryCache._cache[url] = content
 
 
 class Credentials:
