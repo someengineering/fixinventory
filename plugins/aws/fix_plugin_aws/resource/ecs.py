@@ -1166,7 +1166,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
             # Skip task definition with same arn but older version
             no_version = arn.rsplit(":", 1)[0]
             if no_version == last_task_def_arn:
-                log.info(f"Skipping task definition {arn} as it is an older version of {last_task_def_arn}")
+                log.debug(f"Skipping task definition {arn} as it is an older version of {last_task_def_arn}")
                 continue
             last_task_def_arn = no_version
             builder.submit_work(service_name, collect_task_definition, arn)
