@@ -948,6 +948,15 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
     subsetting: Optional[str] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
 
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        if self_link := self.link:
+            forwarding_rules = builder.nodes(clazz=GcpForwardingRule)
+            for rule in forwarding_rules:
+                if (backend_service_url := rule.backend_service) and (backend_service_url == self_link):
+                    if public_ip := rule.ip_address:
+                        self.public_ip_address = public_ip
+                        break
+
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if backends := self.backend_service_backends:
             for backend in backends:
@@ -969,8 +978,8 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                         )
                         path_data = urlparse(group).path.split("/")
                         try:
-                            zone = path_data[5]
-                            instance_group = path_data[7]
+                            zone = path_data[6]
+                            instance_group = path_data[8]
 
                             items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
                             for item in items:
@@ -980,13 +989,6 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                             log.warning(f"An error occured while setting backends property: {e}")
 
                     graph_builder.submit_work(fetch_instances, group)
-        if self_link := self.link:
-            forwarding_rules = graph_builder.nodes(clazz=GcpForwardingRule)
-            for rule in forwarding_rules:
-                if (backend_service_url := rule.backend_service) and (backend_service_url == self_link):
-                    if public_ip := rule.ip_address:
-                        self.public_ip_address = public_ip
-                        break
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
