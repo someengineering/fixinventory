@@ -948,20 +948,6 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
     subsetting: Optional[str] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
 
-    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
-        if self_link := self.link:
-            map_resources = builder.nodes(clazz=GcpUrlMap)
-            forwarding_rules = builder.nodes(clazz=GcpForwardingRule)
-            for lb in map_resources:
-                if lb.default_service == self_link:
-                    for rule in forwarding_rules:
-                        if (target := rule.target) and (target.rsplit("/", maxsplit=1)[1].startswith(lb.id)):
-                            if public_ip := rule.ip_address:
-                                self.public_ip_address = public_ip
-                                break
-
-                break
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if backends := self.backend_service_backends:
             for backend in backends:
@@ -1003,6 +989,18 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
                 builder.dependant_node(self, link=backend.group)
         if self.network:
             builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
+        if self_link := self.link:
+            map_resources = builder.nodes(clazz=GcpUrlMap)
+            forwarding_rules = builder.nodes(clazz=GcpForwardingRule)
+            for lb in map_resources:
+                if lb.default_service == self_link:
+                    for rule in forwarding_rules:
+                        if (target := rule.target) and (target.rsplit("/", maxsplit=1)[1].startswith(lb.id)):
+                            if public_ip := rule.ip_address:
+                                self.public_ip_address = public_ip
+                                break
+
+                break
 
 
 @define(eq=False, slots=False)
