@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Optional, List, Dict, Any, Set, Tuple
 
 from attr import define, evolve
@@ -120,15 +119,6 @@ class GcpClient:
         self.project_id = project_id
         self.region = region
         self.core_feedback = core_feedback
-        self.client_cache = defaultdict(dict)  # type: ignore
-
-    def client(self, service: str, version: str, credentials: Credentials) -> Any:
-        if (service, version) not in self.client_cache:
-            # If the service and version combination is not in the cache, then set it
-            self.client_cache[(service, version)] = _discovery_function(
-                service, version, credentials=credentials, cache=MemoryCache()
-            )
-        return self.client_cache[(service, version)]
 
     def delete(self, api_spec: GcpApiSpec, **kwargs: Any) -> Json:
         return self.call_single(api_spec, None, **kwargs)
@@ -140,7 +130,9 @@ class GcpClient:
         return self.call_single(api_spec, body, **kwargs)
 
     def call_single(self, api_spec: GcpApiSpec, body: Optional[Any] = None, **kwargs: Any) -> Json:
-        client = self.client(api_spec.service, api_spec.version, self.credentials)
+        client = _discovery_function(
+            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+        )
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()
@@ -153,7 +145,10 @@ class GcpClient:
         return result
 
     def list(self, api_spec: GcpApiSpec, **kwargs: Any) -> List[Json]:
-        client = self.client(api_spec.service, api_spec.version, self.credentials)
+        # todo add caching
+        client = _discovery_function(
+            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+        )
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()

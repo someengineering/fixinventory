@@ -1,4 +1,3 @@
-import logging
 import random
 import string
 import sys
@@ -16,7 +15,6 @@ from fixlib.json import set_value_in_path, value_in_path
 from fixlib.types import JsonElement, Json
 from fixlib.utils import utc_str
 
-log = logging.getLogger("fix.plugins.gcp")
 RequestResponse = Tuple[List[str], JsonElement]
 Schema = Dict[str, Any]
 
@@ -161,18 +159,9 @@ class RandomDataClient:
         self.next_pages = random_int(0, 1)
 
     def execute(self) -> JsonElement:
-        failed = False
         part = self.root
         for path, _, _ in self.path[:-1]:
-            try:
-                part = part["resources"][path]
-            except Exception as e:
-                log.warning(f"Error occured: {e}")
-                failed = True
-        if failed:
-            return None
-        if not self.path:
-            return None
+            part = part["resources"][path]
         path, args, kwargs = self.path[-1]
         method = part["methods"][path]
         response_kind_name = method["response"]["$ref"]
