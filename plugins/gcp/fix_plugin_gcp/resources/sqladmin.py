@@ -700,10 +700,10 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
         "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
-        "db_type": S("backendType", default=""),
-        "db_status": S("state", default=""),
+        "db_type": S("backendType"),
+        "db_status": S("state"),
         "db_version": S("databaseVersion"),
-        "volume_size": S("currentDiskSize", default=0),
+        "volume_size": S("currentDiskSize"),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
     backend_type: Optional[str] = field(default=None)
