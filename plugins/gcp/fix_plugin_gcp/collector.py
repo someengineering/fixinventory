@@ -90,6 +90,7 @@ class GcpProjectCollector:
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
             global_builder.executor.wait_for_submitted_work()
 
+            log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):

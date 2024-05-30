@@ -950,12 +950,17 @@ class GcpBackendService(GcpResource, BaseLoadBalancer):
 
     def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         if self_link := self.link:
+            map_resources = builder.nodes(clazz=GcpUrlMap)
             forwarding_rules = builder.nodes(clazz=GcpForwardingRule)
-            for rule in forwarding_rules:
-                if (backend_service_url := rule.backend_service) and (backend_service_url == self_link):
-                    if public_ip := rule.ip_address:
-                        self.public_ip_address = public_ip
-                        break
+            for lb in map_resources:
+                if lb.default_service == self_link:
+                    for rule in forwarding_rules:
+                        if (target := rule.target) and (target.rsplit("/", maxsplit=1)[1].startswith(lb.id)):
+                            if public_ip := rule.ip_address:
+                                self.public_ip_address = public_ip
+                                break
+
+                break
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if backends := self.backend_service_backends:
