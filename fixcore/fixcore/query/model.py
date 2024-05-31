@@ -270,37 +270,46 @@ class Term(abc.ABC):
         return walk(self)
 
     def change_variable(self, fn: Callable[[str], str]) -> Term:
-        def change_term_variable(term: Term) -> Term:
-            if isinstance(term, Predicate):
+        def walk(term: Term) -> Term:
+            if isinstance(term, CombinedTerm):
+                return CombinedTerm(walk(term.left), term.op, walk(term.right))
+            elif isinstance(term, ContextTerm):
+                return ContextTerm(fn(term.name), term.term)
+            elif isinstance(term, Predicate):
                 return Predicate(fn(term.name), term.op, term.value, term.args)
             elif isinstance(term, FunctionTerm):
                 return FunctionTerm(term.fn, fn(term.property_path), term.args)
+            elif isinstance(term, MergeTerm):
+                post = walk(term.post_filter) if term.post_filter else None
+                return MergeTerm(walk(term.pre_filter), [mq.change_variable(fn) for mq in term.merge], post)
+            elif isinstance(term, NotTerm):
+                return NotTerm(walk(term.term))
             else:
                 return term
 
-        return self.change_term(change_term_variable)
+        return walk(self)
 
-    def find_term(self, fn: Callable[[Term], bool]) -> Optional[Term]:
+    def find_term(self, fn: Callable[[Term], bool], wdf: Optional[Callable[[Term], bool]] = None) -> Optional[Term]:
         if fn(self):
             return self
-        if isinstance(self, CombinedTerm):
-            return self.left.find_term(fn) or self.right.find_term(fn)
-        elif isinstance(self, NotTerm):
-            return self.term.find_term(fn)
-        elif isinstance(self, ContextTerm):
-            return self.term.find_term(fn)
-        elif isinstance(self, MergeTerm):
+        if isinstance(self, CombinedTerm) and (wdf is None or wdf(self)):
+            return self.left.find_term(fn, wdf) or self.right.find_term(fn, wdf)
+        elif isinstance(self, NotTerm) and (wdf is None or wdf(self)):
+            return self.term.find_term(fn, wdf)
+        elif isinstance(self, ContextTerm) and (wdf is None or wdf(self)):
+            return self.term.find_term(fn, wdf)
+        elif isinstance(self, MergeTerm) and (wdf is None or wdf(self)):
 
             def walk_merge_queries(mt: MergeTerm) -> Optional[Term]:
                 for mq in mt.merge:
                     for p in mq.query.parts:
-                        if (term := p.term.find_term(fn)) is not None:
+                        if (term := p.term.find_term(fn, wdf)) is not None:
                             return term
                 return None
 
             return (
-                self.pre_filter.find_term(fn)
-                or (self.post_filter.find_term(fn) if self.post_filter else None)
+                self.pre_filter.find_term(fn, wdf)
+                or (self.post_filter.find_term(fn, wdf) if self.post_filter else None)
                 or walk_merge_queries(self)
             )
         else:
@@ -1085,6 +1094,11 @@ class Query:
     def current_part(self) -> Part:
         # remember: the order of parts is reversed
         return self.parts[0]
+
+    @property
+    def first_part(self) -> Part:
+        # remember: the order of parts is reversed
+        return self.parts[-1]
 
     def __change_current_part(self, fn: Callable[[Part], Part]) -> Query:
         parts = self.parts.copy()

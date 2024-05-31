@@ -6,6 +6,7 @@ import re
 import sys
 import textwrap
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from datetime import datetime, timezone, date
 from functools import lru_cache
 from json import JSONDecodeError
@@ -1362,7 +1363,7 @@ allowed_simple_type_changes: List[Tuple[Optional[str], Optional[str]]] = [
 class Model:
     @staticmethod
     def empty() -> Model:
-        return Model({}, [])
+        return Model({}, [], {})
 
     @staticmethod
     def from_kinds(kinds: List[Kind]) -> Model:
@@ -1370,21 +1371,26 @@ class Model:
         kind_dict = {kind.fqn: kind for kind in all_kinds}
         for kind in all_kinds:
             kind.resolve(kind_dict)
-        resolved = list(
-            # several complex kinds might have the same property
-            # reduce the list by hash over the path.
-            {
-                r.path: r
-                for c in all_kinds
-                if isinstance(c, ComplexKind) and c.aggregate_root
-                for r in c.resolved_property_paths()
-            }.values()
-        )
-        return Model(kind_dict, resolved)
+        # several complex kinds might have the same property
+        # reduce the list by hash over the path.
+        prop_kinds_by_path = {}
+        complex_by_path = defaultdict(list)
+        for c in all_kinds:
+            if isinstance(c, ComplexKind) and c.aggregate_root:
+                for r in c.resolved_property_paths():
+                    prop_kinds_by_path[r.path] = r
+                    complex_by_path[r.path].append(c)
+        return Model(kind_dict, list(prop_kinds_by_path.values()), complex_by_path)
 
-    def __init__(self, kinds: Dict[str, Kind], property_kind_by_path: List[ResolvedPropertyPath]):
+    def __init__(
+        self,
+        kinds: Dict[str, Kind],
+        property_kind_by_path: List[ResolvedPropertyPath],
+        complex_kinds_by_path: Dict[PropertyPath, List[ComplexKind]],
+    ):
         self.kinds = kinds
         self.__property_kind_by_path: List[ResolvedPropertyPath] = property_kind_by_path
+        self.__complex_kinds_by_path: Dict[PropertyPath, List[ComplexKind]] = complex_kinds_by_path
 
     def __contains__(self, name_or_object: Union[str, Json]) -> bool:
         if isinstance(name_or_object, str):
@@ -1433,6 +1439,10 @@ class Model:
 
     def kind_by_path(self, path: Union[str, List[str]]) -> Kind:
         return self.property_by_path(path).kind
+
+    def owners_by_path(self, path_: Union[str, List[str]]) -> List[ComplexKind]:
+        path = PropertyPath.from_string(path_) if isinstance(path_, str) else PropertyPath.from_list(path_)
+        return self.__complex_kinds_by_path.get(path, [])
 
     def coerce(self, js: Json) -> Json:
         try:
@@ -1619,7 +1629,7 @@ class Model:
                 )
             else:
                 result[kind.fqn] = kind
-        return Model(result, self.__property_kind_by_path)
+        return Model(result, self.__property_kind_by_path, self.__complex_kinds_by_path)
 
     def filter_complex(
         self, filter_fn: Callable[[ComplexKind], bool], with_bases: bool = True, with_prop_types: bool = True
@@ -1649,7 +1659,7 @@ class Model:
             if isinstance(kind, ComplexKind) and filter_fn(kind):
                 add_kind(kind)
 
-        return Model(kinds, self.__property_kind_by_path)
+        return Model(kinds, self.__property_kind_by_path, self.__complex_kinds_by_path)
 
     def complete_path(
         self,
