@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from typing import cast, Any, Callable
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.s3 import AwsS3Bucket, AwsS3AccountSettings
-from test import aws_client, aws_config, no_feedback  # noqa: F401
 
 
 def test_buckets() -> None:
