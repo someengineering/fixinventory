@@ -439,11 +439,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
@@ -463,11 +463,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="TargetResponseTime",
+                    query_name="TargetResponseTime",
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.TargetResponseTime,
+                    metric_name=MetricName.TargetResponseTime,
                     normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
@@ -479,11 +479,11 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_sum(partial(bytes_to_megabits_per_second, period=period)),
                     stat="Sum",
                     unit="Bytes",
@@ -698,11 +698,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ApplicationELB",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
@@ -720,11 +720,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
@@ -741,11 +741,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="TargetResponseTime",
+                    query_name="TargetResponseTime",
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.TargetResponseTime,
+                    metric_name=MetricName.TargetResponseTime,
                     normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
@@ -758,11 +758,11 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ApplicationELB",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat="Minimum",  # since it reports the number of AZ that meets requirements, we're only interested in the min (max is constant and equals to the number of AZs) # noqa
                     unit="Count",

@@ -358,12 +358,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         if (bucket_region := self.bucket_location) and (region := builder.all_regions.get(bucket_region)):
             queries.append(
                 AwsCloudwatchQuery.create(
-                    metric_name="NumberOfObjects",
+                    query_name="NumberOfObjects",
                     namespace="AWS/S3",
                     period=delta,
                     start_delta=start_delta,
                     ref_id=self.id,
-                    name=MetricName.NumberOfObjects,
+                    metric_name=MetricName.NumberOfObjects,
                     normalization=normalizer_factory.count,
                     stat="Average",
                     unit="Count",
@@ -375,12 +375,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             for storage_type, storage_type_name in storage_types.items():
                 queries.append(
                     AwsCloudwatchQuery.create(
-                        metric_name=f"{storage_type_name}_bucket_size",
+                        query_name="BucketSizeBytes",
                         namespace="AWS/S3",
                         period=delta,
                         start_delta=start_delta,
                         ref_id=self.id,
-                        name=MetricName.BucketSizeBytes,
+                        metric_name=f"{storage_type_name}_bucket_size",
                         normalization=normalizer_factory.bytes,
                         stat="Average",
                         unit="Bytes",

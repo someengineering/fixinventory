@@ -360,11 +360,11 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ELB",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
@@ -382,11 +382,11 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
@@ -402,11 +402,11 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="Latency",
+                    query_name="Latency",
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.Latency,
+                    metric_name=MetricName.Latency,
                     normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
@@ -418,11 +418,11 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="EstimatedProcessedBytes",
+                    query_name="EstimatedProcessedBytes",
                     namespace="AWS/ELB",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.ProcessedBytes,
+                    metric_name=MetricName.ProcessedBytes,
                     normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
