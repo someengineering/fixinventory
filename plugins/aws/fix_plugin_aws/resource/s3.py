@@ -313,8 +313,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             builder.submit_work(service_name, add_acls, bucket)
             builder.submit_work(service_name, add_bucket_logging, bucket)
 
-        # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
-        futures_wait(bucket_location_futures)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
