@@ -17,10 +17,10 @@ from fixlib.core import fixcore, add_args as core_add_args, wait_for_fixcore
 from fixlib.core.ca import TLSData
 from fixlib.jwt import add_args as jwt_add_args
 from fixlib.logger import log, setup_logger, add_args as logging_add_args
+from fixlib.utils import ensure_bw_compat
 from fixshell import authorized_client
 from fixshell.promptsession import PromptSession, core_metadata, FixHistory
 from fixshell.shell import Shell, ShutdownShellError
-from fixlib.utils import ensure_bw_compat
 
 
 async def main_async() -> None:
@@ -64,7 +64,14 @@ async def main_async() -> None:
         cmds, kinds, props = await core_metadata(client)
         history = FixHistory.default()
         session = PromptSession(cmds=cmds, kinds=kinds, props=props, history=history)
-        shell = Shell(client, True, detect_color_system(args), history=history, additional_headers=headers)
+        shell = Shell(
+            client,
+            True,
+            detect_color_system(args),
+            history=history,
+            additional_headers=headers,
+            should_benchmark=args.benchmark,
+        )
         await repl(shell, session, args)
 
     # update the eventually changed auth token
@@ -215,6 +222,13 @@ def add_args(arg_parser: ArgumentParser) -> None:
         nargs="*",
         default=[],
         type=header_value,
+    )
+    arg_parser.add_argument(
+        "--benchmark",
+        help="Benchmark fixcore performance.",
+        dest="benchmark",
+        action="store_true",
+        default=False,
     )
 
 
