@@ -23,6 +23,8 @@ from fixlib.logger import log
 from fixlib.utils import sha256sum
 from fixshell.promptsession import FixHistory
 from fixshell.protected_files import validate_paths
+from fixshell.benchmark import Benchmark
+
 
 color_system_to_color_depth = {
     "monochrome": ColorDepth.DEPTH_1_BIT,
@@ -48,6 +50,7 @@ class Shell:
         section: Optional[str] = None,
         history: Optional[FixHistory] = None,
         additional_headers: Optional[Dict[str, str]] = None,
+        should_benchmark: bool = False,
     ):
         self.client = client
         self.history = history
@@ -57,6 +60,8 @@ class Shell:
         self.graph = graph
         self.section = section
         self.additional_headers = additional_headers or {}
+        self.should_benchmark = should_benchmark
+        self.benchmark = Benchmark(self.should_benchmark)
 
     async def handle_command(
         self,
@@ -86,10 +91,12 @@ class Shell:
             if maybe is not None:
                 with maybe as response:
                     if response.status_code == 200:
+                        self.benchmark.first_byte_received()
                         # only store history if the command was successful, and no no_history flag was set
                         if self.history and not no_history and CLIEnvelope.no_history not in response.headers:
                             self.history.store_command(command)
                         await self.handle_result(response)
+                        self.benchmark.last_byte_received()
                     elif response.status_code == 424 and not upload:
                         js_data = await response.json()
                         required = js_data.get("required", [])
@@ -111,6 +118,7 @@ class Shell:
                         return
 
         try:
+            self.benchmark.request_sent()
             received_response = await self.client.cli_execute_raw(
                 command=command,
                 files=files,
@@ -119,6 +127,8 @@ class Shell:
                 headers=headers,
             )
             await handle_response(received_response)
+            if self.tty and self.should_benchmark:
+                self.benchmark.print_results(self.stderr)
         except ConnectionError:
             err = (
                 "Error: Could not communicate with fixcore"
