@@ -407,11 +407,11 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/Lambda",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
@@ -428,11 +428,11 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="Duration",
+                    query_name="Duration",
                     namespace="AWS/Lambda",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.Duration,
+                    metric_name=MetricName.Duration,
                     normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",

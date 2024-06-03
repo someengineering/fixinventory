@@ -41,16 +41,16 @@ def test_metric(builder: GraphBuilder) -> None:
     now = datetime(2020, 3, 1, tzinfo=timezone.utc)
     earlier = now - timedelta(days=60)
     read = AwsCloudwatchQuery.create(
-        name=MetricName.VolumeRead,
-        metric_name="VolumeReadOps",
+        metric_name=MetricName.VolumeRead,
+        query_name="VolumeReadOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
         ref_id="vol-123",
         VolumeId="vol-123",
     )
     write = AwsCloudwatchQuery.create(
-        name=MetricName.VolumeWrite,
-        metric_name="VolumeWriteOps",
+        metric_name=MetricName.VolumeWrite,
+        query_name="VolumeWriteOps",
         namespace="AWS/EBS",
         period=timedelta(hours=1),
         ref_id="vol-123",

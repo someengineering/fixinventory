@@ -137,11 +137,11 @@ class AwsSqsQueue(AwsResource, BaseQueue):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="ApproximateAgeOfOldestMessage",
+                    query_name="ApproximateAgeOfOldestMessage",
                     namespace="AWS/SQS",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.ApproximateAgeOfOldestMessage,
+                    metric_name=MetricName.ApproximateAgeOfOldestMessage,
                     normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
@@ -153,11 +153,11 @@ class AwsSqsQueue(AwsResource, BaseQueue):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/SQS",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
