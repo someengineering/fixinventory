@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import wait as futures_wait
 from datetime import timedelta
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -312,7 +311,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             builder.submit_work(service_name, add_public_access, bucket)
             builder.submit_work(service_name, add_acls, bucket)
             builder.submit_work(service_name, add_bucket_logging, bucket)
-
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
