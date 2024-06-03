@@ -2127,7 +2127,6 @@ class AzureResourceNavigationLink(AzureSubResource):
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": "Resource navigation link identifier."})
     link: Optional[str] = field(default=None, metadata={"description": "Link to the external resource."})
     linked_resource_type: Optional[str] = field(default=None, metadata={'description': 'Resource type of the linked resource.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'Name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip

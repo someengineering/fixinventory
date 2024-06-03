@@ -2797,7 +2797,6 @@ class AzureVirtualMachineExtension(AzureResourceWithOptionalLocation):
     publisher: Optional[str] = field(default=None, metadata={'description': 'The name of the extension handler publisher.'})  # fmt: skip
     settings: Optional[Any] = field(default=None, metadata={'description': 'Json formatted public settings for the extension.'})  # fmt: skip
     suppress_failures: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether failures stemming from the extension will be suppressed (operational failures such as not connecting to the vm will not be suppressed regardless of this value). The default is false.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'Specifies the type of the extension; an example is customscriptextension.'})  # fmt: skip
     type_handler_version: Optional[str] = field(default=None, metadata={'description': 'Specifies the version of the script handler.'})  # fmt: skip
 
 
