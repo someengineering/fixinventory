@@ -60,8 +60,7 @@ class Shell:
         self.graph = graph
         self.section = section
         self.additional_headers = additional_headers or {}
-        self.should_benchmark = should_benchmark
-        self.benchmark = Benchmark(self.should_benchmark)
+        self.benchmark = Benchmark(should_benchmark)
 
     async def handle_command(
         self,
@@ -127,8 +126,7 @@ class Shell:
                 headers=headers,
             )
             await handle_response(received_response)
-            if self.tty and self.should_benchmark:
-                self.benchmark.print_results(self.stderr)
+            self.benchmark.print_results(self.stderr)
         except ConnectionError:
             err = (
                 "Error: Could not communicate with fixcore"

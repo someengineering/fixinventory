@@ -40,6 +40,7 @@ class Benchmark:
         self.last_byte_at = time.time()
         self.calculate_times()
 
+    @if_should_benchmark
     def calculate_times(self) -> None:
         if not self.request_started_at or not self.first_byte_at or not self.last_byte_at:
             return
