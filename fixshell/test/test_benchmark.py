@@ -6,7 +6,7 @@ from typing import Any
 
 def test_benchmark_initial_state() -> None:
     benchmark = Benchmark()
-    assert benchmark.should_benchmark == False
+    assert benchmark.should_benchmark is False
     assert benchmark.request_started_at is None
     assert benchmark.first_byte_at is None
     assert benchmark.last_byte_at is None
