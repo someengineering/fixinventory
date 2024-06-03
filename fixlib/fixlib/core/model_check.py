@@ -99,7 +99,7 @@ def check_overlap_for(models: List[Json]) -> None:
     # Check that no property is redeclared
     def check_not_redeclared(root: CheckClass, clazz: CheckClass, props: Set[str]) -> None:
         props = {prop.name for prop in clazz.properties} | props
-        for base in clazz.bases:
+        for base in clazz.bases or []:
             if base_class := classes.get(base):
                 for prop in base_class.properties:
                     if prop.name in props:
