@@ -20,7 +20,7 @@ from fixcore.ids import NodeId, GraphName
 from fixcore.model.graph_access import GraphAccess, EdgeTypes, Section
 from fixcore.model.model import Model, UsageDatapoint
 from fixcore.model.typed_model import from_js, to_js
-from fixcore.query.model import Query, P, Navigation, Predicate
+from fixcore.query.model import Query, P, Navigation, Predicate, IsTerm
 from fixcore.query.query_parser import parse_query, predicate_term
 from fixcore.report import SecurityIssue, ReportSeverity
 from fixcore.types import JsonElement, EdgeType
@@ -220,7 +220,7 @@ def create_multi_collector_graph(width: int = 3) -> MultiDiGraph:
 
 
 async def load_graph(db: GraphDB, model: Model) -> MultiDiGraph:
-    blas = Query.by(P("id") == "sub_root").traverse_out(0, Navigation.Max)  # noqa
+    blas = Query.by(IsTerm(["account", "foo"]), P("id") == "sub_root").traverse_out(0, Navigation.Max)  # noqa
     return await db.search_graph(QueryModel(blas.on_section("reported"), model))
 
 

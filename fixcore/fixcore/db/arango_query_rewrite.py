@@ -18,6 +18,8 @@ from fixcore.query.model import (
 
 
 def add_is_term(query_model: QueryModel) -> Query:
+    model = query_model.model
+
     def and_combined(term: Term) -> bool:
         if isinstance(term, NotTerm):
             return True
@@ -32,13 +34,14 @@ def add_is_term(query_model: QueryModel) -> Query:
             for res in query_model.owners(pred.name):
                 if res.fqn not in predefined_kinds_by_name:
                     kinds.add(res.fqn)
+        kinds.discard("resource")  # all resources have this base kind - ignore it
         return IsTerm(kinds=sorted(kinds)).and_term(term) if kinds else term
 
     def change_term(term: Term) -> Term:
         if isinstance(term, CombinedTerm) and term.op == "or":
             left = change_term(term.left)
             right = change_term(term.right)
-            return evolve(term, left=left, right=right)  # type: ignore
+            return evolve(term, left=left, right=right)
         elif isinstance(term, CombinedTerm) and term.op == "and":
             li = term.left.find_term(lambda t: isinstance(t, IsTerm), and_combined)
             ri = term.right.find_term(lambda t: isinstance(t, IsTerm), and_combined)
@@ -53,6 +56,11 @@ def add_is_term(query_model: QueryModel) -> Query:
             return combine_term_if_possible(term, [term])
         elif isinstance(term, ContextTerm):
             return combine_term_if_possible(term, term.visible_predicates())
+        elif isinstance(term, MergeTerm):
+            pre = change_term(term.pre_filter)
+            post = change_term(term.post_filter) if term.post_filter else None
+            queries = [evolve(mq, query=add_is_term(QueryModel(mq.query, model))) for mq in term.merge]
+            return MergeTerm(pre_filter=pre, post_filter=post, merge=queries)
         return term
 
     part = query_model.query.first_part
