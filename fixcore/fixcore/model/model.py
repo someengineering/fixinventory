@@ -1374,12 +1374,20 @@ class Model:
         # several complex kinds might have the same property
         # reduce the list by hash over the path.
         prop_kinds_by_path = {}
-        complex_by_path = defaultdict(list)
+        complex_by_path_distinct = defaultdict(dict)
         for c in all_kinds:
             if isinstance(c, ComplexKind) and c.aggregate_root:
+                kind_by_prop = {p.name: c for p in c.properties}
+                for base in c.resolved_bases().values():
+                    kind_by_prop.update({p.name: base for p in base.properties})
                 for r in c.resolved_property_paths():
                     prop_kinds_by_path[r.path] = r
-                    complex_by_path[r.path].append(c)
+                    # only add the kind for direct properties (not inherited ones)
+                    path = r.path.path
+                    if path and (ck := kind_by_prop.get(path[0])):
+                        complex_by_path_distinct[r.path][ck.fqn] = ck
+
+        complex_by_path = {k: list(v.values()) for k, v in complex_by_path_distinct.items()}
         return Model(kind_dict, list(prop_kinds_by_path.values()), complex_by_path)
 
     def __init__(
