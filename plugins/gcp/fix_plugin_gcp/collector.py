@@ -95,6 +95,7 @@ class GcpProjectCollector:
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
                     node.connect_in_graph(global_builder, data.get("source", {}))
+            global_builder.executor.wait_for_submitted_work()
 
             # remove unconnected nodes
             self.remove_unconnected_nodes()
