@@ -1,4 +1,5 @@
 import logging
+import ipaddress
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 from urllib.parse import urlparse
@@ -77,6 +78,16 @@ class GcpAcceleratorType(GcpResource):
     type_maximum_cards_per_instance: Optional[int] = field(default=None)
 
 
+def get_ip_address_type(ip_address: str) -> str:
+    try:
+        version = ipaddress.ip_address(ip_address).version
+        address_type_map = {4: "ipv4", 6: "ipv6"}
+        return address_type_map[version]
+    except Exception as e:
+        log.warning(f"An error occured while setting ip address version: {e}")
+        return ""
+
+
 @define(eq=False, slots=False)
 class GcpAddress(GcpResource, BaseIPAddress):
     kind: ClassVar[str] = "gcp_address"
@@ -125,7 +136,9 @@ class GcpAddress(GcpResource, BaseIPAddress):
         "subnetwork": S("subnetwork"),
         "users": S("users", default=[]),
         "ip_address": S("address"),
-        "ip_address_family": S("ip_version"),
+        # Since GCP API does not provide the IP version directly, we determine it ourselves
+        # by using the 'get_ip_address_type'
+        "ip_address_family": S("address") >> F(get_ip_address_type),
     }
     address: Optional[str] = field(default=None)
     address_type: Optional[str] = field(default=None)
@@ -829,7 +842,7 @@ class GcpSecuritySettings:
 
 
 @define(eq=False, slots=False)
-class GcpBackendService(GcpResource, BaseLoadBalancer):
+class GcpBackendService(GcpResource):
     kind: ClassVar[str] = "gcp_backend_service"
     kind_display: ClassVar[str] = "GCP Backend Service"
     kind_description: ClassVar[str] = (
@@ -1604,7 +1617,7 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 
 
 @define(eq=False, slots=False)
-class GcpForwardingRule(GcpResource):
+class GcpForwardingRule(GcpResource, BaseLoadBalancer):
     kind: ClassVar[str] = "gcp_forwarding_rule"
     kind_display: ClassVar[str] = "GCP Forwarding Rule"
     kind_description: ClassVar[str] = (
