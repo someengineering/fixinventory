@@ -277,7 +277,6 @@ def foo_kinds() -> List[Kind]:
             Property("some_int", "int32"),
             Property("some_string", "string"),
             Property("now_is", "datetime"),
-            Property("ctime", "datetime"),
             Property("age", "trafo.duration_to_datetime", False, SyntheticProperty(["ctime"])),
         ],
         successor_kinds={EdgeTypes.default: ["bla"]},

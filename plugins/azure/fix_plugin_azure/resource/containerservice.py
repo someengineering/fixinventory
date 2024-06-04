@@ -131,7 +131,6 @@ class AzureFleet(AzureResource):
     e_tag: Optional[str] = field(default=None, metadata={'description': 'If eTag is provided in the response body, it may also be provided as a header per the normal etag convention. Entity tags are used for comparing two or more entities from the same requested resource. HTTP/1.1 uses entity tags in the etag (section 14.19), If-Match (section 14.24), If-None-Match (section 14.26), and If-Range (section 14.27) header fields.'})  # fmt: skip
     hub_profile: Optional[AzureFleetHubProfile] = field(default=None, metadata={'description': 'The FleetHubProfile configures the fleet hub.'})  # fmt: skip
     azure_fleet_identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the last accepted operation.'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={"description": "Resource group name"})
     cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "Reference to the cluster ID"})
 
@@ -910,7 +909,6 @@ class AzureManagedCluster(AzureResource):
     power_state: Optional[str] = field(default=None, metadata={'description': 'Describes the Power State of the cluster'})  # fmt: skip
     private_fqdn: Optional[str] = field(default=None, metadata={"description": "The FQDN of private cluster."})
     private_link_resources: Optional[List[AzurePrivateLinkResource]] = field(default=None, metadata={'description': 'Private link resources associated with the cluster.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Allow or deny public network access for AKS'})  # fmt: skip
     resource_uid: Optional[str] = field(default=None, metadata={'description': 'The resourceUID uniquely identifies ManagedClusters that reuse ARM ResourceIds (i.e: create, delete, create sequence)'})  # fmt: skip
     security_profile: Optional[AzureManagedClusterSecurityProfile] = field(default=None, metadata={'description': 'Security profile for the container service cluster.'})  # fmt: skip

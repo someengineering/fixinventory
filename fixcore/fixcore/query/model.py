@@ -249,11 +249,31 @@ class Term(abc.ABC):
         else:
             return CombinedTerm(self, "and", other)
 
+    def change_term(self, fn: Callable[[Term], Term], wdf: Optional[Callable[[Term], bool]] = None) -> Term:
+        def walk(term: Term) -> Term:
+            if isinstance(term, CombinedTerm) and (wdf is None or wdf(term)):
+                left = walk(term.left)
+                right = walk(term.right)
+                return term if left is term.left and right is term.right else CombinedTerm(left, term.op, right)
+            if isinstance(term, ContextTerm) and (wdf is None or wdf(term)):
+                cn = walk(term.term)
+                return term if cn is term.term else ContextTerm(term.name, cn)
+            elif isinstance(term, MergeTerm) and (wdf is None or wdf(term)):
+                post = walk(term.post_filter) if term.post_filter else None
+                return MergeTerm(walk(term.pre_filter), [mq.change_term(fn, wdf) for mq in term.merge], post)
+            elif isinstance(term, NotTerm) and (wdf is None or wdf(term)):
+                nt = walk(term.term)
+                return term if nt is term.term else NotTerm(nt)
+            else:
+                return fn(term)
+
+        return walk(self)
+
     def change_variable(self, fn: Callable[[str], str]) -> Term:
         def walk(term: Term) -> Term:
             if isinstance(term, CombinedTerm):
                 return CombinedTerm(walk(term.left), term.op, walk(term.right))
-            if isinstance(term, ContextTerm):
+            elif isinstance(term, ContextTerm):
                 return ContextTerm(fn(term.name), term.term)
             elif isinstance(term, Predicate):
                 return Predicate(fn(term.name), term.op, term.value, term.args)
@@ -269,46 +289,46 @@ class Term(abc.ABC):
 
         return walk(self)
 
-    def find_term(self, fn: Callable[[Term], bool]) -> Optional[Term]:
+    def find_term(self, fn: Callable[[Term], bool], wdf: Optional[Callable[[Term], bool]] = None) -> Optional[Term]:
         if fn(self):
             return self
-        if isinstance(self, CombinedTerm):
-            return self.left.find_term(fn) or self.right.find_term(fn)
-        elif isinstance(self, NotTerm):
-            return self.term.find_term(fn)
-        elif isinstance(self, ContextTerm):
-            return self.term.find_term(fn)
-        elif isinstance(self, MergeTerm):
+        if isinstance(self, CombinedTerm) and (wdf is None or wdf(self)):
+            return self.left.find_term(fn, wdf) or self.right.find_term(fn, wdf)
+        elif isinstance(self, NotTerm) and (wdf is None or wdf(self)):
+            return self.term.find_term(fn, wdf)
+        elif isinstance(self, ContextTerm) and (wdf is None or wdf(self)):
+            return self.term.find_term(fn, wdf)
+        elif isinstance(self, MergeTerm) and (wdf is None or wdf(self)):
 
             def walk_merge_queries(mt: MergeTerm) -> Optional[Term]:
                 for mq in mt.merge:
                     for p in mq.query.parts:
-                        if (term := p.term.find_term(fn)) is not None:
+                        if (term := p.term.find_term(fn, wdf)) is not None:
                             return term
                 return None
 
             return (
-                self.pre_filter.find_term(fn)
-                or (self.post_filter.find_term(fn) if self.post_filter else None)
+                self.pre_filter.find_term(fn, wdf)
+                or (self.post_filter.find_term(fn, wdf) if self.post_filter else None)
                 or walk_merge_queries(self)
             )
         else:
             return None
 
-    def find_terms(self, fn: Callable[[Term], bool], **kwargs: bool) -> List[Term]:
+    def find_terms(self, fn: Callable[[Term], bool], wdf: Optional[Callable[[Term], bool]] = None) -> List[Term]:
         if fn(self):
             return [self]
-        elif isinstance(self, CombinedTerm):
-            return self.left.find_terms(fn, **kwargs) + self.right.find_terms(fn, **kwargs)
-        elif isinstance(self, ContextTerm) and kwargs.get("in_context_term", True):
-            return self.term.find_terms(fn, **kwargs)
-        elif isinstance(self, NotTerm):
-            return self.term.find_terms(fn, **kwargs)
-        elif isinstance(self, MergeTerm):
-            result = self.pre_filter.find_terms(fn, **kwargs)
+        elif isinstance(self, CombinedTerm) and (wdf is None or wdf(self)):
+            return self.left.find_terms(fn, wdf) + self.right.find_terms(fn, wdf)
+        elif isinstance(self, ContextTerm) and (wdf is None or wdf(self)):
+            return self.term.find_terms(fn, wdf)
+        elif isinstance(self, NotTerm) and (wdf is None or wdf(self)):
+            return self.term.find_terms(fn, wdf)
+        elif isinstance(self, MergeTerm) and (wdf is None or wdf(self)):
+            result = self.pre_filter.find_terms(fn, wdf)
             if self.post_filter:
-                result.extend(self.post_filter.find_terms(fn, **kwargs))
-            result.extend(r for mq in self.merge for p in mq.query.parts for r in p.term.find_terms(fn, **kwargs))
+                result.extend(self.post_filter.find_terms(fn, wdf))
+            result.extend(r for mq in self.merge for p in mq.query.parts for r in p.term.find_terms(fn, wdf))
             return result
         else:
             return []
@@ -453,7 +473,7 @@ class ContextTerm(Term):
 
         def with_context(path: str, ctx: ContextTerm) -> List[Predicate]:
             result: List[Predicate] = []
-            for p in ctx.term.find_terms(lambda x: isinstance(x, Predicate), in_context_term=False):
+            for p in ctx.term.find_terms(lambda x: isinstance(x, Predicate), lambda x: not isinstance(x, ContextTerm)):
                 result.append(evolve(p, name=f"{path}.{p.name}" if path else p.name))  # type: ignore
             for c in ctx.term.find_terms(lambda x: isinstance(x, ContextTerm)):
                 result.extend(with_context(f"{path}.{c.name}" if path else c.name, c))  # type: ignore
@@ -516,6 +536,9 @@ class MergeQuery:
 
     def change_variable(self, fn: Callable[[str], str]) -> MergeQuery:
         return evolve(self, name=fn(self.name), query=self.query.change_variable(fn))
+
+    def change_term(self, fn: Callable[[Term], Term], wdf: Optional[Callable[[Term], bool]] = None) -> MergeQuery:
+        return evolve(self, name=self.name, query=self.query.change_term(fn, wdf))
 
 
 @define(order=True, hash=True, frozen=True)
@@ -610,6 +633,13 @@ class WithClause:
     term: Optional[Term] = None
     with_clause: Optional[WithClause] = None
 
+    def change_term(self, fn: Callable[[Term], Term], wdf: Optional[Callable[[Term], bool]] = None) -> WithClause:
+        return evolve(
+            self,
+            term=fn(self.term) if self.term else None,
+            with_clause=self.with_clause.change_term(fn, wdf) if self.with_clause else None,
+        )
+
     def change_variable(self, fn: Callable[[str], str]) -> WithClause:
         return evolve(
             self,
@@ -677,6 +707,11 @@ class Part:
         reverse = " reversed " if self.reverse_result else ""
         return f"{with_usage}{self.term}{with_clause}{tag}{sort}{limit}{reverse}{nav}"
 
+    def change_term(self, fn: Callable[[Term], Term], wdf: Optional[Callable[[Term], bool]] = None) -> Part:
+        return evolve(
+            self, term=fn(self.term), with_clause=self.with_clause.change_term(fn, wdf) if self.with_clause else None
+        )
+
     def change_variable(self, fn: Callable[[str], str]) -> Part:
         return evolve(
             self,
@@ -741,7 +776,7 @@ class Part:
             )
 
         def ancestor_descendant_predicates(t: Term) -> List[Predicate]:
-            return t.find_terms(lambda t: isinstance(t, (Predicate, ContextTerm)) and is_ancestor_descendant(t.name), in_context_term=False)  # type: ignore # noqa: E501
+            return t.find_terms(lambda t: isinstance(t, (Predicate, ContextTerm)) and is_ancestor_descendant(t.name), lambda x: not isinstance(x, ContextTerm))  # type: ignore # noqa: E501
 
         if has_merge_part(self.term):
             # create a filter term that is independent of the merge and execute it before the merge
@@ -754,7 +789,7 @@ class Part:
 
     @property
     def visible_predicates(self) -> List[Predicate]:
-        result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate), in_context_term=False)  # type: ignore # noqa: E501
+        result: List[Predicate] = self.term.find_terms(lambda x: isinstance(x, Predicate), lambda x: not isinstance(x, ContextTerm))  # type: ignore # noqa: E501
         for ctx in self.term.find_terms(lambda x: isinstance(x, ContextTerm)):
             result.extend(ctx.visible_predicates())  # type: ignore
         return result
@@ -1012,6 +1047,10 @@ class Query:
         parts[0] = evolve(first_part, term=term)
         return evolve(self, parts=parts)
 
+    def change_term(self, fn: Callable[[Term], Term], wdf: Optional[Callable[[Term], bool]] = None) -> Query:
+        parts = [p.change_term(fn, wdf) for p in self.parts]
+        return evolve(self, parts=parts)
+
     def change_variable(self, fn: Callable[[str], str]) -> Query:
         aggregate = self.aggregate.change_variable(fn) if self.aggregate else None
         parts = [p.change_variable(fn) for p in self.parts]
@@ -1055,6 +1094,11 @@ class Query:
     def current_part(self) -> Part:
         # remember: the order of parts is reversed
         return self.parts[0]
+
+    @property
+    def first_part(self) -> Part:
+        # remember: the order of parts is reversed
+        return self.parts[-1]
 
     def __change_current_part(self, fn: Callable[[Part], Part]) -> Query:
         parts = self.parts.copy()
@@ -1102,8 +1146,8 @@ class Query:
         """
         return [pred for part in self.parts for pred in part.visible_predicates]
 
-    def find_terms(self, fn: Callable[[Term], bool], **kwargs: bool) -> List[Term]:
-        return [t for p in self.parts for t in p.term.find_terms(fn, **kwargs)]
+    def find_terms(self, fn: Callable[[Term], bool], wdf: Optional[Callable[[Term], bool]] = None) -> List[Term]:
+        return [t for p in self.parts for t in p.term.find_terms(fn, wdf)]
 
     def analytics(self) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
         counters: Dict[str, int] = defaultdict(lambda: 0)
