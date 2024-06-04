@@ -91,8 +91,8 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
 
 def test_ancestors_kind_lookup(foo_model: Model, graph_db: GraphDB) -> None:
     # 1234 is coerced to a string
-    query = "ancestors.account.reported.name==1234"
-    assert to_query(graph_db, QueryModel(parse_query(query), foo_model))[1] == {"b0": "1234"}
+    _, bv = to_query(graph_db, QueryModel(parse_query("ancestors.account.reported.name==1234"), foo_model))
+    assert bv["b7"] == "1234"
 
 
 def test_escape_property_path(foo_model: Model, graph_db: GraphDB) -> None:
@@ -307,7 +307,6 @@ def test_possible_values(foo_model: Model, graph_db: GraphDB) -> None:
     assert bv == {"b0": "foo", "b1": [1000, 10001]}
     # limit the result
     pv, bv = possible_values(graph_db, model, "reported.tags", "values", limit=10)
-    print(pv)
     assert pv.endswith("SORT m6 ASC LIMIT 0, 10 RETURN m6")
     # skip and limit the result
     pv, bv = possible_values(graph_db, model, "reported.tags", "values", limit=10, skip=20)

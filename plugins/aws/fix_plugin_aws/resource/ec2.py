@@ -3429,7 +3429,6 @@ class AwsEc2Image(AwsResource):
     ena_support: Optional[bool] = field(default=None, metadata={"description": "Specifies whether enhanced networking with ENA is enabled."})  # fmt: skip
     hypervisor: Optional[str] = field(default=None, metadata={"description": "The hypervisor type of the image. Only xen is supported. ovm is not supported."})  # fmt: skip
     image_owner_alias: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account alias (for example, amazon, self) or the Amazon Web Services account ID of the AMI owner."})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the AMI that was provided during image creation."})  # fmt: skip
     root_device_name: Optional[str] = field(default=None, metadata={"description": "The device name of the root device volume (for example, /dev/sda1)."})  # fmt: skip
     root_device_type: Optional[str] = field(default=None, metadata={"description": "The type of root device used by the AMI. The AMI can use an Amazon EBS volume or an instance store volume."})  # fmt: skip
     sriov_net_support: Optional[str] = field(default=None, metadata={"description": "Specifies whether enhanced networking with the Intel 82599 Virtual Function interface is enabled."})  # fmt: skip
