@@ -418,15 +418,17 @@ class AwsCloudwatchMetricFilter(AwsResource):
         "id": S("filterName"),
         "name": S("filterName"),
         "ctime": S("creationTime") >> F(lambda x: x // 1000) >> SecondsFromEpochToDatetime(),
+        "log_group_name": S("logGroupName"),
         "filter_pattern": S("filterPattern"),
         "filter_transformations": S("metricTransformations", default=[])
         >> ForallBend(AwsCloudwatchMetricTransformation.mapping),
     }
+    log_group_name: Optional[str] = field(default=None)
     filter_pattern: Optional[str] = field(default=None)
     filter_transformations: List[AwsCloudwatchMetricTransformation] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if log_group_name := source.get("logGroupName"):
+        if log_group_name := self.log_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsCloudwatchLogGroup, name=log_group_name)
         for transformation in self.filter_transformations:
             # every metric can be used by multiple alarms
@@ -451,6 +453,19 @@ class AwsCloudwatchMetricFilter(AwsResource):
             )
             return True
         return False
+
+    def _keys(self) -> Tuple[Any, ...]:
+        if log_group_name := self.log_group_name:
+            return (
+                self.kind,
+                self.cloud().id,
+                self.account().id,
+                self.region().id,
+                self.zone().id,
+                self.id,
+                log_group_name,
+            )
+        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id
 
 
 @define(hash=True, frozen=True)
