@@ -224,17 +224,15 @@ class AwsApiGatewayResource(AwsResource):
         return True
 
     def _keys(self) -> Tuple[Any, ...]:
-        if api_link := self.api_link:
-            return (
-                self.kind,
-                self.cloud().id,
-                self.account().id,
-                self.region().id,
-                self.zone().id,
-                self.id,
-                api_link,
-            )
-        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.api_link,
+        )
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:

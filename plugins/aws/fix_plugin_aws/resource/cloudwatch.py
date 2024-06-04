@@ -455,17 +455,15 @@ class AwsCloudwatchMetricFilter(AwsResource):
         return False
 
     def _keys(self) -> Tuple[Any, ...]:
-        if log_group_name := self.log_group_name:
-            return (
-                self.kind,
-                self.cloud().id,
-                self.account().id,
-                self.region().id,
-                self.zone().id,
-                self.id,
-                log_group_name,
-            )
-        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.log_group_name,
+        )
 
 
 @define(hash=True, frozen=True)
