@@ -926,7 +926,6 @@ class GcpBackendService(GcpResource):
         "session_affinity": S("sessionAffinity"),
         "subsetting": S("subsetting", "policy"),
         "timeout_sec": S("timeoutSec"),
-        "lb_type": S("loadBalancingScheme"),
     }
     affinity_cookie_ttl_sec: Optional[int] = field(default=None)
     backend_service_backends: Optional[List[GcpBackend]] = field(default=None)
@@ -961,39 +960,6 @@ class GcpBackendService(GcpResource):
     subsetting: Optional[str] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if backends := self.backend_service_backends:
-            for backend in backends:
-                if group := backend.group:
-
-                    def fetch_instances(group: str) -> None:
-                        api_spec = GcpApiSpec(
-                            service="compute",
-                            version="v1",
-                            accessors=["instanceGroups"],
-                            action="listInstances",
-                            request_parameter={
-                                "project": "{project}",
-                                "zone": "{zone}",
-                                "instanceGroup": "{instanceGroup}",
-                            },
-                            request_parameter_in={"project", "zone", "instanceGroup"},
-                            response_path="items",
-                        )
-                        path_data = urlparse(group).path.split("/")
-                        try:
-                            zone = path_data[6]
-                            instance_group = path_data[8]
-
-                            items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
-                            for item in items:
-                                if vm_id := item.get("instance"):
-                                    self.backends.append(vm_id)
-                        except Exception as e:
-                            log.warning(f"An error occured while setting backends property: {e}")
-
-                    graph_builder.submit_work(fetch_instances, group)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for check in self.health_checks or []:
             builder.dependant_node(self, clazz=health_check_types(), link=check)
@@ -1002,18 +968,6 @@ class GcpBackendService(GcpResource):
                 builder.dependant_node(self, link=backend.group)
         if self.network:
             builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
-        if self_link := self.link:
-            map_resources = builder.nodes(clazz=GcpUrlMap)
-            forwarding_rules = builder.nodes(clazz=GcpForwardingRule)
-            for lb in map_resources:
-                if lb.default_service == self_link:
-                    for rule in forwarding_rules:
-                        if (target := rule.target) and (target.rsplit("/", maxsplit=1)[1].startswith(lb.id)):
-                            if public_ip := rule.ip_address:
-                                self.public_ip_address = public_ip
-                                break
-
-                break
 
 
 @define(eq=False, slots=False)
@@ -1683,6 +1637,8 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
         "service_name": S("serviceName"),
         "subnetwork": S("subnetwork"),
         "target": S("target"),
+        "public_ip_address": S("IPAddress"),
+        "lb_type": S("loadBalancingScheme"),
     }
     ip_address: Optional[str] = field(default=None)
     ip_protocol: Optional[str] = field(default=None)
@@ -1721,6 +1677,53 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 GcpTargetPool,
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
+        self._collect_backends(builder)
+
+    def _collect_backends(self, graph_builder: GraphBuilder) -> None:
+        if not self.target:
+            return
+        backend_services = graph_builder.nodes(clazz=GcpBackendService)
+        load_balancers = graph_builder.nodes(clazz=GcpUrlMap)
+        load_balancer = next(
+            (lb for lb in load_balancers if self.target.rsplit("/", maxsplit=1)[1].startswith(lb.id)),
+            None,
+        )
+        if load_balancer is None:
+            return
+
+        for backend_service in backend_services:
+            if backend_service.link == load_balancer.default_service:
+                if backend_service.backend_service_backends:
+                    for backend in backend_service.backend_service_backends:
+                        if backend.group:
+
+                            def fetch_instances(group: str) -> None:
+                                api_spec = GcpApiSpec(
+                                    service="compute",
+                                    version="v1",
+                                    accessors=["instanceGroups"],
+                                    action="listInstances",
+                                    request_parameter={
+                                        "project": "{project}",
+                                        "zone": "{zone}",
+                                        "instanceGroup": "{instanceGroup}",
+                                    },
+                                    request_parameter_in={"project", "zone", "instanceGroup"},
+                                    response_path="items",
+                                )
+                                path_data = urlparse(group).path.split("/")
+                                try:
+                                    zone = path_data[6]
+                                    instance_group = path_data[8]
+
+                                    items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
+                                    for item in items:
+                                        if vm_id := item.get("instance"):
+                                            self.backends.append(vm_id)
+                                except Exception as e:
+                                    log.warning(f"An error occured while setting backends property: {e}")
+
+                            graph_builder.submit_work(fetch_instances, backend.group)
 
 
 @define(eq=False, slots=False)
