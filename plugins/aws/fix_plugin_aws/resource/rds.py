@@ -503,8 +503,8 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 lookup[vid] = rds
                 queries.append(
                     AwsCloudwatchQuery.create(
-                        name=MetricName.DatabaseConnections,
-                        metric_name="DatabaseConnections",
+                        metric_name=MetricName.DatabaseConnections,
+                        query_name="DatabaseConnections",
                         namespace="AWS/RDS",
                         period=delta,
                         ref_id=vid,
@@ -583,13 +583,13 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="CPUUtilization",
+                    query_name="CPUUtilization",
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
                     stat=stat,
                     unit="Percent",
-                    name=MetricName.CpuUtilization,
+                    metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
                     DBInstanceIdentifier=self.id,
                 )
@@ -599,11 +599,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=(
                         normalizer_factory.iops if name in ["ReadIOPS", "WriteIOPS"] else normalizer_factory.count
                     ),
@@ -623,11 +623,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.seconds,
                     stat=stat,
                     unit="Seconds",
@@ -643,11 +643,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
@@ -664,11 +664,11 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/RDS",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",

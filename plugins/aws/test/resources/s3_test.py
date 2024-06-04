@@ -62,8 +62,12 @@ def test_deletion() -> None:
     bucket.delete_resource(client, Graph())
 
 
-# def test_s3_usage_metrics() -> None:
-#     bucket, _ = round_trip_for(AwsS3Bucket)
+# TODO: fix 'RuntimeError: cannot schedule new futures after shutdown'
+# def test_s3_usage_metrics(account_collector: AwsAccountCollector) -> None:
+#     bucket, builder = round_trip_for(AwsS3Bucket)
+#     builder.all_regions.update({"us-east-1": AwsRegion(id="us-east-1", name="us-east-1")})
+#     account_collector.collect_usage_metrics(builder)
+#     bucket.complete_graph(builder, {})
 #     assert bucket._resource_usage["standard_storage_bucket_size_bytes"]["avg"] == 1.0
 #     assert bucket._resource_usage["intelligent_tiering_storage_bucket_size_bytes"]["avg"] == 2.0
 #     assert bucket._resource_usage["standard_ia_storage_bucket_size_bytes"]["avg"] == 3.0
