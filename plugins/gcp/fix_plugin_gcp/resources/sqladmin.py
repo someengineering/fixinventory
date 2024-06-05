@@ -7,8 +7,8 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fixlib.baseresources import BaseDatabase, ModelReference
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, ModelReference
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
@@ -701,7 +701,16 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
         "db_type": S("databaseVersion") >> F(lambda db_version: db_version.split("_")[0].lower()),
-        "db_status": S("state"),
+        "db_status": S("state")
+        >> MapEnum(
+            {
+                "RUNNABLE": DatabaseInstanceStatus.RUNNING,
+                "STOPPED": DatabaseInstanceStatus.STOPPED,
+                "CREATING": DatabaseInstanceStatus.BUSY,
+                "DELETING": DatabaseInstanceStatus.TERMINATED,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
         "db_version": S("databaseVersion"),
         "volume_size": S("settings", "dataDiskSizeGb") >> F(int),
     }

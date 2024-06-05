@@ -1085,6 +1085,14 @@ class BaseFirewall(BaseResource):
     _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
+class DatabaseInstanceStatus(Enum):
+    RUNNING = "running"
+    STOPPED = "stopped"
+    TERMINATED = "terminated"
+    BUSY = "busy"
+    UNKNOWN = "unknown"
+
+
 @define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
@@ -1093,7 +1101,7 @@ class BaseDatabase(BaseResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     _categories: ClassVar[List[Category]] = [Category.compute, Category.database]
     db_type: Optional[str] = None
-    db_status: Optional[str] = None
+    db_status: Optional[DatabaseInstanceStatus] = None
     db_endpoint: Optional[str] = ""
     db_version: Optional[str] = None
     db_publicly_accessible: Optional[bool] = None
