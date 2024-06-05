@@ -150,6 +150,7 @@ class AzureBlobContainer(AzureResource, BaseBucket):
         "remaining_retention_days": S("properties", "remainingRetentionDays"),
         "version": S("properties", "version"),
     }
+    etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
     deleted: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the blob container was deleted.'})  # fmt: skip
@@ -257,6 +258,7 @@ class AzureFileShare(AzureResource, BaseNetworkShare):
         "snapshot_time": S("properties", "snapshotTime"),
         "version": S("properties", "version"),
     }
+    etag: Optional[str] = field(default=None, metadata={"description": "Resource Etag."})
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     access_tier: Optional[str] = field(default=None, metadata={'description': 'Access tier for specific share. GpV2 account can choose between TransactionOptimized (default), Hot, and Cool. FileStorage account can choose Premium.'})  # fmt: skip
     access_tier_change_time: Optional[datetime] = field(default=None, metadata={'description': 'Indicates the last modification time for share access tier.'})  # fmt: skip
@@ -926,6 +928,7 @@ class AzureStorageAccount(AzureResource):
     primary_endpoints: Optional[AzureEndpoints] = field(default=None, metadata={'description': 'The URIs that are used to perform a retrieval of a public blob, queue, table, web or dfs object.'})  # fmt: skip
     primary_location: Optional[str] = field(default=None, metadata={'description': 'Gets the location of the primary data center for the storage account.'})  # fmt: skip
     storage_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connection associated with the specified storage account'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Gets the status of the storage account at the time the operation was called.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Allow or disallow public network access to Storage Account. Value is optional but if passed in, must be Enabled or Disabled .'})  # fmt: skip
     routing_preference: Optional[AzureRoutingPreference] = field(default=None, metadata={'description': 'Routing preference defines the type of network, either microsoft or internet routing to be used to deliver the user data, the default option is microsoft routing'})  # fmt: skip
     sas_policy: Optional[AzureSasPolicy] = field(default=None, metadata={'description': 'SasPolicy assigned to the storage account.'})  # fmt: skip

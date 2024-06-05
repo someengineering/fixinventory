@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple
 
 from attr import define
 
 from fixcore.model.graph_access import Section
-from fixcore.model.model import Model, ResolvedPropertyPath, ComplexKind
+from fixcore.model.model import Model, ResolvedPropertyPath
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import Query
 from fixcore.util import first
@@ -30,22 +30,14 @@ class QueryModel:
                 return value.lower() in ["1", "true", "yes", "y"]
         return False
 
-    def __prop(self, path: str) -> Tuple[str, Optional[str]]:
+    def prop_kind(self, path: str) -> Tuple[ResolvedPropertyPath, Optional[str]]:  # prop, merge_name
         merge_name = first(lambda name: path.startswith(name + "."), self.query.merge_names) or first(
             lambda name: path.startswith(name + "."), ancestor_merges
         )
         # remove merge_name and section part (if existent) from the local_path
         lookup = Section.without_section(path[len(merge_name) + 1 :] if merge_name else path)  # noqa: E203
-        return lookup, merge_name
-
-    def prop_kind(self, path: str) -> Tuple[ResolvedPropertyPath, Optional[str]]:  # prop, merge_name
-        lookup, merge_name = self.__prop(path)
         resolved = self.model.property_by_path(lookup)
         return resolved, merge_name
-
-    def owners(self, path: str) -> List[ComplexKind]:
-        lookup, _ = self.__prop(path)
-        return self.model.owners_by_path(lookup)
 
 
 @define(repr=True, eq=True)

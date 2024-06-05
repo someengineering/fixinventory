@@ -1064,6 +1064,7 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
     default_predefined_ssl_policy: Optional[str] = field(default=None, metadata={'description': 'Ssl predefined policy name enums.'})  # fmt: skip
     enable_fips: Optional[bool] = field(default=None, metadata={'description': 'Whether FIPS is enabled on the application gateway resource.'})  # fmt: skip
     enable_http2: Optional[bool] = field(default=None, metadata={'description': 'Whether HTTP2 is enabled on the application gateway resource.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     firewall_policy: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     force_firewall_policy_association: Optional[bool] = field(default=None, metadata={'description': 'If true, associates a firewall policy with an application gateway regardless whether the policy differs from the WAF Config.'})  # fmt: skip
     frontend_ip_configurations: Optional[List[AzureApplicationGatewayFrontendIPConfiguration]] = field(default=None, metadata={'description': 'Frontend IP addresses of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
@@ -1078,6 +1079,7 @@ class AzureApplicationGateway(AzureResource, BaseGateway):
     gateway_private_endpoint_connections: Optional[List[AzureApplicationGatewayPrivateEndpointConnection]] = field(default=None, metadata={'description': 'Private Endpoint connections on application gateway.'})  # fmt: skip
     private_link_configurations: Optional[List[AzureApplicationGatewayPrivateLinkConfiguration]] = field(default=None, metadata={'description': 'PrivateLink configurations on application gateway.'})  # fmt: skip
     gateway_probes: Optional[List[AzureApplicationGatewayProbe]] = field(default=None, metadata={'description': 'Probes of the application gateway resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     redirect_configurations: Optional[List[AzureApplicationGatewayRedirectConfiguration]] = field(default=None, metadata={'description': 'Redirect configurations of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     request_routing_rules: Optional[List[AzureApplicationGatewayRequestRoutingRule]] = field(default=None, metadata={'description': 'Request routing rules of the application gateway resource.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the application gateway resource.'})  # fmt: skip
@@ -1159,6 +1161,7 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
         "rule_set_version": S("properties", "ruleSetVersion"),
         "tiers": S("properties", "tiers"),
     }
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     rule_groups: Optional[List[AzureApplicationGatewayFirewallRuleGroup]] = field(default=None, metadata={'description': 'The rule groups of the web application firewall rule set.'})  # fmt: skip
     rule_set_type: Optional[str] = field(default=None, metadata={'description': 'The type of the web application firewall rule set.'})  # fmt: skip
     rule_set_version: Optional[str] = field(default=None, metadata={'description': 'The version of the web application firewall rule set type.'})  # fmt: skip
@@ -1405,6 +1408,7 @@ class AzureFirewall(AzureResource, BaseFirewall):
     }
     additional_properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The additional properties of azure firewall.'})  # fmt: skip
     application_rule_collections: Optional[List[AzureFirewallApplicationRuleCollection]] = field(default=None, metadata={'description': 'Collection of application rule collections used by Azure Firewall.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     firewall_policy: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     hub_ip_addresses: Optional[AzureHubIPAddresses] = field(default=None, metadata={'description': 'IP addresses associated with azure firewall.'})  # fmt: skip
     firewall_ip_configurations: Optional[List[AzureFirewallIPConfiguration]] = field(default=None, metadata={'description': 'IP configuration of the Azure Firewall resource.'})  # fmt: skip
@@ -1412,6 +1416,7 @@ class AzureFirewall(AzureResource, BaseFirewall):
     management_ip_configuration: Optional[AzureFirewallIPConfiguration] = field(default=None, metadata={'description': 'IP configuration of an Azure Firewall.'})  # fmt: skip
     nat_rule_collections: Optional[List[AzureFirewallNatRuleCollection]] = field(default=None, metadata={'description': 'Collection of NAT rule collections used by Azure Firewall.'})  # fmt: skip
     network_rule_collections: Optional[List[AzureFirewallNetworkRuleCollection]] = field(default=None, metadata={'description': 'Collection of network rule collections used by Azure Firewall.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     firewall_sku: Optional[AzureFirewallSku] = field(
         default=None, metadata={"description": "SKU of an Azure Firewall."}
     )
@@ -1500,6 +1505,7 @@ class AzureBastionHost(AzureResource):
     enable_kerberos: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Kerberos feature of the Bastion Host resource.'})  # fmt: skip
     enable_shareable_link: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Shareable Link of the Bastion Host resource.'})  # fmt: skip
     enable_tunneling: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Tunneling feature of the Bastion Host resource.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     bastion_host_ip_configurations: Optional[List[AzureBastionHostIPConfiguration]] = field(default=None, metadata={'description': 'IP configuration of the Bastion Host resource.'})  # fmt: skip
     network_acls: Optional[AzureIpRules] = field(default=None, metadata={"description": ""})
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -1558,12 +1564,14 @@ class AzureCustomIpPrefix(AzureResource):
     cidr: Optional[str] = field(default=None, metadata={'description': 'The prefix range in CIDR notation. Should include the start address and the prefix length.'})  # fmt: skip
     commissioned_state: Optional[str] = field(default=None, metadata={'description': 'The commissioned state of the Custom IP Prefix.'})  # fmt: skip
     custom_ip_prefix_parent: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     express_route_advertise: Optional[bool] = field(default=None, metadata={'description': 'Whether to do express route advertise.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     failed_reason: Optional[str] = field(default=None, metadata={'description': 'The reason why resource is in failed state.'})  # fmt: skip
     geo: Optional[str] = field(default=None, metadata={'description': 'The Geo for CIDR advertising. Should be an Geo code.'})  # fmt: skip
     no_internet_advertise: Optional[bool] = field(default=None, metadata={'description': 'Whether to Advertise the range to Internet.'})  # fmt: skip
     prefix_type: Optional[str] = field(default=None, metadata={'description': 'Type of custom IP prefix. Should be Singular, Parent, or Child.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'The list of all referenced PublicIpPrefixes.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the custom IP prefix resource.'})  # fmt: skip
     signed_message: Optional[str] = field(default=None, metadata={"description": "Signed message for WAN validation."})
@@ -1594,6 +1602,8 @@ class AzureDdosProtectionPlan(AzureResource):
         "resource_guid": S("properties", "resourceGuid"),
         "virtual_networks": S("properties") >> S("virtualNetworks", default=[]) >> ForallBend(S("id")),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'The list of public IPs associated with the DDoS protection plan resource. This list is read-only.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the DDoS protection plan resource. It uniquely identifies the resource, even if the user changes its name or migrate the resource across subscriptions or resource groups.'})  # fmt: skip
     virtual_networks: Optional[List[str]] = field(default=None, metadata={'description': 'The list of virtual networks associated with the DDoS protection plan resource. This list is read-only.'})  # fmt: skip
@@ -1795,8 +1805,10 @@ class AzureNetworkSecurityGroup(AzureResource):
         "security_rules": S("properties", "securityRules") >> ForallBend(AzureSecurityRule.mapping),
     }
     default_security_rules: Optional[List[AzureSecurityRule]] = field(default=None, metadata={'description': 'The default security rules of network security group.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     flow_logs: Optional[List[AzureFlowLog]] = field(default=None, metadata={'description': 'A collection of references to flow log resources.'})  # fmt: skip
     flush_connection: Optional[bool] = field(default=None, metadata={'description': 'When enabled, flows created from Network Security Group connections will be re-evaluated when rules are updates. Initial enablement will trigger re-evaluation.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the network security group resource.'})  # fmt: skip
     security_rules: Optional[List[AzureSecurityRule]] = field(default=None, metadata={'description': 'A collection of security rules of the network security group.'})  # fmt: skip
 
@@ -1996,8 +2008,10 @@ class AzureNatGateway(AzureResource):
         "type": S("type"),
         "zones": S("zones"),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the nat gateway.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'An array of public ip addresses associated with the nat gateway resource.'})  # fmt: skip
     public_ip_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'An array of public ip prefixes associated with the nat gateway resource.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the NAT gateway resource.'})  # fmt: skip
@@ -2049,6 +2063,7 @@ class AzurePublicIPAddress(AzureResource):
     ddos_settings: Optional[AzureDdosSettings] = field(default=None, metadata={'description': 'Contains the DDoS protection settings of the public IP.'})  # fmt: skip
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public IP address when the VM using it is deleted'})  # fmt: skip
     ip_dns_settings: Optional[AzurePublicIPAddressDnsSettings] = field(default=None, metadata={'description': 'Contains FQDN of the DNS record associated with the public IP address.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the public IP address.'})  # fmt: skip
     ip_address: Optional[str] = field(default=None, metadata={'description': 'The IP address associated with the public IP address resource.'})  # fmt: skip
@@ -2056,6 +2071,7 @@ class AzurePublicIPAddress(AzureResource):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     migration_phase: Optional[str] = field(default=None, metadata={'description': 'Migration phase of Public IP Address.'})  # fmt: skip
     _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Nat Gateway resource."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
     public_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
     public_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -2127,6 +2143,7 @@ class AzureResourceNavigationLink(AzureSubResource):
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    id: Optional[str] = field(default=None, metadata={"description": "Resource navigation link identifier."})
     link: Optional[str] = field(default=None, metadata={"description": "Link to the external resource."})
     linked_resource_type: Optional[str] = field(default=None, metadata={'description': 'Resource type of the linked resource.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'Name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
@@ -2225,14 +2242,17 @@ class AzureSubnet(AzureResource):
     application_gateway_ip_configurations: Optional[List[AzureApplicationGatewayIPConfiguration]] = field(default=None, metadata={'description': 'Application gateway IP configurations of virtual network resource.'})  # fmt: skip
     default_outbound_access: Optional[bool] = field(default=None, metadata={'description': 'Set this property to false to disable default outbound connectivity for all VMs in the subnet. This property can only be set at the time of subnet creation and cannot be updated for an existing subnet.'})  # fmt: skip
     delegations: Optional[List[AzureDelegation]] = field(default=None, metadata={'description': 'An array of references to the delegations on the subnet.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ip_allocations: Optional[List[str]] = field(default=None, metadata={'description': 'Array of IpAllocation which reference this subnet.'})  # fmt: skip
     ip_configuration_profiles: Optional[List[AzureIPConfigurationProfile]] = field(default=None, metadata={'description': 'Array of IP configuration profiles which reference this subnet.'})  # fmt: skip
     _ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the network interface IP configurations using subnet.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
     _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     _network_security_group_id: Optional[str] = field(default=None, metadata={'description': 'NetworkSecurityGroup resource.'})  # fmt: skip
     private_endpoint_network_policies: Optional[str] = field(default=None, metadata={'description': 'Enable or Disable apply network policies on private end point in the subnet.'})  # fmt: skip
     private_endpoints: Optional[List[AzurePrivateEndpoint]] = field(default=None, metadata={'description': 'An array of references to private endpoints.'})  # fmt: skip
     private_link_service_network_policies: Optional[str] = field(default=None, metadata={'description': 'Enable or Disable apply network policies on private link service in the subnet.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     purpose: Optional[str] = field(default=None, metadata={'description': 'A read-only string identifying the intention of use for this subnet based on delegations and other user-defined properties.'})  # fmt: skip
     resource_navigation_links: Optional[List[AzureResourceNavigationLink]] = field(default=None, metadata={'description': 'An array of references to the external resources using subnet.'})  # fmt: skip
     route_table: Optional[AzureRouteTable] = field(default=None, metadata={"description": "Route table resource."})
@@ -2318,8 +2338,10 @@ class AzureVirtualNetworkTap(AzureResource):
     }
     destination_load_balancer_front_end_ip_configuration: Optional[AzureFrontendIPConfiguration] = field(default=None, metadata={'description': 'Frontend IP address of the load balancer.'})  # fmt: skip
     destination_port: Optional[int] = field(default=None, metadata={'description': 'The VXLAN destination port that will receive the tapped traffic.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     network_interface_tap_configurations: Optional[List[AzureNetworkInterfaceTapConfiguration]] = field(default=None, metadata={'description': 'Specifies the list of resource IDs for the network interface IP configuration that needs to be tapped.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the virtual network tap resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
@@ -2526,12 +2548,14 @@ class AzurePrivateLinkService(AzureResource):
     alias: Optional[str] = field(default=None, metadata={"description": "The alias of the private link service."})
     auto_approval: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The auto-approval list of the private link service.'})  # fmt: skip
     enable_proxy_protocol: Optional[bool] = field(default=None, metadata={'description': 'Whether the private link service is enabled for proxy protocol or not.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     fqdns: Optional[List[str]] = field(default=None, metadata={"description": "The list of Fqdn."})
     link_service_ip_configurations: Optional[List[AzurePrivateLinkServiceIpConfiguration]] = field(default=None, metadata={'description': 'An array of private link service IP configurations.'})  # fmt: skip
     _load_balancer_frontend_ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array of references to the load balancer IP configurations.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     link_service_private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     visibility: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The visibility list of the private link service.'})  # fmt: skip
 
@@ -2598,6 +2622,7 @@ class AzureNetworkInterface(AzureResource):
     dscp_configuration: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     enable_accelerated_networking: Optional[bool] = field(default=None, metadata={'description': 'If the network interface is configured for accelerated networking. Not applicable to VM sizes which require accelerated networking.'})  # fmt: skip
     enable_ip_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether IP forwarding is enabled on this network interface.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     hosted_workloads: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to linked BareMetal resources.'})  # fmt: skip
     interface_ip_configurations: Optional[List[AzureNetworkInterfaceIPConfiguration]] = field(default=None, metadata={'description': 'A list of IPConfigurations of the network interface.'})  # fmt: skip
@@ -2609,6 +2634,7 @@ class AzureNetworkInterface(AzureResource):
     primary: Optional[bool] = field(default=None, metadata={'description': 'Whether this is a primary network interface on a virtual machine.'})  # fmt: skip
     private_endpoint: Optional[AzurePrivateEndpoint] = field(default=None, metadata={'description': 'Private endpoint resource.'})  # fmt: skip
     _private_link_service_id: Optional[str] = field(default=None, metadata={'description': 'Private link service resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the network interface resource.'})  # fmt: skip
     tap_configurations: Optional[List[AzureNetworkInterfaceTapConfiguration]] = field(default=None, metadata={'description': 'A list of TapConfigurations of the network interface.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
@@ -2670,8 +2696,10 @@ class AzureDscpConfiguration(AzureResource):
     _associated_network_interface_ids: Optional[List[str]] = field(default=None, metadata={'description': 'Associated Network Interfaces to the DSCP Configuration.'})  # fmt: skip
     destination_ip_ranges: Optional[List[AzureQosIpRange]] = field(default=None, metadata={'description': 'Destination IP ranges.'})  # fmt: skip
     destination_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     markings: Optional[List[int]] = field(default=None, metadata={'description': 'List of markings to be used in the configuration.'})  # fmt: skip
     protocol: Optional[str] = field(default=None, metadata={"description": "RNM supported protocol types."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     qos_collection_id: Optional[str] = field(default=None, metadata={'description': 'Qos Collection ID generated by RNM.'})  # fmt: skip
     qos_definition_collection: Optional[List[AzureQosDefinition]] = field(default=None, metadata={'description': 'QoS object definitions'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the DSCP Configuration resource.'})  # fmt: skip
@@ -2959,10 +2987,12 @@ class AzureExpressRouteCircuit(AzureResource):
     authorizations: Optional[List[AzureExpressRouteCircuitAuthorization]] = field(default=None, metadata={'description': 'The list of authorizations.'})  # fmt: skip
     bandwidth_in_gbps: Optional[float] = field(default=None, metadata={'description': 'The bandwidth of the circuit when the circuit is provisioned on an ExpressRoutePort resource.'})  # fmt: skip
     circuit_provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The CircuitProvisioningState state of the resource.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     express_route_port: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     gateway_manager_etag: Optional[str] = field(default=None, metadata={"description": "The GatewayManager Etag."})
     global_reach_enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag denoting global reach status.'})  # fmt: skip
     circuit_peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'The list of peerings.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     service_key: Optional[str] = field(default=None, metadata={"description": "The ServiceKey."})
     service_provider_notes: Optional[str] = field(default=None, metadata={"description": "The ServiceProviderNotes."})
     service_provider_properties: Optional[AzureExpressRouteCircuitServiceProviderProperties] = field(default=None, metadata={'description': 'Contains ServiceProviderProperties in an ExpressRouteCircuit.'})  # fmt: skip
@@ -3067,10 +3097,12 @@ class AzureExpressRouteCrossConnection(AzureResource):
         "service_provider_provisioning_state": S("properties", "serviceProviderProvisioningState"),
     }
     bandwidth_in_mbps: Optional[int] = field(default=None, metadata={"description": "The circuit bandwidth In Mbps."})
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     express_route_circuit: Optional[str] = field(default=None, metadata={'description': 'Reference to an express route circuit.'})  # fmt: skip
     peering_location: Optional[str] = field(default=None, metadata={'description': 'The peering location of the ExpressRoute circuit.'})  # fmt: skip
     cross_connection_peerings: Optional[List[AzureExpressRouteCrossConnectionPeering]] = field(default=None, metadata={'description': 'The list of peerings.'})  # fmt: skip
     primary_azure_port: Optional[str] = field(default=None, metadata={"description": "The name of the primary port."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     s_tag: Optional[int] = field(default=None, metadata={"description": "The identifier of the circuit traffic."})
     secondary_azure_port: Optional[str] = field(default=None, metadata={'description': 'The name of the secondary port.'})  # fmt: skip
     service_provider_notes: Optional[str] = field(default=None, metadata={'description': 'Additional read only notes set by the connectivity provider.'})  # fmt: skip
@@ -3207,7 +3239,9 @@ class AzureExpressRouteGateway(AzureResource, BaseGateway):
     }
     allow_non_virtual_wan_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configures this gateway to accept traffic from non Virtual WAN networks.'})  # fmt: skip
     auto_scale_configuration: Optional[AzureBounds] = field(default=None, metadata={'description': 'Configuration for auto scaling.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     express_route_connections: Optional[List[AzureExpressRouteConnection]] = field(default=None, metadata={'description': 'List of ExpressRoute connections to the ExpressRoute gateway.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Virtual Hub identifier."})
 
 
@@ -3291,12 +3325,14 @@ class AzureExpressRoutePort(AzureResource):
     billing_type: Optional[str] = field(default=None, metadata={'description': 'The billing type of the ExpressRoutePort resource.'})  # fmt: skip
     circuits: Optional[List[str]] = field(default=None, metadata={'description': 'Reference the ExpressRoute circuit(s) that are provisioned on this ExpressRoutePort resource.'})  # fmt: skip
     encapsulation: Optional[str] = field(default=None, metadata={'description': 'Encapsulation method on physical ports.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ether_type: Optional[str] = field(default=None, metadata={"description": "Ether type of the physical port."})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     links: Optional[List[AzureExpressRouteLink]] = field(default=None, metadata={'description': 'The set of physical links of the ExpressRoutePort resource.'})  # fmt: skip
     mtu: Optional[int] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
     peering_location: Optional[str] = field(default=None, metadata={'description': 'The name of the peering location that the ExpressRoutePort is mapped to physically.'})  # fmt: skip
     provisioned_bandwidth_in_gbps: Optional[float] = field(default=None, metadata={'description': 'Aggregate Gbps of associated circuit bandwidths.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the express route port resource.'})  # fmt: skip
 
 
@@ -3333,6 +3369,7 @@ class AzureExpressRoutePortsLocation(AzureResource):
     address: Optional[str] = field(default=None, metadata={"description": "Address of peering location."})
     available_bandwidths: Optional[List[AzureExpressRoutePortsLocationBandwidths]] = field(default=None, metadata={'description': 'The inventory of available ExpressRoutePort bandwidths.'})  # fmt: skip
     contact: Optional[str] = field(default=None, metadata={"description": "Contact details of peering locations."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -3533,11 +3570,13 @@ class AzureFirewallPolicy(AzureResource, BasePolicy):
     base_policy: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     child_policies: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Child Firewall Policies.'})  # fmt: skip
     firewall_policy_dns_settings_settings: Optional[AzureDnsSettings] = field(default=None, metadata={'description': 'DNS Proxy Settings in Firewall Policy.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     explicit_proxy: Optional[AzureExplicitProxy] = field(default=None, metadata={'description': 'Explicit Proxy Settings in Firewall Policy.'})  # fmt: skip
     firewalls: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Azure Firewalls that this Firewall Policy is associated with.'})  # fmt: skip
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     insights: Optional[AzureFirewallPolicyInsights] = field(default=None, metadata={'description': 'Firewall Policy Insights.'})  # fmt: skip
     intrusion_detection: Optional[AzureFirewallPolicyIntrusionDetection] = field(default=None, metadata={'description': 'Configuration for intrusion detection mode and rules.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     rule_collection_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to FirewallPolicyRuleCollectionGroups.'})  # fmt: skip
     size: Optional[int] = field(default=None, metadata={'description': 'A read-only string that represents the size of the FirewallPolicyPropertiesFormat in MB. (ex 0.5MB)'})  # fmt: skip
     sku: Optional[str] = field(default=None, metadata={"description": "SKU of Firewall policy."})
@@ -3577,6 +3616,7 @@ class AzureIpAllocation(AzureResource):
         "virtual_network": S("properties", "virtualNetwork", "id"),
     }
     allocation_tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "IpAllocation tags."})
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ipam_allocation_id: Optional[str] = field(default=None, metadata={"description": "The IPAM allocation ID."})
     prefix: Optional[str] = field(default=None, metadata={"description": "The address prefix for the IpAllocation."})
     prefix_length: Optional[int] = field(default=None, metadata={'description': 'The address prefix length for the IpAllocation.'})  # fmt: skip
@@ -3616,9 +3656,11 @@ class AzureIpGroup(AzureResource):
         "ip_addresses": S("properties", "ipAddresses"),
         "provisioning_state": S("properties", "provisioningState"),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     firewall_policies: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Firewall Policies resources that this IpGroups is associated with.'})  # fmt: skip
     firewalls: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Firewall resources that this IpGroups is associated with.'})  # fmt: skip
     ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'IpAddresses/IpAddressPrefixes in the IpGroups resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if ip_addresses := self.ip_addresses:
@@ -3903,6 +3945,7 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
         >> ForallBend(S("virtual_network"), default=[]),
     }
     backend_address_pools: Optional[List[AzureBackendAddressPool]] = field(default=None, metadata={'description': 'Collection of backend address pools used by a load balancer.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     lb_frontend_ip_configurations: Optional[List[AzureFrontendIPConfiguration]] = field(default=None, metadata={'description': 'Object representing the frontend IPs to be used for the load balancer.'})  # fmt: skip
     inbound_nat_pools: Optional[List[AzureInboundNatPool]] = field(default=None, metadata={'description': 'Defines an external port range for inbound NAT to a single backend port on NICs associated with a load balancer. Inbound NAT rules are created automatically for each NIC associated with the Load Balancer using an external port from this range. Defining an Inbound NAT pool on your Load Balancer is mutually exclusive with defining inbound NAT rules. Inbound NAT pools are referenced from virtual machine scale sets. NICs that are associated with individual virtual machines cannot reference an inbound NAT pool. They have to reference individual inbound NAT rules.'})  # fmt: skip
@@ -3912,6 +3955,7 @@ class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
         default=None, metadata={"description": "The outbound rules."}
     )
     lb_probes: Optional[List[AzureProbe]] = field(default=None, metadata={'description': 'Collection of probe objects used in the load balancer.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the load balancer resource.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
     aks_public_ip_address: Optional[str] = field(default=None, metadata={"description": "AKS Load Balancer public IP address."})  # fmt: skip
@@ -4068,6 +4112,8 @@ class AzureNetworkProfile(AzureResource):
     }
     container_network_interface_configurations: Optional[List[AzureContainerNetworkInterfaceConfiguration]] = field(default=None, metadata={'description': 'List of chid container network interface configurations.'})  # fmt: skip
     container_network_interfaces: Optional[List[AzureContainerNetworkInterface]] = field(default=None, metadata={'description': 'List of child container network interfaces.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the network profile resource.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -4219,10 +4265,12 @@ class AzureNetworkVirtualAppliance(AzureResource):
     cloud_init_configuration_blobs: Optional[List[str]] = field(default=None, metadata={'description': 'CloudInitConfigurationBlob storage URLs.'})  # fmt: skip
     delegation: Optional[AzureDelegationProperties] = field(default=None, metadata={'description': 'Properties of the delegation.'})  # fmt: skip
     deployment_type: Optional[str] = field(default=None, metadata={'description': 'The deployment type. PartnerManaged for the SaaS NVA'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     inbound_security_rules: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to InboundSecurityRules.'})  # fmt: skip
     nva_sku: Optional[AzureVirtualApplianceSkuProperties] = field(default=None, metadata={'description': 'Network Virtual Appliance Sku Properties.'})  # fmt: skip
     partner_managed_resource: Optional[AzurePartnerManagedResourceProperties] = field(default=None, metadata={'description': 'Properties of the partner managed resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     ssh_public_key: Optional[str] = field(default=None, metadata={"description": "Public key for SSH login."})
     virtual_appliance_asn: Optional[int] = field(default=None, metadata={'description': 'VirtualAppliance ASN. Microsoft private, public and IANA reserved ASN are not supported.'})  # fmt: skip
     virtual_appliance_connections: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to VirtualApplianceConnections.'})  # fmt: skip
@@ -4312,6 +4360,7 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
     }
     available_scale_units: Optional[List[AzureNetworkVirtualApplianceSkuInstances]] = field(default=None, metadata={'description': 'The list of scale units available.'})  # fmt: skip
     available_versions: Optional[List[str]] = field(default=None, metadata={'description': 'Available Network Virtual Appliance versions.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     vendor: Optional[str] = field(default=None, metadata={"description": "Network Virtual Appliance Sku vendor."})
     _is_provider_link: bool = False
 
@@ -4339,6 +4388,7 @@ class AzureNetworkWatcher(AzureResource):
         "properties": S("properties", "provisioningState"),
         "location": S("location"),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     properties: Optional[str] = field(default=None, metadata={"description": "The network watcher properties."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
@@ -4497,8 +4547,10 @@ class AzureP2SVpnGateway(AzureResource):
         "vpn_server_configuration": S("properties", "vpnServerConfiguration", "id"),
     }
     custom_dns_servers: Optional[List[str]] = field(default=None, metadata={'description': 'List of all customer specified DNS servers IP addresses.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the P2SVpnGateway.'})  # fmt: skip
     p2_s_connection_configurations: Optional[List[AzureP2SConnectionConfiguration]] = field(default=None, metadata={'description': 'List of all p2s connection configurations of the gateway.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     vpn_client_connection_health: Optional[AzureVpnClientConnectionHealth] = field(default=None, metadata={'description': 'VpnClientConnectionHealth properties.'})  # fmt: skip
     vpn_gateway_scale_unit: Optional[int] = field(default=None, metadata={'description': 'The scale unit for this p2s vpn gateway.'})  # fmt: skip
@@ -4540,12 +4592,14 @@ class AzurePublicIPPrefix(AzureResource):
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
     }
     custom_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     ip_prefix: Optional[str] = field(default=None, metadata={"description": "The allocated Prefix."})
     ip_tags: Optional[List[AzureIpTag]] = field(default=None, metadata={'description': 'The list of tags associated with the public IP prefix.'})  # fmt: skip
     load_balancer_frontend_ip_configuration: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     _nat_gateway_id: Optional[str] = field(default=None, metadata={"description": "Nat Gateway resource."})
     prefix_length: Optional[int] = field(default=None, metadata={"description": "The Length of the Public IP Prefix."})
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_ip_address_version: Optional[str] = field(default=None, metadata={"description": "IP address version."})
     public_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'The list of all referenced PublicIPAddresses.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the public IP prefix resource.'})  # fmt: skip
@@ -4595,8 +4649,10 @@ class AzureRouteFilter(AzureResource):
         "provisioning_state": S("properties", "provisioningState"),
         "filter_rules": S("properties", "rules") >> ForallBend(AzureRouteFilterRule.mapping),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ipv6_peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'A collection of references to express route circuit ipv6 peerings.'})  # fmt: skip
     filter_peerings: Optional[List[AzureExpressRouteCircuitPeering]] = field(default=None, metadata={'description': 'A collection of references to express route circuit peerings.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     filter_rules: Optional[List[AzureRouteFilterRule]] = field(default=None, metadata={'description': 'Collection of RouteFilterRules contained within a route filter.'})  # fmt: skip
 
 
@@ -4623,6 +4679,8 @@ class AzureSecurityPartnerProvider(AzureResource):
         "virtual_hub": S("properties", "virtualHub", "id"),
     }
     connection_status: Optional[str] = field(default=None, metadata={'description': 'The current state of the connection with Security Partner Provider.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     security_provider_name: Optional[str] = field(default=None, metadata={"description": "The Security Providers."})
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
@@ -4751,12 +4809,14 @@ class AzureVirtualHub(AzureResource):
     allow_branch_to_branch_traffic: Optional[bool] = field(default=None, metadata={'description': 'Flag to control transit for VirtualRouter hub.'})  # fmt: skip
     azure_firewall: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     bgp_connections: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Bgp Connections.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     express_route_gateway: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     hub_routing_preference: Optional[str] = field(default=None, metadata={'description': 'The hub routing preference gateway types'})  # fmt: skip
     ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to IpConfigurations.'})  # fmt: skip
     hub_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of service virtual hub. This is metadata used for the Azure portal experience for Route Server.'})  # fmt: skip
     p2s_vpn_gateway: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     preferred_routing_gateway: Optional[str] = field(default=None, metadata={'description': 'The preferred routing gateway types'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     route_maps: Optional[List[str]] = field(default=None, metadata={"description": "List of references to RouteMaps."})
     virtual_hub_route_table: Optional[AzureVirtualHubRouteTable] = field(default=None, metadata={'description': 'VirtualHub route table.'})  # fmt: skip
     routing_state: Optional[str] = field(default=None, metadata={'description': 'The current routing state of the VirtualHub.'})  # fmt: skip
@@ -4926,10 +4986,12 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
     enable_ddos_protection: Optional[bool] = field(default=None, metadata={'description': 'Indicates if DDoS protection is enabled for all the protected resources in the virtual network. It requires a DDoS protection plan associated with the resource.'})  # fmt: skip
     enable_vm_protection: Optional[bool] = field(default=None, metadata={'description': 'Indicates if VM protection is enabled for all the subnets in the virtual network.'})  # fmt: skip
     virtual_network_encryption: Optional[AzureVirtualNetworkEncryption] = field(default=None, metadata={'description': 'Indicates if encryption is enabled on virtual network and if VM without encryption is allowed in encrypted VNet.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     flow_logs: Optional[List[AzureFlowLog]] = field(default=None, metadata={'description': 'A collection of references to flow log resources.'})  # fmt: skip
     flow_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The FlowTimeout value (in minutes) for the Virtual Network'})  # fmt: skip
     ip_allocations: Optional[List[str]] = field(default=None, metadata={'description': 'Array of IpAllocation which reference this VNET.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resourceGuid property of the Virtual Network resource.'})  # fmt: skip
     _subnet_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A list of subnets in a Virtual Network.'})  # fmt: skip
     virtual_network_peerings: Optional[List[AzureVirtualNetworkPeering]] = field(default=None, metadata={'description': 'A list of peerings in a Virtual Network.'})  # fmt: skip
@@ -4982,9 +5044,11 @@ class AzureVirtualRouter(AzureResource):
         "virtual_router_asn": S("properties", "virtualRouterAsn"),
         "virtual_router_ips": S("properties", "virtualRouterIps"),
     }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     hosted_gateway: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     hosted_subnet: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     peerings: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to VirtualRouterPeerings.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     virtual_router_asn: Optional[int] = field(default=None, metadata={"description": "VirtualRouter ASN."})
     virtual_router_ips: Optional[List[str]] = field(default=None, metadata={"description": "VirtualRouter IPs."})
 
@@ -5017,7 +5081,9 @@ class AzureVirtualWAN(AzureResource):
     allow_branch_to_branch_traffic: Optional[bool] = field(default=None, metadata={'description': 'True if branch to branch traffic is allowed.'})  # fmt: skip
     allow_vnet_to_vnet_traffic: Optional[bool] = field(default=None, metadata={'description': 'True if Vnet to Vnet traffic is allowed.'})  # fmt: skip
     disable_vpn_encryption: Optional[bool] = field(default=None, metadata={'description': 'Vpn encryption to be disabled or not.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     office365_local_breakout_category: Optional[str] = field(default=None, metadata={'description': 'The office traffic category.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     virtual_hubs: Optional[List[str]] = field(default=None, metadata={'description': 'List of VirtualHubs in the VirtualWAN.'})  # fmt: skip
     vpn_sites: Optional[List[str]] = field(
         default=None, metadata={"description": "List of VpnSites in the VirtualWAN."}
@@ -5282,9 +5348,11 @@ class AzureVpnGateway(AzureResource, BaseGateway):
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
     connections: Optional[List[AzureVpnConnection]] = field(default=None, metadata={'description': 'List of all vpn connections to the gateway.'})  # fmt: skip
     enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'Enable BGP routes translation for NAT on this VpnGateway.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     gateway_ip_configurations: Optional[List[AzureVpnGatewayIpConfiguration]] = field(default=None, metadata={'description': 'List of all IPs configured on the gateway.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the VpnGateway.'})  # fmt: skip
     nat_rules: Optional[List[AzureVpnGatewayNatRule]] = field(default=None, metadata={'description': 'List of all the nat Rules associated with the gateway.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     vpn_gateway_scale_unit: Optional[int] = field(default=None, metadata={'description': 'The scale unit for this vpn gateway.'})  # fmt: skip
 
@@ -5387,7 +5455,9 @@ class AzureVpnServerConfiguration(AzureResource):
     }
     aad_authentication_parameters: Optional[AzureAadAuthenticationParameters] = field(default=None, metadata={'description': 'AAD Vpn authentication type related parameters.'})  # fmt: skip
     configuration_policy_groups: Optional[List[AzureVpnServerConfigurationPolicyGroup]] = field(default=None, metadata={'description': 'List of all VpnServerConfigurationPolicyGroups.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     _p2s_vpn_gateway_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to P2SVpnGateways.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the VpnServerConfiguration resource. Possible values are: Updating , Deleting , and Failed .'})  # fmt: skip
     radius_client_root_certificates: Optional[List[AzureVpnServerConfigRadiusClientRootCertificate]] = field(default=None, metadata={'description': 'Radius client root certificate of VpnServerConfiguration.'})  # fmt: skip
     radius_server_address: Optional[str] = field(default=None, metadata={'description': 'The radius server address property of the VpnServerConfiguration resource for point to site client connection.'})  # fmt: skip
     radius_server_root_certificates: Optional[List[AzureVpnServerConfigRadiusServerRootCertificate]] = field(default=None, metadata={'description': 'Radius Server root certificate of VpnServerConfiguration.'})  # fmt: skip
@@ -5507,9 +5577,11 @@ class AzureVpnSite(AzureResource, BasePeeringConnection):
     address_space: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
     bgp_properties: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
     device_properties: Optional[AzureDeviceProperties] = field(default=None, metadata={'description': 'List of properties of the device.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ip_address: Optional[str] = field(default=None, metadata={"description": "The ip-address for the vpn-site."})
     is_security_site: Optional[bool] = field(default=None, metadata={"description": "IsSecuritySite flag."})
     o365_policy: Optional[AzureO365PolicyProperties] = field(default=None, metadata={'description': 'The Office365 breakout policy.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     site_key: Optional[str] = field(default=None, metadata={'description': 'The key for vpn-site that can be used for connections.'})  # fmt: skip
     virtual_wan: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     vpn_site_links: Optional[List[AzureVpnSiteLink]] = field(default=None, metadata={'description': 'List of all vpn site links.'})  # fmt: skip
@@ -5747,10 +5819,12 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
     }
     _application_gateway_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to application gateways.'})  # fmt: skip
     custom_rules: Optional[List[AzureWebApplicationFirewallCustomRule]] = field(default=None, metadata={'description': 'The custom rules inside the policy.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     gateway_http_listeners: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to application gateway http listeners.'})  # fmt: skip
     managed_rules: Optional[AzureManagedRulesDefinition] = field(default=None, metadata={'description': 'Allow to exclude some variable satisfy the condition for the WAF check.'})  # fmt: skip
     path_based_rules: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to application gateway path rules.'})  # fmt: skip
     policy_settings: Optional[AzurePolicySettings] = field(default=None, metadata={'description': 'Defines contents of a web application firewall global configuration.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_state: Optional[str] = field(default=None, metadata={"description": "Resource status of the policy."})
 
 

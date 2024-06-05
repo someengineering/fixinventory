@@ -79,7 +79,7 @@ def check_overlap_for(models: List[Json]) -> None:
             # update the dict of all paths, ignoring any existing value
             all_paths[str_path] = (model, prop.kind)
 
-            # if this property kind is complex too: walk it.
+            # if this property  kind is complex too: walk it.
             if check_kind := classes.get(kind):
                 add_path(prop_path, pkinds, check_kind)
 
@@ -95,19 +95,6 @@ def check_overlap_for(models: List[Json]) -> None:
                 for kind in kinds:
                     if kind not in all_fqns:
                         raise AttributeError(f"Successor kind {kind} does not exist")
-
-    # Check that no property is redeclared
-    def check_not_redeclared(root: CheckClass, clazz: CheckClass, props: Set[str]) -> None:
-        props = {prop.name for prop in clazz.properties} | props
-        for base in clazz.bases or []:
-            if base_class := classes.get(base):
-                for prop in base_class.properties:
-                    if prop.name in props:
-                        raise AttributeError(f"Property {prop.name} is redeclared in {root.fqn}")
-                check_not_redeclared(root, base_class, props)
-
-    for clazz in classes.values():
-        check_not_redeclared(clazz, clazz, set())
 
 
 def check_model_class(clazz: Type[BaseResource]) -> None:
@@ -169,7 +156,3 @@ def check_overlap(*base: Type[BaseResource]) -> None:
             check_model_class(model)
 
     check_overlap_for(resource_classes_to_fixcore_model(model_classes, aggregate_root=BaseResource))
-
-
-if __name__ == "__main__":
-    check_overlap()

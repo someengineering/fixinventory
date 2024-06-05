@@ -50,9 +50,6 @@ class AzureResource(BaseResource):
     api_spec: ClassVar[Optional[AzureApiSpec]] = None
     # Check if we want to create provider link. Default is True
     _is_provider_link: bool = True
-    # Azure common properties
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
@@ -318,6 +315,7 @@ class AzureResourceGroup(AzureResource):
         "provisioning_state": S("properties", "provisioningState"),
     }
     managed_by: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that manages this resource group.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={"description": "The resource group properties."})
     _resource_ids_in_group: Optional[List[str]] = None
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:

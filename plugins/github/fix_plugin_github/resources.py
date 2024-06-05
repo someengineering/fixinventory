@@ -171,6 +171,7 @@ class GithubUser(GithubResource, BaseUser):
     invitation_teams_url: Optional[str] = None
     user_location: Optional[str] = None
     login: Optional[str] = None
+    name: Optional[str] = None
     node_id: Optional[int] = None
     organizations_url: Optional[str] = None
     owned_private_repos: Optional[int] = None
@@ -501,6 +502,7 @@ class GithubRepo(GithubResource, BaseResource):
     merges_url: Optional[str] = None
     milestones_url: Optional[str] = None
     mirror_url: Optional[str] = None
+    name: Optional[str] = None
     network_count: Optional[int] = None
     notifications_url: Optional[str] = None
     open_issues: Optional[int] = None

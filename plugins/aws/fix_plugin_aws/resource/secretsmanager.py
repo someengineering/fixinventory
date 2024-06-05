@@ -54,6 +54,8 @@ class AwsSecretsManagerSecret(AwsResource):
         "created_date": S("CreatedDate"),
         "primary_region": S("PrimaryRegion"),
     }
+    arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the secret."})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={"description": "The friendly name of the secret."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The user-provided description of the secret."})  # fmt: skip
     rotation_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether automatic, scheduled rotation is enabled for this secret."})  # fmt: skip
     rotation_lambda_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of an Amazon Web Services Lambda function invoked by Secrets Manager to rotate and expire the secret either automatically per the schedule or manually by a call to  RotateSecret ."})  # fmt: skip

@@ -11,7 +11,6 @@ from attrs import evolve
 
 from fixcore.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from fixcore.db import EstimatedSearchCost, EstimatedQueryCostRating as Rating
-from fixcore.db.arango_query_rewrite import rewrite_query
 from fixcore.db.arangodb_functions import as_arangodb_function
 from fixcore.db.model import QueryModel
 from fixcore.model.graph_access import Section, Direction
@@ -111,7 +110,7 @@ def to_query(
     id_column: str = "_key",
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
-    query = rewrite_query(query_model)
+    query = query_model.query
     start = from_collection or f"`{db.graph_vertex_name()}`"
     cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
