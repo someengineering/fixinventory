@@ -3,6 +3,7 @@ from typing import List, cast
 from attr import evolve
 
 from fixcore.db.model import QueryModel
+from fixcore.model.graph_access import Section
 from fixcore.model.model import predefined_kinds_by_name
 from fixcore.query.model import (
     Query,
@@ -31,9 +32,11 @@ def add_is_term(query_model: QueryModel) -> Query:
     def combine_term_if_possible(term: Term, predicates: List[Predicate]) -> Term:
         kinds = set()
         for pred in predicates:
-            for res in query_model.owners(pred.name):
-                if res.fqn not in predefined_kinds_by_name:
-                    kinds.add(res.fqn)
+            # lookup kind by property path only makes sense in the reported section
+            if pred.name.startswith(Section.reported):
+                for res in query_model.owners(pred.name):
+                    if res.fqn not in predefined_kinds_by_name:
+                        kinds.add(res.fqn)
         kinds.discard("resource")  # all resources have this base kind - ignore it
         return IsTerm(kinds=sorted(kinds)).and_term(term) if kinds else term
 
