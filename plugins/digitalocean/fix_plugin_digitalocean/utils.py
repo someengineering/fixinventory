@@ -183,16 +183,15 @@ def dump_tag(key: str, value: Optional[str]) -> str:
 
 def get_db_status(db_status: str) -> DatabaseInstanceStatus:
     mapping = {
-        "ACTIVE": DatabaseInstanceStatus.AVAILABLE,
-        "SHUTDOWN": DatabaseInstanceStatus.STOPPED,
-        "CANCELLED": DatabaseInstanceStatus.TERMINATED,
-        "BLOCKED": DatabaseInstanceStatus.BUSY,
-        "CANCELLING": DatabaseInstanceStatus.BUSY,
-        "CREATING": DatabaseInstanceStatus.BUSY,
-        "MIGRATING": DatabaseInstanceStatus.BUSY,
-        "PENDING": DatabaseInstanceStatus.BUSY,
-        "RESTARTING": DatabaseInstanceStatus.BUSY,
-        "RESIZING": DatabaseInstanceStatus.BUSY,
+        "creating": DatabaseInstanceStatus.BUSY,
+        "online": DatabaseInstanceStatus.AVAILABLE,
+        "resizing": DatabaseInstanceStatus.BUSY,
+        "migrating": DatabaseInstanceStatus.BUSY,
+        "backing-up": DatabaseInstanceStatus.BUSY,
+        "restoring": DatabaseInstanceStatus.BUSY,
+        "maintenance": DatabaseInstanceStatus.BUSY,
+        "failed": DatabaseInstanceStatus.FAILED,
+        "offline": DatabaseInstanceStatus.STOPPED,
     }
-    result = mapping.get(db_status.upper(), DatabaseInstanceStatus.UNKNOWN)
+    result = mapping.get(db_status, DatabaseInstanceStatus.UNKNOWN)
     return result
