@@ -92,7 +92,7 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
 def test_ancestors_kind_lookup(foo_model: Model, graph_db: GraphDB) -> None:
     # 1234 is coerced to a string
     _, bv = to_query(graph_db, QueryModel(parse_query("ancestors.account.reported.name==1234"), foo_model))
-    assert bv["b7"] == "1234"
+    assert bv["b0"] == "1234"
 
 
 def test_escape_property_path(foo_model: Model, graph_db: GraphDB) -> None:
