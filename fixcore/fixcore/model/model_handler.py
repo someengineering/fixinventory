@@ -139,8 +139,8 @@ class ModelHandlerDB(ModelHandler, Service):
         visited_complex: Set[str] = set()
         with_props_v = re.compile(with_properties) if isinstance(with_properties, str) else with_properties
 
-        def with_props(name: str) -> bool:
-            return bool(with_props_v.fullmatch(name) if isinstance(with_props_v, re.Pattern) else with_props_v)
+        def with_props(fqn: str) -> bool:
+            return bool(with_props_v.fullmatch(fqn) if isinstance(with_props_v, re.Pattern) else with_props_v)
 
         def not_hidden(key: str) -> bool:
             k: Kind = graph.nodes[key]["data"]
@@ -192,7 +192,8 @@ class ModelHandlerDB(ModelHandler, Service):
             result: Set[str] = set()
             for _, k in cpx.property_with_kinds():
                 for cpl in k.nested_complex_kinds():
-                    result.add(cpl.fqn)
+                    if with_props(cpl.fqn):
+                        result.add(cpl.fqn)
                     result.update(complex_property_kinds(cpl))
             return result
 
@@ -211,7 +212,7 @@ class ModelHandlerDB(ModelHandler, Service):
             add_visible(predecessors)
         if with_successors:
             add_visible(successors)
-        if with_properties:
+        if with_properties is not False:  # true or pattern
             add_visible(complex_property_kinds)
 
         visible_nodes: Iterator[ComplexKind] = (node["data"] for nid, node in graph.nodes(data=True) if nid in visible)
