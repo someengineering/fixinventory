@@ -1086,9 +1086,10 @@ class BaseFirewall(BaseResource):
 
 
 class DatabaseInstanceStatus(Enum):
-    RUNNING = "running"
+    AVAILABLE = "available"
     STOPPED = "stopped"
     TERMINATED = "terminated"
+    FAILED = "failed"
     BUSY = "busy"
     UNKNOWN = "unknown"
 

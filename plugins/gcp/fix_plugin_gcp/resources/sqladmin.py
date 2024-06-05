@@ -704,7 +704,9 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "db_status": S("state")
         >> MapEnum(
             {
-                "RUNNABLE": DatabaseInstanceStatus.RUNNING,
+                "RUNNABLE": DatabaseInstanceStatus.AVAILABLE,
+                "MAINTENANCE": DatabaseInstanceStatus.BUSY,
+                "FAILED": DatabaseInstanceStatus.FAILED,
                 "STOPPED": DatabaseInstanceStatus.STOPPED,
                 "CREATING": DatabaseInstanceStatus.BUSY,
                 "DELETING": DatabaseInstanceStatus.TERMINATED,
