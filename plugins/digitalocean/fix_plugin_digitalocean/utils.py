@@ -2,6 +2,8 @@ import logging
 from datetime import datetime
 from typing import Union, Callable, Any, Dict, Optional, Tuple, List
 
+from fixlib.baseresources import DatabaseInstanceStatus
+
 
 log = logging.getLogger("fix." + __name__)
 
@@ -177,3 +179,20 @@ def dump_tag(key: str, value: Optional[str]) -> str:
         return f"{key}{tag_value_sep}{value}"
     else:
         return f"{key}"
+
+
+def get_db_status(db_status: str) -> DatabaseInstanceStatus:
+    mapping = {
+        "ACTIVE": DatabaseInstanceStatus.AVAILABLE,
+        "SHUTDOWN": DatabaseInstanceStatus.STOPPED,
+        "CANCELLED": DatabaseInstanceStatus.TERMINATED,
+        "BLOCKED": DatabaseInstanceStatus.BUSY,
+        "CANCELLING": DatabaseInstanceStatus.BUSY,
+        "CREATING": DatabaseInstanceStatus.BUSY,
+        "MIGRATING": DatabaseInstanceStatus.BUSY,
+        "PENDING": DatabaseInstanceStatus.BUSY,
+        "RESTARTING": DatabaseInstanceStatus.BUSY,
+        "RESIZING": DatabaseInstanceStatus.BUSY,
+    }
+    result = mapping.get(db_status.upper(), DatabaseInstanceStatus.UNKNOWN)
+    return result
