@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Union, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Union, Any
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -222,6 +222,17 @@ class AwsApiGatewayResource(AwsResource):
             resourceId=self.id,
         )
         return True
+
+    def _keys(self) -> Tuple[Any, ...]:
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.api_link,
+        )
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
