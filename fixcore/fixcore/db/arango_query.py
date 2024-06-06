@@ -15,7 +15,7 @@ from fixcore.db.arango_query_rewrite import rewrite_query
 from fixcore.db.arangodb_functions import as_arangodb_function
 from fixcore.db.model import QueryModel
 from fixcore.model.graph_access import Section, Direction
-from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath
+from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath, array_index_re
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import (
     Predicate,
@@ -43,7 +43,8 @@ from fixcore.query.model import (
     ContextTerm,
     WithUsage,
 )
-from fixcore.util import set_value_in_path, exist, utc_str
+from fixcore.types import JsonElement
+from fixcore.util import set_value_in_path, exist, utc_str, combine_optional
 from fixlib.durations import duration_str
 
 log = logging.getLogger(__name__)
@@ -106,10 +107,13 @@ class ArangoQueryContext:
 def graph_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
-    start = f"`{db.graph_vertex_name()}`"
-    cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column="_key")
+    start = f"`{db.graph_vertex_name()}_view`"
+    cursor, query_str = query_view_string(db, query, query_model, start, with_edges, ctx)
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
-    return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
+    return (
+        f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip(),
+        ctx.bind_vars,
+    )
 
 
 def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
@@ -119,6 +123,124 @@ def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
     cursor, query_str = query_string(db, query, query_model, start, False, ctx, id_column="id")
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
+
+
+def query_view_string(
+    db: Any,
+    query: Query,
+    query_model: QueryModel,
+    start_cursor: str,
+    with_edges: bool,
+    ctx: ArangoQueryContext,
+) -> Tuple[str, str]:
+    part = query.first_part
+    crs = ctx.next_crs("v")
+
+    def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
+        # TODO: check regex to see if we can use like instead of regex
+        if p.op == "=~":  # regex is not supported in the view search
+            return None, p
+
+        # resolve property name and kind
+        prop_name_maybe_arr, prop, _ = prop_name_kind(query_model, p.name)
+        prop_name = array_index_re.sub("", prop_name_maybe_arr)
+        var_name = f"{crs}.{prop_name}"
+        exhaustive = prop_name_maybe_arr == prop_name  # mark if this predicate is backed by the view exhaustively
+
+        # coerce value
+        op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
+        if op in ["in", "not in"] and isinstance(p.value, list):
+            value: JsonElement = [prop.kind.coerce(a, array_creation=False) for a in p.value]
+        else:
+            value = prop.kind.coerce(p.value, array_creation=False)
+
+        # handle special cases
+        p_term: Optional[str] = None
+        if op == "==" and value is None:
+            p_term = f"NOT EXISTS({var_name})"
+        elif op == "!=" and value is None:
+            p_term = f"EXISTS({var_name})"
+        elif op == "==" and isinstance(value, list):
+            p_term = f"{var_name} IN @{ctx.add_bind_var(value)}"
+            exhaustive = False
+        elif op not in ("in", "not_in") and isinstance(value, (list, dict)):
+            exhaustive = False
+        else:
+            p_term = f"{var_name} {op} @{ctx.add_bind_var(value)}"
+            p_term = f"(EXISTS({var_name}) and {p_term})" if op in arangodb_matches_null_ops else p_term
+        return p_term, AllTerm() if exhaustive else p
+
+    def view_term(term: Term) -> Tuple[Optional[str], Term]:
+        if isinstance(term, MergeTerm):
+            sp, pre = view_term(term.pre_filter)
+            return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
+        elif isinstance(term, NotTerm):
+            sp, nt = view_term(term.term)
+            return (None, term) if sp is None else (f"NOT ({sp})", nt)
+        elif isinstance(term, ContextTerm):
+            # context terms cannot be handled by the view search exhaustively
+            # we filter the list down as much as possible, but leave the context term untouched
+            sp, _ = view_term(term.predicate_term())
+            return sp, term
+        elif isinstance(term, IdTerm):
+            if len(term.ids) == 1:
+                sp = f"{crs}._key == @{ctx.add_bind_var(term.ids[0])}"
+            else:
+                sp = f"{crs}._key in @{ctx.add_bind_var(term.ids)}"
+            return sp, AllTerm()
+        elif isinstance(term, IsTerm):
+            if len(term.kinds) == 1:
+                sp = f"{crs}.kinds == @{ctx.add_bind_var(term.kinds[0])}"
+            else:
+                sp = f"{crs}.kinds in @{ctx.add_bind_var(term.kinds)}"
+            return sp, AllTerm()
+        elif isinstance(term, FulltextTerm):
+            # TODO: how can we sort using BM25?
+            sp = f'ANALYZER(PHRASE({crs}.flat, @{ctx.add_bind_var(term.text)}), "delimited")'
+            return sp, AllTerm()
+        elif isinstance(term, CombinedTerm):
+            lsp, lt = view_term(term.left)
+            rsp, rt = view_term(term.right)
+            return combine_optional(lsp, rsp, lambda ll, rr: f"({ll} {term.op} {rr})"), lt.combine(term.op, rt)
+        elif isinstance(term, Predicate):
+            return predicate_term(term)
+        else:
+            return None, term
+
+    # rewrite the query by removing all filters that are covered by the view search
+    search_part, term = view_term(part.term)
+    qs = ""
+    if search_part:
+        query = evolve(query, parts=query.parts[:-1] + [evolve(part, term=term)])
+        nxt = ctx.next_crs("view")
+        qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part} RETURN {crs}) "
+        start_cursor = nxt
+    cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx)
+    return cursor, qs + query_str
+
+
+def prop_name_kind(
+    query_model: QueryModel, path: str, context_path: Optional[str] = None
+) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
+    local_path = f"{context_path}.{path}" if context_path else path
+    resolved, merge_name = query_model.prop_kind(local_path)
+
+    def synthetic_path(synth: SyntheticProperty) -> str:
+        before, after = local_path.rsplit(resolved.prop.name, 1)
+        return f'{before}{".".join(synth.path)}{after}'
+
+    def escape_part(path_part: str) -> str:
+        return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
+
+    prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else local_path
+
+    # remove the context from the path
+    if context_path and prop_name.startswith(context_path):
+        prop_name = prop_name[len(context_path) + 1 :]
+    # make sure the path does not contain any aql keywords
+    prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
+
+    return prop_name, resolved, merge_name
 
 
 def query_string(
@@ -135,29 +257,6 @@ def query_string(
     # Note: the parts are maintained in reverse order
     query_parts = query.parts[::-1]
     model = query_model.model
-
-    def prop_name_kind(
-        path: str, context_path: Optional[str] = None
-    ) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
-        local_path = f"{context_path}.{path}" if context_path else path
-        resolved, merge_name = query_model.prop_kind(local_path)
-
-        def synthetic_path(synth: SyntheticProperty) -> str:
-            before, after = local_path.rsplit(resolved.prop.name, 1)
-            return f'{before}{".".join(synth.path)}{after}'
-
-        def escape_part(path_part: str) -> str:
-            return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
-
-        prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else local_path
-
-        # remove the context from the path
-        if context_path and prop_name.startswith(context_path):
-            prop_name = prop_name[len(context_path) + 1 :]
-        # make sure the path does not contain any aql keywords
-        prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
-
-        return prop_name, resolved, merge_name
 
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
         cursor_lookup: Dict[Tuple[str, ...], str] = {}
@@ -287,7 +386,7 @@ def query_string(
             extra = " any "
             path = p.name.replace("[]", "[*]")
 
-        prop_name, prop, _ = prop_name_kind(path, context_path)
+        prop_name, prop, _ = prop_name_kind(query_model, path, context_path)
 
         # nested prop access needs to be unfolded via separate for loops: a.b[*].c[*].d
         ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(prop_name)]
@@ -732,7 +831,7 @@ def query_string(
 
     def sort(cursor: str, so: List[Sort]) -> str:
         def single_sort(single: Sort) -> str:
-            prop_name, resolved, _ = prop_name_kind(single.name)
+            prop_name, resolved, _ = prop_name_kind(query_model, single.name)
             order = SortOrder.reverse(single.order) if resolved.simple_kind.reverse_order else single.order
             return f"{cursor}.{prop_name} {order}"
 

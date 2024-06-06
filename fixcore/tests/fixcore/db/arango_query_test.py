@@ -374,3 +374,22 @@ def test_load_time_series() -> None:
         "SORT group_slot RETURN {at: group_slot,group: { a: group_a, b: group_b }, v: agg_val}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 800}
+
+
+def test_view(foo_model: Model, graph_db: GraphDB) -> None:
+    def assert_view(query: str, expected: str) -> None:
+        q, _ = graph_query(graph_db, QueryModel(parse_query(query), foo_model))
+        assert q == expected
+
+    # all reads plain from the view: no search and no filter
+    assert_view("all", 'FOR result in `ns_view` RETURN UNSET(result, ["flat"])')
+    # read only from view
+    assert_view("is(foo)", 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.kinds == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+    # read only from view via phrase
+    assert_view('"test"', 'LET view0 = (FOR v0 in `ns_view` SEARCH ANALYZER(PHRASE(v0.flat, @b0), "delimited") RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+    # read only from view via property
+    assert_view("name==123", 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+    # cannot use search but needs filter
+    assert_view("name=~123", 'LET filter0 = (FOR m0 in `ns_view` FILTER (m0.name!=null and REGEX_TEST(m0.name, @b0, true))  RETURN m0) FOR result in filter0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+    # use search to select the documents, but needs filter for array handling
+    assert_view("name[*].foo[*].bla=12", 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name.foo.bla == @b0 RETURN v0) LET filter0 = (LET nested_distinct0 = (FOR m0 in view0  FOR pre0 IN APPEND(TO_ARRAY(m0.name), {_internal: true}) FOR pre1 IN APPEND(TO_ARRAY(pre0.foo), {_internal: true}) FILTER pre1.bla == @b1 AND (pre0._internal!=true AND pre1._internal!=true) RETURN DISTINCT m0) FOR m1 in nested_distinct0  RETURN m1) FOR result in filter0 RETURN UNSET(result, ["flat"])')  # fmt: skip
