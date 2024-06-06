@@ -104,15 +104,20 @@ class ArangoQueryContext:
         return bvn
 
 
-def graph_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+def graph_query(
+    db: Any, query_model: QueryModel, with_edges: bool = False, *, consistent: Optional[bool] = None
+) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
     start = f"`{db.graph_vertex_name()}_view`"
-    cursor, query_str = query_view_string(db, query, query_model, start, with_edges, ctx)
+    cursor, query_str = (
+        query_string(db, query, query_model, start, with_edges, ctx)
+        if consistent
+        else query_view_string(db, query, query_model, start, with_edges, ctx)
+    )
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     final = f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip()
-    print(f"\n-----\n{final}\n-----\n")
-    return (final, ctx.bind_vars)
+    return final, ctx.bind_vars
 
 
 def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
@@ -269,7 +274,8 @@ def query_string(
             as_name = a.group_func[0].get_as_name()
             return (
                 "aggregated",
-                f"LET aggregated = (FOR {crs} in {in_cursor} COLLECT WITH COUNT INTO agg_count RETURN {{{as_name}: agg_count}})",
+                f"LET aggregated = (FOR {crs} in {in_cursor} "
+                f"COLLECT WITH COUNT INTO agg_count RETURN {{{as_name}: agg_count}})",
             )
         cursor_lookup: Dict[Tuple[str, ...], str] = {}
         nested_function_lookup: Dict[AggregateFunction, str] = {}

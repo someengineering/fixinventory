@@ -200,7 +200,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
@@ -210,7 +210,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
@@ -223,7 +223,7 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -711,7 +711,7 @@ class ArangoGraphDB(GraphDB):
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        q_string, bind = await self.to_query(query)
+        q_string, bind = await self.to_query(query, consistent=kwargs.get("consistent"))
         return await self.db.aql_cursor(
             query=q_string,
             trafo=None if kwargs.get("no_trafo") else self.document_to_instance_fn(query.model, query),
@@ -770,10 +770,10 @@ class ArangoGraphDB(GraphDB):
         )
 
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        query_string, bind = await self.to_query(query, with_edges=True)
+        query_string, bind = await self.to_query(query, with_edges=True, consistent=kwargs.get("consistent"))
         return await self.db.aql_cursor(
             query=query_string,
             trafo=self.document_to_instance_fn(query.model, query),
@@ -797,9 +797,9 @@ class ArangoGraphDB(GraphDB):
             return graph
 
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        q_string, bind = await self.to_query(query)
+        q_string, bind = await self.to_query(query, consistent=kwargs.get("consistent"))
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(
             query=q_string,
@@ -1262,8 +1262,8 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return arango_query.graph_query(self, query_model, with_edges)
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
+        return arango_query.graph_query(self, query_model, with_edges, consistent=kwargs.get("consistent"))
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
@@ -1835,14 +1835,14 @@ class EventGraphDB(GraphDB):
         return await self.real.search_history(query, changes, before, after, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        return await self.real.search_graph_gen(query, with_count, timeout)
+        return await self.real.search_graph_gen(query, with_count, timeout, **kwargs)
 
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        return await self.real.search_aggregation(query, with_count, timeout)
+        return await self.real.search_aggregation(query, with_count, timeout, **kwargs)
 
     async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         return await self.real.search_graph(query)
@@ -1854,8 +1854,8 @@ class EventGraphDB(GraphDB):
         await self.real.wipe()
         await self.event_sender.core_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return await self.real.to_query(query_model, with_edges)
+    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
+        return await self.real.to_query(query_model, with_edges, **kwargs)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()

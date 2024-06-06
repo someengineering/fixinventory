@@ -1464,37 +1464,35 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
 
             return db_access.get_graph_db(graph_name), graph_name
 
-        async def load_query_model(db: GraphDB, graph_name: GraphName) -> QueryModel:
+        async def load_query_model(graph_name: GraphName) -> QueryModel:
             model = await self.dependencies.model_handler.load_model(graph_name)
-            query_model = QueryModel(query, model, ctx.env)
-            await db.to_query(query_model)  # only here to validate the query itself (can throw)
-            return query_model
+            return QueryModel(query, model, ctx.env)
 
         async def explain_search() -> AsyncIterator[Json]:
             db, graph_name = await get_db(at, current_graph_name)
-            query_model = await load_query_model(db, graph_name)
+            query_model = await load_query_model(graph_name)
             explanation = await db.explain(query_model, with_edges)
             yield to_js(explanation)
 
         async def prepare() -> Tuple[CLISourceContext, AsyncIterator[Json]]:
             db, graph_name = await get_db(at, current_graph_name)
 
-            query_model = await load_query_model(db, graph_name)
+            query_model = await load_query_model(graph_name)
             count = ctx.env.get("count", "true").lower() != "false"
             timeout = if_set(ctx.env.get("search_timeout"), duration)
+            consistent = ctx.env.get("consistent")
+            search_args = dict(with_count=count, timeout=timeout, consistent=consistent)
             if history:
                 before = if_set(parsed.get("before"), lambda x: parse_time_or_delta(strip_quotes(x)))
                 after = if_set(parsed.get("after"), lambda x: parse_time_or_delta(strip_quotes(x)))
                 changes = [HistoryChange[strip_quotes(x)] for x in parsed.get("change", [])]
-                context = await db.search_history(
-                    query_model, changes, before, after, with_count=count, timeout=timeout
-                )
+                context = await db.search_history(query_model, changes, before, after, **search_args)
             elif query.aggregate:
-                context = await db.search_aggregation(query_model, with_count=count, timeout=timeout)
+                context = await db.search_aggregation(query_model, **search_args)
             elif with_edges:
-                context = await db.search_graph_gen(query_model, with_count=count, timeout=timeout)
+                context = await db.search_graph_gen(query_model, **search_args)
             else:
-                context = await db.search_list(query_model, with_count=count, timeout=timeout)
+                context = await db.search_list(query_model, **search_args)
             cursor = context.cursor
 
             # since we can not use context boundaries here,
