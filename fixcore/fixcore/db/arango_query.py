@@ -110,10 +110,9 @@ def graph_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> T
     start = f"`{db.graph_vertex_name()}_view`"
     cursor, query_str = query_view_string(db, query, query_model, start, with_edges, ctx)
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
-    return (
-        f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip(),
-        ctx.bind_vars,
-    )
+    final = f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip()
+    print(f"\n-----\n{final}\n-----\n")
+    return (final, ctx.bind_vars)
 
 
 def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
@@ -259,6 +258,19 @@ def query_string(
     model = query_model.model
 
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
+        # shortcut for simple count queries
+        if (
+            not a.group_by
+            and len(a.group_func) == 1
+            and a.group_func[0].function == "sum"
+            and a.group_func[0].name == 1
+        ):
+            crs = ctx.next_crs("agg")
+            as_name = a.group_func[0].get_as_name()
+            return (
+                "aggregated",
+                f"LET aggregated = (FOR {crs} in {in_cursor} COLLECT WITH COUNT INTO agg_count RETURN {{{as_name}: agg_count}})",
+            )
         cursor_lookup: Dict[Tuple[str, ...], str] = {}
         nested_function_lookup: Dict[AggregateFunction, str] = {}
         nested = {name for agg in a.group_by for name in agg.all_names() if array_marker.search(name)}
@@ -604,7 +616,8 @@ def query_string(
         last_part = len(query.parts) == (part_idx + 1)
 
         def filter_statement(current_cursor: str, part_term: Term, limit: Optional[Limit]) -> str:
-            if isinstance(part_term, AllTerm) and limit is None and not p.sort:
+            need_sort = p.sort and not query.aggregate
+            if isinstance(part_term, AllTerm) and limit is None and not need_sort:
                 return current_cursor
             nonlocal query_part, filtered_out
             crsr = ctx.next_crs()
@@ -620,10 +633,10 @@ def query_string(
                 nested_distinct = ctx.next_crs("nested_distinct")
                 for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
                 crsr = ctx.next_crs()
-                sort_by = sort(crsr, p.sort) if p.sort else " "
+                sort_by = sort(crsr, p.sort) if need_sort else " "
                 for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited}"
             else:
-                sort_by = sort(crsr, p.sort) if p.sort else " "
+                sort_by = sort(crsr, p.sort) if need_sort else " "
                 for_stmt = f"{for_stmt}{sort_by}{limited}"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             return_stmt = f"RETURN {f_res}"
