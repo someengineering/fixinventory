@@ -1377,8 +1377,8 @@ class ArangoGraphDB(GraphDB):
             return db.collection(name) if await db.has_collection(name) else await db.create_collection(name)
 
         async def create_update_views(nodes: VertexCollection) -> None:
-            name = f"search_{nodes.name}"
-            prop = "flat"  # only the flat property is indexes
+            name = f"{nodes.name}_view"
+            prop = "flat"  # this property holds all values flattened
 
             # make sure the delimited analyzer exists
             try:
@@ -1401,13 +1401,35 @@ class ArangoGraphDB(GraphDB):
                 )
 
             views = {view["name"]: view for view in await db.views()}
+            # TODO: remove the view if it exists
+            if False and f"search_{nodes.name}" in views:  # pylint: disable=condition-evals-to-constant
+                await db.delete_view(name)
             if name not in views:
                 await db.create_view(
                     name,
                     "arangosearch",
                     {
-                        "links": {nodes.name: {"fields": {prop: {"analyzers": ["delimited"]}}}},
-                        "primarySort": [{"field": prop, "direction": "desc"}],
+                        "writebufferSizeMax": 128 * 1024 * 1024,  # 128MiB, default is 32MiB
+                        "links": {
+                            nodes.name: {
+                                # this analyzer does not change the original value and is used for all props except flat
+                                "analyzers": ["identity"],
+                                # use above pipeline to process this prop for fulltext searches
+                                "fields": {prop: {"analyzers": ["delimited"]}},
+                                # include all fields in the view, using the identity analyzer
+                                "includeAllFields": True,
+                                # we want to ask for the existence of a field, so we need to store id information
+                                "storeValues": "id",
+                                # the position of the array should be ignored
+                                "trackListPositions": False,
+                            }
+                        },
+                        "primarySort": [  # reflect the default sort order of the CLI (see DefaultSort)
+                            {"field": "reported.kind", "direction": "asc"},
+                            {"field": "reported.name", "direction": "asc"},
+                            {"field": "reported.id", "direction": "asc"},
+                        ],
+                        "primarySortCompression": "lz4",
                         "inBackground": True,  # note: this setting only applies when the view is created
                     },
                 )
