@@ -3,7 +3,14 @@ from datetime import timedelta, datetime
 import pytest
 
 from fixcore.db import EstimatedSearchCost, EstimatedQueryCostRating
-from fixcore.db.arango_query import to_query, query_cost, fulltext_term_combine, possible_values, load_time_series
+from fixcore.db.arango_query import (
+    graph_query,
+    query_cost,
+    fulltext_term_combine,
+    possible_values,
+    load_time_series,
+    history_query,
+)
 from fixcore.db.graphdb import GraphDB
 from fixcore.db.model import QueryModel
 from fixcore.model.model import Model
@@ -13,7 +20,7 @@ from fixcore.query.query_parser import parse_query, predicate_term
 
 def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> None:
     def check_sort_in_query(q: Query, expected_sort: str) -> None:
-        query_str, _ = to_query(graph_db, QueryModel(q, foo_model))
+        query_str, _ = graph_query(graph_db, QueryModel(q, foo_model))
         assert f"SORT {expected_sort}" in query_str, f"Expected {expected_sort} in {query_str}"
 
     check_sort_in_query(Query.by("foo").add_sort(Sort("reported.age")), "m0.reported.ctime desc")
@@ -46,11 +53,11 @@ async def test_query_cost(foo_model: Model, graph_db: GraphDB) -> None:
 
 
 def test_id_term(foo_model: Model, graph_db: GraphDB) -> None:
-    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id("1234")), foo_model))
+    q, _ = graph_query(graph_db, QueryModel(Query.by(P.with_id("1234")), foo_model))
     assert "m0._key == @b0" in q
-    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model))
+    q, _ = graph_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model))
     assert "m0._key in @b0" in q
-    q, _ = to_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model), id_column="id")
+    q, _ = history_query(graph_db, QueryModel(Query.by(P.with_id(["1", "2", "3"])), foo_model))
     assert "m0.id in @b0" in q
 
 
@@ -72,7 +79,7 @@ def test_fulltext_term() -> None:
 
 def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
     def query_string(query: str) -> str:
-        query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
+        query_str, _ = graph_query(graph_db, QueryModel(parse_query(query), foo_model))
         return query_str
 
     single_ft_index = (
@@ -91,20 +98,20 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
 
 def test_ancestors_kind_lookup(foo_model: Model, graph_db: GraphDB) -> None:
     # 1234 is coerced to a string
-    _, bv = to_query(graph_db, QueryModel(parse_query("ancestors.account.reported.name==1234"), foo_model))
+    _, bv = graph_query(graph_db, QueryModel(parse_query("ancestors.account.reported.name==1234"), foo_model))
     assert bv["b0"] == "1234"
 
 
 def test_escape_property_path(foo_model: Model, graph_db: GraphDB) -> None:
     raw = "metadata.replace.with.filter.sort.bla==true"
-    query = to_query(graph_db, QueryModel(parse_query(raw), foo_model))[0]
+    query = graph_query(graph_db, QueryModel(parse_query(raw), foo_model))[0]
     # aql keywords are escaped with backslashes
     assert "m0.metadata.`replace`.`with`.`filter`.`sort`.bla" in query
 
 
 def test_with_query_with_limit(foo_model: Model, graph_db: GraphDB) -> None:
     query = "is(foo) with(empty, -->) limit 2"
-    query_str, _ = to_query(graph_db, QueryModel(parse_query(query), foo_model))
+    query_str, _ = graph_query(graph_db, QueryModel(parse_query(query), foo_model))
     # make sure, there is no limit in the filter statement
     assert "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0)" in query_str
     # the limit is not applied to the with statement, but on the final for loop
@@ -113,7 +120,7 @@ def test_with_query_with_limit(foo_model: Model, graph_db: GraphDB) -> None:
 
 def test_context(foo_model: Model, graph_db: GraphDB) -> None:
     query = 'is(foo) and nested[*].{name=true and inner[*].{name=true}} and parents[*].{some_int="23"}'
-    aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
+    aql, bind_vars = graph_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     # query unfolds all nested loops
     assert aql == (
         "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  "
@@ -132,7 +139,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
     assert bind_vars["b3"] == 23  # 23 is coerced to an int
 
     query = 'is(foo) and not nested[*].{name=true and not inner[*].{name=true}} and not parents[*].{some_int="23"}'
-    aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
+    aql, bind_vars = graph_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     assert aql == (
         "LET filter0 = (LET nested_distinct0 = (FOR m0 in `ns`  "
         "FOR pre0 IN APPEND(TO_ARRAY(m0.reported.nested), {_internal: true}) "
@@ -148,7 +155,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
 
     # fixed index works as well
     query = "is(foo) and inner[1].{name=true and inner[0].name==true}"
-    aql, bind_vars = to_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
+    aql, bind_vars = graph_query(graph_db, QueryModel(parse_query(query).on_section("reported"), foo_model))
     assert aql == (
         "LET filter0 = (FOR m0 in `ns` FILTER (@b0 IN m0.kinds) and "
         "((m0.reported.inner[1].name == @b1) and (m0.reported.inner[1].inner[0].name == @b2))  RETURN m0) "
@@ -157,7 +164,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
 
 
 def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
-    q, b = to_query(graph_db, QueryModel(parse_query("with_usage(3w, cpu, mem) is(foo)"), foo_model))
+    q, b = graph_query(graph_db, QueryModel(parse_query("with_usage(3w, cpu, mem) is(foo)"), foo_model))
     assert q == (
         "LET filter0 = (FOR m0 in `ns` FILTER @b0 IN m0.kinds  RETURN m0)\n"
         "let with_usage0 = (\n"
@@ -176,10 +183,10 @@ def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
 
 
 def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
-    q, _ = to_query(graph_db, QueryModel(parse_query("aggregate(name: max(num)): is(foo)"), foo_model))
+    q, _ = graph_query(graph_db, QueryModel(parse_query("aggregate(name: max(num)): is(foo)"), foo_model))
     assert "collect var_0=agg0.name aggregate fn_0=max(agg0.num)" in q
     # aggregate vars get expanded
-    q, _ = to_query(graph_db, QueryModel(parse_query("aggregate(name, a[*].b[*].c: max(num)): is(foo)"), foo_model))
+    q, _ = graph_query(graph_db, QueryModel(parse_query("aggregate(name, a[*].b[*].c: max(num)): is(foo)"), foo_model))
     assert (
         "for agg0 in filter0 FOR pre0 IN APPEND(TO_ARRAY(agg0.a), {_internal: true}) "
         "FOR pre1 IN APPEND(TO_ARRAY(pre0.b), {_internal: true}) "
@@ -188,7 +195,7 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         "aggregate fn_0=max(agg0.num) "
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0}' in q
     )
-    q, _ = to_query(
+    q, _ = graph_query(
         graph_db,
         QueryModel(parse_query("aggregate(name: max(num), min(a[*].x), sum(a[*].b[*].d)): is(foo)"), foo_model),
     )
@@ -202,7 +209,7 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         'RETURN {"group":{"name": var_0}, "max_of_num": fn_0, '
         '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
-    q, _ = to_query(
+    q, _ = graph_query(
         graph_db,
         QueryModel(parse_query("aggregate(name, a[*].c: max(num), min(a[*].x), sum(a[*].b[*].d)): is(foo)"), foo_model),
     )
@@ -216,7 +223,7 @@ def test_aggregation(foo_model: Model, graph_db: GraphDB) -> None:
         'RETURN {"group":{"name": var_0, "c": var_1}, "max_of_num": fn_0, '
         '"min_of_a_x": fn_1, "sum_of_a_b_d": fn_2}' in q
     )
-    q, _ = to_query(
+    q, _ = graph_query(
         graph_db,
         QueryModel(parse_query("aggregate(name, a[*].b[*]: max(num)): is(foo)"), foo_model),
     )

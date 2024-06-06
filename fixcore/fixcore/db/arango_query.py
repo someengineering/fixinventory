@@ -103,17 +103,20 @@ class ArangoQueryContext:
         return bvn
 
 
-def to_query(
-    db: Any,
-    query_model: QueryModel,
-    with_edges: bool = False,
-    from_collection: Optional[str] = None,
-    id_column: str = "_key",
-) -> Tuple[str, Json]:
+def graph_query(db: Any, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
-    start = from_collection or f"`{db.graph_vertex_name()}`"
-    cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
+    start = f"`{db.graph_vertex_name()}`"
+    cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column="_key")
+    last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
+    return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
+
+
+def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
+    ctx = ArangoQueryContext()
+    query = rewrite_query(query_model)
+    start = f"`{db.name}_node_history`"
+    cursor, query_str = query_string(db, query, query_model, start, False, ctx, id_column="id")
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
 
@@ -933,7 +936,7 @@ def load_time_series(
 
 
 async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedSearchCost:
-    q_string, bind = to_query(graph_db, model, with_edges=with_edges)
+    q_string, bind = graph_query(graph_db, model, with_edges=with_edges)
     nr_nodes = await graph_db.db.count(graph_db.vertex_name)
     plan = await graph_db.db.explain(query=q_string, bind_vars=bind)
     full_collection_scan = exist(lambda node: node["type"] == "EnumerateCollectionNode", plan["nodes"])

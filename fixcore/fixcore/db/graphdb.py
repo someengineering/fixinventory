@@ -747,7 +747,7 @@ class ArangoGraphDB(GraphDB):
         if before:
             term = term.and_term(P.single("changed_at").lt(utc_str(before)))
         query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
-        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history, id_column="id")
+        q_string, bind = arango_query.history_query(self, query)
         trafo = (
             None
             if query.query.aggregate
@@ -1263,7 +1263,7 @@ class ArangoGraphDB(GraphDB):
         await self.delete_marked_update(batch_id)
 
     async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return arango_query.to_query(self, query_model, with_edges)
+        return arango_query.graph_query(self, query_model, with_edges)
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
