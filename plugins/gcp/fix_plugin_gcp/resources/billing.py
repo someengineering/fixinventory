@@ -371,4 +371,4 @@ class GcpSku(GcpResource):
                 self.usage_unit_nanos = cost
 
 
-resources = [GcpBillingAccount, GcpService]
+resources: List[Type[GcpResource]] = [GcpBillingAccount, GcpService]

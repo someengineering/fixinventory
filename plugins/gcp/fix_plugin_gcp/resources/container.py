@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -1355,4 +1355,4 @@ class GcpContainerOperation(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpContainerCluster, link=self.target_link)
 
 
-resources = [GcpContainerCluster, GcpContainerOperation]
+resources: List[Type[GcpResource]] = [GcpContainerCluster, GcpContainerOperation]

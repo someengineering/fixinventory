@@ -14,11 +14,11 @@ def test_rds_instances() -> None:
 
 
 def test_rds_cluster() -> None:
-    round_trip_for(AwsRdsCluster)
+    round_trip_for(AwsRdsCluster, "volume_size")
 
 
 def test_rds_snapshots() -> None:
-    first, _ = round_trip_for(AwsRdsSnapshot, "description", "volume_id", "owner_id", "owner_alias")
+    first, _ = round_trip_for(AwsRdsSnapshot, "volume_size", "description", "volume_id", "owner_id", "owner_alias")
     first.rds_attributes = {"foo": ["foo", "foo", "foo"]}
 
 

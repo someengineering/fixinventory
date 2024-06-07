@@ -31,7 +31,7 @@ from fix_plugin_digitalocean.resources import (
     DigitalOceanAlertPolicy,
     DigitalOceanDropletNeighborhood,
 )
-from fixlib.baseresources import Cloud, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
+from fixlib.baseresources import Cloud, DatabaseInstanceStatus, EdgeType, GraphRoot, InstanceStatus, VolumeStatus
 from fixlib.core.actions import CoreFeedback
 from fixlib.utils import utc
 from fixlib.graph import Graph
@@ -291,7 +291,7 @@ def test_collect_database() -> None:
     assert database.urn == "do:dbaas:2848a998-e151-4d5a-9813-0904a44c2397"
     assert database.name == "do:dbaas:db-postgresql-fra1-82725"
     assert database.db_type == "pg"
-    assert database.db_status == "online"
+    assert database.db_status == DatabaseInstanceStatus.AVAILABLE
     assert database.db_version == "14"
     assert database.db_endpoint == "host.b.db.ondigitalocean.com"
     assert database.region().urn == "do:region:fra1"  # type: ignore

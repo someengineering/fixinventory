@@ -225,6 +225,7 @@ def roundtrip(
     global Overrides
     Overrides = overrides or {}
     resource_clazz.collect_resources(builder)
+    builder.executor.wait_for_submitted_work()
     json_roundtrip(resource_clazz, builder)
     # connect all nodes
     for node, data in builder.graph.nodes(data=True):
