@@ -1,6 +1,6 @@
 import time
 from functools import wraps
-from typing import Optional, Any, TypeVar, Callable, cast, Mapping
+from typing import Optional, Any, TypeVar, Callable, cast, Mapping, Union
 from fixlib.utils import iec_size_format
 
 
@@ -25,7 +25,7 @@ class Benchmark:
         self.last_byte_at: Optional[float] = None
         self.time_to_first_byte: Optional[float] = None
         self.time_to_last_byte: Optional[float] = None
-        self.query_stats: Optional[str] = None
+        self.query_stats: Optional[Mapping[str, Union[str, int, float]]] = None
         self.tty_columns: int = 80
         self.tty_rows: int = 20
 
@@ -83,7 +83,7 @@ class Benchmark:
                     "Index-based document scans": f"{self.query_stats.get('scanned_index', 0)}",
                     "Full document scans": f"{self.query_stats.get('scanned_full', 0)}",
                     "Database execution time": f"{self.query_stats.get('execution_time', 0) * 1000:.1f} ms",
-                    "Peak DB memory usage": f"{iec_size_format(self.query_stats.get('peak_memory_usage', 0))}",
+                    "Peak DB memory usage": f"{iec_size_format(float(self.query_stats.get('peak_memory_usage', 0.0)))}",
                     "Index lookup cursors created": f"{self.query_stats.get('cursorsCreated', 0)}",
                     "Existing cursors repurposed": f"{self.query_stats.get('cursorsRearmed', 0)}",
                     "Cache hits": f"{self.query_stats.get('cacheHits', 0)}",
@@ -92,9 +92,7 @@ class Benchmark:
             )
         max_item_width = max(len(f"| {key}: {value} ") for key, value in data.items())
         columns = max(1, self.tty_columns // max_item_width)
-        if columns > len(data):
-            columns = len(data)
-        rows = len(data) // columns + 1
+        columns = min(columns, len(data))
         column_width = self.tty_columns // columns
 
         lines = []
@@ -119,7 +117,7 @@ class Benchmark:
         print_fn(message)
 
 
-def parse_metrics(input_string):
+def parse_metrics(input_string: Optional[str]) -> Mapping[str, Union[str, int, float]]:
     if not input_string or not str(input_string).strip():
         return {}
 
@@ -128,7 +126,7 @@ def parse_metrics(input_string):
     for pair in key_value_pairs:
         key, value = pair.split("=")
         try:
-            converted_value = int(value)
+            converted_value: Union[int, float, str] = int(value)
         except ValueError:
             try:
                 converted_value = float(value)

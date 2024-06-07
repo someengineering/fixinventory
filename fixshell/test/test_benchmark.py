@@ -1,7 +1,7 @@
 import pytest
+from typing import Mapping, Union
 from unittest.mock import patch
 from fixshell.benchmark import Benchmark, parse_metrics
-from typing import Any
 
 
 def test_benchmark_initial_state() -> None:
@@ -56,37 +56,37 @@ def test_last_byte_received(should_benchmark: bool) -> None:
             assert benchmark.time_to_last_byte is None
 
 
-def test_parse_metrics_integers():
+def test_parse_metrics_integers() -> None:
     input_str = "filtered=10, ignored=20"
     expected_output = {"filtered": 10, "ignored": 20}
     assert parse_metrics(input_str) == expected_output
 
 
-def test_parse_metrics_floats():
+def test_parse_metrics_floats() -> None:
     input_str = "execution_time=0.002, load_factor=0.75"
     expected_output = {"execution_time": 0.002, "load_factor": 0.75}
     assert parse_metrics(input_str) == expected_output
 
 
-def test_parse_metrics_non_numeric():
+def test_parse_metrics_non_numeric() -> None:
     input_str = "status=ok, mode=test"
     expected_output = {"status": "ok", "mode": "test"}
     assert parse_metrics(input_str) == expected_output
 
 
-def test_parse_metrics_mixed_types():
+def test_parse_metrics_mixed_types() -> None:
     input_str = "count=100, rate=0.95, status=active"
     expected_output = {"count": 100, "rate": 0.95, "status": "active"}
     assert parse_metrics(input_str) == expected_output
 
 
-def test_parse_metrics_empty_string():
+def test_parse_metrics_empty_string() -> None:
     input_str = ""
-    expected_output = {}
+    expected_output: Mapping[str, Union[str, float, int]] = {}
     assert parse_metrics(input_str) == expected_output
 
 
-def test_parse_metrics_special_characters():
+def test_parse_metrics_special_characters() -> None:
     input_str = "message=Hello World!, error=None"
     expected_output = {"message": "Hello World!", "error": "None"}
     assert parse_metrics(input_str) == expected_output
