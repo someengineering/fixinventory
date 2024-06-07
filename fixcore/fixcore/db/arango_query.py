@@ -119,6 +119,7 @@ def graph_query(
     )
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     final = f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip()
+    print(f"\n-----\nQuery   : {query}\nAQL     : {final}\nBindVars: {json.dumps(ctx.bind_vars)}\n-----\n")
     return final, ctx.bind_vars
 
 
@@ -142,6 +143,9 @@ def query_view_string(
     part = query.first_part
     crs = ctx.next_crs("v")
 
+    def empty_value(value: Any) -> bool:
+        return not value if isinstance(value, (list, dict)) else value is None
+
     def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
         # TODO: check regex to see if we can use like instead of regex
         if p.op == "=~":  # regex is not supported in the view search
@@ -151,7 +155,7 @@ def query_view_string(
         prop_name_maybe_arr, prop, _ = prop_name_kind(query_model, p.name)
         prop_name = array_index_re.sub("", prop_name_maybe_arr)
         var_name = f"{crs}.{prop_name}"
-        exhaustive = prop_name_maybe_arr == prop_name  # mark if this predicate is backed by the view exhaustively
+        exhaustive = True  # mark if this predicate is backed by the view exhaustively
 
         # coerce value
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
@@ -162,14 +166,21 @@ def query_view_string(
 
         # handle special cases
         p_term: Optional[str] = None
-        if op == "==" and value is None:
+        if (op == "==" and empty_value(value)) or (
+            op == "in" and isinstance(value, list) and all(empty_value(v) for v in value)
+        ):
             p_term = f"NOT EXISTS({var_name})"
-        elif op == "!=" and value is None:
+            exhaustive = False  # for the view: null and [] are not distinguishable
+        elif (op == "!=" and empty_value(value)) or (
+            op == "not in" and isinstance(value, list) and all(empty_value(v) for v in value)
+        ):
             p_term = f"EXISTS({var_name})"
         elif op == "==" and isinstance(value, list):
+            # the view cannot compare lists, but we can use the IN operator - still needs filtering
             p_term = f"{var_name} IN @{ctx.add_bind_var(value)}"
             exhaustive = False
         elif op not in ("in", "not_in") and isinstance(value, (list, dict)):
+            # the view is not able to compare lists or dicts -> we need to filter the results
             exhaustive = False
         else:
             p_term = f"{var_name} {op} @{ctx.add_bind_var(value)}"
@@ -217,7 +228,8 @@ def query_view_string(
     search_part, term = view_term(part.term)
     qs = ""
     if search_part:
-        query = evolve(query, parts=query.parts[:-1] + [evolve(part, term=term)])
+        part = evolve(part, term=term)
+        query = evolve(query, parts=query.parts[:-1] + [part])
         nxt = ctx.next_crs("view")
         qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part} RETURN {crs}) "
         start_cursor = nxt
@@ -769,11 +781,12 @@ def query_string(
             out = ctx.next_crs()
 
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
+            need_sort = p.sort and not query.aggregate
             query_part += (
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
                 + traversal_filter(clause, l0crsr, 1)
                 + collect_filter(clause, 1)
-                + (sort("l0_l0_res", p.sort) if p.sort else "")
+                + (sort("l0_l0_res", p.sort) if need_sort else "")
                 + limited
                 + "RETURN l0_l0_res) "
             )

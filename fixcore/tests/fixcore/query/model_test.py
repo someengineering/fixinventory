@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 from hypothesis import given, settings, HealthCheck
 
@@ -19,6 +21,7 @@ from fixcore.query.model import (
     NotTerm,
     FunctionTerm,
     Limit,
+    ContextTerm,
 )
 from fixcore.query.query_parser import parse_query
 from tests.fixcore.query import query
@@ -295,9 +298,13 @@ def test_term_contains() -> None:
 
 
 def test_context_predicates() -> None:
-    query: Query = parse_query("a.b[*].{ a=2 and b[1].bla=3 and c.d[*].{ e=4 and f=5 } }")
+    query: Query = parse_query("a.b[*].{ a=2 and b[1].bla=3 and c.d[*].{ e=4 or f=5 } }")
     expected = ["a.b[*].a", "a.b[*].b[1].bla", "a.b[*].c.d[*].e", "a.b[*].c.d[*].f"]
     assert [str(a.name) for a in query.visible_predicates] == expected
+    assert (
+        str(cast(ContextTerm, query.current_part.term).predicate_term())
+        == "((a.b[*].a == 2 and a.b[*].b[1].bla == 3) and (a.b[*].c.d[*].e == 4 or a.b[*].c.d[*].f == 5))"
+    )
 
 
 def test_merge_term_combination() -> None:

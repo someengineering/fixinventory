@@ -484,7 +484,7 @@ class ContextTerm(Term):
             else:
                 return term
 
-        return with_context(self.name, self)
+        return with_context(self.name, self.term)
 
     def visible_predicates(self) -> List[Predicate]:
         """
