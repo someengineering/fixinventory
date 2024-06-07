@@ -572,8 +572,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     lookup[vid] = volume
                     queries.append(
                         AwsCloudwatchQuery.create(
-                            name=MetricName.VolumeRead,
-                            metric_name="VolumeReadOps",
+                            metric_name=MetricName.VolumeRead,
+                            query_name="VolumeReadOps",
                             namespace="AWS/EBS",
                             period=delta,
                             ref_id=vid,
@@ -582,8 +582,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                     )
                     queries.append(
                         AwsCloudwatchQuery.create(
-                            name=MetricName.VolumeWrite,
-                            metric_name="VolumeWriteOps",
+                            metric_name=MetricName.VolumeWrite,
+                            query_name="VolumeWriteOps",
                             namespace="AWS/EBS",
                             period=delta,
                             ref_id=vid,
@@ -624,11 +624,11 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_sum(partial(bytes_to_megabytes_per_second, period=period)),
                     stat="Sum",
                     unit="Bytes",
@@ -643,11 +643,11 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
@@ -662,11 +662,11 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EBS",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.seconds_sum,
                     stat="Sum",
                     unit="Seconds",
@@ -681,12 +681,12 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="VolumeQueueLength",
+                    query_name="VolumeQueueLength",
                     namespace="AWS/EBS",
                     period=delta,
                     ref_id=self.id,
                     stat=stat,
-                    name=MetricName.VolumeQueueLength,
+                    metric_name=MetricName.VolumeQueueLength,
                     normalization=normalizer_factory.count,
                     unit="Count",
                     VolumeId=self.id,
@@ -1409,11 +1409,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="CPUUtilization",
+                    query_name="CPUUtilization",
                     namespace="AWS/EC2",
                     period=delta_since_last_scan,
                     ref_id=self.id,
-                    name=MetricName.CpuUtilization,
+                    metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
@@ -1425,11 +1425,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_sum(partial(bytes_to_megabits_per_second, period=period)),
                     stat="Sum",
                     unit="Bytes",
@@ -1442,11 +1442,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(lambda x: round(x / period.total_seconds(), 4)),
                     stat="Sum",
                     unit="Count",
@@ -1462,11 +1462,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.iops_sum(partial(operations_to_iops, period=period)),
                     stat="Sum",
                     unit="Count",
@@ -1482,11 +1482,11 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/EC2",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_sum(partial(bytes_to_megabytes_per_second, period=period)),
                     stat="Sum",
                     unit="Bytes",
@@ -2790,11 +2790,11 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/NATGateway",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
@@ -2818,11 +2818,11 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/NATGateway",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
@@ -3429,7 +3429,6 @@ class AwsEc2Image(AwsResource):
     ena_support: Optional[bool] = field(default=None, metadata={"description": "Specifies whether enhanced networking with ENA is enabled."})  # fmt: skip
     hypervisor: Optional[str] = field(default=None, metadata={"description": "The hypervisor type of the image. Only xen is supported. ovm is not supported."})  # fmt: skip
     image_owner_alias: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account alias (for example, amazon, self) or the Amazon Web Services account ID of the AMI owner."})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the AMI that was provided during image creation."})  # fmt: skip
     root_device_name: Optional[str] = field(default=None, metadata={"description": "The device name of the root device volume (for example, /dev/sda1)."})  # fmt: skip
     root_device_type: Optional[str] = field(default=None, metadata={"description": "The type of root device used by the AMI. The AMI can use an Amazon EBS volume or an instance store volume."})  # fmt: skip
     sriov_net_support: Optional[str] = field(default=None, metadata={"description": "Specifies whether enhanced networking with the Intel 82599 Virtual Function interface is enabled."})  # fmt: skip

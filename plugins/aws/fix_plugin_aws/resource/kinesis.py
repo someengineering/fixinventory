@@ -174,11 +174,11 @@ class AwsKinesisStream(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="GetRecords.Bytes",
+                    query_name="GetRecords.Bytes",
                     namespace="AWS/Kinesis",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.RecordsBytes,
+                    metric_name=MetricName.RecordsBytes,
                     normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",
@@ -190,11 +190,11 @@ class AwsKinesisStream(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="GetRecords.IteratorAgeMilliseconds",
+                    query_name="GetRecords.IteratorAgeMilliseconds",
                     namespace="AWS/Kinesis",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.RecordsIteratorAgeMilliseconds,
+                    metric_name=MetricName.RecordsIteratorAgeMilliseconds,
                     normalization=normalizer_factory.milliseconds,
                     stat=stat,
                     unit="Milliseconds",

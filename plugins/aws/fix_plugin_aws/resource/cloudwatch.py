@@ -2,7 +2,7 @@ from functools import cached_property, lru_cache
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any
+from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any, Union
 from concurrent.futures import as_completed
 
 from attr import define, field, frozen
@@ -418,15 +418,17 @@ class AwsCloudwatchMetricFilter(AwsResource):
         "id": S("filterName"),
         "name": S("filterName"),
         "ctime": S("creationTime") >> F(lambda x: x // 1000) >> SecondsFromEpochToDatetime(),
+        "log_group_name": S("logGroupName"),
         "filter_pattern": S("filterPattern"),
         "filter_transformations": S("metricTransformations", default=[])
         >> ForallBend(AwsCloudwatchMetricTransformation.mapping),
     }
+    log_group_name: Optional[str] = field(default=None)
     filter_pattern: Optional[str] = field(default=None)
     filter_transformations: List[AwsCloudwatchMetricTransformation] = field(factory=list)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if log_group_name := source.get("logGroupName"):
+        if log_group_name := self.log_group_name:
             builder.dependant_node(self, reverse=True, clazz=AwsCloudwatchLogGroup, name=log_group_name)
         for transformation in self.filter_transformations:
             # every metric can be used by multiple alarms
@@ -452,11 +454,22 @@ class AwsCloudwatchMetricFilter(AwsResource):
             return True
         return False
 
+    def _keys(self) -> Tuple[Any, ...]:
+        return (
+            self.kind,
+            self.cloud().id,
+            self.account().id,
+            self.region().id,
+            self.zone().id,
+            self.id,
+            self.log_group_name,
+        )
+
 
 @define(hash=True, frozen=True)
 class AwsCloudwatchQuery:
-    name: MetricName  # final name of the metric
-    metric_name: str  # name of the metric in cloudwatch
+    metric_name: Union[MetricName, str]  # final name of the metric
+    query_name: str  # name of the metric in cloudwatch
     namespace: str  # namespace of the metric in cloudwatch
     dimensions: Tuple[Tuple[str, str], ...]  # dimensions of the metric in cloudwatch
     period: timedelta  # period of the metric in cloudwatch
@@ -474,7 +487,7 @@ class AwsCloudwatchQuery:
             "MetricStat": {
                 "Metric": {
                     "Namespace": self.namespace,
-                    "MetricName": self.metric_name,
+                    "MetricName": self.query_name,
                     "Dimensions": [{"Name": k, "Value": v} for k, v in self.dimensions],
                 },
                 "Period": int((self.period.total_seconds() / 60) * 60),  # round to the next 60 seconds
@@ -487,11 +500,11 @@ class AwsCloudwatchQuery:
     @staticmethod
     def create(
         *,
-        metric_name: str,
+        query_name: str,
         namespace: str,
         period: timedelta,
         ref_id: str,
-        name: MetricName,
+        metric_name: Union[MetricName, str],
         normalization: Optional[MetricNormalization] = None,
         metric_id: Optional[str] = None,
         stat: str = "Sum",
@@ -501,11 +514,11 @@ class AwsCloudwatchQuery:
         **dimensions: str,
     ) -> "AwsCloudwatchQuery":
         dims = "_".join(f"{k}+{v}" for k, v in dimensions.items())
-        rid = metric_id or re.sub("\\W", "_", f"{metric_name}-{namespace}-{dims}-{stat}".lower())
+        rid = metric_id or re.sub("\\W", "_", f"{query_name}-{namespace}-{dims}-{stat}".lower())
         # noinspection PyTypeChecker
         return AwsCloudwatchQuery(
-            name=name,
             metric_name=metric_name,
+            query_name=query_name,
             namespace=namespace,
             period=period,
             dimensions=tuple(dimensions.items()),
@@ -694,7 +707,7 @@ def update_resource_metrics(
 
         for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
             try:
-                metric_name = query.name
+                metric_name = query.metric_name
                 if not metric_name:
                     continue
                 name = metric_name + "_" + normalizer.unit

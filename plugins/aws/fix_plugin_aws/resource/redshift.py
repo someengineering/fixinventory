@@ -575,11 +575,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="CPUUtilization",
+                    query_name="CPUUtilization",
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.CpuUtilization,
+                    metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
                     stat=stat,
                     unit="Percent",
@@ -591,11 +591,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="DatabaseConnections",
+                    query_name="DatabaseConnections",
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.DatabaseConnections,
+                    metric_name=MetricName.DatabaseConnections,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     unit="Count",
@@ -607,11 +607,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes_per_second,
                     stat=stat,
                     unit="Bytes/Second",
@@ -627,11 +627,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.iops,
                     stat=stat,
                     unit="Count/Second",
@@ -647,11 +647,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.seconds,
                     stat="Average",
                     unit="Seconds",
@@ -666,11 +666,11 @@ class AwsRedshiftCluster(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/Redshift",
                     period=delta,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.bytes,
                     stat="Average",
                     unit="Bytes",

@@ -98,11 +98,11 @@ class AwsSnsTopic(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name=name,
+                    query_name=name,
                     namespace="AWS/SNS",
                     period=period,
                     ref_id=self.id,
-                    name=metric_name,
+                    metric_name=metric_name,
                     normalization=normalizer_factory.count_sum(),
                     stat="Sum",
                     unit="Count",
@@ -118,11 +118,11 @@ class AwsSnsTopic(AwsResource):
         queries.extend(
             [
                 AwsCloudwatchQuery.create(
-                    metric_name="PublishSize",
+                    query_name="PublishSize",
                     namespace="AWS/SNS",
                     period=delta,
                     ref_id=self.id,
-                    name=MetricName.PublishSize,
+                    metric_name=MetricName.PublishSize,
                     normalization=normalizer_factory.bytes,
                     stat=stat,
                     unit="Bytes",

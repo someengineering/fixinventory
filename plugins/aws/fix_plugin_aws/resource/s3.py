@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import wait as futures_wait
 from datetime import timedelta
 from json import loads as json_loads
 from typing import ClassVar, Dict, List, Type, Optional, cast, Any
@@ -313,9 +312,6 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             builder.submit_work(service_name, add_acls, bucket)
             builder.submit_work(service_name, add_bucket_logging, bucket)
 
-        # wait for all bucket location futures to complete to block collect() before calling collect_usage_metrics()
-        futures_wait(bucket_location_futures)
-
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]
         client.call(
@@ -358,12 +354,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
         if (bucket_region := self.bucket_location) and (region := builder.all_regions.get(bucket_region)):
             queries.append(
                 AwsCloudwatchQuery.create(
-                    metric_name="NumberOfObjects",
+                    query_name="NumberOfObjects",
                     namespace="AWS/S3",
                     period=delta,
                     start_delta=start_delta,
                     ref_id=self.id,
-                    name=MetricName.NumberOfObjects,
+                    metric_name=MetricName.NumberOfObjects,
                     normalization=normalizer_factory.count,
                     stat="Average",
                     unit="Count",
@@ -375,12 +371,12 @@ class AwsS3Bucket(AwsResource, BaseBucket):
             for storage_type, storage_type_name in storage_types.items():
                 queries.append(
                     AwsCloudwatchQuery.create(
-                        metric_name=f"{storage_type_name}_bucket_size",
+                        query_name="BucketSizeBytes",
                         namespace="AWS/S3",
                         period=delta,
                         start_delta=start_delta,
                         ref_id=self.id,
-                        name=MetricName.BucketSizeBytes,
+                        metric_name=f"{storage_type_name}_bucket_size",
                         normalization=normalizer_factory.bytes,
                         stat="Average",
                         unit="Bytes",

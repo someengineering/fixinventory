@@ -359,11 +359,12 @@ class AwsRegion(BaseRegion, AwsResource):
             ]
         }
     }
-    ctime: Optional[datetime] = default_ctime
     region_in_use: Optional[bool] = field(default=None, metadata={"description": "Indicates if the region is in use."})
 
     def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
+        if self.ctime is None:
+            self.ctime = default_ctime
         self.long_name = cloud_region_data.get("aws", {}).get(self.id, {}).get("long_name")
         self.latitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("latitude")
         self.longitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("longitude")
