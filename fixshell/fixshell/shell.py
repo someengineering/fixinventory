@@ -85,6 +85,7 @@ class Shell:
                     "Fix-Shell-Terminal": "true",
                 }
             )
+            self.benchmark.set_tty_size(tty_columns, tty_rows)
 
         async def handle_response(maybe: Optional[HttpResponse], upload: bool = False) -> None:
             if maybe is not None:
