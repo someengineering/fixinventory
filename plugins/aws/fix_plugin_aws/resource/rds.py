@@ -373,7 +373,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
                 "stopped": DatabaseInstanceStatus.STOPPED,
                 "stopping": DatabaseInstanceStatus.BUSY,
                 "storage-config-upgrade": DatabaseInstanceStatus.BUSY,
-                "storage-full": DatabaseInstanceStatus.BUSY,
+                "storage-full": DatabaseInstanceStatus.FAILED,
                 "storage-optimization": DatabaseInstanceStatus.BUSY,
                 "upgrading": DatabaseInstanceStatus.BUSY,
             },
