@@ -20,7 +20,7 @@ class BreakingResource(BaseResource, ABC):
 def test_check() -> None:
     # this will throw an exception, since breaking resource has a breaking property
     with raises(Exception):
-        check_overlap()
+        check_overlap(BaseResource, BreakingResource)
     # hacky way to "delete" the fields - the exporter will not see the field any longer.
     BreakingResource.__attrs_attrs__ = {}
-    check_overlap()
+    check_overlap(BaseResource)

@@ -5,7 +5,15 @@ from typing import ClassVar, Dict, Optional, List, Tuple, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureApiSpec
-from fix_plugin_azure.resource.base import AzureResource, AzureSystemData, GraphBuilder
+from fix_plugin_azure.resource.base import (
+    AzureResource,
+    AzureSystemData,
+    GraphBuilder,
+    AzureExtendedLocation,
+    AzureUserAssignedIdentity,
+    AzurePrincipalClient,
+    AzureManagedServiceIdentity,
+)
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
@@ -71,34 +79,6 @@ class AzureFleetHubProfile:
     fqdn: Optional[str] = field(default=None, metadata={"description": "The FQDN of the Fleet hub."})
     kubernetes_version: Optional[str] = field(default=None, metadata={'description': 'The Kubernetes version of the Fleet hub.'})  # fmt: skip
     portal_fqdn: Optional[str] = field(default=None, metadata={'description': 'The Azure Portal FQDN of the Fleet hub.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureUserAssignedIdentity:
-    kind: ClassVar[str] = "azure_user_assigned_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "client_id": S("clientId"),
-        "object_id": S("objectId"),
-        "resource_id": S("resourceId"),
-    }
-    client_id: Optional[str] = field(default=None, metadata={'description': 'The client ID of the user assigned identity.'})  # fmt: skip
-    object_id: Optional[str] = field(default=None, metadata={'description': 'The object ID of the user assigned identity.'})  # fmt: skip
-    resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the user assigned identity.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureManagedServiceIdentity:
-    kind: ClassVar[str] = "azure_managed_service_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The service principal ID of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant ID of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'Type of managed service identity (where both SystemAssigned and UserAssigned types are allowed).'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'The set of user assigned identities associated with the resource. The userAssignedIdentities dictionary keys will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}. The dictionary values can be empty objects ({}) in requests.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -184,14 +164,6 @@ class AzureManagedClusterSKU:
 
 
 @define(eq=False, slots=False)
-class AzureExtendedLocation:
-    kind: ClassVar[str] = "azure_extended_location"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the extended location."})
-    type: Optional[str] = field(default=None, metadata={"description": "The type of extendedLocation."})
-
-
-@define(eq=False, slots=False)
 class AzureDelegatedResource:
     kind: ClassVar[str] = "azure_delegated_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -204,14 +176,6 @@ class AzureDelegatedResource:
     referral_resource: Optional[str] = field(default=None, metadata={'description': 'The delegation id of the referral delegation (optional) - internal use only.'})  # fmt: skip
     resource_id: Optional[str] = field(default=None, metadata={'description': 'The ARM resource id of the delegated resource - internal use only.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the delegated resource - internal use only.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrincipalidClientid:
-    kind: ClassVar[str] = "azure_principalid_clientid"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -228,7 +192,7 @@ class AzureManagedClusterIdentity:
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of the system assigned identity which is used by master components.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the system assigned identity which is used by master components.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'For more information see [use managed identities in AKS](https://docs.microsoft.com/azure/aks/use-managed-identity).'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The keys must be ARM resource IDs in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The keys must be ARM resource IDs in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
