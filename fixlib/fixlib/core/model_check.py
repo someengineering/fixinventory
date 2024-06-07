@@ -162,7 +162,7 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     :raise Exception: if there is an overlap
     """
 
-    kind_names: Dict[str, Type] = {}
+    kind_names: Dict[str, Type[Any]] = {}
     model_classes = load_plugin_classes(*base)
     for model in transitive_classes(model_classes):
         if kind := getattr(model, "kind", None):
