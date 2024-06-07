@@ -243,6 +243,7 @@ class CLIAction(ABC):
 class CLISourceContext:
     count: Optional[int] = None
     total_count: Optional[int] = None
+    stats: Optional[Json] = None
 
 
 class CLISource(CLIAction):

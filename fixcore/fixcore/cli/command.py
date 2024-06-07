@@ -1506,7 +1506,7 @@ class ExecuteSearchCommand(CLICommand, InternalPart, EntityProvider):
                 finally:
                     cursor.close()
 
-            return CLISourceContext(cursor.count(), cursor.full_count()), iterate_and_close()
+            return CLISourceContext(cursor.count(), cursor.full_count(), cursor.stats()), iterate_and_close()
 
         return (
             CLISource.single(explain_search, required_permissions={Permission.read})
@@ -6292,7 +6292,7 @@ class TimeSeriesCommand(CLICommand):
                 timeout=timeout,
                 aggregation=p.aggregation,
             )
-            return CLISourceContext(cursor.count(), cursor.full_count()), cursor
+            return CLISourceContext(cursor.count(), cursor.full_count(), cursor.stats()), cursor
 
         async def list_ts() -> Tuple[int, JsGen]:
             ts = await self.dependencies.db_access.time_series_db.list_time_series()

@@ -90,6 +90,9 @@ class AsyncCursor(AsyncIterator[Any]):
     def full_count(self) -> Optional[int]:
         return stats.get("fullCount") if (stats := self.cursor.statistics()) else None
 
+    def stats(self) -> Optional[Json]:
+        return self.cursor.statistics()
+
     async def next_element(self) -> Optional[Json]:
         element = await self.next_from_db()
         return self.trafo(element)

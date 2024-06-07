@@ -784,7 +784,7 @@ class Api(Service):
             name, start, end, group_by=group_by, filter_by=filter_by, granularity=granularity, aggregation=aggregation
         )
         return await self.stream_response_from_gen(
-            request, cursor, count=cursor.count(), total_count=cursor.full_count()
+            request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
         )
 
     async def handle_events(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1190,7 +1190,7 @@ class Api(Service):
             query_model, prop_or_predicate, detail, limit, skip, count
         ) as cursor:
             return await self.stream_response_from_gen(
-                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
 
     async def query_structure(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1203,7 +1203,7 @@ class Api(Service):
         timeout = if_set(request.query.get("search_timeout"), duration)
         async with await graph_db.search_list(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(
-                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
 
     async def cytoscape(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1218,14 +1218,14 @@ class Api(Service):
         timeout = if_set(request.query.get("search_timeout"), duration)
         async with await graph_db.search_graph_gen(query_model, count, timeout) as cursor:
             return await self.stream_response_from_gen(
-                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
 
     async def query_aggregation(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         async with await graph_db.search_aggregation(query_model) as cursor:
             return await self.stream_response_from_gen(
-                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
 
     async def query_history(self, request: Request, deps: TenantDependencies) -> StreamResponse:
@@ -1240,7 +1240,7 @@ class Api(Service):
             after=parse_utc(after) if after else None,
         ) as cursor:
             return await self.stream_response_from_gen(
-                request, cursor, count=cursor.count(), total_count=cursor.full_count()
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
 
     async def serve_debug_ui(self, request: Request) -> FileResponse:
@@ -1405,6 +1405,7 @@ class Api(Service):
                         text_gen,
                         count=src_ctx.count,
                         total_count=src_ctx.total_count,
+                        query_stats=src_ctx.stats,
                         additional_header=first_result.envelope,
                     )
                 elif first_result.produces.file_path:
@@ -1491,6 +1492,7 @@ class Api(Service):
         *,
         count: Optional[int] = None,
         total_count: Optional[int] = None,
+        query_stats: Optional[Json] = None,
         additional_header: Optional[Dict[str, str]] = None,
     ) -> StreamResponse:
         # force the async generator, to get an early exception in case of failure
@@ -1503,6 +1505,8 @@ class Api(Service):
             headers["Result-Count"] = str(count)
         if total_count is not None:
             headers["Total-Count"] = str(total_count)
+        if query_stats:
+            headers["Query-Stats"] = ", ".join(f"{k}={v}" for k, v in query_stats.items())
         response = web.StreamResponse(status=200, headers=headers)
         enable_compression(request, response)
         writer: AbstractStreamWriter = await response.prepare(request)  # type: ignore
