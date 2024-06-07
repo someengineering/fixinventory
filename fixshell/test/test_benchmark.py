@@ -1,7 +1,7 @@
 import pytest
+from typing import Mapping, Union
 from unittest.mock import patch
-from fixshell.benchmark import Benchmark
-from typing import Any
+from fixshell.benchmark import Benchmark, parse_metrics
 
 
 def test_benchmark_initial_state() -> None:
@@ -56,18 +56,37 @@ def test_last_byte_received(should_benchmark: bool) -> None:
             assert benchmark.time_to_last_byte is None
 
 
-def test_print_results(capsys: Any) -> None:
-    with patch("time.time", side_effect=[100, 101, 105]):
-        benchmark = Benchmark(True)
-        benchmark.request_sent()
-        benchmark.first_byte_received()
-        benchmark.last_byte_received()
-        benchmark.print_results()
-        captured = capsys.readouterr()
-        expected_output = (
-            "\n┌─────────| Benchmark Results |─────────┐\n"
-            "│ Time to first byte:         1000.0 ms │\n"
-            "│ Time to last byte:          5000.0 ms │\n"
-            "└───────────────────────────────────────┘\n"
-        )
-        assert captured.out == expected_output
+def test_parse_metrics_integers() -> None:
+    input_str = "filtered=10, ignored=20"
+    expected_output = {"filtered": 10, "ignored": 20}
+    assert parse_metrics(input_str) == expected_output
+
+
+def test_parse_metrics_floats() -> None:
+    input_str = "execution_time=0.002, load_factor=0.75"
+    expected_output = {"execution_time": 0.002, "load_factor": 0.75}
+    assert parse_metrics(input_str) == expected_output
+
+
+def test_parse_metrics_non_numeric() -> None:
+    input_str = "status=ok, mode=test"
+    expected_output = {"status": "ok", "mode": "test"}
+    assert parse_metrics(input_str) == expected_output
+
+
+def test_parse_metrics_mixed_types() -> None:
+    input_str = "count=100, rate=0.95, status=active"
+    expected_output = {"count": 100, "rate": 0.95, "status": "active"}
+    assert parse_metrics(input_str) == expected_output
+
+
+def test_parse_metrics_empty_string() -> None:
+    input_str = ""
+    expected_output: Mapping[str, Union[str, float, int]] = {}
+    assert parse_metrics(input_str) == expected_output
+
+
+def test_parse_metrics_special_characters() -> None:
+    input_str = "message=Hello World!, error=None"
+    expected_output = {"message": "Hello World!", "error": "None"}
+    assert parse_metrics(input_str) == expected_output

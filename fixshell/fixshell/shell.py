@@ -85,6 +85,7 @@ class Shell:
                     "Fix-Shell-Terminal": "true",
                 }
             )
+            self.benchmark.set_tty_size(tty_columns, tty_rows)
 
         async def handle_response(maybe: Optional[HttpResponse], upload: bool = False) -> None:
             if maybe is not None:
@@ -95,7 +96,7 @@ class Shell:
                         if self.history and not no_history and CLIEnvelope.no_history not in response.headers:
                             self.history.store_command(command)
                         await self.handle_result(response)
-                        self.benchmark.last_byte_received()
+                        self.benchmark.last_byte_received(response.headers)
                     elif response.status_code == 424 and not upload:
                         js_data = await response.json()
                         required = js_data.get("required", [])
