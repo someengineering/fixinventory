@@ -1,6 +1,6 @@
 import time
 from functools import wraps
-from typing import Optional, Any, TypeVar, Callable, cast
+from typing import Optional, Any, TypeVar, Callable, cast, Mapping
 
 
 T = TypeVar("T", bound=Callable[..., Any])
@@ -24,6 +24,7 @@ class Benchmark:
         self.last_byte_at: Optional[float] = None
         self.time_to_first_byte: Optional[float] = None
         self.time_to_last_byte: Optional[float] = None
+        self.query_stats: Optional[str] = None
 
     @if_should_benchmark
     def request_sent(self) -> None:
@@ -36,9 +37,11 @@ class Benchmark:
         self.first_byte_at = time.time()
 
     @if_should_benchmark
-    def last_byte_received(self) -> None:
+    def last_byte_received(self, response_headers: Optional[Mapping[str, str]] = None) -> None:
         self.last_byte_at = time.time()
         self.calculate_times()
+        if response_headers:
+            self.query_stats = response_headers.get("Query-Stats")
 
     @if_should_benchmark
     def calculate_times(self) -> None:
@@ -64,6 +67,6 @@ class Benchmark:
 
         message = (
             f"\n{header}\n{time_to_first_byte_text}{padded_first_byte}\n"
-            f"{time_to_last_byte_text}{padded_last_byte}\n{footer}"
+            f"{time_to_last_byte_text}{padded_last_byte}\n{footer}\n"
         )
         print_fn(message)
