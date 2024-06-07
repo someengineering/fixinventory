@@ -167,9 +167,11 @@ def query_view_string(
         # handle special cases
         p_term: Optional[str] = None
         if (op == "==" and empty_value(value)) or (
-            op == "in" and isinstance(value, list) and all(empty_value(v) for v in value)
+            op == "in" and isinstance(value, list) and any(empty_value(v) for v in value)
         ):
             p_term = f"NOT EXISTS({var_name})"
+            if non_empty := [v for v in value if not empty_value(v)]:
+                p_term = f"({p_term} OR {var_name} IN @{ctx.add_bind_var(non_empty)})"
             exhaustive = False  # for the view: null and [] are not distinguishable
         elif (op == "!=" and empty_value(value)) or (
             op == "not in" and isinstance(value, list) and all(empty_value(v) for v in value)
