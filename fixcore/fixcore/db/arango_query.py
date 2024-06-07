@@ -80,6 +80,8 @@ fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fullt
 
 array_marker = re.compile(r"\[]|\[\*]")
 array_marker_in_path_regexp = re.compile(r"(?:\[]|\[\*])(?=[.])")
+# see: cli.py
+DefaultSort = [Sort("reported.kind"), Sort("reported.name"), Sort("reported.id")]
 
 
 class ArangoQueryContext:
@@ -109,7 +111,7 @@ def graph_query(
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
-    start = f"`{db.graph_vertex_name()}_view`"
+    start = f"`{db.graph_vertex_name()}`" if consistent else f"`{db.graph_vertex_name()}_view`"
     cursor, query_str = (
         query_string(db, query, query_model, start, with_edges, ctx)
         if consistent
@@ -219,6 +221,9 @@ def query_view_string(
         nxt = ctx.next_crs("view")
         qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part} RETURN {crs}) "
         start_cursor = nxt
+    if part.sort == DefaultSort:  # the view is already sorted
+        query = evolve(query, parts=query.parts[:-1] + [evolve(part, sort=[])])
+
     cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx)
     return cursor, qs + query_str
 
@@ -633,7 +638,8 @@ def query_string(
             pre, term_string, post = term(crsr, part_term)
             pre_string = " " + pre if pre else ""
             post_string = f" AND ({post})" if post else ""
-            for_stmt = f"FOR {crsr} in {current_cursor}{pre_string} FILTER {term_string}{post_string}"
+            filter_string = "" if part_term.is_all and not post_string else f" FILTER {term_string}{post_string}"
+            for_stmt = f"FOR {crsr} in {current_cursor}{pre_string}{filter_string}"
             # in case nested properties get unfolded, we need to make the list distinct again
             if pre:
                 nested_distinct = ctx.next_crs("nested_distinct")
