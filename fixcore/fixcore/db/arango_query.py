@@ -15,7 +15,7 @@ from fixcore.db.arango_query_rewrite import rewrite_query
 from fixcore.db.arangodb_functions import as_arangodb_function
 from fixcore.db.model import QueryModel
 from fixcore.model.graph_access import Section, Direction
-from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath, array_index_re
+from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import (
     Predicate,
@@ -119,7 +119,6 @@ def graph_query(
     )
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     final = f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip()
-    print(f"\n-----\nQuery   : {query}\nAQL     : {final}\nBindVars: {json.dumps(ctx.bind_vars)}\n-----\n")
     return final, ctx.bind_vars
 
 
@@ -142,9 +141,30 @@ def query_view_string(
 ) -> Tuple[str, str]:
     part = query.first_part
     crs = ctx.next_crs("v")
+    context_in_array = False
+
+    def flatten_in(value: List[Any]) -> Optional[List[Any]]:
+        result = []
+        for v in value:
+            if isinstance(v, dict):
+                return None
+            elif isinstance(v, list):
+                if (fv := flatten_in(v)) is None:
+                    return None
+                result.extend(fv)
+            else:
+                result.append(v)
+        return result
 
     def empty_value(value: Any) -> bool:
-        return not value if isinstance(value, (list, dict)) else value is None
+        return not value if isinstance(value, list) else value is None
+
+    def empty_and_simple(value: Any) -> bool:
+        return empty_value(value) or (
+            isinstance(value, list)
+            and any(empty_value(v) for v in value)
+            and all(empty_value(v) and not isinstance(v, dict) for v in value)
+        )
 
     def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
         # TODO: check regex to see if we can use like instead of regex
@@ -153,35 +173,38 @@ def query_view_string(
 
         # resolve property name and kind
         prop_name_maybe_arr, prop, _ = prop_name_kind(query_model, p.name)
-        prop_name = array_index_re.sub("", prop_name_maybe_arr)
+        prop_name = array_marker.sub("", prop_name_maybe_arr)
         var_name = f"{crs}.{prop_name}"
         exhaustive = True  # mark if this predicate is backed by the view exhaustively
 
         # coerce value
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
         if op in ["in", "not in"] and isinstance(p.value, list):
-            value: JsonElement = [prop.kind.coerce(a, array_creation=False) for a in p.value]
+            coerced_list = [prop.kind.coerce(a, array_creation=False) for a in p.value]
+            value: JsonElement = coerced_list
+            flat_value = flatten_in(coerced_list)
         else:
             value = prop.kind.coerce(p.value, array_creation=False)
+            flat_value = None
 
         # handle special cases
         p_term: Optional[str] = None
-        if (op == "==" and empty_value(value)) or (
-            op == "in" and isinstance(value, list) and any(empty_value(v) for v in value)
-        ):
+        if (op == "==" and empty_value(value)) or (op == "in" and empty_and_simple(value)):
             p_term = f"NOT EXISTS({var_name})"
-            if non_empty := [v for v in value if not empty_value(v)]:
+            if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
                 p_term = f"({p_term} OR {var_name} IN @{ctx.add_bind_var(non_empty)})"
             exhaustive = False  # for the view: null and [] are not distinguishable
-        elif (op == "!=" and empty_value(value)) or (
-            op == "not in" and isinstance(value, list) and all(empty_value(v) for v in value)
-        ):
+        elif (op == "!=" and empty_value(value)) or (op == "not in" and empty_and_simple(value)):
             p_term = f"EXISTS({var_name})"
-        elif op == "==" and isinstance(value, list):
+            if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
+                p_term = f"({p_term} OR {var_name} NOT IN @{ctx.add_bind_var(non_empty)})"
+        elif op == "==" and isinstance(value, list) and flat_value is not None:
             # the view cannot compare lists, but we can use the IN operator - still needs filtering
-            p_term = f"{var_name} IN @{ctx.add_bind_var(value)}"
+            p_term = f"{var_name} IN @{ctx.add_bind_var(flat_value)}"
             exhaustive = False
-        elif op not in ("in", "not_in") and isinstance(value, (list, dict)):
+        elif op in ["in", "not in"] and flat_value is not None:
+            p_term = f"{var_name} {op} @{ctx.add_bind_var(flat_value)}"
+        elif isinstance(value, (list, dict)):
             # the view is not able to compare lists or dicts -> we need to filter the results
             exhaustive = False
         else:
@@ -190,15 +213,17 @@ def query_view_string(
         return p_term, AllTerm() if exhaustive else p
 
     def view_term(term: Term) -> Tuple[Optional[str], Term]:
+        nonlocal context_in_array
         if isinstance(term, MergeTerm):
             sp, pre = view_term(term.pre_filter)
             return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
         elif isinstance(term, NotTerm):
             sp, nt = view_term(term.term)
-            return (None, term) if sp is None else (f"NOT ({sp})", nt)
+            return (None, term) if sp is None else (f"NOT ({sp})", NotTerm(nt))
         elif isinstance(term, ContextTerm):
             # context terms cannot be handled by the view search exhaustively
             # we filter the list down as much as possible, but leave the context term untouched
+            context_in_array = context_in_array or array_marker.search(term.name)
             sp, _ = view_term(term.predicate_term())
             return sp, term
         elif isinstance(term, IdTerm):
@@ -220,6 +245,9 @@ def query_view_string(
         elif isinstance(term, CombinedTerm):
             lsp, lt = view_term(term.left)
             rsp, rt = view_term(term.right)
+            # OR: if any side cannot filter anything, the combined term cannot filter anything
+            if lsp is None or rsp is None and term.op == "or":
+                return None, term
             return combine_optional(lsp, rsp, lambda ll, rr: f"({ll} {term.op} {rr})"), lt.combine(term.op, rt)
         elif isinstance(term, Predicate):
             return predicate_term(term)
@@ -230,11 +258,22 @@ def query_view_string(
     search_part, term = view_term(part.term)
     qs = ""
     if search_part:
-        part = evolve(part, term=term)
-        query = evolve(query, parts=query.parts[:-1] + [part])
+        # remove possibly unused bind vars
+        for bv in list(ctx.bind_vars):
+            if f"@{bv}" not in search_part:
+                ctx.bind_vars.pop(bv)
+
+        # This query needs to unfold arrays to filter properties in context. Apply all filters.
+        if not context_in_array:
+            part = evolve(part, term=term)
+            query = evolve(query, parts=query.parts[:-1] + [part])
+
         nxt = ctx.next_crs("view")
         qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part} RETURN {crs}) "
         start_cursor = nxt
+    else:
+        ctx.bind_vars.clear()
+
     if part.sort == DefaultSort:  # the view is already sorted
         query = evolve(query, parts=query.parts[:-1] + [evolve(part, sort=[])])
 
