@@ -1085,7 +1085,7 @@ class Api(Service):
         )
         db = deps.db_access.get_graph_db(graph_id)
         it = self.to_line_generator(request)
-        max_wait = self.deps.config.graph_update.merge_max_wait_time()
+        max_wait = self.deps.config.graph.merge_max_wait_time()
         info = await deps.graph_merger.merge_graph(db, it, max_wait, None, task_id, wait_for_result)
         return web.json_response(to_js(info)) if info else web.HTTPNoContent()
 
@@ -1100,7 +1100,7 @@ class Api(Service):
         rnd = "".join(SystemRandom().choice(string.ascii_letters) for _ in range(12))
         batch_id = request.query.get("batch_id", rnd)
         it = self.to_line_generator(request)
-        max_wait = self.deps.config.graph_update.merge_max_wait_time()
+        max_wait = self.deps.config.graph.merge_max_wait_time()
         info = await deps.graph_merger.merge_graph(db, it, max_wait, batch_id, task_id, wait_for_result)
         headers = {"BatchId": batch_id}
         return web.json_response(to_json(info), headers=headers) if info else web.HTTPNoContent(headers=headers)

@@ -35,7 +35,7 @@ from networkx import MultiDiGraph
 
 from fixcore.analytics import CoreEvent, AnalyticsEventSender
 from fixcore.async_extensions import run_async
-from fixcore.core_config import GraphUpdateConfig
+from fixcore.core_config import GraphConfig
 from fixcore.db import arango_query, EstimatedSearchCost
 from fixcore.db.arango_query import fulltext_delimiter
 from fixcore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
@@ -252,7 +252,13 @@ class GraphDB(ABC):
 
 
 class ArangoGraphDB(GraphDB):
-    def __init__(self, db: AsyncArangoDB, name: GraphName, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
+    def __init__(
+        self,
+        db: AsyncArangoDB,
+        name: GraphName,
+        adjust_node: AdjustNode,
+        config: GraphConfig,
+    ) -> None:
         super().__init__()
         self._name = name
         self.node_adjuster = adjust_node
@@ -1263,7 +1269,9 @@ class ArangoGraphDB(GraphDB):
         await self.delete_marked_update(batch_id)
 
     async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
-        return arango_query.graph_query(self, query_model, with_edges, consistent=kwargs.get("consistent"))
+        return arango_query.graph_query(
+            self, query_model, with_edges, consistent=kwargs.get("consistent") or not self.config.use_view
+        )
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}

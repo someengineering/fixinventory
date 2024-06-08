@@ -496,7 +496,7 @@ class SnapshotsScheduleConfig(ConfigObject):
 
 
 @define()
-class GraphUpdateConfig(ConfigObject):
+class GraphConfig(ConfigObject):
     kind: ClassVar[str] = f"{FixCoreRoot}_graph_update_config"
     merge_max_wait_time_seconds: int = field(
         default=3600, metadata={"description": "Max waiting time to complete a merge graph action."}
@@ -517,6 +517,10 @@ class GraphUpdateConfig(ConfigObject):
         default=5,
         metadata={"description": "Number of parallel graph merge requests handled in parallel."},
     )
+    use_view: bool = field(
+        default=True,
+        metadata={"description": "If true, the graph uses an efficient view to query the data."},
+    )
 
     def merge_max_wait_time(self) -> timedelta:
         return timedelta(seconds=self.merge_max_wait_time_seconds)
@@ -527,7 +531,7 @@ class GraphUpdateConfig(ConfigObject):
 
 # Define rules to validate this config
 schema_registry.add(
-    schema_name(GraphUpdateConfig),
+    schema_name(GraphConfig),
     dict(
         merge_max_wait_time_seconds={"type": "integer", "min": 60},
         abort_after_seconds={"type": "integer", "min": 60},
@@ -609,7 +613,7 @@ class TimeSeriesConfig(ConfigObject):
 class CoreConfig(ConfigObject):
     api: ApiConfig
     cli: CLIConfig
-    graph_update: GraphUpdateConfig
+    graph: GraphConfig
     runtime: RuntimeConfig
     db: DatabaseConfig
     workflows: Dict[str, WorkflowConfig]
@@ -629,7 +633,7 @@ class CoreConfig(ConfigObject):
 
     @property
     def editable(self) -> "EditableConfig":
-        return EditableConfig(self.api, self.cli, self.graph_update, self.runtime, self.workflows, self.timeseries)
+        return EditableConfig(self.api, self.cli, self.graph, self.runtime, self.workflows, self.timeseries)
 
     def json(self) -> Json:
         return {FixCoreRoot: to_js(self.editable, strip_attr="kind")}
@@ -649,8 +653,8 @@ class EditableConfig(ConfigObject):
         factory=CLIConfig,
         metadata={"description": "CLI related properties."},
     )
-    graph_update: GraphUpdateConfig = field(
-        factory=GraphUpdateConfig,
+    graph: GraphConfig = field(
+        factory=GraphConfig,
         metadata={"description": "Properties for updating the graph."},
     )
     runtime: RuntimeConfig = field(
@@ -679,7 +683,7 @@ schema_registry.add(
     dict(
         api={"schema": schema_name(ApiConfig), "allow_unknown": True},
         cli={"schema": schema_name(CLIConfig), "allow_unknown": True},
-        graph_update={"schema": schema_name(GraphUpdateConfig), "allow_unknown": True},
+        graph_update={"schema": schema_name(GraphConfig), "allow_unknown": True},
         runtime={"schema": schema_name(RuntimeConfig), "allow_unknown": True},
         workflows={
             "type": "dict",
@@ -774,7 +778,7 @@ def parse_config(
         custom_commands=commands_config,
         snapshots=snapshots_config,
         db=db,
-        graph_update=ed.graph_update,
+        graph=ed.graph,
         runtime=ed.runtime,
         workflows=ed.workflows,
         run=RunConfig(),  # overridden for each run

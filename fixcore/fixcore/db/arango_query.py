@@ -223,7 +223,7 @@ def query_view_string(
         elif isinstance(term, ContextTerm):
             # context terms cannot be handled by the view search exhaustively
             # we filter the list down as much as possible, but leave the context term untouched
-            context_in_array = context_in_array or array_marker.search(term.name)
+            context_in_array = context_in_array or bool(array_marker.search(term.name))
             sp, _ = view_term(term.predicate_term())
             return sp, term
         elif isinstance(term, IdTerm):
@@ -937,7 +937,7 @@ def query_string(
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
         query_parts[0] = evolve(query_parts[0], term=filter_term)
         crs = ctx.next_crs()
-        doc = f"search_{db.graph_vertex_name()}"
+        doc = f"{db.graph_vertex_name()}_view"
         ftt = ft_term("ft", ft_part)
         q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
         return q, crs

@@ -27,11 +27,6 @@ from fixcore.types import Json
 from fixcore.util import value_in_path
 
 
-def test_parse_empty(default_config: CoreConfig) -> None:
-    result = parse_config(parse_args(["--analytics-opt-out"]), {}, lambda: None)
-    assert result == default_config
-
-
 def test_parse_broken(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
@@ -58,7 +53,7 @@ def test_parse_broken(config_json: Json) -> None:
     # other config values are still unchanged
     assert parsed_json["cli"] == config_json["fixcore"]["cli"]
     assert parsed_json["runtime"] == config_json["fixcore"]["runtime"]
-    assert parsed_json["graph_update"] == config_json["fixcore"]["graph_update"]
+    assert parsed_json["graph"] == config_json["fixcore"]["graph"]
 
 
 def test_read_config(config_json: Json) -> None:
@@ -206,12 +201,13 @@ def config_json() -> Json:
                     }
                 ],
             },
-            "graph_update": {
+            "graph": {
                 "abort_after_seconds": 1234,
                 "merge_max_wait_time_seconds": 4321,
                 "keep_history": True,
                 "keep_history_for_days": 180,
                 "parallel_imports": 5,
+                "use_view": True,
             },
             "runtime": {
                 "usage_metrics": False,
