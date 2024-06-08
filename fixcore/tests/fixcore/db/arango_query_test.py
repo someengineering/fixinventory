@@ -170,7 +170,7 @@ def test_context(foo_model: Model, graph_db: GraphDB) -> None:
 
 
 def test_usage(foo_model: Model, graph_db: GraphDB) -> None:
-    q, b = graph_query(
+    q, _ = graph_query(
         graph_db, QueryModel(parse_query("with_usage(3w, cpu, mem) is(foo)"), foo_model), consistent=True
     )
     assert q == (
