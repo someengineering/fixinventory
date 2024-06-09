@@ -162,8 +162,14 @@ def check_overlap(*base: Type[BaseResource]) -> None:
     :raise Exception: if there is an overlap
     """
 
+    kind_names: Dict[str, Type[Any]] = {}
     model_classes = load_plugin_classes(*base)
     for model in transitive_classes(model_classes):
+        if kind := getattr(model, "kind", None):
+            if (existing := kind_names.get(kind)) and existing != model:
+                raise AttributeError(f"Kind {kind} is defined in {model.__name__} and {existing.__name__}")
+            kind_names[kind] = model
+
         if issubclass(model, BaseResource) and not getattr(model, "__abstractmethods__"):
             # check that the model class is not abstract and has no abstract methods
             check_model_class(model)

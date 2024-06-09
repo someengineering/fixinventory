@@ -3,7 +3,16 @@ import logging
 from typing import ClassVar, Optional, Dict, List, Type
 from attr import define, field
 from fix_plugin_azure.azure_client import AzureApiSpec
-from fix_plugin_azure.resource.base import AzureBaseUsage, AzureResource, AzureResourceType, GraphBuilder
+from fix_plugin_azure.resource.base import (
+    AzureBaseUsage,
+    AzureResource,
+    AzureResourceType,
+    GraphBuilder,
+    AzureExtendedLocation,
+    AzureUserAssignedIdentity,
+    AzurePrivateLinkServiceConnectionState,
+    AzureSku,
+)
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.utils import MetricNormalization
 
@@ -401,22 +410,6 @@ class AzureStorageSku(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureSku:
-    kind: ClassVar[str] = "azure_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={'description': 'The SKU name. Required for account creation; optional for update. Note that in older versions, SKU name was called accountType.'})  # fmt: skip
-    tier: Optional[str] = field(default=None, metadata={"description": "The SKU tier. This is based on the SKU name."})
-
-
-@define(eq=False, slots=False)
-class AzureUserAssignedIdentity:
-    kind: ClassVar[str] = "azure_user_assigned_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={"description": "The client ID of the identity."})
-    principal_id: Optional[str] = field(default=None, metadata={"description": "The principal ID of the identity."})
-
-
-@define(eq=False, slots=False)
 class AzureIdentity:
     kind: ClassVar[str] = "azure_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -429,14 +422,6 @@ class AzureIdentity:
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The tenant ID of resource."})
     type: Optional[str] = field(default=None, metadata={"description": "The identity type."})
     user_assigned_identities: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'Gets or sets a list of key value pairs that describe the set of User Assigned identities that will be used with this storage account. The key is the ARM resource identifier of the identity. Only 1 User Assigned identity is permitted here.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureExtendedLocation:
-    kind: ClassVar[str] = "azure_extended_location"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the extended location."})
-    type: Optional[str] = field(default=None, metadata={"description": "The type of extendedLocation."})
 
 
 @define(eq=False, slots=False)
@@ -688,19 +673,6 @@ class AzureGeoReplicationStats:
     post_failover_redundancy: Optional[str] = field(default=None, metadata={'description': 'The redundancy type of the account after an account failover is performed.'})  # fmt: skip
     post_planned_failover_redundancy: Optional[str] = field(default=None, metadata={'description': 'The redundancy type of the account after a planned account failover is performed.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'The status of the secondary location. Possible values are: - Live: Indicates that the secondary location is active and operational. - Bootstrap: Indicates initial synchronization from the primary location to the secondary location is in progress.This typically occurs when replication is first enabled. - Unavailable: Indicates that the secondary location is temporarily unavailable.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "action_required": S("actionRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    action_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
 
 
 @define(eq=False, slots=False)
