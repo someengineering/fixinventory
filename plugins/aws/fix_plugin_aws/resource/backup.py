@@ -6,7 +6,7 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec
 from fix_plugin_aws.utils import TagsValue, ToDict
-from fixlib.json_bender import K, Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
@@ -96,7 +96,7 @@ class AwsBackupProtectedResource(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ResourceArn"),
         "tags": S("Tags", default=[]) >> ToDict(),
-        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
         "last_backup_time": S("LastBackupTime"),
@@ -299,6 +299,112 @@ class AwsBackupLegalHold(AwsResource):
     cancellation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the time in number format when legal hold was cancelled."})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AwsBackupRestoreJob(AwsResource):
+    kind: ClassVar[str] = "aws_backup_restore_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("RestoreJobId"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": S("CreationDate"),
+        "account_id": S("AccountId"),
+        "restore_job_id": S("RestoreJobId"),
+        "recovery_point_arn": S("RecoveryPointArn"),
+        "creation_date": S("CreationDate"),
+        "completion_date": S("CompletionDate"),
+        "status": S("Status"),
+        "status_message": S("StatusMessage"),
+        "percent_done": S("PercentDone"),
+        "backup_size_in_bytes": S("BackupSizeInBytes"),
+        "iam_role_arn": S("IamRoleArn"),
+        "expected_completion_time_minutes": S("ExpectedCompletionTimeMinutes"),
+        "created_resource_arn": S("CreatedResourceArn"),
+        "resource_type": S("ResourceType"),
+        "recovery_point_creation_date": S("RecoveryPointCreationDate"),
+        "restore_job_created_by": S("CreatedBy", "RestoreTestingPlanArn"),
+        "validation_status": S("ValidationStatus"),
+        "validation_status_message": S("ValidationStatusMessage"),
+        "deletion_status": S("DeletionStatus"),
+        "deletion_status_message": S("DeletionStatusMessage"),
+    }
+    account_id: Optional[str] = field(default=None, metadata={"description": "The account ID that owns the restore job."})  # fmt: skip
+    restore_job_id: Optional[str] = field(default=None, metadata={"description": "Uniquely identifies the job that restores a recovery point."})  # fmt: skip
+    recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
+    creation_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a restore job is created, in Unix format and Coordinated Universal Time (UTC). The value of CreationDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    completion_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a job to restore a recovery point is completed, in Unix format and Coordinated Universal Time (UTC). The value of CompletionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "A status code specifying the state of the job initiated by Backup to restore a recovery point."})  # fmt: skip
+    status_message: Optional[str] = field(default=None, metadata={"description": "A detailed message explaining the status of the job to restore a recovery point."})  # fmt: skip
+    percent_done: Optional[str] = field(default=None, metadata={"description": "Contains an estimated percentage complete of a job at the time the job status was queried."})  # fmt: skip
+    backup_size_in_bytes: Optional[int] = field(default=None, metadata={"description": "The size, in bytes, of the restored resource."})  # fmt: skip
+    iam_role_arn: Optional[str] = field(default=None, metadata={"description": "Specifies the IAM role ARN used to create the target recovery point; for example, arn:aws:iam::123456789012:role/S3Access."})  # fmt: skip
+    expected_completion_time_minutes: Optional[int] = field(default=None, metadata={"description": "The amount of time in minutes that a job restoring a recovery point is expected to take."})  # fmt: skip
+    created_resource_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The resource type of the listed restore jobs; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database. For Windows Volume Shadow Copy Service (VSS) backups, the only supported resource type is Amazon EC2."})  # fmt: skip
+    recovery_point_creation_date: Optional[datetime] = field(default=None, metadata={"description": "The date on which a recovery point was created."})  # fmt: skip
+    restore_job_created_by: Optional[str] = field(default=None, metadata={"description": "Contains identifying information about the creation of a restore job."})  # fmt: skip
+    validation_status: Optional[str] = field(default=None, metadata={"description": "This is the status of validation run on the indicated restore job."})  # fmt: skip
+    validation_status_message: Optional[str] = field(default=None, metadata={"description": "This describes the status of validation run on the indicated restore job."})  # fmt: skip
+    deletion_status: Optional[str] = field(default=None, metadata={"description": "This notes the status of the data generated by the restore test. The status may be Deleting, Failed, or Successful."})  # fmt: skip
+    deletion_status_message: Optional[str] = field(default=None, metadata={"description": "This describes the restore job deletion status."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsBackupCopyJob(AwsResource):
+    kind: ClassVar[str] = "aws_backup_copy_job"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("CopyJobId"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": S("CreationDate"),
+        "account_id": S("AccountId"),
+        "copy_job_id": S("CopyJobId"),
+        "source_backup_vault_arn": S("SourceBackupVaultArn"),
+        "source_recovery_point_arn": S("SourceRecoveryPointArn"),
+        "destination_backup_vault_arn": S("DestinationBackupVaultArn"),
+        "destination_recovery_point_arn": S("DestinationRecoveryPointArn"),
+        "resource_arn": S("ResourceArn"),
+        "creation_date": S("CreationDate"),
+        "completion_date": S("CompletionDate"),
+        "state": S("State"),
+        "status_message": S("StatusMessage"),
+        "backup_size_in_bytes": S("BackupSizeInBytes"),
+        "iam_role_arn": S("IamRoleArn"),
+        "copy_job_created_by": S("CreatedBy") >> Bend(AwsBackupRecoveryPointCreator.mapping),
+        "resource_type": S("ResourceType"),
+        "parent_job_id": S("ParentJobId"),
+        "is_parent": S("IsParent"),
+        "composite_member_identifier": S("CompositeMemberIdentifier"),
+        "number_of_child_jobs": S("NumberOfChildJobs"),
+        "child_jobs_in_state": S("ChildJobsInState"),
+        "resource_name": S("ResourceName"),
+        "message_category": S("MessageCategory"),
+    }
+    account_id: Optional[str] = field(default=None, metadata={"description": "The account ID that owns the copy job."})  # fmt: skip
+    copy_job_id: Optional[str] = field(default=None, metadata={"description": "Uniquely identifies a copy job."})  # fmt: skip
+    source_backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a source copy vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
+    source_recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a source recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
+    destination_backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a destination copy vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
+    destination_recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a destination recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
+    resource_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services resource to be copied; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database."})  # fmt: skip
+    creation_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a copy job is created, in Unix format and Coordinated Universal Time (UTC). The value of CreationDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    completion_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a copy job is completed, in Unix format and Coordinated Universal Time (UTC). The value of CompletionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={"description": "The current state of a copy job."})  # fmt: skip
+    status_message: Optional[str] = field(default=None, metadata={"description": "A detailed message explaining the status of the job to copy a resource."})  # fmt: skip
+    backup_size_in_bytes: Optional[int] = field(default=None, metadata={"description": "The size, in bytes, of a copy job."})  # fmt: skip
+    iam_role_arn: Optional[str] = field(default=None, metadata={"description": "Specifies the IAM role ARN used to copy the target recovery point; for example, arn:aws:iam::123456789012:role/S3Access."})  # fmt: skip
+    copy_job_created_by: Optional[AwsBackupRecoveryPointCreator] = field(default=None, metadata={"description": "Contains information about the backup plan and rule that Backup used to initiate the recovery point backup."})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Web Services resource to be copied; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database."})  # fmt: skip
+    parent_job_id: Optional[str] = field(default=None, metadata={"description": "This uniquely identifies a request to Backup to copy a resource. The return will be the parent (composite) job ID."})  # fmt: skip
+    is_parent: Optional[bool] = field(default=None, metadata={"description": "This is a boolean value indicating this is a parent (composite) copy job."})  # fmt: skip
+    composite_member_identifier: Optional[str] = field(default=None, metadata={"description": "This is the identifier of a resource within a composite group, such as nested (child) recovery point belonging to a composite (parent) stack. The ID is transferred from the  logical ID within a stack."})  # fmt: skip
+    number_of_child_jobs: Optional[int] = field(default=None, metadata={"description": "This is the number of child (nested) copy jobs."})  # fmt: skip
+    child_jobs_in_state: Optional[Dict[str, int]] = field(default=None, metadata={"description": "This returns the statistics of the included child (nested) copy jobs."})  # fmt: skip
+    resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
+    message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and InvalidParameters. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum"})  # fmt: skip
+
+
 resources: List[Type[AwsResource]] = [
     AwsBackupJob,
     AwsBackupPlan,
@@ -307,4 +413,6 @@ resources: List[Type[AwsResource]] = [
     AwsBackupReportPlan,
     AwsBackupRestoreTestingPlan,
     AwsBackupLegalHold,
+    AwsBackupRestoreJob,
+    AwsBackupCopyJob,
 ]
