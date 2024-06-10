@@ -90,93 +90,11 @@ class AwsBackupJob(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupCalculatedLifecycle:
-    kind: ClassVar[str] = "aws_backup_calculated_lifecycle"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "move_to_cold_storage_at": S("MoveToColdStorageAt"),
-        "delete_at": S("DeleteAt"),
-    }
-    move_to_cold_storage_at: Optional[datetime] = field(default=None, metadata={"description": "A timestamp that specifies when to transition a recovery point to cold storage."})  # fmt: skip
-    delete_at: Optional[datetime] = field(default=None, metadata={"description": "A timestamp that specifies when to delete a recovery point."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsBackupLifecycle:
-    kind: ClassVar[str] = "aws_backup_lifecycle"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "move_to_cold_storage_after_days": S("MoveToColdStorageAfterDays"),
-        "delete_after_days": S("DeleteAfterDays"),
-        "opt_in_to_archive_for_supported_resources": S("OptInToArchiveForSupportedResources"),
-    }
-    move_to_cold_storage_after_days: Optional[int] = field(default=None, metadata={"description": "Specifies the number of days after creation that a recovery point is moved to cold storage."})  # fmt: skip
-    delete_after_days: Optional[int] = field(default=None, metadata={"description": "Specifies the number of days after creation that a recovery point is deleted. Must be greater than 90 days plus MoveToColdStorageAfterDays."})  # fmt: skip
-    opt_in_to_archive_for_supported_resources: Optional[bool] = field(default=None, metadata={"description": "Optional Boolean. If this is true, this setting will instruct your backup plan to transition supported resources to archive (cold) storage tier in accordance with your lifecycle settings."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsBackupRecoveryPointByBackupVault(AwsResource):
-    kind: ClassVar[str] = "aws_backup_recovery_point_by_backup_vault"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-recovery-points-by-backup-vault", "RecoveryPoints")
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("Tags", default=[]) >> ToDict(),
-        "name": S("BackupVaultName"),
-        "ctime": S("CreationDate"),
-        "recovery_point_arn": S("RecoveryPointArn"),
-        "backup_vault_name": S("BackupVaultName"),
-        "backup_vault_arn": S("BackupVaultArn"),
-        "source_backup_vault_arn": S("SourceBackupVaultArn"),
-        "resource_arn": S("ResourceArn"),
-        "resource_type": S("ResourceType"),
-        "vault_created_by": S("CreatedBy") >> Bend(AwsBackupRecoveryPointCreator.mapping),
-        "iam_role_arn": S("IamRoleArn"),
-        "status": S("Status"),
-        "status_message": S("StatusMessage"),
-        "creation_date": S("CreationDate"),
-        "completion_date": S("CompletionDate"),
-        "backup_size_in_bytes": S("BackupSizeInBytes"),
-        "calculated_lifecycle": S("CalculatedLifecycle") >> Bend(AwsBackupCalculatedLifecycle.mapping),
-        "lifecycle": S("Lifecycle") >> Bend(AwsBackupLifecycle.mapping),
-        "encryption_key_arn": S("EncryptionKeyArn"),
-        "is_encrypted": S("IsEncrypted"),
-        "last_restore_time": S("LastRestoreTime"),
-        "parent_recovery_point_arn": S("ParentRecoveryPointArn"),
-        "composite_member_identifier": S("CompositeMemberIdentifier"),
-        "is_parent": S("IsParent"),
-        "resource_name": S("ResourceName"),
-        "vault_type": S("VaultType"),
-    }
-    recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
-    backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
-    backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a backup vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
-    source_backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "The backup vault where the recovery point was originally copied from. If the recovery point is restored to the same account this value will be null."})  # fmt: skip
-    resource_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
-    resource_type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Web Services resource saved as a recovery point; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database. For Windows Volume Shadow Copy Service (VSS) backups, the only supported resource type is Amazon EC2."})  # fmt: skip
-    vault_created_by: Optional[AwsBackupRecoveryPointCreator] = field(default=None, metadata={"description": "Contains identifying information about the creation of a recovery point, including the BackupPlanArn, BackupPlanId, BackupPlanVersion, and BackupRuleId of the backup plan that is used to create it."})  # fmt: skip
-    iam_role_arn: Optional[str] = field(default=None, metadata={"description": "Specifies the IAM role ARN used to create the target recovery point; for example, arn:aws:iam::123456789012:role/S3Access."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "A status code specifying the state of the recovery point."})  # fmt: skip
-    status_message: Optional[str] = field(default=None, metadata={"description": "A message explaining the reason of the recovery point deletion failure."})  # fmt: skip
-    creation_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a recovery point is created, in Unix format and Coordinated Universal Time (UTC). The value of CreationDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
-    completion_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a job to restore a recovery point is completed, in Unix format and Coordinated Universal Time (UTC). The value of CompletionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
-    backup_size_in_bytes: Optional[int] = field(default=None, metadata={"description": "The size, in bytes, of a backup."})  # fmt: skip
-    calculated_lifecycle: Optional[AwsBackupCalculatedLifecycle] = field(default=None, metadata={"description": "A CalculatedLifecycle object containing DeleteAt and MoveToColdStorageAt timestamps."})  # fmt: skip
-    lifecycle: Optional[AwsBackupLifecycle] = field(default=None, metadata={"description": "The lifecycle defines when a protected resource is transitioned to cold storage and when it expires. Backup transitions and expires backups automatically according to the lifecycle that you define."})  # fmt: skip
-    encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The server-side encryption key that is used to protect your backups; for example, arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab."})  # fmt: skip
-    is_encrypted: Optional[bool] = field(default=None, metadata={"description": "A Boolean value that is returned as TRUE if the specified recovery point is encrypted, or FALSE if the recovery point is not encrypted."})  # fmt: skip
-    last_restore_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time a recovery point was last restored, in Unix format and Coordinated Universal Time (UTC). The value of LastRestoreTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
-    parent_recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "This is the Amazon Resource Name (ARN) of the parent (composite) recovery point."})  # fmt: skip
-    composite_member_identifier: Optional[str] = field(default=None, metadata={"description": "This is the identifier of a resource within a composite group, such as nested (child) recovery point belonging to a composite (parent) stack. The ID is transferred from the  logical ID within a stack."})  # fmt: skip
-    is_parent: Optional[bool] = field(default=None, metadata={"description": "This is a boolean value indicating this is a parent (composite) recovery point."})  # fmt: skip
-    resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
-    vault_type: Optional[str] = field(default=None, metadata={"description": "This is the type of vault in which the described recovery point is stored."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AwsBackupProtectedResource(AwsResource):
     kind: ClassVar[str] = "aws_backup_protected_resource"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("ResourceArn"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "resource_arn": S("ResourceArn"),
@@ -207,7 +125,7 @@ class AwsBackupPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_plan"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-plans", "BackupPlansList")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("BackupPlanName"),
+        "id": S("BackupPlanId"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("BackupPlanName"),
         "ctime": S("CreationDate"),
@@ -238,7 +156,7 @@ class AwsBackupVault(AwsResource):
     kind: ClassVar[str] = "aws_backup_vault"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-vaults", "BackupVaultList")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("BackupVaultName"),
+        "id": S("BackupVaultArn"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("BackupVaultName"),
         "ctime": S("CreationDate"),
@@ -302,7 +220,7 @@ class AwsBackupReportPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_report_plan"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-report-plans", "ReportPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ReportPlanName"),
+        "id": S("ReportPlanArn"),
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ReportPlanName"),
         "ctime": S("CreationTime"),
@@ -331,9 +249,9 @@ class AwsBackupRestoreTestingPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-testing-plans", "RestoreTestingPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("RestoreTestingPlanArn"),
         "tags": S("Tags", default=[]) >> ToDict(),
-        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "name": S("RestoreTestingPlanName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastUpdateTime"),
         "creation_time": S("CreationTime"),
@@ -386,7 +304,6 @@ resources: List[Type[AwsResource]] = [
     AwsBackupPlan,
     AwsBackupVault,
     AwsBackupProtectedResource,
-    # AwsBackupRecoveryPointByBackupVault,
     AwsBackupReportPlan,
     AwsBackupRestoreTestingPlan,
     AwsBackupLegalHold,
