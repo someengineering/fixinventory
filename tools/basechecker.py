@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+import io
+import csv
 import pkgutil
 import importlib
 import inspect
-from typing import List, Type, Any, Dict, Set, Optional
-from pprint import pprint
+from typing import List, Type, Any, Dict, Optional
 
 
 def list_submodules(package_name: str) -> List[str]:
@@ -37,42 +38,11 @@ def list_classes_in_module(module_name: str) -> List[Type[Any]]:
 
 
 def get_fix_baseresource_classes() -> List[Type[Any]]:
-    return [cls for cls in list_classes_in_module("fixlib.baseresources") if cls.__name__.startswith("Base")]
-
-
-def get_attrs(cls: Type[Any]) -> Set[str]:
-    return set(attr.fields_dict(cls).keys())
-
-
-def analyze_plugin_implementations(base_classes: List[Type[Any]], plugins: List[str]) -> Dict[str, Dict[str, Any]]:
-    results = {
-        cls.__name__: {"implemented_by": set(), "not_implemented_by": set(), "partial_implementation": {}}
-        for cls in base_classes
-    }
-    for plugin in plugins:
-        print(f"Analyzing plugin: {plugin}")
-        try:
-            plugin_classes = []
-            for module in list_fix_resource_modules(plugin):
-                plugin_classes.extend(list_classes_in_module(module))
-            for base_cls in base_classes:
-                base_attrs = get_attrs(base_cls)
-                implemented = False
-                for cls in plugin_classes:
-                    if issubclass(cls, base_cls):
-                        cls_attrs = get_attrs(cls)
-                        if base_attrs <= cls_attrs:
-                            results[base_cls.__name__]["implemented_by"].add(plugin)
-                            implemented = True
-                            break
-                        else:
-                            results[base_cls.__name__]["partial_implementation"][plugin] = base_attrs - cls_attrs
-                if not implemented:
-                    results[base_cls.__name__]["not_implemented_by"].add(plugin)
-        except Exception as e:
-            print(f"Error analyzing {plugin}: {e}")
-
-    return results
+    return [
+        cls
+        for cls in list_classes_in_module("fixlib.baseresources")
+        if cls.__name__.startswith("Base") and cls.__name__ not in ["BaseResource", "BaseCloud"]
+    ]
 
 
 def filter_fix_resources(all_classes: List[Type[Any]], base_classes: List[Type[Any]]) -> List[Type[Any]]:
@@ -85,7 +55,6 @@ def analyze_plugin_implementations(
 ) -> Dict[Type[Any], Dict[str, Optional[Type[Any]]]]:
     results = {cls: {plugin: None for plugin in plugins} for cls in base_classes}
     for plugin in plugins:
-        print(f"Analyzing plugin: {plugin}")
         try:
             plugin_classes = []
             for module in list_fix_resource_modules(plugin):
@@ -100,7 +69,7 @@ def analyze_plugin_implementations(
     return results
 
 
-def print_stats(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[Any]]]]):
+def print_stats(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[Any]]]]) -> None:
     for base_cls, plugins in implementation_stats.items():
         print(f"Base Resource: {base_cls.__name__}")
         for plugin, impl_cls in plugins.items():
@@ -108,8 +77,23 @@ def print_stats(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[An
             print(f"  Plugin {plugin}: {cls_name}")
 
 
+def stats_to_csv(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[Any]]]]) -> str:
+    output = io.StringIO()
+    fieldnames = ["Base Resource"] + list(next(iter(implementation_stats.values())).keys())
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for base_cls, plugins in implementation_stats.items():
+        row = {"Base Resource": base_cls.__name__}
+        for plugin, impl_cls in plugins.items():
+            row[plugin] = impl_cls.__name__ if impl_cls else ""
+        writer.writerow(row)
+    csv_data = output.getvalue()
+    output.close()
+    return csv_data
+
+
 if __name__ == "__main__":
     base_classes = get_fix_baseresource_classes()
     plugins = ["aws", "gcp", "azure"]
     implementation_stats = analyze_plugin_implementations(base_classes, plugins)
-    print_stats(implementation_stats)
+    print(stats_to_csv(implementation_stats))
