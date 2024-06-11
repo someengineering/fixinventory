@@ -566,7 +566,7 @@ async def test_query_with_clause(filled_graph_db: ArangoGraphDB, foo_model: Mode
     assert len(await query("is(bla) with(empty, <-- is(bla))")) == 100
     assert len(await query('is(bla) with(count==1, <-- is(foo) and id=~"1")')) == 10
     assert len(await query('is(bla) with(count==2, <-- is(foo) and id=~"1")')) == 0
-    assert len(await query("is(bla) with(any, <-- with(any, <-- is(foo)))")) == 100
+    assert len(await query("is(bla) with(any, <-- with(any, <-- is(foo)))")) == 0
 
 
 @mark.asyncio
