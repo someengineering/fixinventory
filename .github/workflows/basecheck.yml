@@ -32,7 +32,7 @@ jobs:
       - name: Run tests
         run: |
           source venv/bin/activate
-          ./tools/basecheck.py html > basecheck.html
+          python3 ./tools/basechecker.py html > basecheck.html
 
       - name: Archive base resource coverage results
         uses: actions/upload-artifact@v2
