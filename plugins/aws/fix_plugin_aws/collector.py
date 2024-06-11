@@ -70,7 +70,6 @@ global_resources: List[Type[AwsResource]] = (
     + s3.resources
     + service_quotas.resources
     + waf.resources
-    + backup.resources
 )
 regional_resources: List[Type[AwsResource]] = (
     sagemaker.resources  # start with sagemaker, because it is very slow
@@ -105,6 +104,7 @@ regional_resources: List[Type[AwsResource]] = (
     + ssm.resources
     + sqs.resources
     + redshift.resources
+    + backup.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 

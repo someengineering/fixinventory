@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
@@ -30,6 +30,12 @@ class AwsBackupRecoveryPointCreator:
 @define(eq=False, slots=False)
 class AwsBackupJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_job"
+    kind_display: ClassVar[str] = "AWS Backup Job"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-job:{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
+        "They encompass the execution details and status of the backup process for a specified resource."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-jobs", "BackupJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupJobId"),
@@ -92,6 +98,12 @@ class AwsBackupJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupProtectedResource(AwsResource):
     kind: ClassVar[str] = "aws_backup_protected_resource"
+    kind_display: ClassVar[str] = "AWS Backup Plan"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}", "arn_tpl": "{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Protected Resources represent the AWS resources that are configured to be backed up according to a backup plan. "
+        "They include information about the resource type and identifiers."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ResourceArn"),
@@ -123,6 +135,12 @@ class AwsBackupAdvancedBackupSetting:
 @define(eq=False, slots=False)
 class AwsBackupPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_plan"
+    kind_display: ClassVar[str] = "AWS Backup Plan"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Plans define the schedule and rules for automatically backing up AWS resources. "
+        "They include settings such as backup frequency, retention period, and lifecycle policies."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-plans", "BackupPlansList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupPlanId"),
@@ -154,6 +172,12 @@ class AwsBackupPlan(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupVault(AwsResource):
     kind: ClassVar[str] = "aws_backup_vault"
+    kind_display: ClassVar[str] = "AWS Backup Vault"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Vaults are secure storage locations for backup data. "
+        "They are used to store and organize backups created by AWS Backup, providing encryption and access control."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-vaults", "BackupVaultList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupVaultArn"),
@@ -218,6 +242,12 @@ class AwsBackupReportDeliveryChannel:
 @define(eq=False, slots=False)
 class AwsBackupReportPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_report_plan"
+    kind_display: ClassVar[str] = "AWS Report Plan"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Report Plans generate reports that provide detailed information on backup jobs and resource compliance. "
+        "These reports help in monitoring and auditing backup activities and compliance with organizational policies."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-report-plans", "ReportPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReportPlanArn"),
@@ -247,6 +277,12 @@ class AwsBackupReportPlan(AwsResource):
 
 class AwsBackupRestoreTestingPlan(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
+    kind_display: ClassVar[str] = "AWS Restore Testing Plan"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Restore Testing Plans are configurations designed to test the restore capabilities and processes for backed-up data. "
+        "They ensure that recovery procedures are effective and that data can be reliably restored."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-testing-plans", "RestoreTestingPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreTestingPlanArn"),
@@ -276,6 +312,12 @@ class AwsBackupRestoreTestingPlan(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupLegalHold(AwsResource):
     kind: ClassVar[str] = "aws_backup_legal_hold"
+    kind_display: ClassVar[str] = "AWS Legal Hold"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Legal Holds are used to retain backup data for compliance and legal purposes. "
+        "They prevent deletion of backups that might be required for legal or regulatory reasons."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-legal-holds", "LegalHolds")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LegalHoldId"),
@@ -302,6 +344,12 @@ class AwsBackupLegalHold(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupRestoreJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_job"
+    kind_display: ClassVar[str] = "AWS Restore Job"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-job:{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
+        "They include details on the restore process, target resources, and status of the restoration."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreJobId"),
@@ -352,6 +400,12 @@ class AwsBackupRestoreJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupCopyJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_copy_job"
+    kind_display: ClassVar[str] = "AWS Copy Job"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:copy-job:{id}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
+        "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
+    )
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CopyJobId"),
