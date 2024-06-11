@@ -539,8 +539,7 @@ class GraphBuilder:
         config: AzureConfig,
         location_lookup: Optional[Dict[str, AzureLocation]] = None,
         location: Optional[AzureLocation] = None,
-        graph_nodes_access: Optional[RWLock] = None,
-        graph_edges_access: Optional[RWLock] = None,
+        graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
@@ -551,8 +550,7 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.location_lookup = location_lookup or {}
         self.location = location
-        self.graph_nodes_access = graph_nodes_access or RWLock()
-        self.graph_edges_access = graph_edges_access or RWLock()
+        self.graph_access_lock = graph_access_lock or RWLock()
         self.name = f"Azure:{subscription.name}"
         self.config = config
         self.last_run_started_at = last_run_started_at
@@ -602,7 +600,7 @@ class GraphBuilder:
         """
         if isinstance(nd := node.get("node"), AzureResource):
             return nd  # type: ignore
-        with self.graph_nodes_access.read_access:
+        with self.graph_access_lock.read_access:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
@@ -623,7 +621,7 @@ class GraphBuilder:
         result: List[AzureResourceType] = []
         if isinstance(nd := node.get("node"), AzureResource):
             result.append(nd)  # type: ignore
-        with self.graph_nodes_access.read_access:
+        with self.graph_access_lock.read_access:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
@@ -661,7 +659,7 @@ class GraphBuilder:
             node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource{node.id}/overview"
 
         if last_edge_key is not None:
-            with self.graph_nodes_access.write_access:
+            with self.graph_access_lock.write_access:
                 self.graph.add_node(node, source=source or {})
             return node
         else:
@@ -683,7 +681,7 @@ class GraphBuilder:
         if isinstance(from_node, AzureResource) and isinstance(to_n, AzureResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
-            with self.graph_edges_access.write_access:
+            with self.graph_access_lock.write_access:
                 return self.graph.add_edge(start, end, edge_type=edge_type)
         return None
 
@@ -709,7 +707,7 @@ class GraphBuilder:
         if isinstance(from_node, AzureResource) and isinstance(to_n, AzureResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
-            with self.graph_edges_access.write_access:
+            with self.graph_access_lock.write_access:
                 self.graph.add_edge(start, end, edge_type=EdgeType.default)
                 if delete_same_as_default:
                     start, end = end, start
@@ -717,13 +715,13 @@ class GraphBuilder:
                 self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
     def resources_of(self, resource_type: Type[AzureResourceType]) -> List[AzureResourceType]:
-        with self.graph_nodes_access.read_access:
+        with self.graph_access_lock.read_access:
             return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     def edges_of(
         self, from_type: Type[AzureResource], to_type: Type[AzureResource], edge_type: EdgeType = EdgeType.default
     ) -> List[EdgeKey]:
-        with self.graph_edges_access.read_access:
+        with self.graph_access_lock.read_access:
             return [
                 key
                 for (from_node, to_node, key) in self.graph.edges
@@ -745,8 +743,7 @@ class GraphBuilder:
             core_feedback=self.core_feedback,
             location_lookup=self.location_lookup,
             location=location,
-            graph_nodes_access=self.graph_nodes_access,
-            graph_edges_access=self.graph_edges_access,
+            graph_access_lock=self.graph_access_lock,
             config=self.config,
         )
 
