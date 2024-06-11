@@ -13,7 +13,7 @@ from fix_plugin_azure.resource.base import (
     AzureSystemData,
     AzureSku,
     AzureExtendedLocation,
-    AzurePrincipalidClientid,
+    AzurePrincipalClient,
     AzurePrivateLinkServiceConnectionState,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
@@ -1273,7 +1273,7 @@ class AzureEncryptionSetIdentity:
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The object id of the managed identity resource. This will be sent to the rp from arm via the x-ms-identity-principal-id header in the put request if the resource has a systemassigned(implicit) identity.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the managed identity resource. This will be sent to the rp from arm via the x-ms-client-tenant-id header in the put request if the resource has a systemassigned(implicit) identity.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of managed identity used by the diskencryptionset. Only systemassigned is supported for new creations. Disk encryption sets can be updated with identity type none during migration of subscription to a new azure active directory tenant; it will cause the encrypted resources to lose access to the keys.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2812,7 +2812,7 @@ class AzureVirtualMachineIdentity:
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of virtual machine identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id associated with the virtual machine. This property will only be provided for a system assigned identity.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the virtual machine. The type systemassigned, userassigned includes both an implicitly created identity and a set of user assigned identities. The type none will remove any identities from the virtual machine.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
 
 
 InstanceStatusMapping = {
@@ -3529,7 +3529,7 @@ class AzureVirtualMachineScaleSetIdentity:
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of virtual machine scale set identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id associated with the virtual machine scale set. This property will only be provided for a system assigned identity.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the virtual machine scale set. The type systemassigned, userassigned includes both an implicitly created identity and a set of user assigned identities. The type none will remove any identities from the virtual machine scale set.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with the virtual machine. The user identity dictionary key references will be arm resource ids in the form: /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Managedidentity/userassignedidentities/{identityname}.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

@@ -1,6 +1,8 @@
 import logging
+import ipaddress
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from urllib.parse import urlparse
 
 from attr import define, field
 
@@ -8,7 +10,19 @@ from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.billing import GcpSku
 from fixlib.baseresources import (
+    BaseAutoScalingGroup,
+    BaseBucket,
+    BaseCertificate,
+    BaseFirewall,
+    BaseGateway,
+    BaseHealthCheck,
+    BaseIPAddress,
     BaseInstanceType,
+    BaseLoadBalancer,
+    BaseNetwork,
+    BaseSnapshot,
+    BaseSubnet,
+    BaseTunnel,
     BaseVolumeType,
     ModelReference,
     BaseVolume,
@@ -64,8 +78,18 @@ class GcpAcceleratorType(GcpResource):
     type_maximum_cards_per_instance: Optional[int] = field(default=None)
 
 
+def get_ip_address_type(ip_address: str) -> str:
+    try:
+        version = ipaddress.ip_address(ip_address).version
+        address_type_map = {4: "ipv4", 6: "ipv6"}
+        return address_type_map[version]
+    except Exception as e:
+        log.warning(f"An error occured while setting ip address version: {e}")
+        return ""
+
+
 @define(eq=False, slots=False)
-class GcpAddress(GcpResource):
+class GcpAddress(GcpResource, BaseIPAddress):
     kind: ClassVar[str] = "gcp_address"
     kind_display: ClassVar[str] = "GCP Address"
     kind_description: ClassVar[str] = (
@@ -111,6 +135,10 @@ class GcpAddress(GcpResource):
         "status": S("status"),
         "subnetwork": S("subnetwork"),
         "users": S("users", default=[]),
+        "ip_address": S("address"),
+        # Since GCP API does not provide the IP version directly, we determine it ourselves
+        # by using the 'get_ip_address_type'
+        "ip_address_family": S("address") >> F(get_ip_address_type),
     }
     address: Optional[str] = field(default=None)
     address_type: Optional[str] = field(default=None)
@@ -292,7 +320,7 @@ class GcpAutoscalerStatusDetails:
 
 
 @define(eq=False, slots=False)
-class GcpAutoscaler(GcpResource):
+class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_autoscaler"
     kind_display: ClassVar[str] = "GCP Autoscaler"
     kind_description: ClassVar[str] = (
@@ -333,6 +361,8 @@ class GcpAutoscaler(GcpResource):
         "autoscaler_status": S("status"),
         "autoscaler_status_details": S("statusDetails", default=[]) >> ForallBend(GcpAutoscalerStatusDetails.mapping),
         "autoscaler_target": S("target"),
+        "min_size": S("autoscalingPolicy", "minNumReplicas"),
+        "max_size": S("autoscalingPolicy" "maxNumReplicas"),
     }
     autoscaler_autoscaling_policy: Optional[GcpAutoscalingPolicy] = field(default=None)
     autoscaler_recommended_size: Optional[int] = field(default=None)
@@ -420,7 +450,7 @@ class GcpBackendBucketCdnPolicy:
 
 
 @define(eq=False, slots=False)
-class GcpBackendBucket(GcpResource):
+class GcpBackendBucket(GcpResource, BaseBucket):
     kind: ClassVar[str] = "gcp_backend_bucket"
     kind_display: ClassVar[str] = "GCP Backend Bucket"
     kind_description: ClassVar[str] = (
@@ -1193,7 +1223,7 @@ class GcpExternalVpnGatewayInterface:
 
 
 @define(eq=False, slots=False)
-class GcpExternalVpnGateway(GcpResource):
+class GcpExternalVpnGateway(GcpResource, BaseGateway):
     kind: ClassVar[str] = "gcp_external_vpn_gateway"
     kind_display: ClassVar[str] = "GCP External VPN Gateway"
     kind_description: ClassVar[str] = (
@@ -1433,7 +1463,7 @@ class GcpFirewallLogConfig:
 
 
 @define(eq=False, slots=False)
-class GcpFirewall(GcpResource):
+class GcpFirewall(GcpResource, BaseFirewall):
     kind: ClassVar[str] = "gcp_firewall"
     kind_display: ClassVar[str] = "GCP Firewall"
     kind_description: ClassVar[str] = (
@@ -1541,7 +1571,7 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 
 
 @define(eq=False, slots=False)
-class GcpForwardingRule(GcpResource):
+class GcpForwardingRule(GcpResource, BaseLoadBalancer):
     kind: ClassVar[str] = "gcp_forwarding_rule"
     kind_display: ClassVar[str] = "GCP Forwarding Rule"
     kind_description: ClassVar[str] = (
@@ -1607,6 +1637,8 @@ class GcpForwardingRule(GcpResource):
         "service_name": S("serviceName"),
         "subnetwork": S("subnetwork"),
         "target": S("target"),
+        "public_ip_address": S("IPAddress"),
+        "lb_type": S("loadBalancingScheme"),
     }
     ip_address: Optional[str] = field(default=None)
     ip_protocol: Optional[str] = field(default=None)
@@ -1645,6 +1677,53 @@ class GcpForwardingRule(GcpResource):
                 GcpTargetPool,
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
+        self._collect_backends(builder)
+
+    def _collect_backends(self, graph_builder: GraphBuilder) -> None:
+        if not self.target:
+            return
+        backend_services = graph_builder.nodes(clazz=GcpBackendService)
+        load_balancers = graph_builder.nodes(clazz=GcpUrlMap)
+        load_balancer = next(
+            (lb for lb in load_balancers if self.target.rsplit("/", maxsplit=1)[1].startswith(lb.id)),
+            None,
+        )
+        if load_balancer is None:
+            return
+
+        for backend_service in backend_services:
+            if backend_service.link == load_balancer.default_service:
+                if backend_service.backend_service_backends:
+                    for backend in backend_service.backend_service_backends:
+                        if backend.group:
+
+                            def fetch_instances(group: str) -> None:
+                                api_spec = GcpApiSpec(
+                                    service="compute",
+                                    version="v1",
+                                    accessors=["instanceGroups"],
+                                    action="listInstances",
+                                    request_parameter={
+                                        "project": "{project}",
+                                        "zone": "{zone}",
+                                        "instanceGroup": "{instanceGroup}",
+                                    },
+                                    request_parameter_in={"project", "zone", "instanceGroup"},
+                                    response_path="items",
+                                )
+                                path_data = urlparse(group).path.split("/")
+                                try:
+                                    zone = path_data[6]
+                                    instance_group = path_data[8]
+
+                                    items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
+                                    for item in items:
+                                        if vm_id := item.get("instance"):
+                                            self.backends.append(vm_id)
+                                except Exception as e:
+                                    log.warning(f"An error occured while setting backends property: {e}")
+
+                            graph_builder.submit_work(fetch_instances, backend.group)
 
 
 @define(eq=False, slots=False)
@@ -2204,7 +2283,7 @@ class GcpTCPHealthCheck:
 
 
 @define(eq=False, slots=False)
-class GcpHealthCheck(GcpResource):
+class GcpHealthCheck(GcpResource, BaseHealthCheck):
     kind: ClassVar[str] = "gcp_health_check"
     kind_display: ClassVar[str] = "GCP Health Check"
     kind_description: ClassVar[str] = (
@@ -2244,10 +2323,11 @@ class GcpHealthCheck(GcpResource):
         "timeout_sec": S("timeoutSec"),
         "type": S("type"),
         "unhealthy_threshold": S("unhealthyThreshold"),
+        "timeout": S("timeoutSec"),
+        "check_interval": S("checkIntervalSec"),
     }
     check_interval_sec: Optional[int] = field(default=None)
     grpc_health_check: Optional[GcpGRPCHealthCheck] = field(default=None)
-    healthy_threshold: Optional[int] = field(default=None)
     http2_health_check: Optional[GcpHTTP2HealthCheck] = field(default=None)
     http_health_check: Optional[GcpHTTPHealthCheckSpec] = field(default=None)
     https_health_check: Optional[GcpHTTPSHealthCheckSpec] = field(default=None)
@@ -2256,7 +2336,6 @@ class GcpHealthCheck(GcpResource):
     tcp_health_check: Optional[GcpTCPHealthCheck] = field(default=None)
     timeout_sec: Optional[int] = field(default=None)
     type: Optional[str] = field(default=None)
-    unhealthy_threshold: Optional[int] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -4322,7 +4401,7 @@ class GcpNetworkPeering:
 
 
 @define(eq=False, slots=False)
-class GcpNetwork(GcpResource):
+class GcpNetwork(GcpResource, BaseNetwork):
     kind: ClassVar[str] = "gcp_network"
     kind_display: ClassVar[str] = "GCP Network"
     kind_description: ClassVar[str] = (
@@ -5453,7 +5532,7 @@ class GcpSslCertificateSelfManagedSslCertificate:
 
 
 @define(eq=False, slots=False)
-class GcpSslCertificate(GcpResource):
+class GcpSslCertificate(GcpResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     kind_display: ClassVar[str] = "GCP SSL Certificate"
     kind_description: ClassVar[str] = (
@@ -5488,6 +5567,8 @@ class GcpSslCertificate(GcpResource):
         "self_managed": S("selfManaged", default={}) >> Bend(GcpSslCertificateSelfManagedSslCertificate.mapping),
         "subject_alternative_names": S("subjectAlternativeNames", default=[]),
         "type": S("type"),
+        "dns_names": S("subjectAlternativeNames"),
+        "expires": S("expireTime"),
     }
     certificate: Optional[str] = field(default=None)
     expire_time: Optional[datetime] = field(default=None)
@@ -6977,7 +7058,7 @@ class GcpServiceAttachment(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpSnapshot(GcpResource):
+class GcpSnapshot(GcpResource, BaseSnapshot):
     kind: ClassVar[str] = "gcp_snapshot"
     kind_display: ClassVar[str] = "GCP Snapshot"
     kind_description: ClassVar[str] = (
@@ -7027,6 +7108,8 @@ class GcpSnapshot(GcpResource):
         "snapshot_storage_bytes": S("storageBytes"),
         "snapshot_storage_bytes_status": S("storageBytesStatus"),
         "snapshot_storage_locations": S("storageLocations", default=[]),
+        "volume_id": S("sourceDiskId"),
+        "volume_size": S("diskSizeGb"),
     }
     snapshot_architecture: Optional[str] = field(default=None)
     snapshot_auto_created: Optional[bool] = field(default=None)
@@ -7045,10 +7128,13 @@ class GcpSnapshot(GcpResource):
     snapshot_source_disk_id: Optional[str] = field(default=None)
     snapshot_source_snapshot_schedule_policy: Optional[str] = field(default=None)
     snapshot_source_snapshot_schedule_policy_id: Optional[str] = field(default=None)
-    snapshot_status: Optional[str] = field(default=None)
     snapshot_storage_bytes: Optional[str] = field(default=None)
     snapshot_storage_bytes_status: Optional[str] = field(default=None)
     snapshot_storage_locations: Optional[List[str]] = field(default=None)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if self.snapshot_snapshot_encryption_key is not None:
+            self.encrypted = True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.snapshot_source_disk:
@@ -7096,7 +7182,7 @@ class GcpSubnetworkSecondaryRange:
 
 
 @define(eq=False, slots=False)
-class GcpSubnetwork(GcpResource):
+class GcpSubnetwork(GcpResource, BaseSubnet):
     kind: ClassVar[str] = "gcp_subnetwork"
     kind_display: ClassVar[str] = "GCP Subnetwork"
     kind_description: ClassVar[str] = (
@@ -7438,7 +7524,7 @@ class GcpVpnGatewayVpnGatewayInterface:
 
 
 @define(eq=False, slots=False)
-class GcpVpnGateway(GcpResource):
+class GcpVpnGateway(GcpResource, BaseGateway):
     kind: ClassVar[str] = "gcp_vpn_gateway"
     kind_display: ClassVar[str] = "GCP VPN Gateway"
     kind_description: ClassVar[str] = (
@@ -7487,7 +7573,7 @@ class GcpVpnGateway(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpVpnTunnel(GcpResource):
+class GcpVpnTunnel(GcpResource, BaseTunnel):
     kind: ClassVar[str] = "gcp_vpn_tunnel"
     kind_display: ClassVar[str] = "GCP VPN Tunnel"
     kind_description: ClassVar[str] = (
@@ -7564,7 +7650,7 @@ class GcpVpnTunnel(GcpResource):
             builder.add_edge(self, link=self.router)
 
 
-resources = [
+resources: List[Type[GcpResource]] = [
     GcpAcceleratorType,
     GcpAddress,
     GcpAutoscaler,

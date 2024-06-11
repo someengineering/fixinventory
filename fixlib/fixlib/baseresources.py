@@ -986,7 +986,7 @@ class BaseSnapshot(BaseResource):
     snapshot_status: str = ""
     description: Optional[str] = None
     volume_id: Optional[str] = None
-    volume_size: int = 0
+    volume_size: Optional[int] = None
     encrypted: bool = False
     owner_id: Optional[str] = None
     owner_alias: Optional[str] = None
@@ -1085,6 +1085,15 @@ class BaseFirewall(BaseResource):
     _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
+class DatabaseInstanceStatus(Enum):
+    AVAILABLE = "available"
+    STOPPED = "stopped"
+    TERMINATED = "terminated"
+    FAILED = "failed"
+    BUSY = "busy"
+    UNKNOWN = "unknown"
+
+
 @define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
@@ -1092,13 +1101,13 @@ class BaseDatabase(BaseResource):
     kind_description: ClassVar[str] = "A database."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     _categories: ClassVar[List[Category]] = [Category.compute, Category.database]
-    db_type: str = ""
-    db_status: str = ""
+    db_type: Optional[str] = None
+    db_status: Optional[DatabaseInstanceStatus] = None
     db_endpoint: Optional[str] = ""
     db_version: Optional[str] = None
     db_publicly_accessible: Optional[bool] = None
     instance_type: str = ""
-    volume_size: int = 0
+    volume_size: Optional[int] = None
     volume_iops: Optional[int] = None
     volume_encrypted: Optional[bool] = None
 
@@ -1313,8 +1322,8 @@ class BaseAutoScalingGroup(BaseResource):
     kind_description: ClassVar[str] = "An auto scaling group."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "autoscaling_group", "group": "compute"}
     _categories: ClassVar[List[Category]] = [Category.compute, Category.management]
-    min_size: int = -1
-    max_size: int = -1
+    min_size: Optional[int] = None
+    max_size: Optional[int] = None
 
 
 @define(eq=False, slots=False)
@@ -1324,7 +1333,7 @@ class BaseIPAddress(BaseResource):
     kind_description: ClassVar[str] = "An IP address."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network_address", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
-    ip_address: str = ""
+    ip_address: Optional[str] = None
     ip_address_family: str = ""
 
 
@@ -1335,10 +1344,10 @@ class BaseHealthCheck(BaseResource):
     kind_description: ClassVar[str] = "A health check."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "health_check", "group": "compute"}
     _categories: ClassVar[List[Category]] = [Category.monitoring]
-    check_interval: int = -1
-    healthy_threshold: int = -1
-    unhealthy_threshold: int = -1
-    timeout: int = -1
+    check_interval: Optional[int] = None
+    healthy_threshold: Optional[int] = None
+    unhealthy_threshold: Optional[int] = None
+    timeout: Optional[int] = None
     health_check_type: str = ""
 
 

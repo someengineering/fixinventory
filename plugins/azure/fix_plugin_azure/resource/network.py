@@ -10,8 +10,8 @@ from fix_plugin_azure.resource.base import (
     AzureSubResource,
     AzureSku,
     AzureExtendedLocation,
-    AzurePrincipalidClientid,
     AzurePrivateLinkServiceConnectionState,
+    AzureManagedServiceIdentity,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.utils import rgetattr
@@ -960,21 +960,6 @@ class AzureApplicationGatewayGlobalConfiguration:
     }
     enable_request_buffering: Optional[bool] = field(default=None, metadata={'description': 'Enable request buffering.'})  # fmt: skip
     enable_response_buffering: Optional[bool] = field(default=None, metadata={'description': 'Enable response buffering.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureManagedServiceIdentity:
-    kind: ClassVar[str] = "azure_managed_service_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the resource. The type SystemAssigned, UserAssigned includes both an implicitly created identity and a set of user assigned identities. The type None will remove any identities from the virtual machine.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalidClientid]] = field(default=None, metadata={'description': 'The list of user identities associated with resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

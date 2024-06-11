@@ -377,11 +377,41 @@ class AzureExtendedLocation:
 
 
 @define(eq=False, slots=False)
-class AzurePrincipalidClientid:
-    kind: ClassVar[str] = "azure_principalid_clientid"
+class AzureUserAssignedIdentity:
+    kind: ClassVar[str] = "azure_user_assigned_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "client_id": S("clientId"),
+        "principal_id": S("principalId"),
+        "object_id": S("objectId"),
+        "resource_id": S("resourceId"),
+    }
+    client_id: Optional[str] = field(default=None, metadata={"description": "The client ID of the identity."})
+    principal_id: Optional[str] = field(default=None, metadata={"description": "The principal ID of the identity."})
+    object_id: Optional[str] = field(default=None, metadata={'description': 'The object ID of the user assigned identity.'})  # fmt: skip
+    resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the user assigned identity.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzurePrincipalClient:
+    kind: ClassVar[str] = "azure_principal_client"
     mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
     client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureManagedServiceIdentity:
+    kind: ClassVar[str] = "azure_managed_service_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "principal_id": S("principalId"),
+        "tenant_id": S("tenantId"),
+        "type": S("type"),
+        "user_assigned_identities": S("userAssignedIdentities"),
+    }
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the resource. The type SystemAssigned, UserAssigned includes both an implicitly created identity and a set of user assigned identities. The type None will remove any identities from the virtual machine.'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

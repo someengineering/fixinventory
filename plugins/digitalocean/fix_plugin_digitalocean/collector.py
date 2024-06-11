@@ -45,6 +45,7 @@ from .resources import (
     DigitalOceanAlertPolicy,
 )
 from .utils import (
+    get_db_status,
     iso2datetime,
     get_result_data,
     kubernetes_id,
@@ -764,7 +765,7 @@ class DigitalOceanTeamCollector:
                 "urn": lambda db: database_id(db["id"]),
                 "name": lambda db: database_id(db["name"]),
                 "db_type": "engine",
-                "db_status": "status",
+                "db_status": lambda db: get_db_status(db["status"]),
                 "db_version": "version",
                 "db_endpoint": lambda db: db.get("connection", {}).get("host", ""),
                 "instance_type": "size",

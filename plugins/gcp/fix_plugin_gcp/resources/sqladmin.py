@@ -7,8 +7,8 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, Bend, ForallBend, K
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, ModelReference
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
@@ -638,7 +638,7 @@ class GcpSqlSettings:
 
 
 @define(eq=False, slots=False)
-class GcpSqlDatabaseInstance(GcpResource):
+class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_sql_database_instance"
     kind_display: ClassVar[str] = "GCP SQL Database Instance"
     kind_description: ClassVar[str] = (
@@ -700,6 +700,21 @@ class GcpSqlDatabaseInstance(GcpResource):
         "settings": S("settings", default={}) >> Bend(GcpSqlSettings.mapping),
         "sql_database_instance_state": S("state"),
         "suspension_reason": S("suspensionReason", default=[]),
+        "db_type": S("databaseVersion") >> F(lambda db_version: db_version.split("_")[0].lower()),
+        "db_status": S("state")
+        >> MapEnum(
+            {
+                "RUNNABLE": DatabaseInstanceStatus.AVAILABLE,
+                "MAINTENANCE": DatabaseInstanceStatus.BUSY,
+                "FAILED": DatabaseInstanceStatus.FAILED,
+                "STOPPED": DatabaseInstanceStatus.STOPPED,
+                "CREATING": DatabaseInstanceStatus.BUSY,
+                "DELETING": DatabaseInstanceStatus.TERMINATED,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
+        "db_version": S("databaseVersion"),
+        "volume_size": S("settings", "dataDiskSizeGb") >> F(int),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
     backend_type: Optional[str] = field(default=None)
@@ -713,7 +728,6 @@ class GcpSqlDatabaseInstance(GcpResource):
     etag: Optional[str] = field(default=None)
     failover_replica: Optional[GcpSqlFailoverreplica] = field(default=None)
     gce_zone: Optional[str] = field(default=None)
-    instance_type: Optional[str] = field(default=None)
     instance_ip_addresses: Optional[List[GcpSqlIpMapping]] = field(default=None)
     ipv6_address: Optional[str] = field(default=None)
     maintenance_version: Optional[str] = field(default=None)
@@ -743,8 +757,12 @@ class GcpSqlDatabaseInstance(GcpResource):
         classes: List[Type[GcpResource]] = [GcpSqlBackupRun, GcpSqlDatabase, GcpSqlUser, GcpSqlOperation]
         for cls in classes:
             if spec := cls.api_spec:
-                items = graph_builder.client.list(spec, instance=self.name, project=self.project)
-                cls.collect(items, graph_builder)
+
+                def collect_sql_resources(spec: GcpApiSpec, clazz: Type[GcpResource]) -> None:
+                    items = graph_builder.client.list(spec, instance=self.name, project=self.project)
+                    clazz.collect(items, graph_builder)
+
+                graph_builder.submit_work(collect_sql_resources, spec, cls)
 
     @classmethod
     def called_collect_apis(cls) -> List[GcpApiSpec]:
@@ -1087,4 +1105,4 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
 
-resources = [GcpSqlDatabaseInstance]
+resources: List[Type[GcpResource]] = [GcpSqlDatabaseInstance]

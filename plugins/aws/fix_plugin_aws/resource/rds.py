@@ -10,9 +10,9 @@ from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, TagsValue
-from fixlib.baseresources import BaseDatabase, MetricName, ModelReference, BaseSnapshot
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, MetricName, ModelReference, BaseSnapshot
 from fixlib.graph import Graph
-from fixlib.json_bender import F, K, S, Bend, Bender, ForallBend, bend
+from fixlib.json_bender import F, K, S, Bend, Bender, ForallBend, MapEnum, bend
 from fixlib.types import Json
 from fixlib.utils import utc
 
@@ -342,7 +342,43 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         "ctime": S("InstanceCreateTime"),
         "arn": S("DBInstanceArn"),
         "db_type": S("Engine"),
-        "db_status": S("DBInstanceStatus"),
+        "db_status": S("DBInstanceStatus")
+        >> MapEnum(
+            {
+                "available": DatabaseInstanceStatus.AVAILABLE,
+                "backing-up": DatabaseInstanceStatus.BUSY,
+                "configuring-enhanced-monitoring": DatabaseInstanceStatus.BUSY,
+                "configuring-iam-database-auth": DatabaseInstanceStatus.BUSY,
+                "configuring-log-exports": DatabaseInstanceStatus.BUSY,
+                "converting-to-vpc": DatabaseInstanceStatus.BUSY,
+                "creating": DatabaseInstanceStatus.BUSY,
+                "delete-precheck": DatabaseInstanceStatus.BUSY,
+                "deleting": DatabaseInstanceStatus.TERMINATED,
+                "failed": DatabaseInstanceStatus.FAILED,
+                "inaccessible-encryption-credentials": DatabaseInstanceStatus.FAILED,
+                "inaccessible-encryption-credentials-recoverable": DatabaseInstanceStatus.BUSY,
+                "incompatible-network": DatabaseInstanceStatus.FAILED,
+                "incompatible-option-group": DatabaseInstanceStatus.FAILED,
+                "incompatible-parameters": DatabaseInstanceStatus.FAILED,
+                "incompatible-restore": DatabaseInstanceStatus.FAILED,
+                "insufficient-capacity": DatabaseInstanceStatus.FAILED,
+                "maintenance": DatabaseInstanceStatus.BUSY,
+                "modifying": DatabaseInstanceStatus.BUSY,
+                "moving-to-vpc": DatabaseInstanceStatus.BUSY,
+                "rebooting": DatabaseInstanceStatus.BUSY,
+                "resetting-master-credentials": DatabaseInstanceStatus.BUSY,
+                "renaming": DatabaseInstanceStatus.BUSY,
+                "restore-error": DatabaseInstanceStatus.FAILED,
+                "starting": DatabaseInstanceStatus.BUSY,
+                "stopped": DatabaseInstanceStatus.STOPPED,
+                "stopping": DatabaseInstanceStatus.BUSY,
+                "storage-config-upgrade": DatabaseInstanceStatus.BUSY,
+                "storage-full": DatabaseInstanceStatus.FAILED,
+                "storage-optimization": DatabaseInstanceStatus.BUSY,
+                "upgrading": DatabaseInstanceStatus.BUSY,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
         "db_endpoint": S("Endpoint", "Address") + K(":") + (S("Endpoint", "Port") >> F(str)),
         "db_version": S("EngineVersion"),
         "db_publicly_accessible": S("PubliclyAccessible"),
@@ -830,7 +866,28 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
         "name": S("DBClusterIdentifier"),
         "ctime": S("ClusterCreateTime"),
         "db_type": S("Engine"),
-        "db_status": S("Status"),
+        "db_status": S("Status")
+        >> MapEnum(
+            {
+                "available": DatabaseInstanceStatus.AVAILABLE,
+                "backing-up": DatabaseInstanceStatus.BUSY,
+                "creating": DatabaseInstanceStatus.BUSY,
+                "deleting": DatabaseInstanceStatus.TERMINATED,
+                "failed": DatabaseInstanceStatus.FAILED,
+                "incompatible-parameters": DatabaseInstanceStatus.FAILED,
+                "incompatible-network": DatabaseInstanceStatus.FAILED,
+                "modifying": DatabaseInstanceStatus.BUSY,
+                "rebooting": DatabaseInstanceStatus.BUSY,
+                "resetting-master-credentials": DatabaseInstanceStatus.BUSY,
+                "renaming": DatabaseInstanceStatus.BUSY,
+                "restore-error": DatabaseInstanceStatus.FAILED,
+                "starting": DatabaseInstanceStatus.BUSY,
+                "stopped": DatabaseInstanceStatus.STOPPED,
+                "stopping": DatabaseInstanceStatus.BUSY,
+                "upgrading": DatabaseInstanceStatus.BUSY,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
         "db_endpoint": S("Endpoint") + K(":") + (S("Port") >> F(str)),
         "db_version": S("EngineVersion"),
         "db_publicly_accessible": S("PubliclyAccessible"),

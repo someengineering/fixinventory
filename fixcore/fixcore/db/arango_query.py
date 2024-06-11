@@ -756,80 +756,68 @@ def query_string(
 
         def with_clause(in_crsr: str, clause: WithClause, limit: Optional[Limit]) -> str:
             nonlocal query_part
-            # this is the general structure of the with_clause that is created
-            #
-            # FOR cloud in foo FILTER @0 in cloud.kinds
-            #    FOR account IN 0..1 OUTBOUND cloud foo_default
-            #    OPTIONS { bfs: true, uniqueVertices: 'global' }
-            #    FILTER (cloud._key==account._key) or (@1 in account.kinds)
-            #        FOR region in 0..1 OUTBOUND account foo_default
-            #        OPTIONS { bfs: true, uniqueVertices: 'global' }
-            #         FILTER (cloud._key==region._key) or (@2 in region.kinds)
-            #             FOR zone in 0..1 OUTBOUND region foo_default
-            #             OPTIONS { bfs: true, uniqueVertices: 'global' }
-            #             FILTER (cloud._key==zone._key) or (@3 in zone.kinds)
-            #         COLLECT l4_cloud = cloud, l4_account=account, l4_region=region WITH COUNT INTO counter3
-            #         FILTER (l4_cloud._key==l4_region._key) or (counter3>=0)
-            #     COLLECT l3_cloud = l4_cloud, l3_account=l4_account WITH COUNT INTO counter2
-            #     FILTER (l3_cloud._key==l3_account._key) or (counter2>=0) // ==2 regions
-            # COLLECT l2_cloud = l3_cloud WITH COUNT INTO counter1
-            # FILTER (counter1>=0) //counter is +1 since the node itself is always bypassed
-            # RETURN ({cloud: l2_cloud._key, count:counter1})
-            current = ctx.next_counter("with_clause")
-
-            def cursor_in(depth: int) -> str:
-                return f"c{current}_{depth}"
-
-            l0crsr = cursor_in(0)
+            # LET incoming = (FOR cloud IN `fix_view` SEARCH cloud.kinds == @b0 RETURN cloud)
+            # LET clouds  = (
+            #    FOR cloud IN incoming
+            #    LET accounts = (
+            #        FOR account IN 1..1 OUTBOUND cloud `fix_test` OPTIONS { bfs: true, uniqueVertices: 'global'  }
+            #        FILTER "account" IN account.kinds
+            #        LIMIT 1
+            #        LET regions = (
+            #            FOR region IN 1..1 OUTBOUND account `fix_test` OPTIONS { bfs: true, uniqueVertices: 'global' }
+            #            FILTER "region" IN region.kinds
+            #            LIMIT 1
+            #            LET resources = (
+            #                FOR resource IN 1..1 OUTBOUND region `fix_test` OPTIONS {bfs:true,uniqueVertices:'global'}
+            #                LIMIT 1
+            #                RETURN resource
+            #            )
+            #            FILTER LENGTH(resources)>0
+            #            RETURN region
+            #        )
+            #        FILTER LENGTH(regions)==0
+            #      RETURN account
+            #    )
+            #    FILTER LENGTH(accounts) >0 //any
+            #    RETURN cloud
+            # )
+            # FOR cloud IN clouds RETURN cloud
 
             def traversal_filter(cl: WithClause, in_crs: str, depth: int) -> str:
                 nav = cl.navigation
-                crsr = cursor_in(depth)
+                let_crs = ctx.next_crs()
+                for_crsr = ctx.next_crs()
                 direction = "OUTBOUND" if nav.direction == Direction.outbound else "INBOUND"
                 unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
-                pre, term_string, post = term(crsr, cl.term) if cl.term else (None, "true", None)
+                pre, term_string, post = term(for_crsr, cl.term) if cl.term else (None, "true", None)
                 pre_string = " " + pre if pre else ""
                 post_string = f" AND ({post})" if post else ""
                 filter_clause = f"({term_string})"
-                inner = traversal_filter(cl.with_clause, crsr, depth + 1) if cl.with_clause else ""
-                filter_root = f"({l0crsr}._key=={crsr}._key) or " if depth > 0 else ""
+                inner = traversal_filter(cl.with_clause, for_crsr, depth + 1) if cl.with_clause else ""
                 edge_type_traversals = f", {direction} ".join(f"`{db.edge_collection(et)}`" for et in nav.edge_types)
                 return (
-                    f"FOR {crsr} IN 0..{nav.until} {direction} {in_crs} "
+                    f"LET {let_crs} = (FOR {for_crsr} IN {nav.start}..{nav.until} {direction} {in_crs} "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
-                    f"{pre_string} FILTER {filter_root}{filter_clause}{post_string} "
-                ) + inner
-
-            def collect_filter(cl: WithClause, depth: int) -> str:
-                fltr = cl.with_filter
-                if cl.with_clause:
-                    collects = ", ".join(f"l{depth-1}_l{i}_res=l{depth}_l{i}_res" for i in range(0, depth))
-                else:
-                    collects = ", ".join(f"l{depth-1}_l{i}_res={cursor_in(i)}" for i in range(0, depth))
-
-                if depth == 1:
-                    # note: the traversal starts from 0 (only 0 and 1 is allowed)
-                    # when we start from 1: increase the count by one to not count the start node
-                    # when we start from 0: the start node is expected in the count already
-                    filter_term = f"FILTER counter1{fltr.op}{fltr.num + cl.navigation.start}"
-                else:
-                    root_key = f"l{depth-1}_l0_res._key==l{depth-1}_l{depth-1}_res._key"
-                    filter_term = f"FILTER ({root_key}) or (counter{depth}{fltr.op}{fltr.num})"
-
-                inner = collect_filter(cl.with_clause, depth + 1) if cl.with_clause else ""
-                return inner + f"COLLECT {collects} WITH COUNT INTO counter{depth} {filter_term} "
+                    f"{pre_string} FILTER {filter_clause}{post_string} "
+                    # for all possible predicates, it is enough to limit the list by num + 1
+                    # empty: if we find one element, it is not empty
+                    # any: if we find one element, it is any
+                    # count op x: if we find x+1 elements, we can always answer the predicate
+                    f"LIMIT {cl.with_filter.num + 1} "
+                    f"{inner} RETURN {for_crsr})"
+                    f"FILTER LENGTH({let_crs}){cl.with_filter.op}{cl.with_filter.num} "
+                )
 
             out = ctx.next_crs()
-
+            l0crsr = ctx.next_crs()
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
-            need_sort = p.sort and not query.aggregate
+            needs_sort = p.sort and not query.aggregate
             query_part += (
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
-                + traversal_filter(clause, l0crsr, 1)
-                + collect_filter(clause, 1)
-                + (sort("l0_l0_res", p.sort) if need_sort else "")
+                + traversal_filter(clause, l0crsr, 0)
+                + (sort(l0crsr, p.sort) if needs_sort else "")
                 + limited
-                + "RETURN l0_l0_res) "
+                + f"RETURN {l0crsr}) "
             )
             return out
 

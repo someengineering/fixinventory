@@ -464,7 +464,7 @@ class AwsWafRequestInspection:
 
 @define(eq=False, slots=False)
 class AwsWafResponseInspectionPart:
-    kind: ClassVar[str] = "aws_waf_response_inspection"
+    kind: ClassVar[str] = "aws_waf_response_inspection_part"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("Name"),
         "identifier": S("Identifier"),

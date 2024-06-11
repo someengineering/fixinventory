@@ -90,10 +90,12 @@ class GcpProjectCollector:
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
             global_builder.executor.wait_for_submitted_work()
 
+            log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, GcpResource):
                     node.connect_in_graph(global_builder, data.get("source", {}))
+            global_builder.executor.wait_for_submitted_work()
 
             # remove unconnected nodes
             self.remove_unconnected_nodes()
@@ -139,7 +141,4 @@ class GcpProjectCollector:
             if not self.config.should_collect(resource_class.kind):
                 continue
             if resource_class.api_spec and not resource_class.api_spec.is_project_level:
-                log.info(
-                    f"Collecting {resource_class.__name__} for project {self.project.id} in region {region.rtdname}"
-                )
                 resource_class.collect_resources(regional_builder)
