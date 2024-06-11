@@ -453,7 +453,7 @@ class AzureSubscription(AzureResource, BaseAccount):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("subscriptionId"),
         "tags": S("tags", default={}),
         "authorization_source": S("authorizationSource"),
         "display_name": S("displayName"),
