@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import io
 import csv
+import sys
 import pkgutil
 import importlib
 import inspect
@@ -92,8 +93,46 @@ def stats_to_csv(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[A
     return csv_data
 
 
+def stats_to_html(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[Any]]]]) -> str:
+    html_output = (
+        "<html>\n<head>\n"
+        "<title>Fix Inventory BaseResource Plugin Implementations</title>\n"
+        "<style>\n"
+        "body { font-family: Arial, sans-serif; font-size: 14px; }\n"
+        "table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }\n"
+        "th, td { border: 1px solid #cccccc; padding: 8px; text-align: left; }\n"
+        "th { background-color: #f2f2f2; }\n"
+        "</style>\n"
+        "</head>\n<body>\n"
+        "<table>\n"
+    )
+    plugins = next(iter(implementation_stats.values())).keys()
+    html_output += "<tr><th>Base Resource</th>" + "".join(f"<th>{plugin}</th>" for plugin in plugins) + "</tr>\n"
+
+    for base_class, plugin_dict in implementation_stats.items():
+        row = f"<tr><td>{base_class.__name__}</td>"
+        for _, impl_class in plugin_dict.items():
+            class_name = impl_class.__name__ if impl_class else ""
+            row += f"<td>{class_name}</td>"
+        row += "</tr>\n"
+        html_output += row
+
+    html_output += "</table>\n</body>\n</html>"
+
+    return html_output
+
+
 if __name__ == "__main__":
     base_classes = get_fix_baseresource_classes()
     plugins = ["aws", "gcp", "azure"]
     implementation_stats = analyze_plugin_implementations(base_classes, plugins)
-    print(stats_to_csv(implementation_stats))
+
+    mode = sys.argv[1] if len(sys.argv) > 1 else "text"
+
+    match mode:
+        case "csv":
+            print(stats_to_csv(implementation_stats))
+        case "html":
+            print(stats_to_html(implementation_stats))
+        case _:
+            print_stats(implementation_stats)
