@@ -1,0 +1,41 @@
+name: Check Base Resources
+on:
+  push:
+    tags:
+      - "*.*.*"
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'fixlib/**'
+      - 'plugins/**'
+
+jobs:
+  basecheck:
+    name: "basecheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          ./setup_venv.sh
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          ./tools/basecheck.py html > basecheck.html
+
+      - name: Archive base resource coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: basecheck
+          path: ./basecheck.html
