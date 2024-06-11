@@ -223,9 +223,10 @@ def query_view_string(
         elif isinstance(term, ContextTerm):
             # context terms cannot be handled by the view search exhaustively
             # we filter the list down as much as possible, but leave the context term untouched
-            context_in_array = context_in_array or bool(array_marker.search(term.name))
-            sp, _ = view_term(term.predicate_term())
-            return sp, term
+            is_array_context = bool(array_marker.search(term.name))
+            context_in_array = context_in_array or is_array_context
+            sp, ct = view_term(term.predicate_term())
+            return sp, term if is_array_context else ct
         elif isinstance(term, IdTerm):
             if len(term.ids) == 1:
                 sp = f"{crs}._key == @{ctx.add_bind_var(term.ids[0])}"
