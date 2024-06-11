@@ -310,7 +310,6 @@ def with_clause_parser() -> Parser:
     term = yield filter_term_parser.optional()
     with_clause = yield with_clause_parser.optional()
     yield rparen_p
-    assert 0 <= nav.start <= 1, "with traversal need to start from 0 or 1"
     return WithClause(with_filter, nav, term, with_clause)
 
 
