@@ -459,6 +459,36 @@ class AwsBackupCopyJob(AwsResource):
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and InvalidParameters. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum"})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AwsBackupFramework(AwsResource):
+    kind: ClassVar[str] = "aws_backup_framework"
+    kind_display: ClassVar[str] = "AWS Backup Framework"
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip
+    kind_description: ClassVar[str] = (
+        "AWS Backup Frameworks are predefined sets of controls and requirements designed to help organizations align their backup operations with regulatory and compliance standards. "
+        "They provide a structured approach to managing backups, ensuring adherence to policies, and facilitating audits."
+    )
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-frameworks", "Frameworks")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("FrameworkArn"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("FrameworkName"),
+        "ctime": S("CreationTime"),
+        "framework_name": S("FrameworkName"),
+        "framework_arn": S("FrameworkArn"),
+        "framework_description": S("FrameworkDescription"),
+        "number_of_controls": S("NumberOfControls"),
+        "creation_time": S("CreationTime"),
+        "framework_deployment_status": S("DeploymentStatus"),
+    }
+    framework_name: Optional[str] = field(default=None, metadata={"description": "The unique name of a framework. This name is between 1 and 256 characters, starting with a letter, and consisting of letters (a-z, A-Z), numbers (0-9), and underscores (_)."})  # fmt: skip
+    framework_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
+    framework_description: Optional[str] = field(default=None, metadata={"description": "An optional description of the framework with a maximum 1,024 characters."})  # fmt: skip
+    number_of_controls: Optional[int] = field(default=None, metadata={"description": "The number of controls contained by the framework."})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a framework is created, in ISO 8601 representation. The value of CreationTime is accurate to milliseconds. For example, 2020-07-10T15:00:00.000-08:00 represents the 10th of July 2020 at 3:00 PM 8 hours behind UTC."})  # fmt: skip
+    framework_deployment_status: Optional[str] = field(default=None, metadata={"description": "The deployment status of a framework. The statuses are:  CREATE_IN_PROGRESS | UPDATE_IN_PROGRESS | DELETE_IN_PROGRESS | COMPLETED | FAILED"})  # fmt: skip
+
+
 resources: List[Type[AwsResource]] = [
     AwsBackupJob,
     AwsBackupPlan,
@@ -469,4 +499,5 @@ resources: List[Type[AwsResource]] = [
     AwsBackupLegalHold,
     AwsBackupRestoreJob,
     AwsBackupCopyJob,
+    AwsBackupFramework,
 ]
