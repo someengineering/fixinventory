@@ -34,7 +34,7 @@ jobs:
           source venv/bin/activate
           ./tools/basecheck.py html > basecheck.html
 
-      - name: Archive code coverage results
+      - name: Archive base resource coverage results
         uses: actions/upload-artifact@v2
         with:
           name: basecheck
