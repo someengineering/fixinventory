@@ -10,8 +10,11 @@ from typing import List, Type, Any, Dict, Optional
 
 def list_submodules(package_name: str) -> List[str]:
     package = importlib.import_module(package_name)
-    package_path = package.__path__
-    submodules = [f"{package_name}.{name}" for _, name, _ in pkgutil.iter_modules(package_path)]
+    try:
+        package_path = package.__path__
+        submodules = [f"{package_name}.{name}" for _, name, _ in pkgutil.iter_modules(package_path)]
+    except AttributeError:
+        submodules = []
     return submodules
 
 
@@ -29,6 +32,7 @@ def list_fix_resource_modules(plugin_name: str) -> List[str]:
             raise
     except Exception:
         print(f"Failed to load {plugin_package}")
+    submodules.append(package_name)
     return submodules
 
 
@@ -124,11 +128,10 @@ def stats_to_html(implementation_stats: Dict[Type[Any], Dict[str, Optional[Type[
 
 if __name__ == "__main__":
     base_classes = get_fix_baseresource_classes()
-    plugins = ["aws", "gcp", "azure"]
+    plugins = ["aws", "gcp", "azure", "digitalocean"]
     implementation_stats = analyze_plugin_implementations(base_classes, plugins)
 
     mode = sys.argv[1] if len(sys.argv) > 1 else "text"
-
     match mode:
         case "csv":
             print(stats_to_csv(implementation_stats))
