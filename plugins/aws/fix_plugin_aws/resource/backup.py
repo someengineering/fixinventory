@@ -4,9 +4,11 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import TagsValue, ToDict
+from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
@@ -36,6 +38,10 @@ class AwsBackupJob(AwsResource):
         "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
         "They encompass the execution details and status of the backup process for a specified resource."
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault"]},
+        "successors": {"default": ["aws_backup_protected_resource"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-jobs", "BackupJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupJobId"),
@@ -93,6 +99,14 @@ class AwsBackupJob(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     initiation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the date on which the backup job was initiated."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and INVALIDPARAMETERS. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if resource_arn := self.resource_arn:
+            builder.add_edge(self, clazz=AwsBackupProtectedResource, resource_arn=resource_arn)
+        if (created_by := self.job_created_by) and (plan_id := created_by.backup_plan_id):
+            builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, id=plan_id)
+        if backup_vault_name := self.backup_vault_name:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, name=backup_vault_name)
 
 
 @define(eq=False, slots=False)
@@ -248,6 +262,9 @@ class AwsBackupReportPlan(AwsResource):
         "AWS Backup Report Plans generate reports that provide detailed information on backup jobs and resource compliance. "
         "These reports help in monitoring and auditing backup activities and compliance with organizational policies."
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_framework"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-report-plans", "ReportPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReportPlanArn"),
@@ -273,6 +290,11 @@ class AwsBackupReportPlan(AwsResource):
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a report plan is created, in Unix format and Coordinated Universal Time (UTC). The value of CreationTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     last_attempted_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a report job associated with this report plan last attempted to run, in Unix format and Coordinated Universal Time (UTC). The value of LastAttemptedExecutionTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     last_successful_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a report job associated with this report plan last successfully ran, in Unix format and Coordinated Universal Time (UTC). The value of LastSuccessfulExecutionTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (report_setting := self.report_setting) and (framework_arns := report_setting.framework_arns):
+            for framework_arn in framework_arns:
+                builder.add_edge(self, reverse=True, clazz=AwsBackupFramework, id=framework_arn)
 
 
 class AwsBackupRestoreTestingPlan(AwsResource):
@@ -350,6 +372,9 @@ class AwsBackupRestoreJob(AwsResource):
         "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
         "They include details on the restore process, target resources, and status of the restoration."
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_testing_plan"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreJobId"),
@@ -396,6 +421,10 @@ class AwsBackupRestoreJob(AwsResource):
     deletion_status: Optional[str] = field(default=None, metadata={"description": "This notes the status of the data generated by the restore test. The status may be Deleting, Failed, or Successful."})  # fmt: skip
     deletion_status_message: Optional[str] = field(default=None, metadata={"description": "This describes the restore job deletion status."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if testing_plan_arn := self.restore_job_created_by:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupRestoreTestingPlan, id=testing_plan_arn)
+
 
 @define(eq=False, slots=False)
 class AwsBackupCopyJob(AwsResource):
@@ -406,6 +435,9 @@ class AwsBackupCopyJob(AwsResource):
         "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_plan"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CopyJobId"),
@@ -457,6 +489,10 @@ class AwsBackupCopyJob(AwsResource):
     child_jobs_in_state: Optional[Dict[str, int]] = field(default=None, metadata={"description": "This returns the statistics of the included child (nested) copy jobs."})  # fmt: skip
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and InvalidParameters. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum"})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
+            builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
 
 
 @define(eq=False, slots=False)
