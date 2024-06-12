@@ -15,7 +15,7 @@ from fixcore.db.arango_query_rewrite import rewrite_query
 from fixcore.db.arangodb_functions import as_arangodb_function
 from fixcore.db.model import QueryModel
 from fixcore.model.graph_access import Section, Direction
-from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath
+from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath, ArrayKind
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import (
     Predicate,
@@ -193,7 +193,8 @@ def query_view_string(
             p_term = f"NOT EXISTS({var_name})"
             if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
                 p_term = f"({p_term} OR {var_name} IN @{ctx.add_bind_var(non_empty)})"
-            exhaustive = False  # for the view: null and [] are not distinguishable
+            # in case the property is an array, we need to filter the results since null and [] are not distinguishable
+            exhaustive = not isinstance(prop.kind, ArrayKind)
         elif (op == "!=" and empty_value(value)) or (op == "not in" and empty_and_simple(value)):
             p_term = f"EXISTS({var_name})"
             if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
