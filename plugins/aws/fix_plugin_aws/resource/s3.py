@@ -457,7 +457,8 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
         " available for an Amazon S3 (Simple Storage Service) account."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_account"]},
+        "predecessors": {"default": ["aws_account"]},
+        "successors": {"default": ["aws_s3_bucket"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "s3control",
@@ -488,6 +489,10 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
             )
         builder.add_node(node)
         builder.add_edge(builder.account, node=node)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for bucket in builder.nodes(AwsS3Bucket):
+            builder.add_edge(self, node=bucket)
 
 
 resources: List[Type[AwsResource]] = [AwsS3AccountSettings, AwsS3Bucket]
