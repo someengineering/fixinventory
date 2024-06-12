@@ -113,11 +113,14 @@ class AwsBackupJob(AwsResource):
 class AwsBackupProtectedResource(AwsResource):
     kind: ClassVar[str] = "aws_backup_protected_resource"
     kind_display: ClassVar[str] = "AWS Backup Plan"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}", "arn_tpl": "{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Protected Resources represent the AWS resources that are configured to be backed up according to a backup plan. "
         "They include information about the resource type and identifiers."
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_resource"]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ResourceArn"),
@@ -129,6 +132,7 @@ class AwsBackupProtectedResource(AwsResource):
         "resource_name": S("ResourceName"),
         "last_backup_vault_arn": S("LastBackupVaultArn"),
         "last_recovery_point_arn": S("LastRecoveryPointArn"),
+        "arn": S("ResourceArn"),
     }
     resource_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
     resource_type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Web Services resource; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database. For Windows Volume Shadow Copy Service (VSS) backups, the only supported resource type is Amazon EC2."})  # fmt: skip
@@ -136,6 +140,10 @@ class AwsBackupProtectedResource(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     last_backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "This is the ARN (Amazon Resource Name) of the backup vault that contains the most recent backup recovery point."})  # fmt: skip
     last_recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "This is the ARN (Amazon Resource Name) of the most recent recovery point."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if resource_arn := self.resource_arn:
+            builder.add_edge(self, clazz=AwsResource, arn=resource_arn)
 
 
 @define(eq=False, slots=False)
@@ -436,7 +444,7 @@ class AwsBackupCopyJob(AwsResource):
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_backup_plan"]},
+        "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -493,6 +501,8 @@ class AwsBackupCopyJob(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
+        if destination_vault_arn := self.destination_backup_vault_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=destination_vault_arn)
 
 
 @define(eq=False, slots=False)
