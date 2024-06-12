@@ -193,7 +193,7 @@ def build_random_data_client(service: str, version: str, *args: Any, **kwargs: A
     """
     This is the random data client discovery function (replaces discovery.build in tests).
     """
-    real_client = discovery.build(service, version, credentials=AnonymousCredentials())
+    real_client = discovery.build(service, version, credentials=AnonymousCredentials())  # type: ignore
     root = real_client._rootDesc
     return RandomDataClient(service, version, root)
 
@@ -237,7 +237,7 @@ def roundtrip(
 def create_node_for(
     clazz: Type[GcpResourceType], spec: GcpApiSpec, adapt: Callable[[Json], Json]
 ) -> Tuple[Json, GcpResourceType]:
-    client = GcpClient(AnonymousCredentials())
+    client = GcpClient(AnonymousCredentials())  # type: ignore
     result = client.list(api_spec=spec)
     assert len(result) > 0
     raw = adapt(result[0])

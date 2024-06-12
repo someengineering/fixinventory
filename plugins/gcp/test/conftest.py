@@ -29,9 +29,8 @@ def random_builder() -> Iterator[GraphBuilder]:
         feedback = CoreFeedback("test", "test", "test", Queue())
         project = GcpProject(id="test")
         project_global_region = GcpRegion.fallback_global_region(project)
-        builder = GraphBuilder(
-            Graph(), Cloud(id="gcp"), project, AnonymousCredentials(), queue, feedback, project_global_region
-        )
+        credentials = AnonymousCredentials()  # type: ignore
+        builder = GraphBuilder(Graph(), Cloud(id="gcp"), project, credentials, queue, feedback, project_global_region)
         builder.add_node(project_global_region, {})
         # add predefined regions and zones
         for predefined in random_predefined:
