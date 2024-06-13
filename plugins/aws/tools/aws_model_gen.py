@@ -169,7 +169,6 @@ def clazz_model(
     props = []
     prefix = prefix or ""
     prop_prefix = prop_prefix or ""
-    result = []
 
     def process_shape_items(shape_items: List[Tuple[Any, Any]], prop_prefix: str, clazz_name: Optional[str]) -> None:
         for name, prop_shape in shape_items:
@@ -242,7 +241,7 @@ def clazz_model(
     elif isinstance(shape, ListShape):
         process_shape_items(shape.member.members.items(), prop_prefix, clazz_name)
     else:
-        if (getattr(shape, "members", None) is None) or (getattr(shape, "member", None) is None):
+        if getattr(shape, "members", None) is None:
             return []
         process_shape_items(shape.members.items(), prop_prefix, clazz_name)
     return result

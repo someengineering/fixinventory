@@ -7,7 +7,7 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -122,7 +122,7 @@ class AwsBackupProtectedResource(AwsResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
-        "successors": {"default": ["aws_resource"]},
+        "successors": {"default": ["aws_s3_bucket", "aws_ec2_instance", "aws_ec2_volume","aws_rds_cluster","aws_rds_instance","aws_dynamodb_table","aws_dynamodb_global_table","aws_efs_file_system", "aws_redshift_cluster", "aws_cloudformation_stack"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -293,7 +293,7 @@ class AwsBackupRecoveryPoint(AwsResource):
         "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_backup_vault"]},
+        "predecessors": {"default": ["aws_backup_vault", "aws_backup_plan"]},
     }
     # Resource will be collect by AwsBackupVault
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -352,6 +352,8 @@ class AwsBackupRecoveryPoint(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:
             builder.add_edge(self, reverse=True, clazz=AwsBackupVault, name=backup_vault_name)
+        if (created_by := self.recovery_point_created_by) and (backup_plan_id := created_by.backup_plan_id):
+            builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, id=backup_plan_id)
 
 
 @define(eq=False, slots=False)
