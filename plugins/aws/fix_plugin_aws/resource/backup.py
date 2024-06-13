@@ -7,7 +7,7 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -40,7 +40,7 @@ class AwsBackupJob(AwsResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault"]},
-        "successors": {"default": ["aws_backup_protected_resource"]},
+        "successors": {"default": ["aws_backup_protected_resource", "aws_backup_recovery_point"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-jobs", "BackupJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -103,6 +103,8 @@ class AwsBackupJob(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_arn := self.resource_arn:
             builder.add_edge(self, clazz=AwsBackupProtectedResource, resource_arn=resource_arn)
+        if recovery_point_arn := self.recovery_point_arn:
+            builder.add_edge(self, clazz=AwsBackupRecoveryPoint, id=recovery_point_arn)
         if (created_by := self.job_created_by) and (plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, id=plan_id)
         if backup_vault_name := self.backup_vault_name:
@@ -119,6 +121,7 @@ class AwsBackupProtectedResource(AwsResource):
         "They include information about the resource type and identifiers."
     )
     reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
         "successors": {"default": ["aws_resource"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
@@ -144,6 +147,10 @@ class AwsBackupProtectedResource(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_arn := self.resource_arn:
             builder.add_edge(self, clazz=AwsResource, arn=resource_arn)
+        if vault_arn := self.last_backup_vault_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=vault_arn)
+        if recovery_point_arn := self.last_backup_vault_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupRecoveryPoint, id=recovery_point_arn)
 
 
 @define(eq=False, slots=False)
@@ -227,6 +234,124 @@ class AwsBackupVault(AwsResource):
     min_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the minimum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a minimum retention period. If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or longer than the minimum retention period. If the job's retention period is shorter than that minimum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     max_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the maximum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a maximum retention period on the recovery points in the vault (allowing indefinite storage). If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or shorter than the maximum retention period. If the job's retention period is longer than that maximum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     lock_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time when Backup Vault Lock configuration becomes immutable, meaning it cannot be changed or deleted. If you applied Vault Lock to your vault without specifying a lock date, you can change your Vault Lock settings, or delete Vault Lock from the vault entirely, at any time. This value is in Unix format, Coordinated Universal Time (UTC), and accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-recovery-points-by-backup-vault"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def collect_recovery_points(vault: AwsBackupVault) -> None:
+            recovery_points = builder.client.list(
+                service_name,
+                "list-recovery-points-by-backup-vault",
+                result_name="RecoveryPoints",
+                BackupVaultName=vault.name,
+            )
+            AwsBackupRecoveryPoint.collect(recovery_points, builder)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.submit_work(service_name, collect_recovery_points, instance)
+                builder.add_node(instance, js)
+
+
+@define(eq=False, slots=False)
+class AwsBackupCalculatedLifecycle:
+    kind: ClassVar[str] = "aws_backup_calculated_lifecycle"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "move_to_cold_storage_at": S("MoveToColdStorageAt"),
+        "delete_at": S("DeleteAt"),
+    }
+    move_to_cold_storage_at: Optional[datetime] = field(default=None, metadata={"description": "A timestamp that specifies when to transition a recovery point to cold storage."})  # fmt: skip
+    delete_at: Optional[datetime] = field(default=None, metadata={"description": "A timestamp that specifies when to delete a recovery point."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsBackupLifecycle:
+    kind: ClassVar[str] = "aws_backup_lifecycle"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "move_to_cold_storage_after_days": S("MoveToColdStorageAfterDays"),
+        "delete_after_days": S("DeleteAfterDays"),
+        "opt_in_to_archive_for_supported_resources": S("OptInToArchiveForSupportedResources"),
+    }
+    move_to_cold_storage_after_days: Optional[int] = field(default=None, metadata={"description": "Specifies the number of days after creation that a recovery point is moved to cold storage."})  # fmt: skip
+    delete_after_days: Optional[int] = field(default=None, metadata={"description": "Specifies the number of days after creation that a recovery point is deleted. Must be greater than 90 days plus MoveToColdStorageAfterDays."})  # fmt: skip
+    opt_in_to_archive_for_supported_resources: Optional[bool] = field(default=None, metadata={"description": "Optional Boolean. If this is true, this setting will instruct your backup plan to transition supported resources to archive (cold) storage tier in accordance with your lifecycle settings."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsBackupRecoveryPoint(AwsResource):
+    kind: ClassVar[str] = "aws_backup_recovery_point"
+    kind_display: ClassVar[str] = "AWS Backup Recovery Point"
+    kind_description: ClassVar[str] = (
+        "AWS Backup Recovery Points by Vault represent specific instances of backup data stored within a backup vault. "
+        "They provide detailed information on the recovery points, including metadata, status, and lifecycle policies. "
+        "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
+    )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_backup_vault"]},
+    }
+    # Resource will be collect by AwsBackupVault
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("RecoveryPointArn"),
+        "tags": S("Tags", default=[]) >> ToDict(),
+        "name": S("Tags", default=[]) >> TagsValue("Name"),
+        "ctime": S("CreationDate"),
+        "recovery_point_arn": S("RecoveryPointArn"),
+        "backup_vault_name": S("BackupVaultName"),
+        "backup_vault_arn": S("BackupVaultArn"),
+        "source_backup_vault_arn": S("SourceBackupVaultArn"),
+        "resource_arn": S("ResourceArn"),
+        "resource_type": S("ResourceType"),
+        "recovery_point_created_by": S("CreatedBy") >> Bend(AwsBackupRecoveryPointCreator.mapping),
+        "iam_role_arn": S("IamRoleArn"),
+        "status": S("Status"),
+        "status_message": S("StatusMessage"),
+        "creation_date": S("CreationDate"),
+        "completion_date": S("CompletionDate"),
+        "backup_size_in_bytes": S("BackupSizeInBytes"),
+        "calculated_lifecycle": S("CalculatedLifecycle") >> Bend(AwsBackupCalculatedLifecycle.mapping),
+        "lifecycle": S("Lifecycle") >> Bend(AwsBackupLifecycle.mapping),
+        "encryption_key_arn": S("EncryptionKeyArn"),
+        "is_encrypted": S("IsEncrypted"),
+        "last_restore_time": S("LastRestoreTime"),
+        "parent_recovery_point_arn": S("ParentRecoveryPointArn"),
+        "composite_member_identifier": S("CompositeMemberIdentifier"),
+        "is_parent": S("IsParent"),
+        "resource_name": S("ResourceName"),
+        "vault_type": S("VaultType"),
+    }
+    recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
+    backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
+    backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a backup vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
+    source_backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "The backup vault where the recovery point was originally copied from. If the recovery point is restored to the same account this value will be null."})  # fmt: skip
+    resource_arn: Optional[str] = field(default=None, metadata={"description": "An ARN that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Web Services resource saved as a recovery point; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database. For Windows Volume Shadow Copy Service (VSS) backups, the only supported resource type is Amazon EC2."})  # fmt: skip
+    recovery_point_created_by: Optional[AwsBackupRecoveryPointCreator] = field(default=None, metadata={"description": "Contains identifying information about the creation of a recovery point, including the BackupPlanArn, BackupPlanId, BackupPlanVersion, and BackupRuleId of the backup plan that is used to create it."})  # fmt: skip
+    iam_role_arn: Optional[str] = field(default=None, metadata={"description": "Specifies the IAM role ARN used to create the target recovery point; for example, arn:aws:iam::123456789012:role/S3Access."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "A status code specifying the state of the recovery point."})  # fmt: skip
+    status_message: Optional[str] = field(default=None, metadata={"description": "A message explaining the reason of the recovery point deletion failure."})  # fmt: skip
+    creation_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a recovery point is created, in Unix format and Coordinated Universal Time (UTC). The value of CreationDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    completion_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time a job to restore a recovery point is completed, in Unix format and Coordinated Universal Time (UTC). The value of CompletionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    backup_size_in_bytes: Optional[int] = field(default=None, metadata={"description": "The size, in bytes, of a backup."})  # fmt: skip
+    calculated_lifecycle: Optional[AwsBackupCalculatedLifecycle] = field(default=None, metadata={"description": "A CalculatedLifecycle object containing DeleteAt and MoveToColdStorageAt timestamps."})  # fmt: skip
+    lifecycle: Optional[AwsBackupLifecycle] = field(default=None, metadata={"description": "The lifecycle defines when a protected resource is transitioned to cold storage and when it expires. Backup transitions and expires backups automatically according to the lifecycle that you define."})  # fmt: skip
+    encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The server-side encryption key that is used to protect your backups; for example, arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab."})  # fmt: skip
+    is_encrypted: Optional[bool] = field(default=None, metadata={"description": "A Boolean value that is returned as TRUE if the specified recovery point is encrypted, or FALSE if the recovery point is not encrypted."})  # fmt: skip
+    last_restore_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time a recovery point was last restored, in Unix format and Coordinated Universal Time (UTC). The value of LastRestoreTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    parent_recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "This is the Amazon Resource Name (ARN) of the parent (composite) recovery point."})  # fmt: skip
+    composite_member_identifier: Optional[str] = field(default=None, metadata={"description": "This is the identifier of a resource within a composite group, such as nested (child) recovery point belonging to a composite (parent) stack. The ID is transferred from the  logical ID within a stack."})  # fmt: skip
+    is_parent: Optional[bool] = field(default=None, metadata={"description": "This is a boolean value indicating this is a parent (composite) recovery point."})  # fmt: skip
+    resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
+    vault_type: Optional[str] = field(default=None, metadata={"description": "This is the type of vault in which the described recovery point is stored."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if backup_vault_name := self.backup_vault_name:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, name=backup_vault_name)
 
 
 @define(eq=False, slots=False)
@@ -381,7 +506,7 @@ class AwsBackupRestoreJob(AwsResource):
         "They include details on the restore process, target resources, and status of the restoration."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_backup_testing_plan"]},
+        "predecessors": {"default": ["aws_backup_testing_plan", "aws_backup_recovery_point"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -432,6 +557,8 @@ class AwsBackupRestoreJob(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if testing_plan_arn := self.restore_job_created_by:
             builder.add_edge(self, reverse=True, clazz=AwsBackupRestoreTestingPlan, id=testing_plan_arn)
+        if recovery_point_arn := self.recovery_point_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupRecoveryPoint, id=recovery_point_arn)
 
 
 @define(eq=False, slots=False)
@@ -444,7 +571,8 @@ class AwsBackupCopyJob(AwsResource):
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault"]},
+        "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault", "aws_backup_recovery_point"]},
+        "successors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -501,8 +629,14 @@ class AwsBackupCopyJob(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
-        if destination_vault_arn := self.destination_backup_vault_arn:
-            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=destination_vault_arn)
+        if source_vault_arn := self.destination_backup_vault_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=source_vault_arn)
+        if source_recovey_point_arn := self.destination_recovery_point_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBackupRecoveryPoint, id=source_recovey_point_arn)
+        if dest_vault_arn := self.destination_backup_vault_arn:
+            builder.add_edge(self, clazz=AwsBackupVault, id=dest_vault_arn)
+        if dest_recovery_point_arn := self.destination_recovery_point_arn:
+            builder.add_edge(self, clazz=AwsBackupRecoveryPoint, id=dest_recovery_point_arn)
 
 
 @define(eq=False, slots=False)
@@ -539,6 +673,7 @@ resources: List[Type[AwsResource]] = [
     AwsBackupJob,
     AwsBackupPlan,
     AwsBackupVault,
+    AwsBackupRecoveryPoint,
     AwsBackupProtectedResource,
     AwsBackupReportPlan,
     AwsBackupRestoreTestingPlan,
