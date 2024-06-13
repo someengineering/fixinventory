@@ -1,0 +1,113 @@
+{
+    "BackupJobs": [
+        {
+            "AccountId": "foo",
+            "BackupJobId": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "RecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "PENDING",
+            "StatusMessage": "foo",
+            "PercentDone": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
+            "StartBy": "2024-06-13T12:28:55Z",
+            "ResourceType": "foo",
+            "BytesTransferred": 123,
+            "BackupOptions": {
+                "0": "foo",
+                "1": "foo",
+                "2": "foo"
+            },
+            "BackupType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "InitiationDate": "2024-06-13T12:28:55Z",
+            "MessageCategory": "foo"
+        },
+        {
+            "AccountId": "foo",
+            "BackupJobId": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "RecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "PENDING",
+            "StatusMessage": "foo",
+            "PercentDone": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
+            "StartBy": "2024-06-13T12:28:55Z",
+            "ResourceType": "foo",
+            "BytesTransferred": 123,
+            "BackupOptions": {
+                "0": "foo",
+                "1": "foo",
+                "2": "foo"
+            },
+            "BackupType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "InitiationDate": "2024-06-13T12:28:55Z",
+            "MessageCategory": "foo"
+        },
+        {
+            "AccountId": "foo",
+            "BackupJobId": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "RecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "PENDING",
+            "StatusMessage": "foo",
+            "PercentDone": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
+            "StartBy": "2024-06-13T12:28:55Z",
+            "ResourceType": "foo",
+            "BytesTransferred": 123,
+            "BackupOptions": {
+                "0": "foo",
+                "1": "foo",
+                "2": "foo"
+            },
+            "BackupType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "InitiationDate": "2024-06-13T12:28:55Z",
+            "MessageCategory": "foo"
+        }
+    ],
+    "NextToken": "foo"
+}

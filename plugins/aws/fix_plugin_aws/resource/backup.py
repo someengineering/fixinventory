@@ -122,7 +122,20 @@ class AwsBackupProtectedResource(AwsResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
-        "successors": {"default": ["aws_s3_bucket", "aws_ec2_instance", "aws_ec2_volume","aws_rds_cluster","aws_rds_instance","aws_dynamodb_table","aws_dynamodb_global_table","aws_efs_file_system", "aws_redshift_cluster", "aws_cloudformation_stack"]},
+        "successors": {
+            "default": [
+                "aws_s3_bucket",
+                "aws_ec2_instance",
+                "aws_ec2_volume",
+                "aws_rds_cluster",
+                "aws_rds_instance",
+                "aws_dynamodb_table",
+                "aws_dynamodb_global_table",
+                "aws_efs_file_system",
+                "aws_redshift_cluster",
+                "aws_cloudformation_stack",
+            ]
+        },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -348,6 +361,10 @@ class AwsBackupRecoveryPoint(AwsResource):
     is_parent: Optional[bool] = field(default=None, metadata={"description": "This is a boolean value indicating this is a parent (composite) recovery point."})  # fmt: skip
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     vault_type: Optional[str] = field(default=None, metadata={"description": "This is the type of vault in which the described recovery point is stored."})  # fmt: skip
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:

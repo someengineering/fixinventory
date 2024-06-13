@@ -1,0 +1,35 @@
+{
+    "NextToken": "foo",
+    "RestoreTestingPlans": [
+        {
+            "CreationTime": "2024-06-13T12:38:49Z",
+            "LastExecutionTime": "2024-06-13T12:38:49Z",
+            "LastUpdateTime": "2024-06-13T12:38:49Z",
+            "RestoreTestingPlanArn": "foo",
+            "RestoreTestingPlanName": "foo",
+            "ScheduleExpression": "foo",
+            "ScheduleExpressionTimezone": "foo",
+            "StartWindowHours": 123
+        },
+        {
+            "CreationTime": "2024-06-13T12:38:49Z",
+            "LastExecutionTime": "2024-06-13T12:38:49Z",
+            "LastUpdateTime": "2024-06-13T12:38:49Z",
+            "RestoreTestingPlanArn": "foo",
+            "RestoreTestingPlanName": "foo",
+            "ScheduleExpression": "foo",
+            "ScheduleExpressionTimezone": "foo",
+            "StartWindowHours": 123
+        },
+        {
+            "CreationTime": "2024-06-13T12:38:49Z",
+            "LastExecutionTime": "2024-06-13T12:38:49Z",
+            "LastUpdateTime": "2024-06-13T12:38:49Z",
+            "RestoreTestingPlanArn": "foo",
+            "RestoreTestingPlanName": "foo",
+            "ScheduleExpression": "foo",
+            "ScheduleExpressionTimezone": "foo",
+            "StartWindowHours": 123
+        }
+    ]
+}

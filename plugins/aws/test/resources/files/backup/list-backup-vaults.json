@@ -1,0 +1,41 @@
+{
+    "BackupVaultList": [
+        {
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "EncryptionKeyArn": "foo",
+            "CreatorRequestId": "foo",
+            "NumberOfRecoveryPoints": 123,
+            "Locked": true,
+            "MinRetentionDays": 123,
+            "MaxRetentionDays": 123,
+            "LockDate": "2024-06-13T12:28:55Z"
+        },
+        {
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "EncryptionKeyArn": "foo",
+            "CreatorRequestId": "foo",
+            "NumberOfRecoveryPoints": 123,
+            "Locked": true,
+            "MinRetentionDays": 123,
+            "MaxRetentionDays": 123,
+            "LockDate": "2024-06-13T12:28:55Z"
+        },
+        {
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "EncryptionKeyArn": "foo",
+            "CreatorRequestId": "foo",
+            "NumberOfRecoveryPoints": 123,
+            "Locked": true,
+            "MinRetentionDays": 123,
+            "MaxRetentionDays": 123,
+            "LockDate": "2024-06-13T12:28:55Z"
+        }
+    ],
+    "NextToken": "foo"
+}

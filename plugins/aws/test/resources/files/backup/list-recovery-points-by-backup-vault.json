@@ -1,0 +1,116 @@
+{
+    "NextToken": "foo",
+    "RecoveryPoints": [
+        {
+            "RecoveryPointArn": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "SourceBackupVaultArn": "foo",
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "IamRoleArn": "foo",
+            "Status": "PARTIAL",
+            "StatusMessage": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "BackupSizeInBytes": 123,
+            "CalculatedLifecycle": {
+                "MoveToColdStorageAt": "2024-06-13T12:28:55Z",
+                "DeleteAt": "2024-06-13T12:28:55Z"
+            },
+            "Lifecycle": {
+                "MoveToColdStorageAfterDays": 123,
+                "DeleteAfterDays": 123,
+                "OptInToArchiveForSupportedResources": true
+            },
+            "EncryptionKeyArn": "foo",
+            "IsEncrypted": true,
+            "LastRestoreTime": "2024-06-13T12:28:55Z",
+            "ParentRecoveryPointArn": "foo",
+            "CompositeMemberIdentifier": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "VaultType": "LOGICALLY_AIR_GAPPED_BACKUP_VAULT"
+        },
+        {
+            "RecoveryPointArn": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "SourceBackupVaultArn": "foo",
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "IamRoleArn": "foo",
+            "Status": "PARTIAL",
+            "StatusMessage": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "BackupSizeInBytes": 123,
+            "CalculatedLifecycle": {
+                "MoveToColdStorageAt": "2024-06-13T12:28:55Z",
+                "DeleteAt": "2024-06-13T12:28:55Z"
+            },
+            "Lifecycle": {
+                "MoveToColdStorageAfterDays": 123,
+                "DeleteAfterDays": 123,
+                "OptInToArchiveForSupportedResources": true
+            },
+            "EncryptionKeyArn": "foo",
+            "IsEncrypted": true,
+            "LastRestoreTime": "2024-06-13T12:28:55Z",
+            "ParentRecoveryPointArn": "foo",
+            "CompositeMemberIdentifier": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "VaultType": "LOGICALLY_AIR_GAPPED_BACKUP_VAULT"
+        },
+        {
+            "RecoveryPointArn": "foo",
+            "BackupVaultName": "foo",
+            "BackupVaultArn": "foo",
+            "SourceBackupVaultArn": "foo",
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "IamRoleArn": "foo",
+            "Status": "PARTIAL",
+            "StatusMessage": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "BackupSizeInBytes": 123,
+            "CalculatedLifecycle": {
+                "MoveToColdStorageAt": "2024-06-13T12:28:55Z",
+                "DeleteAt": "2024-06-13T12:28:55Z"
+            },
+            "Lifecycle": {
+                "MoveToColdStorageAfterDays": 123,
+                "DeleteAfterDays": 123,
+                "OptInToArchiveForSupportedResources": true
+            },
+            "EncryptionKeyArn": "foo",
+            "IsEncrypted": true,
+            "LastRestoreTime": "2024-06-13T12:28:55Z",
+            "ParentRecoveryPointArn": "foo",
+            "CompositeMemberIdentifier": "foo",
+            "IsParent": true,
+            "ResourceName": "foo",
+            "VaultType": "LOGICALLY_AIR_GAPPED_BACKUP_VAULT"
+        }
+    ]
+}

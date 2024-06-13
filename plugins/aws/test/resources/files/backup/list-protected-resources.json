@@ -1,0 +1,29 @@
+{
+    "Results": [
+        {
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "LastBackupTime": "2024-06-13T12:28:55Z",
+            "ResourceName": "foo",
+            "LastBackupVaultArn": "foo",
+            "LastRecoveryPointArn": "foo"
+        },
+        {
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "LastBackupTime": "2024-06-13T12:28:55Z",
+            "ResourceName": "foo",
+            "LastBackupVaultArn": "foo",
+            "LastRecoveryPointArn": "foo"
+        },
+        {
+            "ResourceArn": "foo",
+            "ResourceType": "foo",
+            "LastBackupTime": "2024-06-13T12:28:55Z",
+            "ResourceName": "foo",
+            "LastBackupVaultArn": "foo",
+            "LastRecoveryPointArn": "foo"
+        }
+    ],
+    "NextToken": "foo"
+}

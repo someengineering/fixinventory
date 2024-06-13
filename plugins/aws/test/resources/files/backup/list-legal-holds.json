@@ -1,0 +1,32 @@
+{
+    "NextToken": "foo",
+    "LegalHolds": [
+        {
+            "Title": "foo",
+            "Status": "ACTIVE",
+            "Description": "foo",
+            "LegalHoldId": "foo",
+            "LegalHoldArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CancellationDate": "2024-06-13T12:28:55Z"
+        },
+        {
+            "Title": "foo",
+            "Status": "ACTIVE",
+            "Description": "foo",
+            "LegalHoldId": "foo",
+            "LegalHoldArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CancellationDate": "2024-06-13T12:28:55Z"
+        },
+        {
+            "Title": "foo",
+            "Status": "ACTIVE",
+            "Description": "foo",
+            "LegalHoldId": "foo",
+            "LegalHoldArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CancellationDate": "2024-06-13T12:28:55Z"
+        }
+    ]
+}

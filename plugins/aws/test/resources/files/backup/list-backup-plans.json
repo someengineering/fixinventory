@@ -1,0 +1,113 @@
+{
+    "NextToken": "foo",
+    "BackupPlansList": [
+        {
+            "BackupPlanArn": "foo",
+            "BackupPlanId": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "DeletionDate": "2024-06-13T12:28:55Z",
+            "VersionId": "foo",
+            "BackupPlanName": "foo",
+            "CreatorRequestId": "foo",
+            "LastExecutionDate": "2024-06-13T12:28:55Z",
+            "AdvancedBackupSettings": [
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                }
+            ]
+        },
+        {
+            "BackupPlanArn": "foo",
+            "BackupPlanId": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "DeletionDate": "2024-06-13T12:28:55Z",
+            "VersionId": "foo",
+            "BackupPlanName": "foo",
+            "CreatorRequestId": "foo",
+            "LastExecutionDate": "2024-06-13T12:28:55Z",
+            "AdvancedBackupSettings": [
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                }
+            ]
+        },
+        {
+            "BackupPlanArn": "foo",
+            "BackupPlanId": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "DeletionDate": "2024-06-13T12:28:55Z",
+            "VersionId": "foo",
+            "BackupPlanName": "foo",
+            "CreatorRequestId": "foo",
+            "LastExecutionDate": "2024-06-13T12:28:55Z",
+            "AdvancedBackupSettings": [
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                },
+                {
+                    "ResourceType": "foo",
+                    "BackupOptions": {
+                        "0": "foo",
+                        "1": "foo",
+                        "2": "foo"
+                    }
+                }
+            ]
+        }
+    ]
+}

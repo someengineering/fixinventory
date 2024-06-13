@@ -1,0 +1,131 @@
+{
+    "ReportPlans": [
+        {
+            "ReportPlanArn": "foo",
+            "ReportPlanName": "foo",
+            "ReportPlanDescription": "foo",
+            "ReportSetting": {
+                "ReportTemplate": "foo",
+                "FrameworkArns": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "NumberOfFrameworks": 123,
+                "Accounts": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "OrganizationUnits": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "Regions": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "ReportDeliveryChannel": {
+                "S3BucketName": "foo",
+                "S3KeyPrefix": "foo",
+                "Formats": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "DeploymentStatus": "foo",
+            "CreationTime": "2024-06-13T12:28:55Z",
+            "LastAttemptedExecutionTime": "2024-06-13T12:28:55Z",
+            "LastSuccessfulExecutionTime": "2024-06-13T12:28:55Z"
+        },
+        {
+            "ReportPlanArn": "foo",
+            "ReportPlanName": "foo",
+            "ReportPlanDescription": "foo",
+            "ReportSetting": {
+                "ReportTemplate": "foo",
+                "FrameworkArns": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "NumberOfFrameworks": 123,
+                "Accounts": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "OrganizationUnits": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "Regions": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "ReportDeliveryChannel": {
+                "S3BucketName": "foo",
+                "S3KeyPrefix": "foo",
+                "Formats": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "DeploymentStatus": "foo",
+            "CreationTime": "2024-06-13T12:28:55Z",
+            "LastAttemptedExecutionTime": "2024-06-13T12:28:55Z",
+            "LastSuccessfulExecutionTime": "2024-06-13T12:28:55Z"
+        },
+        {
+            "ReportPlanArn": "foo",
+            "ReportPlanName": "foo",
+            "ReportPlanDescription": "foo",
+            "ReportSetting": {
+                "ReportTemplate": "foo",
+                "FrameworkArns": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "NumberOfFrameworks": 123,
+                "Accounts": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "OrganizationUnits": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "Regions": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "ReportDeliveryChannel": {
+                "S3BucketName": "foo",
+                "S3KeyPrefix": "foo",
+                "Formats": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ]
+            },
+            "DeploymentStatus": "foo",
+            "CreationTime": "2024-06-13T12:28:55Z",
+            "LastAttemptedExecutionTime": "2024-06-13T12:28:55Z",
+            "LastSuccessfulExecutionTime": "2024-06-13T12:28:55Z"
+        }
+    ],
+    "NextToken": "foo"
+}

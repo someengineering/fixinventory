@@ -28,13 +28,15 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
-        assert count_kind(resource) > 0, "No instances of {} found".format(resource.__name__)
+        if resource.api_spec is None:
+            continue
+        assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
     # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
-    assert count_kind(AwsResource) == 225
-    assert len(account_collector.graph.edges) == 519
+    assert count_kind(AwsResource) == 255
+    assert len(account_collector.graph.edges) == 572
     assert len(account_collector.graph.deferred_edges) == 2
     for node in account_collector.graph.nodes:
         if isinstance(node, AwsRegion):

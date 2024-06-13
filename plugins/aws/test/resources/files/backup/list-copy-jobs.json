@@ -1,0 +1,104 @@
+{
+    "CopyJobs": [
+        {
+            "AccountId": "foo",
+            "CopyJobId": "foo",
+            "SourceBackupVaultArn": "foo",
+            "SourceRecoveryPointArn": "foo",
+            "DestinationBackupVaultArn": "foo",
+            "DestinationRecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "RUNNING",
+            "StatusMessage": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ResourceType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "CompositeMemberIdentifier": "foo",
+            "NumberOfChildJobs": 123,
+            "ChildJobsInState": {
+                "0": 123,
+                "1": 123,
+                "2": 123
+            },
+            "ResourceName": "foo",
+            "MessageCategory": "foo"
+        },
+        {
+            "AccountId": "foo",
+            "CopyJobId": "foo",
+            "SourceBackupVaultArn": "foo",
+            "SourceRecoveryPointArn": "foo",
+            "DestinationBackupVaultArn": "foo",
+            "DestinationRecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "RUNNING",
+            "StatusMessage": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ResourceType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "CompositeMemberIdentifier": "foo",
+            "NumberOfChildJobs": 123,
+            "ChildJobsInState": {
+                "0": 123,
+                "1": 123,
+                "2": 123
+            },
+            "ResourceName": "foo",
+            "MessageCategory": "foo"
+        },
+        {
+            "AccountId": "foo",
+            "CopyJobId": "foo",
+            "SourceBackupVaultArn": "foo",
+            "SourceRecoveryPointArn": "foo",
+            "DestinationBackupVaultArn": "foo",
+            "DestinationRecoveryPointArn": "foo",
+            "ResourceArn": "foo",
+            "CreationDate": "2024-06-13T12:28:55Z",
+            "CompletionDate": "2024-06-13T12:28:55Z",
+            "State": "RUNNING",
+            "StatusMessage": "foo",
+            "BackupSizeInBytes": 123,
+            "IamRoleArn": "foo",
+            "CreatedBy": {
+                "BackupPlanId": "foo",
+                "BackupPlanArn": "foo",
+                "BackupPlanVersion": "foo",
+                "BackupRuleId": "foo"
+            },
+            "ResourceType": "foo",
+            "ParentJobId": "foo",
+            "IsParent": true,
+            "CompositeMemberIdentifier": "foo",
+            "NumberOfChildJobs": 123,
+            "ChildJobsInState": {
+                "0": 123,
+                "1": 123,
+                "2": 123
+            },
+            "ResourceName": "foo",
+            "MessageCategory": "foo"
+        }
+    ],
+    "NextToken": "foo"
+}
