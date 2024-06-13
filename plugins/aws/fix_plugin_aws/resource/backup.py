@@ -590,7 +590,7 @@ class AwsBackupCopyJob(AwsResource):
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault", "aws_backup_recovery_point"]},
+        "predecessors": {"default": ["aws_backup_plan"]},
         "successors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
@@ -648,10 +648,6 @@ class AwsBackupCopyJob(AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
-        if source_vault_arn := self.destination_backup_vault_arn:
-            builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=source_vault_arn)
-        if source_recovey_point_arn := self.destination_recovery_point_arn:
-            builder.add_edge(self, reverse=True, clazz=AwsBackupRecoveryPoint, id=source_recovey_point_arn)
         if dest_vault_arn := self.destination_backup_vault_arn:
             builder.add_edge(self, clazz=AwsBackupVault, id=dest_vault_arn)
         if dest_recovery_point_arn := self.destination_recovery_point_arn:
