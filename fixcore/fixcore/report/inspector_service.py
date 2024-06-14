@@ -421,24 +421,38 @@ class InspectorService(Inspector, Service):
         results: Dict[str, SingleCheckResult],
         context: CheckContext,
     ) -> BenchmarkResult:
+        node_id_counter = 0
+        # create a unique prefix for benchmark with provided accounts
+        node_id_prefix = "b" + uuid_str(benchmark.id + "".join(set(context.accounts)) if context.accounts else "")[0:8]
+
+        def next_node_id() -> str:
+            nonlocal node_id_counter
+            node_id_counter += 1
+            return f"{node_id_prefix}{node_id_counter:05d}"
+
         def to_result(cc: CheckCollection) -> CheckCollectionResult:
             check_results = []
             for cid in cc.checks or []:
                 if (check := check_by_id.get(cid)) is not None:
                     result = results.get(cid, {})
                     count_by_account = {uid: len(failed) for uid, failed in result.items()}
-                    check_results.append(CheckResult(check, count_by_account, result))
+                    check_results.append(CheckResult(check, count_by_account, result, next_node_id()))
             children = [to_result(c) for c in cc.children or []]
             return CheckCollectionResult(
-                cc.title, cc.description, documentation=cc.documentation, checks=check_results, children=children
+                cc.title,
+                cc.description,
+                documentation=cc.documentation,
+                checks=check_results,
+                children=children,
+                node_id=next_node_id(),
             )
 
         top = to_result(benchmark).filter_result(context.only_failed)
         return BenchmarkResult(
-            benchmark.title,
-            benchmark.description,
-            benchmark.framework,
-            benchmark.version,
+            title=benchmark.title,
+            description=benchmark.description,
+            framework=benchmark.framework,
+            version=benchmark.version,
             documentation=benchmark.documentation,
             checks=top.checks,
             children=top.children,
@@ -446,6 +460,7 @@ class InspectorService(Inspector, Service):
             only_failed=context.only_failed,
             severity=context.severity,
             id=benchmark.id,
+            node_id=next_node_id(),
         )
 
     async def __perform_checks(  # type: ignore
