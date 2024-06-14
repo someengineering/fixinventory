@@ -7,7 +7,7 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -45,7 +45,6 @@ class AwsBackupJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-jobs", "BackupJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupJobId"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "account_id": S("AccountId"),
@@ -100,6 +99,31 @@ class AwsBackupJob(AwsResource):
     initiation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the date on which the backup job was initiated."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and INVALIDPARAMETERS. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(backup_job: AwsBackupJob) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=backup_job.arn,
+            )
+            if tags:
+                backup_job.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_arn := self.resource_arn:
             builder.add_edge(self, clazz=AwsBackupProtectedResource, resource_arn=resource_arn)
@@ -140,7 +164,6 @@ class AwsBackupProtectedResource(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ResourceArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
@@ -162,7 +185,7 @@ class AwsBackupProtectedResource(AwsResource):
             builder.add_edge(self, clazz=AwsResource, arn=resource_arn)
         if vault_arn := self.last_backup_vault_arn:
             builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=vault_arn)
-        if recovery_point_arn := self.last_backup_vault_arn:
+        if recovery_point_arn := self.last_recovery_point_arn:
             builder.add_edge(self, reverse=True, clazz=AwsBackupRecoveryPoint, id=recovery_point_arn)
 
 
@@ -186,7 +209,6 @@ class AwsBackupPlan(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-plans", "BackupPlansList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupPlanId"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("BackupPlanName"),
         "ctime": S("CreationDate"),
         "backup_plan_arn": S("BackupPlanArn"),
@@ -210,6 +232,31 @@ class AwsBackupPlan(AwsResource):
     last_execution_date: Optional[datetime] = field(default=None, metadata={"description": "The last time a job to back up resources was run with this rule. A date and time, in Unix format and Coordinated Universal Time (UTC). The value of LastExecutionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     advanced_backup_settings: Optional[List[AwsBackupAdvancedBackupSetting]] = field(factory=list, metadata={"description": "Contains a list of BackupOptions for a resource type."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(backup_plan: AwsBackupPlan) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=backup_plan.backup_plan_arn,
+            )
+            if tags:
+                backup_plan.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
 
 @define(eq=False, slots=False)
 class AwsBackupVault(AwsResource):
@@ -223,7 +270,6 @@ class AwsBackupVault(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-vaults", "BackupVaultList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupVaultArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("BackupVaultName"),
         "ctime": S("CreationDate"),
         "backup_vault_name": S("BackupVaultName"),
@@ -252,6 +298,7 @@ class AwsBackupVault(AwsResource):
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return [
             cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
             AwsApiSpec(service_name, "list-recovery-points-by-backup-vault"),
         ]
 
@@ -266,10 +313,22 @@ class AwsBackupVault(AwsResource):
             )
             AwsBackupRecoveryPoint.collect(recovery_points, builder)
 
+        def add_tags(backup_plan: AwsBackupVault) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=backup_plan.backup_vault_arn,
+            )
+            if tags:
+                backup_plan.tags = bend(ToDict(), tags)
+
         for js in json:
             if instance := cls.from_api(js, builder):
-                builder.submit_work(service_name, collect_recovery_points, instance)
                 builder.add_node(instance, js)
+                builder.submit_work(service_name, collect_recovery_points, instance)
+                builder.submit_work(service_name, add_tags, instance)
 
 
 @define(eq=False, slots=False)
@@ -311,7 +370,6 @@ class AwsBackupRecoveryPoint(AwsResource):
     # Resource will be collect by AwsBackupVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RecoveryPointArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "recovery_point_arn": S("RecoveryPointArn"),
@@ -362,15 +420,15 @@ class AwsBackupRecoveryPoint(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     vault_type: Optional[str] = field(default=None, metadata={"description": "This is the type of vault in which the described recovery point is stored."})  # fmt: skip
 
-    @classmethod
-    def service_name(cls) -> Optional[str]:
-        return service_name
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:
             builder.add_edge(self, reverse=True, clazz=AwsBackupVault, name=backup_vault_name)
         if (created_by := self.recovery_point_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, id=backup_plan_id)
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 @define(eq=False, slots=False)
@@ -420,7 +478,6 @@ class AwsBackupReportPlan(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-report-plans", "ReportPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReportPlanArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("ReportPlanName"),
         "ctime": S("CreationTime"),
         "report_plan_arn": S("ReportPlanArn"),
@@ -443,6 +500,31 @@ class AwsBackupReportPlan(AwsResource):
     last_attempted_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a report job associated with this report plan last attempted to run, in Unix format and Coordinated Universal Time (UTC). The value of LastAttemptedExecutionTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     last_successful_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a report job associated with this report plan last successfully ran, in Unix format and Coordinated Universal Time (UTC). The value of LastSuccessfulExecutionTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(report_plan: AwsBackupReportPlan) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=report_plan.report_plan_arn,
+            )
+            if tags:
+                report_plan.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (report_setting := self.report_setting) and (framework_arns := report_setting.framework_arns):
             for framework_arn in framework_arns:
@@ -460,7 +542,6 @@ class AwsBackupRestoreTestingPlan(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-testing-plans", "RestoreTestingPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreTestingPlanArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("RestoreTestingPlanName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastUpdateTime"),
@@ -482,6 +563,31 @@ class AwsBackupRestoreTestingPlan(AwsResource):
     schedule_expression_timezone: Optional[str] = field(default=None, metadata={"description": "Optional. This is the timezone in which the schedule expression is set. By default, ScheduleExpressions are in UTC. You can modify this to a specified timezone."})  # fmt: skip
     start_window_hours: Optional[int] = field(default=None, metadata={"description": "Defaults to 24 hours. A value in hours after a restore test is scheduled before a job will be canceled if it doesn't start successfully. This value is optional. If this value is included, this parameter has a maximum value of 168 hours (one week)."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(restore_plan: AwsBackupRestoreTestingPlan) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=restore_plan.id,
+            )
+            if tags:
+                restore_plan.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
 
 @define(eq=False, slots=False)
 class AwsBackupLegalHold(AwsResource):
@@ -495,7 +601,6 @@ class AwsBackupLegalHold(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-legal-holds", "LegalHolds")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LegalHoldId"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "title": S("Title"),
@@ -514,6 +619,31 @@ class AwsBackupLegalHold(AwsResource):
     creation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the time in number format when legal hold was created."})  # fmt: skip
     cancellation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the time in number format when legal hold was cancelled."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(legal_hold: AwsBackupLegalHold) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=legal_hold.legal_hold_arn,
+            )
+            if tags:
+                legal_hold.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
 
 @define(eq=False, slots=False)
 class AwsBackupRestoreJob(AwsResource):
@@ -530,7 +660,6 @@ class AwsBackupRestoreJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreJobId"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "account_id": S("AccountId"),
@@ -573,6 +702,31 @@ class AwsBackupRestoreJob(AwsResource):
     deletion_status: Optional[str] = field(default=None, metadata={"description": "This notes the status of the data generated by the restore test. The status may be Deleting, Failed, or Successful."})  # fmt: skip
     deletion_status_message: Optional[str] = field(default=None, metadata={"description": "This describes the restore job deletion status."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(restore_job: AwsBackupRestoreJob) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=restore_job.arn,
+            )
+            if tags:
+                restore_job.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if testing_plan_arn := self.restore_job_created_by:
             builder.add_edge(self, reverse=True, clazz=AwsBackupRestoreTestingPlan, id=testing_plan_arn)
@@ -596,7 +750,6 @@ class AwsBackupCopyJob(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-copy-jobs", "CopyJobs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CopyJobId"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "account_id": S("AccountId"),
@@ -645,6 +798,31 @@ class AwsBackupCopyJob(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and InvalidParameters. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum"})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(copy_job: AwsBackupCopyJob) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=copy_job.arn,
+            )
+            if tags:
+                copy_job.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
@@ -666,7 +844,6 @@ class AwsBackupFramework(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-frameworks", "Frameworks")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FrameworkArn"),
-        "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("FrameworkName"),
         "ctime": S("CreationTime"),
         "framework_name": S("FrameworkName"),
@@ -682,6 +859,31 @@ class AwsBackupFramework(AwsResource):
     number_of_controls: Optional[int] = field(default=None, metadata={"description": "The number of controls contained by the framework."})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a framework is created, in ISO 8601 representation. The value of CreationTime is accurate to milliseconds. For example, 2020-07-10T15:00:00.000-08:00 represents the 10th of July 2020 at 3:00 PM 8 hours behind UTC."})  # fmt: skip
     framework_deployment_status: Optional[str] = field(default=None, metadata={"description": "The deployment status of a framework. The statuses are:  CREATE_IN_PROGRESS | UPDATE_IN_PROGRESS | DELETE_IN_PROGRESS | COMPLETED | FAILED"})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(framework: AwsBackupFramework) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=framework.framework_arn,
+            )
+            if tags:
+                framework.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
 
 
 resources: List[Type[AwsResource]] = [
