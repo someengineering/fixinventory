@@ -420,6 +420,30 @@ class AwsBackupRecoveryPoint(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     vault_type: Optional[str] = field(default=None, metadata={"description": "This is the type of vault in which the described recovery point is stored."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(recovery_point: AwsBackupRecoveryPoint) -> None:
+            tags = builder.client.list(
+                service_name,
+                "list-tags",
+                "Tags",
+                expected_errors=["ResourceNotFoundException"],
+                ResourceArn=recovery_point.recovery_point_arn,
+            )
+            if tags:
+                recovery_point.tags = bend(ToDict(), tags)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_tags, instance)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:
             builder.add_edge(self, reverse=True, clazz=AwsBackupVault, name=backup_vault_name)
